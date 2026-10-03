@@ -62,7 +62,7 @@ export interface AgentInstanceListProps {
  * Sessions, the primary row verb is **Start session** (bound to the chosen
  * instance) rather than "Run".
  *
- * This is an SDK component (DD-001) — embeddable by platform builders.
+ * This is an SDK component — embeddable by platform builders.
  */
 export function AgentInstanceList({
   agentId,

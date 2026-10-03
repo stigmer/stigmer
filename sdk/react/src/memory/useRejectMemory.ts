@@ -26,7 +26,7 @@ export interface UseRejectMemoryReturn {
  * deleting a confirmed memory is how it is revoked.
  *
  * Rejection is deliberately one click on every surface, with no
- * confirmation dialog (DD-005 D4): expensive review teaches users to
+ * confirmation dialog: expensive review teaches users to
  * ignore the proposal queue.
  *
  * @example

@@ -186,7 +186,7 @@ describe("prepareAgentExec env injection", () => {
   });
 });
 
-describe("prepareAgentExec account-preference model fill (oss#293 Phase 1.5)", () => {
+describe("prepareAgentExec account-preference model fill (oss#293)", () => {
   it("fills an omitted --model from the account preference on cloud", async () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
@@ -212,7 +212,7 @@ describe("prepareAgentExec account-preference model fill (oss#293 Phase 1.5)", (
   it("never consults identity where the kind is not served", async () => {
     // The failing stub doubles as a call detector: a backend that does not
     // serve identity accounts must not even attempt whoAmI, so a rejecting
-    // client cannot affect the result. (20260911.11 A3: the gate is the
+    // client cannot affect the result. (The gate is the
     // kind's tier, not the backend type — client/edition.ts resourceServedOn.)
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
@@ -392,8 +392,8 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
     expect(prepared.model).toBe("gpt-5.3");
   });
 
-  it("draft with an explicit --harness cursor fills the cursor model despite no harness opt-in (D5)", async () => {
-    // D5 scopes only the silent preference fill; the model fill follows
+  it("draft with an explicit --harness cursor fills the cursor model despite no harness opt-in", async () => {
+    // The opt-in scopes only the silent preference fill; the model fill follows
     // whatever harness the user explicitly chose.
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "cursor" },

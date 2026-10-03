@@ -214,7 +214,7 @@ function isZip(bytes: Uint8Array): boolean {
 }
 
 /**
- * The layout contract is root-only on both editions (DD-018, #452): the
+ * The layout contract is root-only on both editions (#452): the
  * server rejects an archive whose only SKILL.md is nested, so the preview
  * must too — accepting it here converts a clear pre-upload error into a
  * confusing post-upload rejection (issue #684).

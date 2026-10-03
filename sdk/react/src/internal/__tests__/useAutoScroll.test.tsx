@@ -23,7 +23,7 @@ function Harness() {
 }
 
 /**
- * The conversation-timeline shape (channel-conversations F-09): the content
+ * The conversation-timeline shape: the content
  * wrapper legitimately sits inside a loading branch, so it does NOT exist on
  * the first render — the hook must attach its ResizeObserver whenever the
  * wrapper appears, not only at mount.
@@ -122,12 +122,12 @@ afterEach(() => {
  * scrolled again (the stale-payload race pinned in the browser suite) —
  * so the entry list itself is deliberately empty here.
  *
- * The far-from-bottom position is 100, not 0, and that is load-bearing:
- * the hook disengages only when the READER moved (scrollTop differs from
- * the hook's own last write — the growth-vs-reader discriminator,
- * stigmer-cloud#267), and in this harness the mount write landed at 0
- * (happy-dom scrollHeight is 0 at mount). A real reader's scroll-up always
- * moves scrollTop off the pin position; 100 simulates exactly that.
+ * The far-from-bottom position is 100, not 0, and that is load-bearing: the
+ * hook disengages only when the READER moved (scrollTop differs from the hook's
+ * own last write — the growth-vs-reader discriminator), and in this harness the
+ * mount write landed at 0 (happy-dom scrollHeight is 0 at mount). A real
+ * reader's scroll-up always moves scrollTop off the pin position; 100 simulates
+ * exactly that.
  */
 function fireIO(nearBottom: boolean) {
   const scroller = screen.getByTestId("scroller");
@@ -166,7 +166,7 @@ describe("useAutoScroll", () => {
     expect(roObserve).toHaveBeenCalledWith(screen.getByTestId("content"));
   });
 
-  it("observes content that mounts after the first render (F-09: loading-branch consumers)", () => {
+  it("observes content that mounts after the first render (loading-branch consumers)", () => {
     const { rerender } = render(<LateContentHarness showContent={false} />);
     expect(roObserve).not.toHaveBeenCalled();
 
@@ -219,7 +219,7 @@ describe("useAutoScroll", () => {
     expect(latestResult.isFollowing).toBe(true);
   });
 
-  it("holds follow when a not-visible delivery measures growth under the hook's own pin — only the READER may disengage (stigmer-cloud#267)", () => {
+  it("holds follow when a not-visible delivery measures growth under the hook's own pin — only the READER may disengage", () => {
     render(<Harness />);
     const scroller = screen.getByTestId("scroller");
     Object.defineProperty(scroller, "clientHeight", { value: 200, configurable: true });

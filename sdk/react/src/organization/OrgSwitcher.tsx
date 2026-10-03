@@ -201,7 +201,7 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
               "stg:duration-150",
             )}
           />
-          {/* eslint-disable stigmer/no-main-tokens-in-sidebar -- The entire dialog is portaled outside the sidebar; main-area tokens are correct per DD-005. */}
+          {/* eslint-disable stigmer/no-main-tokens-in-sidebar -- The entire dialog is portaled outside the sidebar; main-area tokens are correct there. */}
           <DialogPrimitive.Popup
             className={cn(
               "stg:bg-background stg:text-foreground stg:ring-border/20",

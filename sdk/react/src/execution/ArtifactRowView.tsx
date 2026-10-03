@@ -48,7 +48,7 @@ export interface ArtifactRowViewProps {
  * and workflow `WorkflowArtifactRow` — own identity, adapters, and download
  * wiring.
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  */
 export function ArtifactRowView({
   item,

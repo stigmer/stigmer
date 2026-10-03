@@ -1,5 +1,5 @@
-// Unit tests for `stigmer auth login`'s result (commands/auth/login.ts;
-// 20260911.11 A3): after the browser flow persists the tokens, the command
+// Unit tests for `stigmer auth login`'s result (commands/auth/login.ts):
+// after the browser flow persists the tokens, the command
 // runs the SDK's ensureMyIdentityAccount — the console's first-sign-in flow —
 // so a CLI-only user is provisioned. loginResult is the pure half: given how
 // the account setup went, the CommandResult a person reads.

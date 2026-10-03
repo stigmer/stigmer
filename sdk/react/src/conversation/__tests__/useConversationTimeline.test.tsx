@@ -164,7 +164,7 @@ describe("useConversationTimeline", () => {
     expect(result.current.items).toHaveLength(1);
   });
 
-  it("keeps item and list references stable across polls that change nothing (DD-010)", async () => {
+  it("keeps item and list references stable across polls that change nothing", async () => {
     const getTimeline = vi.fn().mockImplementation(() =>
       Promise.resolve({
         // Fresh-but-equal proto objects every call, like a real poll.
@@ -209,7 +209,7 @@ describe("useConversationTimeline", () => {
     expect(result.current.hasOlder).toBe(false);
   });
 
-  it("refetches the head when the window regains focus (DD-012: refocus is fresh)", async () => {
+  it("refetches the head when the window regains focus", async () => {
     const getTimeline = vi.fn().mockResolvedValue({ items: [], nextPageToken: "" });
     renderHook(() => useConversationTimeline("ach_1", "15550001111", NO_POLL), {
       wrapper: wrapper(createMockStigmer(getTimeline)),

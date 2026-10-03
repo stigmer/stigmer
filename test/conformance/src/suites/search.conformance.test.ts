@@ -8,12 +8,12 @@
 // query = full-text search (relevance ordering), empty kinds = discover
 // across every searchable kind. The suite asserts MEMBERSHIP and
 // stable-property contracts only — never BM25 scores or relative ranking,
-// which are implementation-tunable (D1's explicit instruction).
+// which are implementation-tunable.
 //
-// Error arms are pinned by CODE only (ratified guard P2): the Go
-// controller maps handler errors by string-matching and sanitizes
-// everything unmatched to a generic Internal (#478), so message text is
-// deliberately not part of the wire contract here.
+// Error arms are pinned by CODE only: the retired Go controller mapped
+// handler errors by string-matching and sanitized everything unmatched to a
+// generic Internal (#478), so message text is deliberately not part of the
+// wire contract here.
 //
 // Indexing is synchronous on resource writes in both editions' stores, so
 // create-then-search needs no polling — a deliberate property this suite
@@ -103,7 +103,7 @@ describe("Search conformance — search mode (text query)", () => {
     });
 
     // Membership only: exactly the token-carrying agent, with SOME
-    // positive score — never a pinned value or ranking (D1).
+    // positive score — never a pinned value or ranking.
     expect(response.entries).toHaveLength(1);
     expect(response.entries[0]?.id).toBe(match.metadata?.id);
     expect(response.entries[0]?.score).toBeGreaterThan(0);
@@ -227,7 +227,7 @@ describe("Search conformance — pagination clamping", () => {
   });
 });
 
-describe("Search conformance — validation arms (codes only, P2)", () => {
+describe("Search conformance — validation arms (codes only)", () => {
   it("[rpc:SearchService.search] rejects an over-length query (InvalidArgument)", async () => {
     await expectGrpcCode(
       () => clients.search.search({ query: "x".repeat(501) }),

@@ -6,8 +6,6 @@ import { taskKindToString } from "../workflow-graph-conversions.js";
  *
  * Produces a standalone YAML block for the task, suitable for
  * display in the inspector's "View YAML" action.
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export function taskToYaml(node: WorkflowGraphNode): string {
   const kindStr = taskKindToString(node.kind);

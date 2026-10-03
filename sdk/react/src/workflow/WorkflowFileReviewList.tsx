@@ -40,7 +40,7 @@ export interface WorkflowFileReviewListProps {
   /**
    * Optional deep-link to open the child agent execution in its own view. When
    * provided, each child's review renders a "View agent execution" affordance.
-   * Routing is the host's responsibility (DD-004).
+   * Routing is the host's responsibility.
    */
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
   /** Additional CSS class names for the root container. */

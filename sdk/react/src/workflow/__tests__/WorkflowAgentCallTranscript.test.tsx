@@ -29,7 +29,7 @@ vi.mock("../../execution/useLiveAgentExecution", () => ({
 }));
 // The thread is the execution domain's heaviest organism; the transcript's
 // contract with it is props-shaped, so a probe recording them suffices.
-// The FileReviewDock renders REAL — its decision routing is the S5 subject.
+// The FileReviewDock renders REAL — its decision routing is under test.
 // useInViewport runs REAL over the stubbed IntersectionObserver below, so
 // the viewport gate is exercised end-to-end (ref attachment included).
 vi.mock("../../execution/MessageThread", () => ({
@@ -203,7 +203,7 @@ describe("WorkflowAgentCallTranscript", () => {
     expect(root.className).not.toContain("stg:h-full");
   });
 
-  it("is read-only without hitl: no thread handlers, no records, no dock (DD-011)", () => {
+  it("is read-only without hitl: no thread handlers, no records, no dock", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
         execution: executionFixture(
@@ -314,7 +314,7 @@ describe("WorkflowAgentCallTranscript", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Viewport-gated streaming (T07)
+// Viewport-gated streaming
 // ---------------------------------------------------------------------------
 
 describe("WorkflowAgentCallTranscript — viewport gate", () => {
@@ -358,7 +358,7 @@ describe("WorkflowAgentCallTranscript — viewport gate", () => {
 });
 
 // ---------------------------------------------------------------------------
-// In-place HITL (migrated from the S4 document, whose tab this replaces)
+// In-place HITL (migrated from the document tab this replaces)
 // ---------------------------------------------------------------------------
 
 describe("WorkflowAgentCallTranscript — HITL wiring", () => {
@@ -488,7 +488,7 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
 
     // Same refs (the viewer's memoized bundle) → memo bails, no thread
     // render. This is what keeps unrelated viewer churn out of every
-    // mounted transcript (DD-010).
+    // mounted transcript.
     rerender(<WorkflowAgentCallTranscript {...props} />);
     expect(mockMessageThread.mock.calls.length).toBe(rendersAfterMount);
 
@@ -531,7 +531,7 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Routing guardrail: decisions go through the WORKFLOW RPCs (S5, preserved)
+// Routing guardrail: decisions go through the WORKFLOW RPCs
 // ---------------------------------------------------------------------------
 
 /**

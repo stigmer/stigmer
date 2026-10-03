@@ -135,7 +135,7 @@ describe("prepareImageForVision — real pixel pipeline", () => {
   });
 
   it("keeps worst-case photographic content under the runner's inline byte cap", async () => {
-    // Evidence gate from the T05 plan. Pure noise is the least-compressible
+    // An evidence gate: pure noise is the least-compressible
     // content an image can carry; at the fitted resolution a noise PNG
     // encodes to ~3.4 MB — over the runner's per-image inline cap — which
     // is exactly what the PNG-density JPEG fallback exists to catch.

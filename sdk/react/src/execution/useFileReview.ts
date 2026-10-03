@@ -31,7 +31,7 @@ export interface FileDecisionOptions {
    * Set on an APPROVE to consciously KEEP a change whose diff could not be fully
    * reviewed. Honored only for a binary file at `FILE` scope (a binary has no
    * text diff, but its exact bytes are captured and reconcilable). It never
-   * relaxes the digest gate, and is ignored for other incompleteness. See DD-16.
+   * relaxes the digest gate, and is ignored for other incompleteness.
    */
   readonly acknowledgeUnreviewable?: boolean;
 }

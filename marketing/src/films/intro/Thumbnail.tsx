@@ -10,8 +10,7 @@ import { StigmerMark } from "./graphics/StigmerMark";
  * springs are 0 at frame 0, which is the only frame a still has, so
  * motion helpers would render everything invisible here.
  *
- * The layout is the headline-dominant candidate chosen at the thumbnail
- * gate (stigmer-cloud project 20260902.01.stigmer-intro-video): oversized
+ * The layout is the headline-dominant candidate: oversized
  * headline left, the presenter right, the mark as a corner signature —
  * sized to stay readable at YouTube's ~320px search-result card.
  *
@@ -33,8 +32,7 @@ const S = THUMB_HEIGHT / 1080;
 
 /**
  * The frame of s6-close used as the portrait: ~9s in, her open-hands
- * "here it is" beat — the most inviting moment across the three clips
- * (chosen at the thumbnail gate).
+ * "here it is" beat — the most inviting moment across the three clips.
  */
 const PRESENTER_CLIP = "presenter/s6-close.mp4";
 const PRESENTER_FRAME = 270;

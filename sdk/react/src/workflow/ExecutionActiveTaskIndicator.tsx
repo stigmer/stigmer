@@ -33,7 +33,7 @@ export interface ExecutionActiveTaskIndicatorProps {
  * - Handles waiting_approval state (amber styling + action label)
  * - Handles concurrent tasks in fork (shows count)
  *
- * Designed as an SDK component (DD-001, DD-004) — works identically
+ * Designed as an SDK component — works identically
  * in the Console and embedded in third-party dashboards.
  */
 export const ExecutionActiveTaskIndicator = memo(function ExecutionActiveTaskIndicator({

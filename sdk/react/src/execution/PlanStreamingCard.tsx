@@ -47,7 +47,7 @@ export interface PlanStreamingCardProps {
  * `plan-completion` item under the same list key.
  *
  * The pulsing icon is the progress affordance: a CSS animation inside `.stgm`,
- * covered by the stylesheet's global `prefers-reduced-motion` rule (DD-015),
+ * covered by the stylesheet's global `prefers-reduced-motion` rule,
  * and safe under virtualization (no `@starting-style`).
  *
  * All visual properties flow through `--stgm-*` tokens; the component is

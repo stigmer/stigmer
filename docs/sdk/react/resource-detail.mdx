@@ -15,8 +15,7 @@ Provides an imperative `confirm()` function that returns a promise,
 paired with `confirmState` for rendering a `ConfirmDialog`.
 
 Separates the state logic (this hook) from the visual presentation
-(ConfirmDialog component) following the headless-first architecture
-(DD-003).
+(ConfirmDialog component) following the headless-first architecture.
 
 **Signature**
 
@@ -210,7 +209,7 @@ Renders a standardized header (icon, name, org, timestamps, status,
 visibility control), an action bar (primary button + kebab overflow),
 optional tabs, and a content area — all themed via `--stgm-*` tokens.
 
-The shell receives pre-fetched data via props (DD-T03-001). It does
+The shell receives pre-fetched data via props. It does
 NOT own data fetching — resource-specific hooks (`useAgent`, `useSkill`,
 etc.) handle that. The shell is a layout + behavior coordinator, not
 a data-fetching component.

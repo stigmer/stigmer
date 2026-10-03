@@ -30,7 +30,7 @@
 // Gated on the target exposing an httpBaseUrl (the local OSS targets): the
 // cloud edition serves registries through its own authenticated routes — a
 // different contract — so this file reports SKIPPED there rather than a
-// false green (the DD-012 posture).
+// false green.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createTarget, type TargetProfile } from "../targets";
 

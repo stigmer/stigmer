@@ -1,6 +1,6 @@
 /**
  * Take-over-conversations tour — the screenshot journey behind
- * `docs/guides/channels/take-over-conversations.mdx` (stigmer-cloud#276).
+ * `docs/guides/channels/take-over-conversations.mdx`.
  *
  * Five beats over the real `ConversationsWorkbench`, one per section of the
  * guide, each a settled frame the page places as a `<Still>`. The beats are

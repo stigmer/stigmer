@@ -22,7 +22,7 @@ export interface FileReviewRecordProps {
 
 /**
  * A read-only, append-only record of a SETTLED file-review change set — the
- * terminal analogue of the web's in-thread `FileReviewRecordRow` (DD-27 D2).
+ * terminal analogue of the web's in-thread `FileReviewRecordRow`.
  *
  * Its primary job is the no-stamped-row case: a set changed only via shell
  * commands stamps no edit rows, so the per-row badges leave no trace and this

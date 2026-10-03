@@ -3,8 +3,8 @@
 // Emits one `{type, ts, payload}` envelope per event, where `type` is the
 // canonical WorkflowEventType name (e.g. "execution_started") — the server's
 // own vocabulary, not a CLI invention. This is the machine-readable workflow
-// stream that the Go CLI never produced (defect D-WF-1): Go's
-// `run workflow --json` flag was silently ignored.
+// stream that the Go CLI never produced: Go's `run workflow --json` flag was
+// silently ignored.
 //
 // The payload carries the always-present envelope fields plus the salient,
 // event-specific fields extracted from the typed oneof. Empty/nil fields are

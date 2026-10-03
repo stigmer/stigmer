@@ -25,11 +25,15 @@
 //      must carry this engine's signing identity, which is why the engine needs
 //      no disable-library-validation grant.
 //   5. The staged runner boots on this engine: the runner's own slim-artifact
-//      gate (backend/services/runner/scripts/verify-slim-artifact.mjs) runs its
-//      size budget and authenticated boot guard with --node set to this
-//      process. With --temporal it runs the full ready → sessionAdded →
-//      shutdownComplete lifecycle too, which needs a reachable Temporal server
-//      (TEMPORAL_SERVICE_ADDRESS, default localhost:7233).
+//      gate (backend/services/runner/scripts/verify-slim-artifact.mjs) runs
+//      with --node set to this process: its size budget, the authenticated
+//      boot guard, @cursor/sdk and its platform package loading from the
+//      staged runner, and (not on Windows, where neither runs) a cloud-mode
+//      boot and the attach waiter's boot. With --temporal it boots static
+//      mode and runs the full ready → sessionAdded → shutdownComplete
+//      lifecycle too (and, not on Windows, a warm-pool member), which needs a
+//      reachable Temporal server (TEMPORAL_SERVICE_ADDRESS, default
+//      localhost:7233).
 //
 // Usage:
 //   <engine> scripts/verify-staged-runtime.mjs [--resources <dir>] [--temporal]

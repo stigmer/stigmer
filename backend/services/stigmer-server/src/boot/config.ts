@@ -21,12 +21,14 @@
 import os from "node:os";
 import path from "node:path";
 
+import { isReleaseVersion } from "@stigmer/plugin-package/client";
 import {
   loadTemporalConnectionConfig,
   TEMPORAL_CONNECTION_ENV_NAMES,
 } from "@stigmer/temporal-codecs";
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 
+import { SERVER_VERSION } from "../domain/platform/version.js";
 import { SANDBOX_DRIVER_OWNED_RUNNER_ENV } from "../sandbox/provisioner.js";
 import { RUNNER_SECRET_NAMES } from "../sandbox/runner-secret-names.js";
 
@@ -272,8 +274,8 @@ export interface ServerConfig {
   readonly sandboxTemporalAddress: string;
   /**
    * The runner image container-based provisioners launch
-   * (STIGMER_SANDBOX_RUNNER_IMAGE). The default is the published cloud
-   * sandbox image (Dockerfile.sandbox's `sandbox` stage).
+   * (STIGMER_SANDBOX_RUNNER_IMAGE). The default is the published sandbox
+   * image of this server's release (defaultSandboxRunnerImage).
    */
   readonly sandboxRunnerImage: string;
   /**
@@ -337,10 +339,27 @@ export const DEFAULT_GRPC_PORT = 7234;
 export const DEFAULT_MODEL_REGISTRY_UPSTREAM = "https://api.stigmer.ai";
 
 /**
- * The published cloud sandbox runner image (release.sandbox-cloud.yaml
- * pushes it; the cloud's Kubernetes provisioner launches the same image).
+ * The sandbox runner image this server launches when the operator names
+ * none: the image of its own release, `ghcr.io/stigmer/runner:v<version>`
+ * (release.sandbox-cloud.yaml tags one per release, `X.Y.Z` and
+ * `X.Y.Z-rc.N`), because the launch command (sandbox/runner-launch.ts) is
+ * a contract between a server and the image it starts, and `latest` moves
+ * on every runner change to `main`. Only a bundled server knows its version
+ * (the release lane stamps SERVER_VERSION into the server image, the
+ * all-in-one image and @stigmer/server-slim); the @stigmer/server library
+ * and an unbundled build report `dev`, and a dev-channel stamp has no
+ * published image, so those fall back to `latest`, and a composition that
+ * embeds the library names its image itself (the cloud selects the image
+ * of the release it pins). isReleaseVersion is the one test of which
+ * versions the release lane publishes.
  */
-export const DEFAULT_SANDBOX_RUNNER_IMAGE = "ghcr.io/stigmer/runner:latest";
+export function defaultSandboxRunnerImage(
+  serverVersion: string = SERVER_VERSION,
+): string {
+  return isReleaseVersion(serverVersion)
+    ? `ghcr.io/stigmer/runner:v${serverVersion}`
+    : "ghcr.io/stigmer/runner:latest";
+}
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const { operatorEmail, operatorName } = loadOperatorIdentity(env);
@@ -444,7 +463,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     sandboxRunnerImage: envString(
       env,
       "STIGMER_SANDBOX_RUNNER_IMAGE",
-      DEFAULT_SANDBOX_RUNNER_IMAGE,
+      defaultSandboxRunnerImage(),
     ),
     sandboxRunnerCommand: envString(
       env,

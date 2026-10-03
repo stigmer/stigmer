@@ -92,7 +92,7 @@ describe("buildCapturedFileChange", () => {
     expect(change.blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
   });
 
-  it("passes through an explicit blocked_reason (doc 15)", () => {
+  it("passes through an explicit blocked_reason", () => {
     const change = buildCapturedFileChange({
       id: "fc-secret",
       pathBefore: ".env",

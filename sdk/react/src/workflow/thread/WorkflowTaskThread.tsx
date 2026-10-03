@@ -42,11 +42,11 @@ import type {
  * of the single `useWorkflowExecutionActions` instance's return (cannot
  * drift; same convention as `WorkflowAgentExecutionHitl`). Covers all three
  * gate kinds: child tool approvals, child file reviews, and task-level
- * (human_input) approvals — since T06 the gating card is the ONLY decision
+ * (human_input) approvals — the gating card is the ONLY decision
  * surface, so the thread carries the full set. Decisions route through the
  * WORKFLOW-level RPCs only — never the child's own `agentExecution.*` path,
  * whose authorization checks the runner-spawned child rather than the
- * workflow execution the operator owns (S5 rationale).
+ * workflow execution the operator owns.
  */
 export type WorkflowThreadHitl = Pick<
   UseWorkflowExecutionActionsReturn,
@@ -71,7 +71,7 @@ export interface WorkflowTaskThreadProps {
   readonly isRunning: boolean;
   /**
    * Open an AGENT_CALL task's child execution as a standalone page — the
-   * inline transcript's deep-dive pop-out. Host-routed (DD-004). Omitted →
+   * inline transcript's deep-dive pop-out. Host-routed. Omitted →
    * the affordance is not rendered.
    */
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
@@ -80,13 +80,13 @@ export interface WorkflowTaskThreadProps {
    * provided, a gating task's card renders its decision surface directly in
    * the thread — always visible while the gate is pending, never behind the
    * expand chevron (the run is blocked). Omitted → the thread is read-only
-   * and behaves exactly as before (DD-011; the S5 omitted-`hitl` precedent).
+   * and behaves exactly as before (backward compatible).
    */
   readonly hitl?: WorkflowThreadHitl;
   /**
    * Per-task status snapshots (`status.tasks[]`) keyed by task name — the
-   * FULL I/O source for card bodies (T04), never an event-log scan
-   * (DD-T04-5). The map's identity changes only on a snapshot refetch
+   * FULL I/O source for card bodies, never an event-log scan
+   * The map's identity changes only on a snapshot refetch
    * (rare), never on stream event appends, so memoized cards keep bailing
    * during streaming. Omitted → bodies degrade to the truncated event
    * summaries already on the items.
@@ -94,12 +94,12 @@ export interface WorkflowTaskThreadProps {
   readonly taskSnapshotsByName?: ReadonlyMap<string, WorkflowTask>;
   /**
    * Scroll to the latest content when the reader submits a HITL decision
-   * from a scrolled-up position (stigmer-cloud#267) — the workflow surface's
+   * from a scrolled-up position — the workflow surface's
    * send-analog: approving a gate, deciding a file review, or answering a
    * task-level human_input gate re-engages follow mode, so the run's
    * continuation lands in view. Incoming task activity is unaffected — it
    * still never moves a scrolled-up reader. Default `true` on all three SDK
-   * thread surfaces at once (the ratified DD-011 divergence — cross-surface
+   * thread surfaces at once (a deliberate change of default — cross-surface
    * consistency is the point); set `false` to keep today's behavior.
    *
    * @default true
@@ -111,18 +111,18 @@ export interface WorkflowTaskThreadProps {
 
 /**
  * Session-style task thread for a workflow execution: one card per task in
- * execution order (first-started first — D-T02-1), streaming live as the
+ * execution order (first-started first), streaming live as the
  * run progresses, with a collapsed preview and an expandable detail body
  * per card — the workflow analog of the session viewer's tool-call cards.
  *
- * Pending tasks render no cards (D-T02-5); the progress header keeps
+ * Pending tasks render no cards; the progress header keeps
  * overall status visible. Retries collapse into one card with an attempt
- * indicator (D-T02-6). AGENT_CALL cards render the child's FULL transcript
- * inline as the card body (T07) — live-streaming while the child runs,
+ * indicator. AGENT_CALL cards render the child's FULL transcript
+ * inline as the card body — live-streaming while the child runs,
  * complete history once settled — the session experience in place, with an
- * "Open standalone" pop-out for a deep dive. Since T04 the card is the
+ * "Open standalone" pop-out for a deep dive. The card is the
  * PRIMARY surface for a task's data (kind-aware preview line + bounded I/O
- * body); since T06 it is the ONLY one — the Inspect drill-down is gone, and
+ * body), and the ONLY one — the Inspect drill-down is gone, and
  * cards compose the session card language exactly (expand-or-none headers,
  * no selection).
  *
@@ -131,7 +131,7 @@ export interface WorkflowTaskThreadProps {
  * up, with a jump-to-latest affordance to re-engage.
  *
  * With `hitl` wired, a gating task's card carries its decision surface
- * in-thread (S10/T06/T07): the child's own inline transcript renders the
+ * in-thread: the child's own inline transcript renders the
  * canonical `ApprovalCard`s and `FileReviewCard`s for child gates, and the
  * full `WorkflowTaskReviewGate` (custom review renderers included) renders
  * for task-level human_input gates — with a read-only
@@ -155,7 +155,7 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
   const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
     useAutoScroll();
 
-  // Scroll-on-send (stigmer-cloud#267): submitting a decision pins the
+  // Scroll-on-send: submitting a decision pins the
   // thread before delegating, so the unblocked run's continuation lands in
   // view. The wrapper's identity moves with the bundle's — deliberate: the
   // bundle re-materializes exactly when its gate state flips (see the
@@ -197,7 +197,7 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
                 key={item.taskName}
                 item={item}
                 onNavigateToAgentExecution={onNavigateToAgentExecution}
-                // HITL props reach ONLY gating cards (DD-010): the bundle's
+                // HITL props reach ONLY gating cards: the bundle's
                 // identity moves whenever any gate's in-flight/error state
                 // flips (fresh Set/Map fields), so handing it to every card
                 // would re-render the whole column per spinner tick. Scoped
@@ -272,7 +272,7 @@ function ThreadEmptyState({ isRunning }: { readonly isRunning: boolean }) {
 // ---------------------------------------------------------------------------
 
 /**
- * One task card. Memoized against the structurally-shared item (DD-010):
+ * One task card. Memoized against the structurally-shared item:
  * during streaming only the actively-changing task's item gets a fresh
  * identity, so settled cards bail here. `hitl` arrives ONLY while this
  * card is gating (the thread scopes it — see the render site), so
@@ -282,20 +282,20 @@ function ThreadEmptyState({ isRunning }: { readonly isRunning: boolean }) {
  * Expansion is local row state — expanding one card never re-renders its
  * siblings.
  *
- * Disclosure (T04, the session `ToolCallItem` rule — "does the body carry
+ * Disclosure (the session `ToolCallItem` rule — "does the body carry
  * content the one-line row cannot?"):
  * - `"preview"` kinds render an ALWAYS-VISIBLE bounded output body (no
  *   card chevron — `BoundedContent` owns its own in-place reveal, so the
  *   old "expand, then Show more" double control never comes back).
  * - `"summary"` kinds expand from the header — the session card's own
- *   gesture, the chevron appended by the shell (T06) — but ONLY when the
- *   detail body would carry content (stigmer#886): since R6-6 moved
- *   Status/Duration onto the header, a settled wait card often has
+ *   gesture, the chevron appended by the shell — but ONLY when the
+ *   detail body would carry content (stigmer#886): with Status/Duration
+ *   on the header, a settled wait card often has
  *   nothing left to reveal, and a chevron that opens an empty body is
  *   worse than no chevron. The gate is the summary twin of
  *   `showPreviewBody` below.
  * - AGENT_CALL cards with a spawned child render the child's inline
- *   transcript as the body (T07) — keyed on the VARIANT, not the
+ *   transcript as the body — keyed on the VARIANT, not the
  *   disclosure, so a platform builder's presenter override can never route
  *   the flagship card away from its transcript. An agent_call that failed
  *   BEFORE spawning a child (agent resolution error) has no transcript and
@@ -315,7 +315,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
   const [expanded, setExpanded] = useState(false);
 
   // The I/O fallback ladder (full snapshot value → truncated event summary
-  // → nothing) — an O(1) lookup, never an event-log scan (T04).
+  // → nothing) — an O(1) lookup, never an event-log scan.
   const outputIO = useMemo(
     () => buildIO(snapshot?.output, item.outputSummary, snapshot?.artifactIds ?? []),
     [snapshot, item.outputSummary],
@@ -325,7 +325,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
     [snapshot, item.inputSummary],
   );
 
-  // The human_input gate record (T06): the review material for a pending
+  // The human_input gate record: the review material for a pending
   // gate, the decision report for a resolved one. Memoized on the captured
   // payloads' identities — the store keeps them reference-stable, so these
   // recompute only when a gate opens/resolves or the snapshot refetches.
@@ -345,7 +345,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
   );
 
   const isPreview = item.disclosure === "preview";
-  // The flagship card (T07): an AGENT_CALL with a spawned child renders the
+  // The flagship card: an AGENT_CALL with a spawned child renders the
   // child's transcript inline as its body — the single home for everything
   // the child did. Child gates decide INSIDE the transcript (the session's
   // own ApprovalCard/FileReviewDock), so the generic HITL section below is
@@ -385,7 +385,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
     tokens: item.tokensUsed,
   });
   // Kind-aware one-liner resolved by `resolveTaskPreview` in the projection
-  // (T04) — a primitive on the item so this memoized card bails during
+  // — a primitive on the item so this memoized card bails during
   // streaming. The empty string means "nothing kind-specific to say".
   const preview = item.previewLine || null;
 
@@ -394,7 +394,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
       accent={item.status === "waiting_approval" ? "warning" : null}
       cursorTarget="workflow-task-row"
     >
-      {/* The session card's gestures exactly (T06): summary rows with a
+      {/* The session card's gestures exactly: summary rows with a
           content-bearing detail expand from the header (chevron appended
           by the shell); preview, transcript, and body-less summary rows
           are plain layout rows. */}
@@ -438,11 +438,11 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
         )}
       </ThreadCardHeader>
 
-      {/* In-thread HITL (S10/T06): the task-level (human_input) decision
+      {/* In-thread HITL: the task-level (human_input) decision
           surface renders whenever the task is gating — ALWAYS visible,
           never behind the expand chevron (the run is blocked; Nielsen #1).
           Child gates are NOT rendered here — they decide inside the
-          transcript body below (T07). */}
+          transcript body below. */}
       {showHitl && hitl && (
         <ThreadCardBody>
           <ThreadTaskCardHitl
@@ -455,7 +455,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
 
       {/* The child's inline transcript — the agent-call card's body for
           every state: streaming while the child runs, full history once
-          settled, the child's own gates decided in place (T07). The task's
+          settled, the child's own gates decided in place. The task's
           own error (e.g. "child execution failed") renders above it. */}
       {showTranscript && (
         <ThreadCardBody cursorTarget="task-transcript">
@@ -481,7 +481,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
         </ThreadCardBody>
       )}
 
-      {/* Always-visible bounded output body for I/O-bearing kinds (T04) —
+      {/* Always-visible bounded output body for I/O-bearing kinds —
           the session's preview-card model. Also the fallback for an
           agent_call that failed before spawning a child (no transcript to
           show; the error must still surface). */}
@@ -512,18 +512,18 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
 });
 
 // ---------------------------------------------------------------------------
-// In-thread HITL section (S10)
+// In-thread HITL section
 // ---------------------------------------------------------------------------
 
 /**
- * The decision surface on a gating card — since T07 this is the task-level
+ * The decision surface on a gating card — the task-level
  * (human_input) gate only. Child gates (tool approvals, file reviews) are
  * the inline transcript's job: an AGENT_CALL card's body renders the
  * child's own `ApprovalCard`s and `FileReviewDock`, so this section never
  * renders for transcript cards (see `showHitl` at the card).
  *
  * The full review surface — outcomes, forms, artifact-backed payloads,
- * custom review renderers — renders right here (T06): the card is the only
+ * custom review renderers — renders right here: the card is the only
  * decision surface, so it carries the real `WorkflowTaskReviewGate`, not a
  * link to one. Degrades to an honest waiting notice when the request
  * payload is unavailable (no event stream — the snapshot fallback path).
@@ -564,7 +564,7 @@ function ThreadTaskCardHitl({
 }
 
 // ---------------------------------------------------------------------------
-// Card bodies (T04)
+// Card bodies
 // ---------------------------------------------------------------------------
 
 /**
@@ -604,11 +604,11 @@ function ThreadTaskIOSection({
  * (via the I/O fallback ladder) and the failure detail when the task
  * failed. Content only — the header owns all metadata (session
  * `ToolCallDetail` invariant). AGENT_CALL cards with a spawned child never
- * reach this body — theirs is the inline transcript (T07).
+ * reach this body — theirs is the inline transcript.
  *
  * A resolved human_input gate supplies `approvalSummary` and gets the
  * read-only decision report instead of the raw output Struct — the output
- * IS the decision record, and the report is its readable rendering (T06).
+ * IS the decision record, and the report is its readable rendering.
  */
 function ThreadTaskPreviewBody({
   item,
@@ -647,7 +647,7 @@ function ThreadTaskPreviewBody({
 }
 
 /**
- * The detail body's label/value rows. No Status/Duration rows (R6-6): the
+ * The detail body's label/value rows. No Status/Duration rows: the
  * card header is the single source for both — the status glyph and the
  * duration meta chip. The detail carries only what the header cannot:
  * attempt count, usage, the agent slug. Shared with the card's
@@ -700,7 +700,7 @@ function ThreadTaskDetail({
         </BoundedContent>
       )}
 
-      {/* The task's I/O in the thread (T04) — all task detail belongs to
+      {/* The task's I/O in the thread — all task detail belongs to
           the card; Inspect is the opt-in debug drill-down. */}
       {inputIO && <ThreadTaskIOSection label="Input" io={inputIO} />}
       {outputIO && <ThreadTaskIOSection label="Output" io={outputIO} />}
@@ -709,14 +709,14 @@ function ThreadTaskDetail({
 }
 
 // ---------------------------------------------------------------------------
-// Status glyph — the shared thread-card set, colored by status token (T05)
+// Status glyph — the shared thread-card set, colored by status token
 // ---------------------------------------------------------------------------
 
 /**
  * Maps a task's derived status onto the shared glyph vocabulary the session
  * tool card uses (`internal/thread-card/glyphs`), colored strictly through
- * status token classes — the old dot set's hardcoded hex fallbacks were a
- * Dont-Do #3 violation and died with it.
+ * status token classes — the old dot set's hardcoded hex fallbacks broke
+ * the theme-token rule and died with it.
  */
 const STATUS_GLYPH: Record<
   WorkflowThreadItem["status"],

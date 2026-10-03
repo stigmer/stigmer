@@ -7,8 +7,6 @@
  * Node matching is by `id` (task name). Edge matching is by semantic
  * triple `(source, target, sourceHandle)` — NOT by edge ID, which is
  * unstable across parses.
- *
- * @since T14 (AI-Assisted Workflow Creation)
  */
 
 import type { JsonObject } from "@bufbuild/protobuf";

@@ -102,7 +102,7 @@ export function useAskAiPanel(): AskAiPanelState {
     };
   }, []);
 
-  // Referential stability is part of the contract (mirrors DD-010): the
+  // Referential stability is part of the contract: the
   // context value must not churn consumers on unrelated re-renders.
   return useMemo(
     () => ({

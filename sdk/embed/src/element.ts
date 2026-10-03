@@ -27,7 +27,7 @@ const OBSERVED_ATTRIBUTES = [
   "app-origin",
 ] as const;
 
-/** Matches the T03 iframe snippet's default footprint. */
+/** Matches the iframe embed snippet's default footprint. */
 const DEFAULT_WIDTH = "400px";
 const DEFAULT_HEIGHT = "600px";
 

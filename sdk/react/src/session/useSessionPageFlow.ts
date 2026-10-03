@@ -303,7 +303,7 @@ export function useSessionPageFlow(
   // mount in the embedder's dev loop — not as an end user's failed send.
   if (runConfig) assertValidRunConfig(runConfig);
   // Scalars, not the object: hosts pass inline literals, and the submit
-  // callback's identity must not churn on every render (DD-010).
+  // callback's identity must not churn on every render.
   const pinnedModelName = runConfig?.modelName;
   const pinnedServiceTier = runConfig?.serviceTier;
   const pinnedThinkingMode = runConfig?.thinkingMode;

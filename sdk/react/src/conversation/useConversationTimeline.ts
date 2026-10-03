@@ -65,9 +65,9 @@ interface HeadPage {
 const EMPTY_HEAD: HeadPage = { items: [], nextPageToken: "" };
 
 /**
- * Data hook for one conversation's customer-visible timeline
- * (channel-conversations DD-004): newest-first cursor pages from the
- * server, accumulated into one chronological list for a chat view.
+ * Data hook for one conversation's customer-visible timeline:
+ * newest-first cursor pages from the server, accumulated into one
+ * chronological list for a chat view.
  *
  * The accumulation is an UPSERT by `item_id`, not head/tail
  * concatenation, for two verified server behaviors:
@@ -85,8 +85,8 @@ const EMPTY_HEAD: HeadPage = { items: [], nextPageToken: "" };
  * head refreshes serve the top of the timeline, while the cursor tracks
  * how deep into history the consumer has scrolled — two independent
  * frontiers. Receipt ticks on items deeper than the head window can go
- * stale until the conversation is reopened; accepted for v1 (the T05
- * liveness seam is where per-item freshness lands).
+ * stale until the conversation is reopened; accepted for now (the
+ * polling seam in polling.ts is where per-item freshness lands).
  *
  * Pass empty strings to skip fetching (the `null`-fetchFn convention).
  */
@@ -123,7 +123,7 @@ export function useConversationTimeline(
     refetch,
   } = useFetch(fetchFn, [agentChannelId, conversationKey, pageSize, stigmer], EMPTY_HEAD, {
     refetchInterval: refetchIntervalMs,
-    // DD-012 D-a: returning to the tab is fresh (the head re-upserts, so
+    // Returning to the tab is fresh (the head re-upserts, so
     // a focus refetch can never disturb accumulated history).
     refetchOnWindowFocus: true,
   });
@@ -224,8 +224,8 @@ export function useConversationTimeline(
 /**
  * Fold a page into the map, preserving references: a poll returns fresh
  * proto objects even when nothing changed, and swapping equal items
- * would defeat `React.memo` on every row every poll tick (DD-010 —
- * reference stability is architectural, not an optimization). An
+ * would defeat `React.memo` on every row every poll tick (reference
+ * stability is architectural, not an optimization). An
  * unchanged page returns the SAME map, so the sorted `items` memo does
  * not even re-run.
  */

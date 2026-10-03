@@ -169,7 +169,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object guestCookieId_ = "";
   /**
    * <pre>
-   * Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+   * Visitor cookie id to persist client-side, as an httpOnly cookie.
    *
    * Echoes guest_cookie_id from the request when provided; otherwise a newly
    * generated high-entropy value.
@@ -193,7 +193,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+   * Visitor cookie id to persist client-side, as an httpOnly cookie.
    *
    * Echoes guest_cookie_id from the request when provided; otherwise a newly
    * generated high-entropy value.
@@ -817,7 +817,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object guestCookieId_ = "";
     /**
      * <pre>
-     * Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+     * Visitor cookie id to persist client-side, as an httpOnly cookie.
      *
      * Echoes guest_cookie_id from the request when provided; otherwise a newly
      * generated high-entropy value.
@@ -840,7 +840,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+     * Visitor cookie id to persist client-side, as an httpOnly cookie.
      *
      * Echoes guest_cookie_id from the request when provided; otherwise a newly
      * generated high-entropy value.
@@ -864,7 +864,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+     * Visitor cookie id to persist client-side, as an httpOnly cookie.
      *
      * Echoes guest_cookie_id from the request when provided; otherwise a newly
      * generated high-entropy value.
@@ -884,7 +884,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+     * Visitor cookie id to persist client-side, as an httpOnly cookie.
      *
      * Echoes guest_cookie_id from the request when provided; otherwise a newly
      * generated high-entropy value.
@@ -901,7 +901,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+     * Visitor cookie id to persist client-side, as an httpOnly cookie.
      *
      * Echoes guest_cookie_id from the request when provided; otherwise a newly
      * generated high-entropy value.

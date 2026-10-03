@@ -24,7 +24,7 @@ import { MessageEntry } from "../MessageEntry";
 afterEach(cleanup);
 
 // ---------------------------------------------------------------------------
-// Phase 5 — Cursor deny-only normalization (append-only by construction).
+// Cursor deny-only normalization (append-only by construction).
 //
 // When a Cursor turn pauses for approval, the runner BLANKS (clears the content
 // of) the model's provisional post-denial narration in place rather than
@@ -81,7 +81,7 @@ function waitingForApprovalExecution(): AgentExecution {
   return exec;
 }
 
-describe("buildThreadItems — blanked post-denial narration (Phase 5)", () => {
+describe("buildThreadItems — blanked post-denial narration", () => {
   it("surfaces the approval tool-group but emits no narration message item", () => {
     const exec = waitingForApprovalExecution();
 
@@ -136,7 +136,7 @@ describe("buildThreadItems — blanked post-denial narration (Phase 5)", () => {
   });
 });
 
-describe("MessageEntry — blanked narration renders nothing (Phase 5)", () => {
+describe("MessageEntry — blanked narration renders nothing", () => {
   it("renders nothing for a blanked AI narration message", () => {
     const { container } = render(<MessageEntry message={aiText("")} />);
     expect(container.textContent?.trim()).toBe("");

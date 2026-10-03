@@ -5,7 +5,7 @@ import { getOverviewCanvas } from "../../helpers/workflow-canvas";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
 /**
- * T12: Workflow overview page tests.
+ * Workflow overview page tests.
  *
  * Validates the redesigned Overview tab renders a React Flow graph
  * (replacing the legacy SVG topology), summary stat cards, and

@@ -73,7 +73,7 @@
  * Defensive parsing: handles both snake_case and camelCase field names
  * for tool IDs/names (protocol spec uses camelCase but recordings show
  * snake_case). Uses `data.event` as canonical discriminator, with
- * `data.type` as fallback (CP04 finding).
+ * `data.type` as fallback.
  */
 
 import type { V3ProtocolEvent } from "./v3-event-recorder.js";

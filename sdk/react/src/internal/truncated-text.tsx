@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip.js";
 // SDK-internal truncated-text span with an overflow-gated house tooltip.
 //
 // Replaces the `title={fullValue}` idiom on truncated cells (paths, hashes,
-// model ids, …) after the native-title sweep (stigmer/stigmer-cloud#268).
+// model ids, …) after the native-title sweep.
 // Native titles were OS-delayed and fired whether or not the text was
 // actually clipped; this helper opens the house tooltip ONLY when the text
 // truly overflows its box, checked at open time — a non-truncated cell

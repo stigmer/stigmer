@@ -37,7 +37,7 @@ export interface ArtifactContentBodyProps {
  * action bar vs. document toolbar) differs. Pair with
  * {@link useArtifactInspection}, which supplies every prop here.
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  */
 export function ArtifactContentBody({
   artifact,

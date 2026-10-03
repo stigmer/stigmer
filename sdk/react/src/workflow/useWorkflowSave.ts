@@ -32,8 +32,6 @@ export interface UseWorkflowSaveReturn {
  * (backend not yet deployed) with a descriptive error message.
  *
  * @param org - Organization slug for the target workflow.
- *
- * @since T10 (YAML Editor with Graph Preview)
  */
 export function useWorkflowSave(org: string): UseWorkflowSaveReturn {
   const stigmer = useStigmer();

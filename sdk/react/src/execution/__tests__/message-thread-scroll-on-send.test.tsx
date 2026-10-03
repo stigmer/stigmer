@@ -1,11 +1,11 @@
-// Scroll-on-send wiring pins for MessageThread (stigmer-cloud#267): the
-// send moment is the optimistic message's empty→present transition, and it
-// must pin the thread exactly once — default-ON, opt-out via
-// `scrollOnSend={false}` (the ratified DD-011 divergence). The REAL scroll
-// mechanics (pin + follow re-engagement under real layout) are pinned in
-// `internal/__tests__/useAutoScroll.layout.browser.test.tsx`; this file pins the
-// surface's signal derivation through a spied `jumpToLatest`, with the real
-// `usePinToLatestOnSignal` connecting them.
+// Scroll-on-send wiring pins for MessageThread: the send moment is the
+// optimistic message's empty→present transition, and it must pin the thread
+// exactly once — default-ON, opt-out via `scrollOnSend={false}` (a
+// deliberate exception to opt-in defaults). The REAL scroll mechanics (pin
+// + follow re-engagement under real layout) are pinned in
+// `internal/__tests__/useAutoScroll.layout.browser.test.tsx`; this file
+// pins the surface's signal derivation through a spied `jumpToLatest`, with
+// the real `usePinToLatestOnSignal` connecting them.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
@@ -55,7 +55,7 @@ function makeExecution(id: string, message: string): AgentExecution {
   return exec;
 }
 
-describe("MessageThread — scroll-on-send (stigmer-cloud#267)", () => {
+describe("MessageThread — scroll-on-send", () => {
   it("pins the thread exactly once when the optimistic message appears (default-on)", () => {
     const executions = [makeExecution("aex_1", "earlier turn")];
     const { rerender } = render(

@@ -101,8 +101,6 @@ export interface UseTaskKindRegistryReturn {
  *   // Pass schema to Monaco for autocomplete + validation
  * }
  * ```
- *
- * @since T04 (Task Schema Registry)
  */
 export function useTaskKindRegistry(): UseTaskKindRegistryReturn {
   const { descriptors, isLoading, error, refetch } = useTaskKindRegistryContext();

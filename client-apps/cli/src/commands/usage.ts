@@ -1,6 +1,6 @@
 // `stigmer usage {session,agent,org}` — token/cost/model reports at three
 // granularities. Thin handlers: validate flags, fetch the report, render. Heavy
-// modules are lazy-imported inside actions so `--help` stays fast (DD-001).
+// modules are lazy-imported inside actions so `--help` stays fast.
 
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";

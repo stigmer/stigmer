@@ -95,7 +95,7 @@ export interface VersionTimelineProps {
   /**
    * Called when two entries are selected for comparison.
    * The component manages compare-mode selection internally when this
-   * callback is provided — enabling T05-D integration.
+   * callback is provided — enabling a diff viewer integration.
    */
   readonly onCompare?: (fromId: string, toId: string) => void;
   /** Currently selected entry ID (controlled selection). */

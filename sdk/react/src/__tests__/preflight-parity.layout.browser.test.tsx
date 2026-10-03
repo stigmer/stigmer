@@ -10,7 +10,7 @@
 // third-party embeds, the packed demo tours — the scoped form-control
 // preflight in `styles.css` must reproduce that baseline under `.stgm`, or
 // every unstyled-by-intent button renders as a grey UA box (the #374
-// screenshots). Like the sibling layout suites (DD-21), this renders against
+// screenshots). Like the sibling layout suites, this renders against
 // the SHIPPED stylesheet (`dist/styles.css`, rebuilt by `npm run build:css`)
 // and nothing else — exactly what an embed loads.
 //

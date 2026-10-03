@@ -97,7 +97,7 @@ async function findSyncedField(value: string) {
 }
 
 describe("AccountPreferencesPanel", () => {
-  it("renders the form in local mode and reads the account once — the open-source server serves identity accounts (20260911.11)", async () => {
+  it("renders the form in local mode and reads the account once — the open-source server serves identity accounts", async () => {
     // Before the tier flip the panel showed a "requires Stigmer Cloud"
     // notice here. The operator account exists on every self-host since
     // the domain moved into @stigmer/server, so the editor is the truth in
@@ -209,7 +209,7 @@ describe("AccountPreferencesPanel", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 
-  describe("memory consent (oss#293 Phase 2 Stage 3)", () => {
+  describe("memory consent", () => {
     it("memory toggle applies instantly with the full mapped input (wipe-safe)", async () => {
       const update = vi.fn(async (_input: IdentityAccountInput) => ACCOUNT);
       renderPanel(createMockStigmer({ update }));
@@ -324,7 +324,7 @@ describe("AccountPreferencesPanel", () => {
     });
   });
 
-  describe("execution defaults (oss#293 Phase 1.5)", () => {
+  describe("execution defaults", () => {
     const ACCOUNT_WITH_DEFAULTS: IdentityAccount = create(IdentityAccountSchema, {
       metadata: { id: "ia-1", name: "Ada Lovelace", slug: "ada", org: "acme" },
       spec: {

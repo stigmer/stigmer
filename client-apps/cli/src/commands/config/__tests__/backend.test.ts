@@ -1,4 +1,4 @@
-// Command-level contract for the named-backend surface (O3):
+// Command-level contract for the named-backend surface:
 // add/use/list/remove over the real config file (HOME redirected to a
 // throwaway dir), the reserved-name refusals, and the remove-current guard.
 // The model-level semantics (migration, resolution, credentials) are pinned

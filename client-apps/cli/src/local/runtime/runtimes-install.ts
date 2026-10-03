@@ -1,6 +1,6 @@
 // Shared npm-install mechanics for on-demand-acquired runtime packages
 // (~/.stigmer/runtimes/<version>/). Extracted when the TS server became the
-// second consumer (D4 #24) — the runner and the server acquire different
+// second consumer — the runner and the server acquire different
 // packages into the SAME per-version install root, so the root bootstrap and
 // the install invocation must not drift between them.
 

@@ -7,7 +7,7 @@ import { FileLineStats } from "./FileReviewAtoms.js";
 /** Props for {@link FileChangeProgressBar}. */
 export interface FileChangeProgressBarProps {
   /**
-   * The transient mid-run progress snapshot for the active turn (DD-32). Feed
+   * The transient mid-run progress snapshot for the active turn. Feed
    * this from `useSessionConversation().fileChangeProgress`. Renders nothing when
    * undefined or when no files have changed yet — the server clears it once the
    * turn's change set leaves CAPTURING, so the strip disappears exactly when the

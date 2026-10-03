@@ -210,7 +210,7 @@ function installByoInfra(postgresPassword) {
 
 /**
  * Every container of every pod in the namespace has restarted zero times: the
- * init container did compose's depends_on job (F12, F14). `tolerate` names
+ * init container did compose's depends_on job. `tolerate` names
  * containers whose restarts are logged, not failed: the runner exits fatally on
  * a failed initial Temporal connection (stigmer#1105) where the server retries,
  * so when Temporal is recreated under load while the runner is starting, the
@@ -387,7 +387,7 @@ async function temporalFenceArm(namespace) {
   log(`the stigmer pod: CONNECTED; a pod outside the release: ${outside}`);
 }
 
-/** The bundled profile's adversarial arms (the plan's test plan, Q-HC-16). */
+/** The bundled profile's adversarial arms. */
 async function adversarialArms(release, args, executionId) {
   const { namespace } = release;
   await temporalFenceArm(namespace);

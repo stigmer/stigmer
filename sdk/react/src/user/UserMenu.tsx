@@ -94,8 +94,8 @@ export interface UserMenuProps {
  * (the theme-token reference in the repository's sdk-console-architecture
  * skill).
  *
- * Framework-agnostic: all actions are expressed as callback props
- * (DD-004). The consumer bridges to their routing, auth, and theme
+ * Framework-agnostic: all actions are expressed as callback props.
+ * The consumer bridges to their routing, auth, and theme
  * systems.
  *
  * @example

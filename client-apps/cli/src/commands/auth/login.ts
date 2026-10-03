@@ -2,9 +2,9 @@
 //
 // The auth module's login() persists the tokens and switches the backend to
 // cloud. This command then runs the SDK's ensureMyIdentityAccount — the
-// console's first-sign-in flow (20260911.11 A3) — so a person who signs in
-// from the CLI alone is provisioned, not left for entry 3's authorizer to
-// lock out as an unknown principal.
+// console's first-sign-in flow — so a person who signs in
+// from the CLI alone is provisioned, not left for the server's authorizer
+// to lock out as an unknown principal.
 //
 // The order matters for the result: the tokens are already saved when the
 // account step runs, so its failure is a WARNING that says the login stood

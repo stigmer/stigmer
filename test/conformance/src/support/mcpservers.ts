@@ -107,7 +107,7 @@ export interface OAuthMcpServerOptions {
 }
 
 // A complete, valid McpServer with an OAuth auth block — the fixture shape for
-// the connect/OAuth conformance suites (CW-1). Defaults to a stdio server with
+// the connect/OAuth conformance suites. Defaults to a stdio server with
 // a command that never executes: the OAuth handshake RPCs never touch the
 // server process itself, so a no-op command isolates them completely. Pass
 // `url` for the connect-time tests that need the runner to reach a real

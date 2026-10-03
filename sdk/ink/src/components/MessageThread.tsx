@@ -48,8 +48,8 @@ export interface MessageThreadProps {
   readonly expandToolCalls?: boolean;
   /**
    * Whether to render a read-only settled record for each decided/reconciled/
-   * failed change set (the terminal analogue of the web's in-thread record,
-   * DD-27 D2). Off by default so bare consumers stay minimal; `SessionView`
+   * failed change set (the terminal analogue of the web's in-thread record).
+   * Off by default so bare consumers stay minimal; `SessionView`
    * opts in. Pending (AWAITING_REVIEW) sets are never records here — their
    * decision surface is the docked `FileReviewPrompt`.
    */
@@ -139,7 +139,7 @@ function buildExecutionSegment(
     // execution and folds the durable ledger for a terminal one, so a settled
     // record renders for both. Appended at the segment tail (the terminal
     // analogue of the web's last-stamped-row anchor); this is the only trace a
-    // shell-made set — which stamps no rows — leaves behind (DD-27 D2).
+    // shell-made set — which stamps no rows — leaves behind.
     for (const set of displayFileChangeSets(exec.status)) {
       if (!isSettledSet(set.status) || set.changes.length === 0) continue;
       seg.push({ kind: "file-review-record", set, key: `e${ei}-frr-${set.id}` });

@@ -233,7 +233,7 @@ describe("useLocalSessionWorker", () => {
     expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses-2");
   });
 
-  // DD-010 regression guard: useSessionConversation refetches the session
+  // Reference-stability guard: useSessionConversation refetches the session
   // constantly. A refetch that returns a new object with the same execution
   // target must NOT thrash the runner (no extra open/close).
   it("does not re-attach when a refetch returns a new session object with the same target", () => {

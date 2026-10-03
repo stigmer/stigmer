@@ -38,8 +38,8 @@ export interface SkillArtifactOptions {
 // fflate stamps the CURRENT clock (DOS time, 2-second resolution) into every
 // entry header by default, so an artifact built seconds after another one
 // carries different bytes and a different content hash — the "re-push A" arm
-// of the content-addressed versioning suite failed exactly that way on the
-// 2026-09-08 C5 S3 composition readout. The content hash is the contract;
+// of the content-addressed versioning suite failed exactly that way against
+// the composition on 2026-09-08. The content hash is the contract;
 // the clock is not part of the content.
 const FIXED_ZIP_MTIME = new Date("2026-01-01T00:00:00Z");
 

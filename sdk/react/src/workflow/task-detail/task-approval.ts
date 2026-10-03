@@ -1,7 +1,7 @@
 /**
  * The human_input gate's data model for the thread card — the review
  * material a pending gate presents and the decision record a resolved gate
- * reports (T06).
+ * reports.
  *
  * Ported from `execution-inspector/derive-task-detail.ts` when the Inspect
  * drill-down was removed and the review surface moved onto the gating
@@ -9,9 +9,9 @@
  * resolution payloads are captured by the event store's single canonical
  * walk (`DerivedTaskState.approvalRequest` / `.approvalResolution`), and
  * these projections work off that capture plus the card's O(1) snapshot
- * lookup — never the event log (DD-T04-5, D-T02-4).
+ * lookup — never the event log.
  *
- * No React dependencies — independently testable (DD-003).
+ * No React dependencies — independently testable.
  */
 
 import type {

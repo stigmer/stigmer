@@ -10,7 +10,7 @@ export interface UseDeleteAgentShareReturn {
   /**
    * Delete an agent share by ID. Returns the deleted resource.
    *
-   * Deleting a share is full teardown (decision 011 D1): its hosted
+   * Deleting a share is full teardown: its hosted
    * link dies immediately — including for visitors mid-conversation —
    * and its configuration (origins, messages, credential bindings, link
    * token) is gone. To stop serving while keeping the configuration,

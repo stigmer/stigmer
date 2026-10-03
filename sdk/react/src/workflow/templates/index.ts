@@ -11,7 +11,7 @@ export { PATTERN_LABELS, WORKFLOW_CATEGORY_LABELS } from "./types.js";
 // Pure derivation
 export { deriveTemplateMeta } from "./derive-template-metadata.js";
 
-// Gallery components (added in Phase 2)
+// Gallery components
 export { WorkflowTemplateCard } from "./WorkflowTemplateCard.js";
 export type { WorkflowTemplateCardProps } from "./WorkflowTemplateCard.js";
 export { WorkflowTemplatePreview } from "./WorkflowTemplatePreview.js";

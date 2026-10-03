@@ -52,12 +52,10 @@ const NODE_HEIGHT = 40;
  * for rendering. Handles sequential flow, explicit `flow.then` directives,
  * and `switch_case` branching edges.
  *
- * Returns stable refs (DD-010) — the result is memoized and only
+ * Returns stable refs — the result is memoized and only
  * recomputed when the YAML content changes.
  *
  * @param yaml - The current workflow YAML string (or `null`/empty to skip).
- *
- * @since T10 (YAML Editor with Graph Preview)
  */
 export function useWorkflowTopology(
   yaml: string | null,

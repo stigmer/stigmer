@@ -24,8 +24,6 @@ const INVOCATION_KINDS = new Set(["http_call", "grpc_call", "activity_call", "ru
  * - llm_call / eval: timeout, max cost
  * - Invocation kinds: timeout
  * - Container kinds: concurrency, join policy
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const RuntimeTab = memo(function RuntimeTab({
   node,
@@ -81,8 +79,8 @@ export const RuntimeTab = memo(function RuntimeTab({
  * Edits the agent_call `run_config` block (the shared agentexecution
  * RunConfig, stigmer/stigmer#358): model override + per-run USD budget,
  * both enforced by the runner. `max_tool_rounds` stays off the form
- * (DD-018 D-5). Empty means omit — a blank field never becomes a zero
- * override.
+ * (an implementation knob, not a user concept). Empty means omit — a
+ * blank field never becomes a zero override.
  */
 function AgentCallRuntimeSection({
   config,

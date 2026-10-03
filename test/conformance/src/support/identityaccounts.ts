@@ -1,4 +1,4 @@
-// Constants and fixtures for the IdentityAccount domain (20260911.11).
+// Constants and fixtures for the IdentityAccount domain.
 // Domain: conformance support.
 //
 // The byte-pinned copy below is the cloud handlers' Java-era wording, moved
@@ -8,9 +8,9 @@
 // constants — the literal IS the contract a client may match on.
 //
 // The two edit helpers exist because an IdentityAccount `update` is a
-// full-envelope replace whose writable surface is narrow (T01_1_review.md
-// A9): the request must carry the WHOLE fetched spec — `GuardImmutableSubject`
-// compares the incoming `idp_id` to the stored one, so a request that drops
+// full-envelope replace whose writable surface is narrow: the request must
+// carry the WHOLE fetched spec — `GuardImmutableSubject` compares the incoming
+// `idp_id` to the stored one, so a request that drops
 // the field (sends "") is FAILED_PRECONDITION, exactly what a client with a
 // bug should hear. Spreading a fetched message (`{ ...me.spec, preferences }`)
 // is also refused by the package's typecheck (`spec` may be undefined, so
@@ -35,12 +35,12 @@ export function accountNotFoundMessage(handle: string): string {
   return `Identity account not found: ${handle}`;
 }
 
-// update that changes spec.idp_id (A1: the subject IS the identity).
+// update that changes spec.idp_id (the subject IS the identity).
 export function idpIdImmutableMessage(subject: string): string {
   return `spec.idp_id is immutable (account subject is '${subject}') — create a new account for a different subject`;
 }
 
-// create over the wire as a user — the cloud#393 gate, core since A7.
+// create over the wire as a user — the system-RPC gate, core in every edition.
 export const CREATE_IS_INTERNAL_MESSAGE =
   "this RPC is internal to the platform";
 

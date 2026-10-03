@@ -20,7 +20,7 @@
  *   org-level reads a guest principal cannot make (session→agent
  *   derivation, personal environments) and never fall back to the
  *   built-in assistant. Approval mechanics are
- *   also withheld (DD-014): the HITL gate protects the ORG's tools and
+ *   also withheld: the HITL gate protects the ORG's tools and
  *   an anonymous visitor is not its trustee — guest executions run in
  *   unattended approval mode server-side (gated tools auto-skip and the
  *   agent explains in plain language), so tool-approval vocabulary never

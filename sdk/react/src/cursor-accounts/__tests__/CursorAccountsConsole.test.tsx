@@ -179,7 +179,7 @@ describe("CursorAccountsConsole", () => {
         accountId: "acc-2",
         displayName: "empty team",
         memberKeys: [],
-        // No org assignment = shared-pool account (DD-008): the class is
+        // No org assignment = shared-pool account: the class is
         // derived from orgs, never from the deprecated default flag.
         orgs: [],
       }),
@@ -267,7 +267,7 @@ describe("CursorAccountsConsole", () => {
     // The email is the row's identity: it truncates with the
     // overflow-gated house tooltip (never break-words, which #929 showed
     // degenerating to one character per line under column pressure) and
-    // never a native title (banned, stigmer-cloud#268) — the full value
+    // never a native title (banned: the house tooltip owns it) — the full value
     // stays in the DOM as selectable text on both row kinds.
     expect(document.querySelector("[title]")).toBeNull();
     expect(screen.getByText("$0.17")).toBeTruthy(); // included, 169342 micro-USD

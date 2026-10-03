@@ -33,7 +33,7 @@ export interface WriteBackCardProps {
  * link and the copy control are SIBLING interactive elements, never nested
  * (axe `nested-interactive`, WCAG 4.1.2).
  *
- * Error rendering follows the record's phase honestly (DD-006):
+ * Error rendering follows the record's phase honestly:
  * a FAILED record's error is destructive (the work did not reach the
  * remote), while a PUSHED record carrying an error renders it as a
  * degraded notice — the branch is live and its info stays usable; only
@@ -301,7 +301,7 @@ const FOCUS_RING_CLASSES =
   "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring";
 
 // ---------------------------------------------------------------------------
-// Inline SVG icons — monochrome, `currentColor`-tinted (DD-005; SDK
+// Inline SVG icons — monochrome, `currentColor`-tinted (SDK
 // independence — no icon-library dependency)
 // ---------------------------------------------------------------------------
 

@@ -102,7 +102,7 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
 
 // Cards count the organization's rows: the landing presents "your
 // organization's library", the same set every list page shows. Wired
-// identically on the desktop landing (DD-016).
+// identically on the desktop landing.
 function useResourceCounts(org: string | null, refetchToken?: unknown) {
   const agents = useAgentCount(org, { refetchToken });
   const workflows = useWorkflowCount(org, { refetchToken });

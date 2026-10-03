@@ -92,7 +92,7 @@ test.describe("Schedules list page", () => {
       page.getByRole("button", { name: "Apply YAML" }).first(),
     ).toBeVisible();
     // Direct-query list: no server text search, so no search input —
-    // a search box that silently matches nothing would lie (DD-006).
+    // a search box that silently matches nothing would lie.
     await expect(
       page.getByLabel("Schedule workbench").getByRole("textbox"),
     ).not.toBeVisible();

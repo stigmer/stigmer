@@ -1,6 +1,6 @@
 /*
  * ApiKeysPage chrome — layout in plain CSS, colors from the Stigmer
- * `--stgm-*` design tokens (scenar-cloud DD-003). Only the page frame
+ * `--stgm-*` design tokens. Only the page frame
  * (heading row, create control, description, form card) is ours; the real
  * components inside carry their own compiled styles. Type ramp and
  * spacing mirror ApiKeysSection: 0.875rem/600 heading row with the

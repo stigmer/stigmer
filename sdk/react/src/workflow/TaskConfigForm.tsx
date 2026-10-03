@@ -31,8 +31,6 @@ const MAX_RECURSION_DEPTH = 2;
  *
  * Pure presentational — does not own state. Receives the current config
  * and reports changes via `onChange(fieldPath, value)`.
- *
- * @since T15 Batch 3 (Inspector + Edit Loop)
  */
 export const TaskConfigForm = memo(function TaskConfigForm({
   fields,

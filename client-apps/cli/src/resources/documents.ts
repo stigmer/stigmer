@@ -1,8 +1,8 @@
 // Shared YAML document loading for the file-based verbs (validate, diff, apply).
 //
-// One loader, two strictness modes (the S-strict decision):
-//   - lenient (default) — tolerates malformed YAML the same way Wave-1 validate
-//     did; `toJS()` best-effort, no error surfacing.
+// One loader, two strictness modes:
+//   - lenient (default) — tolerates malformed YAML, as `validate` always
+//     has; `toJS()` best-effort, no error surfacing.
 //   - strict — rejects any document with YAML parse errors. Used by `apply`,
 //     where silently applying a half-parsed document would be dangerous.
 //
@@ -24,7 +24,7 @@ export interface LoadedDocument {
 }
 
 export interface LoadOptions {
-  /** Reject documents with YAML parse errors (apply); off mirrors Wave-1 validate. */
+  /** Reject documents with YAML parse errors (apply); off is validate's lenient read. */
   readonly strict?: boolean;
 }
 

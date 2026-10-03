@@ -15,8 +15,6 @@ export interface EdgeInspectorProps {
  * Inspector for a selected edge (connection between two tasks).
  *
  * Shows source/target, label, port, and a delete action.
- *
- * @since T10 (Inspector Panel Refactor) — extracted from WorkflowInspectorPanel
  */
 export function EdgeInspector({
   edge,

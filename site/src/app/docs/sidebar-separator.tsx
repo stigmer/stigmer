@@ -4,8 +4,8 @@ import type * as PageTree from "fumadocs-core/page-tree";
 import { SidebarSeparator } from "fumadocs-ui/components/layout/sidebar";
 
 /**
- * Sidebar group-label renderer (Cursor-style, per DD-02 §3: normal-case
- * weight-contrast labels — amending DD-01 §2.2's uppercase eyebrows).
+ * Sidebar group-label renderer (Cursor-style: normal-case weight-contrast
+ * labels, not uppercase eyebrows).
  *
  * Fumadocs' default renders separators at the same size and color as page
  * items, so the capability groups barely read as groups. This override keeps

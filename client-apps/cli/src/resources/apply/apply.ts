@@ -1,6 +1,6 @@
 // File-mode apply orchestration (`apply -f <file|dir>`).
 //
-// Pipeline per document: strict YAML→proto marshal (S-strict) → inject the
+// Pipeline per document: strict YAML→proto marshal → inject the
 // resolved org when absent → dry-run preview OR drive the raw command
 // controller's `apply` RPC with the full proto → build a CommandResult. Items
 // across all files are sorted into dependency order before applying so parents

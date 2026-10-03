@@ -75,7 +75,7 @@ export interface UseSessionPanelOptions {
   readonly defaultOpen?: boolean;
   /**
    * Called on every effective open/close transition — in BOTH modes, unlike
-   * `useDetailTabs`'s DD-T05A-001 convention of swallowing the callback when
+   * `useDetailTabs`'s convention of swallowing the callback when
    * uncontrolled. The difference is principled, not stylistic: tabs change
    * only through user clicks, so an uncontrolled host loses nothing by not
    * hearing about them — but this panel opens ITSELF (`openFile`,
@@ -93,7 +93,7 @@ export interface UseSessionPanelOptions {
 
 /**
  * State + actions for the unified session panel, shared by every viewer that
- * hosts it (session + launcher) so they behave identically (DD-016).
+ * hosts it (session + launcher) so they behave identically.
  *
  * The panel is the one right-side surface: a workspace surface whose activity
  * rail hosts the session facets (see `useSessionRailViews`). It replaces the
@@ -107,7 +107,7 @@ export interface UseSessionPanelOptions {
  * back to the `defaultView`. Both are decoupled from any store
  * subscription at the owner level: callbacks mutate imperatively so a file
  * open/switch re-renders only the subscribing panel subtree, never the
- * streaming conversation column (DD-009/DD-010, invariant 2).
+ * streaming conversation column.
  */
 export interface SessionPanelController {
   /** The open-editor group store; subscribe with `useWorkspaceEditors`. */
@@ -203,7 +203,7 @@ export function useSessionPanel({
   // Latest-ref idiom (see YamlEditor's onChangeRef): the host's callback and
   // the mode/value mirrors live in refs so `requestOpenChange` — and every
   // action callback built on it — stays referentially stable regardless of
-  // how the host authored `onOpenChange` (DD-010: an inline lambda must not
+  // how the host authored `onOpenChange` (an inline lambda must not
   // churn the memoized controller and re-render the panel subtree).
   const onOpenChangeRef = useRef(onOpenChange);
   onOpenChangeRef.current = onOpenChange;

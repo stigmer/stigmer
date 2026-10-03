@@ -46,7 +46,7 @@ export interface ChannelRunConfigDialogProps {
  * the Edit-YAML detour for the model pin the write-time validation guards
  * (stigmer/stigmer#774).
  *
- * Speaks the schedule form's vocabulary (DD-018 D-5): the model pin uses
+ * Speaks the schedule form's vocabulary: the model pin uses
  * the composer's own {@link ModelSelector} (with the fast-tier and
  * thinking switches, #357/#772) and the budget is the one run bound a
  * user owns; `max_tool_rounds` is an operator knob, API-reachable only —
@@ -141,8 +141,8 @@ function ChannelRunConfigDialogBody({
     try {
       // Full-input apply: only run_config changes. An all-empty draft
       // clears the block entirely — the proto's "empty = inherit" contract
-      // (DD-018 D-2) — while `max_tool_rounds`, which this editor never
-      // renders, survives verbatim (operator knob, DD-018 D-5).
+      // — while `max_tool_rounds`, which this editor never
+      // renders, survives verbatim (an operator knob).
       await save({
         ...agentChannelToInput(channel),
         runConfig: buildRunConfig(
@@ -189,7 +189,7 @@ function ChannelRunConfigDialogBody({
       </div>
 
       <div className="stg:space-y-4 stg:px-5 stg:py-4">
-        {/* Engine & model — the composer's own picker (DD-018 D-5), the
+        {/* Engine & model — the composer's own picker, the
             same shape as the schedule form's. Nothing is pinned until a
             model is picked. */}
         <div className="stg:space-y-1">
@@ -236,7 +236,7 @@ function ChannelRunConfigDialogBody({
         </div>
 
         {/* Budget — the one run bound that matters for an unattended
-            surface (DD-018 D-5). Clamped by the platform profile;
+            surface. Clamped by the platform profile;
             tool-round bounds stay API-only. */}
         <div className="stg:space-y-1">
           <label htmlFor={`${titleId}-budget`} className={labelClasses}>

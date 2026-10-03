@@ -5,7 +5,7 @@
 // window honors the `--context` flag. Like the Go original it emits trailing
 // context only (no leading context), so hunk boundaries differ slightly from
 // go-difflib — an accepted trade-off for a dependency-free, proven algorithm.
-// Diff output is human-facing and not a DD-005 byte-parity target.
+// Diff output is human-facing and not held to byte parity with the Go CLI.
 //
 // Only workflows are diffable today (matching Go's fetchRemoteResource, which
 // implements workflow and treats every other kind — and any not-found — as a

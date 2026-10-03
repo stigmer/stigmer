@@ -81,7 +81,7 @@ const DEFAULT_DEBOUNCE_MS = 300;
  *
  * State changes are communicated to the consumer via `onStateChange`
  * so they can be synced to URL search params. The hook itself has
- * **zero router dependency** (DD-004 compliance).
+ * **zero router dependency**.
  *
  * Platform builders use this alongside {@link useResourceCollection}
  * for full control. The `ResourceWorkbench` shell composes both.

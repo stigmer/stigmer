@@ -80,27 +80,26 @@ export class CloudTarget implements TargetProfile {
     externalOrgLookup: true,
     organizationEnumeration: false,
     versionTagging: true,
-    // Cloud carries the transfer lane over pre-signed R2 URLs
-    // (stigmer-cloud#438) — the full mint → PUT → push-by-ref →
-    // download-URL pin block runs against this target.
+    // Cloud carries the transfer lane over pre-signed R2 URLs — the full
+    // mint → PUT → push-by-ref → download-URL pin block runs against this
+    // target.
     skillArtifactTransferLane: true,
     workflowChildApprovalForwarding: true,
-    // The hermetic cloud env boots Temporal and the Java service runs the
-    // schedule clock (T04 slice 2) — triggers fire for real.
+    // The hermetic cloud env boots Temporal and the composition runs the
+    // schedule clock — triggers fire for real.
     scheduleFiring: true,
     // The cloud-execution runner is an embedded runner bootstrapped as the
     // primary user and acts as itself, narrowed by its own exchange; the
     // cloud's shared-runner shape (the managed sandbox, provisioned per
     // session) is never booted by this harness — see CapabilityFlags.
     runnerActsAsRunCreator: false,
-    // GuardReservedLabelsStep (stigmer-cloud#320, platform-wide since
-    // stigmer-cloud#386) rejects reserved-label writes from the ordinary
+    // GuardReservedLabelsStep rejects reserved-label writes from the ordinary
     // conformance user — the suite pins that rejection where this is false.
     // Operator-lane assertions run through provisionPrivilegedScope
     // (stigmer#547) instead.
     clientReservedLabelWrites: false,
     // The primary conformance user is a PlatformClient-minted token —
-    // the credential class DD-002 D4 deliberately excludes; the suite
+    // the credential class the first-party gate excludes; the suite
     // pins the create-gate refusal instead (see target.ts).
     firstPartyMemoryCapture: false,
     // The cloud channel runtime serves installs, conversation participation,
@@ -111,22 +110,18 @@ export class CloudTarget implements TargetProfile {
     // pins gate off here (full behavior needs a real vendor OAuth app — the
     // channelMessaging coverage split).
     orgOAuthAppConfiguration: true,
-    // The Java billing engine authorizes execution credits natively; the TS
-    // composition serves the same gates through the C5 billing facade.
+    // The composition's billing engine authorizes execution credits natively.
     billingGates: true,
     // The whole cloud suite authenticates with PlatformClient-minted user
     // tokens, and the minting client's contract is enforced on every
-    // serving-edge request: by the Java interceptor natively, and by the
-    // composition's platform-client caller guard (entry 20260902.02).
+    // serving-edge request by the composition's platform-client caller guard.
     platformClientTokens: true,
-    // Every non-public RPC needs a credential: the Java interceptor's
-    // require-authentication posture natively, and the TS composition's
-    // through the registry point its cloud-core unit declares (entry
-    // 20260904.02) — the same byte-pinned refusal on both.
+    // Every non-public RPC needs a credential: the composition declares the
+    // require-authentication registry point, with the same byte-pinned
+    // refusal the open-source chassis gives.
     requiresAuthentication: true,
     // The platform tenant's tokens are verified and their subject resolved to
-    // the ida_ at position 1: Java's Auth0 decoder + RequestCallerIdentityMapper
-    // natively, the composition's direct-idp verifier (stigmer-cloud#604).
+    // the ida_ at position 1 by the composition's direct-idp verifier.
     directLogin: true,
     // The cloud-iam unit composes the IdentityFederation capability, so the
     // four federation RPCs are served for real; the OSS UNIMPLEMENTED pins
@@ -135,13 +130,10 @@ export class CloudTarget implements TargetProfile {
     federatedIdentityAccounts: true,
     // The cloud-iam unit registers every kind's kind_meta roles as the grant
     // scope and wraps its OpenFGA client as the query engine, so per-resource
-    // grants are admitted and the tuple-half queries answer (20260913.01).
+    // grants are admitted and the tuple-half queries answer.
     perResourceGrants: true,
     authorizationQueries: true,
-    // The three cloud-capability surfaces (E1, entry 20260906.04): Java
-    // serves all three natively; the composition serves the ledger through
-    // the C5 facade today and the proxy/public lanes only once C6/P1 land —
-    // their arms are RED against the composition until then, by design (the
+    // The three cloud-capability surfaces, all served by the composition (the
     // flag is the edition's contract; the lane address is CLOUD_ENV's).
     billingLedger: true,
     // The plan catalog and subscriptions (the Cloud's subscription engine).
@@ -341,7 +333,7 @@ export class CloudTarget implements TargetProfile {
   // comes from the operator, because adding credit without a purchase needs
   // can_manage_credits on the platform, which owning the org never confers.
   // Billing accounts are keyed by the execution's metadata.org — the slug.
-  // Lives on the Class A target (moved up from cloud-execution in E1) so
+  // Lives on the Class A target (not on cloud-execution) so
   // ledger arms that need a funded account — usage reports, settle, the
   // STOP/WARNING thresholds — can run without a runner; the execution target
   // delegates here. Without an operator credential there is nobody who may

@@ -145,7 +145,7 @@ export function useConversation(
           if (epochRef.current === epoch) {
             // Preserve the reference across polls that change nothing —
             // a fresh-but-equal proto every 5s would defeat React.memo
-            // on everything rendering the row (DD-010).
+            // on everything rendering the row.
             setConversation((current) =>
               current && equals(ChannelConversationSchema, current, row)
                 ? current
@@ -182,7 +182,7 @@ export function useConversation(
     return () => clearInterval(id);
   }, [enabled, refetchIntervalMs, refetch]);
 
-  // Focus refetch (DD-012 D-a: returning to the tab is fresh), guarded by
+  // Focus refetch (returning to the tab is fresh), guarded by
   // the same in-flight flag as the interval. Mirrors useFetch's
   // refetchOnWindowFocus — the second sighting of this listener shape;
   // extract a shared helper if a third hand-rolled loop ever needs it.

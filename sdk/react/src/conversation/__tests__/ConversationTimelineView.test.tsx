@@ -116,7 +116,7 @@ describe("ConversationTimelineView", () => {
     expect(screen.getByText("Delivery failed")).toBeDefined();
   });
 
-  it("renders the provider's failure explanation as VISIBLE text on a failed receipt (DD-014 D-c, R-1)", () => {
+  it("renders the provider's failure explanation as VISIBLE text on a failed receipt", () => {
     render(
       <ConversationTimelineView
         {...baseProps()}
@@ -137,7 +137,7 @@ describe("ConversationTimelineView", () => {
     // Verbatim relay — the provider's own words, never pattern-matched
     // into local copy. Visible (not hover-only): the reason changes what
     // the operator does next, and the footer glyphs are deliberately
-    // non-focusable (F-18), so a tooltip reaches mouse users only.
+    // non-focusable, so a tooltip reaches mouse users only.
     expect(
       screen.getByText(/More than 24 hours have passed since the recipient last replied/),
     ).toBeDefined();
@@ -167,7 +167,7 @@ describe("ConversationTimelineView", () => {
     expect(screen.queryByText(/131047/)).toBeNull();
   });
 
-  it("never shows the receipt explanation on an attempt-failed item — the F-25 boundary", () => {
+  it("never shows the receipt explanation on an attempt-failed item — the two axes never cross", () => {
     render(
       <ConversationTimelineView
         {...baseProps()}
@@ -178,7 +178,7 @@ describe("ConversationTimelineView", () => {
             deliveryStatus: ChannelDeliveryStatus.failed,
             // A malformed item carrying a detail on the wrong axis: the
             // attempt-axis explanation has its own field and gate
-            // (attemptExplanationOf, cloud#262), so a stray receipt
+            // (attemptExplanationOf), so a stray receipt
             // detail still renders nothing here.
             receiptDetail: "should never render",
           }),
@@ -189,7 +189,7 @@ describe("ConversationTimelineView", () => {
     expect(screen.queryByText("should never render")).toBeNull();
   });
 
-  it("shows a refused send's platform-authored explanation verbatim (cloud#262)", () => {
+  it("shows a refused send's platform-authored explanation verbatim", () => {
     render(
       <ConversationTimelineView
         {...baseProps()}
@@ -210,7 +210,7 @@ describe("ConversationTimelineView", () => {
     ).toBeDefined();
   });
 
-  it("shows a withdrawn send's structural fact verbatim (cloud#262)", () => {
+  it("shows a withdrawn send's structural fact verbatim", () => {
     render(
       <ConversationTimelineView
         {...baseProps()}
@@ -228,7 +228,7 @@ describe("ConversationTimelineView", () => {
     expect(screen.getByText("channel deleted")).toBeDefined();
   });
 
-  it("shows this surface's own generic copy for an errored send — the wire carries no detail (cloud#262)", () => {
+  it("shows this surface's own generic copy for an errored send — the wire carries no detail", () => {
     render(
       <ConversationTimelineView
         {...baseProps()}
@@ -250,7 +250,7 @@ describe("ConversationTimelineView", () => {
     ).toBeDefined();
   });
 
-  it("keeps the bare tick for a failure the platform never classified (pre-cloud#262 rows)", () => {
+  it("keeps the bare tick for a failure the platform never classified (rows from before the classification)", () => {
     render(
       <ConversationTimelineView
         {...baseProps()}
@@ -267,7 +267,7 @@ describe("ConversationTimelineView", () => {
     expect(screen.queryByText(/technical problem/)).toBeNull();
   });
 
-  it("never shows the attempt explanation on a delivered item — the F-25 boundary's mirror", () => {
+  it("never shows the attempt explanation on a delivered item — the same boundary, mirrored", () => {
     render(
       <ConversationTimelineView
         {...baseProps()}
@@ -351,7 +351,7 @@ describe("ConversationTimelineView", () => {
     expect(screen.getByText("Read")).toBeDefined();
   });
 
-  it("explains status glyphs with tooltips, never native titles, and adds no tab stops (F-18)", () => {
+  it("explains status glyphs with tooltips, never native titles, and adds no tab stops", () => {
     // Every footer status variant at once: failed, suppressed, sending,
     // and the three receipt ticks (sent / delivered / read) plus the
     // receipt-failed arm.
@@ -578,7 +578,7 @@ describe("ConversationTimelineView inbound media", () => {
     );
 
     // The URL is minted from the item's full conversation address —
-    // never a storage key (whatsapp-media DD-001 D4).
+    // never a storage key.
     await waitFor(() => {
       const img = container.querySelector("img[aria-hidden='true']");
       expect(img?.getAttribute("src")).toBe("https://r2.example/presigned/photo");

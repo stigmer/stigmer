@@ -41,7 +41,7 @@ const INITIAL_PAGE: RunsPage = { runs: [], totalCount: 0 };
 
 /**
  * Data hook that fetches a schedule's run history, newest first — the
- * fire ledger (project DD-017 D-7).
+ * fire ledger.
  *
  * Every fire leaves a row, INCLUDING the fires that created no execution
  * (a refused launch gate, a missing target agent), carrying the refusing

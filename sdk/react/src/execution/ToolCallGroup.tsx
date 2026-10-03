@@ -45,7 +45,7 @@ export interface ToolCallGroupProps {
  *
  * The `toolCalls` array may be a newly allocated subset (e.g.
  * `buildThreadItems` filters out `task` calls). Structural sharing
- * (T04) keeps individual `ToolCall` objects stable, so we compare
+ * keeps individual `ToolCall` objects stable, so we compare
  * array elements by reference rather than the array itself.
  *
  * @internal Exported for testing — not part of the public API.
@@ -88,7 +88,7 @@ export function toolCallGroupPropsEqual(
  * Wrapped in `React.memo` with a custom comparator that checks `toolCalls`
  * elements by reference (structural sharing keeps individual `ToolCall` objects
  * stable for unchanged calls), so settled rows skip re-renders while siblings
- * stream (DD-009/010).
+ * stream.
  *
  * @example
  * ```tsx

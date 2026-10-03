@@ -39,7 +39,7 @@ export interface UseElkLayoutEngineOptions {
 }
 
 /**
- * Behavior hook (DD-003 layer 2) that asynchronously creates an ELK layout
+ * Behavior hook (the headless layer) that asynchronously creates an ELK layout
  * engine and manages its lifecycle.
  *
  * Returns the engine once ready, or `null` while loading / if `elkjs` is

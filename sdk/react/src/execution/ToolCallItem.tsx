@@ -110,7 +110,7 @@ export interface ToolCallItemProps {
  * call carries a model-authored intent phrase is titled with that phrase
  * instead — the command becomes the subtitle (stigmer#276).
  *
- * Wrapped in `React.memo` — structural sharing (DD-009/010) preserves
+ * Wrapped in `React.memo` — structural sharing preserves
  * the `ToolCall` reference when unchanged, so a settled row skips
  * re-renders while sibling tools stream.
  *
@@ -201,7 +201,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   const { ref: subtitleRef, isTruncated: primaryArgTruncated } =
     useIsTextTruncated<HTMLSpanElement>(measuresSubtitle);
 
-  // Cursor-style chrome via the shared ThreadCardShell (T05): each tool call
+  // Cursor-style chrome via the shared ThreadCardShell: each tool call
   // is its own self-contained card — a thin rounded neutral border. A pending
   // gate carries a restrained left accent on the card itself (warning, or
   // destructive for a delete); that accent is the only "awaiting you" cue now
@@ -371,7 +371,7 @@ export const ToolCallItem = memo(function ToolCallItem({
       error={approval.error}
     />
   ) : result.type === "memoryProposal" ? (
-    // The remember tool's consent chip (DD-005 D4): verbatim fact +
+    // The remember tool's consent chip: verbatim fact +
     // Confirm/Reject, with the record's CURRENT lifecycle fetched so a
     // reloaded thread never shows stale action buttons. Borderless — this
     // row's card owns the chrome (the ApprovalCardBody posture).
@@ -741,7 +741,7 @@ function McpPlugIcon() {
 }
 
 // ---------------------------------------------------------------------------
-// Status icons — the shared thread-card glyph set (T05)
+// Status icons — the shared thread-card glyph set
 // ---------------------------------------------------------------------------
 
 // `completed` is deliberately iconless — success is the silent default, so

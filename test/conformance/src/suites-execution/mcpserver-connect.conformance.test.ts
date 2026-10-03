@@ -1,5 +1,5 @@
 // Conformance suite for the McpServer connect lanes and the engine-backed
-// half of the OAuth handshake (CW-1, Class B).
+// half of the OAuth handshake (Class B).
 // Domain: agentic / mcpserver — the connect/OAuth facet, engine-backed half.
 //
 // Two facets share this file because they share one dependency: the Temporal
@@ -541,10 +541,9 @@ describe("McpServer connect conformance — blocking connect", () => {
 
     // Classification is a cheap task, so the runner runs it on the registry's
     // economy tier for the primary model's provider — resolved through the
-    // control plane's registry to the provider's api id (DD-002 of entry
-    // 20260910.02; the Go offline suite's classify arm pinned the same wire
-    // id). Asserted against the row the runner itself picks from the same
-    // document, not a pinned string.
+    // control plane's registry to the provider's api id (the Go offline
+    // suite's classify arm pinned the same wire id). Asserted against the row
+    // the runner itself picks from the same document, not a pinned string.
     if (target.modelRegistryDocument === undefined) {
       throw new Error(`target ${target.name} exposes no model registry document; execution targets must`);
     }

@@ -585,7 +585,7 @@ describe("MessageThread slots", () => {
     rerender(<MessageThread executions={[exec]} slots={slots} />);
 
     // Same execution reference, same slots object: the renderer must not
-    // manufacture fresh props that defeat the slot's React.memo (DD-010).
+    // manufacture fresh props that defeat the slot's React.memo.
     expect(renderCount).toHaveBeenCalledTimes(1);
   });
 });

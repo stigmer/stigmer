@@ -1,6 +1,5 @@
 /**
- * Pure helpers for the "bring your own Slack app" setup surface
- * (T04 item 2).
+ * Pure helpers for the "bring your own Slack app" setup surface.
  *
  * A customer-owned Slack app needs three Stigmer-side values wired into
  * its configuration on api.slack.com: the OAuth redirect URL (shared by

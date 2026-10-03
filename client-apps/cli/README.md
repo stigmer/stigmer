@@ -3,17 +3,18 @@
 The Stigmer command-line interface — manage agents, workflows, MCP servers,
 skills, and executions from the terminal.
 
-This is the TypeScript successor to the Go CLI (`client-apps/cli/`). It is being
-built in waves; this package currently covers the **Wave 1 foundation**:
+This is the TypeScript CLI that replaced the Go CLI. Its shape, in brief:
 
-- Package scaffold + commander command tree (`stigmer ...`)
-- Cross-cutting infrastructure: config, errors/exit-codes, unified output, the
+- the commander command tree (`stigmer ...`);
+- cross-cutting infrastructure: config, errors/exit-codes, unified output, the
   backend client façade, the resource-type registry, and PKCE auth with
-  refresh-token support
-- Read verbs: `get`, `list`, `validate`, plus `version` and `completion`
-
-Resource mutation (`apply`/`delete`/...), streaming (`run`/`resume`) with
-in-process Ink, and local orchestration (`up`/`down`) land in later waves.
+  refresh-token support;
+- reads and writes: `get`, `list`, `validate`, `apply`, `delete`, `diff`, plus
+  `version` and `completion`;
+- streaming runs (`run`, `resume`) rendered with in-process Ink;
+- local orchestration (`up`, `down`, `status`, `logs`);
+- the plugin, skill and sharing commands (`install`, `push`, `marketplace`,
+  `share`) and the rest of the tree `stigmer --help` lists.
 
 ## Development
 
@@ -28,7 +29,7 @@ npm run start -- --help   # run the CLI from source via tsx
 ## Design
 
 The CLI standardizes on the high-level `@stigmer/sdk` `Stigmer` client for reads
-and (in a later wave) the in-process Ink session view. The backend-client façade
+and the in-process Ink session view. The backend-client façade
 also exposes the underlying transport so write flows can use raw controllers for
 full YAML-to-proto fidelity.
 

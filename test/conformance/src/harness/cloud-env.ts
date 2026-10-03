@@ -3,7 +3,7 @@
 //
 // The cloud targets are connect-only: they never boot anything. The
 // environment they test is PROVISIONED ELSEWHERE — since 2026-09-10 (the Java
-// stigmer-service's retirement, stigmer-cloud DD-013) that is the TypeScript
+// stigmer-service's retirement) that is the TypeScript
 // composition, booted by stigmer-cloud's readout recipe, which writes the
 // CLOUD_ENV variables below before the suite runs. Until then a Go launcher in
 // this repository (test/integration/cmd/conformance-cloudenv) booted the Java
@@ -54,27 +54,26 @@ export const CLOUD_ENV = {
   // (its STIGMER_IDP_URL / Java idp-url), as the environment's mock tenant
   // declares it — so the direct-login suite can MINT the tokens a console,
   // desktop, CLI or MCP client presents and drive the server's direct-login
-  // lane (stigmer-cloud#604, the S1 lane). The signing key is the private
-  // half of the key the tenant's JWKS publishes (base64 of a PKCS#8 PEM, the
-  // composition's `*_BASE64` custody pattern); the kid names it in that
-  // document. Set by whoever owns the tenant: the hermetic launcher hands
-  // its in-process tenant's material over on the ready line (the same
-  // material minted the bootstrap operator's first token); the composition
-  // readout's spike tenant writes an env file. Deliberately UNSET on any
-  // deployed endpoint — a real tenant's key is never handed to conformance —
-  // so CloudTarget exposes no directLoginTenant and the suite skips VISIBLY.
-  // The API audience is required with the issuer; the MCP audience is
-  // optional (blank = the tenant mints for the API alone).
+  // lane. The signing key is the private half of the key the tenant's JWKS
+  // publishes (base64 of a PKCS#8 PEM, the composition's `*_BASE64` custody
+  // pattern); the kid names it in that document. Set by whoever owns the
+  // tenant: the hermetic launcher hands its in-process tenant's material
+  // over on the ready line (the same material minted the bootstrap
+  // operator's first token); the composition readout's spike tenant writes
+  // an env file. Deliberately UNSET on any deployed endpoint — a real
+  // tenant's key is never handed to conformance — so CloudTarget exposes no
+  // directLoginTenant and the suite skips VISIBLY. The API audience is
+  // required with the issuer; the MCP audience is optional (blank = the
+  // tenant mints for the API alone).
   directLoginIssuer: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_ISSUER",
   directLoginSigningKeyBase64: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_SIGNING_KEY_BASE64",
   directLoginKid: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_KID",
   directLoginApiAudience: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_API_AUDIENCE",
   directLoginMcpAudience: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_MCP_AUDIENCE",
-  // The cloud-capability HTTP lanes (E1, entry 20260906.04), one address per
-  // lane — see TargetProfile.proxyBaseUrl and siblings for why they are not
-  // one httpAddress. On the hermetic launcher every lane but bidi is the
-  // Spring HTTP address; the composition publishes whatever listener C6/P1
-  // bind. Each is REQUIRED on a cloud target (the flags are true there): an
+  // The cloud-capability HTTP lanes, one address per lane — see
+  // TargetProfile.proxyBaseUrl and siblings for why they are not one
+  // httpAddress. The composition publishes whatever listener each lane
+  // binds. Each is REQUIRED on a cloud target (the flags are true there): an
   // environment that forgets one fails its arms loudly, never false-greens.
   proxyAddress: "STIGMER_CONFORMANCE_CLOUD_PROXY_ADDRESS",
   cursorBidiAddress: "STIGMER_CONFORMANCE_CLOUD_CURSOR_BIDI_ADDRESS",

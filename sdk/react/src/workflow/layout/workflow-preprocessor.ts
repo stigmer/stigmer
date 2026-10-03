@@ -62,7 +62,7 @@ export const ELK_WORKFLOW_DEFAULTS: Readonly<Record<string, string>> = {
  * 4. Applies ELK layout options (configurable via overrides)
  *
  * Compound nodes (for_each, try_catch as containers) are NOT supported in this
- * implementation — the graph model is flat (AD-T03-003). All nodes are peers.
+ * implementation — the graph model is flat. All nodes are peers.
  *
  * @param input - The layout input containing graph, scope, and options.
  * @param layoutOptionsOverrides - Optional ELK option overrides.

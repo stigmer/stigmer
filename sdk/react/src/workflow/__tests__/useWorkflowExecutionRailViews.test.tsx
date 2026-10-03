@@ -93,7 +93,7 @@ describe("useWorkflowExecutionRailViews", () => {
     expect(result.current[1].badge).toBe(2);
   });
 
-  it("is referentially stable across re-renders with unchanged inputs (DD-010)", () => {
+  it("is referentially stable across re-renders with unchanged inputs", () => {
     const options = baseOptions({
       artifacts: [artifact("art_1", "a.json")],
       fileChanges: [fileChange("src/a.ts")],
@@ -106,7 +106,7 @@ describe("useWorkflowExecutionRailViews", () => {
     expect(result.current).toBe(first);
   });
 
-  it("never offers an Inspect view — per-task detail lives on the thread cards (T06)", () => {
+  it("never offers an Inspect view — per-task detail lives on the thread cards", () => {
     const { result } = renderHook(() =>
       useWorkflowExecutionRailViews(baseOptions()),
     );

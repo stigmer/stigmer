@@ -20,7 +20,7 @@ export interface UseUpdateMemoryContentReturn {
 
 /**
  * Behavior hook that edits a memory's fact text — the one field the
- * subject owns after capture (DD-004).
+ * subject owns after capture.
  *
  * The update RPC replaces the entire spec, so the loaded record is
  * mapped through the generated `toMemoryUpdateInput` and only `content`

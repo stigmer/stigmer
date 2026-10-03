@@ -9,13 +9,13 @@
 // page_size, and runtime-originated sessions (channel / share / guest /
 // schedule labels) are excluded for every caller.
 //
-// Scope: sessions only. This slice's targets run with no Temporal, so
+// Scope: sessions only. This suite's targets run with no Temporal, so
 // workflow executions cannot be seeded here; the cross-kind merge and phase
 // projection are pinned by the Go handler's store-level tests (OSS) and the
 // cloud handler's step tests. Ordering is asserted on CREATION timestamps
 // only: both editions stamp statusAudit.updatedAt at create, but which later
 // mutations bump it differs by design (the cloud bumps on session memory
-// persist — a runtime path this slice cannot drive; updateSubject bumps only
+// persist — a runtime path this suite cannot drive; updateSubject bumps only
 // the spec audit in both editions and must NOT reorder recents).
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -54,8 +54,8 @@ const separateTimestamps = () => new Promise((resolve) => setTimeout(resolve, 25
 
 // Helpers take the caller explicitly: most tests run as the ordinary user,
 // but the runtime-origin exclusion test seeds its lookalike sessions through
-// the privileged scope (reserved-label writes are operator-only on cloud
-// since stigmer-cloud#386, and the recents feed is caller-scoped anyway).
+// the privileged scope (reserved-label writes are operator-only on cloud,
+// and the recents feed is caller-scoped anyway).
 async function provisionAgentInstance(caller: ConformanceClients, org: string): Promise<string> {
   const agent = await caller.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
   fixtures.defer(() => caller.agentCommand.delete({ value: agent.metadata!.id }));
@@ -123,7 +123,7 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
   it.skipIf(!hasPrivilegedScope)("excludes runtime-origin sessions (personal sessions only)", async () => {
     // The runtime-origin lookalikes carry server-stamped reserved keys, which
     // an ordinary caller can no longer forge on cloud (GuardReservedLabelsStep,
-    // platform-wide since stigmer-cloud#386) — that rejection is itself pinned
+    // at every client-facing write boundary) — that rejection is itself pinned
     // in the agent suite. This test therefore seeds them through the
     // privileged scope (stigmer#547): the local targets' scope IS the ordinary
     // caller, and the recents feed is caller-scoped, so listing as the same

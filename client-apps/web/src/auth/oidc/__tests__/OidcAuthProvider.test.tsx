@@ -13,11 +13,11 @@
 // provider via vi.resetModules() + dynamic import instead of a test-only
 // reset hook — production code stays free of test scaffolding.
 //
-// Sign-out (20260913.02, sp.console-login Q-CL-4): the provider speaks
-// only the OIDC standard. When the issuer publishes `end_session_endpoint`
-// it uses RP-initiated logout; when it does not (Dex, and any issuer with
-// no logout endpoint) it clears the local session and lands on /login. It
-// never builds a vendor URL — the Auth0 `/v2/logout` fallback is gone.
+// Sign-out: the provider speaks only the OIDC standard. When the issuer
+// publishes `end_session_endpoint` it uses RP-initiated logout; when it does
+// not (Dex, and any issuer with no logout endpoint) it clears the local
+// session and lands on /login. It never builds a vendor URL — the Auth0
+// `/v2/logout` fallback is gone.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -155,7 +155,7 @@ async function renderAndLogout() {
   );
 }
 
-describe("OidcAuthProvider sign-out speaks only the standard (Q-CL-4)", () => {
+describe("OidcAuthProvider sign-out speaks only the standard", () => {
   let replaceSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {

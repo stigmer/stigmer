@@ -15,7 +15,7 @@ import { useConversationTimeline } from "../useConversationTimeline";
 import { useConversationsWantsHumanCount } from "../useConversationsWantsHumanCount";
 
 /**
- * The F-14 composition net (channel-conversations T06): the open
+ * The poll-starvation composition net: the open
  * conversation mounts BOTH `useConversation` (the row poll, a
  * hand-rolled loop with stable deps) and `useConversationTimeline` (a
  * `useFetch` poll) in one component — the `ConversationsWorkbench`
@@ -65,7 +65,7 @@ function wrapper(client: unknown) {
   };
 }
 
-describe("conversation polling composition (F-14)", () => {
+describe("conversation polling composition", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -105,9 +105,9 @@ describe("conversation polling composition (F-14)", () => {
   });
 
   it("the wants-human count keeps polling under the row poll's render cadence (the fourth poller)", async () => {
-    // T05's badge hook joins the same composition (the console mounts
+    // The badge hook joins the same composition (the console mounts
     // the sidebar beside the open conversation), so it inherits the
-    // F-14 exposure by construction: every row-poll firing re-renders,
+    // starvation exposure by construction: every row-poll firing re-renders,
     // and a timer keyed on identity would never complete a period.
     // Offset intervals for the same reason as above — aligned periods
     // mask the defect under fake timers.

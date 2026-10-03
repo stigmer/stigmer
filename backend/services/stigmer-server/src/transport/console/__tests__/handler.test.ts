@@ -273,7 +273,7 @@ describe("/config.json synthesis", () => {
 });
 
 describe("the guard: RPC and /v1/* flow exactly as without the lane", () => {
-  it("keeps the adapter's terse 404 for unknown /v1/proxy/* (CW-10)", async () => {
+  it("keeps the adapter's terse 404 for unknown /v1/proxy/*", async () => {
     const response = await fetch(`${baseUrl}/v1/proxy/does-not-exist`);
     expect(response.status).toBe(404);
     expect(response.headers.get("content-type")).not.toBe(

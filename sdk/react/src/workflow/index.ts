@@ -60,7 +60,7 @@ export {
   type UseWorkflowExecutionListReturn,
 } from "./useWorkflowExecutionList.js";
 
-// T09: Execution viewer — data hooks
+// Execution viewer — data hooks
 export {
   useWorkflowExecution,
   type UseWorkflowExecutionReturn,
@@ -77,7 +77,7 @@ export {
   type UseWorkflowExecutionArtifactsReturn,
 } from "./useWorkflowExecutionArtifacts.js";
 
-// T09: Execution viewer — behavior hooks
+// Execution viewer — behavior hooks
 export {
   useWorkflowExecutionEventStream,
   type UseWorkflowExecutionEventStreamOptions,
@@ -90,7 +90,7 @@ export {
   type UseWorkflowExecutionActionsReturn,
 } from "./useWorkflowExecutionActions.js";
 
-// T10: YAML editor — behavior hooks
+// YAML editor — behavior hooks
 export {
   useWorkflowValidation,
   type UseWorkflowValidationReturn,
@@ -104,7 +104,7 @@ export {
   type TopologyNodeCategory,
 } from "./useWorkflowTopology.js";
 
-// T10: YAML editor — styled components
+// YAML editor — styled components
 export {
   WorkflowYamlEditor,
   type WorkflowYamlEditorProps,
@@ -127,7 +127,7 @@ export {
   type WorkflowEditorMode,
 } from "./WorkflowEditorView.js";
 
-// T11: Run workflow — behavior hook
+// Run workflow — behavior hook
 export {
   useRunWorkflowFlow,
   type UseRunWorkflowFlowOptions,
@@ -135,16 +135,16 @@ export {
   type RunWorkflowFieldErrors,
 } from "./useRunWorkflowFlow.js";
 
-// T11: Run workflow — instance env key resolution
+// Run workflow — instance env key resolution
 export {
   useInstanceEnvKeys,
   type UseInstanceEnvKeysReturn,
 } from "./useInstanceEnvKeys.js";
 
-// T11: Run workflow — trigger input detection
+// Run workflow — trigger input detection
 export { workflowUsesTriggerInput } from "./workflow-uses-trigger-input.js";
 
-// T11: Run workflow — styled components
+// Run workflow — styled components
 export {
   WorkflowRunForm,
   type WorkflowRunFormProps,
@@ -155,7 +155,7 @@ export {
   type WorkflowRunDialogProps,
 } from "./WorkflowRunDialog.js";
 
-// T08: Workflow styled components
+// Workflow styled components
 export {
   WorkflowExecutionPhaseBadge,
   type WorkflowExecutionPhaseBadgeProps,
@@ -173,7 +173,7 @@ export {
   type WorkflowDetailViewProps,
 } from "./WorkflowDetailView.js";
 
-// T09: Execution viewer — styled components
+// Execution viewer — styled components
 export {
   WorkflowExecutionViewer,
   type WorkflowExecutionViewerProps,
@@ -282,7 +282,7 @@ export {
   type WorkflowTaskApprovalSummaryProps,
 } from "./WorkflowTaskApprovalSummary.js";
 
-// T14: Dashboard — data hooks
+// Dashboard — data hooks
 export {
   useWorkflowDashboardSummary,
   type UseWorkflowDashboardSummaryOptions,
@@ -295,7 +295,7 @@ export {
   type UsePendingApprovalsReturn,
 } from "./usePendingApprovals.js";
 
-// T14: Dashboard — styled components
+// Dashboard — styled components
 export {
   ExecutionSummaryWidget,
   type ExecutionSummaryWidgetProps,
@@ -316,7 +316,7 @@ export {
   type WorkflowDashboardProps,
 } from "./WorkflowDashboard.js";
 
-// T15: Visual canvas editor — types
+// Visual canvas editor — types
 export type {
   WorkflowGraphModel,
   WorkflowGraphNode,
@@ -328,14 +328,14 @@ export type {
 
 export { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model.js";
 
-// T15: Visual canvas editor — conversion functions
+// Visual canvas editor — conversion functions
 export {
   yamlToGraph,
   graphToYaml,
   graphToWorkflowInput,
 } from "./workflow-graph-conversions.js";
 
-// T15: Visual canvas editor — behavior hook
+// Visual canvas editor — behavior hook
 export {
   useWorkflowCanvas,
   type CanvasSelection,
@@ -343,7 +343,7 @@ export {
   type UseWorkflowCanvasReturn,
 } from "./useWorkflowCanvas.js";
 
-// T15: Visual canvas editor — styled components
+// Visual canvas editor — styled components
 export {
   WorkflowCanvasEditor,
   type WorkflowCanvasEditorProps,
@@ -371,7 +371,7 @@ export {
   type WorkflowInspectorPanelProps,
 } from "./WorkflowInspectorPanel.js";
 
-// T10: Inspector module — tabbed shell, forms, summary, types
+// Inspector module — tabbed shell, forms, summary, types
 export {
   InspectorShell,
   type InspectorShellProps,
@@ -436,7 +436,7 @@ export {
   type UseWorkflowArchitectReturn,
 } from "./workflow-architect.js";
 
-// Workflow Architect — behavior hook (replaces T16 generateWorkflowFromPrompt)
+// Workflow Architect — behavior hook (replaces generateWorkflowFromPrompt)
 export {
   useWorkflowArchitectFlow,
   type ArchitectPhase,
@@ -444,13 +444,13 @@ export {
   type UseWorkflowArchitectFlowReturn,
 } from "./useWorkflowArchitectFlow.js";
 
-// Workflow Architect — styled component (replaces T16 WorkflowGenerateDialog)
+// Workflow Architect — styled component (replaces WorkflowGenerateDialog)
 export {
   WorkflowArchitectDialog,
   type WorkflowArchitectDialogProps,
 } from "./WorkflowArchitectDialog.js";
 
-// Workflow Architect — refine behavior hook (replaces T16 refineWorkflow)
+// Workflow Architect — refine behavior hook (replaces refineWorkflow)
 export {
   useRefineWorkflowFlow,
   type RefinePhase,
@@ -458,7 +458,7 @@ export {
   type UseRefineWorkflowFlowReturn,
 } from "./useRefineWorkflowFlow.js";
 
-// Workflow Architect — refine styled component (replaces T16 WorkflowRefinePanel)
+// Workflow Architect — refine styled component (replaces WorkflowRefinePanel)
 export {
   WorkflowRefinePanel,
   type WorkflowRefinePanelProps,
@@ -471,7 +471,7 @@ export {
   type DiffLineType,
 } from "./workflow-yaml-diff.js";
 
-// Workflow Architect — diagnose behavior hook (replaces T16 diagnoseExecution)
+// Workflow Architect — diagnose behavior hook (replaces diagnoseExecution)
 export {
   useDiagnoseExecutionFlow,
   type DiagnosePhase,
@@ -479,7 +479,7 @@ export {
   type UseDiagnoseExecutionFlowReturn,
 } from "./useDiagnoseExecutionFlow.js";
 
-// Workflow Architect — diagnose styled component (replaces T16 WorkflowRepairCard)
+// Workflow Architect — diagnose styled component (replaces WorkflowRepairCard)
 export {
   WorkflowRepairCard,
   type WorkflowRepairCardProps,
@@ -500,10 +500,10 @@ export {
   type UseResolveAgentExecutionSessionReturn,
 } from "./useResolveAgentExecutionSession.js";
 
-// T01: Canonical kind metadata (replaces triplicated categorizeKind)
+// Canonical kind metadata (replaces triplicated categorizeKind)
 export { categorizeKind, kindToDisplayName } from "./kind-metadata.js";
 
-// T01: Task type visual registry
+// Task type visual registry
 export {
   getVisualSpec,
   VISUAL_REGISTRY,
@@ -512,7 +512,7 @@ export {
   type TaskTypeVisualSpec,
 } from "./task-type-visual-registry.js";
 
-// T03: Layout pipeline
+// Layout pipeline
 export type {
   LayoutEngine,
   LayoutInput,
@@ -543,7 +543,7 @@ export {
   postprocessElkResult,
 } from "./layout/index.js";
 
-// T04: Execution graph — mode context
+// Execution graph — mode context
 export {
   WorkflowGraphModeProvider,
   useWorkflowGraphMode,
@@ -551,13 +551,13 @@ export {
   type WorkflowGraphModeProviderProps,
 } from "./WorkflowGraphModeContext.js";
 
-// T04: Execution graph — types
+// Execution graph — types
 export type {
   NodeExecutionStatus,
   NodeExecutionState,
 } from "./workflow-graph-conversions.js";
 
-// T06: Branch and parallel execution highlighting — pure derivation functions
+// Branch and parallel execution highlighting — pure derivation functions
 export {
   deriveEdgeExecutionStates,
   deriveForkProgress,
@@ -565,20 +565,20 @@ export {
   type ForkProgress,
 } from "./execution/index.js";
 
-// T04: Execution graph — behavior hook
+// Execution graph — behavior hook
 export {
   useWorkflowExecutionGraph,
   type UseWorkflowExecutionGraphOptions,
   type UseWorkflowExecutionGraphReturn,
 } from "./useWorkflowExecutionGraph.js";
 
-// T04: Execution graph — styled component
+// Execution graph — styled component
 export {
   WorkflowExecutionGraph,
   type WorkflowExecutionGraphProps,
 } from "./WorkflowExecutionGraph.js";
 
-// T16: Execution visibility and accessibility
+// Execution visibility and accessibility
 export {
   useFollowExecution,
   type FollowState,
@@ -600,7 +600,7 @@ export {
 } from "./useApprovalBoundary.js";
 export { getAnimationDuration, prefersReducedMotion } from "../internal/motion-preference.js";
 
-// T05: Shared formatting utilities
+// Shared formatting utilities
 export {
   formatDuration,
   formatDurationSec,
@@ -611,7 +611,7 @@ export {
   formatMetaChips,
 } from "./format-utils.js";
 
-// T06: Shared task-detail primitives — the card bodies' I/O ladder and the
+// Shared task-detail primitives — the card bodies' I/O ladder and the
 // human_input gate's review/decision projections.
 export {
   buildIO,
@@ -627,7 +627,7 @@ export {
   type StructuredDataViewerProps,
 } from "./task-detail/index.js";
 
-// S8: Workflow task thread — pure projection + behavior hook + styled component
+// Workflow task thread — pure projection + behavior hook + styled component
 export {
   projectThreadItems,
   type WorkflowThreadItem,
@@ -638,7 +638,7 @@ export {
   threadCardVariant,
   type WorkflowThreadCardVariant,
 } from "./thread/thread-presentation.js";
-// T04: Session-parity task cards — headless per-kind presentation seam
+// Session-parity task cards — headless per-kind presentation seam
 // (the workflow twin of the session's registerToolPresenter).
 export {
   resolveTaskPreview,
@@ -656,7 +656,7 @@ export {
   type WorkflowThreadHitl,
 } from "./thread/WorkflowTaskThread.js";
 
-// T11: Shortcut registry
+// Shortcut registry
 export {
   getAllShortcuts,
   getShortcut,
@@ -666,7 +666,7 @@ export {
   type ShortcutScope,
 } from "./shortcut-registry.js";
 
-// T11: Internal clipboard
+// Internal clipboard
 export {
   serializeSelection,
   pasteClipboard,
@@ -674,13 +674,13 @@ export {
   type PasteResult,
 } from "./clipboard.js";
 
-// T11: View YAML dialog
+// View YAML dialog
 export {
   ViewYamlDialog,
   type ViewYamlDialogProps,
 } from "./ViewYamlDialog.js";
 
-// T13: Execution history — derivation, hooks, and components
+// Execution history — derivation, hooks, and components
 export {
   deriveExecutionRow,
   deriveExecutionRows,
@@ -708,14 +708,14 @@ export {
   type WorkflowExecutionHistoryProps,
 } from "./execution-history/index.js";
 
-// T12: Overview page redesign — behavior hook
+// Overview page redesign — behavior hook
 export {
   useWorkflowOverviewGraph,
   type UseWorkflowOverviewGraphOptions,
   type UseWorkflowOverviewGraphReturn,
 } from "./useWorkflowOverviewGraph.js";
 
-// T12: Overview page redesign — styled components
+// Overview page redesign — styled components
 export {
   WorkflowOverviewGraph,
   type WorkflowOverviewGraphProps,
@@ -736,7 +736,7 @@ export {
   type WorkflowOverviewSummaryProps,
 } from "./WorkflowOverviewSummary.js";
 
-// T14: Visual diff engine — types and pure functions
+// Visual diff engine — types and pure functions
 export type {
   NodeDiffStatus,
   EdgeDiffStatus,
@@ -747,20 +747,20 @@ export type {
 export { computeGraphDiff, buildDiffGraph, jsonEqual } from "./diff/index.js";
 export { DiffSummaryBar, type DiffSummaryBarProps } from "./diff/index.js";
 
-// T14: Visual diff graph — behavior hook
+// Visual diff graph — behavior hook
 export {
   useWorkflowDiffGraph,
   type UseWorkflowDiffGraphOptions,
   type UseWorkflowDiffGraphReturn,
 } from "./useWorkflowDiffGraph.js";
 
-// T14: Visual diff graph — styled component
+// Visual diff graph — styled component
 export {
   WorkflowDiffGraph,
   type WorkflowDiffGraphProps,
 } from "./WorkflowDiffGraph.js";
 
-// T14: Explain workflow — behavior hook
+// Explain workflow — behavior hook
 export {
   useExplainWorkflowFlow,
   type ExplainPhase,
@@ -768,7 +768,7 @@ export {
   type UseExplainWorkflowFlowReturn,
 } from "./useExplainWorkflowFlow.js";
 
-// T14: Explain workflow — styled component
+// Explain workflow — styled component
 export {
   WorkflowExplainDialog,
   type WorkflowExplainDialogProps,
@@ -816,7 +816,7 @@ export {
   type ExecutionComparisonViewProps,
 } from "./execution-comparison/index.js";
 
-// DD-003: Workflow versioning — data hooks
+// Workflow versioning — data hooks
 export {
   useWorkflowVersions,
   type UseWorkflowVersionsReturn,
@@ -832,7 +832,7 @@ export {
   type UseWorkflowVersionDiffReturn,
 } from "./useWorkflowVersionDiff.js";
 
-// DD-003: Workflow versioning — styled components
+// Workflow versioning — styled components
 export {
   WorkflowVersionBadge,
   type WorkflowVersionBadgeProps,
@@ -853,7 +853,7 @@ export {
   type WorkflowVersionsTabProps,
 } from "./WorkflowVersionsTab.js";
 
-// T15: Workflow Template Gallery
+// Workflow Template Gallery
 export {
   type WorkflowTemplateData,
   type WorkflowTemplateCategory,

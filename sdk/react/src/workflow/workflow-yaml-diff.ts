@@ -2,7 +2,7 @@
  * Lightweight line-based diff utility for workflow YAML.
  *
  * Implements the Myers diff algorithm on line arrays to produce a unified diff
- * without external dependencies. This keeps the SDK dependency-clean (DD-012)
+ * without external dependencies. This keeps the SDK dependency-clean
  * and avoids an optional peer dependency for a small utility.
  */
 

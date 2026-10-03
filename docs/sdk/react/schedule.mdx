@@ -265,7 +265,7 @@ function useSetScheduleEnabled(): UseSetScheduleEnabledReturn
 ### useTriggerSchedule
 
 Behavior hook that fires a schedule once, immediately, and reports the
-run's real outcome (project DD-017 D-5/D-6).
+run's real outcome.
 
 The trigger is a two-level contract, and this hook honors both levels:
 
@@ -321,7 +321,7 @@ platform pause (Resume is the one clearing path — see
 generalized from one hardcoded field to any spec edit.
 
 Errors are NOT toasted here: inline editors surface the server's
-message next to the field that was edited (DD-006), and a toast on
+message next to the field that was edited, and a toast on
 top would say the same thing twice.
 
 **Signature**
@@ -418,7 +418,7 @@ All visual properties flow through `--stgm-*` design tokens.
     editable: { type: "boolean", description: "Enable inline editing of the schedule's mutable spec fields (cadence, message, environments, engine & model, budget). Each field saves independently via a lossless full-resource re-apply (useUpdateScheduleSpec). The server-immutable fields — slug, target agent, target type — never gain an edit affordance; workspace edits go through Edit YAML for now." },
     now: { type: "Date", description: "The instant \"next fire\" countdowns and run timestamps are computed against. Injectable for deterministic tests and Scenar fixtures." },
     onDeleted: { type: "() => void", description: "Called after a successful delete (navigate back to the list)." },
-    onNavigateToAgent: { type: "(org: string, slug: string) => void", description: "Called when the user activates the target-agent reference. Navigation is the consumer's concern (DD-004) — the Console pushes a Library route; an embedding host does whatever fits." },
+    onNavigateToAgent: { type: "(org: string, slug: string) => void", description: "Called when the user activates the target-agent reference. Navigation is the consumer's concern — the Console pushes a Library route; an embedding host does whatever fits." },
     onNavigateToExecution: { type: "(executionId: string) => void", description: "Called when the user activates an execution reference (`aex_…`), from the status row or a run-history row. When omitted, ids render as plain text." },
     onResourceLoad: { type: "(schedule: Schedule) => void", description: "Called when the schedule loads or reloads (e.g. breadcrumb label sync)." },
     onTabChange: { type: "(tabId: string) => void", description: "Controlled tab change handler (pair with `activeTab`)." },
@@ -432,7 +432,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 Single-page form for creating a `Schedule`.
 
-The form speaks the composer's vocabulary (DD-018 D-5): a schedule is
+The form speaks the composer's vocabulary: a schedule is
 a saved run — which agent, what message, what workspace, which
 engine and model, what budget — plus a cadence. It reuses the
 composer's own pickers ([`ModelSelector`](/docs/sdk/react/models#modelselector), [`WorkspaceEditor`](/docs/sdk/react/workspace#workspaceeditor))
@@ -482,7 +482,7 @@ at a time — the one that is currently meaningful; an owner-disabled
 schedule renders neither (its remedy lives on the detail page).
 
 Shared by every console's schedule workbench via `renderItemAction`
-so row behavior never diverges between apps (DD-016).
+so row behavior never diverges between apps.
 
 **Props** — `ScheduleRowActionsProps`
 
@@ -497,7 +497,7 @@ so row behavior never diverges between apps (DD-016).
 ### ScheduleRunsTable
 
 Paginated run-history table for a schedule — the fire ledger,
-rendered in full (project DD-017 D-7).
+rendered in full.
 
 Every fire leaves a row, INCLUDING fires that created no execution (a
 refused launch gate, a missing target agent), carrying the refusing
@@ -509,7 +509,7 @@ execution reference.
 Owns its data: give it a `scheduleId` and it fetches via
 `useScheduleRuns` with internal page state. To force a refresh
 from outside (e.g. after triggering a manual run), remount with a
-React `key` — the standard reset idiom (DD-014); the remount also
+React `key` — the standard reset idiom; the remount also
 returns to page 1, where the new run appears.
 
 Handles loading, error, and empty states automatically.
@@ -564,7 +564,7 @@ function cadenceToCron(preset: CadencePreset): string
 ### createScheduleColumns
 
 Column set for a schedule workbench — shared by every console so the
-list renders identically everywhere (DD-016).
+list renders identically everywhere.
 
 The columns exist because schedules are listed via the direct query:
 each row is a full `Schedule` proto, so the operational fields the

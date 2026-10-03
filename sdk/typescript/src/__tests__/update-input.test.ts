@@ -220,7 +220,8 @@ describe("toIdentityAccountUpdateInput", () => {
     // The correct editor pattern for a nested message: spread the mapper's
     // COMPLETE preferences and override only the edited field. A bare
     // `preferences: { standingContext }` literal would wipe the structured
-    // defaults — the session-4 wipe bug recurring one level down.
+    // defaults — the same whole-message wipe a partial update input causes,
+    // one level down.
     const built = buildIdentityAccountProto({
       ...mapped,
       preferences: { ...mapped.preferences, standingContext: "Terser still." },

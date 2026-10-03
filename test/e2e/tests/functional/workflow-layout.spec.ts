@@ -13,8 +13,6 @@ import { assertNoErrorBoundary } from "../../helpers/navigation";
  * visual canvas editor, against a seeded multi-kind workflow (the
  * pre-oss#571 version discovered "any existing workflow" from the
  * library, which is vacuous on a fresh stack).
- *
- * @since T03 (ELK Layout Pipeline)
  */
 
 /** The canvas toolbar's auto-layout action (visible-text + aria-label). */

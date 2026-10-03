@@ -31,8 +31,7 @@ type EditorState =
  * Platform-operator panel for authoring the model registry baseline:
  * the catalog list with revision history, an add/edit form with an
  * explicit old-to-new rate confirmation, and typed-confirmation
- * retirement (DD-004 — this replaces hand edits of
- * `model-registry.json`).
+ * retirement (this replaces hand edits of `model-registry.json`).
  *
  * Prefer {@link PricingGovernanceConsole} for new surfaces — it
  * composes this catalog with the governance view into one tabbed

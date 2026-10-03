@@ -61,7 +61,7 @@ export interface ConversationListPaneProps {
   readonly onChannelFilterChange: (agentChannelId: string) => void;
   /**
    * The server-evaluated predicate filter currently applied to the list
-   * (DD-011 D-g — the same predicate the nav badge counts, so the
+   * (the same predicate the nav badge counts, so the
    * filtered list always matches the number that opened it). Defaults
    * to unspecified (all conversations).
    */
@@ -83,14 +83,14 @@ export interface ConversationListPaneProps {
 }
 
 /**
- * The conversation inbox pane (channel-conversations T04): every
- * conversation across the org's channels, newest activity first, with
- * control, attention, and awaiting-reply indicators.
+ * The conversation inbox pane: every conversation across the org's
+ * channels, newest activity first, with control, attention, and
+ * awaiting-reply indicators.
  *
  * Presentational — pair with `useConversationList` and
  * `useOrgAgentChannelList`, or compose via `ConversationsWorkbench`.
- * The wants-human filter is SERVER-evaluated (DD-011 D-g closed the API
- * gap that T04 D1 cited): a client-side tab over one fetched page would
+ * The wants-human filter is SERVER-evaluated (the list RPC takes the
+ * predicate): a client-side tab over one fetched page would
  * silently lie across pages, so the pane only reports the choice and the
  * list hook sends it to the server.
  */
@@ -259,7 +259,7 @@ const FILTER_OPTIONS: readonly {
  * the `ViewSwitcher` pattern (its second sighting; extract a shared
  * primitive if a third segmented control appears).
  *
- * "Needs human" is exactly the nav badge's predicate (DD-011 D-f/D-g),
+ * "Needs human" is exactly the nav badge's predicate,
  * so the number on the badge and the list this control opens can never
  * disagree.
  */
@@ -338,10 +338,10 @@ function ConversationFilterToggle({
  * The awaiting dot's meaning, shared verbatim by its tooltip and its
  * sr-only text — one string per strength so sighted-hover and
  * screen-reader users hear the identical fact. The copy carries the
- * DISTINCTION, not just the fact (cloud#266): who holds the
+ * DISTINCTION, not just the fact: who holds the
  * conversation is exactly what the two strengths encode, and it names
  * the stake without promising an outcome — a muted dot survives a dead
- * agent turn on purpose (DD-011 D-b's recovery path).
+ * agent turn on purpose.
  */
 const AWAITING_COPY: Record<"strong" | "muted", string> = {
   strong: "Customer awaiting reply — a human has this conversation; the agent will not answer",
@@ -387,12 +387,12 @@ const ConversationRow = memo(function ConversationRow({
       >
         <div className="stg:min-w-0 stg:flex-1">
           <div className="stg:flex stg:items-center stg:gap-1.5">
-            {/* No truncation title on the label (F-18): the full name
+            {/* No truncation title on the label: the full name
                 renders in the open conversation's header, so a native
                 tooltip here added noise without adding reach. */}
             <p className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">{label}</p>
             {conversation.needsAttention && (
-              // The reason rides the house tooltip (F-18). The trigger
+              // The reason rides the house tooltip. The trigger
               // renders as a span — it sits INSIDE the row button, so a
               // default (button) trigger would nest buttons — and stays
               // out of the tab order; the sr-only text remains the
@@ -438,10 +438,10 @@ const ConversationRow = memo(function ConversationRow({
             {awaiting && (
               // The WhatsApp inbox convention: an awaiting conversation
               // carries a dot under its timestamp. Strength maps the
-              // holder (DD-011 D-a): strong when a human holds it — the
+              // holder: strong when a human holds it — the
               // agent will not answer, a person must — muted when the
-              // agent does. Strong is FILLED and muted is a hollow RING
-              // (cloud#266): fill-vs-outline reads as "act vs watching"
+              // agent does. Strong is FILLED and muted is a hollow RING:
+              // fill-vs-outline reads as "act vs watching"
               // without decoding color, and color alone inverted in dark
               // mode, where the muted gray outshone the strong primary.
               // The meaning rides the house tooltip (the attention

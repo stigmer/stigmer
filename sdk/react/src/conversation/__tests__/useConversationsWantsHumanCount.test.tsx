@@ -34,7 +34,7 @@ describe("useConversationsWantsHumanCount", () => {
     vi.restoreAllMocks();
   });
 
-  it("reads the filtered list's total_count with a one-row page — zero dedicated RPCs (DD-011 D-g)", async () => {
+  it("reads the filtered list's total_count with a one-row page — zero dedicated RPCs", async () => {
     const listConversations = vi
       .fn()
       .mockResolvedValue({ items: [], totalCount: 7 });
@@ -84,7 +84,7 @@ describe("useConversationsWantsHumanCount", () => {
     expect(result.current.count).toBe(4);
   });
 
-  it("refetches when the window regains focus (DD-012: refocus is fresh)", async () => {
+  it("refetches when the window regains focus", async () => {
     const listConversations = vi
       .fn()
       .mockResolvedValue({ items: [], totalCount: 2 });

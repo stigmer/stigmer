@@ -1,20 +1,19 @@
-// List-read scoping conformance (20260830.01.sp.list-read-scoping).
+// List-read scoping conformance.
 //
 // The ISOLATION arms the instrument never had: every prior list test
 // asserts containment ("my rows are present"); these assert the inverse —
 // an OUTSIDER's list/search/activity NEVER contains the owner's rows.
-// Both multi-tenant editions must pass identically: the Java edition
-// through listAuthorizedResourceIds, the composition through the
-// ListReadScope driver over FGA ListObjects — the arms are the shared
-// contract, so the hermetic Java target validates them before the
-// composition is measured against them.
+// Both multi-tenant editions must pass identically: the open-source
+// server through its built-in ListReadScope driver, the hosted
+// composition through the ListReadScope driver over FGA ListObjects —
+// the arms are the shared contract.
 //
 // One lane per consumer family (the seam's per-lane logic is pinned in
 // the OSS unit suites; this is the wire-level tenant-isolation contract):
 // session.list (the restrict verb, no org intersection, once walked page
 // by page so a token is shown to carry no authority), apikey.findAll
 // (the direct-read tail), environment.list (the org-intersecting family),
-// search + recent activity (the enumeration verb), and the Q8
+// search + recent activity (the enumeration verb), and the
 // check-shaped lanes (the listByChannel channel gate, workflow
 // listVersions) refusing an outsider with their byte-pinned Java copy.
 //
@@ -25,7 +24,7 @@
 // cloud and on both open-source store drivers. Where a target lends no
 // lane the arms skip VISIBLY with its reason. Guest sibling-visitor
 // isolation cannot ride this suite (guest lanes are unreachable from
-// conformance — the C2 R6 ruling); it is pinned by the cloud driver's unit
+// conformance); it is pinned by the cloud driver's unit
 // matrix and the committed live proof.
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -280,7 +279,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     ).not.toContain(session.metadata!.id);
   });
 
-  it("[rpc:SessionQueryController.listByChannel] session.listByChannel: the channel gate refuses an outsider with the Java copy (Q8)", async (ctx) => {
+  it("[rpc:SessionQueryController.listByChannel] session.listByChannel: the channel gate refuses an outsider with its byte-pinned copy", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -308,7 +307,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     expect(denied.rawMessage).toBe("unauthorized to list channel conversations");
   });
 
-  it("[rpc:WorkflowQueryController.listVersions] workflow.listVersions refuses an outsider with the Java copy (Q8)", async (ctx) => {
+  it("[rpc:WorkflowQueryController.listVersions] workflow.listVersions refuses an outsider with its byte-pinned copy", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();

@@ -16,12 +16,12 @@
 // mock. So a passing arm proves the whole chain: fixture prompt → runner →
 // stdio mcp-server → this server → tool result → the architect's YAML answer.
 //
-// Pinned (DD-001 of entry 20260910.02; the Go offline suite's
-// workflow_architect_offline_test.go): the architect consults the registry and
-// answers a fenced YAML block declaring set_vars; its MCP tool calls are
-// recorded as ToolCalls; validate_workflow_yaml runs before it answers when the
-// script says so; a second execution in the same session refines the earlier
-// YAML (the session carries the conversation).
+// Pinned (the Go offline suite's workflow_architect_offline_test.go): the
+// architect consults the registry and answers a fenced YAML block declaring
+// set_vars; its MCP tool calls are recorded as ToolCalls;
+// validate_workflow_yaml runs before it answers when the script says so; a
+// second execution in the same session refines the earlier YAML (the session
+// carries the conversation).
 //
 // Two arms are deliberately ABSENT until stigmer#1026 lands: the registry
 // tool's contract is not met by the TypeScript server today — the RPC behind
@@ -29,8 +29,7 @@
 // architect proceeds without the registry. The arms that assert the registry's
 // ANSWER (the tool call carrying a result; validate_workflow_yaml following the
 // lookup) would be red, and this suite neither skips nor works around a failing
-// assertion; their text is held in stigmer-cloud entry 20260910.02's
-// T01_1_arm-disposition.md (rows 69–70) and returns with the fix. What runs
+// assertion; they return with the fix. What runs
 // here asserts what holds regardless: the registry call is made and recorded,
 // the architect answers a YAML block, and a second execution in the same
 // session refines it.
@@ -58,7 +57,7 @@ import { createTarget, type TargetProfile } from "../targets";
 // with no credential of its own, so the arms run only where the target exposes
 // an anonymously reachable unified port (the local targets). On the cloud
 // targets the lane needs a bearer the fixture does not mint, and the file
-// reports SKIPPED rather than a false green (the DD-012 posture).
+// reports SKIPPED rather than a false green.
 const dialsAnonymously = createTarget().httpBaseUrl !== undefined;
 
 let target: TargetProfile;

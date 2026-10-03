@@ -4,7 +4,7 @@ import type { WorkflowGraphNode } from "../workflow-graph-model.js";
 import type { NodeDimensions } from "./types.js";
 
 /**
- * Resolves per-node dimensions from the visual registry (T01).
+ * Resolves per-node dimensions from the visual registry.
  *
  * This is the canonical adapter that bridges `WorkflowGraphNode` to the
  * `NodeDimensions` contract expected by layout engines. It handles both
@@ -19,7 +19,7 @@ import type { NodeDimensions } from "./types.js";
  *
  * Defined at module scope — referentially stable with no closure over
  * React state. Safe to pass directly as `getNodeDimensions` without
- * wrapping in `useCallback` (DD-010).
+ * wrapping in `useCallback`.
  */
 export function registryNodeDimensions(node: WorkflowGraphNode): NodeDimensions {
   const spec = getVisualSpec(graphNodeKindString(node));

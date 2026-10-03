@@ -51,7 +51,7 @@ export interface UseWorkflowLayoutReturn {
 // ---------------------------------------------------------------------------
 
 /**
- * Behavior hook (DD-003 layer 2) that orchestrates async layout computation.
+ * Behavior hook (the headless layer) that orchestrates async layout computation.
  *
  * Manages:
  * - **Generation counter**: overlapping requests are deduplicated; only the

@@ -24,8 +24,8 @@
  *     a cycle. The candidates run concurrently: the only shared state is
  *     the source, whose promise memo dedupes the loads (the person's rows
  *     once; each distinct parent once — an execution list reads its
- *     distinct SESSIONS, entry 9's parent-check exactly). The kept set is
- *     a subset of the offered ids; order is the lane's.
+ *     distinct SESSIONS, the parent its `session` relation names). The
+ *     kept set is a subset of the offered ids; order is the lane's.
  *   - `authorizedResourceIds`: the kind scanned, decoded and evaluated
  *     the same way. There is no tuple index to enumerate from and the
  *     answer is genuinely not "everything" (private blueprints exist), so

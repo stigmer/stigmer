@@ -12,19 +12,17 @@ implement the API:
   readout recipe). Until 2026-09-10 the cloud edition was the Java
   `stigmer-service`, which this suite also held to the contract through a
   hermetic launcher in this repository; the service and the launcher retired
-  together (stigmer-cloud DD-013).
+  together.
 
 (History: the targets were born as `local-go`/`local-go-execution` against the
-original Go server, then grew `local-ts` twins whose per-sub-project roster
-growth gated the TypeScript rewrite — roster equality was the cutover gate.
-The Go server retired at go-server-retirement (D4 #25) and the surviving
-targets took the plain names. See the stigmer-cloud program
-`20260822.01.oss-ts-server-and-self-hosting`.)
+original Go server, then grew `local-ts` twins whose roster growth gated the
+TypeScript rewrite — roster equality was the cutover gate. The Go server
+retired and the surviving targets took the plain names.)
 
 The contract — not any one implementation — is the product. This suite is what
 keeps the implementations honest and makes agentic dual-maintenance safe:
 "port feature X, make conformance pass" becomes a well-specified, self-verifying
-task. See the project's `design-decisions/001-cloud-convergence-strategy.md`.
+task.
 
 ## Status
 
@@ -269,7 +267,7 @@ an org is just a unique slug. There is no CI lane for the cloud targets in this
 repository: the cloud composition's own repository runs them and keeps the
 readouts.
 
-**The direct-login arms** (`direct-login.conformance.test.ts`, stigmer-cloud#604)
+**The direct-login arms** (`direct-login.conformance.test.ts`)
 drive the lane a console, desktop, CLI or MCP client actually rides: the raw
 access token the PLATFORM'S OWN identity tenant mints, verified and resolved
 to the caller's account at position 1. The suite forges nothing about the
@@ -283,9 +281,8 @@ beside the composition's own `STIGMER_IDP_*` boot trio). Every deployed
 endpoint (a real tenant's key is never conformance's) leaves the group unset,
 and the arms skip VISIBLY with the target's reason.
 
-**The cloud-capability suites** (E1 of the convergence program's DD-012 reset,
-stigmer-cloud entry `20260906.04`) cover the three surfaces the Java service
-owned alone until the composition takes them: the billing ledger
+**The cloud-capability suites** cover the three surfaces only the hosted
+edition serves, which the retired Java service once owned: the billing ledger
 (`billing.conformance.test.ts` + `suites-execution/billing-gates`), the
 side-channel proxy (`proxy.conformance.test.ts`) and the public REST lane
 (`public-lane.conformance.test.ts`). The plan catalog and subscriptions, which
@@ -392,8 +389,8 @@ History: until 2026-09-10 the suite also carried a **known-deviation registry**
 (`deviations.ts`) — tracked entries, keyed on the server implementation behind
 a target, for the Java `stigmer-service`'s known bugs (three deterministic, two
 races), so a Java target could be held to the contract without the suite
-asserting Java's wrong answer as if it were right. The Java service retired
-(stigmer-cloud DD-013) and the registry, the `TargetProfile.implementation`
+asserting Java's wrong answer as if it were right. The Java service retired,
+and the registry, the `TargetProfile.implementation`
 axis it keyed on, and the approval race seam built over it were deleted
 together (stigmer#1023); the design is in git history. Earlier still, the local
 targets carried entries for the retired Go server (duplicate-create /
@@ -480,15 +477,12 @@ one version, and apply-time `metadata.version.tag` flows through the same
 single-holder primitive), and
 `workflowChildApprovalForwarding` is `true` where the
 `child_approval_required` signal — which surfaces a child agent's gate to its
-parent workflow — is sent: cloud and, since D4 #23, this server's HITL loop.
-(The retired Go server never sent it, which is why the flag exists — see
-`design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`).
+parent workflow — is sent: cloud and this server's HITL loop. (The retired Go
+server never sent it, which is why the flag exists.)
 Capabilities are retired when a surface converges: secret redaction was gated
 per edition until the Environment (stigmer#405) and ExecutionContext
 (stigmer#535) surfaces converged, after which the suites assert redaction
-unconditionally. See the project's
-`design-decisions/005-secret-redaction-capability-flag.md` for the original
-flag's rationale.
+unconditionally.
 
 **The enforcing lane** (`TargetProfile.enforcingLane()`, built by
 `harness/enforcing-lane.ts`): an authorization arm needs a server whose
@@ -542,8 +536,8 @@ CLI cannot be told port 0, retries a boot that lost its port). `clients` builds 
 clients; `grpc-ready` is the shared store-probe readiness gate; `fixtures`
 tracks created resources for best-effort reverse-order cleanup.
 
-The execution harness runs the runner in its **production OSS posture**
-(stigmer-cloud entry 20260910.02, DD-002): `runner-process` pins the model
+The execution harness runs the runner in its **production OSS posture**:
+`runner-process` pins the model
 registry at the control plane that really serves it (`registryOrigin` →
 `STIGMER_CLOUD_API_URL`: the server's unified port locally, the composition's
 authenticated proxy lane on `cloud-execution`) instead of letting the runner's
@@ -586,8 +580,7 @@ from every run. A fixture endpoint is a loopback harness component
 The execution domains (WorkflowExecution, AgentExecution) are 100% Temporal-
 gated, so they run on their own config (`vitest.execution.config.ts`,
 `test:execution`) rather than the dependency-light CRUD one. This split keeps the
-Class A signal fast (no Temporal/runner) — see the project's
-`design-decisions/007-execution-engine-harness-target.md`.
+Class A signal fast (no Temporal/runner).
 
 Having an execution engine is **not** an edition difference (cloud has one too),
 so it is not a `CapabilityFlag`. Instead it is a heavier **target**:
@@ -600,20 +593,18 @@ Temporal workflow that dispatches the real work to the runner on `stigmer_runner
 A `*.harness.test.ts` here proves the harness is wired (the engine runs an
 execution); a `*.conformance.test.ts` asserts a domain's full contract. They are
 distinct on purpose: the smoke test is a permanent, cheap liveness guard, and
-per DD-006 an execution **domain** enters the suite whole on this same harness.
+an execution **domain** enters the suite whole, on this same harness.
 
 `workflowexecution.conformance.test.ts` is the first such whole domain. It uses
 two hermetic fixtures: `set_vars` (sub-second, for create/complete/query/terminal
 cases) and `wait` (a durable Temporal timer, for acting on a genuinely *running*
 execution — IN_PROGRESS, cancel, terminate, pause/resume). It asserts the
-**engine-present** contract; the engine-unavailable create-boundary (issue #195,
-formerly the F7/F8 asymmetry) is now one symmetric contract across both execution
+**engine-present** contract; the engine-unavailable create-boundary (issue
+#195) is now one symmetric contract across both execution
 domains — a create while the engine is down fails fast with Unavailable and
 persists nothing — and is only reachable with Temporal down, so it is covered by
-the server's controller unit tests (and the Java guard unit tests) rather than asserted
-here — see
-`design-decisions/008-workflowexecution-domain-engine-present-contract.md`. Class
-B files run serially (`fileParallelism: false`) so multiple suites don't boot
+the server's controller unit tests rather than asserted here. Class B files run
+serially (`fileParallelism: false`) so multiple suites don't boot
 multiple Temporal+runner stacks at once.
 
 `agentexecution.conformance.test.ts` is the second whole execution domain. An
@@ -628,8 +619,7 @@ encodes AgentExecution's divergences from WorkflowExecution — **no `AlreadyExi
 on create** (repeated identical creates yield distinct `aex_` ids), the query
 analogue is **`listBySession`**, and a create with **neither `session_id` nor
 `agent_id`** is the **built-in assistant**: the server creates a session with no
-agent and the run completes on the runner's one built-in prompt. See the project's
-`design-decisions/009-agentexecution-domain-and-ts-mock-llm-proxy.md`. The two
+agent and the run completes on the runner's one built-in prompt. The two
 execution domains share one enum-agnostic poll core (`support/execution-poll.ts`).
 
 `agentexecution-approval.conformance.test.ts` adds the **HITL tool-approval**
@@ -651,8 +641,7 @@ APPROVE_ALL, the `pending_approvals` read model (`tool_call_id`, `tool_name`,
 codes — and deliberately does **not** assert runner-internal projections that are
 not stable black-box observables (per-tool-call *final* status after the approval
 resume, and `args_preview`), exactly the boundary the integration HITL suite
-draws. See the project's
-`design-decisions/010-mcp-server-fixture-and-agentexecution-hitl-contract.md`.
+draws.
 
 `workflowexecution-approval.conformance.test.ts` adds the **workflow `human_input`
 HITL** (`submitWorkflowTaskApproval`) contract — the workflow analogue of the
@@ -690,18 +679,17 @@ assert idempotency (the signal-based gate is not deduped, unlike the agent DB
 projection) or the `task.output` projection (outcome-honoring is proven
 behaviorally via routing). The sibling `submitApproval` (the workflow->child-agent
 tool-forwarding composite) is a **different mechanism** and lives in its own file,
-described next. See the project's
-`design-decisions/011-workflowexecution-human-input-hitl-contract.md`.
+described next.
 
 `workflowexecution-child-approval.conformance.test.ts` adds the **child-agent
 approval FORWARDING** (`submitApproval`) contract — distinct from `human_input`
-(DD-011): a workflow invokes an agent via an `agent_call` task, and when that
+(above): a workflow invokes an agent via an `agent_call` task, and when that
 *child* AgentExecution gates on a tool, the gate surfaces at the parent's
 `status.pending_approvals` (carrying `child_agent_execution_id`); `submitApproval`
 routes the decision down to the child's `AgentExecution.submitApproval`. The
 `child_approval_required` signal that populates the parent's
-`pending_approvals` is sent by cloud and — since D4 #23 — this server's HITL
-loop (the DD-012 derivation design: identity-only signal, the runner derives
+`pending_approvals` is sent by cloud and this server's HITL loop (an
+identity-only signal: the runner derives
 the gate from the child's persisted record; the retired Go server had the
 receiver but never the sender, which is what the capability flag encoded).
 The suite splits along the `workflowChildApprovalForwarding`
@@ -711,12 +699,10 @@ UNSPECIFIED action -> `InvalidArgument`; missing execution -> `NotFound`; a runn
 *or* terminal execution with no pending approvals -> `FailedPrecondition`); the
 **happy path** is `describe.skipIf`-gated so it reports as genuinely **SKIPPED**
 (not a false green) where the sender or the mock fixtures are absent, and RUNS
-on `local-execution`. See the project's
-`design-decisions/012-workflowexecution-child-approval-forwarding-contract.md`.
+on `local-execution`.
 
-**The runner-behavior facets** (stigmer-cloud entry 20260910.02, DD-001)
-replaced the Go `test/integration-offline` suite, arm for arm, with its
-accounting in that entry's `T01_1_arm-disposition.md`: a runner behavior a
+**The runner-behavior facets** replaced the Go `test/integration-offline`
+suite, arm for arm: a runner behavior a
 client reads off execution status is contract, and the execution class is its
 home. `agentexecution-messages` (the transcript: text, thinking, MCP tool
 calls that succeed or fail, the ToolCall field contract, and the model id the
@@ -729,7 +715,7 @@ NOT pinned, see the file header), `agentexecution-file-review` and
 `-file-review-progress` (apply-then-review: 15 decide-and-reconcile arms over a
 harness git workspace, the secret and binary rules, and the mid-run progress
 strip under the runner's capture throttle), `agentexecution-memory-selection`
-(the embedder posture of DD-008, beside `-memory-retrieval`'s no-embedder one),
+(the embedder posture, beside `-memory-retrieval`'s no-embedder one),
 `agentexecution-workflow-architect` (a fixture agent on the real
 `stigmer mcp-server` over stdio, the always-on proof of the stdio lane), `workflowexecution-llm-call` and
 `workflowexecution-eval` (the LLM-backed workflow tasks), plus additions to
@@ -800,15 +786,16 @@ fixtures/           working-agent/ (the working agent's Go workspace and skills:
 
 ## Adding a cloud capability
 
-For a surface only the cloud edition serves (the E1 pattern):
+For a surface only the cloud edition serves:
 
 1. Add a `CapabilityFlags` entry in `targets/target.ts` with the rationale
    block the others carry — true on `cloud`, false on the local targets with
-   the DD-001 reason — and, if it is an HTTP lane, an optional address
+   the edition-boundary reason (the surface is the hosted edition's alone) —
+   and, if it is an HTTP lane, an optional address
    accessor beside `proxyBaseUrl()`, fed from a new `CLOUD_ENV` entry the
    composition readout publishes.
 2. Enumerate its behaviors as rows in `inventory/cloud-capabilities.yaml`
-   (stable dotted ids; one disposition each; cite the Java source and test).
+   (stable dotted ids; one disposition each).
 3. Write the suite gated at collection time (`describe.skipIf(!flag)`), every
    `it` tagged with its row ids; script any upstream the server dials through
    `harness/cloud-fixtures.ts` and its control client, never by importing a

@@ -1,4 +1,4 @@
-// Public surface of the runtime-acquisition seams (DD-002/003/007).
+// Public surface of the runtime-acquisition seams.
 
 export { resolveNode, resolveServerNode } from "./node.js";
 export {
@@ -8,8 +8,8 @@ export {
   ensureRunner,
   resolveRunner,
 } from "./runner.js";
-// The TS server — the served implementation since the DD-006 cutover (D4 #24;
-// the Go binary ladder that backed rollback retired with #25).
+// The TS server — the served implementation (the Go binary ladder that
+// backed rollback retired with the Go server).
 export {
   type EnsureServerOptions,
   acquireServer,

@@ -1,5 +1,5 @@
-// Thin wrappers over the `git` CLI (the S5 decision: shell out rather than add a
-// git library). Used for skill push provenance (local repo detection) and for
+// Thin wrappers over the `git` CLI (shelling out rather than adding a git
+// library). Used for skill push provenance (local repo detection) and for
 // cloning a remote repo when pushing with --git-url.
 
 import { execFileSync } from "node:child_process";

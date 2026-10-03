@@ -1,4 +1,4 @@
-// DD-001 boundary guard: React/Ink must load lazily so non-streaming commands
+// Lazy-loading guard: React/Ink must load lazily so non-streaming commands
 // and `--help` never pay for them. This codifies the boundary structurally so a
 // regression (a stray static import) fails CI instead of silently slowing every
 // command. The one allowed static importer is ink.tsx, which is itself only ever
@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 const SRC_ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 // The only modules allowed to statically import react/ink/@stigmer/ink. Each is
 // itself reached exclusively through a dynamic import() in a command action, so
-// the heavy graph stays out of every non-interactive path (DD-001).
+// the heavy graph stays out of every non-interactive path.
 const INK_MODULES = [
   join(SRC_ROOT, "resources/stream/ink.tsx"),
   join(SRC_ROOT, "resources/picker/ink.tsx"),
@@ -29,7 +29,7 @@ function walk(dir: string): string[] {
   return out;
 }
 
-describe("lazy-import boundary (DD-001)", () => {
+describe("lazy-import boundary", () => {
   it("only the lazy Ink entrypoints statically import react/ink/@stigmer/ink", () => {
     const offenders = walk(SRC_ROOT)
       .filter((path) => !INK_MODULES.includes(path))

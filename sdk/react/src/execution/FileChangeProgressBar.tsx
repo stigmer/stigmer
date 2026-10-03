@@ -10,7 +10,7 @@ import { FilePathLink } from "./FilePathLink.js";
 /** Props for {@link FileChangeProgressBar}. */
 export interface FileChangeProgressBarProps {
   /**
-   * The transient mid-run progress snapshot for the active turn (DD-32). Feed
+   * The transient mid-run progress snapshot for the active turn. Feed
    * this from `useSessionConversation().fileChangeProgress`. Renders nothing when
    * undefined or when no files have changed yet — the server clears it once the
    * turn's change set leaves CAPTURING, so the bar disappears exactly when the
@@ -42,7 +42,7 @@ export interface FileChangeProgressBarProps {
  * not — so a screen reader hears "3 files changing" as the count moves, not a
  * per-file barrage on every ~2s refresh.
  *
- * Purely presentational (headless-first, DD-003): the data lives in
+ * Purely presentational (headless-first): the data lives in
  * `useSessionConversation().fileChangeProgress`. `SessionViewer` mounts it above
  * the dock by default.
  *

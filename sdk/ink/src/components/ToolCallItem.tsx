@@ -51,7 +51,7 @@ const KIND_LABEL: Partial<Record<ToolKind, string>> = {
   [ToolKind.SUBAGENT]: "Sub-agent",
   // The CLI has no consent chip; the labeled row (with the fact as the
   // primary arg) plus the honest "proposed" result text is the whole story —
-  // confirm/reject happen in the console (DD-005 D4's surfaces).
+  // confirm/reject happen in the console's memory surfaces.
   [ToolKind.MEMORY]: "Remember",
 };
 
@@ -182,7 +182,7 @@ function describeResultView(view: ToolResultView): string | null {
       return `${preview}[full output offloaded${size}] ${view.storageKey}`;
     }
     case "memoryProposal":
-      // The CLI is not a consent surface (DD-005 D4): state the proposal
+      // The CLI is not a consent surface: state the proposal
       // honestly and point at where the decision happens.
       return `proposed: "${truncate(view.fact)}" — awaiting your decision (confirm or reject in the console's Memory page)`;
     case "error":

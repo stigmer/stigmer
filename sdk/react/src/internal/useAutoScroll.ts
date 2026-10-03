@@ -56,7 +56,7 @@ export interface UseAutoScrollReturn {
  * that owns the ResizeObserver's lifecycle — React hands it the node on
  * attach and `null` on detach, so the observer follows the wrapper
  * wherever it goes, with no render cost. Attaching only at mount
- * shipped channel-conversations F-09: a late-mounting wrapper was never
+ * shipped a defect: a late-mounting wrapper was never
  * observed, so every conversation opened at its oldest message and
  * nothing ever scrolled the view.
  *
@@ -99,7 +99,7 @@ export function useAutoScroll(): UseAutoScrollReturn {
         // The delivery is the signal; the LIVE geometry is the truth.
         // An entry snapshots geometry at OBSERVATION time and can be
         // delivered after the reader has scrolled again — measured in
-        // the F-09 net: a stale "visible" (captured at the pinned
+        // the late-mount suite: a stale "visible" (captured at the pinned
         // instant) landed after a scroll-up, re-engaged follow, and the
         // next growth yanked the reader to the bottom. Measuring at
         // delivery time keeps the observer as a poll-free change
@@ -110,7 +110,7 @@ export function useAutoScroll(): UseAutoScrollReturn {
           el.scrollHeight - el.scrollTop - el.clientHeight <=
           NEAR_BOTTOM_MARGIN_PX;
         // The growth-vs-reader discriminator (the write-time guard's
-        // mirror, found via the stigmer-cloud#267 pin-on-send suite): a
+        // mirror, found via the pin-on-send suite): a
         // delivery can measure geometry where content ALREADY grew below
         // a system pin but the pin's ResizeObserver write has not run
         // yet. Measured live that reads "not visible" — yet the reader
@@ -155,7 +155,7 @@ export function useAutoScroll(): UseAutoScrollReturn {
       // The reader-took-control guard, decided at WRITE time: a frame
       // can lag (headless and busy tabs throttle rAF) long enough for
       // the reader to scroll up between scheduling and writing, and a
-      // stale pin then yanks them back to the bottom (the F-09 suite's
+      // stale pin then yanks them back to the bottom (the late-mount suite's
       // scrolled-up case, flaking ~1-in-5 under real Chromium). The
       // discriminator is scrollTop itself: content growth never moves
       // it, only the reader does — `isFollowingRef` cannot arbitrate
@@ -190,14 +190,14 @@ export function useAutoScroll(): UseAutoScrollReturn {
 
 /**
  * Pins the thread to its latest content whenever `signal` changes — the
- * scroll-on-send idiom (stigmer-cloud#267): each surface increments a
+ * scroll-on-send idiom: each surface increments a
  * monotonic counter at its own "the reader sent something" moment (an
  * optimistic message appearing, a conversation reply dispatched, a HITL
  * decision submitted), and the pin re-engages follow mode so the resulting
  * content lands in view even for a reader who had deliberately scrolled up.
  * WhatsApp convention: showing the result of the reader's OWN action is
  * Nielsen #1 system-status feedback — distinct from INCOMING content, which
- * must never move a scrolled-up reader (the F-09 posture, unchanged).
+ * must never move a scrolled-up reader (that posture is unchanged).
  *
  * <p>No pin fires on mount, on an `undefined` signal (surface opted out or
  * prop not wired), or on the `undefined`→number transition (a prop

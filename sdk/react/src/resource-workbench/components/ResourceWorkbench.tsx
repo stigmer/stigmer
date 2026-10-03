@@ -154,8 +154,8 @@ export interface ResourceWorkbenchProps<TData = SearchResult> {
    * Whether the toolbar renders the text-search input. Set `false` for
    * kinds whose list backend has no text search (e.g. schedules, which
    * use the direct query instead of the search service) — a search box
-   * that silently matches nothing is worse than none (DD-006). Opt-in
-   * per DD-011: existing consumers keep the search box.
+   * that silently matches nothing is worse than none. Opt-in, so
+   * existing consumers keep the search box.
    * @default true
    */
   readonly searchable?: boolean;

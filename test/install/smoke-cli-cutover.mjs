@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * CLI E2E smoke (born as the D4 #24 cutover gate): `stigmer up` → apply →
+ * CLI E2E smoke (born as the TypeScript server's cutover gate): `stigmer
+ * up` → apply →
  * run → stream → `stigmer down`, against an ISOLATED home, proving the
  * daemon launches the packaged server end-to-end. Nothing else exercises
  * `stigmer up` whole — the e2e suites boot the server entry directly,
- * bypassing the CLI (verified during #24 planning).
+ * bypassing the CLI.
  *
  * The script stages the SLIM server artifact (dist-slim) as a server
  * package and launches it through the daemon's node+entry path — the exact
  * packaged entry users get from @stigmer/server-slim. (The script's second
- * arm — the STIGMER_SERVER_BIN Go rollback — retired with #25
- * go-server-retirement.)
+ * arm — the STIGMER_SERVER_BIN Go rollback — retired with the Go server.)
  *
  * The launch is verified, not assumed: after `up`, the server child's real
  * command line (via its PID file) must be a node+entry process.
@@ -35,10 +35,10 @@
  * run is still streaming while the smoke decides it, so a step that fails
  * meanwhile ends that run before the smoke reports, rather than leaving it
  * to its own timeout.
- * Since the console restoration (DD-012) it also proves the
+ * Since the console restoration it also proves the
  * unified port serves the bundled web console: /config.json synthesis, a
- * dynamic deep link, and the 404 posture — the P3 acceptance's
- * "`stigmer up` serves the console end-to-end" arm.
+ * dynamic deep link, and the 404 posture — the "`stigmer up` serves the
+ * console end-to-end" arm.
  *
  * The CLI itself runs from source under tsx — the repo's documented dev
  * launch (its `start` script; the daemon re-exec replays the loader via
@@ -165,7 +165,7 @@ try {
     throw new Error(`expected a node+entry server process, got: ${server.command}`);
   }
 
-  // 3. Console restoration (DD-012): the slim artifact ships the web
+  // 3. Console restoration: the slim artifact ships the web
   //    console and the server serves it from the unified port. Probe the
   //    three load-bearing arms a browser exercises: the synthesized
   //    /config.json (the one trusted-local document, asserted by the shared

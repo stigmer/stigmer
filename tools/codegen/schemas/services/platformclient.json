@@ -498,7 +498,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Visitor cookie id to persist client-side (httpOnly cookie in item 3).\n\n Echoes guest_cookie_id from the request when provided; otherwise a newly\n generated high-entropy value.",
+          "description": "Visitor cookie id to persist client-side, as an httpOnly cookie.\n\n Echoes guest_cookie_id from the request when provided; otherwise a newly\n generated high-entropy value.",
           "required": false
         }
       ]

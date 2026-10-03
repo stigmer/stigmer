@@ -44,7 +44,7 @@ export interface WorkflowEditorViewProps {
  * Composes {@link useWorkflowEditor} internally — the caller only needs
  * to provide the initial YAML and org slug.
  *
- * Zero Console dependencies (DD-004). All visual properties flow through
+ * Zero Console dependencies. All visual properties flow through
  * `--stgm-*` design tokens.
  *
  * @example
@@ -55,8 +55,6 @@ export interface WorkflowEditorViewProps {
  *   onSaveSuccess={() => toast.success("Workflow saved")}
  * />
  * ```
- *
- * @since T10 (YAML Editor with Graph Preview)
  */
 /** Editing mode for the workflow editor. */
 export type WorkflowEditorMode = "code" | "visual";
@@ -102,7 +100,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
   }, []);
 
   // -------------------------------------------------------------------------
-  // Mode switching (AD-T15-B3-003)
+  // Mode switching
   // -------------------------------------------------------------------------
 
   const handleSwitchToVisual = useCallback(() => {
@@ -141,7 +139,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
     setShowDirtyPrompt(false);
   }, []);
 
-  // Canvas save handler (AD-T15-B3-002: save via YAML)
+  // Canvas save handler (save via YAML)
   const handleCanvasSave = useCallback(
     async (yamlStr: string) => {
       setCanvasIsSaving(true);

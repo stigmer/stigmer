@@ -83,7 +83,7 @@ describe("ConversationAttentionBanner", () => {
     expect(screen.getByText("agent channel ach_1 not found")).toBeDefined();
   });
 
-  it("offers Take over beside Dismiss while the agent holds it — the escalation's answer lives where the escalation speaks (cloud#266, F-20)", async () => {
+  it("offers Take over beside Dismiss while the agent holds it — the escalation's answer lives where the escalation speaks", async () => {
     const user = userEvent.setup();
     const p = participation();
     render(

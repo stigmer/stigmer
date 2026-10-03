@@ -59,7 +59,7 @@ async function loadSchedule(stigmer: Stigmer, ref: string, org: string): Promise
 
 /**
  * Resolve `ref` (a `sch_…` id, `org/slug`, or bare slug against `org`) and
- * fire it once, immediately (project DD-017 D-5/D-6, amending DD-014).
+ * fire it once, immediately.
  *
  * The fire is SYNCHRONOUS: the RPC runs the full execution create pipeline
  * and the result names the run's real outcome — the created execution's

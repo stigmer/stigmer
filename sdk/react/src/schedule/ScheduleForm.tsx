@@ -55,7 +55,7 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
 /**
  * Single-page form for creating a {@link Schedule}.
  *
- * The form speaks the composer's vocabulary (DD-018 D-5): a schedule is
+ * The form speaks the composer's vocabulary: a schedule is
  * a saved run — which agent, what message, what workspace, which
  * engine and model, what budget — plus a cadence. It reuses the
  * composer's own pickers ({@link ModelSelector}, {@link WorkspaceEditor})
@@ -292,8 +292,8 @@ export function ScheduleForm({
         )}
       </div>
 
-      {/* Workspace — what each fire's fresh session operates on
-          (DD-018 D-4). Git sources only; the server refuses local
+      {/* Workspace — what each fire's fresh session operates on.
+          Git sources only; the server refuses local
           folders at write time because no client is connected when a
           schedule fires. */}
       <div className="stg:space-y-1">
@@ -315,8 +315,8 @@ export function ScheduleForm({
         </p>
       </div>
 
-      {/* Environments — how a tool-using agent becomes schedulable
-          (DD-017 D-2). Only org-shared environments resolve for a
+      {/* Environments — how a tool-using agent becomes schedulable.
+          Only org-shared environments resolve for a
           schedule fire, so the picker is filtered to visibility_org —
           the same credential surface a channel binding uses. */}
       <div className="stg:space-y-1">
@@ -350,7 +350,7 @@ export function ScheduleForm({
         />
       </div>
 
-      {/* Engine & model — the composer's own picker (DD-018 D-5),
+      {/* Engine & model — the composer's own picker,
           replacing the free-text model box whose typos surfaced as
           fire-time failures. Nothing is pinned until a model is picked. */}
       <div className="stg:space-y-1">
@@ -397,7 +397,7 @@ export function ScheduleForm({
       </div>
 
       {/* Budget — the one run bound that matters for an unattended
-          surface: nobody is watching a 3 AM fire (DD-018 D-5). Clamped
+          surface: nobody is watching a 3 AM fire. Clamped
           by the platform profile; tool-round bounds stay API-only. */}
       <div className="stg:space-y-1">
         <label htmlFor={`${baseId}-budget`} className={labelClasses}>
@@ -508,14 +508,13 @@ const hintClasses = "stg:text-[0.65rem] stg:text-muted-foreground";
 
 /**
  * Assemble a {@link RunConfigInput} from the model choice and budget, or
- * `undefined` when both are unset — an all-empty run_config carries no
- * meaning, and omitting it keeps the schedule on the platform defaults
- * (the server's own "empty = inherit" contract, DD-017 D-3 as carried
- * into DD-018 D-2). Non-numeric or negative budgets are dropped rather
- * than sent; the proto's `gte = 0` constraint would reject them anyway,
- * and a blank field must not become a zero override. `max_tool_rounds`
- * is deliberately not collected here — an implementation knob, not a
- * user concept; API-reachable for operators (DD-018 D-5).
+ * `undefined` when both are unset — an all-empty run_config carries no meaning,
+ * and omitting it keeps the schedule on the platform defaults (the server's own
+ * "empty = inherit" contract). Non-numeric or negative budgets are dropped
+ * rather than sent; the proto's `gte = 0` constraint would reject them anyway,
+ * and a blank field must not become a zero override. `max_tool_rounds` is
+ * deliberately not collected here — an implementation knob, not a user concept;
+ * API-reachable for operators.
  */
 function buildRunConfig(
   modelName: string,

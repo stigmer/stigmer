@@ -106,7 +106,7 @@ export function resolveOrganization(config: Config, flagOrg?: string): string {
  * Resolve the web console URL:
  *   1. `STIGMER_CONSOLE_URL` (explicit override)
  *   2. local daemon → `http://localhost:{SERVER_PORT}` — the server's own
- *      unified port serves the console since DD-012 (one origin for UI and
+ *      unified port serves the console (one origin for UI and
  *      API; the Go-era separate 8234 listener is retired)
  *   3. selfhost → the entry's endpoint on the same one-origin rule
  *      (https for :443, http otherwise)

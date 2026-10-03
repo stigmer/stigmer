@@ -23,8 +23,7 @@ const SUPPORT_AGENT_REF: ResourceRef = { org: DEMO_ORG, slug: "support-agent" };
 // ---------------------------------------------------------------------------
 // Host page chrome — tour-local, drawn with --scenar-* tokens (Tailwind
 // no-ops under `scenar pack`). Only the page framing is hand-drawn; the
-// chat inside the embed card is the real SDK surface via `SessionView`
-// (sdk-console DD-020).
+// chat inside the embed card is the real SDK surface via `SessionView`.
 // ---------------------------------------------------------------------------
 
 const page: CSSProperties = {

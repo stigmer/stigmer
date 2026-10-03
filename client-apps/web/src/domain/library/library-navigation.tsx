@@ -23,7 +23,7 @@ import { usePathname } from "next/navigation";
  * `static-export-routing.test.ts` asserts each entry has a
  * `src/app/library/<type>/[org]/[slug]/page.tsx` — soft navigation pushes
  * that URL, so without the page file a cold load (reload, shared link)
- * 404s in the static export (cloud#274).
+ * 404s in the static export.
  */
 export const LIBRARY_RESOURCE_TYPES = [
   "agents",

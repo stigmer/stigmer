@@ -13,7 +13,7 @@ import {
 //
 // The fixture switch's cases: `urgent` (conditional) and `default`
 // (no `when` → the default case, rendered italic with a ⊘ suffix).
-test.describe("Workflow branch management (T09)", () => {
+test.describe("Workflow branch management", () => {
   test.describe("Switch Case", () => {
     test("switch_case node shows labeled handles for each case", async ({
       page,

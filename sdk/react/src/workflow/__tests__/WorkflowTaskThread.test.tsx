@@ -1,10 +1,10 @@
 // Behavior tests for the WorkflowTaskThread organism: progress header,
-// per-variant card previews, the expand gesture (T06: headers expand or are
+// per-variant card previews, the expand gesture (headers expand or are
 // plain rows — selection died with the Inspect drill-down), the inline
-// AGENT_CALL transcript body (T07), empty states (DD-006), and the
-// in-thread HITL section (S10/T06 — the in-card human_input review gate).
+// AGENT_CALL transcript body, empty states, and the
+// in-thread HITL section (the in-card human_input review gate).
 //
-// GUARDRAIL (S5 rationale): the entire file renders WITHOUT a StigmerProvider.
+// GUARDRAIL: the entire file renders WITHOUT a StigmerProvider.
 // Any component reaching for a client hook (the child's agentExecution.*
 // submit path) would throw — so a passing render plus the hitl spies
 // receiving decisions proves in-card gates route through the WORKFLOW-level
@@ -117,7 +117,7 @@ function statesOf(...states: DerivedTaskState[]): ReadonlyMap<string, DerivedTas
 }
 
 /**
- * All card root elements, in thread order. Since T06 a preview-kind card's
+ * All card root elements, in thread order. A preview-kind card's
  * header is a plain layout row (no role) — the shell's `data-cursor-target`
  * is the stable, gesture-independent handle on a card.
  */
@@ -257,7 +257,7 @@ describe("WorkflowTaskThread", () => {
     );
   });
 
-  it("renders no selection or Inspect affordance — the card IS the surface (T06)", () => {
+  it("renders no selection or Inspect affordance — the card IS the surface", () => {
     const { container } = render(
       <WorkflowTaskThread
         taskStates={statesOf(taskState({ taskName: "fetch-data" }))}
@@ -272,7 +272,7 @@ describe("WorkflowTaskThread", () => {
     expect(container.querySelector("[aria-pressed]")).toBeNull();
   });
 
-  it("renders the child's inline transcript as an AGENT_CALL card's body — no button, no I/O summary (T07)", () => {
+  it("renders the child's inline transcript as an AGENT_CALL card's body — no button, no I/O summary", () => {
     const onNavigateToAgentExecution = vi.fn();
     render(
       <WorkflowTaskThread
@@ -296,7 +296,7 @@ describe("WorkflowTaskThread", () => {
               "call-writer",
               {
                 taskName: "call-writer",
-                // The old summary body's source — must NOT render (T07):
+                // The old summary body's source — must NOT render:
                 // the transcript IS the body.
                 output: { agent_execution_id: "aex_child_1", final_text: "done" },
                 artifactIds: [],
@@ -323,7 +323,7 @@ describe("WorkflowTaskThread", () => {
     expect(onNavigateToAgentExecution).toHaveBeenCalledWith("aex_child_1");
   });
 
-  it("falls back to the generic error body for an AGENT_CALL that failed before spawning a child (T07)", () => {
+  it("falls back to the generic error body for an AGENT_CALL that failed before spawning a child", () => {
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -346,7 +346,7 @@ describe("WorkflowTaskThread", () => {
     expect(screen.getByText(/resolution trace/)).toBeTruthy();
   });
 
-  it("renders the task's output in the always-visible body from the snapshot (T04)", () => {
+  it("renders the task's output in the always-visible body from the snapshot", () => {
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -383,7 +383,7 @@ describe("WorkflowTaskThread", () => {
     expect(screen.queryByText(/truncated summary/)).toBeNull();
   });
 
-  it("falls back to the truncated event summary with an honesty banner when no snapshot is available (T04)", () => {
+  it("falls back to the truncated event summary with an honesty banner when no snapshot is available", () => {
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -404,9 +404,9 @@ describe("WorkflowTaskThread", () => {
     expect(screen.getByText("Result")).toBeTruthy(); // humanized key
   });
 
-  it("shows the task input in a summary-kind card's chevron detail (T04)", () => {
+  it("shows the task input in a summary-kind card's chevron detail", () => {
     // `wait` is one of the few kinds still in summary disclosure after the
-    // T05 coverage expansion — the chevron-detail input path lives there.
+    // preview-kind expansion — the chevron-detail input path lives there.
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -423,7 +423,7 @@ describe("WorkflowTaskThread", () => {
     );
 
     // Summary-kind cards expand from the header itself (the session card's
-    // own gesture — T06); the detail carries the input.
+    // own gesture); the detail carries the input.
     const header = screen.getByRole("button", { name: /^brief_pause/ });
     expect(header.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(header);
@@ -431,8 +431,8 @@ describe("WorkflowTaskThread", () => {
     expect(screen.getByText("10s")).toBeTruthy();
   });
 
-  it("shows the full error in the always-visible body of a failed preview-kind card (T05)", () => {
-    // http_call is a preview kind since T05 — a failure needs no expand
+  it("shows the full error in the always-visible body of a failed preview-kind card", () => {
+    // http_call is a preview kind — a failure needs no expand
     // gesture: the header carries the first line, the body the full error.
     render(
       <WorkflowTaskThread
@@ -453,7 +453,7 @@ describe("WorkflowTaskThread", () => {
 
   it("a summary-kind card with a body-less detail renders no expand gesture (stigmer#886)", () => {
     // A settled wait card with nothing the header cannot carry — no retry,
-    // no usage, no error, no I/O. Since R6-6 moved Status/Duration onto
+    // no usage, no error, no I/O. With Status/Duration on
     // the header, its detail body would be empty, so the header is a plain
     // row: offering a chevron that reveals nothing is worse than none.
     render(
@@ -561,7 +561,7 @@ describe("WorkflowTaskThread", () => {
     ).toBe("true");
   });
 
-  it("a streaming append re-renders only the changed card — snapshot-map bodies never invalidate siblings (T04 perf probe)", () => {
+  it("a streaming append re-renders only the changed card — snapshot-map bodies never invalidate siblings (perf probe)", () => {
     // Both cards are I/O-bearing preview kinds with always-visible bodies
     // fed from the SAME snapshot map. The formatMetaChips spy fires once
     // per card render, so its call log is the per-card render probe.
@@ -619,11 +619,11 @@ describe("WorkflowTaskThread", () => {
     const renderedDurations = probe.mock.calls.map((c) => c[0]?.durationMs);
     // The live card re-rendered (its token count moved)…
     expect(renderedDurations).toContain(0);
-    // …but the settled preview-body card bailed (DD-009/DD-010).
+    // …but the settled preview-body card bailed.
     expect(renderedDurations).not.toContain(7_777);
   });
 
-  it("renders a fan-out as overlapping running cards in first-started order (D-T02-1)", () => {
+  it("renders a fan-out as overlapping running cards in first-started order", () => {
     // The concurrency shape of the fan-out fixture (four branches live at
     // once after prepare settled): the flat model shows parallelism as
     // multiple simultaneously-running cards under an honest progress line.
@@ -675,7 +675,7 @@ describe("WorkflowTaskThread", () => {
 });
 
 // ---------------------------------------------------------------------------
-// In-thread HITL (S10)
+// In-thread HITL
 // ---------------------------------------------------------------------------
 
 function makeHitl(overrides: Partial<WorkflowThreadHitl> = {}): WorkflowThreadHitl {
@@ -729,8 +729,8 @@ function gatedHumanInput(
   });
 }
 
-describe("WorkflowTaskThread — in-thread HITL (S10/T07)", () => {
-  it("hands the hitl bundle to a GATING agent-call card's transcript — the child's gates decide inside it (T07)", () => {
+describe("WorkflowTaskThread — in-thread HITL", () => {
+  it("hands the hitl bundle to a GATING agent-call card's transcript — the child's gates decide inside it", () => {
     render(
       <WorkflowTaskThread
         taskStates={statesOf(gatedAgentCall("call-helper", "aex_1"))}
@@ -768,7 +768,7 @@ describe("WorkflowTaskThread — in-thread HITL (S10/T07)", () => {
       />,
     );
 
-    // The thread scopes the bundle to waiting_approval cards only (DD-010),
+    // The thread scopes the bundle to waiting_approval cards only,
     // so a merely-running child's transcript stays read-only.
     expect(
       screen
@@ -798,7 +798,7 @@ describe("WorkflowTaskThread — in-thread HITL (S10/T07)", () => {
     expect(probeIn("call-b").getAttribute("data-child-id")).toBe("aex_b");
   });
 
-  it("renders the FULL review gate on a pending human_input card and routes the decision through the workflow-level submit (T06)", () => {
+  it("renders the FULL review gate on a pending human_input card and routes the decision through the workflow-level submit", () => {
     const hitl = makeHitl();
     render(
       <WorkflowTaskThread
@@ -848,7 +848,7 @@ describe("WorkflowTaskThread — in-thread HITL (S10/T07)", () => {
     expect(screen.queryByRole("form")).toBeNull();
   });
 
-  it("reports a resolved gate's decision read-only in the card body — never a second decision surface (T06)", () => {
+  it("reports a resolved gate's decision read-only in the card body — never a second decision surface", () => {
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -889,7 +889,7 @@ describe("WorkflowTaskThread — in-thread HITL (S10/T07)", () => {
     expect(screen.queryByRole("form")).toBeNull();
   });
 
-  it("stays read-only when hitl is omitted (DD-011), even while gating", () => {
+  it("stays read-only when hitl is omitted, even while gating", () => {
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -943,11 +943,11 @@ describe("WorkflowTaskThread — in-thread HITL (S10/T07)", () => {
     const renderedDurations = probe.mock.calls.map((c) => c[0]?.durationMs);
     // The gating card re-rendered (its spinner state moved)…
     expect(renderedDurations).toContain(0);
-    // …but the settled sibling bailed (DD-009/DD-010).
+    // …but the settled sibling bailed.
     expect(renderedDurations).not.toContain(7_777);
   });
 
-  it("hands the churned hitl bundle through to the gating transcript (T07)", () => {
+  it("hands the churned hitl bundle through to the gating transcript", () => {
     const taskStates = statesOf(gatedAgentCall("call-helper", "aex_1"));
     const { rerender } = render(
       <WorkflowTaskThread

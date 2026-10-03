@@ -17,9 +17,9 @@ type McpServerType = McpServerSpec["serverType"];
  * policy and its remediation (run the session on a local runner). HTTP
  * servers and any transport outside Cloud return `false`.
  *
- * Stigmer-managed compute is a cloud-only facility (editions program,
- * DD-001); whether an Enterprise sandbox fleet refuses stdio is that
- * edition's ruling and is not assumed here.
+ * Stigmer-managed compute is a cloud-only facility; whether an Enterprise
+ * sandbox fleet refuses stdio is that edition's decision and is not
+ * assumed here.
  *
  * Pure and framework-free so it can be unit-tested without rendering.
  */

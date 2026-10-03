@@ -3,9 +3,7 @@
  *
  * These functions compute edge execution states and fork progress
  * from the graph topology and flat task status map — no React
- * dependency, no side effects, independently importable (DD-003).
- *
- * @since T06 (Branch and Parallel Execution Highlighting)
+ * dependency, no side effects, independently importable.
  */
 
 import type { JsonObject } from "@bufbuild/protobuf";

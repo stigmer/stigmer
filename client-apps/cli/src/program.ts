@@ -3,7 +3,7 @@
 //
 // Command modules are registered through small `register*` functions so the
 // entry path stays light; heavier commands lazy-load their implementation via
-// dynamic import inside the action (DD-001), so `stigmer --help`/`version`/
+// dynamic import inside the action, so `stigmer --help`/`version`/
 // `completion` never pay for importing the backend client or auth stack.
 
 import { Command } from "commander";

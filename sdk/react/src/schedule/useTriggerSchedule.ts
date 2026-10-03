@@ -29,7 +29,7 @@ export interface UseTriggerScheduleReturn {
 
 /**
  * Behavior hook that fires a schedule once, immediately, and reports the
- * run's real outcome (project DD-017 D-5/D-6).
+ * run's real outcome.
  *
  * The trigger is a two-level contract, and this hook honors both levels:
  *

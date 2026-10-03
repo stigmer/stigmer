@@ -1,10 +1,10 @@
 // Public lane conformance — /api/v1/public/{model-registry, model-pricing,
 // leads/contact-sales}, the endpoints the marketing site calls without
-// credentials (Class A). E1 of the DD-012 reset (entry 20260906.04): Java's
-// behavior is the spec; the composition's reds are P1's acceptance.
+// credentials (Class A). The rows were first read from the retired Java
+// service's behavior, and the composition is held to them.
 // Domain: public REST lane.
 //
-// DD-012 carves the site-facing contract out as byte-identical: the
+// The site-facing contract is carved out as byte-identical: the
 // contact-sales validation limits and error copy, the response envelope, the
 // pricing entry fields the PricingPage reads. This suite pins those bytes;
 // everything else it asserts as behavior.
@@ -13,13 +13,11 @@
 // (harness/fake-discord-webhook.ts): the server was booted with its URL, so
 // a valid submission's embed can be read back and a delivery failure can be
 // scripted. Gated on `publicLane` (true on cloud, false on the local OSS
-// targets by DD-001 — no marketing site fronts a self-host).
+// targets by the edition boundary — no marketing site fronts a self-host).
 //
 // CORS and the permitAll edge are authentication-class arms; they run on
-// every cloud environment since the hermetic launcher boots Java in
-// production security mode (HttpSecurityConfig loaded — entry 20260907.02,
-// E1's ruling Q1). P1's smoke verifies the same allow-list against the
-// deployed lane.
+// every cloud environment, since the conformance environment boots the
+// composition in its production posture.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
 import { createTarget, type TargetProfile } from "../targets";

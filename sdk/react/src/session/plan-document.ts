@@ -3,7 +3,7 @@
 // Kept in its own module (not in PlanEditor.tsx) so behavior-only consumers —
 // useSessionPanel opens the tab, SessionViewer routes to it — depend on the
 // identity without pulling the component (and its markdown renderer) into
-// their module graph (DD-003 headless-first).
+// their module graph (headless-first).
 
 import { virtualEntryId } from "../internal/store/index.js";
 

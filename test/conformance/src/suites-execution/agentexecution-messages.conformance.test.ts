@@ -4,11 +4,10 @@
 // provider actually received.
 // Domain: agentic / agentexecution — the transcript a console or SDK renders.
 //
-// These are runner behaviors read through execution status, contract by
-// DD-001 (entry 20260910.02); they replace the Go offline suite's
-// offline_test.go, plain_chat_offline_test.go and the agent half of
-// model_resolution_offline_test.go (the accounting is the entry's
-// T01_1_arm-disposition.md). The MCP echo round-trip itself is the harness
+// These are runner behaviors read through execution status, and so contract;
+// they replace the Go offline suite's offline_test.go,
+// plain_chat_offline_test.go and the agent half of
+// model_resolution_offline_test.go. The MCP echo round-trip itself is the harness
 // smoke (mcp.harness.test.ts); this file asserts what the transcript
 // says about it and about a tool that fails.
 //
@@ -17,7 +16,7 @@
 //   recorded, the agent gets its next turn, the run completes.
 // - The model id on the wire is the registry's apiModelId, not the registry id
 //   the execution named. The runner resolves it through the control plane's
-//   /v1/proxy/model-registry (DD-002); this arm reads the same document the
+//   /v1/proxy/model-registry; this arm reads the same document the
 //   runner did (target.modelRegistryDocument()) and asserts the resolved id
 //   reached the mock — a runner that stops resolving fails here on either
 //   edition. The two ids must differ, or the arm would pass on the identity

@@ -17,7 +17,7 @@ import {
 } from "./sso-session";
 
 const CALLBACK_PATH = "/auth/callback";
-/** The signed-out landing — the console's own sign-in page (Q-CL-9). */
+/** The signed-out landing — the console's own sign-in page. */
 const LOGIN_PATH = "/login";
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 
@@ -63,7 +63,7 @@ function resolveActiveManager(auth0Config: OidcConfig) {
  * **Any standards-compliant issuer**: the provider is configured from the
  * runtime config the deployment publishes — Stigmer Cloud's Auth0 tenant,
  * or a self-hosted server's own issuer (Keycloak, Okta, Dex, …) through
- * `STIGMER_OIDC_CONSOLE_CLIENT_ID` (20260913.02, stigmer#924). Nothing in
+ * `STIGMER_OIDC_CONSOLE_CLIENT_ID` (stigmer#924). Nothing in
  * here is vendor-shaped: discovery, PKCE, refresh and sign-out are the
  * OIDC standard's, so the same code signs in against every one of them.
  *
@@ -183,7 +183,7 @@ export default function OidcAuthProvider({
     managerRef.current!.signinRedirect();
   }, []);
 
-  // Sign-out speaks only the OIDC standard (20260913.02 Q-CL-4, Q-CL-9).
+  // Sign-out speaks only the OIDC standard.
   // An issuer that publishes `end_session_endpoint` (Auth0, Keycloak,
   // Okta) gets RP-initiated logout and sends the browser back to
   // `post_logout_redirect_uri` — /login, the signed-out landing. An issuer

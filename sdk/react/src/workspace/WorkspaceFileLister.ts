@@ -31,11 +31,11 @@ export interface WorkspaceFileEntry {
  * The SDK calls this when a user expands a workspace entry in the
  * inspector. The callback receives the entry and returns its file
  * listing. The SDK never knows *how* the listing was obtained —
- * that's the platform's concern (DD-004 capability injection).
+ * that's the platform's concern (capability injection).
  *
  * Implementations:
  * - **Web:** GitHub Trees API via the OAuth token
- * - **Desktop:** Tauri `readDir` with gitignore filtering (Phase 3)
+ * - **Desktop:** Tauri `readDir` with gitignore filtering
  *
  * Returns `null` when listing is not supported for this entry type
  * (e.g., a local-path entry on web, or a git entry without a token).

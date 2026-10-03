@@ -15,7 +15,7 @@ export interface UseConversationsWantsHumanCountOptions {
   /**
    * Poll interval in milliseconds; `false` disables polling. Defaults to
    * {@link CONVERSATION_BADGE_POLL_INTERVAL_MS} — deliberately the
-   * slowest budget on the conversation surface (DD-012 D-b): a badge
+   * slowest budget on the conversation surface: a badge
    * tolerates staleness an open inbox does not, and it renders on every
    * console page in every tab.
    */
@@ -41,11 +41,11 @@ export interface UseConversationsWantsHumanCountReturn {
 }
 
 /**
- * Data hook for the sidebar's Conversations badge (channel-conversations
- * DD-011 D-f): how many conversations want a human right now, org-wide.
+ * Data hook for the sidebar's Conversations badge: how many
+ * conversations want a human right now, org-wide.
  *
  * The count IS the filtered list's `total_count` — one page-size-1 read
- * with `filter_wants_human`, zero dedicated RPCs (DD-011 D-g). Because
+ * with `filter_wants_human`, zero dedicated RPCs. Because
  * the badge and the wants-human list filter share one server-side
  * predicate, the number shown and the list it leads to can never
  * disagree.
@@ -75,7 +75,7 @@ export function useConversationsWantsHumanCount(
 
   const { data, isLoading, error, refetch } = useFetch(fetchFn, [org, stigmer], 0, {
     refetchInterval: refetchIntervalMs,
-    // DD-012 D-a: returning to the tab is fresh.
+    // Returning to the tab is fresh.
     refetchOnWindowFocus: true,
   });
 

@@ -1,5 +1,5 @@
 /*
- * SessionView layout — plain CSS only (scenar-cloud DD-003). The heavy
+ * SessionView layout — plain CSS only (`scenar pack` runs no Tailwind). The heavy
  * lifting is real SDK chrome now: SessionViewerLayout owns the split and
  * chip corner, MessageThread's `contentColumn="center"` owns the reading
  * column (`max-w-3xl`, centered, item gutter), and WorkspaceSurface owns

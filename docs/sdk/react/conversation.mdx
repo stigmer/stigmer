@@ -54,10 +54,9 @@ function useConversation(agentChannelId: string, conversationKey: string, option
 
 ### useConversationList
 
-Data hook for the org-wide conversation list (channel-conversations
-DD-004): newest activity first across every channel the caller can
-view, optionally narrowed to one channel and/or a server-evaluated
-predicate (`ChannelConversationListFilter`).
+Data hook for the org-wide conversation list: newest activity first
+across every channel the caller can view, optionally narrowed to one
+channel and/or a server-evaluated predicate (`ChannelConversationListFilter`).
 
 The head page rides `useFetch` and polls; older pages accumulate via
 `UseConversationListReturn.loadMore` and are merged with head
@@ -83,7 +82,7 @@ a row from another channel never enters a channel-scoped list (identity
 equality — the same scope the hook sends to the server), and under a
 server-evaluated predicate filter the overlay is update-only, because
 the client cannot honestly claim membership the server has not
-asserted (the DD-011 A-1 one-predicate discipline). Updates in place
+asserted (the predicate lives once, on the server). Updates in place
 are always honest: the server listed the row.
 
 **Signature**
@@ -102,7 +101,7 @@ function useConversationList(options: UseConversationListOptions): UseConversati
 
 <TypeTable
   type={{
-    applyServerState: { type: "(fresh: ChannelConversation) => void", description: "Adopt a fresh row the server just returned — every participation command answers the post-command state, and that answer is newer than anything a poll already in flight will deliver (DD-012 D-a: your own action reflects immediately, zero polls involved). The row overrides the listed copy for exactly one round-trip: applying also starts a fresh head fetch, and the override is dropped when a page provably fetched after the apply answers." },
+    applyServerState: { type: "(fresh: ChannelConversation) => void", description: "Adopt a fresh row the server just returned — every participation command answers the post-command state, and that answer is newer than anything a poll already in flight will deliver (your own action reflects immediately, zero polls involved). The row overrides the listed copy for exactly one round-trip: applying also starts a fresh head fetch, and the override is dropped when a page provably fetched after the apply answers." },
     conversations: { type: "readonly ChannelConversation[]", description: "Conversations, newest activity first: the polled head page followed by the accumulated older pages, deduplicated by conversation identity (offset pages drift under live activity — a conversation that moved up between fetches appears once, in its head position), with any applyServerState rows overriding both." },
     error: { type: "Error | null", description: "Error from the last failed head-page fetch, or `null`." },
     hasMore: { type: "boolean", description: "`true` while more conversations exist beyond what is loaded." },
@@ -126,11 +125,10 @@ via `stigmer.agentChannel.getMediaDownloadUrl()`.
 Addressed by `(channel, conversation, item_id)` — never a storage key:
 the server resolves the blob from its own row, so the read path stays
 conversation-viewer-scoped by construction and blob capabilities never
-ride the wire (whatsapp-media DD-001 D4). The URL expires (about an
-hour); minting at view time keeps it always valid, the
-`useArtifactDownloadUrl` rationale.
+ride the wire. The URL expires (about an hour); minting at view time
+keeps it always valid, the `useArtifactDownloadUrl` rationale.
 
-The URL is cached cross-mount by the item's full address (DD-014), so
+The URL is cached cross-mount by the item's full address, so
 the 5s timeline poll's re-renders and a lightbox opened from a
 thumbnail reuse the minted URL instead of re-hitting the API.
 
@@ -174,11 +172,10 @@ return url ? <img src={url} alt={item.media?.filename} /> : null;
 
 ### useConversationParticipation
 
-Behavior hook for the participation commands on one conversation
-(channel-conversations DD-005/DD-007/DD-008/DD-009): reply, takeOver,
-handBack, clearAttention — each keyed independently so a slow reply
-and a takeover can be in flight at once with attributable spinners
-and errors.
+Behavior hook for the participation commands on one conversation:
+reply, takeOver, handBack, clearAttention — each keyed
+independently so a slow reply and a takeover can be in flight at
+once with attributable spinners and errors.
 
 Every command re-throws its failure after recording it in
 `UseConversationParticipationReturn.commandErrors`, so callers
@@ -214,11 +211,11 @@ function useConversationParticipation(options: UseConversationParticipationOptio
 
 ### useConversationsWantsHumanCount
 
-Data hook for the sidebar's Conversations badge (channel-conversations
-DD-011 D-f): how many conversations want a human right now, org-wide.
+Data hook for the sidebar's Conversations badge: how many
+conversations want a human right now, org-wide.
 
 The count IS the filtered list's `total_count` — one page-size-1 read
-with `filter_wants_human`, zero dedicated RPCs (DD-011 D-g). Because
+with `filter_wants_human`, zero dedicated RPCs. Because
 the badge and the wants-human list filter share one server-side
 predicate, the number shown and the list it leads to can never
 disagree.
@@ -252,9 +249,9 @@ function useConversationsWantsHumanCount(org: string | null, options?: UseConver
 
 ### useConversationTimeline
 
-Data hook for one conversation's customer-visible timeline
-(channel-conversations DD-004): newest-first cursor pages from the
-server, accumulated into one chronological list for a chat view.
+Data hook for one conversation's customer-visible timeline:
+newest-first cursor pages from the server, accumulated into one
+chronological list for a chat view.
 
 The accumulation is an UPSERT by `item_id`, not head/tail
 concatenation, for two verified server behaviors:
@@ -272,8 +269,8 @@ The older cursor is captured from the FIRST head page only: later
 head refreshes serve the top of the timeline, while the cursor tracks
 how deep into history the consumer has scrolled — two independent
 frontiers. Receipt ticks on items deeper than the head window can go
-stale until the conversation is reopened; accepted for v1 (the T05
-liveness seam is where per-item freshness lands).
+stale until the conversation is reopened; accepted for now (the
+polling seam in polling.ts is where per-item freshness lands).
 
 Pass empty strings to skip fetching (the `null`-fetchFn convention).
 
@@ -312,13 +309,13 @@ function useConversationTimeline(agentChannelId: string, conversationKey: string
 
 ### ConversationAttentionBanner
 
-The needs-attention banner (channel-conversations DD-008): the
-escalating agent's reason, verbatim, with the escalation's ANSWER
-beside its false-alarm dismissal.
+The needs-attention banner: the escalating agent's reason,
+verbatim, with the escalation's ANSWER beside its false-alarm
+dismissal.
 
 Take over is the primary action because the human arriving IS the
 answer to an escalation — taking over clears attention structurally
-(cloud#266 / F-20: the answer used to live one banner away in
+(the answer used to live one banner away in
 equal-weight chrome, so staff read the plea and missed the response).
 It renders only while the agent holds the conversation on a channel
 with a staff lane; a human already holding it IS the attention
@@ -356,11 +353,11 @@ read — this component never fabricates one.
 
 <TypeTable
   type={{
-    advisory: { type: "string | null", description: "A pre-send forecast that ANNOTATES the enabled input — the `disabledReason` pattern's sibling with the opposite contract (channel-conversations DD-014 D-e): a closed service window is a forecast, not a structural block, so the input stays usable and the send engines remain the authority. Rendered above the input and associated via `aria-describedby` (never a live region: the advisory is state a reader meets on open, not an event). Compute it with `serviceWindowOf`; `null` or omitted renders nothing." },
+    advisory: { type: "string | null", description: "A pre-send forecast that ANNOTATES the enabled input — the `disabledReason` pattern's sibling with the opposite contract: a closed service window is a forecast, not a structural block, so the input stays usable and the send engines remain the authority. Rendered above the input and associated via `aria-describedby` (never a live region: the advisory is state a reader meets on open, not an event). Compute it with `serviceWindowOf`; `null` or omitted renders nothing." },
     className: { type: "string", description: "Additional classes for the composer container." },
     disabledReason: { type: "string | null", description: "Why replying is unavailable, when it is — rendered in place of the input (a senderless provider, or a conversation the customer has not started yet). `null` enables the composer.", required: true },
     isSending: { type: "boolean", description: "`true` while a reply is in flight.", required: true },
-    onOpenTemplatePicker: { type: "() => void", description: "Opens the host's template picker. When present, a persistent template affordance renders beside Send — templates are the one lane WhatsApp offers for a closed window, so the surface must offer the door, not just the advisory's warning (hosts should point at the button in the advisory copy; the advisory itself stays interaction-free — it is the input's description, F-18). Omit on channels whose provider has no template registry." },
+    onOpenTemplatePicker: { type: "() => void", description: "Opens the host's template picker. When present, a persistent template affordance renders beside Send — templates are the one lane WhatsApp offers for a closed window, so the surface must offer the door, not just the advisory's warning (hosts should point at the button in the advisory copy; the advisory itself stays interaction-free — it is the input's description and adds no tab stop). Omit on channels whose provider has no template registry." },
     onSend: { type: "(payload: ConversationReplyPayload) => Promise<SendChannelMessageOutput>", description: "Send a staff reply (from `useConversationParticipation().reply`). The composer's own textarea always submits the `text` lane; hosts wiring a template picker send the `template` lane through the same seam — one command, one busy state, one outcome contract.", required: true },
   }}
 />
@@ -386,21 +383,21 @@ control that caused them.
     currentIdentityAccountId: { type: "string", description: "The signed-in staff member's identity account id, when the host knows it — lets the banner attribute a human hold: \"You have this conversation\" when it matches, \"A teammate has this conversation\" when it differs. When omitted the banner only states that a human holds it — the holder may be the viewer themself, so \"a teammate\" would be a guess. Optional: the SDK never assumes a host's auth state." },
     participation: { type: "UseConversationParticipationReturn", description: "The participation commands (from `useConversationParticipation`).", required: true, typeDescriptionLink: "#useconversationparticipationreturn" },
     supportsStaffReplies: { type: "boolean", description: "Whether the channel's provider has a staff send lane. Senderless providers disable takeover with the reason — a takeover there would silence the agent while no human reply could reach the customer, which is exactly what the server refuses.", required: true },
-    unansweredCustomer: { type: "boolean", description: "`true` when the customer's last message has not been answered — the conversation row's server-derived `awaiting_reply` fact, which is bounce-aware: a staff reply the provider later failed does not count as an answer (channel-conversations F-28/DD-015). Arms the handback confirm guard (DD-007 D-e): handing back runs NO turn, so the agent stays quiet until the customer next speaks, and the unanswered state must be unmissable. Never derive this from timeline authorship — the send attempt's presence on the timeline says nothing about whether the customer received it.", required: true },
+    unansweredCustomer: { type: "boolean", description: "`true` when the customer's last message has not been answered — the conversation row's server-derived `awaiting_reply` fact, which is bounce-aware: a staff reply the provider later failed does not count as an answer. Arms the handback confirm guard: handing back runs NO turn, so the agent stays quiet until the customer next speaks, and the unanswered state must be unmissable. Never derive this from timeline authorship — the send attempt's presence on the timeline says nothing about whether the customer received it.", required: true },
   }}
 />
 
 
 ### ConversationListPane
 
-The conversation inbox pane (channel-conversations T04): every
-conversation across the org's channels, newest activity first, with
-control, attention, and awaiting-reply indicators.
+The conversation inbox pane: every conversation across the org's
+channels, newest activity first, with control, attention, and
+awaiting-reply indicators.
 
 Presentational — pair with `useConversationList` and
 `useOrgAgentChannelList`, or compose via `ConversationsWorkbench`.
-The wants-human filter is SERVER-evaluated (DD-011 D-g closed the API
-gap that T04 D1 cited): a client-side tab over one fetched page would
+The wants-human filter is SERVER-evaluated (the list RPC takes the
+predicate): a client-side tab over one fetched page would
 silently lie across pages, so the pane only reports the choice and the
 list hook sends it to the server.
 
@@ -413,7 +410,7 @@ list hook sends it to the server.
     className: { type: "string", description: "Additional classes for the pane container." },
     conversations: { type: "readonly ChannelConversation[]", description: "Conversations, newest activity first (from `useConversationList`).", required: true },
     error: { type: "Error | null", description: "Error from the list read, or `null`.", required: true },
-    filter: { type: "ChannelConversationListFilter", description: "The server-evaluated predicate filter currently applied to the list (DD-011 D-g — the same predicate the nav badge counts, so the filtered list always matches the number that opened it). Defaults to unspecified (all conversations)." },
+    filter: { type: "ChannelConversationListFilter", description: "The server-evaluated predicate filter currently applied to the list (the same predicate the nav badge counts, so the filtered list always matches the number that opened it). Defaults to unspecified (all conversations)." },
     hasMore: { type: "boolean", description: "`true` while more conversations exist beyond what is loaded.", required: true },
     isLoading: { type: "boolean", description: "`true` only during the first load.", required: true },
     isLoadingMore: { type: "boolean", description: "`true` while the next page is in flight.", required: true },
@@ -429,7 +426,7 @@ list hook sends it to the server.
 
 ### ConversationsWorkbench
 
-The Conversations console surface (channel-conversations T04), fully
+The Conversations console surface, fully
 composed: the org-wide inbox on the left; the open conversation's
 timeline, participation banners, and staff composer on the right.
 
@@ -441,14 +438,14 @@ different layout compose `ConversationListPane`,
 
 <TypeTable
   type={{
-    channelHref: { type: "(channel: AgentChannel) => string | null", description: "Maps the open conversation's channel to the host's channel surface — the owning agent's Channels tab (channels have no standalone page). When provided, the header's channel name renders as a link; `null` for a specific channel keeps it plain text. The SDK never assumes a routing scheme (DD-004)." },
+    channelHref: { type: "(channel: AgentChannel) => string | null", description: "Maps the open conversation's channel to the host's channel surface — the owning agent's Channels tab (channels have no standalone page). When provided, the header's channel name renders as a link; `null` for a specific channel keeps it plain text. The SDK never assumes a routing scheme." },
     className: { type: "string", description: "Additional classes for the workbench container." },
     currentIdentityAccountId: { type: "string", description: "The signed-in staff member's identity account id, when the host knows it — used only for \"You have this conversation\" copy." },
     headerAccessory: { type: "ReactNode | (context: ConversationHeaderContext) => ReactNode", description: "Rendered in the open conversation's header (the host's seam for page-level actions — e.g. the channel access panel trigger). The function form receives ConversationHeaderContext so the accessory can name the channel it acts on." },
     now: { type: "Date", description: "Frozen instant for deterministic hosts (tests, documentation tours)." },
     onSelectionChange: { type: "(selection: ConversationIdentity | null) => void", description: "Called when the user opens or leaves a conversation.", required: true },
     org: { type: "string", description: "Organization whose conversations to show.", required: true },
-    scrollOnSend: { type: "boolean", description: "Scroll to the reader's own reply when they send one from a scrolled-up position (stigmer-cloud#267): an accepted send pins the timeline to the latest content and re-engages follow mode, so the reply stays in view when the refetch delivers its real ledger item. Refused sends never pin — the composer restores the draft and there is nothing to show. Default `true` on all three SDK thread surfaces at once (the ratified DD-011 divergence — cross-surface consistency is the point); set `false` to keep today's leave-the-reader-alone behavior." },
+    scrollOnSend: { type: "boolean", description: "Scroll to the reader's own reply when they send one from a scrolled-up position: an accepted send pins the timeline to the latest content and re-engages follow mode, so the reply stays in view when the refetch delivers its real ledger item. Refused sends never pin — the composer restores the draft and there is nothing to show. Default `true` on all three SDK thread surfaces at once (a deliberate exception to opt-in defaults — cross-surface consistency is the point); set `false` to keep today's leave-the-reader-alone behavior." },
     selected: { type: "ConversationIdentity | null", description: "The open conversation. Controlled by the host so selection can live in the URL (deep links, reloads, back button).", required: true },
   }}
 />
@@ -458,7 +455,7 @@ different layout compose `ConversationListPane`,
 
 Pick a provider-approved template, fill its variables, and send it as
 a staff reply — the one lane WhatsApp offers a business once the
-customer's 24-hour service window has closed (cloud#260).
+customer's 24-hour service window has closed.
 
 Where [`ChannelTemplatesDialog`](/docs/sdk/react/channel#channeltemplatesdialog) is the channel surface's
 read-only registry *viewer* (every status, diagnosis copy), this is
@@ -481,7 +478,7 @@ with its true delivery status (the SDK never fabricates one).
 The body mounts only while open, so each opening fetches the registry
 fresh (approval statuses change on the provider's side at any time)
 and a closed dialog holds no draft — the same clean-reset rule that
-keys the workbench's detail column (F-22).
+keys the workbench's detail column.
 
 **Props** — `ConversationTemplatePickerDialogProps`
 
@@ -507,7 +504,7 @@ system rows the customer never saw.
 
 Honesty rules, enforced here rather than hoped for: outbound items
 carry their send attempt AND the provider's receipt as two independent
-facts (DD-004 D-d — an item can be handed to the provider yet fail on
+facts (an item can be handed to the provider yet fail on
 the customer's side), failed and suppressed sends render as exactly
 that, and non-text inbound renders a typed placeholder instead of
 disappearing.
@@ -529,7 +526,7 @@ Presentational — pair with `useConversationTimeline`, or compose via
     items: { type: "readonly ConversationTimelineItem[]", description: "Timeline items in chronological order (from `useConversationTimeline`).", required: true },
     loadOlder: { type: "() => void", description: "Load the next older page.", required: true },
     now: { type: "Date", description: "Frozen instant for deterministic hosts (tests, documentation tours)." },
-    pinToLatestSignal: { type: "number", description: "Scroll-on-send signal (stigmer-cloud#267): increment this counter when the reader dispatches a reply and the view pins to the latest content, re-engaging follow mode so the item stays in view when the timeline refetch delivers it — even for a reader who had deliberately scrolled up. The view stays presentational: it has no composer and deliberately renders no optimistic item (the SDK never fabricates what the provider might not have done), so the send moment must arrive from the host — `ConversationsWorkbench` wires its own composer's send here; headless hosts composing their own composer get the same seam. Omit to keep today's leave-the-reader-alone behavior. Incoming items never move a scrolled-up reader either way." },
+    pinToLatestSignal: { type: "number", description: "Scroll-on-send signal: increment this counter when the reader dispatches a reply and the view pins to the latest content, re-engaging follow mode so the item stays in view when the timeline refetch delivers it — even for a reader who had deliberately scrolled up. The view stays presentational: it has no composer and deliberately renders no optimistic item (the SDK never fabricates what the provider might not have done), so the send moment must arrive from the host — `ConversationsWorkbench` wires its own composer's send here; headless hosts composing their own composer get the same seam. Omit to keep today's leave-the-reader-alone behavior. Incoming items never move a scrolled-up reader either way." },
     provider: { type: "ChannelProviderId | null", description: "The channel's provider, for the honest-timeline notice: providers whose inbound lane has no timeline source (Slack) render an explicit \"customer messages aren't shown\" notice instead of a silently one-sided thread. `null` renders no notice.", required: true },
   }}
 />
@@ -549,18 +546,17 @@ function authorKindOf(item: ConversationTimelineItem): ConversationAuthorKind
 ### AwaitingIndicator
 
 How strongly the awaiting-reply indicator renders. Two strengths, not
-one, because "waiting" means different things per holder (DD-011 D-a).
+one, because "waiting" means different things per holder.
 
 
 ### awaitingIndicatorOf
 
-The awaiting-reply indicator for a conversation (channel-conversations
-DD-011 D-a): `"strong"` when a human holds it — the agent will not
-answer, so a person must (F-13's exact case) — and `"muted"` when the
-agent holds it: the agent is about to answer, and if its turn dies the
-conversation stays visibly waiting, which is the built-in recovery
-path (DD-011 D-b). `null` when the customer's last message has been
-answered (or the customer has not written).
+The awaiting-reply indicator for a conversation: `"strong"` when a
+human holds it — the agent will not answer, so a person must — and
+`"muted"` when the agent holds it: the agent is about to answer, and
+if its turn dies the conversation stays visibly waiting, which is the
+built-in recovery path. `null` when the customer's last message has
+been answered (or the customer has not written).
 
 The fact itself is server-derived (`awaiting_reply` rides the wire as
 a boolean precisely so no client re-implements the NULL-and-compare
@@ -587,8 +583,9 @@ function compareTimelineItemsNewestFirst(a: ConversationTimelineItem, b: Convers
 Default poll interval for the sidebar's wants-human count. Deliberately
 the slowest budget on the surface: a badge tolerates staleness an open
 inbox does not, it renders on every console page in every tab, and each
-tick pays an FGA ListObjects before the count (DD-011 D-g's stated
-price). Focus refetch keeps it honest at the moment someone returns.
+tick pays an FGA ListObjects before the count (the server-evaluated
+filter's price). Focus refetch keeps it honest at the moment someone
+returns.
 
 
 ### CONVERSATION_DETAIL_POLL_INTERVAL_MS
@@ -731,10 +728,9 @@ function isInternalItem(item: ConversationTimelineItem): boolean
 The provider's receipt report, in render vocabulary. `null` until the
 provider reports (and always on items with no receipt axis).
 
-A SECOND axis beside [`sendAttemptOf`](#sendattemptof), never collapsed into it
-(channel-conversations DD-004 D-d): "we handed it to WhatsApp" and
-"it reached the phone" are different facts — an item can be
-`delivered` + `receipt_failed`.
+A SECOND axis beside [`sendAttemptOf`](#sendattemptof), never collapsed into it:
+"we handed it to WhatsApp" and "it reached the phone" are different
+facts — an item can be `delivered` + `receipt_failed`.
 
 
 ### receiptOf
@@ -767,25 +763,24 @@ function sendAttemptOf(item: ConversationTimelineItem): SendAttemptKind | null
 
 ### serviceWindowOf
 
-Estimate whether the provider's free-form reply window is open
-(channel-conversations DD-014 D-a). Provider-aware like
-[`conversationLabelOf`](#conversationlabelof): WhatsApp is the only windowed provider, so
-every other provider answers `null` — no window, no claim — as does a
-conversation whose customer has never written
+Estimate whether the provider's free-form reply window is open.
+Provider-aware like [`conversationLabelOf`](#conversationlabelof): WhatsApp is the only
+windowed provider, so every other provider answers `null` — no window,
+no claim — as does a conversation whose customer has never written
 (`last_customer_message_at` unset; that conversation takes the
 composer's disabled branch instead).
 
-Client-derived on purpose, and NOT a divergence from DD-011 A-1's
-"the predicate is expressed once, in SQL" rule: the window is
+Client-derived on purpose, and NOT a divergence from the rule that a
+server predicate is expressed once, in SQL: the window is
 wall-clock-anchored — it flips with NO row change — so a
 server-computed boolean would be stale by construction between polls.
 Time-decaying presentation derived from wire instants is this
 surface's established class (relative timestamps, day grouping).
 
-Honesty caveat (DD-014 D-a): the anchor is the platform's receipt
+Honesty caveat: the anchor is the platform's receipt
 instant, minutes AFTER Meta's own clock started the window, so the
 estimate can claim "open" briefly after Meta closed it — which is why
-consumers warn and never block (D-b). For the same reason the exact
+consumers warn and never block. For the same reason the exact
 24-hour tie reads "closed": erring a moment early offsets an anchor
 that always errs late.
 
@@ -806,7 +801,7 @@ Options for [`useConversationList`](#useconversationlist).
 <TypeTable
   type={{
     agentChannelId: { type: "string", description: "Optional filter: only conversations on this agent channel." },
-    filter: { type: "ChannelConversationListFilter", description: "Optional server-evaluated predicate filter (channel-conversations DD-011 D-g). The generated enum is the vocabulary on purpose — the predicate lives in ONE place, the server, and the hook never re-expresses it. Defaults to unspecified (no filter)." },
+    filter: { type: "ChannelConversationListFilter", description: "Optional server-evaluated predicate filter. The generated enum is the vocabulary on purpose — the predicate lives in ONE place, the server, and the hook never re-expresses it. Defaults to unspecified (no filter)." },
     org: { type: "string | null", description: "Organization whose conversations to list. `null` skips fetching.", required: true },
     pageSize: { type: "number", description: "Page size for the head page and each loadMore page. Default 50." },
     refetchIntervalMs: { type: "number | false", description: "Poll interval in milliseconds; `false` disables polling. Defaults to CONVERSATION_LIST_POLL_INTERVAL_MS. Only the head page polls — loaded older pages refresh on the next full identity change." },
@@ -855,7 +850,7 @@ Options for [`useConversationsWantsHumanCount`](#useconversationswantshumancount
 
 <TypeTable
   type={{
-    refetchIntervalMs: { type: "number | false", description: "Poll interval in milliseconds; `false` disables polling. Defaults to CONVERSATION_BADGE_POLL_INTERVAL_MS — deliberately the slowest budget on the conversation surface (DD-012 D-b): a badge tolerates staleness an open inbox does not, and it renders on every console page in every tab." },
+    refetchIntervalMs: { type: "number | false", description: "Poll interval in milliseconds; `false` disables polling. Defaults to CONVERSATION_BADGE_POLL_INTERVAL_MS — deliberately the slowest budget on the conversation surface: a badge tolerates staleness an open inbox does not, and it renders on every console page in every tab." },
   }}
 />
 

@@ -24,8 +24,6 @@ export interface WorkflowSummaryPanelProps {
  *
  * Displays workflow identity, environment variables, budget settings,
  * validation issues, and task distribution statistics.
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const WorkflowSummaryPanel = memo(function WorkflowSummaryPanel({
   graph,

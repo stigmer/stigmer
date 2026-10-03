@@ -6,8 +6,8 @@
 // `kind_meta` extension) through its runtime reflection the way Go's protobuf
 // reflection does. The SDK already established this pattern — see
 // `sdk/typescript/src/gen/resource-availability.ts`, a generated table derived
-// from the same `kind_meta`. T06's codegen pass can emit THIS file the same
-// way; until then the table is small, stable, and guarded by tests that pin the
+// from the same `kind_meta`. A codegen pass can emit THIS file the same
+// way; until one does, the table is small, stable, and guarded by tests that pin the
 // derived aliases. Values below are copied verbatim from the proto.
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";

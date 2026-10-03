@@ -5,9 +5,9 @@
  * desktop app (via `@stigmer/react`), the `stigmer` CLI, and any platform
  * builder that wants to construct share links or embed snippets itself.
  *
- * The canonical URL shape is `<app-origin>/chat/<org>/<slug>` (a T01
- * design decision), and `embed.js` is served from the root of that same
- * app origin (T04). Callers supply the origin — resolving it is a host
+ * The canonical URL shape is `<app-origin>/chat/<org>/<slug>`, and
+ * `embed.js` is served from the root of that same
+ * app origin. Callers supply the origin — resolving it is a host
  * concern (the console knows its `appUrl`, the CLI resolves it from the
  * backend type) — while the path and snippet shapes live here so every
  * surface emits byte-identical output.
@@ -32,7 +32,7 @@ const ORIGIN_PATTERN =
  * Validate a single `allowed_origins` entry.
  *
  * Returns `null` when valid, or a user-facing message explaining what
- * to fix (DD-006: errors state what happened and what to do).
+ * to fix (errors state what happened and what to do).
  */
 export function validateOrigin(value: string): string | null {
   const trimmed = value.trim();

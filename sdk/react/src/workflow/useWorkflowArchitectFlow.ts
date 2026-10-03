@@ -117,8 +117,8 @@ const MIN_PROMPT_LENGTH = 10;
  * - {@link extractWorkflowYaml} to parse YAML from agent messages
  * - `workflow.apply()` to persist the generated workflow
  *
- * The hook is framework-agnostic (DD-004) and returns referentially
- * stable values (DD-010).
+ * The hook is framework-agnostic and returns referentially
+ * stable values.
  *
  * @example
  * ```tsx

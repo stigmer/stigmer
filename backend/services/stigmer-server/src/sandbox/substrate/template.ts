@@ -35,6 +35,7 @@ import { createHash } from "node:crypto";
 import { create, toBinary } from "@bufbuild/protobuf";
 
 import type { SandboxDriverConfig } from "../provisioner.js";
+import { waiterCommand } from "../runner-launch.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import {
   ActorMetadataField,
@@ -48,8 +49,6 @@ import {
 import { delay } from "./delay.js";
 import type { SubstrateGateway } from "./gateway.js";
 
-/** The waiter entry the template runs (the runner package's dist/attach/main.js). */
-const WAITER_COMMAND = ["node", "/runner/dist/attach/main.js"];
 /** The waiter's port: the one Substrate's router reaches without a CONNECT tunnel. */
 const WAITER_PORT = 80;
 /** The workspace mount, the same path every driver gives the runner. */
@@ -130,7 +129,7 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
       {
         name: "runner",
         image: config.runnerImage,
-        command: [...WAITER_COMMAND],
+        command: waiterCommand(),
         // Sorted, so the same configuration always encodes the same bytes.
         env: Object.keys(env)
           .sort()

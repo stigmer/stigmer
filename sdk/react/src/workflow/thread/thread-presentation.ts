@@ -6,14 +6,14 @@ import { taskKindToString } from "../workflow-graph-conversions.js";
 /**
  * Presentation variant for a task card in the workflow task thread.
  *
- * Deliberately NOT a new task-kind classification (D-T02-3): variants are a
+ * Deliberately NOT a new task-kind classification: variants are a
  * thin presentation projection of the canonical categories from
  * `kind-metadata.ts` (`categorizeKind` — the single source of truth that
  * already consolidated three drifted client-side classifications), plus one
  * kind-level special case for the flagship `agent_call` card.
  *
  * - `agent-call` — the flagship: live agent slug, current tool, message and
- *   tool-call counts, transcript expansion (D-T02-2).
+ *   tool-call counts, transcript expansion.
  * - `control` — control-flow tasks (switch/fork/for-each/try-catch/wait).
  * - `gate` — governance tasks (human_input); the stop-sign of the thread.
  * - `event` — signal/timing tasks (listen/emit/notification/raise-error).

@@ -26,7 +26,7 @@ export interface UseWorkspaceFilesReturn {
   /**
    * `true` when the listing was truncated by the backend (repository too large).
    * The advisory entry is excluded from `tree`; callers render an incomplete-results
-   * banner from this flag instead (DD-11).
+   * banner from this flag instead.
    */
   readonly truncated: boolean;
   /** Re-fetch the file listing for the current entry (cache-bust). */
@@ -46,8 +46,8 @@ const EMPTY_TREE: readonly TreeNode[] = [];
  *   surface are instant without re-fetching (one cache, keyed by `entry.id` +
  *   effective read ref — a ref advance is a cache miss by design).
  * - Returns an empty tree and skips the call when `lister` is
- *   `undefined` (graceful degradation — DD-011 opt-in).
- * - Memoizes the return value for referential stability (DD-010).
+ *   `undefined` (graceful degradation; opt-in).
+ * - Memoizes the return value for referential stability.
  *
  * @example
  * ```tsx

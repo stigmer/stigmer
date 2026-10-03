@@ -1,5 +1,5 @@
 {
-  "description": "Cross-language canonicalization vectors for HITL approval. Each vector's `expected` is the byte-exact canonical JSON that canonicalToolActionJson(input) must produce in every edition (TS now; Go/Java when the Phase-2 fingerprint lands). Secret redaction is covered by language-local tests (digests are not hand-writable here).",
+  "description": "Cross-language canonicalization vectors for HITL approval. Each vector's `expected` is the byte-exact canonical JSON that canonicalToolActionJson(input) must produce in every edition. Secret redaction is covered by language-local tests (digests are not hand-writable here).",
   "vectors": [
     {
       "name": "minimal",

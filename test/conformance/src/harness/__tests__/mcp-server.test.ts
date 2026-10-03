@@ -1,11 +1,10 @@
-// Unit arms for the MCP tool fixture's path-named tool surfaces (entry
-// 20260910.02): the default `/mcp` stays the one-tool echo server every
-// existing suite pins by exact tool list, an explicit `/mcp/echo,fail` exposes
-// both, `/mcp/lookup_order` serves the fixed order table and refuses an
-// unknown id as a tool error, and an unknown name is refused rather than
-// served as a guess. Driven over loopback with the real MCP client; no
-// runner, no target.
-// Domain: conformance harness (execution engine).
+// Unit arms for the MCP tool fixture's path-named tool surfaces: the default
+// `/mcp` stays the one-tool echo server every existing suite pins by exact
+// tool list, an explicit `/mcp/echo,fail` exposes both, `/mcp/lookup_order`
+// serves the fixed order table and refuses an unknown id as a tool error, and
+// an unknown name is refused rather than served as a guess. Driven over
+// loopback with the real MCP client; no runner, no target. Domain: conformance
+// harness (execution engine).
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

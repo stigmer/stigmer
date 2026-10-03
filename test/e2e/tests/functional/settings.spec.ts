@@ -167,7 +167,7 @@ test.describe("Settings sections", () => {
     const region = page.getByRole("region", { name: "Organization Preferences" });
     await expect(region).toBeVisible({ timeout: 15_000 });
 
-    // The org half of the double opt-in (oss#293 Phase 2 Stage 3). In OSS
+    // The org half of the double opt-in (oss#293). In OSS
     // local mode this is the ONLY memory switch (the account scope
     // collapses), so its presence here is load-bearing. Read-only
     // assertion — flipping would mutate the shared local org.

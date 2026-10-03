@@ -24,8 +24,8 @@ import { StigmerContext } from "../../context";
 import { useMcpServerCredentials } from "../useMcpServerCredentials";
 
 /**
- * Pins the client-side derivation of the org-override signal
- * (stigmer-cloud#401): `effectiveOAuthSource` / `isOrgOAuthApp` /
+ * Pins the client-side derivation of the org-override signal:
+ * `effectiveOAuthSource` / `isOrgOAuthApp` /
  * `canBringOwnApp` are resolved from the `getOrgOAuthApp` RPC keyed on
  * the hook's `org` parameter — NOT from `status.oauth_status` fields 3-4,
  * which no backend populates (the caller's active org is client-side

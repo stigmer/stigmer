@@ -1,8 +1,8 @@
-// Direct-handler authorization conformance (C2 Stage 4, 20260827.10).
+// Direct-handler authorization conformance.
 //
 // The config-annotated methods served by DIRECT handlers evaluate their
-// annotations since Stage 4 (docs/authorization-coverage.md carries the
-// per-method dispositions). This suite pins the OUTSIDER contract on the
+// annotations (docs/authorization-coverage.md carries the per-method
+// dispositions). This suite pins the OUTSIDER contract on the
 // multi-tenant edition — a second provisioned identity with no grants on
 // the owner's resources:
 //
@@ -11,8 +11,8 @@
 //     error_msg (the copy doubles as the descriptor-mismatch guard), and
 //     a denied write is side-effect free;
 //   - an UNKNOWN id on the authorize-first family answers NOT_FOUND via
-//     the authorizer's deny-path existence probe — the ruled UNIFORM Q1
-//     posture (DD-007 not-found arm);
+//     the authorizer's deny-path existence probe — the UNIFORM not-found
+//     posture;
 //   - the load-first family (updateSubject, the artifact trio, the MCP
 //     connect trio) keeps its handler-owned NotFound copy for unknown
 //     ids, outsider or not — the load fires before the check (#224).
@@ -23,7 +23,7 @@
 // gap turns the suite red:
 //
 //   - workflow getVersion evaluates its annotation and refuses an outsider
-//     (Java declared the annotation but never evaluated it, stigmer-cloud#562);
+//     (Java declared the annotation but never evaluated it);
 //   - initiateOAuthConnect authorizes BEFORE the lane's auth-block
 //     precondition (Java checked the precondition first);
 //   - unknown ids on the authorize-first family answer the uniform NOT_FOUND
@@ -231,7 +231,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     );
   });
 
-  it("[rpc:AgentChannelCommandController.initiateInstall] [rpc:AgentChannelCommandController.completeInstall] the channel install pair refuses an outsider with its annotation copy (C2 close-out — the arm both editions declare)", async (ctx) => {
+  it("[rpc:AgentChannelCommandController.initiateInstall] [rpc:AgentChannelCommandController.completeInstall] the channel install pair refuses an outsider with its annotation copy (the arm both editions declare)", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -279,7 +279,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     );
   });
 
-  it("[rpc:AgentExecutionQueryController.getArtifactContent] [rpc:AgentExecutionQueryController.getArtifactDownloadUrl] [rpc:AgentExecutionQueryController.subscribe] [rpc:WorkflowExecutionQueryController.getEventLog] [rpc:WorkflowExecutionQueryController.subscribe] [rpc:WorkflowExecutionQueryController.subscribeEvents] the authorize-first read lanes answer an outsider's unknown id with the ruled uniform Q1 NOT_FOUND", async (ctx) => {
+  it("[rpc:AgentExecutionQueryController.getArtifactContent] [rpc:AgentExecutionQueryController.getArtifactDownloadUrl] [rpc:AgentExecutionQueryController.subscribe] [rpc:WorkflowExecutionQueryController.getEventLog] [rpc:WorkflowExecutionQueryController.subscribe] [rpc:WorkflowExecutionQueryController.subscribeEvents] the authorize-first read lanes answer an outsider's unknown id with the uniform NOT_FOUND", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const outsider = await lane.provisionIdentity();
     const missingWorkflowExecution = "wfe_01conformancemissing";

@@ -369,8 +369,8 @@ describe("ExecutionBadge agent activity", () => {
 });
 
 // NOTE: the "AgentCallTab view switching" suite that lived here tested the
-// tab's embedded-thumbnail subscription gating. S4 replaced the thumbnail
-// with a launcher, and T07 replaced the launcher's document tab with the
+// tab's embedded-thumbnail subscription gating. The thumbnail became a
+// launcher, and later the launcher's document tab became the
 // inline in-card transcript; the transcript's fetch/stream lifecycle is
 // covered by useLiveAgentExecution.test.tsx +
 // WorkflowAgentCallTranscript.test.tsx.

@@ -1,14 +1,13 @@
 // ---------------------------------------------------------------------------
 // LoginPageView — shaped by the edition's tiers, not by a guess
 //
-// /login is the signed-out landing (20260913.02, sp.console-login Q-CL-4,
-// Q-CL-9). Its shape follows the codebase's one mechanism for "what does
-// this edition serve": the SSO organization prompt renders only where
-// `identity_provider` is available (tier enterprise, so Enterprise and
-// Cloud); everywhere else the page is the logo and one "Sign in" button —
-// the configured issuer's flow, which the SSO editions label "Sign in with
-// email" beside the prompt. Until the server has answered getServerInfo
-// the page shows its skeleton, never the hostname guess (finding 6).
+// /login is the signed-out landing. Its shape follows the codebase's one
+// mechanism for "what does this edition serve": the SSO organization prompt
+// renders only where `identity_provider` is available (tier enterprise, so
+// Enterprise and Cloud); everywhere else the page is the logo and one "Sign
+// in" button — the configured issuer's flow, which the SSO editions label
+// "Sign in with email" beside the prompt. Until the server has answered
+// getServerInfo the page shows its skeleton, never the hostname guess.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";

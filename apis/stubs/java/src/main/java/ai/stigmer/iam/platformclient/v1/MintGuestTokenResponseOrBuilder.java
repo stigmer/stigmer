@@ -62,7 +62,7 @@ public interface MintGuestTokenResponseOrBuilder extends
 
   /**
    * <pre>
-   * Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+   * Visitor cookie id to persist client-side, as an httpOnly cookie.
    *
    * Echoes guest_cookie_id from the request when provided; otherwise a newly
    * generated high-entropy value.
@@ -74,7 +74,7 @@ public interface MintGuestTokenResponseOrBuilder extends
   java.lang.String getGuestCookieId();
   /**
    * <pre>
-   * Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+   * Visitor cookie id to persist client-side, as an httpOnly cookie.
    *
    * Echoes guest_cookie_id from the request when provided; otherwise a newly
    * generated high-entropy value.

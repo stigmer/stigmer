@@ -31,7 +31,7 @@ const iconButtonClasses = cn(
 );
 
 /**
- * The docs sidebar (DD-02) — menu-only, passed to `DocsLayout` as
+ * The docs sidebar — menu-only, passed to `DocsLayout` as
  * `sidebar.component`.
  *
  * Why a full replacement instead of the stock sidebar with options: the

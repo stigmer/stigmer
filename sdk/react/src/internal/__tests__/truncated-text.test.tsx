@@ -1,5 +1,5 @@
 // Fast structural pins for TruncatedText (the native-title sweep's
-// truncation replacement, stigmer-cloud#268). Happy-dom can honestly pin
+// truncation replacement). Happy-dom can honestly pin
 // the STRUCTURE — full text in the DOM, zero native titles, zero new tab
 // stops; the overflow-gated REVEAL needs real layout and lives in
 // truncated-text.layout.browser.test.tsx.

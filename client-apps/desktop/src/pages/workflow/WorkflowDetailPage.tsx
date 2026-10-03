@@ -194,7 +194,7 @@ export default function WorkflowDetailPage() {
       },
       // Workflows edit YAML in the dedicated Editor tab (graph preview,
       // validation, version messages) — one YAML surface per workflow,
-      // wired identically to the web app (DD-016 parity).
+      // wired identically to the web app.
       {
         id: "edit-yaml",
         label: "Edit YAML",

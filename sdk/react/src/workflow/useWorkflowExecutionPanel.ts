@@ -143,7 +143,7 @@ export interface UseWorkflowExecutionPanelOptions {
   /**
    * Called on every effective open/close transition — in BOTH modes,
    * matching `useSessionPanel`'s convention (and departing from
-   * `useDetailTabs`'s DD-T05A-001 for the same principled reason): this
+   * `useDetailTabs`, which swallows it when uncontrolled): this
    * panel opens ITSELF (`openDiagnosis`, `openArtifact`, `openFileChange`,
    * `openFile` all expand a collapsed panel), and an embedding host that
    * must react to those moments — widen a dock, make room for a diagnosis
@@ -180,7 +180,7 @@ export function useWorkflowExecutionPanel({
   // Latest-ref idiom: the host's callback and the mode/value mirrors live in
   // refs so `requestOpenChange` — and every action callback built on it —
   // stays referentially stable regardless of how the host authored
-  // `onOpenChange` (DD-010: an inline lambda must not churn the memoized
+  // `onOpenChange` (an inline lambda must not churn the memoized
   // controller and re-render the panel subtree).
   const onOpenChangeRef = useRef(onOpenChange);
   onOpenChangeRef.current = onOpenChange;

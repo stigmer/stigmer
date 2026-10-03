@@ -41,7 +41,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* One provider, one panel, two CSS-gated triggers — both rendered
           by DocsHeader. */}
       <AskAiProvider>
-        {/* Chrome ownership (DD-02): DocsHeader replaces the stock navbar on
+        {/* Chrome ownership: DocsHeader replaces the stock navbar on
             BOTH breakpoints and renders the tabs on desktop; DocsSidebar is
             menu-only and renders the tab switcher in the mobile drawer.
             `tabs: false` keeps the stock LayoutTabs strip and RootToggle

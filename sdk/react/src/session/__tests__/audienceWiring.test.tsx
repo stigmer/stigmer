@@ -386,7 +386,7 @@ describe("SessionViewer — audience wiring", () => {
     );
   });
 
-  it("guest: approval mechanics are withheld from the thread (DD-014)", () => {
+  it("guest: approval mechanics are withheld from the thread", () => {
     // The HITL gate protects the ORG's tools; an anonymous visitor is not
     // its trustee. Guest executions run unattended server-side, so nothing
     // is ever pending on a new execution — withholding the callback is the
@@ -488,7 +488,7 @@ describe("owner-pinned runConfig wiring (#664)", () => {
     expect(lastComposerProps().showModelSelector).toBe(true);
   });
 
-  it("NewSessionViewer forwards runConfig to the flow and hides the model picker (DD-016 parity)", () => {
+  it("NewSessionViewer forwards runConfig to the flow and hides the model picker, as SessionViewer does", () => {
     render(
       <NewSessionViewer
         org="acme"
@@ -505,7 +505,7 @@ describe("owner-pinned runConfig wiring (#664)", () => {
     expect(lastComposerProps().showModelSelector).toBe(false);
   });
 
-  it("NewSessionViewer honors showModelSelector={false} alone (DD-016 parity)", () => {
+  it("NewSessionViewer honors showModelSelector={false} alone, as SessionViewer does", () => {
     render(
       <NewSessionViewer
         org="acme"

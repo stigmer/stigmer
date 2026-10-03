@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Capture-quality spike (production plan, phase 2): records the same
- * short console drive in the two candidate configurations and drops the
- * webm files in assets/recordings/spike/ for frame inspection:
+ * Capture-quality spike: records the same short console drive in the
+ * two candidate configurations and drops the webm files in
+ * assets/recordings/spike/ for frame inspection:
  *
  *   dpr1.webm — 1920x1080 viewport, DPR 1, recorded at 1920x1080
  *   dpr2.webm — 1920x1080 viewport, DPR 2, recorded at 3840x2160

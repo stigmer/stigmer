@@ -66,7 +66,7 @@ export function useReviewPayload(
   // payload, or an inline one) must keep working outside StigmerProvider,
   // as the approval surfaces always have. The client is a requirement of
   // the artifact fetch, not of the hook — enforced below with a
-  // descriptive error (DD-006) only when a fetch is actually needed.
+  // descriptive error only when a fetch is actually needed.
   const stigmer = useContext(StigmerContext);
 
   const { data, isLoading, error, refetch } = useFetch<JsonValue | null>(

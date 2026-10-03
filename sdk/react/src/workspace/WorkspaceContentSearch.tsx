@@ -43,7 +43,7 @@ export interface WorkspaceContentSearchProps {
   /**
    * Opens a result's file in the viewer, jumping to the matched line. The
    * `options.line` carries the hit's 1-based line so the viewer scrolls to and
-   * highlights it (DR-1/DR-2).
+   * highlights it.
    */
   readonly onOpenFile: (
     entryId: string,
@@ -71,14 +71,14 @@ interface FlatResult {
  * use. Results are a VS Code-style `file → line` layout: each matched file is a
  * header, each hit a line row with a line-number gutter and a highlighted
  * preview. Filename search lives in the sibling {@link WorkspaceFileSearch}; a
- * `Name | Text` toggle in the surface switches between them (DD-09).
+ * `Name | Text` toggle in the surface switches between them.
  *
  * Keyboard/a11y mirrors the filename sibling (and `McpServerPicker`): the input
  * is a `role="combobox"` driving `aria-activedescendant`; results are a
  * `role="listbox"` of `role="option"` line rows; ArrowUp/Down move a virtual
  * focus over the flat line-hit index (across files and entries) with Enter to
  * open — focus stays in the input. All visual properties flow through `--stgm-*`
- * tokens (DD-005).
+ * tokens.
  */
 export function WorkspaceContentSearch({
   entries,

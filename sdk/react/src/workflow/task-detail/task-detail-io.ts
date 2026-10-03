@@ -1,6 +1,6 @@
 /**
  * The canonical task-I/O model and its fallback ladder — shared by the
- * thread card body and the Inspect drill-down (T04).
+ * thread card body and the Inspect drill-down.
  *
  * Extracted from `execution-inspector/derive-task-detail.ts`: this pair is
  * not inspector-specific, and the thread must not reach into an "inspector"
@@ -12,9 +12,7 @@
  * full join into every always-visible card body would be O(cards × events)
  * per event append.
  *
- * No React dependencies — independently testable (DD-003).
- *
- * @since T04 (Session-Parity Task Cards)
+ * No React dependencies — independently testable.
  */
 
 import type { JsonObject } from "@bufbuild/protobuf";

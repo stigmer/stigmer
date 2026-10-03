@@ -1,10 +1,11 @@
-# The cloud-capability behavior inventory (DD-012 §5: "a behavior inventory,
-# not a test count").
+# The cloud-capability behavior inventory: a behavior inventory, not a test
+# count.
 #
-# Every behavior of the three surfaces the Java stigmer-service still owns
-# alone — the billing engine, the side-channel proxy, the public REST lane —
-# enumerated FROM JAVA'S CODE, cross-checked against Java's unit tests, and
-# given a disposition that says where it is proven. `npm run inventory:check`
+# Every behavior of the three surfaces only the hosted edition serves — the
+# billing engine, the side-channel proxy, the public REST lane — each with a
+# disposition that says where it is proven. The rows were first enumerated
+# from the retired Java service's code and tests; the composition that
+# replaced it is held to them. `npm run inventory:check`
 # (scripts/check-inventory.ts, logic in src/inventory/inventory.ts) fails the
 # CI lanes when a `conformance` row has no test tag, when a tag names no row,
 # or when a tag sits on a row whose proof lives elsewhere.
@@ -18,31 +19,28 @@
 #                | model-registry | health | public.<endpoint> | site
 #   behavior     one sentence: inputs -> status / typed field / side effect /
 #                exact copy where the copy is contract
-#   java_source  path under backend/services/stigmer-service/src/main/java/ai/stigmer (:line)
-#   java_test    path under .../src/test/java/ai/stigmer, or `none`
-#   class        behavior | carve-out (a DD-012 byte-identical carve-out) | adversarial
+#   class        behavior | carve-out (bytes that must not differ between editions) | adversarial
 #   disposition  conformance | unit | smoke | debris-candidate | debris
 #                (`deviation` — the contract asserted here while Java carried a
 #                tracked entry for its wrong answer — retired with the Java
 #                service and its registry, stigmer#1023)
 #   observability launcher | composition-only | none
-#                (the hermetic launcher runs Java in PRODUCTION security mode
-#                since entry 20260907.02, so authentication-class rows are
-#                `launcher` like every other observable row)
+#                (`launcher`: observable from outside on the environment the
+#                cloud suites run against, src/harness/cloud-env.ts, so
+#                authentication-class rows are `launcher` like every other
+#                observable row)
 #   caller       primary | operator | outsider | anonymous | runner-token | none
 #   needs        fixtures/affordances the test requires
 #   note         optional context
 #
-# Owner rulings on rows (debris cuts) are dated lines in the
-# entry's tasks/T01_1_review.md; the row's `disposition` is the ruling's
-# durable form. `debris-candidate` rows await that ruling.
+# A row's `disposition` is the maintainers' decision in durable form: a
+# `debris` row records a behavior deliberately not carried forward, so the
+# cut stays visible, and a `debris-candidate` row awaits that decision.
 #
-# The record's counts, reconciled here from code: 23 billing RPCs (14 command
+# The counts the rows were reconciled against: 23 billing RPCs (14 command
 # + 9 query), 5 gate steps + 2 status hooks, 7 Stripe handlers over 8 event
 # strings, 6 billing schedule ids from 5 starters.
-#
-# Abbreviations in java_source: H = domain/billing/request/handler,
-# S = domain/billing/service, ST = domain/billing/stripe, P = proxy.
+
 
 rows:
   # ===========================================================================
@@ -55,11 +53,7 @@ rows:
     lane: >-
       rpc.getBillingAccount
     behavior: >-
-      After an organization create, the org owner's getBillingAccount returns the E5-provisioned account for that org with status active, a zero balance and the default thresholds.
-    java_source: >-
-      domain/billing/request/handler/GetBillingAccountHandler.java; domain/tenancy/organization/request/handler/OrganizationCreateHandler.java:467
-    java_test: >-
-      domain/billing/service/BillingAccountServiceTest.java
+      After an organization create, the org owner's getBillingAccount returns the account the create provisioned for that org with status active, a zero balance and the default thresholds.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -71,27 +65,19 @@ rows:
       rpc.getBillingAccount
     behavior: >-
       getBillingAccount for an org id that has no account answers NOT_FOUND.
-    java_source: >-
-      domain/billing/request/handler/GetBillingAccountHandler.java:75
-    java_test: >-
-      none
     class: behavior
     disposition: unit
     observability: none
     caller: operator
     needs: [none]
     note: >-
-      Re-dispositioned at S3: every org create provisions an account and authorization runs before the handler, so the NOT_FOUND branch is unreachable from outside on Java; the composition carries it as a unit arm. The org must exist for authorization to pass but carry no account row; on Java every org create provisions one, so the arm targets an org id the operator is authorized on that never had an account — feasibility confirmed in S3, else re-dispositioned.
+      Every org create provisions an account and authorization runs before the handler, so the NOT_FOUND branch is unreachable from outside; the hosted edition pins it in its own unit arms.
   - id: billing.rpc.get-billing-account.outsider-permission-denied
     surface: billing
     lane: >-
       rpc.getBillingAccount
     behavior: >-
       A caller with no grant on the org gets PERMISSION_DENIED with the proto's error_msg "unauthorized to view billing for this organization".
-    java_source: >-
-      apis billing/v1/query.proto (authorization option); domain/billing/request/handler/GetBillingAccountHandler.java
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -103,10 +89,6 @@ rows:
       rpc.getCreditBalance
     behavior: >-
       getCreditBalance returns the CreditBalance whose available micros equal the sum of adjustments and grants applied to the account, in *_micros integer columns.
-    java_source: >-
-      domain/billing/request/handler/GetCreditBalanceHandler.java; domain/billing/service/CreditLedgerService.java
-    java_test: >-
-      domain/billing/service/CreditLedgerServiceTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -118,10 +100,6 @@ rows:
       rpc.getCreditBalance
     behavior: >-
       An outsider's getCreditBalance answers PERMISSION_DENIED "unauthorized to view billing for this organization".
-    java_source: >-
-      apis billing/v1/query.proto; domain/billing/request/handler/GetCreditBalanceHandler.java
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -133,10 +111,6 @@ rows:
       rpc.getCreditLedger
     behavior: >-
       getCreditLedger lists the org's ledger entries with entry type, amount_micros, balance-after, reason, source and idempotency key populated for every adjustment and grant made, paginated as the proto declares.
-    java_source: >-
-      domain/billing/request/handler/GetCreditLedgerHandler.java; domain/billing/service/CreditLedgerService.java; domain/billing/service/LedgerViewClassifier.java
-    java_test: >-
-      domain/billing/service/LedgerViewClassifierTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -148,10 +122,6 @@ rows:
       rpc.getBillingUsageReport
     behavior: >-
       getBillingUsageReport for an org with no usage returns an empty report with the proto's aggregate fields present and zero; after proxied usage lands it lists per-call usage with model, tokens and cost micros.
-    java_source: >-
-      domain/billing/request/handler/GetBillingUsageReportHandler.java
-    java_test: >-
-      domain/billing/request/handler/GetBillingUsageReportHandlerTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -163,10 +133,6 @@ rows:
       rpc.getCustomerModelPricing
     behavior: >-
       getCustomerModelPricing returns the org's effective per-model prices with the billing policy's markup applied and the *_micros_per_million fields populated for every model the baseline carries a policy for.
-    java_source: >-
-      domain/billing/request/handler/GetCustomerModelPricingHandler.java; domain/billing/service/ModelPricingService.java; domain/billing/service/BillingPolicyService.java
-    java_test: >-
-      domain/billing/request/handler/GetCustomerModelPricingHandlerTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -181,10 +147,6 @@ rows:
       rpc.getOrCreateBillingAccount
     behavior: >-
       getOrCreateBillingAccount on an org that already has an account returns that same account (same id, same balance) without creating a second one.
-    java_source: >-
-      domain/billing/request/handler/GetOrCreateBillingAccountHandler.java; domain/billing/service/BillingAccountService.java
-    java_test: >-
-      domain/billing/service/BillingAccountServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -196,10 +158,6 @@ rows:
       rpc.getOrCreateBillingAccount
     behavior: >-
       An outsider's getOrCreateBillingAccount answers PERMISSION_DENIED "unauthorized to manage billing for this organization".
-    java_source: >-
-      apis billing/v1/command.proto; domain/billing/request/handler/GetOrCreateBillingAccountHandler.java
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -211,10 +169,6 @@ rows:
       rpc.adjustCredits
     behavior: >-
       adjustCredits by a caller holding can_manage_credits on the platform, with a positive then a negative amount_micros, returns a ledger entry each time and the balance reflects both, with the reason and source recorded on the entries.
-    java_source: >-
-      domain/billing/request/handler/AdjustCreditsHandler.java; domain/billing/service/CreditLedgerService.java
-    java_test: >-
-      domain/billing/service/CreditLedgerServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -226,10 +180,6 @@ rows:
       rpc.adjustCredits
     behavior: >-
       adjustCredits with amount_micros 0 answers INVALID_ARGUMENT "amount_micros must be non-zero".
-    java_source: >-
-      domain/billing/request/handler/AdjustCreditsHandler.java:74
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -241,10 +191,6 @@ rows:
       rpc.adjustCredits
     behavior: >-
       Two adjustCredits calls with the same idempotency_key apply the amount once — the second returns the original entry and the balance moves once.
-    java_source: >-
-      domain/billing/service/CreditLedgerService.java:106
-    java_test: >-
-      domain/billing/service/CreditLedgerServiceTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -256,10 +202,6 @@ rows:
       rpc.adjustCredits
     behavior: >-
       An outsider's adjustCredits answers PERMISSION_DENIED "only platform operators and credit issuers can adjust credits".
-    java_source: >-
-      apis billing/v1/command.proto
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -271,10 +213,6 @@ rows:
       rpc.adjustCredits
     behavior: >-
       The org's own owner's adjustCredits answers PERMISSION_DENIED "only platform operators and credit issuers can adjust credits" and the balance does not move: owning an organization never lets anyone add credit to it.
-    java_source: >-
-      apis billing/v1/command.proto
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -286,10 +224,6 @@ rows:
       rpc.adjustCredits
     behavior: >-
       adjustCredits by a credit issuer on an org id with no billing account answers NOT_FOUND "No billing account for <org>" and writes nothing.
-    java_source: >-
-      apis billing/v1/command.proto
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -301,10 +235,6 @@ rows:
       rpc.grantCredits
     behavior: >-
       grantCredits with a positive amount_micros and an expiry records a grant entry, raises the balance, and the grant's expiry is visible on the ledger entry.
-    java_source: >-
-      domain/billing/request/handler/GrantCreditsHandler.java
-    java_test: >-
-      domain/billing/service/CreditLedgerServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -316,10 +246,6 @@ rows:
       rpc.grantCredits
     behavior: >-
       grantCredits with amount_micros <= 0 answers INVALID_ARGUMENT "amount_micros must be positive".
-    java_source: >-
-      domain/billing/request/handler/GrantCreditsHandler.java:77
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -331,10 +257,6 @@ rows:
       rpc.grantCredits
     behavior: >-
       The org's own owner's grantCredits answers PERMISSION_DENIED "only platform operators and credit issuers can grant credits" and the balance does not move.
-    java_source: >-
-      apis billing/v1/command.proto
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -346,10 +268,6 @@ rows:
       rpc.grantCredits
     behavior: >-
       grantCredits by a credit issuer on an org id with no billing account answers NOT_FOUND "No billing account for <org>" and writes nothing.
-    java_source: >-
-      apis billing/v1/command.proto
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -361,10 +279,6 @@ rows:
       rpc.grantCredits
     behavior: >-
       An outsider's grantCredits answers PERMISSION_DENIED "only platform operators and credit issuers can grant credits".
-    java_source: >-
-      apis billing/v1/command.proto
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -378,10 +292,6 @@ rows:
       rpc.createCreditCheckoutSession
     behavior: >-
       createCreditCheckoutSession for a known pack ensures a Stripe customer (POST /v1/customers with name = org id and metadata stigmer_org_id), creates a checkout session (POST /v1/checkout/sessions, mode payment, one line item at the pack's price in cents, metadata stigmer_org_id / stigmer_purchase_id / stigmer_pack_id / stigmer_credits_micros) and returns the session URL, the purchase id and the session id.
-    java_source: >-
-      domain/billing/stripe/StripeCheckoutService.java:95-168; domain/billing/stripe/StripeCustomerService.java:100-109
-    java_test: >-
-      domain/billing/stripe/StripeCheckoutServiceTest.java; domain/billing/stripe/StripeCustomerServiceTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -393,10 +303,6 @@ rows:
       rpc.createCreditCheckoutSession
     behavior: >-
       A second createCreditCheckoutSession for the same org does not create a second Stripe customer — the fake sees exactly one POST /v1/customers across both calls.
-    java_source: >-
-      domain/billing/stripe/StripeCustomerService.java:80-97
-    java_test: >-
-      domain/billing/stripe/StripeCustomerServiceTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -408,10 +314,6 @@ rows:
       rpc.createCreditCheckoutSession
     behavior: >-
       createCreditCheckoutSession with a pack id the catalog does not know answers INVALID_ARGUMENT and makes no Stripe call.
-    java_source: >-
-      domain/billing/request/handler/CreateCreditCheckoutSessionHandler.java:102; domain/billing/catalog/CreditPackCatalog.java:69
-    java_test: >-
-      domain/billing/catalog/CreditPackCatalogTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -423,27 +325,19 @@ rows:
       rpc.createCreditCheckoutSession
     behavior: >-
       When Stripe refuses the session create (the fake fails the next /v1/checkout/sessions call), the RPC fails with a non-OK status and no purchase is left completed — the pending row does not grant credits.
-    java_source: >-
-      domain/billing/stripe/StripeCheckoutService.java:168-172; domain/billing/request/handler/CreateCreditCheckoutSessionHandler.java:108
-    java_test: >-
-      domain/billing/stripe/StripeCheckoutServiceTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
     caller: primary
     needs: [unfunded-org, fake-stripe]
     note: >-
-      The exact status Java maps StripeCheckoutException to is read in S3 and pinned; the contract asserted is "no credits granted, error surfaced".
+      The contract asserted is "no credits granted, error surfaced".
   - id: billing.rpc.create-credit-checkout-session.outsider-permission-denied
     surface: billing
     lane: >-
       rpc.createCreditCheckoutSession
     behavior: >-
       An outsider's createCreditCheckoutSession answers PERMISSION_DENIED "unauthorized to purchase credits for this organization".
-    java_source: >-
-      apis billing/v1/command.proto
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -455,10 +349,6 @@ rows:
       rpc.createBillingPortalSession
     behavior: >-
       For an org with a Stripe customer, createBillingPortalSession creates a portal session (POST /v1/billing_portal/sessions with that customer and the return URL) and returns its URL.
-    java_source: >-
-      domain/billing/stripe/StripePortalService.java:50-70
-    java_test: >-
-      domain/billing/stripe/StripePortalServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -470,10 +360,6 @@ rows:
       rpc.createBillingPortalSession
     behavior: >-
       For an org that never purchased (no Stripe customer), createBillingPortalSession answers FAILED_PRECONDITION and makes no Stripe call.
-    java_source: >-
-      domain/billing/request/handler/CreateBillingPortalSessionHandler.java:91; domain/billing/stripe/StripePortalService.java:56-58
-    java_test: >-
-      domain/billing/stripe/StripePortalServiceTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -485,10 +371,6 @@ rows:
       rpc.createPaymentMethodSetupSession
     behavior: >-
       For an org that never purchased, createPaymentMethodSetupSession ensures a Stripe customer (POST /v1/customers, once across calls), creates a checkout session in setup mode for that customer (POST /v1/checkout/sessions, mode setup, the given success and cancel URLs) and returns its URL and id. Nothing is charged and no purchase is recorded.
-    java_source: >-
-      none (added with apis billing/v1/command.proto createPaymentMethodSetupSession)
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
@@ -500,10 +382,6 @@ rows:
       rpc.createPaymentMethodSetupSession
     behavior: >-
       An outsider's createPaymentMethodSetupSession answers PERMISSION_DENIED "unauthorized to manage billing for this organization" and makes no Stripe call.
-    java_source: >-
-      apis billing/v1/command.proto
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -517,10 +395,6 @@ rows:
       rpc.Plan.list
     behavior: >-
       Plan list (no include_retired) answers at least one plan, every one active, under a pln_ id with a slug and a set instrument, each subscription plan naming a monthly minimum; get by id answers the same row to any signed-in caller, an outsider included.
-    java_source: >-
-      none (added with apis billing/plan/v1, served by the Cloud composition)
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
@@ -532,10 +406,6 @@ rows:
       rpc.Plan.create
     behavior: >-
       An organization owner's Plan create answers PERMISSION_DENIED "only platform operators can manage plans" and the catalog, retired rows included, is unchanged.
-    java_source: >-
-      apis billing/plan/v1/command.proto
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -547,10 +417,6 @@ rows:
       rpc.Subscription.getEntitlements
     behavior: >-
       For an organization that never subscribed, getEntitlements answers an empty plan_id and Free's features, exactly [channels, sharing]; getForOrg answers NOT_FOUND.
-    java_source: >-
-      none (added with apis billing/subscription/v1, served by the Cloud composition)
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
@@ -562,10 +428,6 @@ rows:
       rpc.Subscription.changePlan
     behavior: >-
       changePlan to a subscription plan for an organization with no saved payment method answers FAILED_PRECONDITION "A saved payment method is required to subscribe to a plan. Add a payment method first." with a google.rpc.ErrorInfo detail (reason PAYMENT_METHOD_REQUIRED, domain stigmer.ai, metadata org); afterwards getForOrg still answers NOT_FOUND, getEntitlements an empty plan_id, and no request reached Stripe.
-    java_source: >-
-      none (added with apis billing/subscription/v1, served by the Cloud composition)
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
@@ -577,10 +439,6 @@ rows:
       rpc.Subscription.getPeriodEstimate
     behavior: >-
       For an organization that never subscribed, getPeriodEstimate answers NOT_FOUND: Free is not invoiced a plan, so it has no period to estimate.
-    java_source: >-
-      none (added with apis billing/subscription/v1, served by the Cloud composition)
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
@@ -592,10 +450,6 @@ rows:
       rpc.Subscription.changePlan
     behavior: >-
       An outsider's changePlan answers PERMISSION_DENIED "unauthorized to change this organization's plan", its getEntitlements PERMISSION_DENIED "unauthorized to view this organization's entitlements", and its getPeriodEstimate PERMISSION_DENIED "unauthorized to view this organization's period estimate".
-    java_source: >-
-      apis billing/subscription/v1/command.proto, query.proto
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -607,10 +461,6 @@ rows:
       rpc.Plan.list
     behavior: >-
       On a target where billingPlans is false (the local OSS server), every RPC of the Plan and Subscription controllers answers Unimplemented — the edition boundary (the kinds are cloud_only) as an observable contract.
-    java_source: >-
-      n/a (OSS routes none of the four controllers)
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: none
@@ -622,34 +472,24 @@ rows:
       rpc.setAutoRechargeConfig
     behavior: >-
       setAutoRechargeConfig persists the threshold, top-up and monthly-cap amounts onto the account (visible on getBillingAccount) whether enabling or disabling; disabling still refuses a negative amount INVALID_ARGUMENT; enabling requires a saved payment method FIRST (FAILED_PRECONDITION "A saved payment method is required to enable auto-recharge. Purchase a credit pack first.") and then validates the amounts in order — threshold positive, amount positive, cap at least the amount — each INVALID_ARGUMENT with the engine's copy; a refused enable changes nothing.
-    java_source: >-
-      domain/billing/request/handler/SetAutoRechargeConfigHandler.java:74-102; domain/billing/service/BillingAccountService.java:87-151
-    java_test: >-
-      domain/billing/service/BillingAccountServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
     caller: primary
     needs: [unfunded-org, fake-stripe]
     note: >-
-      RULED PORTED 2026-09-06 (C5 gate, Q1, re-ruled in session): the read-only census found zero usage, but auto-recharge is a LIVE PRODUCT SURFACE — the console renders AutoRechargeCard and the Python, Java and Go SDKs expose setAutoRechargeConfig — so a cut would have been a product decision. The arm needs the fake Stripe because the only way an account gets a saved card from outside Java is the payment_method.attached webhook. The NOT_FOUND branch for an org without an account is unreachable black-box (E5 provisions every org an account; a foreign org is PERMISSION_DENIED first).
+      Auto-recharge is a live product surface: the console renders AutoRechargeCard and the SDKs expose setAutoRechargeConfig. The arm needs the fake Stripe because the only way an account gets a saved card from outside is the payment_method.attached webhook. The NOT_FOUND branch for an org without an account is unreachable black-box (every org create provisions an account; a foreign org is PERMISSION_DENIED first).
   - id: billing.rpc.set-auto-recharge-config.outsider-permission-denied
     surface: billing
     lane: >-
       rpc.setAutoRechargeConfig
     behavior: >-
       An outsider's setAutoRechargeConfig answers PERMISSION_DENIED "unauthorized to manage auto-recharge for this organization".
-    java_source: >-
-      apis billing/v1/command.proto
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
     caller: outsider
     needs: [unfunded-org]
-    note: >-
-      RULED PORTED 2026-09-06 (C5 gate, Q1) with its lane.
 
   # --- engine lanes (platform can_execute_billing_ops) -----------------------
   - id: billing.rpc.engine-lanes.ordinary-caller-permission-denied
@@ -658,10 +498,6 @@ rows:
       rpc.authorizeExecution
     behavior: >-
       Each of the six engine RPCs (authorizeExecution, finalizeExecution, rearmForRecovery, recordLlmCallUsage, previewAuthorization, getExecutionBillingSignal) answers PERMISSION_DENIED "only platform operators can execute billing operations" to an org owner who is not a platform operator.
-    java_source: >-
-      apis billing/v1/command.proto; apis billing/v1/query.proto
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -673,10 +509,6 @@ rows:
       rpc.previewAuthorization
     behavior: >-
       previewAuthorization answers not-authorized with reason "Insufficient credits to start execution" for a zero-balance org and authorized for a funded one; an org without an account answers "No billing account for this organization".
-    java_source: >-
-      domain/billing/service/ExecutionBillingService.java:151-180
-    java_test: >-
-      domain/billing/service/ExecutionBillingServiceTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -688,10 +520,6 @@ rows:
       rpc.authorizeExecution
     behavior: >-
       authorizeExecution for a funded org and a fresh execution id returns authorized with a reservation id; a second authorizeExecution for the same execution id returns the same reservation (idempotent), never a second hold.
-    java_source: >-
-      domain/billing/service/ExecutionBillingService.java (authorizeExecution, the settled-reservation latch :258-284)
-    java_test: >-
-      domain/billing/service/ExecutionBillingServiceTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -703,10 +531,6 @@ rows:
       rpc.authorizeExecution
     behavior: >-
       authorizeExecution for a zero-balance org returns not-authorized with denial reason "Insufficient credits to start execution" and creates no reservation.
-    java_source: >-
-      domain/billing/service/ExecutionBillingService.java:151-180
-    java_test: >-
-      domain/billing/service/ExecutionBillingServiceTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -718,10 +542,6 @@ rows:
       rpc.authorizeExecution
     behavior: >-
       Concurrent authorizeExecution calls for the same execution id (fired without awaiting) leave exactly one reservation and one hold on the balance.
-    java_source: >-
-      domain/billing/service/ExecutionBillingService.java:106 (concurrent insert treated as idempotent)
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -733,10 +553,6 @@ rows:
       rpc.finalizeExecution
     behavior: >-
       finalizeExecution on an authorized execution settles the reservation (the hold is released, the balance reflects the recorded usage) and a second finalizeExecution for the same execution is a no-op — the balance moves once.
-    java_source: >-
-      domain/billing/service/ExecutionBillingService.java (finalizeExecution); domain/billing/request/handler/FinalizeExecutionHandler.java:86
-    java_test: >-
-      domain/billing/service/ExecutionBillingServiceTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -748,10 +564,6 @@ rows:
       rpc.finalizeExecution
     behavior: >-
       finalizeExecution for an execution that was never authorized answers FAILED_PRECONDITION.
-    java_source: >-
-      domain/billing/request/handler/FinalizeExecutionHandler.java:86
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -763,10 +575,6 @@ rows:
       rpc.rearmForRecovery
     behavior: >-
       rearmForRecovery on a settled execution mints a new reservation id (different from the original) and authorizes when the org is funded; on an unfunded org it answers not-authorized with the denial reason.
-    java_source: >-
-      domain/billing/service/ExecutionBillingService.java:258-290
-    java_test: >-
-      domain/billing/service/ExecutionBillingServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -778,10 +586,6 @@ rows:
       rpc.getExecutionBillingSignal
     behavior: >-
       getExecutionBillingSignal for an execution with no reservation answers UNSPECIFIED with an empty reason; for an authorized execution on a healthy balance it answers UNSPECIFIED; when the balance is exhausted it answers STOP with reason "Credit balance exhausted"; when low, WARNING with "Credit balance is low".
-    java_source: >-
-      domain/billing/service/ExecutionBillingService.java:1044-1090; domain/billing/service/BillingSignalMapper.java:21-25
-    java_test: >-
-      domain/billing/service/ExecutionBillingServiceQuerySignalTest.java; domain/billing/service/BillingSignalMapperTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -793,17 +597,13 @@ rows:
       rpc.recordLlmCallUsage
     behavior: >-
       recordLlmCallUsage for an authorized execution records a usage row (visible on getBillingUsageReport) with cost computed from the model's price; a model with no price records the row with cost status PRICE_NOT_FOUND instead of failing.
-    java_source: >-
-      domain/billing/request/handler/RecordLlmCallUsageHandler.java:143-243; domain/billing/service/UsageRatingService.java
-    java_test: >-
-      domain/billing/request/handler/RecordLlmCallUsageHandlerTest.java; domain/billing/service/UsageRatingServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
     caller: operator
     needs: [funded-org]
     note: >-
-      DELIBERATE DIVERGENCE 2026-09-08 (stigmer-cloud#659, C6 gate Q12): the composition deduplicates a report on RecordLlmCallUsageInput.call_id when the caller sends one, falling back to sequence when it does not; Java keys on (execution_id, sequence, metering_source) only and drops a restarted proxy's legitimate calls as duplicates. No cross-edition arm pins the call_id path — it would be red on Java by design — and this row's arm sends no call_id, so it stays byte-identical on both editions. Coverage of the call_id path lives in the composition's own postgres-composed suite.
+      The composition deduplicates a report on RecordLlmCallUsageInput.call_id when the caller sends one, falling back to sequence when it does not, so a restarted proxy's legitimate calls are never dropped as duplicates. This row's arm sends no call_id; the call_id path is pinned by the hosted edition's own suites.
 
   # --- pricing governance (platform can_manage_model_pricing) ----------------
   - id: billing.rpc.pricing-admin-lanes.ordinary-caller-permission-denied
@@ -812,10 +612,6 @@ rows:
       rpc.upsertModelPricingBaseline
     behavior: >-
       Each pricing-admin RPC answers PERMISSION_DENIED with its proto error_msg to an org owner who is not a platform operator — "only platform operators can edit the model registry baseline" (upsert/retire), "only platform operators can decide pricing overrides" (decide), "only platform operators can view pricing governance" (getModelPricingGovernance), "only platform operators can view the model registry baseline" (listModelPricingBaselines).
-    java_source: >-
-      apis billing/v1/command.proto; apis billing/v1/query.proto
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -827,97 +623,71 @@ rows:
       rpc.upsertModelPricingBaseline
     behavior: >-
       An operator's upsertModelPricingBaseline for a new model key is listed ACTIVE by listModelPricingBaselines with the given prices and the server's stamps (baseline_id, decided_by, effective_at; supersedes_baseline_id empty); a second upsert of the same key supersedes the first — one ACTIVE per key, the prior revision SUPERSEDED and chained through supersedes_baseline_id, both visible with include_history (ACTIVE first); a variant declaring a Cursor token rate answers INVALID_ARGUMENT "Variant '<key>' declares a Cursor Token Rate — variants inherit the base entry's rate; set it on the base pricing block instead.".
-    java_source: >-
-      domain/billing/request/handler/UpsertModelPricingBaselineHandler.java:99-173; domain/billing/request/handler/ListModelPricingBaselinesHandler.java:76-84
-    java_test: >-
-      domain/billing/request/handler/UpsertModelPricingBaselineHandlerTest.java; domain/billing/request/handler/ListModelPricingBaselinesHandlerTest.java
     class: behavior
     disposition: conformance
     observability: launcher
     caller: operator
     needs: [none]
     note: >-
-      RULED PORTED 2026-09-06 (C5 gate, Q1): the pricing-governance operator lanes (upsert/retire/decide/list/governance) are operator tooling with a console and travel with the provider-reconciliation subsystem (F7). Baselines are PLATFORM-GLOBAL state, not org state — the arm keys on a run-unique model id and retires it on cleanup so nothing outlives the test.
+      The pricing-governance operator lanes (upsert/retire/decide/list/governance) are operator tooling with a console and travel with the provider-reconciliation subsystem. Baselines are PLATFORM-GLOBAL state, not org state — the arm keys on a run-unique model id and retires it on cleanup so nothing outlives the test.
   - id: billing.rpc.retire-model-pricing-baseline.unknown-not-found
     surface: billing
     lane: >-
       rpc.retireModelPricingBaseline
     behavior: >-
       retireModelPricingBaseline with no ACTIVE baseline for the key answers NOT_FOUND "No ACTIVE baseline found for <model>/<provider>/<harness> — it may already be retired, or the key is misspelled."; for a known key the document turns RETIRED (visible with include_history) and stops appearing in the ACTIVE list; retiring it again is the same NOT_FOUND.
-    java_source: >-
-      domain/billing/request/handler/RetireModelPricingBaselineHandler.java:88-89
-    java_test: >-
-      domain/billing/request/handler/RetireModelPricingBaselineHandlerTest.java
     class: behavior
     disposition: conformance
     observability: launcher
     caller: operator
     needs: [none]
-    note: >-
-      RULED PORTED 2026-09-06 (C5 gate, Q1) with its lane.
   - id: billing.rpc.decide-model-pricing-override.unknown-not-found
     surface: billing
     lane: >-
       rpc.decideModelPricingOverride
     behavior: >-
       decideModelPricingOverride for an override nobody proposed answers NOT_FOUND "No pricing override found with id <override_id>", approving or rejecting alike.
-    java_source: >-
-      domain/billing/request/handler/DecideModelPricingOverrideHandler.java:88-89
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
     caller: operator
     needs: [none]
     note: >-
-      RULED PORTED 2026-09-06 (C5 gate, Q1). Split 2026-09-07 (E1 T02) from the former `unknown-and-already-decided` row: the already-decided half is not drivable from outside — no RPC creates a pending override, only the Temporal provider-reconciliation corrector does — so it is the `unit` row below.
+      The already-decided case is not drivable from outside — no RPC creates a pending override, only the Temporal provider-reconciliation corrector does — so it is the `unit` row below.
   - id: billing.rpc.decide-model-pricing-override.already-decided-failed-precondition
     surface: billing
     lane: >-
       rpc.decideModelPricingOverride
     behavior: >-
       decideModelPricingOverride on an override whose status is not PENDING_SIGNOFF answers FAILED_PRECONDITION "Pricing override <id> is <status>, not PENDING_SIGNOFF — only pending proposals can be decided."; a concurrent decision loses the CAS with ABORTED.
-    java_source: >-
-      domain/billing/request/handler/DecideModelPricingOverrideHandler.java:90-93; domain/billing/service/ModelPricingOverrideService.java
-    java_test: >-
-      none
     class: behavior
     disposition: unit
     observability: none
     caller: operator
     needs: [none]
     note: >-
-      Split 2026-09-07 (E1 T02): a pending override exists only after the provider-reconciliation corrector (default off; fed by the Anthropic / Cursor admin APIs) proposes one, so the launcher cannot observe this branch. NEITHER edition has a test today — Java carries no DecideModelPricingOverrideHandler test — so C5's vitest table is the first proof anywhere.
+      A pending override exists only after the provider-reconciliation corrector (default off; fed by the Anthropic / Cursor admin APIs) proposes one, so the launcher cannot observe this branch; the hosted edition's own suites pin it.
   - id: billing.rpc.get-model-pricing-governance.returns-queue
     surface: billing
     lane: >-
       rpc.getModelPricingGovernance
     behavior: >-
       getModelPricingGovernance returns one entry per model in the effective registry (the base variant only; sorted by harness, provider, model; baseline_* and effective_* rates equal while the entry has no active override; active_overrides listed) and the pending_overrides proposal queue — empty on a fresh environment, since only the provider-reconciliation corrector proposes.
-    java_source: >-
-      domain/billing/request/handler/GetModelPricingGovernanceHandler.java
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
     caller: operator
     needs: [none]
     note: >-
-      RULED PORTED 2026-09-06 (C5 gate, Q1) with its lane. Behavior corrected 2026-09-07 (E1 T02): the row said the response is "empty on a fresh environment" — it is not; `entries` carries every seeded registry model (ModelPricingBaselineSeeder runs on every boot), only `pending_overrides` is empty.
+      On a fresh environment `entries` carries every seeded registry model (the pricing baseline is seeded on every boot); only `pending_overrides` is empty.
 
-  # --- local OSS posture (ruling Q10) ----------------------------------------
+  # --- local OSS posture ----------------------------------------------------
   - id: billing.rpc.oss-boundary.every-billing-rpc-unimplemented
     surface: billing
     lane: >-
       rpc.getBillingAccount
     behavior: >-
       On a target where billingLedger is false (the local OSS server), every one of the 23 billing RPCs answers Unimplemented — the edition boundary (billing is Cloud only) as an observable contract.
-    java_source: >-
-      n/a (OSS routes neither controller)
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: none
@@ -934,11 +704,7 @@ rows:
     lane: >-
       gate.provisionBillingAccount
     behavior: >-
-      Creating an organization provisions its billing account at zero balance in the same call (E5) — getBillingAccount succeeds immediately after the create without any billing RPC having been called.
-    java_source: >-
-      domain/tenancy/organization/request/handler/OrganizationCreateHandler.java:127,467
-    java_test: >-
-      none
+      Creating an organization provisions its billing account at zero balance in the same call — getBillingAccount succeeds immediately after the create without any billing RPC having been called.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -949,11 +715,7 @@ rows:
     lane: >-
       gate.reserve
     behavior: >-
-      An agent-execution create in a zero-balance org is refused synchronously: FAILED_PRECONDITION with the engine's denial reason verbatim ("Insufficient credits to start execution"), and no execution resource exists afterwards. (Ruled at the C5 facade's plan gate, Q5, "strictly earlier than the Java refusal": Java accepted the create and failed the execution asynchronously with "Insufficient credits: ..." / "Execution could not start: ..."; that arm retired with Java.)
-    java_source: >-
-      domain/agentic/agentexecution/temporal/workflow/InvokeAgentExecutionWorkflowImpl.java:437-513
-    java_test: >-
-      none
+      An agent-execution create in a zero-balance org is refused synchronously: FAILED_PRECONDITION with the engine's denial reason verbatim ("Insufficient credits to start execution"), and no execution resource exists afterwards.
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -967,10 +729,6 @@ rows:
       gate.reserve
     behavior: >-
       Funding the SAME org that was just denied lets its next execution run — the denial was credit-driven (the negative control).
-    java_source: >-
-      domain/agentic/agentexecution/temporal/workflow/InvokeAgentExecutionWorkflowImpl.java:437-513
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
@@ -984,10 +742,6 @@ rows:
       gate.reserve
     behavior: >-
       A funded org's execution that completes settles its reservation — after completion the balance reflects the metered usage and no reservation remains held (a second execution reserves afresh).
-    java_source: >-
-      domain/agentic/agentexecution/temporal/workflow/InvokeAgentExecutionWorkflowImpl.java:603-625 (finally block); domain/billing/temporal/BillingActivitiesImpl.java
-    java_test: >-
-      domain/billing/temporal/BillingActivitiesImplTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -999,27 +753,19 @@ rows:
       hook.statusSignal
     behavior: >-
       The runner's updateStatus reply on a running execution carries execution_control_signal UNSPECIFIED on a healthy balance, WARNING with signal_reason "Credit balance is low" once the balance falls under the warning threshold, and STOP with "Credit balance exhausted" once exhausted.
-    java_source: >-
-      domain/agentic/agentexecution/request/handler/AgentExecutionUpdateStatusHandler.java:618; domain/billing/service/BillingSignalMapper.java
-    java_test: >-
-      domain/billing/service/BillingSignalMapperTest.java; domain/billing/service/ExecutionBillingServiceQuerySignalTest.java
     class: carve-out
     disposition: unit
     observability: none
     caller: runner-token
     needs: [funded-org, agent-execution]
     note: >-
-      Re-dispositioned at S3: the runner's updateStatus reply is not observable by the suite (the embedded runner owns that call); the signal semantics are pinned through getExecutionBillingSignal and the decorator field by the composition's hooks.ts unit arm + Java's BuildUpdateStatusResponseStep. The thresholds are driven by adjustCredits (negative) between status updates; the runner-class credential is the execution target's embedded runner or an operator-minted runner token — settled in S3.
+      The runner's updateStatus reply is not observable by the suite (the embedded runner owns that call); the signal semantics are pinned through getExecutionBillingSignal and the decorator field by the hosted edition's own unit arms. The thresholds are driven by adjustCredits (negative) between status updates; the runner-class credential is the execution target's embedded runner or an operator-minted runner token.
   - id: billing.gate.approval-signal.stop-refuses-approval
     surface: billing
     lane: >-
       gate.checkBilling
     behavior: >-
       submitApproval on an execution whose billing signal is STOP answers FAILED_PRECONDITION "Insufficient credits to continue this execution. Please add credits before acting on this approval, or cancel the execution."; a non-billed execution's approval is unaffected.
-    java_source: >-
-      domain/agentic/agentexecution/request/handler/AgentExecutionSubmitApprovalHandler.java:485
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -1031,10 +777,6 @@ rows:
       gate.rearmBilling
     behavior: >-
       recover on a failed execution whose org has since been drained answers FAILED_PRECONDITION "Insufficient credits to recover this execution: Insufficient credits to start execution"; with funds the recover re-arms and relaunches.
-    java_source: >-
-      domain/agentic/agentexecution/request/handler/AgentExecutionRecoverHandler.java:305
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -1046,27 +788,19 @@ rows:
       gate.visitorPreflight
     behavior: >-
       A schedule-fired execution create in a zero-balance org is refused FAILED_PRECONDITION "The organization cannot fund a scheduled run right now." before any side effect; guest and channel callers get their own per-surface copy (GuestRefusal / ChannelLimitReason.UNAVAILABLE).
-    java_source: >-
-      domain/agentic/sharing/VisitorBillingPreflightStep.java
-    java_test: >-
-      none
     class: carve-out
     disposition: smoke
     observability: launcher
     caller: none
     needs: [unfunded-org]
     note: >-
-      Conformance cannot mint guest, channel or schedule callers (the R6 posture; schedule fires ride the scheduleFireCaller driver). The composition's VisitorBillingPreflight unit arms pin the copy; the live smoke covers the schedule lane.
+      Conformance cannot mint guest, channel or schedule callers (schedule fires ride the scheduleFireCaller driver). The composition's VisitorBillingPreflight unit arms pin the copy; the live smoke covers the schedule lane.
   - id: billing.gate.reserve.billing-unavailable-fails-closed
     surface: billing
     lane: >-
       gate.reserve
     behavior: >-
       When the billing engine errors during authorization, the execution fails closed with status.error "Billing service unavailable" and the system message "Execution could not start due to a billing system error. Please try again."
-    java_source: >-
-      domain/agentic/agentexecution/temporal/workflow/InvokeAgentExecutionWorkflowImpl.java:437-513
-    java_test: >-
-      none
     class: carve-out
     disposition: unit
     observability: none
@@ -1084,10 +818,6 @@ rows:
       stripe.webhook
     behavior: >-
       A JSON event signed with the configured webhook secret (Stripe-Signature t=..,v1=..) answers 200 "ok".
-    java_source: >-
-      domain/billing/stripe/StripeWebhookController.java:55
-    java_test: >-
-      domain/billing/stripe/StripeWebhookControllerTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -1099,10 +829,6 @@ rows:
       stripe.webhook
     behavior: >-
       An event signed with a different secret answers 400 "Invalid signature" and has no effect.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookController.java
-    java_test: >-
-      domain/billing/stripe/StripeWebhookControllerTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1114,10 +840,6 @@ rows:
       stripe.webhook
     behavior: >-
       A payload altered after signing answers 400 "Invalid signature".
-    java_source: >-
-      domain/billing/stripe/StripeWebhookController.java
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1129,10 +851,6 @@ rows:
       stripe.webhook
     behavior: >-
       An event whose signature timestamp is older than the tolerance (stripe-java default 300 s) answers 400 "Invalid signature".
-    java_source: >-
-      domain/billing/stripe/StripeWebhookController.java (Webhook.constructEvent default tolerance)
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1144,27 +862,19 @@ rows:
       stripe.webhook
     behavior: >-
       A POST without a Stripe-Signature header answers 400.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookController.java
-    java_test: >-
-      domain/billing/stripe/StripeWebhookControllerTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [fake-stripe]
     note: >-
-      The composition answers 400. Java answered 401 (MEASURED 2026-09-07 on the production-mode launcher, entry 20260907.02: the framework's MissingRequestHeaderException 400 re-dispatched to /error, which HttpSecurityConfig's anyRequest().denyAll() turned into 401 for the anonymous caller) and was the row's one `deviation` disposition until the Java service and the registry that tracked its entry retired (stigmer#1023).
+      The composition answers 400. The retired Java service answered 401 here, which made this the one `deviation` row until the service and the registry that tracked it retired (stigmer#1023).
   - id: billing.stripe.webhook.anonymous-reachable
     surface: billing
     lane: >-
       stripe.webhook
     behavior: >-
       The webhook is reachable without a bearer (permitAll) — Stripe never authenticates with one.
-    java_source: >-
-      config/proxy/HttpSecurityConfig.java (permitAll /webhook/stripe)
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1176,10 +886,6 @@ rows:
       stripe.checkout-completed
     behavior: >-
       A signed checkout.session.completed whose session id is a pending purchase grants the pack's credits (a ledger entry with source stripe and idempotency key purchase_<purchaseId>), raises the balance by credits_granted_micros, and the purchase reads completed.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:81-83 (handleCheckoutPaymentSucceeded)
-    java_test: >-
-      domain/billing/stripe/StripeWebhookServiceTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -1191,10 +897,6 @@ rows:
       stripe.checkout-completed
     behavior: >-
       Posting the same checkout.session.completed (same event id) twice answers 200 both times and grants the credits once — the event dedup (insertIfAbsent) holds.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:79 (handleEvent dedup)
-    java_test: >-
-      domain/billing/stripe/StripeWebhookServiceTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1206,10 +908,6 @@ rows:
       stripe.checkout-completed
     behavior: >-
       A second checkout.session.completed with a NEW event id for an already-completed session grants nothing more — the purchase's completed status is the latch.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java (skip if COMPLETED)
-    java_test: >-
-      domain/billing/stripe/StripeWebhookServiceTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1221,10 +919,6 @@ rows:
       stripe.checkout-completed
     behavior: >-
       checkout.session.async_payment_succeeded grants exactly as checkout.session.completed does.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:81-83
-    java_test: >-
-      domain/billing/stripe/StripeWebhookServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1236,10 +930,6 @@ rows:
       stripe.checkout-completed
     behavior: >-
       checkout.session.completed for a session id no purchase knows answers 200 (the event is marked failed internally) and grants nothing.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java (markFailed "No purchase for session")
-    java_test: >-
-      domain/billing/stripe/StripeWebhookServiceTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1251,10 +941,6 @@ rows:
       stripe.checkout-failed
     behavior: >-
       checkout.session.async_payment_failed on a pending purchase marks it failed and grants nothing.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:84
-    java_test: >-
-      domain/billing/stripe/StripeWebhookServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1266,27 +952,19 @@ rows:
       stripe.checkout-expired
     behavior: >-
       checkout.session.expired on a pending purchase marks it expired and grants nothing; a later checkout.session.completed for that session does not grant.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:86
-    java_test: >-
-      domain/billing/stripe/StripeWebhookServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      Purchase status is not exposed by an RPC; the observable is "no grant" on the ledger. Whether the second half (completed after expired) is Java's behavior is read in S3.
+      Purchase status is not exposed by an RPC; the observable is "no grant" on the ledger.
   - id: billing.stripe.unhandled-event.ignored-200
     surface: billing
     lane: >-
       stripe.webhook
     behavior: >-
       A signed event of a type Java does not handle (e.g. invoice.paid) answers 200 and has no effect.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java (default branch)
-    java_test: >-
-      domain/billing/stripe/StripeWebhookServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1297,106 +975,81 @@ rows:
     lane: >-
       stripe.webhook
     behavior: >-
-      An otherwise valid checkout.session.completed whose api_version is not stripe-java 32.1.0's pin answers 200 and grants nothing — getObject() deserializes nothing (finding F12).
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:578-592
-    java_test: >-
-      none
+      An otherwise valid checkout.session.completed whose api_version is not stripe-java 32.1.0's pin answers 200 and grants nothing — getObject() deserializes nothing (the api_version trap the fake Stripe documents).
     class: behavior
     disposition: debris
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      RULED debris 2026-09-06 (C5 gate, Q1d): a silent 200 that grants nothing is stripe-java's release-train strictness (getObject() answers empty unless the event's api_version shares the SDK's train), not a behavior of the product — C5 (stripe-node) parses regardless and must NOT replicate it. The fake stamps the pin on every event so no other row trips on this.
+      Debris: a silent 200 that grants nothing was stripe-java's release-train strictness (getObject() answered empty unless the event's api_version shared the SDK's train), not a behavior of the product — the composition (stripe-node) parses regardless and must not replicate it. The fake stamps the pin on every event so no other row trips on this.
   - id: billing.stripe.customer-updated.syncs-default-payment-method
     surface: billing
     lane: >-
       stripe.customer-updated
     behavior: >-
       customer.updated carrying invoice_settings.default_payment_method makes Java retrieve that payment method (GET /v1/payment_methods/{id}) and record it as the account's default (id, brand, last4, exp_month, exp_year — visible on getBillingAccount); carrying none clears the account's default; a customer Java never minted is a silent 200 with no retrieve.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:258-297,512-542
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      RULED PORTED 2026-09-06 (C5 gate, Q1) with auto-recharge, which it serves. Java carries NO unit test for this handler (StripeWebhookServiceTest covers the checkout events only) — this arm is the only proof on either side. Java reads the card's exp_month/exp_year unguarded; the fake's card carries them (FAKE_CARD).
-      FILED 2026-09-07 stigmer-cloud#666: Java claims the dedup row BEFORE this handler runs, so a handler failure (the unguarded expiry read is the realistic one) answers 500 and every Stripe redelivery is skipped as a duplicate — this lane has no reconciliation sweep, so the loss is permanent; C5's S2 gate rules record-then-process vs a retryable dedup. The arm's assertions hold under either design.
+      Carried with auto-recharge, which it serves. The fake's card carries exp_month and exp_year (FAKE_CARD).
+      The webhook claims the event id before this handler runs; a handler failure marks the claim failed and answers 500, so Stripe's redelivery is admitted again rather than skipped as a duplicate, and every money handler is idempotent underneath the claim.
   - id: billing.stripe.payment-method-attached.sets-default-when-none
     surface: billing
     lane: >-
       stripe.payment-method-attached
     behavior: >-
       payment_method.attached for a card sets it as the account's default ONLY when none is set (a second card does not displace the first) and makes it the customer's default on Stripe (POST /v1/customers/{id} invoice_settings[default_payment_method], once); a method without a card (us_bank_account) and a customer Java never minted are silent 200s with no write.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:306-362,548-562
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      RULED PORTED 2026-09-06 (C5 gate, Q1) with auto-recharge, which it serves. Java carries NO unit test for this handler — this arm is the only proof on either side. It is also how every auto-recharge arm gives its org a saved card.
-      FILED 2026-09-07 stigmer-cloud#666: the same dedup-before-handler exposure as customer.updated (the expiry read at StripeWebhookService.java:354 is unguarded here too), the same missing sweep; C5's S2 gate rules on both lanes together. The arm's assertions hold under either design.
+      Carried with auto-recharge, which it serves. It is also how every auto-recharge arm gives its org a saved card.
+      The same claim-then-process admission as customer.updated: a handler failure re-admits the redelivery.
   - id: billing.stripe.payment-intent-succeeded.recharge-provisions-credits
     surface: billing
     lane: >-
       stripe.payment-intent-succeeded
     behavior: >-
       payment_intent.succeeded carrying metadata stigmer_recharge_event_id provisions the recharge's credits exactly once — an auto_recharge_credit ledger entry under idempotency key auto_recharge_<event_id>, the balance up by the recharge amount; the same event replayed or a fresh event for the same recharge grants nothing more; without the metadata (a checkout's intent) or naming a recharge Java never created the event is a silent 200.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:371-406; domain/billing/service/AutoRechargeService.java:263-319
-    java_test: >-
-      domain/billing/service/AutoRechargeServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      RULED PORTED 2026-09-06 (C5 gate, Q1): auto-recharge is a live product surface. The arm drives the whole journey as the platform operator — the trigger is synchronous inside recordLlmCallUsage when the post-debit signal is low_balance_warning, so the operator's engine RPCs are the only black-box way to reach it; the PaymentIntent lands on the fake from Java's background executor and the arm polls for it. Java's webhook handler has no unit test of its own; AutoRechargeServiceTest covers provisionRechargeCredits.
-      FILED 2026-09-07 stigmer-cloud#667: because the trigger runs only behind that low_balance_warning gate — whose threshold is the fixed $5 low_balance_threshold_micros no RPC sets — a user threshold above $5 is silently capped at $5, contrary to threshold_micros's proto contract ("when available balance drops below this amount"). This arm uses T = $5 and stays green under either behavior. The composition's S1 engine already carries the same gate (execution-billing-engine.ts:655-661), latent until S2 implements the trigger; C5's S2 gate rules parity vs contract.
+      Auto-recharge is a live product surface. The trigger runs after every usage debit inside recordLlmCallUsage and compares the available balance with the account's own threshold_micros, as the proto's contract says ("when available balance drops below this amount"), so the operator's engine RPCs are the only black-box way to reach it. The arm drives the whole journey as the platform operator and polls the fake for the PaymentIntent.
   - id: billing.stripe.payment-intent-failed.recharge-compensated
     surface: billing
     lane: >-
       stripe.payment-intent-failed
     behavior: >-
       payment_intent.payment_failed carrying stigmer_recharge_event_id marks the recharge FAILED and releases its monthly-cap slot (current_month_charged_micros back down by the amount) with no grant; with the recharge no longer pending, the next debit past the threshold triggers a fresh recharge under a new event id.
-    java_source: >-
-      domain/billing/stripe/StripeWebhookService.java:414-454; domain/billing/service/AutoRechargeService.java (compensateFailedRecharge)
-    java_test: >-
-      domain/billing/service/AutoRechargeServiceTest.java
     class: behavior
     disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      RULED PORTED 2026-09-06 (C5 gate, Q1) with its lane. The arm proves the release is real by re-triggering, not by reading the counter alone. The month-rollover guard on the release depends on wall-clock time and is a `unit` concern.
+      The arm proves the release is real by re-triggering, not by reading the counter alone. The month-rollover guard on the release depends on wall-clock time and is a `unit` concern.
   - id: billing.stripe.outbound.idempotency-key-on-recharge-payment-intent
     surface: billing
     lane: >-
       stripe.outbound
     behavior: >-
       The auto-recharge PaymentIntent create carries Idempotency-Key auto_recharge_<event_id> (the event's own key) and the shape Java sends — amount in cents (micros / 10_000), currency usd, the saved payment method, the org's customer, off_session=true, confirm=true, metadata stigmer_org_id / stigmer_recharge_event_id / stigmer_credits_micros — and the month's slot is claimed (current_month_charged_micros) before any money moves.
-    java_source: >-
-      domain/billing/service/AutoRechargeService.java:214-238,387-409
-    java_test: >-
-      domain/billing/service/AutoRechargeServiceTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
     caller: none
     needs: [fake-stripe]
     note: >-
-      RULED PORTED 2026-09-06 (C5 gate, Q1). A DD-012 carve-out: the key must be byte-identical across editions so a retry can never charge twice.
+      A carve-out: the key must be byte-identical across editions so a retry can never charge twice.
 
   # ===========================================================================
   # BILLING — workers, schedules, notifier (Temporal vocabulary is a carve-out)
@@ -1406,28 +1059,20 @@ rows:
     lane: >-
       worker
     behavior: >-
-      The billing workers own exactly these Temporal schedule ids — reservation-expiry, grant-expiry, billing-usage-repricing, billing-reconciliation, billing-provider-reconciliation-anthropic, billing-provider-reconciliation-cursor — and the byte-pinned workflow types billing/grant-expiry, billing/reservation-expiry, billing/reconciliation, billing/usage-repricing, billing/provider-reconciliation. Java ran them on five queues (reservation_expiry, grant_expiry, usage_repricing, billing_reconciliation, provider_reconciliation); the composition runs them on ONE composition-own queue, cloud-billing (C5 ruling S3-Q1, 2026-09-08) — the queue is server vocabulary, never a wire artifact.
-    java_source: >-
-      domain/billing/temporal/*/‹Starter›.java; resources application-temporal.yaml:64-67
-    java_test: >-
-      domain/billing/temporal/**/*WorkflowTest.java
+      The billing workers own exactly these Temporal schedule ids — reservation-expiry, grant-expiry, billing-usage-repricing, billing-reconciliation, billing-provider-reconciliation-anthropic, billing-provider-reconciliation-cursor — and the byte-pinned workflow types billing/grant-expiry, billing/reservation-expiry, billing/reconciliation, billing/usage-repricing, billing/provider-reconciliation. Java ran them on five queues (reservation_expiry, grant_expiry, usage_repricing, billing_reconciliation, provider_reconciliation); the composition runs them on ONE composition-own queue, cloud-billing — the queue is server vocabulary, never a wire artifact.
     class: carve-out
     disposition: unit
     observability: none
     caller: none
     needs: [none]
     note: >-
-      C5 adopts the ids (and types) by name (DD-012; landed 2026-09-08 in stigmer-cloud#680 and its stacked PR-B — `billing/workers/model.ts` is the list of record, pinned by the bundle proof). The Java integration harness disables reconciliation and reservation-expiry on the hermetic launcher.
+      The composition keeps these ids (and types) by name; its billing workers' model is the list of record.
   - id: billing.worker.reservation-expiry.releases-stale-holds
     surface: billing
     lane: >-
       worker
     behavior: >-
       The reservation-expiry sweep releases holds whose executions never settled, restoring the balance.
-    java_source: >-
-      domain/billing/temporal/reservation_expiry/*.java
-    java_test: >-
-      domain/billing/temporal/reservation_expiry/ReservationExpiryActivitiesImplTest.java; ReservationExpiryWorkflowTest.java
     class: behavior
     disposition: unit
     observability: none
@@ -1439,10 +1084,6 @@ rows:
       worker
     behavior: >-
       The grant-expiry sweep removes expired grants from the available balance.
-    java_source: >-
-      domain/billing/temporal/grant_expiry/*.java
-    java_test: >-
-      domain/billing/temporal/grant_expiry/GrantExpiryActivitiesImplTest.java; GrantExpiryWorkflowTest.java
     class: behavior
     disposition: unit
     observability: none
@@ -1454,10 +1095,6 @@ rows:
       worker
     behavior: >-
       The usage-repricing sweep re-rates usage rows recorded with PRICE_NOT_FOUND once a price exists.
-    java_source: >-
-      domain/billing/temporal/usage_repricing/*.java
-    java_test: >-
-      domain/billing/temporal/usage_repricing/*Test.java
     class: behavior
     disposition: unit
     observability: none
@@ -1468,11 +1105,7 @@ rows:
     lane: >-
       worker
     behavior: >-
-      The billing reconciliation sweep is the money-IN backstop: a PENDING credit purchase older than the stale threshold is settled from its Stripe Checkout Session (complete+paid grants under the webhook's own key, expired marks expired, open is left; one with no session is marked failed past the orphan threshold), and a PENDING auto-recharge event is settled from its PaymentIntent or re-driven under its original idempotency key (compensated past the 20 h ceiling or without a saved card). Corrected 2026-09-08 (C5 S3): the earlier text described a ledger-vs-balance drift check Java never had — that instrument is C5 S4's balance reconciliation in the M1 tool.
-    java_source: >-
-      domain/billing/temporal/reconciliation/*.java
-    java_test: >-
-      domain/billing/temporal/reconciliation/BillingReconciliationWorkflowTest.java; ReconciliationActivitiesImplTest.java
+      The billing reconciliation sweep is the money-IN backstop: a PENDING credit purchase older than the stale threshold is settled from its Stripe Checkout Session (complete+paid grants under the webhook's own key, expired marks expired, open is left; one with no session is marked failed past the orphan threshold), and a PENDING auto-recharge event is settled from its PaymentIntent or re-driven under its original idempotency key (compensated past the 20 h ceiling or without a saved card).
     class: behavior
     disposition: unit
     observability: none
@@ -1484,29 +1117,21 @@ rows:
       worker
     behavior: >-
       Provider reconciliation posts pricing-governance notifications to Discord best-effort — no-op when unconfigured, retried by Temporal, the workflow absorbing final failure.
-    java_source: >-
-      domain/billing/temporal/provider_reconciliation/GovernanceNotificationActivitiesImpl.java; platform/discord/DiscordWebhookClient.java
-    java_test: >-
-      domain/billing/temporal/provider_reconciliation/GovernanceNotificationActivitiesImplTest.java; GovernanceNotificationComposerTest.java
     class: behavior
     disposition: unit
     observability: none
     caller: none
     needs: [fake-discord]
     note: >-
-      C5 may drive it against the fake Discord receiver in its own suite.
+      The hosted edition's own suites may drive it against the fake Discord receiver.
 
-  # --- pure-logic tables C5 must carry ----------------------------------------
+  # --- pure-logic tables the hosted billing engine carries -------------------
   - id: billing.unit.micros-arithmetic
     surface: billing
     lane: >-
       unit
     behavior: >-
       Money arithmetic in micros (rounding, conversion to cents, overflow guards) matches Java's BillingMicros table.
-    java_source: >-
-      domain/billing/micros/BillingMicros.java
-    java_test: >-
-      domain/billing/micros/BillingMicrosTest.java
     class: carve-out
     disposition: unit
     observability: none
@@ -1518,10 +1143,6 @@ rows:
       unit
     behavior: >-
       Rating a usage record (input/output/cache tokens x model price, harness and tier policy) matches Java's UsageRatingService table.
-    java_source: >-
-      domain/billing/service/UsageRatingService.java
-    java_test: >-
-      domain/billing/service/UsageRatingServiceTest.java
     class: carve-out
     disposition: unit
     observability: none
@@ -1533,10 +1154,6 @@ rows:
       unit
     behavior: >-
       determineSignal(account, headroom) maps balance and thresholds to stop_execution / low_balance_warning / continue exactly as Java's table.
-    java_source: >-
-      domain/billing/service/CreditLedgerService.java (determineSignal); domain/billing/service/BillingSignalMapper.java
-    java_test: >-
-      domain/billing/service/CreditLedgerServiceTest.java; BillingSignalMapperTest.java; ExecutionBillingServiceQuerySignalTest.java
     class: carve-out
     disposition: unit
     observability: none
@@ -1548,10 +1165,6 @@ rows:
       unit
     behavior: >-
       Ledger entries classify into the console's view categories exactly as Java's LedgerViewClassifier table.
-    java_source: >-
-      domain/billing/service/LedgerViewClassifier.java
-    java_test: >-
-      domain/billing/service/LedgerViewClassifierTest.java
     class: carve-out
     disposition: unit
     observability: none
@@ -1563,10 +1176,6 @@ rows:
       unit
     behavior: >-
       The model registry document codec round-trips and the embedded registry snapshot parses exactly as Java's tables.
-    java_source: >-
-      domain/billing/service/ModelRegistryDocumentCodec.java; domain/billing/service/EmbeddedModelRegistry.java
-    java_test: >-
-      domain/billing/service/ModelRegistryDocumentCodecTest.java; EmbeddedModelRegistryTest.java
     class: behavior
     disposition: unit
     observability: none
@@ -1578,10 +1187,6 @@ rows:
       unit
     behavior: >-
       Cursor model ids resolve to pricing entries (aliases, variants, unknown → fallback) exactly as Java's table.
-    java_source: >-
-      domain/billing/service/CursorModelPricingResolver.java
-    java_test: >-
-      domain/billing/service/CursorModelPricingResolverTest.java
     class: behavior
     disposition: unit
     observability: none
@@ -1593,10 +1198,6 @@ rows:
       unit
     behavior: >-
       The credit pack catalog (ids, prices, credits) and the billing policy seed match Java's tables.
-    java_source: >-
-      domain/billing/catalog/CreditPackCatalog.java; domain/billing/seed/*.java
-    java_test: >-
-      domain/billing/catalog/CreditPackCatalogTest.java; domain/billing/seed/BillingPolicySeederTest.java; ModelPricingBaselineSeederTest.java
     class: carve-out
     disposition: unit
     observability: none
@@ -1608,10 +1209,6 @@ rows:
       unit
     behavior: >-
       Provider reconciliation's blended-rate solver and the Anthropic/Cursor admin clients parse and solve as Java's tables.
-    java_source: >-
-      domain/billing/temporal/provider_reconciliation/*.java
-    java_test: >-
-      domain/billing/temporal/provider_reconciliation/BlendedRateSolverTest.java; AnthropicAdminClientTest.java; CursorAdminClientTest.java; PricingCorrectionActivitiesImplTest.java
     class: behavior
     disposition: unit
     observability: none
@@ -1627,10 +1224,6 @@ rows:
       llm
     behavior: >-
       POST /v1/proxy/llm/anthropic/v1/messages with a valid bearer and an execution scope header relays the request to the Anthropic upstream with x-api-key set to the platform key and anthropic-version 2023-06-01, and streams the upstream SSE back byte for byte with content-type text/event-stream.
-    java_source: >-
-      proxy/llm/LlmProxyController.java:165-263,525-535
-    java_test: >-
-      proxy/llm/LlmProxyControllerTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1642,10 +1235,6 @@ rows:
       llm
     behavior: >-
       POST /v1/proxy/llm/openai/v1/chat/completions with stream true reaches the upstream with Authorization "Bearer <platform key>" and stream_options.include_usage injected into the body.
-    java_source: >-
-      proxy/llm/LlmProxyController.java:531; proxy/llm/LlmCallService.java
-    java_test: >-
-      proxy/usage/StreamOptionsInjectionTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1657,10 +1246,6 @@ rows:
       llm
     behavior: >-
       After an Anthropic stream whose message_start/message_delta carry input and output tokens, the execution's org shows a usage row with those tokens on getBillingUsageReport (metered because the scope named an execution).
-    java_source: >-
-      proxy/usage/AnthropicUsageExtractor.java; proxy/usage/ProxyUsageReporter.java; domain/billing/request/handler/RecordLlmCallUsageHandler.java
-    java_test: >-
-      proxy/usage/AnthropicUsageExtractorTest.java; proxy/usage/ProxyUsageReporterTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1672,10 +1257,6 @@ rows:
       llm
     behavior: >-
       After an OpenAI stream whose final chunk carries usage, the usage row lands with prompt and completion tokens; a plain-JSON (non-stream) completion's usage lands too.
-    java_source: >-
-      proxy/usage/OpenAiUsageExtractor.java; proxy/usage/OpenAiJsonUsageExtractor.java
-    java_test: >-
-      proxy/usage/OpenAiUsageExtractorTest.java; OpenAiJsonUsageExtractorTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1687,10 +1268,6 @@ rows:
       llm
     behavior: >-
       A call scoped by X-Stigmer-Mcp-Server-Id on a server the caller can_connect is relayed but records NO usage row (authorized, not metered).
-    java_source: >-
-      proxy/authorization/ProxyAuthorizationService.java:96-159; proxy/llm/LlmProxyController.java:360
-    java_test: >-
-      proxy/authorization/ProxyScopeAuthorizationTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1702,10 +1279,6 @@ rows:
       llm
     behavior: >-
       POST /v1/proxy/llm/mistral/... answers 400 without touching any upstream.
-    java_source: >-
-      proxy/llm/LlmProxyController.java:115-118
-    java_test: >-
-      proxy/llm/LlmProxyControllerTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1717,27 +1290,19 @@ rows:
       llm
     behavior: >-
       A provider whose platform key is not configured answers 502 without touching the upstream.
-    java_source: >-
-      proxy/llm/LlmProxyController.java:121-124
-    java_test: >-
-      proxy/llm/LlmProxyControllerTest.java
     class: adversarial
     disposition: unit
     observability: none
     caller: primary
     needs: [fake-llm-upstream]
     note: >-
-      Re-dispositioned at S4: the hermetic launcher configures both provider keys whenever the fake upstream is set (the proxy refuses keyless providers before dialing), so the arm is unobservable there; C6 carries it as a unit arm. Feasible only if the launcher boots one provider keyless (openai) — the hermetic env sets only the Anthropic key when given; settled in S4, else `unit`.
+      The conformance environment configures both provider keys whenever the fake upstream is set (the proxy refuses keyless providers before dialing), so the arm is unobservable there; the hosted edition pins it in its own unit arms.
   - id: proxy.llm.scope.foreign-execution-403
     surface: proxy
     lane: >-
       llm
     behavior: >-
       A call whose X-Stigmer-Execution-Id names an execution the caller cannot can_edit (an outsider's) answers 403 and never reaches the upstream.
-    java_source: >-
-      proxy/llm/LlmProxyController.java:136-139; proxy/authorization/ProxyAuthorizationService.java
-    java_test: >-
-      proxy/authorization/ProxyScopeAuthorizationTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1749,10 +1314,6 @@ rows:
       llm
     behavior: >-
       A call scoped by X-Stigmer-Workflow-Execution-Id on a workflow execution the caller can_edit is relayed and metered against that workflow execution.
-    java_source: >-
-      proxy/authorization/ProxyAuthorizationService.java:96-159
-    java_test: >-
-      proxy/authorization/ProxyScopeAuthorizationTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1764,27 +1325,19 @@ rows:
       llm
     behavior: >-
       With require-scope-header true (production), a call carrying no scope header answers 403.
-    java_source: >-
-      proxy/authorization/ProxyAuthorizationService.java:109-141; resources application.yaml:580
-    java_test: >-
-      proxy/authorization/ProxyScopeAuthorizationTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
     caller: primary
     needs: [fake-llm-upstream]
     note: >-
-      The conformance launcher boots Java with STIGMER_PROXY_REQUIRE_SCOPE_HEADER=true, production's default (entry 20260907.02 restored the posture E1's F6 found relaxed); the Go integration suites keep false through ServiceConfig's zero value.
+      The hosted edition's conformance environment boots the proxy with STIGMER_PROXY_REQUIRE_SCOPE_HEADER=true, production's default.
   - id: proxy.llm.authn.no-bearer-401
     surface: proxy
     lane: >-
       llm
     behavior: >-
       A call with no Authorization and no x-api-key answers 401 without touching the upstream.
-    java_source: >-
-      config/proxy/HttpSecurityConfig.java (/v1/proxy/** authenticated)
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1796,10 +1349,6 @@ rows:
       llm
     behavior: >-
       A bearer that no verifier claims (a token signed by another key, or an expired one) answers 401.
-    java_source: >-
-      config/proxy/HttpSecurityConfig.java
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1811,10 +1360,6 @@ rows:
       llm
     behavior: >-
       The caller's credential is accepted from x-api-key as well as from Authorization: Bearer (the Anthropic SDK convention).
-    java_source: >-
-      config/proxy/HttpSecurityConfig.java (resolveProxyBearerToken)
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1826,27 +1371,19 @@ rows:
       llm
     behavior: >-
       When the upstream is unreachable (the fake's port closed), the call answers 502.
-    java_source: >-
-      proxy/llm/LlmProxyController.java:208-209
-    java_test: >-
-      proxy/llm/LlmProxyControllerTest.java
     class: adversarial
     disposition: smoke
     observability: launcher
     caller: primary
     needs: [fake-llm-upstream]
     note: >-
-      Needs the upstream base to point at a closed port for one call, which the shared run-scoped fixture cannot do without disturbing other files; C6's own unit arm covers it.
+      Needs the upstream base to point at a closed port for one call, which the shared run-scoped fixture cannot do without disturbing other files; the hosted edition's own unit arms cover it.
   - id: proxy.llm.upstream.platform-auth-rewritten-503
     surface: proxy
     lane: >-
       llm
     behavior: >-
       An upstream 401 or 403 is NOT relayed — the caller gets 503, content-type application/json, header x-should-retry false, and a body carrying the sentinel STIGMER_PLATFORM_MODEL_CAPACITY.
-    java_source: >-
-      proxy/llm/LlmProxyController.java:318-338; proxy/llm/PlatformProviderErrorClassifier.java:78-81
-    java_test: >-
-      proxy/llm/PlatformProviderErrorClassifierTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -1858,10 +1395,6 @@ rows:
       llm
     behavior: >-
       An OpenAI 429 whose error type or code is insufficient_quota, and an Anthropic 400 carrying billing text, are rewritten to the same 503 sentinel; a plain 429 is relayed verbatim.
-    java_source: >-
-      proxy/llm/PlatformProviderErrorClassifier.java:56-109
-    java_test: >-
-      proxy/llm/PlatformProviderErrorClassifierTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -1873,10 +1406,6 @@ rows:
       llm
     behavior: >-
       An upstream 400 (non-billing), 404 or 500 is relayed with its status and body unchanged.
-    java_source: >-
-      proxy/llm/LlmProxyController.java (buffered <=64KB, classified, else relayed)
-    java_test: >-
-      proxy/llm/LlmProxyControllerTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1888,10 +1417,6 @@ rows:
       llm
     behavior: >-
       When the upstream cuts an SSE stream after a few events, the caller's stream ends early (a 200 already sent) and Java records the partial call with the usage seen so far — the input tokens from message_start — rather than dropping it (read on the first hermetic run, 2026-09-06).
-    java_source: >-
-      proxy/llm/LlmProxyController.java:208-263; proxy/usage/ProxyUsageReporter.java
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1905,10 +1430,6 @@ rows:
       llm
     behavior: >-
       Ordinary upstream response headers (e.g. Anthropic's request-id) are relayed to the caller; the upstream's x-* infrastructure headers and its hop-by-hop headers (keep-alive, connection, upgrade, transfer-encoding) are stripped (ProxyHeaders.isForwardableResponseHeader) — corrected on the first hermetic run: the assumption "x-* relays" was the inverse of the code.
-    java_source: >-
-      proxy/ProxyHeaders.java:27-49
-    java_test: >-
-      proxy/ProxyHeadersTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1924,10 +1445,6 @@ rows:
       cursor
     behavior: >-
       /v1/proxy/cursor/{host}/... for a host outside api2.cursor.sh, api.cursor.com, api.cursor.sh answers 403.
-    java_source: >-
-      proxy/cursor/CursorProxyController.java:90,191-193
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1939,10 +1456,6 @@ rows:
       cursor
     behavior: >-
       A scoped Cursor call naming an execution the caller cannot can_edit answers 403 before key selection.
-    java_source: >-
-      proxy/cursor/CursorProxyController.java:213
-    java_test: >-
-      proxy/authorization/ProxyScopeAuthorizationTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1954,10 +1467,6 @@ rows:
       cursor
     behavior: >-
       With no CursorAccount available for the org, an authorized scoped call answers 503 with a Connect-shaped JSON body {"code":"unavailable","message":...} and touches no upstream.
-    java_source: >-
-      proxy/cursor/CursorProxyController.java:242,368-379; proxy/cursor/keyselection/CursorKeySelectionService.java
-    java_test: >-
-      proxy/cursor/keyselection/CursorKeySelectionServiceTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -1969,27 +1478,19 @@ rows:
       cursor
     behavior: >-
       A scoped Cursor call with a selected key relays to https://{host} and meters usage from SSE (CursorUsageExtractor) or Connect application/proto (ConnectCursorUsageExtractor, TurnEndedUpdate scan).
-    java_source: >-
-      proxy/cursor/CursorProxyController.java:278-363; proxy/usage/CursorUsageExtractor.java; proxy/usage/ConnectCursorUsageExtractor.java
-    java_test: >-
-      proxy/usage/CursorUsageExtractorTest.java; ConnectCursorUsageExtractorTest.java; proxy/usage/connect/*Test.java
     class: behavior
     disposition: smoke
     observability: none
     caller: none
     needs: [none]
     note: >-
-      Ruling Q4 — the relay cannot be faked (hardcoded https + allow-list; sealed CursorAccount rows); C6's runner smoke on the checklist. The extractors are `unit` rows below.
+      The relay cannot be faked (hardcoded https + allow-list; sealed CursorAccount rows), so a live runner smoke proves it. The extractors are `unit` rows below.
   - id: proxy.cursor.metadata-paths-unscoped
     surface: proxy
     lane: >-
       cursor
     behavior: >-
       GET /v1/proxy/cursor/api.cursor.com/v1/models and /v1/me need no scope header (metadata paths) but still need authentication and a key.
-    java_source: >-
-      proxy/cursor/CursorProxyController.java:200-213
-    java_test: >-
-      none
     class: behavior
     disposition: smoke
     observability: none
@@ -2001,27 +1502,19 @@ rows:
       cursor-bidi
     behavior: >-
       A Connect stream opened on the bidi port with no x-stigmer-auth, authorization or x-api-key is reset with REFUSED_STREAM.
-    java_source: >-
-      proxy/cursor/bidi/CursorBidiStreamHandler.java:239
-    java_test: >-
-      proxy/cursor/bidi/CursorBidiStreamHandlerTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [none]
     note: >-
-      Test-mode HTTP identity fallback is Tomcat's filter, not Netty's — the bidi handler authenticates itself, so this arm is observable on the launcher; confirmed in S4.
+      The bidi handler authenticates itself, so this arm is observable on the conformance environment.
   - id: proxy.cursor-bidi.authn-failure-401-code-16
     surface: proxy
     lane: >-
       cursor-bidi
     behavior: >-
       A stream carrying a token no verifier claims answers a Connect error HTTP 401, code 16, message "Authentication failed" with application/grpc headers.
-    java_source: >-
-      proxy/cursor/bidi/CursorBidiStreamHandler.java:299
-    java_test: >-
-      proxy/cursor/bidi/CursorBidiStreamHandlerTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2033,10 +1526,6 @@ rows:
       cursor-bidi
     behavior: >-
       A stream on an /agent.v1.* path whose execution scope the caller cannot can_edit answers a Connect error HTTP 403, code 7, "Access denied".
-    java_source: >-
-      proxy/cursor/bidi/CursorBidiStreamHandler.java:292,987
-    java_test: >-
-      proxy/cursor/bidi/CursorBidiStreamHandlerTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2048,10 +1537,6 @@ rows:
       cursor-bidi
     behavior: >-
       An authorized stream is relayed over TLS h2 to api2.cursor.sh with the selected key, per-turn usage is extracted from Connect end-stream envelopes, and team usage-limit trailers are rewritten.
-    java_source: >-
-      proxy/cursor/bidi/CursorBidiStreamHandler.java; CursorBidiUpstreamClient.java; ConnectEndStreamInterceptor.java; CursorPlatformErrorClassifier.java
-    java_test: >-
-      proxy/cursor/bidi/CursorBidiProxyIntegrationTest.java; ConnectEndStreamInterceptorTest.java; CursorPlatformErrorClassifierTest.java
     class: behavior
     disposition: smoke
     observability: none
@@ -2063,17 +1548,13 @@ rows:
       cursor-bidi
     behavior: >-
       The upstream connection is kept alive with HTTP/2 PING frames and drained with GOAWAY on shutdown.
-    java_source: >-
-      proxy/cursor/bidi/Http2PingKeepaliveHandler.java; CursorBidiProxyServer.java
-    java_test: >-
-      none
     class: behavior
     disposition: debris
     observability: none
     caller: none
     needs: [none]
     note: >-
-      RULED debris 2026-09-06 (C6 gate, Q8) AS A ROW: transport plumbing with no client-visible contract. C6 still implements h2 PING keepalive on both the inbound and the upstream session as an implementation detail (pinned by its own unit tests), not as a behavior the suite observes.
+      Debris as a row: transport plumbing with no client-visible contract. The composition still implements h2 PING keepalive on both the inbound and the upstream session as an implementation detail (pinned by its own unit tests), not as a behavior the suite observes.
 
   # ===========================================================================
   # PROXY — claimcheck, artifact, checkpointer, model-registry, health
@@ -2084,44 +1565,32 @@ rows:
       claimcheck
     behavior: >-
       POST /v1/proxy/claimcheck/presigned-upload-url and presigned-download-url with X-Stigmer-Workflow-Execution-Id on a workflow execution the caller can_edit answer 200 {"url": <presigned>}; without the header, or on a foreign execution, 403.
-    java_source: >-
-      proxy/claimcheck/ClaimCheckProxyController.java:71,112
-    java_test: >-
-      none
     class: behavior
     disposition: debris
     observability: launcher
     caller: primary
     needs: [workflow-execution]
     note: >-
-      RULED debris 2026-09-06 (C6 gate, Q5): the lane has no caller. CLAIMCHECK_ENABLED is set in no sandbox manifest (composition or Java), and the runner's claimcheck codec presigns through the ARTIFACTS lane with a claimcheck/ key prefix that lane rejects (stigmer#992). Not ported by C6; the controller retires with Java at R1.
+      Debris: the lane has no caller. CLAIMCHECK_ENABLED is set in no sandbox manifest, and the runner's claimcheck codec presigns through the ARTIFACTS lane with a claimcheck/ key prefix that lane rejects (stigmer#992). The composition does not carry it; the controller retired with Java.
   - id: proxy.claimcheck.key-rules
     surface: proxy
     lane: >-
       claimcheck
     behavior: >-
       A key that is blank, longer than 512, or not of the form claimcheck/<uuid> is refused 400 with the reasons "key is required", "key exceeds maximum length", "key must match claimcheck/{uuid}".
-    java_source: >-
-      proxy/claimcheck/ClaimCheckProxyController.java:51-53,150-165
-    java_test: >-
-      none
     class: adversarial
     disposition: debris
     observability: launcher
     caller: primary
     needs: [workflow-execution]
     note: >-
-      RULED debris 2026-09-06 (C6 gate, Q5) with its sibling row — no caller. Copy quoted from the validator for the record.
+      Debris with its sibling row — no caller. Copy quoted from the validator for the record.
   - id: proxy.artifact.presign-by-key-shape-and-permission
     surface: proxy
     lane: >-
       artifact
     behavior: >-
       presigned-upload-url for artifacts/<execution_id>/... needs can_edit on that execution; presigned-download-url needs can_view; attachments/... keys need only authentication; a foreign execution's key answers 403.
-    java_source: >-
-      proxy/artifact/ArtifactProxyController.java:74,118,143
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
@@ -2133,10 +1602,6 @@ rows:
       artifact
     behavior: >-
       A key that is blank, longer than 1024, with characters outside [a-zA-Z0-9/_-.], containing .. or //, or not prefixed artifacts/ or attachments/ answers 400 with the validator's reason; an upload content type not matching the MIME pattern answers 400.
-    java_source: >-
-      proxy/artifact/ArtifactProxyController.java:54-57,78,160-178
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -2148,17 +1613,13 @@ rows:
       checkpointer
     behavior: >-
       PUT /v1/proxy/checkpoints/checkpoint (a bodiless 2xx) then GET for thread_id thread-<session_id> on a session the caller can_edit returns the same document; GET /checkpoints lists it; PUT / GET /writes round-trip; DELETE /thread (204) clears them.
-    java_source: >-
-      proxy/checkpointer/CheckpointerProxyController.java; proxy/checkpointer/PostgresCheckpointStore.java
-    java_test: >-
-      proxy/checkpointer/CheckpointerProxyControllerTest.java
     class: behavior
     disposition: conformance
     observability: launcher
     caller: primary
     needs: [session]
     note: >-
-      RULED 2026-09-06 (C6 gate, Q8): Java answered the bodiless ok() PUTs with 204 on one hermetic run and 200 on the next for identical requests; the suite keeps pinning "2xx, no body" so it stays green on Java, and the composition answers 200 consistently. No deviation entry is needed — 200 satisfies the pinned contract; the runner's http-saver accepts any 2xx.
+      The suite pins "2xx, no body"; the composition answers 200 consistently, and the runner's http-saver accepts any 2xx.
 
   - id: proxy.checkpointer.foreign-session-403
     surface: proxy
@@ -2166,10 +1627,6 @@ rows:
       checkpointer
     behavior: >-
       Any checkpointer verb on a thread whose session the caller cannot can_view (reads) or can_edit (writes) answers 403.
-    java_source: >-
-      proxy/checkpointer/CheckpointerProxyController.java:79,103,126,166,177,215,242
-    java_test: >-
-      proxy/checkpointer/CheckpointerProxyControllerTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -2181,10 +1638,6 @@ rows:
       checkpointer
     behavior: >-
       A checkpoint or writes document larger than 4 MiB answers 413.
-    java_source: >-
-      proxy/checkpointer/CheckpointerProxyController.java:53,64-65,152-153
-    java_test: >-
-      proxy/checkpointer/CheckpointerProxyControllerTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -2196,10 +1649,6 @@ rows:
       model-registry
     behavior: >-
       GET /v1/proxy/model-registry with a bearer answers 200 application/json with Cache-Control max-age=3600, public, and the document equals GET /api/v1/public/model-registry's.
-    java_source: >-
-      domain/billing/request/PublicBillingController.java (getModelRegistry)
-    java_test: >-
-      domain/billing/request/PublicBillingControllerTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -2211,10 +1660,6 @@ rows:
       model-registry
     behavior: >-
       GET /v1/proxy/model-registry without a bearer answers 401.
-    java_source: >-
-      config/proxy/HttpSecurityConfig.java
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -2226,10 +1671,6 @@ rows:
       health
     behavior: >-
       GET /health answers 200 {"status":"UP"} without a bearer.
-    java_source: >-
-      config/proxy/ProxyHealthController.java; config/proxy/HttpSecurityConfig.java (permitAll /health)
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
@@ -2241,10 +1682,6 @@ rows:
       llm
     behavior: >-
       A request to a path outside the declared lanes (e.g. /actuator, /v1/other) is denied by the edge (denyAll) rather than reaching a controller.
-    java_source: >-
-      config/proxy/HttpSecurityConfig.java (anyRequest denyAll)
-    java_test: >-
-      none
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -2256,29 +1693,21 @@ rows:
       llm
     behavior: >-
       Proxy authorization decisions are cached per identity/permission/resource for five minutes — a grant revoked after a successful call keeps succeeding until the cache expires.
-    java_source: >-
-      proxy/authorization/ProxyAuthorizationService.java
-    java_test: >-
-      proxy/authorization/ProxyScopeAuthorizationTest.java
     class: behavior
     disposition: debris
     observability: launcher
     caller: primary
     needs: [agent-execution]
     note: >-
-      RULED debris 2026-09-06 (C6 gate, Q8) AS A ROW — a latency-only divergence class (the list-read-scoping Q6 precedent). C6 keeps a short ALLOW-only decision cache as implementation; DENY caching is not ported, so a fresh grant takes effect on the next call rather than up to five minutes later.
+      Debris as a row — a latency-only divergence. The composition keeps a short ALLOW-only decision cache as implementation; DENY caching is not carried, so a fresh grant takes effect on the next call rather than up to five minutes later.
 
-  # --- pure-logic tables C6 must carry (Java's fixture files reused) ---------
+  # --- pure-logic tables the hosted proxy carries ----------------------------
   - id: proxy.unit.sse-frame-decoder
     surface: proxy
     lane: >-
       unit
     behavior: >-
       SSE frames (event/data/id/retry lines, multi-line data, CRLF) decode exactly as Java's SseFrameDecoder table.
-    java_source: >-
-      proxy/usage/SseFrameDecoder.java
-    java_test: >-
-      proxy/usage/SseFrameDecoderTest.java
     class: behavior
     disposition: unit
     observability: none
@@ -2290,10 +1719,6 @@ rows:
       unit
     behavior: >-
       The Anthropic, OpenAI SSE, OpenAI JSON, Cursor SSE and Connect Cursor usage extractors produce the same ParsedLlmUsage as Java's tables over the fixture streams in src/test/resources/ai/stigmer/proxy/usage/.
-    java_source: >-
-      proxy/usage/*UsageExtractor*.java; proxy/usage/SseUsageExtractorFactory.java
-    java_test: >-
-      proxy/usage/AnthropicUsageExtractorTest.java; OpenAiUsageExtractorTest.java; OpenAiJsonUsageExtractorTest.java; CursorUsageExtractorTest.java; ConnectCursorUsageExtractorTest.java; SseUsageExtractorFactoryTest.java
     class: behavior
     disposition: unit
     observability: none
@@ -2305,10 +1730,6 @@ rows:
       unit
     behavior: >-
       Connect envelopes decode and the protobuf field scanner finds TurnEndedUpdate exactly as Java's tables.
-    java_source: >-
-      proxy/usage/connect/ConnectEnvelopeDecoder.java; ProtobufFieldScanner.java
-    java_test: >-
-      proxy/usage/connect/ConnectEnvelopeDecoderTest.java; ProtobufFieldScannerTest.java
     class: behavior
     disposition: unit
     observability: none
@@ -2320,10 +1741,6 @@ rows:
       unit
     behavior: >-
       PlatformProviderErrorClassifier (Anthropic billing 400 text, OpenAI 429 insufficient_quota, 401/403) and CursorPlatformErrorClassifier (end-stream trailer rewrite) classify exactly as Java's tables.
-    java_source: >-
-      proxy/llm/PlatformProviderErrorClassifier.java; proxy/cursor/bidi/CursorPlatformErrorClassifier.java
-    java_test: >-
-      proxy/llm/PlatformProviderErrorClassifierTest.java; proxy/cursor/bidi/CursorPlatformErrorClassifierTest.java
     class: behavior
     disposition: unit
     observability: none
@@ -2335,10 +1752,6 @@ rows:
       unit
     behavior: >-
       Per-execution call sequencing and the usage reporter's swallow-and-log posture match Java's tables.
-    java_source: >-
-      proxy/usage/ProxyCallSequencer.java; ProxyUsageReporter.java
-    java_test: >-
-      proxy/usage/ProxyCallSequencerTest.java; ProxyUsageReporterTest.java
     class: behavior
     disposition: unit
     observability: none
@@ -2350,10 +1763,6 @@ rows:
       unit
     behavior: >-
       Cursor model id normalization, the Connect model extractor and the per-key model-list cache behave as Java's tables.
-    java_source: >-
-      proxy/cursor/CursorModelNormalizer.java; ConnectModelExtractor.java; CursorModelListCache.java
-    java_test: >-
-      proxy/cursor/CursorModelNormalizerTest.java; ConnectModelExtractorTest.java; CursorModelListCacheTest.java
     class: behavior
     disposition: unit
     observability: none
@@ -2365,34 +1774,26 @@ rows:
       unit
     behavior: >-
       Cursor key selection (dedicated vs pool, health monitor on upstream auth failure) and the execution-context source chain (local store, composition authority, caching, chained) behave as Java's tables.
-    java_source: >-
-      proxy/cursor/keyselection/*.java
-    java_test: >-
-      proxy/cursor/keyselection/*Test.java
     class: behavior
     disposition: unit
     observability: none
     caller: none
     needs: [none]
     note: >-
-      The composition-authority source retires with the strangler (DD-012); C6 ports only what the one-flip shape keeps.
+      The composition-authority source retired with the Java service: in process, the proxy reads executions from its own store.
   - id: proxy.unit.metric-names
     surface: proxy
     lane: >-
       unit
     behavior: >-
       The proxy emits stigmer.proxy.cursor.connect.streams_metered, turns_extracted, zero_usage_streams and the PlatformProviderErrorMetrics / CursorPlatformErrorMetrics counters under their Java names.
-    java_source: >-
-      proxy/cursor/CursorProxyController.java; proxy/llm/PlatformProviderErrorMetrics.java; proxy/cursor/bidi/CursorPlatformErrorMetrics.java
-    java_test: >-
-      proxy/llm/PlatformProviderErrorMetricsTest.java
     class: carve-out
     disposition: unit
     observability: none
     caller: none
     needs: [none]
     note: >-
-      Recorded for C6's metric inventory (the `metrics` section below is the home once that gate rules).
+      The `metrics` section below records these names.
 
   # ===========================================================================
   # PUBLIC — /api/v1/public/* and the marketing-site contract
@@ -2403,10 +1804,6 @@ rows:
       public.model-registry
     behavior: >-
       GET /api/v1/public/model-registry without credentials answers 200 application/json with Cache-Control max-age=3600, public and a non-empty registry document.
-    java_source: >-
-      domain/billing/request/PublicBillingController.java (getPublicModelRegistry)
-    java_test: >-
-      domain/billing/request/PublicBillingControllerTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2418,10 +1815,6 @@ rows:
       public.model-registry
     behavior: >-
       The public registry document is byte-identical to the authenticated /v1/proxy/model-registry document.
-    java_source: >-
-      domain/billing/request/PublicBillingController.java
-    java_test: >-
-      domain/billing/request/PublicBillingControllerTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -2433,10 +1826,6 @@ rows:
       public.model-pricing
     behavior: >-
       GET /api/v1/public/model-pricing answers {"entries":[...]} where every entry carries modelId, displayName, provider, harness, costTier, inputPriceMicrosPerMillion, outputPriceMicrosPerMillion, cacheCreationPriceMicrosPerMillion, cacheReadPriceMicrosPerMillion, pricingPolicyId, markupBasisPoints and variants; entries are sorted by harness, costTier, provider, modelId; models without a policy are absent.
-    java_source: >-
-      domain/billing/request/PublicBillingController.java (getPublicModelPricing); domain/billing/service/ModelPricingService.java; BillingPolicyService.java
-    java_test: >-
-      domain/billing/request/PublicBillingControllerTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2448,10 +1837,6 @@ rows:
       site
     behavior: >-
       The marketing site's PricingPage fetches ${cloudApiUrl}/api/v1/public/model-pricing and reads data.entries — the field the composition must keep.
-    java_source: >-
-      third_party/stigmer site/src/components/pages/PricingPage.tsx:106
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2463,10 +1848,6 @@ rows:
       public.leads
     behavior: >-
       POST /api/v1/public/leads/contact-sales with name, email, company and message answers 201 {"success":true,"error":null} and posts one Discord embed titled "New contact-sales lead" with fields Name, Email, Company, the message as description and footer stigmer.ai/contact-sales.
-    java_source: >-
-      platform/leads/LeadsController.java; platform/leads/DiscordLeadNotifier.java
-    java_test: >-
-      platform/leads/LeadsControllerTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2478,10 +1859,6 @@ rows:
       site
     behavior: >-
       The marketing site's ContactSalesPage posts {type:"contact-sales", name, email, company, message, website, _t} and branches only on res.ok — every 2xx is success to it, every non-2xx an error.
-    java_source: >-
-      third_party/stigmer site/src/components/pages/ContactSalesPage.tsx:53
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2493,10 +1870,6 @@ rows:
       public.leads
     behavior: >-
       A submission with a non-blank website field answers 201 success and posts nothing to Discord.
-    java_source: >-
-      platform/leads/LeadsController.java:87
-    java_test: >-
-      platform/leads/LeadsControllerTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -2508,10 +1881,6 @@ rows:
       public.leads
     behavior: >-
       A submission whose _t (the elapsed milliseconds since the form opened) is between 0 and 2000 answers 201 success and posts nothing.
-    java_source: >-
-      platform/leads/LeadsController.java
-    java_test: >-
-      platform/leads/LeadsControllerTest.java
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -2523,10 +1892,6 @@ rows:
       public.leads
     behavior: >-
       A blank name, or a name over 1000 characters, answers 400 {"success":false,"error":"Name is required (max 1000 characters)"}.
-    java_source: >-
-      platform/leads/ContactSalesLead.java:40-41
-    java_test: >-
-      platform/leads/ContactSalesLeadTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2538,10 +1903,6 @@ rows:
       public.leads
     behavior: >-
       An email failing the validator's regex answers 400 with error "A valid email is required".
-    java_source: >-
-      platform/leads/ContactSalesLead.java
-    java_test: >-
-      platform/leads/ContactSalesLeadTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2553,10 +1914,6 @@ rows:
       public.leads
     behavior: >-
       A blank company, or one over 1000 characters, answers 400 with error "Company is required (max 1000 characters)".
-    java_source: >-
-      platform/leads/ContactSalesLead.java:46-47
-    java_test: >-
-      platform/leads/ContactSalesLeadTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2568,10 +1925,6 @@ rows:
       public.leads
     behavior: >-
       A blank message answers 400 "Message is required"; a long message is accepted, capped at 5000 on intake, and the Discord embed description is the first 4000 characters plus one ellipsis.
-    java_source: >-
-      platform/leads/ContactSalesLead.java:61; platform/leads/DiscordLeadNotifier.java:73
-    java_test: >-
-      platform/leads/ContactSalesLeadTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2583,10 +1936,6 @@ rows:
       public.leads
     behavior: >-
       Leading and trailing whitespace on name, email, company and message is trimmed before validation and before the embed.
-    java_source: >-
-      platform/leads/ContactSalesLead.java
-    java_test: >-
-      platform/leads/ContactSalesLeadTest.java
     class: behavior
     disposition: conformance
     observability: launcher
@@ -2598,10 +1947,6 @@ rows:
       public.leads
     behavior: >-
       When Discord answers non-2xx, the submission answers 502 {"success":false,"error":"Failed to submit. Please try again."} — no queue, no retry.
-    java_source: >-
-      platform/leads/LeadsController.java; platform/discord/DiscordWebhookClient.java
-    java_test: >-
-      platform/leads/LeadsControllerTest.java; platform/discord/DiscordWebhookClientTest.java
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -2613,335 +1958,267 @@ rows:
       public.leads
     behavior: >-
       When no leads webhook URL is configured, every submission answers 503 {"success":false,"error":"Lead intake is not configured"}.
-    java_source: >-
-      platform/leads/LeadsController.java:66; platform/leads/LeadsProperties.java
-    java_test: >-
-      platform/leads/LeadsControllerTest.java
     class: carve-out
     disposition: unit
     observability: none
     caller: none
     needs: [none]
     note: >-
-      The hermetic launcher always configures the fake receiver; the unconfigured posture is pinned by LeadsControllerTest today and by P1's unit arm on the composition.
+      The conformance environment always configures the fake receiver; the unconfigured posture is pinned by the hosted edition's own unit arms.
   - id: public.cors.allow-list-and-methods
     surface: public
     lane: >-
       public.leads
     behavior: >-
       Actual requests from https://stigmer.ai, https://www.stigmer.ai and http://localhost:3000 carry Access-Control-Allow-Origin for that origin with GET and POST allowed and max-age 3600; an Origin outside the list gets no allow header (the browser refuses).
-    java_source: >-
-      config/proxy/HttpSecurityConfig.java (publicApiCorsSource)
-    java_test: >-
-      none
     class: carve-out
     disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [none]
     note: >-
-      Measured on the hermetic launcher since entry 20260907.02 (production security mode loads HttpSecurityConfig). P1's smoke verifies the same allow-list against the deployed lane (ruling Q8).
+      Observed from outside on the hosted edition's conformance environment.
   - id: public.edge.public-paths-anonymous
     surface: public
     lane: >-
       public.model-pricing
     behavior: >-
       /api/v1/public/** is reachable with no credential at all (permitAll) while /v1/proxy/** on the same listener is not.
-    java_source: >-
-      config/proxy/HttpSecurityConfig.java
-    java_test: >-
-      none
     class: behavior
     disposition: conformance
     observability: launcher
     caller: anonymous
     needs: [none]
 
-# The metric inventory DD-012 asks of C5 and C6 at their plan gates (each Java
-# `stigmer.*` metric in their domain ported under the same name or explicitly
-# dropped; checklist line 80 — X1-blocking for the money paths). Same
-# discipline, same file — one inventory mechanism for the program.
+# The metric inventory: every `stigmer.*` metric the retired Java service
+# emitted in these domains, ported by the composition under the same name or
+# dropped with the mechanism that emitted it. Same discipline, same file.
 #
 #   name         the Java metric name, byte-exact (the composition emits the
 #                same name when `disposition: ported` — from its own code or
 #                from the OSS server it pins, the row's note says which)
 #   surface      billing | proxy | platform (a metric no lane owns: the HTTP
-#                edge, the gRPC edge, the secret cleanup — 20260909.01)
-#   java_source  where Java emits it: a path under
-#                backend/services/stigmer-service/src/main/java/ai/stigmer, or
-#                `libs/<lib>/…` for backend/libs/java
+#                edge, the gRPC edge, the secret cleanup)
 #   disposition  ported | dropped
-#   alerts       SigNoz alert files under tools/ops/signoz/alerts/ that read
-#                the series (re-pointed at stigmer-server before X1)
+#   alerts       the hosted edition's alert rules that read the series
 #   note         required when `dropped`: why the mechanism retires
 #
 # Billing-side series that proxy reports FEED (stigmer.billing.usage.
 # metered_execution, .service_tier.mismatch, .thinking.mismatch,
-# .pricing.price_not_found, .repricing.still_unpriced) are C5's rows.
+# .pricing.price_not_found, .repricing.still_unpriced) are the billing rows.
 metrics:
-  # ---- proxy (C6 gate, Q9 — 2026-09-06) ------------------------------------
+  # ---- proxy ---------------------------------------------------------------
   - name: stigmer.proxy.cursor.connect.streams_metered
     surface: proxy
-    java_source: proxy/cursor/CursorProxyController.java
     disposition: ported
   - name: stigmer.proxy.cursor.connect.turns_extracted
     surface: proxy
-    java_source: proxy/cursor/CursorProxyController.java
     disposition: ported
   - name: stigmer.proxy.cursor.connect.zero_usage_streams
     surface: proxy
-    java_source: proxy/cursor/CursorProxyController.java
     disposition: ported
   - name: stigmer.proxy.cursor.bidi.streams_total
     surface: proxy
-    java_source: proxy/cursor/bidi/CursorBidiStreamHandler.java
     disposition: ported
   - name: stigmer.proxy.cursor.bidi.upstream_stream_aborts_total
     surface: proxy
-    java_source: proxy/cursor/bidi/CursorBidiStreamHandler.java
     disposition: ported
     alerts: [cursor-bidi-upstream-stream-aborts]
   - name: stigmer.proxy.cursor.bidi.upstream_connects_total
     surface: proxy
-    java_source: proxy/cursor/bidi/CursorBidiUpstreamClient.java
     disposition: ported
   - name: stigmer.proxy.cursor.bidi.upstream_ping_timeouts_total
     surface: proxy
-    java_source: proxy/cursor/bidi/Http2PingKeepaliveHandler.java
     disposition: ported
   - name: stigmer.proxy.cursor.bidi.inbound_ping_timeouts_total
     surface: proxy
-    java_source: proxy/cursor/bidi/Http2PingKeepaliveHandler.java
     disposition: ported
   - name: stigmer.proxy.cursor.platform_provider_errors
     surface: proxy
-    java_source: proxy/cursor/bidi/CursorPlatformErrorMetrics.java
     disposition: ported
     alerts: [cursor-platform-provider-errors]
   - name: stigmer.proxy.cursor.key_selection_rejected
     surface: proxy
-    java_source: proxy/cursor/keyselection/CursorKeySelectionService.java
     disposition: ported
     alerts: [cursor-key-selection-rejected]
   - name: stigmer.proxy.cursor.key_selection_soft_drained
     surface: proxy
-    java_source: proxy/cursor/keyselection/CursorKeySelectionService.java
     disposition: ported
     alerts: [cursor-pool-soft-drained]
   - name: stigmer.proxy.cursor.key_selection_served_guard_tripped
     surface: proxy
-    java_source: proxy/cursor/keyselection/CursorKeySelectionService.java
     disposition: ported
     alerts: [cursor-guard-tripped-serving]
   - name: stigmer.proxy.cursor.session_repinned
     surface: proxy
-    java_source: proxy/cursor/keyselection/CursorKeySelectionService.java
     disposition: ported
   - name: stigmer.proxy.cursor.key_health_reactive_syncs
     surface: proxy
-    java_source: proxy/cursor/keyselection/CursorKeyHealthMonitor.java
     disposition: ported
     alerts: [cursor-key-health-reactive-syncs]
   - name: stigmer.proxy.llm.platform_provider_errors
     surface: proxy
-    java_source: proxy/llm/PlatformProviderErrorMetrics.java
     disposition: ported
     alerts: [platform-provider-errors, platform-provider-errors-log]
     note: >-
       Two rules read this event: the metric rule on the counter and a logs rule on the phrase "platform provider key rejected upstream"; the composition logs the same phrase at ERROR on the same event.
   - name: stigmer.http.request.duration
     surface: platform
-    java_source: config/observability/HttpRequestMetricsFilter.java
     disposition: ported
     note: >-
-      Java's servlet filter saw every HTTP route. The contract for the composition is the same: the pair recorded once per request by each HTTP lane's dispatcher — the cloud ingress (proxy and webhook mounts) and the public lane — with the same labels: http.request.method, http.route (first two path segments), http.response.status_code. stigmer-cloud entry 20260909.01 lands that; before it only the proxy dispatcher recorded (this row's earlier note claimed the ingress did — the 2026-09-09 census found the /webhook series absent).
+      Java's servlet filter saw every HTTP route. The contract for the composition is the same: the pair recorded once per request by each HTTP lane's dispatcher — the cloud ingress (proxy and webhook mounts) and the public lane — with the same labels: http.request.method, http.route (first two path segments), http.response.status_code.
   - name: stigmer.http.request.count
     surface: platform
-    java_source: config/observability/HttpRequestMetricsFilter.java
     disposition: ported
     alerts: [webhook-silence-24h]
     note: >-
       The webhook silence rule is a threshold on this counter's rate under http_route contains /webhook, so the /webhook route series must exist from boot (born at zero) or the rule never fires — a money-path watch (Stripe rides /webhook/stripe).
   - name: stigmer.encryption.cleanup.failures
     surface: platform
-    java_source: domain/commons/secrets/SecretValueCleanup.java
     disposition: ported
     alerts: [encryption-cleanup-failures]
     note: >-
       Secret backing-state destructions that failed after the DB write succeeded (orphaned KV entries); pre-registered at zero on boot in both editions so the first orphan after a pod start is visible to the alert.
   - name: stigmer.grpc.request.count
     surface: platform
-    java_source: libs/grpc/grpc-request/interceptor/GrpcRequestMetricsInterceptor.java
     disposition: ported
     alerts: [telemetry-heartbeat-lost, grpc-error-rate-spike]
     note: >-
-      Emitted by the OSS server itself (pipeline/interceptors/request-metrics.ts, convergence entry 20260909.02), not by the composition: one record per RPC on the serving chain, labels rpc.service, rpc.method and rpc.grpc.status_code as the gRPC status NAME (OK, NOT_FOUND, CANCELLED). Born attribute-less at zero before the port binds, Java's constructor add(0), so the heartbeat's ten-minute absence window measures the export pipeline rather than a post-restart lull; the error-rate rule is the share of status_code != OK. Recorded inside the identity source — Java's @Order position — so an identity refusal is never a counted error (a paging-effect ruling, 20260909.02 gate Q1). Health is not measured; is_public methods are.
+      Emitted by the OSS server itself (pipeline/interceptors/request-metrics.ts), not by the composition: one record per RPC on the serving chain, labels rpc.service, rpc.method and rpc.grpc.status_code as the gRPC status NAME (OK, NOT_FOUND, CANCELLED). Born attribute-less at zero before the port binds, Java's constructor add(0), so the heartbeat's ten-minute absence window measures the export pipeline rather than a post-restart lull; the error-rate rule is the share of status_code != OK. Recorded inside the identity source — Java's @Order position — so an identity refusal is never a counted error. Health is not measured; is_public methods are.
   - name: stigmer.grpc.request.duration
     surface: platform
-    java_source: libs/grpc/grpc-request/interceptor/GrpcRequestMetricsInterceptor.java
     disposition: ported
     alerts: [grpc-latency-regression-p95]
     note: >-
       The count's sibling, same labels, fractional milliseconds from interception to the RPC's end — for a server stream, the end of the stream (Java measured to ServerCall.close). Never pre-registered: a record(0) would be a real sample in the p95. SDK default histogram buckets in both editions.
   - name: stigmer.db.postgres.connections.used
     surface: platform
-    java_source: config/observability/PostgresCapacityMetrics.java
     disposition: ported
     alerts: [postgres-connections-above-80-of-max]
     note: >-
-      Backends connected to the composition's database (pg_stat_activity, datname = current_database()), polled every 60 s by the composition's observability/postgres-capacity.ts (convergence entry 20260909.03) and observed as a gauge with db.cluster = app-postgres only: Java's second cluster label, checkpointer-postgres, probed the separate stigmer_checkpoints database, whose tables C6 moved into the one database — that series retires with Java. The connections rule divides this by connections.max, so both rows name it. Nothing is observed before the first successful poll; a failed poll keeps the last values (Java's atomics).
+      Backends connected to the composition's database (pg_stat_activity, datname = current_database()), polled every 60 s by the composition's observability/postgres-capacity.ts and observed as a gauge with db.cluster = app-postgres only: Java's second cluster label, checkpointer-postgres, probed the separate stigmer_checkpoints database, whose tables the composition moved into the one database — that series retires with Java. The connections rule divides this by connections.max, so both rows name it. Nothing is observed before the first successful poll; a failed poll keeps the last values (Java's atomics).
   - name: stigmer.db.postgres.connections.max
     surface: platform
-    java_source: config/observability/PostgresCapacityMetrics.java
     disposition: ported
     alerts: [postgres-connections-above-80-of-max]
     note: >-
       The server's max_connections setting (current_setting), the denominator of the connections rule; same poll, same label as connections.used.
   - name: stigmer.db.postgres.database.size
     surface: platform
-    java_source: config/observability/PostgresCapacityMetrics.java
     disposition: ported
     alerts: [postgres-database-above-70-of-disk]
     note: >-
       pg_database_size(current_database()) in bytes; the disk rule's threshold is 70 % of the 30 G volume, a production fact the rule carries, not a metric.
   - name: stigmer.db.postgres.wal.size
     surface: platform
-    java_source: config/observability/PostgresCapacityMetrics.java
     disposition: ported
     alerts: [postgres-wal-above-80-of-max-wal-size]
     note: >-
       The WAL directory's size in bytes (sum over pg_ls_waldir()), which needs the pg_monitor role — granted to stigmer_app by hand on 2026-07-29 and carried by the composition's connections as the same role. Probed inside the same poll but on its own terms, as Java does: a failure sits out the next 15 polls and warns once with the GRANT to run, the last good value stays observed through the window, and only a probe that has never succeeded is absent. The rule's threshold is 80 % of max_wal_size (1024 MB), a production fact the rule carries.
   - name: stigmer.platform.provider_standing.probes
     surface: platform
-    java_source: platform/providerstanding/ProviderStandingMetrics.java
     disposition: ported
     alerts: [platform-provider-standing-degraded, platform-provider-standing-probe-silence]
     note: >-
-      One count per provider per hourly canary pass, labelled provider and outcome (healthy / platform_billing / platform_auth / unclassified_error / unreachable / not_configured), recorded by the composition's providerstanding/metrics.ts from the probe activity (convergence entry 20260909.04; until then the composition emitted this fact as a structured log event named after the metric, a stopgap from when it had no metrics pipeline). Every provider × outcome series is pre-registered at zero at unit boot as Java's constructor did: the silence rule is a low-rate rule over three hours, which can only evaluate a series that exists, and the degraded rule must see a first non-healthy verdict after a boot as a 0→1 edge rather than a dropped first sample.
+      One count per provider per hourly canary pass, labelled provider and outcome (healthy / platform_billing / platform_auth / unclassified_error / unreachable / not_configured), recorded by the composition's providerstanding/metrics.ts from the probe activity. Every provider × outcome series is pre-registered at zero at unit boot as Java's constructor did: the silence rule is a low-rate rule over three hours, which can only evaluate a series that exists, and the degraded rule must see a first non-healthy verdict after a boot as a 0→1 edge rather than a dropped first sample.
   - name: stigmer.cursor.account_default.drift
     surface: platform
-    java_source: platform/cursoraccount/observability/CursorAccountDriftMetrics.java
     disposition: ported
     alerts: [cursor-account-default-drift]
     note: >-
-      Per Cursor team account, how many models' dashboard-controlled default variant carries the priced fast parameter (0 = the declared posture holds), observed as a gauge by the composition's cursoraccount/drift-metrics.ts from the sync workflow's drift audit (convergence entry 20260909.04). A gauge, not a counter, as Java chose: the audit is a periodic posture read on the sync cadence, and a counter's rate would blink out between passes. Not pre-registered — a zero for an account never audited would read as "clean"; an account appears after its first audit and holds its last value between passes (a deleted account keeps its last value until the next restart, Java's accepted posture). A disabled drift check or an account with no enabled member key records nothing.
+      Per Cursor team account, how many models' dashboard-controlled default variant carries the priced fast parameter (0 = the declared posture holds), observed as a gauge by the composition's cursoraccount/drift-metrics.ts from the sync workflow's drift audit. A gauge, not a counter, as Java chose: the audit is a periodic posture read on the sync cadence, and a counter's rate would blink out between passes. Not pre-registered — a zero for an account never audited would read as "clean"; an account appears after its first audit and holds its last value between passes (a deleted account keeps its last value until the next restart, Java's accepted posture). A disabled drift check or an account with no enabled member key records nothing.
   - name: stigmer.sandbox.pool.target
     surface: platform
-    java_source: config/observability/SandboxPoolMetrics.java
     disposition: ported
     alerts: [sandbox-pool-below-target]
     note: >-
-      The warm sandbox pool's effective target: the configured size while the pool is enabled, 0 while it is not, observed as a gauge by the composition's sandbox/pool-metrics.ts (stigmer-cloud#736, live in production since 2026-09-19). The below-target rule subtracts READY members from this, so a deliberate disable or drain reads as a target of 0 and never fires. Polled every 60 s on the instrument's own loop, deliberately not a census handed over by the pool sweep: a sweep that stopped would freeze a sweep-fed gauge at its last healthy reading, whereas an independent poll shows a dead sweep as members that never move. Nothing is observed before the first successful poll (no fake zero that would read as an empty, healthy pool); a failed poll keeps the last census.
+      The warm sandbox pool's effective target: the configured size while the pool is enabled, 0 while it is not, observed as a gauge by the composition's sandbox/pool-metrics.ts. The below-target rule subtracts READY members from this, so a deliberate disable or drain reads as a target of 0 and never fires. Polled every 60 s on the instrument's own loop, deliberately not a census handed over by the pool sweep: a sweep that stopped would freeze a sweep-fed gauge at its last healthy reading, whereas an independent poll shows a dead sweep as members that never move. Nothing is observed before the first successful poll (no fake zero that would read as an empty, healthy pool); a failed poll keeps the last census.
   - name: stigmer.sandbox.pool.members
     surface: platform
-    java_source: config/observability/SandboxPoolMetrics.java
     disposition: ported
     alerts: [sandbox-pool-below-target]
     note: >-
       Pool members by status, one series per status the pool model knows (provisioning, ready, claimed), the label lowercased as Java emitted it and as the rule filters (status = ready). Same poll as the target. Every status is observed on every poll, zero included, so a status with no members reads 0 rather than vanishing from the series: an absent series cannot be alerted on, the same born-at-zero reasoning as the provider-standing counter above.
   - name: stigmer.proxy.cursor.execution_authority_lookups
     surface: proxy
-    java_source: proxy/cursor/keyselection/CompositionAuthorityExecutionContextSource.java
     disposition: dropped
     note: >-
-      Counts the Java proxy's calls to the composition for an execution it does not own (the D3 seam, 20260904.05). In-process the proxy reads its own store; there is no lookup to count. The seam retires with Java.
+      Counted the Java proxy's calls to the composition for an execution it did not own. In process the proxy reads its own store, so there is no lookup to count; the mechanism retired with Java.
   - name: stigmer.cursor_account.store_write_refused
     surface: proxy
-    java_source: platform/cursoraccount/store/CursorAccountStoreConfig.java
     disposition: dropped
     note: >-
-      Counts refusals of Java's second-client writes to the composition's cloud.cursor_* tables (the C4 Q7 gate, 20260905.02). The composition is the only writer post-X1; the gate retires with Java.
-  # ---- billing (C5 gate, S3-Q7 — 2026-09-08) --------------------------------
-  # Java emits 18 distinct stigmer.billing.* names across the six
-  # domain/billing/observability/*Metrics classes; the S0 plan's "19" was a
-  # miscount. Seventeen are billing-emitted and ported under the same names
-  # onto the composition's lazy-instrument idiom (billing/metrics.ts for the
-  # counters, billing/governance/governance-gauges.ts for the three polled
-  # gauges); every counter whose SigNoz alert needs a series before its first
-  # increment is pre-registered at zero on unit boot as Java's constructors
-  # did. The eighteenth is not billing's — see its note.
+      Counted refusals of Java's second-client writes to the composition's cursor tables. The composition is now the only writer, so the gate retired with Java.
+  # ---- billing -------------------------------------------------------------
+  # The Java service emitted 18 distinct stigmer.billing.* names. Seventeen
+  # are billing-emitted and ported under the same names onto the
+  # composition's lazy-instrument idiom (counters, and three polled gauges);
+  # every counter whose alert needs a series before its first increment is
+  # pre-registered at zero on unit boot. The eighteenth is not billing's — see its note.
   - name: stigmer.billing.pricing.baseline_fallback
     surface: billing
-    java_source: domain/billing/observability/PricingGovernanceMetrics.java
     disposition: ported
     alerts: [pricing-baseline-fallback]
   - name: stigmer.billing.pricing.price_not_found
     surface: billing
-    java_source: domain/billing/observability/UsagePricingMetrics.java
     disposition: ported
     alerts: [billing-price-not-found]
   - name: stigmer.billing.service_tier.mismatch
     surface: billing
-    java_source: domain/billing/observability/UsagePricingMetrics.java
     disposition: ported
     alerts: [billing-service-tier-mismatch]
   - name: stigmer.billing.thinking.mismatch
     surface: billing
-    java_source: domain/billing/observability/UsagePricingMetrics.java
     disposition: ported
     alerts: [billing-thinking-mismatch]
   - name: stigmer.billing.usage.metered_execution
     surface: billing
-    java_source: domain/billing/observability/UsagePricingMetrics.java
     disposition: ported
   - name: stigmer.billing.repricing.still_unpriced
     surface: billing
-    java_source: domain/billing/observability/UsagePricingMetrics.java
     disposition: ported
     alerts: [billing-repricing-still-unpriced]
   - name: stigmer.billing.auto_recharge.rejected
     surface: billing
-    java_source: domain/billing/observability/AutoRechargeMetrics.java
     disposition: ported
     alerts: [billing-auto-recharge-rejected]
   - name: stigmer.billing.auto_recharge.late_success_repair
     surface: billing
-    java_source: domain/billing/observability/AutoRechargeMetrics.java
     disposition: ported
     alerts: [billing-auto-recharge-late-success-repair]
   - name: stigmer.billing.auto_recharge.gate_skipped
     surface: billing
-    java_source: domain/billing/observability/AutoRechargeMetrics.java
     disposition: ported
   - name: stigmer.billing.auto_recharge.reconciled
     surface: billing
-    java_source: domain/billing/observability/AutoRechargeMetrics.java
     disposition: ported
   - name: stigmer.billing.pricing.reconciliation.runs
     surface: billing
-    java_source: domain/billing/observability/PricingGovernanceMetrics.java
     disposition: ported
     alerts: [pricing-reconciliation-silence-anthropic, pricing-reconciliation-silence-cursor]
   - name: stigmer.billing.pricing.rate_corrected
     surface: billing
-    java_source: domain/billing/observability/PricingGovernanceMetrics.java
     disposition: ported
   - name: stigmer.billing.pricing.rate_proposal_pending
     surface: billing
-    java_source: domain/billing/observability/PricingGovernanceMetrics.java
     disposition: ported
   - name: stigmer.billing.pricing.governance_notification_failed
     surface: billing
-    java_source: domain/billing/observability/PricingGovernanceMetrics.java
     disposition: ported
     alerts: [pricing-governance-notification-failed]
   - name: stigmer.billing.pricing.reconciliation.last_run_unreconciled
     surface: billing
-    java_source: domain/billing/observability/PricingReconciliationStatusMetrics.java
     disposition: ported
     alerts: [pricing-books-disagree-anthropic, pricing-books-disagree-cursor]
   - name: stigmer.billing.pricing.signoff.pending
     surface: billing
-    java_source: domain/billing/observability/PricingSignoffQueueMetrics.java
     disposition: ported
   - name: stigmer.billing.pricing.signoff.oldest_age_hours
     surface: billing
-    java_source: domain/billing/observability/PricingSignoffQueueMetrics.java
     disposition: ported
     alerts: [pricing-signoff-waiting-too-long]
   - name: stigmer.billing.model_pin.unknown
     surface: billing
-    java_source: domain/agentic/agentexecution/PlatformModelPinStartupCheck.java
     disposition: dropped
     note: >-
-      Emitted by Java's agentic-domain BOOT CHECK (a channel, schedule or guest model pin the registry no longer knows), never by billing code — it carries the billing prefix only because the registry is billing's. The composition validates model pins at write time in the surfaces that own them (channels/model-pinning.ts; the OSS schedule and agentchannel steps) and has no boot-time sweep to attach the counter to; no alert reads it. Ruled dropped at C5's S3 gate (S3-Q7, 2026-09-08) with the door open: if the owner wants a boot check, it is a new item on the pin-owning surfaces, not a billing metric.
+      Emitted by Java's agentic-domain BOOT CHECK (a channel, schedule or guest model pin the registry no longer knows), never by billing code — it carries the billing prefix only because the registry is billing's. The composition validates model pins at write time in the surfaces that own them (channels/model-pinning.ts; the OSS schedule and agentchannel steps) and has no boot-time sweep to attach the counter to; no alert reads it. A boot check, if one is wanted, belongs to the pin-owning surfaces, not to a billing metric.

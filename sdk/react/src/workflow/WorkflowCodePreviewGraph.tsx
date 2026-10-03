@@ -49,7 +49,7 @@ const defaultEdgeOptions = {
  *
  * Accepts YAML directly (unlike `WorkflowOverviewGraph` which requires
  * a `Workflow` proto). Uses the unified `WorkflowNode` / `CanvasTransitionEdge`
- * rendering system in `"overview"` mode for DD-001 consistency.
+ * rendering system in `"overview"` mode, so every workflow graph looks the same.
  */
 export const WorkflowCodePreviewGraph = memo(function WorkflowCodePreviewGraph(
   props: WorkflowCodePreviewGraphProps,

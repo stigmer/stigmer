@@ -120,7 +120,7 @@ describe("AttachmentChipList — image miniature", () => {
 
     // The tile is the chip — the name lives in the house tooltip and
     // accessible label, never as a text node (file chips, by contrast,
-    // keep theirs) and never a native title (banned, stigmer-cloud#268).
+    // keep theirs) and never a native title (banned: the house tooltip owns it).
     expect(screen.queryByText("shot.png")).toBeNull();
     const tile = screen.getByRole("listitem", { name: /^shot\.png/ });
     expect(tile.getAttribute("title")).toBeNull();

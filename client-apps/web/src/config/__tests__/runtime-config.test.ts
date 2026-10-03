@@ -1,16 +1,16 @@
 // ---------------------------------------------------------------------------
 // runtime-config — the /config.json contract the served console reads
 //
-// Two rules land here with sp.console-login (20260913.02):
+// Two rules land here:
 //
 //   - `apiUrl: ""` in /config.json means "the browser's own origin", the
-//     rule `appUrl` already follows (Q-CL-3). The server serves the console
+//     rule `appUrl` already follows. The server serves the console
 //     and its API on one port, so the console can never need a different
 //     origin — and a synthesized `http://<host>` broke behind every TLS
 //     proxy (mixed content). The dev/env path keeps its localhost default.
 //   - `authMode: "oidc"` with an empty client id is the honest state of a
 //     self-hosted server whose operator set the issuer but not the console's
-//     client (Q-CL-2); the refusal names both knobs, because the loader
+//     client; the refusal names both knobs, because the loader
 //     cannot tell a server-synthesized file from a container's.
 //
 // The loader memoizes in module state, so every test re-imports it.

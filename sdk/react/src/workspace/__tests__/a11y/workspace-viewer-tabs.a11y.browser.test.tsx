@@ -1,8 +1,8 @@
-// Accessibility audit (DD-22) — the editor area: open tabs, the file viewer in
+// Accessibility audit — the editor area: open tabs, the file viewer in
 // both File and Diff modes, and the mode toggle.
 //
-// Covers the Session 18 hardening here: `EditorTabs` `role="tablist"`/`tab` with
-// `aria-controls`, the single `role="tabpanel"` body, the `FileViewer`
+// Covers the accessibility hardening here: `EditorTabs` `role="tablist"`/`tab`
+// with `aria-controls`, the single `role="tabpanel"` body, the `FileViewer`
 // `role="region"` (Escape-focusable) and its `Diff | File` `ViewerModeToggle`
 // radiogroup — each in light + dark against the shipped stylesheet.
 

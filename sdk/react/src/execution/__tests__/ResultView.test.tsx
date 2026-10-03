@@ -249,7 +249,7 @@ describe("ResultView", () => {
 
   // Integration lock through the full normalizeToolResult -> ResultView pipeline:
   // a whole-file write's proposed content is reconstructed from the tool args
-  // (Phase 5 Slice 4 removed the ToolCall.file_changes capture) and renders as
+  // (the ToolCall.file_changes capture was removed) and renders as
   // the file body — never the "No preview available" notice.
   it("renders a whole-file write's proposed content from args, not 'No preview available'", () => {
     const CONTENT = "# Notes\n\n- first bullet\n- second bullet\n";

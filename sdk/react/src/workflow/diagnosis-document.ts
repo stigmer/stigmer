@@ -7,8 +7,8 @@
 // Kept in its own module (not in WorkflowRepairCard.tsx) so behavior-only
 // consumers — useWorkflowExecutionPanel opens the tab, the viewer routes to
 // it — depend on the identity without pulling the component (and its
-// MessageThread/diff-graph subtree) into their module graph (DD-003
-// headless-first). Mirrors session/plan-document.ts, the other singleton.
+// MessageThread/diff-graph subtree) into their module graph (headless
+// first). Mirrors session/plan-document.ts, the other singleton.
 
 import { virtualEntryId } from "../internal/store/index.js";
 

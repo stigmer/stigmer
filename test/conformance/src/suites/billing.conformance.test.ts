@@ -1,8 +1,6 @@
 // Billing ledger conformance — the 23 RPCs of the billing engine and the
-// Stripe webhook (Class A; no runner). E1 of the convergence program's
-// DD-012 reset (entry 20260906.04): Java's behavior is the spec, written
-// green against the hermetic Java launcher, then run against the TS
-// composition, whose reds are C5's acceptance.
+// Stripe webhook (Class A; no runner). The rows were first read from the
+// retired Java service's behavior, and the composition is held to them.
 // Domain: billing.
 //
 // Every `it` carries an inventory row id in square brackets — the
@@ -23,22 +21,21 @@
 // booted with.
 //
 // Where `billingLedger` is FALSE (the local OSS targets): OSS routes neither
-// billing controller, so every RPC answers Unimplemented — the DD-001
-// boundary as an observable contract (ruling Q10 of E1, the versionTagging /
-// orgOAuthAppConfiguration posture). Pinned once per RPC below.
+// billing controller, so every RPC answers Unimplemented — the edition
+// boundary as an observable contract (the orgOAuthAppConfiguration
+// posture). Pinned once per RPC below.
 //
 // The fixtures are shared across every file in a cloud run
 // (fileParallelism: false), so each block that drives the fake Stripe resets
 // it in its own afterEach — the blocks that never touch Stripe do not pay for
 // a reset they do not need.
 //
-// The auto-recharge rows (entry 20260906.04, T02 — ruled PORTED at C5's gate
-// after the read-only census found the feature is a live product surface)
-// need Java's whole money path in one test: a Stripe customer, a saved
-// payment method, a debit that trips the low-balance signal, the PaymentIntent
-// Java creates on its background executor, and the webhook the suite posts
-// back as Stripe. `armRecharge()` below is that journey; the arithmetic that
-// makes the debit trip the signal is written down there once.
+// The auto-recharge rows (a live product surface) need the whole money path
+// in one test: a Stripe customer, a saved payment method, a debit that drops
+// the balance below the recharge threshold, the PaymentIntent the server
+// creates, and the webhook the suite posts back as Stripe. `armRecharge()`
+// below is that journey; the arithmetic that makes the debit cross the
+// threshold is written down there once.
 import { Code } from "@connectrpc/connect";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -101,10 +98,11 @@ const COPY = {
 } as const;
 
 // The engine's OWN validation copy — service code, not a proto option, so a
-// different provenance from COPY above and pinned in its own table: C5 ports
-// the domain exactly, and the console / SDKs surface these strings to the
-// user, which makes the bytes the contract. Sources are the Java
-// `domain/billing` service classes named on each line.
+// different provenance from COPY above and pinned in its own table: the
+// composition carries the domain exactly, and the console / SDKs surface
+// these strings to the user, which makes the bytes the contract. Each line
+// names the service method the string was first read from, in the retired
+// Java service; the composition carries the same copy.
 const DOMAIN_COPY = {
   // BillingAccountService.setAutoRechargeConfig (validation runs in this order when enabling)
   autoRechargeNeedsPaymentMethod: "A saved payment method is required to enable auto-recharge. Purchase a credit pack first.",
@@ -809,9 +807,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(await balanceOf(org)).toBe(0n);
   });
 
-  // --- the default-payment-method bookkeeping (ruled PORTED at C5's gate).
-  // Java has no unit test for either handler; these arms are the only proof
-  // on either side.
+  // --- the default-payment-method bookkeeping.
 
   it("[billing.stripe.payment-method-attached.sets-default-when-none] payment_method.attached becomes the account's default card only when none is set, tells Stripe so, ignores a second card and a non-card, and does nothing for a customer Java does not know", async () => {
     const { org } = await unfundedOrg();
@@ -1034,8 +1030,8 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     expect(report.executionCount).toBe(1);
   });
 
-  // --- the pricing-governance lanes (ruled PORTED at C5's gate: operator
-  // tooling with a console). Baselines are PLATFORM-GLOBAL state, not org
+  // --- the pricing-governance lanes (operator tooling with a console).
+  // Baselines are PLATFORM-GLOBAL state, not org
   // state: every arm keys its baseline on a run-unique model id and retires it
   // on cleanup, so nothing it creates outlives the test or reaches another
   // file's registry assertions.
@@ -1188,9 +1184,9 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — auto-recharge, th
     const paymentIntentId = paymentIntent.response.id ?? "";
     expect(paymentIntentId).toMatch(/^pi_conf_/);
 
-    // What Java sent Stripe: an off-session confirmed charge on the saved
-    // card, keyed so a retry can never charge twice (a DD-012 carve-out —
-    // the key must be byte-identical across editions).
+    // What the server sent Stripe: an off-session confirmed charge on the
+    // saved card, keyed so a retry can never charge twice (a carve-out — the
+    // key must be byte-identical across editions).
     expect(paymentIntent.idempotencyKey).toBe(`auto_recharge_${rechargeEventId}`);
     expect(paymentIntent.params["amount"], "Stripe wants cents; the engine keeps micros").toBe(String(RECHARGE.amountMicros / 10_000n));
     expect(paymentIntent.params["currency"]).toBe("usd");

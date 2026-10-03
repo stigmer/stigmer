@@ -14,8 +14,6 @@ export interface DataTabProps {
  *
  * Shows the `export.as` expression field, which determines how task
  * output is saved to the workflow context for downstream consumption.
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const DataTab = memo(function DataTab({
   node,

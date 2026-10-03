@@ -46,7 +46,7 @@ export interface YamlEditorProps {
  * This is an optional SDK component — it requires CodeMirror peer
  * dependencies. Consumers that render it conditionally should load it
  * via `React.lazy` so the CodeMirror bundle stays out of paths that
- * never open an editor (DD-013).
+ * never open an editor.
  *
  * @example
  * ```tsx

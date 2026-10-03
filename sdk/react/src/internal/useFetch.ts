@@ -190,7 +190,7 @@ export function useFetch<T>(
   // every render), so an identity dep tears the interval down on every
   // render — and under any co-mounted faster render source the timer
   // never completes a period and the consumer never polls at all
-  // (channel-conversations F-14; pinned by the render-pressure tests).
+  // (pinned by the render-pressure tests).
   const fetchEnabled = fetchFn !== null;
 
   const refetchInterval = options?.refetchInterval;

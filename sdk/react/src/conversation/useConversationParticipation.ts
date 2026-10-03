@@ -105,11 +105,10 @@ export interface UseConversationParticipationReturn {
 }
 
 /**
- * Behavior hook for the participation commands on one conversation
- * (channel-conversations DD-005/DD-007/DD-008/DD-009): reply, takeOver,
- * handBack, clearAttention — each keyed independently so a slow reply
- * and a takeover can be in flight at once with attributable spinners
- * and errors.
+ * Behavior hook for the participation commands on one conversation:
+ * reply, takeOver, handBack, clearAttention — each keyed
+ * independently so a slow reply and a takeover can be in flight at
+ * once with attributable spinners and errors.
  *
  * Every command re-throws its failure after recording it in
  * {@link UseConversationParticipationReturn.commandErrors}, so callers

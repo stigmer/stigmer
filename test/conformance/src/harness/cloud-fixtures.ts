@@ -1,5 +1,5 @@
 // The cloud-capability fixtures as one run-scoped unit with a control API.
-// Domain: conformance harness (cloud-capability fixtures, E1).
+// Domain: conformance harness (cloud-capability fixtures).
 //
 // The cloud targets' environment is provisioned ONCE per run, outside vitest
 // (the composition readout, since 2026-09-10 the only cloud edition), while

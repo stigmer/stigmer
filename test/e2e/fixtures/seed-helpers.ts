@@ -283,7 +283,7 @@ export interface CreateMultiKindTestWorkflowOpts {
 }
 
 /**
- * Creates a workflow with tasks spanning multiple visual classes for T01
+ * Creates a workflow with tasks spanning multiple visual classes for the
  * visual registry E2E testing. Includes: agent_call (task-card),
  * switch_case (decision-diamond), human_input (gate-octagon),
  * set_vars (task-card), and wait (event-circle).

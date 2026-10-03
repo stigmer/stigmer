@@ -33,8 +33,8 @@ import { useSessionFileChanges } from "../useSessionFileChanges";
 // Under apply-then-review the hook sources exclusively from the file-review
 // ledger (the live `file_change_sets` projection, or the folded
 // `file_review_event_stream` for a terminal execution). The tool-call-coupled
-// `ToolCall.file_changes` (message.proto field 22) was removed in Phase 5
-// Slice 4, so every fixture here is a CapturedFileChange.
+// `ToolCall.file_changes` (message.proto field 22) was removed, so every
+// fixture here is a CapturedFileChange.
 // ---------------------------------------------------------------------------
 
 function inlineSide(value: string) {

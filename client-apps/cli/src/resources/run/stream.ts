@@ -96,7 +96,7 @@ async function runHeadless(deps: StreamDeps, renderer: HeadlessRenderer): Promis
 }
 
 // Lazily import the Ink renderer so React/Ink load only on the interactive path
-// (DD-001 boundary — non-streaming commands and --help never pay for them).
+// (non-streaming commands and --help never pay for them).
 async function runInk(deps: StreamDeps): Promise<void> {
   const { runInkSession } = await import("../stream/ink.js");
   await runInkSession({

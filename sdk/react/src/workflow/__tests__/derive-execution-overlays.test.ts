@@ -190,7 +190,7 @@ describe("deriveEdgeExecutionStates", () => {
       expect(result.get("sw_c")).toBe("not_reached");
     });
 
-    test("fallthrough: multiple completed targets → all marked taken (DD-T06-003)", () => {
+    test("fallthrough: multiple completed targets → all marked taken", () => {
       const states = new Map([
         ["classify", makeDerivedState("classify", "completed")],
         ["sw", makeDerivedState("sw", "completed")],

@@ -45,7 +45,7 @@ import { fromProtoExecutionTarget } from "./execution-target.js";
  * **never on the `session` object**.
  * `useSessionConversation` refetches the session frequently; keying the effect
  * on the object would tear down and restart the worker on every refetch
- * (DD-010 / reference-stability). `executionTarget` is immutable after the
+ * (reference stability). `executionTarget` is immutable after the
  * first execution, and a session's creator never changes, so both derived
  * values stay stable across refetches.
  *

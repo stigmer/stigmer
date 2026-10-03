@@ -7,7 +7,7 @@ import {
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
 /**
- * Workflow inspector panel tests (T10).
+ * Workflow inspector panel tests.
  *
  * Verifies the editor inspector panel behavior against a seeded
  * multi-kind workflow: empty state, tabbed layout, per-kind forms, node

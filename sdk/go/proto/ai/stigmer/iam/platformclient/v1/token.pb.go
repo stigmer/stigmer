@@ -307,7 +307,7 @@ type MintGuestTokenResponse struct {
 	TokenType string `protobuf:"bytes,2,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
 	// Token lifetime in seconds from the time of issuance.
 	ExpiresIn int32 `protobuf:"varint,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
-	// Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+	// Visitor cookie id to persist client-side, as an httpOnly cookie.
 	//
 	// Echoes guest_cookie_id from the request when provided; otherwise a newly
 	// generated high-entropy value.

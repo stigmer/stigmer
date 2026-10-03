@@ -16,16 +16,38 @@
  * Needs `npm run build` first and a Node with `module.registerHooks` (22.15+ on
  * 22.x, 23.5+ on 23.x; the repository's `.nvmrc` has it);
  * runs in about a second.
+ *
+ * Two options point the boot at the slim artifact's bundled entry, run by the
+ * engine it ships with, exactly as `verify-slim-artifact.mjs` takes them:
+ *
+ *   --node <path>        the Node binary that boots the entry
+ *   --artifact <dir>     the slim artifact directory; its entry is attach/main.js
+ *
+ * A bundle is one file, so the module-graph check does not apply to it; the
+ * bundler holds the bundle's inputs to the same rule at build time
+ * (attach-graph-rule.mjs). This script imports only Node built-ins and that
+ * rule, so it runs inside an image from a mounted checkout.
  */
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
+import { forbiddenAttachModules } from "./attach-graph-rule.mjs";
 
-const entry = fileURLToPath(new URL("../dist/attach/main.js", import.meta.url));
+const { values: options } = parseArgs({
+  options: {
+    node: { type: "string", default: process.execPath },
+    artifact: { type: "string" },
+  },
+});
+const nodeBinary = options.node;
+const entry = options.artifact
+  ? join(resolve(options.artifact), "attach", "main.js")
+  : fileURLToPath(new URL("../dist/attach/main.js", import.meta.url));
 const TIMEOUT_MS = 30_000;
 
 function fail(message) {
@@ -33,11 +55,22 @@ function fail(message) {
   process.exit(1);
 }
 
-if (!existsSync(entry)) fail(`${entry} not found — run \`npm run build\` first`);
+if (!existsSync(entry)) {
+  fail(options.artifact ? `${entry} not found` : `${entry} not found — run \`npm run build\` first`);
+}
 
 // The module graph, loaded without starting the entry: entry.js exports the
-// logic, main.js only calls it.
-const graphCheck = spawnSync(process.execPath, ["--input-type=module", "-e", `
+// logic, main.js only calls it. A bundled entry was held to the rule when it
+// was built.
+let loaded = [];
+if (!options.artifact) {
+  loaded = compiledModuleGraph();
+  const heavy = forbiddenAttachModules(loaded);
+  if (heavy.length > 0) fail(`the attach entry loads modules a snapshot must not hold:\n${heavy.join("\n")}`);
+}
+
+function compiledModuleGraph() {
+  const graphCheck = spawnSync(process.execPath, ["--input-type=module", "-e", `
   import { registerHooks } from "node:module";
   if (typeof registerHooks !== "function") { console.log("NO_HOOKS"); process.exit(0); }
   const seen = [];
@@ -45,11 +78,10 @@ const graphCheck = spawnSync(process.execPath, ["--input-type=module", "-e", `
   await import(${JSON.stringify(new URL("../dist/attach/entry.js", import.meta.url).href)});
   console.log(JSON.stringify(seen));
 `], { encoding: "utf8" });
-if (graphCheck.status !== 0) fail(`loading the entry's module graph failed:\n${graphCheck.stderr}`);
-if (graphCheck.stdout.trim() === "NO_HOOKS") fail("this Node has no module.registerHooks (it arrived in 22.15 on 22.x and 23.5 on 23.x); run it on the repository's .nvmrc Node");
-const loaded = JSON.parse(graphCheck.stdout);
-const heavy = loaded.filter((url) => /@temporalio|\/dist\/(main|runner|runner-manager|worker)\.js$|\/dist\/(harness|activities)\//.test(url));
-if (heavy.length > 0) fail(`the attach entry loads modules a snapshot must not hold:\n${heavy.join("\n")}`);
+  if (graphCheck.status !== 0) fail(`loading the entry's module graph failed:\n${graphCheck.stderr}`);
+  if (graphCheck.stdout.trim() === "NO_HOOKS") fail("this Node has no module.registerHooks (it arrived in 22.15 on 22.x and 23.5 on 23.x); run it on the repository's .nvmrc Node");
+  return JSON.parse(graphCheck.stdout);
+}
 
 const port = await new Promise((resolve, reject) => {
   const probe = createServer();
@@ -65,7 +97,7 @@ process.on("exit", () => rmSync(dir, { recursive: true, force: true }));
 const nameFile = join(dir, "actor-name");
 writeFileSync(nameFile, "sbx-ses-000000000000");
 
-const proc = spawn(process.execPath, [entry], {
+const proc = spawn(nodeBinary, [entry], {
   env: { PATH: process.env.PATH, STIGMER_ATTACH_PORT: String(port), STIGMER_SANDBOX_NAME_FILE: nameFile },
   stdio: ["ignore", "pipe", "pipe"],
 });
@@ -105,4 +137,7 @@ proc.kill("SIGTERM");
 const { code, signal } = await exited;
 clearTimeout(timer);
 if (code !== 0) fail(`SIGTERM ended the entry with code ${code} (signal ${signal}).\n${output.slice(-2000)}`);
-console.log(`verify-attach-boot: PASS — dist/attach loads ${loaded.length} modules, none of the runner or @temporalio; it served readiness, refused a foreign push and stopped cleanly`);
+const graph = options.artifact
+  ? `${entry} (a bundle, its inputs held to the rule at build time)`
+  : `dist/attach loads ${loaded.length} modules, none of the runner or @temporalio;`;
+console.log(`verify-attach-boot: PASS — ${graph} it served readiness, refused a foreign push and stopped cleanly`);

@@ -215,7 +215,7 @@ describe("UpdateWorkflowExecutionStatus activity (real store)", () => {
       expect(stored.status?.audit?.statusAudit?.updatedAt).toBeDefined();
 
       // The broadcast landed on the registered subscriber AFTER the
-      // persist committed (ADR 011 write path).
+      // persist committed.
       const frames: WorkflowExecution[] = subscription.queue;
       expect(frames).toHaveLength(1);
       expect(frames[0]!.status?.phase).toBe(

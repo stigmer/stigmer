@@ -28,7 +28,8 @@ export interface ConversationComposerProps {
    * lane WhatsApp offers for a closed window, so the surface must
    * offer the door, not just the advisory's warning (hosts should
    * point at the button in the advisory copy; the advisory itself
-   * stays interaction-free — it is the input's description, F-18).
+   * stays interaction-free — it is the input's description and adds no
+   * tab stop).
    * Omit on channels whose provider has no template registry.
    */
   readonly onOpenTemplatePicker?: () => void;
@@ -40,13 +41,13 @@ export interface ConversationComposerProps {
   readonly disabledReason: string | null;
   /**
    * A pre-send forecast that ANNOTATES the enabled input — the
-   * `disabledReason` pattern's sibling with the opposite contract
-   * (channel-conversations DD-014 D-e): a closed service window is a
-   * forecast, not a structural block, so the input stays usable and the
-   * send engines remain the authority. Rendered above the input and
-   * associated via `aria-describedby` (never a live region: the
-   * advisory is state a reader meets on open, not an event). Compute it
-   * with `serviceWindowOf`; `null` or omitted renders nothing.
+   * `disabledReason` pattern's sibling with the opposite contract: a
+   * closed service window is a forecast, not a structural block, so the
+   * input stays usable and the send engines remain the authority.
+   * Rendered above the input and associated via `aria-describedby`
+   * (never a live region: the advisory is state a reader meets on open,
+   * not an event). Compute it with `serviceWindowOf`; `null` or omitted
+   * renders nothing.
    */
   readonly advisory?: string | null;
   /** Additional classes for the composer container. */
@@ -129,7 +130,7 @@ export function ConversationComposer({
           <TriangleAlert aria-hidden="true" className="stg:mt-0.5 stg:size-3.5 stg:shrink-0" />
           {/* Interactive content is deliberately NOT allowed in here:
               this element is the input's aria-describedby target with
-              zero tab stops (F-18). The way forward the advisory names
+              zero tab stops. The way forward the advisory names
               (the template lane) lives on the persistent template
               button beside Send — hosts point at it in the advisory
               COPY, never with an embedded control. */}

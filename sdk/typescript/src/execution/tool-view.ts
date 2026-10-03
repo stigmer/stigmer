@@ -120,13 +120,13 @@ export type ToolResultView =
       readonly blocks: readonly ToolContentBlock[];
       readonly mcpServerSlug: string;
     }
-  // The first-party remember tool's answer (DD-005): the created Memory
+  // The first-party remember tool's answer: the created Memory
   // record's identity and verbatim fact, parsed from the tool's
   // {outcome, memory} payload (pinned by the mcp-server's memory
   // integration test on the writer side). The consent chip renders from
   // this — memoryId is the handle the confirm/reject RPCs take, and fact
-  // is the EXACT stored text (DD-005 D6: what you confirm is what is
-  // injected, byte for byte).
+  // is the EXACT stored text (what you confirm is what is injected, byte
+  // for byte).
   | {
       readonly type: "memoryProposal";
       readonly memoryId: string;
@@ -229,7 +229,7 @@ export function resolveToolKind(toolCall: Pick<ToolCall, "name" | "mcpServerSlug
 }
 
 /**
- * The reserved slug of the runner-synthesized memory attachment (DD-005).
+ * The reserved slug of the runner-synthesized memory attachment.
  * Mirrors the runner's MEMORY_ATTACHMENT_SLUG (shared/memory-attachment.ts);
  * kept honest by test/fixtures/tool-view/classification.json.
  */
@@ -237,7 +237,7 @@ export const MEMORY_ATTACHMENT_SLUG = "stigmer-memory";
 
 /** Name-based classification used as the legacy fallback for resolveToolKind. */
 export function resolveToolKindByName(name: string, mcpServerSlug?: string): ToolKind {
-  // The first-party remember tool (DD-005), slug-scoped on purpose: only
+  // The first-party remember tool, slug-scoped on purpose: only
   // the synthesized memory attachment's reserved slug earns the MEMORY
   // kind (and its consent-chip rendering) — a third-party MCP server's
   // coincidental `remember` stays a plain MCP tool.
@@ -493,7 +493,7 @@ function splitNativeReadFrame(result: string): { body: string; truncated: boolea
 }
 
 // Matches the deepagents shell marker, e.g. "[Command failed with exit code 2]"
-// or "[Command succeeded]". Format owned by the engine — see DD-003; covered by
+// or "[Command succeeded]". Format owned by the engine; covered by
 // test/fixtures/tool-view/result-views.json so a format change fails one test.
 const SHELL_EXIT_MARKER = /\n?\[Command (?:succeeded|failed with exit code (\d+))\]\s*$/;
 

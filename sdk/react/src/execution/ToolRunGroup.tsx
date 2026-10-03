@@ -44,7 +44,7 @@ export interface ToolRunGroupProps {
  *
  * `React.memo` with a by-reference comparator: structural sharing keeps each
  * folded `ToolCall` stable, so a settled chip skips re-renders while siblings
- * stream (DD-009/010).
+ * stream.
  *
  * @example
  * ```tsx

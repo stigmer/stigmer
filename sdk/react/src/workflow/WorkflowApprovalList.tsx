@@ -44,7 +44,7 @@ export interface WorkflowApprovalListProps {
    * Optional deep-link to open the gate's child agent execution in its own
    * view. When provided, each gate renders a "View agent execution"
    * affordance — with parallel children, it names which child a gate belongs
-   * to. Routing is the host's responsibility (DD-004).
+   * to. Routing is the host's responsibility.
    */
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
   /** Additional CSS class names for the root container. */

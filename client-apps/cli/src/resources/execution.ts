@@ -6,9 +6,9 @@
 // module owns the ID-prefix detection and the cancel-with-result semantics so
 // that the prefix-sniffing logic lives in exactly one place.
 //
-// Wave 2a establishes the agent-execution path consumed by `delete execution`.
-// Wave 2b extends this module with the full agent-vs-workflow routing shared by
-// `usage`, `list executions`, and `download`.
+// The agent-execution path serves `delete execution`, and the module's full
+// agent-vs-workflow routing is shared by `usage`, `list executions`, and
+// `download`.
 
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";

@@ -2,7 +2,7 @@
 // workflow execution) and stream it. Thin handler: parse flags, resolve the
 // reference (smart 0/1/2-arg dispatch mirroring Go's run.go + run_picker.go),
 // then delegate to the shared run stack. Heavy modules (backend client, Ink,
-// the differ) load lazily inside the action so `--help` stays fast (DD-001).
+// the differ) load lazily inside the action so `--help` stays fast.
 //
 // No reference at all is the built-in assistant: `stigmer run -m "..."` runs
 // it at once (the person said what to say, so there is nothing to pick), and
@@ -222,7 +222,7 @@ async function runResolvedAgent(
 // Workflow path: create the execution, then either detach (print IDs + return,
 // Go parity) or stream it live over the canonical event stream. Mirrors Go's
 // routeRun workflow branch's guards. `--json` now produces a real NDJSON event
-// stream (fix for D-WF-1: Go silently ignored run workflow --json).
+// stream (Go silently ignored run workflow --json).
 async function runWorkflow(
   reference: string,
   options: RunFlags,
@@ -299,7 +299,8 @@ function stderrProgress(): (line: string) => void {
 
 // Mount the agent picker; on selection, run the chosen agent through the
 // existing resolved-agent stack. Cancel (Esc/Ctrl+C → undefined) returns
-// cleanly so the command exits 0. Loaded lazily to honor the DD-001 boundary.
+// cleanly so the command exits 0. Loaded lazily, so React/Ink load only on
+// this path.
 async function browseAndRunAgent(
   initialQuery: string,
   options: RunFlags,

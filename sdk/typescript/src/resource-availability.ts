@@ -2,7 +2,7 @@
  * The edition vocabulary of the SDK: which edition a server is, in the
  * SDK's own words, and whether a resource kind is served there.
  *
- * Four facts this module is built on (editions program, DD-001):
+ * Four facts this module is built on:
  *
  * - A kind's `ResourceTier` names the MINIMUM edition that serves it. The
  *   editions are ordered oss < enterprise < cloud because each composes the

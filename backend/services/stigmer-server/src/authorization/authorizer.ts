@@ -15,7 +15,7 @@
  *      reaches the unknown kind since the kind refusals landed; the
  *      arm is the backstop, not a path.
  *   2. A kind this edition does not serve is `deny` (`kindServedByEdition`,
- *      the predicate 2b's `checkMyPermission` arm 1 uses, so the console
+ *      the predicate `checkMyPermission`'s arm 1 uses, so the console
  *      and the server agree by construction). `platform` is the one that
  *      can arrive, through an operator capability no self-host holds.
  *   3. The caller as a person (person.ts) and one derived tuple source for

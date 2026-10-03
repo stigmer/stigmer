@@ -20,8 +20,6 @@ export interface DashboardFailedRunsProps {
  *
  * Each row includes a type badge (Agent / Workflow), the execution name,
  * a truncated error, and a relative timestamp.
- *
- * @since Unified Platform Dashboard
  */
 export const DashboardFailedRuns = memo(function DashboardFailedRuns({
   failedRuns,

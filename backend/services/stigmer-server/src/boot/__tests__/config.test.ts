@@ -17,6 +17,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_GRPC_PORT,
   DEFAULT_MODEL_REGISTRY_UPSTREAM,
+  defaultSandboxRunnerImage,
   loadConfig,
 } from "../config.js";
 
@@ -204,6 +205,33 @@ describe("loadConfig", () => {
       ).toBeUndefined();
     }
     expect(loadConfig({}).readyLine).toBeUndefined();
+  });
+
+  describe("the sandbox runner image (STIGMER_SANDBOX_RUNNER_IMAGE)", () => {
+    it("defaults to the image of the server's own release", () => {
+      expect(defaultSandboxRunnerImage("3.41.0")).toBe(
+        "ghcr.io/stigmer/runner:v3.41.0",
+      );
+      expect(defaultSandboxRunnerImage("3.42.0-rc.1")).toBe(
+        "ghcr.io/stigmer/runner:v3.42.0-rc.1",
+      );
+    });
+
+    it("follows latest when no image of the server's version is published", () => {
+      for (const version of ["dev", "0.0.0-dev", "3.42.0-dev.20261003120000.g58ac1f2"]) {
+        expect(defaultSandboxRunnerImage(version)).toBe(
+          "ghcr.io/stigmer/runner:latest",
+        );
+      }
+    });
+
+    it("uses this build's default unless the operator names an image", () => {
+      expect(loadConfig({}).sandboxRunnerImage).toBe(defaultSandboxRunnerImage());
+      expect(
+        loadConfig({ STIGMER_SANDBOX_RUNNER_IMAGE: "registry.example/runner@sha256:abc" })
+          .sandboxRunnerImage,
+      ).toBe("registry.example/runner@sha256:abc");
+    });
   });
 
   describe("the sandbox runner lists (STIGMER_SANDBOX_RUNNER_ENV / _SECRETS)", () => {

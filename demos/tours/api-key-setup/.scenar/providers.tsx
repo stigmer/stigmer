@@ -4,8 +4,9 @@
  * The only RPC the tour's real components call is
  * `ApiKeyQueryController.findAll`, via `ApiKeyListPanel` in the idle and
  * creating beats — and the answer is a fresh account's: no keys. The
- * empty list is tour-constant, so the router owns it (scenar-cloud
- * DD-002/DD-006); everything that varies per step (form seed, revealed
+ * empty list is tour-constant, so the router owns it (the
+ * fixture-determinism rule, demos/README.md);
+ * everything that varies per step (form seed, revealed
  * key) arrives through props. Nothing else fetches — the form and alert
  * are prop-driven and inert.
  */

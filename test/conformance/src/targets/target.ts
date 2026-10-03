@@ -1,4 +1,4 @@
-// Target profile abstraction (D3): one suite, many implementations.
+// Target profile abstraction: one suite, many implementations.
 // Domain: conformance targets.
 //
 // A target hides everything that differs between the things under test — how the
@@ -81,35 +81,25 @@ export interface CapabilityFlags {
   // (status.pending_approvals carries the child_agent_execution_id) so that
   // WorkflowExecution.submitApproval can forward the decision to the child.
   //
-  // False for local OSS: the *forwarder* is fully built (submit_approval.go, the
-  // runner's call-agent orchestrator, all protos), but the upstream half — the
-  // `child_approval_required` signal the agent-execution workflow emits when it
-  // gates — splits by SERVER: cloud's Java workflow and (since D4 #23) the TS
-  // server's HITL loop emit it; the Go agent-execution workflow never does, so
-  // against the Go server a gated agent_call child never populates the parent's
-  // pending_approvals and the forwarder's happy path is structurally
-  // unreachable (source-confirmed, not a timing artifact; see DD-012). The
-  // reachable *negatives* (no pending approval, proto validation, missing
-  // execution) are sender-independent and are asserted unconditionally.
-  //
-  // True for cloud and local-execution, which emit the signal and surface
-  // the gate to the parent. The forwarder happy-path assertions are gated on
-  // this flag so they run only where the full round-trip exists. (History:
-  // the retired Go server never sent the signal — this flag was the one
-  // deliberate capability divergence of the TS port, the D4 parity-plus
-  // delta.)
+  // True for cloud and local-execution: the server's HITL loop emits the
+  // upstream half — the `child_approval_required` signal the agent-execution
+  // workflow sends when a child gates — and the parent surfaces the gate.
+  // False for the plain local target, which runs no engine. The reachable
+  // *negatives* (no pending approval, proto validation, missing execution)
+  // are sender-independent and are asserted unconditionally; the forwarder's
+  // happy-path assertions are gated on this flag so they run only where the
+  // full round-trip exists. (History: the retired Go server never sent the
+  // signal, which is why the flag exists.)
   workflowChildApprovalForwarding: boolean;
   // Schedules actually FIRE here: a trigger records status.last_fire_at,
   // repeated failed fires accumulate status.consecutive_failures into the
   // platform auto-pause, and resume + re-trigger fires again. Requires a
   // Temporal-backed scheduling clock behind the server.
   //
-  // True for cloud (the hermetic cloud env boots Temporal and the Java
-  // service runs the schedule clock shipped in T04 slice 2) and for
-  // local-execution (the OSS schedule clock, D4 #22). False for the plain
-  // local target, which runs without Temporal at all — the Schedule
-  // contract, CLI, and trigger/resume refusal matrix all exist there, but
-  // nothing fires.
+  // True for cloud and local-execution, whose server runs its schedule clock
+  // on a live Temporal. False for the plain local target, which runs without
+  // Temporal at all — the Schedule contract, CLI, and trigger/resume refusal
+  // matrix all exist there, but nothing fires.
   //
   // Deliberately a capability flag and not a heavier target: firing needs
   // the engine but NOT a runner or LLM (the suite fires against a
@@ -140,12 +130,11 @@ export interface CapabilityFlags {
   // stigmer.ai/* namespace.
   //
   // True for the local OSS targets: single-tenant, deliberately unguarded —
-  // the operator owns the store (stigmer-cloud#320 scoped OSS out).
+  // the operator owns the store.
   //
   // False for cloud: GuardReservedLabelsStep rejects non-operator
   // introductions/changes of reserved labels at every client-facing write
-  // boundary (stigmer-cloud#320 for agents, platform-wide since
-  // stigmer-cloud#386). Where false, the suite pins the guard itself: an
+  // boundary. Where false, the suite pins the guard itself: an
   // ordinary caller introducing a reserved label gets INVALID_ARGUMENT.
   clientReservedLabelWrites: boolean;
 // NOTE: there is deliberately no shared-runner-artifact-store capability.
@@ -158,30 +147,26 @@ export interface CapabilityFlags {
   // (sharedRunnerArtifactStore) was retired when that lane landed — the
   // executionContextSecretRedaction retirement precedent.
   // The conformance caller passes the Memory create RPC's strict
-  // first-party-human-operator gate (DD-002 D4 as amended, inherited by
-  // memory capture — DD-005 D2/DD-006 D1).
+  // first-party-human-operator gate, which memory capture inherits.
   //
   // True for the local OSS targets: single-user posture, no caller
   // identity, no gate.
   //
-  // False for cloud — BY RATIFIED DESIGN, not a harness gap: the
-  // conformance primary user is minted through the bootstrap
-  // PlatformClient, and platform-client user tokens are exactly the
-  // credential class DD-002 D4's amendment excludes from first-party
-  // gating. Where false, the suite pins the gate itself: create answers
-  // PermissionDenied even with both memory_enabled flags on. Cloud's
-  // full memory lifecycle is covered by test/integration (seeded rows +
-  // FGA tuples) and the Java handler unit tests — the same coverage
-  // split ComposeDeclaredPreferencesStep has.
+  // False for cloud — BY DESIGN, not a harness gap: the conformance
+  // primary user is minted through the bootstrap PlatformClient, and
+  // platform-client user tokens are exactly the credential class the
+  // first-party gate excludes. Where false, the suite pins the gate itself:
+  // create answers PermissionDenied even with both memory_enabled flags on.
+  // Cloud's full memory lifecycle is covered by the hosted edition's own
+  // suites.
   firstPartyMemoryCapture: boolean;
   // The channel RUNTIME lanes exist here: provider installs
   // (initiateInstall/completeInstall), conversation participation
   // (reply/takeOver/handBack/clearAttention/escalate), and proactive
   // messaging (sendMessage/listTemplates).
   //
-  // False for the local OSS targets — BY DOCUMENTED DESIGN, not a gap
-  // (channel-integrations T02 §0-b and its siblings): this edition has no
-  // webhook receiver, no delivery runtime, and no participation state
+  // False for the local OSS targets — BY DOCUMENTED DESIGN, not a gap: this
+  // edition has no webhook receiver, no delivery runtime, and no participation state
   // machine, so every runtime command refuses with FAILED_PRECONDITION and
   // per-surface copy ("channel installs require Stigmer Cloud" /
   // "conversation participation requires Stigmer Cloud" / "proactive
@@ -226,19 +211,17 @@ export interface CapabilityFlags {
   // vocabulary ("Insufficient credits to start execution").
   //
   // True for cloud: the composition's create-time reserve gate refuses the
-  // create RPC itself with FAILED_PRECONDITION (ruling Q5 of
-  // 20260830.02.sp.billing-facade — "strictly earlier than the Java refusal",
-  // which failed the execution asynchronously; that arm retired with Java).
+  // create RPC itself with FAILED_PRECONDITION, before any execution exists.
   //
-  // False for the local OSS targets — BY DD-001 BOUNDARY, not a gap: OSS has
-  // no billing engine, no credit accounting, and no billing gates; every
+  // False for the local OSS targets — BY THE EDITION BOUNDARY, not a gap: OSS
+  // has no billing engine, no credit accounting, and no billing gates; every
   // execution runs unmetered. There is no refusal contract to pin, so the
   // billing-denial suite skips entirely (the scheduleFiring posture).
   billingGates: boolean;
   // The target's ENFORCING lane mints PlatformClient user tokens and enforces
   // the minting client's contract at the serving edge: mintUserToken answers
   // a user token, deleting the minting client revokes its outstanding user
-  // tokens on the next request (deletion-revocation, stigmer-cloud#342), and
+  // tokens on the next request (deletion-revocation), and
   // browser requests from origins outside the client's allowed_origins are
   // refused (stigmer/stigmer#375). Every edition serves PlatformClient, but
   // only a server that authenticates its callers mints — so the arms run on
@@ -259,14 +242,13 @@ export interface CapabilityFlags {
   // health service (Kubernetes grpc probes), which the authentication suite
   // asserts unconditionally.
   //
-  // True for cloud — the Java interceptor natively (GrpcSecurityConfigBase),
-  // and the TS composition through the require-authentication registry
-  // point its cloud-core unit declares (entry 20260904.02).
+  // True for cloud: the composition declares the require-authentication
+  // registry point.
   //
   // False for the local OSS targets — BY DESIGN, not a gap: the single-
   // operator trusted-local posture admits a tokenless request as the
   // operator, and a presented-but-unclaimed token falls through to the same
-  // identity when no verifier is composed (the O2 ruling-Q6 contract). Where
+  // identity when no verifier is composed. Where
   // false, the suite pins that admission — the OSS contract the TS server
   // must keep. Deliberately NOT folded into platformClientTokens or
   // multiTenant: a self-host with STIGMER_OIDC_ISSUER set requires
@@ -275,15 +257,14 @@ export interface CapabilityFlags {
   // The edition has a lane for the PLATFORM'S OWN identity tenant: the raw
   // access token a console, desktop, CLI or MCP client obtains from that
   // tenant is verified at position 1 and its subject RESOLVED to the
-  // caller's identity-account id before authorization runs (Java's
-  // RequestCallerIdentityMapper; the TS composition's direct-idp verifier,
-  // stigmer-cloud#604). An unknown subject is admitted "idp-shaped" so
+  // caller's identity-account id before authorization runs (the composition's
+  // direct-idp verifier). An unknown subject is admitted "idp-shaped" so
   // whoAmI answers NOT_FOUND and provisionMyAccount can create the account
   // — the console's first-login flow. True for cloud. False for the local
   // OSS targets BY DESIGN: their primary server runs the trusted-local
   // posture, which has no tenant at all. The OSS OIDC lane
   // (STIGMER_OIDC_ISSUER) resolves a subject to its account exactly the
-  // same way since 20260911.11 — the difference is WHOSE tenant: this flag
+  // same way — the difference is WHOSE tenant: this flag
   // is the platform's own, whose signing key the harness holds through
   // CLOUD_ENV; a self-host's issuer is whatever the operator configured,
   // which the identityaccount suite drives through a sibling server booted
@@ -292,7 +273,7 @@ export interface CapabilityFlags {
   // The four federation RPCs (createFederatedAccount, updateFederatedAccount,
   // deprovisionFederatedAccount, getByExternalSub) are served here: a unit
   // composes the IdentityFederation capability the OSS controller
-  // dispatches to (20260911.11 Q-IA-9).
+  // dispatches to.
   //
   // True for cloud, whose cloud-iam unit provides it for real. The lane's
   // positive behavior needs an IdentityProvider fixture no hermetic target
@@ -308,16 +289,16 @@ export interface CapabilityFlags {
   // IamPolicy `create` admits a grant on kinds BEYOND the organization: an
   // agent, a workflow, a skill, an MCP server — the per-resource sharing the
   // console's "Manage access" dialog drives. The IamPolicy domain is core
-  // in every edition since 20260913.01 (the row half: one grant path, the
-  // Members page, the organization roles), but WHICH kinds a user may grant
-  // on is the composed grant scope (`drivers.policyGrantScope`, P1 gate
-  // Q7 iii): open source's default is the organization and nothing else.
+  // in every edition (the row half: one grant path, the Members page, the
+  // organization roles), but WHICH kinds a user may grant on is the composed
+  // grant scope (`drivers.policyGrantScope`): open source's default is the
+  // organization and nothing else.
   //
   // True for cloud, whose cloud-iam unit registers every kind's kind_meta
   // roles. False for the local OSS targets BY DESIGN: the OSS controller
   // answers UNIMPLEMENTED with the edition sentence for a grant on any
   // other kind, and checkMyPermission answers `can_grant_access` false
-  // there so the console hides the grant controls (Q-OR-5). Where false,
+  // there so the console hides the grant controls. Where false,
   // the suite PINS both refusals; a kind no edition grants on (one whose
   // kind_meta lists no roles) is INVALID_ARGUMENT everywhere and rides no
   // flag.
@@ -326,7 +307,7 @@ export interface CapabilityFlags {
   // checkAuthorization, listAuthorizedResourceIds, listAuthorizedPrincipalIds,
   // and checkMyPermission carrying contextual policies — the questions only
   // a relationship graph (OpenFGA) can answer, behind
-  // `drivers.authorizationQueries` (20260913.01 Q-OR-8). checkMyPermission
+  // `drivers.authorizationQueries`. checkMyPermission
   // WITHOUT contextual policies rides no flag: it has one definition in
   // every edition over the composed Authorizer.
   //
@@ -340,19 +321,15 @@ export interface CapabilityFlags {
   // pricing, the engine lanes), the Stripe webhook at POST /webhook/stripe,
   // and the workers' observable effects. Distinct from `billingGates` (the
   // execution-time credit gates), which a target could in principle serve
-  // through a remote engine without owning the ledger — the C5 Stage 1 facade
-  // did exactly that.
+  // through a remote engine without owning the ledger.
   //
-  // True for cloud: the Java billing engine natively, and the TS composition
-  // through the facade (every unary RPC forwarded) until C5 lands the engine
-  // natively — the same suite must stay green across that replacement, which
-  // is C5's acceptance (entry 20260906.04, E1).
+  // True for cloud, whose composition serves the billing engine natively.
   //
-  // False for the local OSS targets — BY DD-001 BOUNDARY, not a gap: OSS
+  // False for the local OSS targets — BY THE EDITION BOUNDARY, not a gap: OSS
   // routes neither controller, so every billing RPC answers Unimplemented.
-  // Where false, the suite PINS that answer (the versionTagging /
-  // orgOAuthAppConfiguration posture — ruling Q10 of E1): the boundary is an
-  // observable contract the SDK relies on, not an absence to skip past.
+  // Where false, the suite PINS that answer (the orgOAuthAppConfiguration
+  // posture): the boundary is an observable contract the SDK relies on, not
+  // an absence to skip past.
   billingLedger: boolean;
   // The plan catalog and subscriptions are served here: PlanCommandController
   // and PlanQueryController (the catalog an organization subscribes against),
@@ -376,32 +353,31 @@ export interface CapabilityFlags {
   // scope-header authorization against FGA and usage extracted from the wire
   // into the billing ledger.
   //
-  // True for cloud: Java's Tomcat + Netty lanes natively; the composition
-  // once C6 lands them in-process. Until then a `cloud` run against the
-  // composition FAILS these arms — by design, that red IS C6's acceptance
-  // baseline (never a skip: the flag states the edition's contract, and the
-  // lane's address comes from CLOUD_ENV — see proxyBaseUrl).
+  // True for cloud, whose composition serves the lanes in-process (never a
+  // skip: the flag states the edition's contract, and the lane's address
+  // comes from CLOUD_ENV — see proxyBaseUrl).
   //
-  // False for the local OSS targets — BY DD-001 BOUNDARY: OSS has no proxy
-  // (runners dial providers directly); nothing to pin beyond the router 404
-  // the registry-proxy suite already asserts, so the proxy suites skip there.
+  // False for the local OSS targets — BY THE EDITION BOUNDARY: OSS has no
+  // proxy (runners dial providers directly); nothing to pin beyond the
+  // router 404 the registry-proxy suite already asserts, so the proxy suites
+  // skip there.
   sideChannelProxy: boolean;
   // The public REST lane the marketing site calls without credentials:
   // GET /api/v1/public/model-registry, GET /api/v1/public/model-pricing,
   // POST /api/v1/public/leads/contact-sales — with the contact-sales
-  // validation copy and limits as a site-facing contract (a DD-012 carve-out)
-  // and the Discord lead notifier's fail-loud posture.
+  // validation copy and limits as a site-facing contract (a byte-pinned
+  // carve-out) and the Discord lead notifier's fail-loud posture.
   //
-  // True for cloud (Java natively; the composition once P1 lands the lane —
-  // red until then, P1's acceptance). False for the local OSS targets — BY
-  // DD-001 BOUNDARY: no marketing site fronts a self-host; the suites skip.
+  // True for cloud, whose composition serves the lane. False for the local
+  // OSS targets — BY THE EDITION BOUNDARY: no marketing site fronts a
+  // self-host; the suites skip.
   publicLane: boolean;
 }
 
-// The Stripe webhook lane as the suite drives it: where Java (or the
-// composition) receives events, and the signing secret the environment booted
-// the server with — the suite signs its own synthetic events with it, exactly
-// as Stripe would, so the signature contract (a DD-012 carve-out) is asserted
+// The Stripe webhook lane as the suite drives it: where the composition
+// receives events, and the signing secret the environment booted the server
+// with — the suite signs its own synthetic events with it, exactly as Stripe
+// would, so the signature contract (a byte-pinned carve-out) is asserted
 // end to end without a network.
 export interface StripeWebhookLane {
   readonly baseUrl: string;
@@ -428,7 +404,7 @@ export interface DirectLoginTenant {
 // The four kind_meta roles of the organization, in the proto's order — the
 // words an IamPolicy grant carries as `relation`, and the rungs the model
 // reads (each implies the ones after it). The one role set open source
-// grants on (20260913.01 Q-OR-4); support/iampolicies re-exports it.
+// grants on; support/iampolicies re-exports it.
 export const ORGANIZATION_ROLES = ["owner", "admin", "member", "viewer"] as const;
 export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
 
@@ -572,7 +548,7 @@ export interface PrivilegedScope {
 // for "whose code answers": one existed (TargetProfile.implementation,
 // stigmer#1013) while the Java stigmer-service still served the cloud edition
 // and carried known bugs the suite had to tell apart from the composition's
-// behavior; it retired with that service (stigmer-cloud DD-013, stigmer#1023).
+// behavior; it retired with that service (stigmer#1023).
 // A new implementation, should one ever exist, enters as a new TARGET.
 export interface TargetProfile {
   readonly name: string;
@@ -592,7 +568,7 @@ export interface TargetProfile {
   clients(): ConformanceClients;
 
   // Clients presenting NO credential at all — the anonymous caller the
-  // authentication suite drives at the serving edge (entry 20260904.02).
+  // authentication suite drives at the serving edge.
   // Every target can build one (a transport with no bearer interceptor), so
   // the method is required, not a capability; what the anonymous caller
   // GETS is the requiresAuthentication flag's business. Suites never build
@@ -622,7 +598,7 @@ export interface TargetProfile {
   directLoginUnavailable?(): string;
 
   // Boot a SECOND server of this target's edition, beside the primary, in a
-  // posture the suite chooses (20260911.11 Q-IA-10: the OSS OIDC posture
+  // posture the suite chooses (the OSS OIDC posture
   // against the harness's local issuer, whose contract the trusted-local
   // primary cannot show). Present only on the managed local targets, which
   // own how a server is spawned and can give the sibling its own storage
@@ -690,8 +666,8 @@ export interface TargetProfile {
   // Present only on execution targets. Valid only after setup().
   modelRegistryDocument?(): Promise<ModelRegistryDocument>;
 
-  // The HOME the target's runner runs under — a harness-owned directory (DD-002
-  // of entry 20260910.02), so the runner's `~/.stigmer/sessions/<id>/…` tree
+  // The HOME the target's runner runs under — a harness-owned directory, so
+  // the runner's `~/.stigmer/sessions/<id>/…` tree
   // never lands in the developer's real home. A suite that reads what the
   // runner materialized on disk (an attachment under the session's platform
   // dir) reads under this path. Present only on targets that spawn the runner.
@@ -737,11 +713,11 @@ export interface TargetProfile {
   // Clients authenticated as a fresh identity holding exactly ONE grant: the
   // `member` role on the given tenancy — the "colleague" for
   // within-organization authorization assertions (the run gate: a member may
-  // start runs only on the agents and workflows they can see, P1
-  // sp.run-gate). Distinct from provisionIdentity's outsider, whom the
-  // organization-level checks already refuse before any resource-level rule
-  // is reached. Present only on multi-tenant targets, where roles exist;
-  // local targets have a single implicit caller.
+  // start runs only on the agents and workflows they can see). Distinct
+  // from provisionIdentity's outsider, whom the organization-level checks
+  // already refuse before any resource-level rule is reached. Present only
+  // on multi-tenant targets, where roles exist; local targets have a single
+  // implicit caller.
   provisionMember?(tenancy: TenancyContext): Promise<ConformanceClients>;
 
   // Base URL of the server's unified HTTP port, for the plain-HTTP lanes that
@@ -749,12 +725,12 @@ export interface TargetProfile {
   // OSS-lane HTTP surface is under test: the local targets own their spawned
   // server's port; the cloud edition serves registries through its own
   // authenticated routes (a different contract), so the method is absent
-  // there and the registry-proxy suite reports SKIPPED — the DD-012
-  // "genuinely skipped, not false green" posture. Valid only after setup().
+  // there and the registry-proxy suite reports SKIPPED — the "genuinely
+  // skipped, not false green" posture. Valid only after setup().
   httpBaseUrl?(): string;
 
   // Base URL of the server's artifact HTTP file server — the ONE lane that
-  // deliberately lives on its own port beside the unified one (D1: plain
+  // deliberately lives on its own port beside the unified one (a plain
   // FileServer over the artifact base path, served only when artifact
   // storage is local). Present only on the local managed targets, whose
   // spawned server binds it ephemeral (ARTIFACT_HTTP_PORT=0) and reports the
@@ -765,18 +741,16 @@ export interface TargetProfile {
   // registry-proxy posture. Valid only after setup().
   artifactHttpBaseUrl?(): string;
 
-  // The cloud-capability HTTP lanes (E1, entry 20260906.04), one accessor
-  // per lane because the composition serves its extension-owned lanes on
-  // separate listeners (main.ts starts the codec and webhook lanes that way;
-  // C6 and P1 keep their own port decisions) while Java serves them all from
-  // Tomcat :8081 except bidi (Netty, its own port). Present on the cloud
-  // targets, read from CLOUD_ENV; absent on the local targets, where the
-  // corresponding flag is false and the suites skip at collection time.
+  // The cloud-capability HTTP lanes, one accessor per lane because the
+  // composition serves its extension-owned lanes on separate listeners.
+  // Present on the cloud targets, read from CLOUD_ENV; absent on the local
+  // targets, where the corresponding flag is false and the suites skip at
+  // collection time.
   //
   // The contract between flag and accessor is deliberate: the FLAG states the
   // edition's promise; the ACCESSOR states where the environment serves it. A
   // cloud target whose flag is true but whose lane is unreachable FAILS its
-  // arms — that red is the implementing entry's acceptance, never a skip.
+  // arms — the red is real, never a skip.
   // Valid only after setup().
   proxyBaseUrl?(): string;
   cursorBidiBaseUrl?(): string;

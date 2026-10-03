@@ -26,8 +26,8 @@ import { useChannelTemplateReadiness } from "./useChannelTemplateReadiness.js";
 
 /**
  * Where businesses author and manage WhatsApp message templates — the
- * provider's own console. Stigmer keeps no copy of the list (DD-003:
- * the provider is the registry), so this surface links out rather than
+ * provider's own console. Stigmer keeps no copy of the list (the
+ * provider is the registry), so this surface links out rather than
  * offering any editing of its own.
  */
 const WHATSAPP_MANAGER_TEMPLATES_URL =
@@ -171,7 +171,7 @@ function ChannelTemplatesDialogBody({
 /**
  * The readiness gate: each precondition the channel resource already
  * answers renders as a teaching state without a network call — the
- * courtesy-pre-check posture (project DD-007 D4). Only `ready` fetches;
+ * courtesy-pre-check posture. Only `ready` fetches;
  * the server stays authoritative for everything past this point.
  */
 function ChannelTemplatesContent({

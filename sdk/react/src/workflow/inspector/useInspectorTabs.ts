@@ -48,8 +48,6 @@ const ITERATION_TAB_KINDS = new Set(["for_each"]);
  * - **Docs** — visible when the descriptor has examples or documentation URL
  *
  * Resets to "Configure" when the selected node changes.
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export function useInspectorTabs({
   kindString,

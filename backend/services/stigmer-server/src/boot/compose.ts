@@ -406,7 +406,7 @@ export async function composeServer(
   // handed down: a unit's own Authorizer (nothing built in installs);
   // the built-in posture (no unit Authorizer under an authentication
   // posture — open source composes its Authorizer, organization directory
-  // and schedule fire caller below, and the roles 2b records are
+  // and schedule fire caller below, and the role rows are
   // enforced); or trusted-local (the permissive default: one caller,
   // nothing to separate). `builtInAuthorization` is
   // the first two together — the roles exist to feed the built-in

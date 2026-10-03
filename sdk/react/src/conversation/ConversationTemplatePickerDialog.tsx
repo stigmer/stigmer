@@ -54,7 +54,7 @@ export interface ConversationTemplatePickerDialogProps {
 /**
  * Pick a provider-approved template, fill its variables, and send it as
  * a staff reply — the one lane WhatsApp offers a business once the
- * customer's 24-hour service window has closed (cloud#260).
+ * customer's 24-hour service window has closed.
  *
  * Where {@link ChannelTemplatesDialog} is the channel surface's
  * read-only registry *viewer* (every status, diagnosis copy), this is
@@ -77,7 +77,7 @@ export interface ConversationTemplatePickerDialogProps {
  * The body mounts only while open, so each opening fetches the registry
  * fresh (approval statuses change on the provider's side at any time)
  * and a closed dialog holds no draft — the same clean-reset rule that
- * keys the workbench's detail column (F-22).
+ * keys the workbench's detail column.
  */
 export function ConversationTemplatePickerDialog({
   open,
@@ -120,8 +120,7 @@ function unsendableReasonOf(template: ChannelTemplate): string | null {
   }
   if (template.headerFormat === "IMAGE") {
     // The wire's header_image_link needs a public HTTPS asset at send
-    // time; no console surface can supply one yet (v1 scope cut,
-    // recorded on cloud#260).
+    // time; no console surface can supply one yet.
     return "Not sendable from the console yet: this template's image header needs a hosted image at send time.";
   }
   return null;

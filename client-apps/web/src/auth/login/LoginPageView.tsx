@@ -18,7 +18,7 @@ import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 
 /**
- * The sign-in page — and the signed-out landing (20260913.02 Q-CL-9).
+ * The sign-in page — and the signed-out landing.
  *
  * Renders outside the authenticated provider chain (see `Providers.tsx`
  * PUBLIC_ROUTES). Creates its own unauthenticated {@link StigmerProvider}
@@ -26,7 +26,7 @@ const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
  * `getSsoProvider` RPC.
  *
  * Its shape follows the edition's tiers, the one mechanism the console has
- * for "what does this server serve" (Q-CL-4): the SSO organization prompt
+ * for "what does this server serve": the SSO organization prompt
  * renders only where `identity_provider` is available (Enterprise and
  * Cloud); an open-source server has one issuer by configuration and no IdP
  * resources, so its page is the logo and one "Sign in" button — the same

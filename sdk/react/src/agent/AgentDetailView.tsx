@@ -253,7 +253,7 @@ export function AgentDetailView({
 
   // Last failed inline save, attributed to the field that was edited so
   // only that section shows the message. The backend's message is the
-  // UX (DD-006): server refusals arrive as actionable FAILED_PRECONDITION
+  // UX: server refusals arrive as actionable FAILED_PRECONDITION
   // messages.
   const [saveError, setSaveError] = useState<{
     field: string;

@@ -7,7 +7,7 @@
 // contract lives in exactly one place. (The `stigmer-server` Go binary was its
 // second consumer until the server became an npm artifact.) The tar reader is a
 // tiny POSIX/ustar implementation: no native `tar` dependency, which keeps the
-// base install lean (DD-002).
+// base install lean.
 //
 // Retrying a transient failure is part of the contract. A connection that resets
 // before or during the body, a 5xx or a 429 is tried again with a doubling wait,

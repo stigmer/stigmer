@@ -55,8 +55,8 @@ interface SessionViewProps {
    * names the *intent* and passes an inert handler to the SDK internally.
    * The depicted execution must carry `status.pendingApprovals` whose
    * `toolCallId` matches an inline tool call, or the gate falls through to
-   * the bottom backstop card (which ticks an elapsed-time counter — a
-   * DD-006 violation in a packed embed).
+   * the bottom backstop card (which ticks an elapsed-time counter, and a
+   * live clock breaks a packed embed's determinism).
    */
   readonly showApprovals?: boolean;
   /**
@@ -103,7 +103,7 @@ interface SessionViewProps {
 /**
  * The session surface used across demo scenarios, at the shipped console's
  * own composition: both states render inside the real `SessionViewerLayout`
- * (scenar-cloud DD-010) — the launcher state centers a `SessionComposer`
+ * — the launcher state centers a `SessionComposer`
  * exactly as `NewSessionViewer` does, and the session state pairs a
  * `MessageThread` (its `contentColumn="center"` owning the reading-column
  * geometry) with the unified session panel: `PanelChip` toggle, and
@@ -111,7 +111,7 @@ interface SessionViewProps {
  * `useSessionRailViews`.
  *
  * Two deliberate departures from the shipped viewers, both determinism
- * seams the layout exposes for exactly this host class (DD-006):
+ * seams the layout exposes for exactly this host class:
  * `responsive={false}` (the tour canvas is a narrow fixed box, where the
  * default container-width collapse would hide the conversation on exactly
  * the open-panel beats the tour is narrating) and no `splitStorageKey` (a
@@ -184,7 +184,7 @@ function ThreadState({
   // agent when none is named), no attached MCP servers/skills/variables,
   // and the default harness — a fresh session's honest configuration.
   // Read-only by construction: no `mutations`, so SetupTab renders without
-  // remove affordances (DD-011) — a paused frame depicts a session being
+  // remove affordances — a paused frame depicts a session being
   // inspected, not reconfigured. Model/Target pills are omitted exactly as
   // the console omits them before an explicit selection.
   const sessionConfig = useMemo<SetupTabProps>(
@@ -213,8 +213,8 @@ function ThreadState({
     sessionConfig,
     // Supplying the open-artifact callbacks (inert here) selects the
     // shipped document-tab flow inside ArtifactsTab — and keeps its modal
-    // fallback, a top-layer <dialog>, out of the tree entirely (DD-006
-    // rule 6 by construction).
+    // fallback, a top-layer <dialog>, out of the tree entirely (a packed embed
+    // renders no top-layer element, by construction).
     onOpenArtifact: noop,
     onActivateArtifact: noop,
   });
@@ -377,7 +377,7 @@ function LauncherState({
  * the component's own public imperative handle
  * (`SessionComposerHandle.setMessage`) — the documented seam for setting the
  * composer's text from outside. State enters upstream through a supported
- * API (the DD-006 rule-7 shape, like `CreateApiKeyForm.initialName`), never
+ * API (the shape `CreateApiKeyForm.initialName` uses), never
  * by dispatching synthetic DOM events at the textarea.
  *
  * The composer wiring arrives whole from `LauncherState` so the two

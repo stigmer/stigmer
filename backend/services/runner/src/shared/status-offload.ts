@@ -659,7 +659,7 @@ export function enforceStatusSizeLimit(
         if (dropInlineBodiesIfLarge(change)) {
           change.diffComplete = false;
           // Record the honest cause so the review UI distinguishes a size-elided
-          // diff from a secret-withheld one (doc 15). Don't overwrite a reason a
+          // diff from a secret-withheld one. Don't overwrite a reason a
           // more specific producer already set (e.g. SECRET_WITHHELD).
           if (change.blockedReason === FileReviewBlockReason.UNSPECIFIED) {
             change.blockedReason = FileReviewBlockReason.SIZE_ELIDED;

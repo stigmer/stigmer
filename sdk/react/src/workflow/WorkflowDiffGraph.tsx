@@ -54,8 +54,6 @@ const defaultEdgeOptions = {
  *
  * Follows the `WorkflowExecutionGraph` outer/inner pattern with
  * `ReactFlowProvider`.
- *
- * @since T14 (AI-Assisted Workflow Creation)
  */
 export const WorkflowDiffGraph = memo(function WorkflowDiffGraph(
   props: WorkflowDiffGraphProps,

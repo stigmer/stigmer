@@ -423,7 +423,7 @@ export class UpdateNodeMetaCommand implements GraphCommand {
 /**
  * Updates the `sourceHandle` of all edges from a node's old handle ID
  * to a new handle ID. Used when a switch_case case or human_input outcome
- * is renamed (AD-T15-B4: name-based handle IDs).
+ * is renamed (name-based handle IDs).
  */
 export class MigrateBranchHandleCommand implements GraphCommand {
   readonly type = "migrate_branch_handle";
@@ -554,7 +554,7 @@ function deleteNestedValue(obj: Record<string, unknown>, path: string): Record<s
 }
 
 // ---------------------------------------------------------------------------
-// T08: Branch-specific insertion commands
+// Branch-specific insertion commands
 // ---------------------------------------------------------------------------
 
 export class AddSwitchCaseCommand implements GraphCommand {
@@ -738,14 +738,12 @@ export class AddCatchHandlerCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
-// T09: Switch Case management commands
+// Switch Case management commands
 // ---------------------------------------------------------------------------
 
 /**
  * Removes a case from a switch_case node's `config.cases` array
  * and deletes any associated canvas edge (identified by sourceHandle).
- *
- * @since T09 (Branch Management UX)
  */
 export class RemoveSwitchCaseCommand implements GraphCommand {
   readonly type = "remove_switch_case";
@@ -812,8 +810,6 @@ export class RemoveSwitchCaseCommand implements GraphCommand {
 
 /**
  * Reorders cases in a switch_case node's `config.cases` array.
- *
- * @since T09 (Branch Management UX)
  */
 export class ReorderSwitchCasesCommand implements GraphCommand {
   readonly type = "reorder_switch_cases";
@@ -882,14 +878,12 @@ export class ReorderSwitchCasesCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
-// T09: Fork branch management commands
+// Fork branch management commands
 // ---------------------------------------------------------------------------
 
 /**
  * Removes a branch from a fork node's `config.branches` array.
  * Refuses to execute if it would leave fewer than 2 branches (proto min_items constraint).
- *
- * @since T09 (Branch Management UX)
  */
 export class RemoveForkBranchCommand implements GraphCommand {
   readonly type = "remove_fork_branch";
@@ -944,8 +938,6 @@ export class RemoveForkBranchCommand implements GraphCommand {
 
 /**
  * Reorders branches in a fork node's `config.branches` array.
- *
- * @since T09 (Branch Management UX)
  */
 export class ReorderForkBranchesCommand implements GraphCommand {
   readonly type = "reorder_fork_branches";
@@ -1015,8 +1007,6 @@ export class ReorderForkBranchesCommand implements GraphCommand {
 
 /**
  * Renames a branch in a fork node's `config.branches` array.
- *
- * @since T09 (Branch Management UX)
  */
 export class RenameForkBranchCommand implements GraphCommand {
   readonly type = "rename_fork_branch";
@@ -1071,8 +1061,6 @@ export class RenameForkBranchCommand implements GraphCommand {
 
 /**
  * Toggles the `compete` flag on a fork node (race mode vs wait-for-all).
- *
- * @since T09 (Branch Management UX)
  */
 export class SetForkCompeteCommand implements GraphCommand {
   readonly type = "set_fork_compete";
@@ -1120,13 +1108,11 @@ export class SetForkCompeteCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
-// T09: TryCatch management commands
+// TryCatch management commands
 // ---------------------------------------------------------------------------
 
 /**
  * Updates catch configuration fields (`as`, `compensate`) on a try_catch node.
- *
- * @since T09 (Branch Management UX)
  */
 export class UpdateCatchConfigCommand implements GraphCommand {
   readonly type = "update_catch_config";
@@ -1200,8 +1186,6 @@ export class UpdateCatchConfigCommand implements GraphCommand {
 
 /**
  * Removes the catch block from a try_catch node's config.
- *
- * @since T09 (Branch Management UX)
  */
 export class RemoveCatchBlockCommand implements GraphCommand {
   readonly type = "remove_catch_block";
@@ -1238,13 +1222,11 @@ export class RemoveCatchBlockCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
-// T09: ForEach configuration command
+// ForEach configuration command
 // ---------------------------------------------------------------------------
 
 /**
  * Updates for_each configuration fields on a for_each node.
- *
- * @since T09 (Branch Management UX)
  */
 export class UpdateForEachConfigCommand implements GraphCommand {
   readonly type = "update_for_each_config";
@@ -1313,14 +1295,12 @@ export class UpdateForEachConfigCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
-// T09: Nested task editing commands
+// Nested task editing commands
 // ---------------------------------------------------------------------------
 
 /**
  * Adds a task to a nested `do[]` array within a container node's config.
  * Path format: "branches.0.do" or "try" or "catch.do"
- *
- * @since T09 (Branch Management UX)
  */
 export class AddNestedTaskCommand implements GraphCommand {
   readonly type = "add_nested_task";
@@ -1372,8 +1352,6 @@ export class AddNestedTaskCommand implements GraphCommand {
 
 /**
  * Removes a task from a nested `do[]` array at a specific index.
- *
- * @since T09 (Branch Management UX)
  */
 export class RemoveNestedTaskCommand implements GraphCommand {
   readonly type = "remove_nested_task";
@@ -1426,8 +1404,6 @@ export class RemoveNestedTaskCommand implements GraphCommand {
 
 /**
  * Reorders tasks within a nested `do[]` array.
- *
- * @since T09 (Branch Management UX)
  */
 export class ReorderNestedTasksCommand implements GraphCommand {
   readonly type = "reorder_nested_tasks";
@@ -1470,7 +1446,7 @@ export class ReorderNestedTasksCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
-// Nested array helpers (T09)
+// Nested array helpers
 // ---------------------------------------------------------------------------
 
 function getNestedArray(config: Record<string, unknown>, path: string): unknown[] | null {
@@ -1546,8 +1522,6 @@ function setAtPath(current: Record<string, unknown> | unknown[], keys: string[],
  *
  * Disabled nodes are visually dimmed on the canvas and skipped during
  * execution. The flag round-trips as `x-stigmer-disabled: true` in YAML.
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export class ToggleNodeDisabledCommand implements GraphCommand {
   readonly type = "toggle_node_disabled";
@@ -1600,8 +1574,6 @@ export class ToggleNodeDisabledCommand implements GraphCommand {
  *
  * Creates a new `try_catch` node that contains the target node in its
  * `try` block and inherits the target node's incoming/outgoing edges.
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export class WrapInTryCatchCommand implements GraphCommand {
   readonly type = "wrap_in_try_catch";

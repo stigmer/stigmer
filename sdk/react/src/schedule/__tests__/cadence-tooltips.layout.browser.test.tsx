@@ -1,5 +1,5 @@
-// The disabled-control tooltip contract from the native-title sweep
-// (stigmer-cloud#268), pinned in a real Chromium on CadenceField's
+// The disabled-control tooltip contract from the native-title sweep,
+// pinned in a real Chromium on CadenceField's
 // weekday toggles — the sweep's canonical "explanation on a disabled
 // control" site. Browsers suppress pointer events on disabled form
 // controls, so the old native `title` was unreachable by EVERY input

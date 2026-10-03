@@ -97,7 +97,7 @@ async function runResume(reference: string | undefined, options: ResumeFlags): P
 
 // Mount the session picker; on selection, re-open the chosen session through the
 // existing resume orchestrator. Cancel (Esc/Ctrl+C → undefined) returns cleanly
-// so the command exits 0. Loaded lazily to honor the DD-001 boundary.
+// so the command exits 0. Loaded lazily, so React/Ink load only on this path.
 async function browseAndResumeSession(
   initialQuery: string,
   client: import("../client/index.js").BackendClient,

@@ -69,7 +69,7 @@ export default function AgentDetailPage() {
   const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
 
   // Controlled tab state — the WorkflowDetailPage Editor-tab precedent,
-  // wired identically to the web app (DD-016 parity).
+  // wired identically to the web app.
   const [activeTab, setActiveTab] = useState<string>("overview");
 
   // Tauri's Wry webview blocks window.open(), so the OAuth popup flow
@@ -98,7 +98,7 @@ export default function AgentDetailPage() {
                   onConnectExternal={handleConnectExternal}
                   // A plain-anchor hash URL: the in-app WhatsApp connect
                   // dialog links here, and the hash router picks it up
-                  // without a reload (DD-016 parity with the web's
+                  // without a reload (parity with the web's
                   // /settings/channel-apps).
                   channelAppsHref="#/settings/channel-apps"
                   // Channel conversations open in the standard session route;

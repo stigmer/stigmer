@@ -39,7 +39,7 @@ const FILE_TREE: FileTreeEntry[] = [
 // ---------------------------------------------------------------------------
 // Inline page content — JWT card with the tenant (org_id) claim highlighted.
 // Rebuilt with --scenar-* tokens (no Tailwind utilities, which no-op under
-// `scenar pack`); see coding-guidelines/tailwind-to-scenar-tokens.md.
+// `scenar pack`).
 // ---------------------------------------------------------------------------
 
 const jwtKey: CSSProperties = { color: ACCENT };

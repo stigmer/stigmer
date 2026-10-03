@@ -266,7 +266,7 @@ describe("SessionViewer — controlled panel state", () => {
   });
 });
 
-describe("NewSessionViewer — panel negotiation (DD-016 parity)", () => {
+describe("NewSessionViewer — panel negotiation (parity with SessionViewer)", () => {
   it("panel=\"none\" removes the chip while the composer keeps its capabilities", () => {
     render(
       <NewSessionViewer org="acme" onSessionCreated={vi.fn()} panel="none" />,

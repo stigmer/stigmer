@@ -2,12 +2,12 @@
 // agent, org). Mirrors Go's internal/cli usage_* renderers, including the cost,
 // token-count, share, and date formatting helpers.
 //
-// DD-005 divergence (S-usage-json): the Go CLI serializes usage reports with the
-// standard library (encoding/json + yaml.v3) directly on the proto messages,
-// which yields a *different* shape (lowerCamel keys, integer enums, numeric
-// int64) than the protojson used by every other command. We deliberately emit
-// protojson here for consistency with the rest of the CLI (string enums/int64,
-// snake_case keys). A Go follow-up should converge the Go side onto protojson.
+// A deliberate divergence from the retired Go CLI, which serialized usage
+// reports with the standard library (encoding/json + yaml.v3) directly on the
+// proto messages, a *different* shape (lowerCamel keys, integer enums, numeric
+// int64) than the protojson used by every other command. We emit protojson
+// here for consistency with the rest of the CLI (string enums/int64,
+// snake_case keys).
 
 import { create } from "@bufbuild/protobuf";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";

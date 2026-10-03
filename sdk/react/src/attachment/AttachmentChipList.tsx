@@ -303,7 +303,7 @@ function ImageAttachmentChip({
             UNSTYLED_BUTTON,
             // The established corner-badge geometry (ContextPopover,
             // ComposerToolbar). Solid bg + border keep it legible over any
-            // image without opacity-modified tokens (Dont-Do #4).
+            // image without opacity-modified tokens.
             "stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-4 stg:w-4 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-border stg:bg-background stg:text-muted-foreground stg:shadow-sm stg:hover:text-destructive stg:disabled:pointer-events-none",
           )}
         >

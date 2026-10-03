@@ -203,7 +203,7 @@ describe("useShareToolReadiness", () => {
     );
 
     // Org-audience shares reject environment_refs at the proto boundary
-    // (member sessions carry no share linkage in Phase A), so there is
+    // (member sessions carry no share linkage), so there is
     // no credential state to advise on.
     expect(result.current).toEqual({ status: "na" });
   });

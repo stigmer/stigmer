@@ -1,5 +1,5 @@
 /**
- * @regression file-hitl-phase0 — pins that decisions bind to the active turn's
+ * @regression file-hitl-gate — pins that decisions bind to the active turn's
  * denial ledger, never a stale one, and that a resume respects its order.
  *
  * Cursor analog of execute-deep-agent/__tests__/hermetic/hitl-sequential-gates.test.ts:

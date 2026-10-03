@@ -47,7 +47,7 @@ export interface WorkflowCanvasEditorProps {
   readonly nodeErrors?: ReadonlyMap<string, readonly string[]>;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
-  /** Fallback to show while the canvas loads (DD-013 lazy loading). */
+  /** Fallback to show while the lazily loaded canvas loads. */
   readonly loadingFallback?: ReactNode;
   /**
    * Layout engine for the "Auto Layout" action.
@@ -66,10 +66,8 @@ const LazyCanvasInner = lazy(() =>
  *
  * Renders a task palette (left), interactive canvas (center), and toolbar
  * with undo/redo and auto-layout controls. Wrapped with `React.lazy` +
- * `Suspense` per DD-013 so the `@xyflow/react` bundle is only loaded
+ * `Suspense` so the `@xyflow/react` bundle is only loaded
  * when this component is mounted.
- *
- * @since T15 (Visual Canvas Editor)
  */
 const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   yaml,
@@ -92,7 +90,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   const togglePalette = useCallback(() => setPaletteCollapsed((p) => !p), []);
 
   // ---------------------------------------------------------------------------
-  // Context menu state (AD-T05)
+  // Context menu state
   // ---------------------------------------------------------------------------
 
   const [contextMenu, setContextMenu] = useState<{
@@ -107,7 +105,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   } | null>(null);
 
   // ---------------------------------------------------------------------------
-  // Keyboard shortcuts (T07)
+  // Keyboard shortcuts
   // ---------------------------------------------------------------------------
 
   const handleKeyboardDismiss = useCallback(() => {
@@ -217,7 +215,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   }, [canvas.clearSelection, onSelectionClear]);
 
   // ---------------------------------------------------------------------------
-  // Context menu event handlers (AD-T05)
+  // Context menu event handlers
   // ---------------------------------------------------------------------------
 
   const handleNodeContextMenu = useCallback(
@@ -261,7 +259,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Context menu action handlers (AD-T05)
+  // Context menu action handlers
   // ---------------------------------------------------------------------------
 
   const handleContextMenuDeleteNode = useCallback(
@@ -417,7 +415,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   );
 
   // ---------------------------------------------------------------------------
-  // Pending picker handlers (two-step menu-to-picker flow, AD-T05)
+  // Pending picker handlers (two-step menu-to-picker flow)
   // ---------------------------------------------------------------------------
 
   const pendingPickerVirtualAnchor = useMemo(() => {

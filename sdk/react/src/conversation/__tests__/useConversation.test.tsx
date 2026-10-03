@@ -178,7 +178,7 @@ describe("useConversation", () => {
     expect(result.current.isLoading).toBe(true);
   });
 
-  it("refetches the row when the window regains focus (DD-012: refocus is fresh)", async () => {
+  it("refetches the row when the window regains focus", async () => {
     const getConversation = vi.fn().mockResolvedValue(row());
     renderHook(() => useConversation("ach_1", "15550001111", NO_POLL), {
       wrapper: wrapper(createMockStigmer(getConversation)),
@@ -226,7 +226,7 @@ describe("useConversation", () => {
     await waitFor(() => expect(result.current.isRefetching).toBe(false));
   });
 
-  it("keeps the row reference stable across polls that change nothing (DD-010)", async () => {
+  it("keeps the row reference stable across polls that change nothing", async () => {
     const getConversation = vi.fn().mockImplementation(() => Promise.resolve(row()));
     const { result } = renderHook(
       () => useConversation("ach_1", "15550001111", NO_POLL),

@@ -2,7 +2,7 @@
  * Registry proxy lanes — the unified port's plain-HTTP JSON endpoints,
  * ported from pkg/domain/workflow/registry/{task_kind_registry,
  * model_registry}.go and wrapped in the registryCORS contract
- * (pkg/server/registry_cors.go, oss#571). The CW-10 conformance suite
+ * (pkg/server/registry_cors.go, oss#571). The conformance suite
  * (test/conformance/src/suites/registry-proxy.conformance.test.ts) is the
  * executable spec these lanes are built against.
  *

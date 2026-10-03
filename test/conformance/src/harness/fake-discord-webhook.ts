@@ -1,14 +1,14 @@
 // A fake Discord channel webhook receiver.
-// Domain: conformance harness (cloud-capability fixtures, E1).
+// Domain: conformance harness (cloud-capability fixtures).
 //
 // The marketing-site lead notifier posts an embed to a Discord channel
 // webhook and treats delivery as part of the request: a non-2xx from Discord
 // makes POST /api/v1/public/leads/contact-sales answer 502 (fail-loud, no
-// queue, no retry — DD-012 pins the site contract). The server is booted with
+// queue, no retry — a pinned site contract). The server is booted with
 // its leads webhook URL pointed here so the public suite can assert both the
-// embed Java sends (title, fields, footer, truncation) and the 502 posture by
-// scripting the next delivery to fail. The billing governance notifier posts
-// through the same Discord client; C5 may reuse this fixture for it.
+// embed the server sends (title, fields, footer, truncation) and the 502
+// posture by scripting the next delivery to fail. The billing governance
+// notifier posts through the same Discord client and may reuse this fixture.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { readBody } from "@stigmer/test-support/fake-llm-upstream";

@@ -1,26 +1,52 @@
-# Unified TypeScript Runner — Sandbox + Compose Images
+# The Sandbox Runner — Base Image, Runner Layer, Sandbox + Compose Images
 #
 # Build context: Repository root
 # Build commands:
 #   the cloud sandbox image:
 #     docker build --target sandbox -f backend/services/runner/Dockerfile.sandbox .
+#   the default base image alone (the agent's tools, no runner):
+#     docker build --target base -f backend/services/runner/Dockerfile.sandbox .
 #   the compose runner (stage the CLI first; see the compose-runner stage):
 #     node scripts/stage-compose-runner-cli.mjs
 #     docker build --build-arg STIGMER_CLI_VERSION=$(cat backend/services/runner/stage/cli/VERSION) \
 #       -f backend/services/runner/Dockerfile.sandbox .
 #
-# TWO published images derive from one stage chain (the compose
-# runner derives from the sandbox image; no second runner image is invented):
+# A sandbox image is two things with two owners, joined:
 #
+#   the base image   — what an agent's shell has: the OS, its tools, a Node
+#                      for agents. The `base` stage is Stigmer's default; it
+#                      holds nothing of the runner.
+#   the runner layer — Stigmer's runner and the Node that runs it, all under
+#                      /runner, nothing anywhere else: /runner/bin/node, and
+#                      /runner/dist, the slim runner artifact
+#                      (scripts/bundle-slim.mjs) as its self-contained
+#                      directory, node_modules inside it. The entries keep
+#                      the paths every driver launches: /runner/dist/main.js
+#                      (the runner) and /runner/dist/attach/main.js (the
+#                      attach waiter); the launch commands live once, in the
+#                      server's src/sandbox/runner-launch.ts.
+#
+# The runner's Node is never on the agent's PATH: the drivers start it by
+# absolute path, and the agent's `node` is the base's own, so a runner Node
+# upgrade is never a change an agent's commands can see. Both are the
+# repository's .nvmrc version (scripts/dockerfile-node-pin.test.mjs).
+#
+# Stages:
+#
+#   node-runtime   — the pinned official Node image, by multi-arch digest
+#   base           — the default base image
 #   libs           — builds the runner's file:-linked @stigmer libs
-#   deps           — the runner's third-party production node_modules
-#   builder        — compiles the runner against libs
-#   sandbox        — the CLOUD sandbox image (release.sandbox-cloud builds
-#                    `--target sandbox`; stigmer-service launches sandboxes
-#                    from it). The runner process is started by the control
-#                    plane (the Kubernetes provisioner sets the pod command),
-#                    so CMD stays /bin/bash and an ad-hoc `docker run` lands
-#                    in a shell.
+#   builder        — compiles the runner and bundles the slim artifact for
+#                    this build's platform (its @cursor/sdk platform package
+#                    is the one npm installed here, so each arch's leg
+#                    builds its own)
+#   runner-layer   — FROM scratch, /runner only
+#   sandbox        — base plus the runner layer's three layers. The
+#                    CLOUD sandbox image (release.sandbox-cloud builds
+#                    `--target sandbox`). The runner process is started by
+#                    the control plane (the drivers set the command), so CMD
+#                    stays /bin/bash and an ad-hoc `docker run` lands in a
+#                    shell.
 #   compose-runner — the SELF-HOST compose stack's runner (the default,
 #                    last stage; docker-compose.yml consumes it as
 #                    ghcr.io/stigmer/stigmer-runner). Compose is this
@@ -28,37 +54,86 @@
 #                    baked in, and the stigmer CLI rides along for the
 #                    OSS-shape MCP attachments (see the stage comment).
 #
-# The image provides:
-#   1. Unified Temporal worker (Node.js) handling all execution types: the
-#      agent activities (ExecuteDeepAgent, ExecuteCursor) and the workflow
-#      types in src/workflows/index.ts (its header is the list)
-#   2. Language runtimes for agent shell work: Node.js 22 LTS, Python (uv), Go
-#   3. Core utilities: git, curl, jq, yq, yamllint
-#
-# Stdio MCP servers do NOT run on cloud runners (stdio is local-runner-only;
-# see shared/mcp-transport-guard.ts), so no MCP package caches are pre-warmed.
+# The base provides the agent's tools: Node.js (npm, npx), Python (pip, venv,
+# uv), Go, git, curl, wget, jq, yq, unzip, yamllint and ripgrep. Stdio MCP
+# servers do NOT run on cloud runners (stdio is local-runner-only; see
+# shared/mcp-transport-guard.ts), so no MCP package caches are pre-warmed.
 # The runtimes stay because agents legitimately shell out to node/python/go
 # in their workspaces. The compose runner runs MODE=local, where stdio MCP
-# IS allowed — its subprocesses spawn inside this container.
+# IS allowed — its subprocesses spawn inside this container. ripgrep is the
+# native agent's grep tool's engine (deepagents spawns `rg`; without it the
+# tool falls back to a substring search).
 #
-# Platforms: linux/amd64 + linux/arm64. The historical amd64-only claim
-# (arch-specific Temporal native bindings) was re-verified stale:
-# @temporalio/core-bridge ships linux-arm64 prebuilds and loads cleanly;
-# the only arch-named asset here is the yq download, parameterized below.
+# Layers are cut by owner, so a node already holding one build pulls only
+# what the next one changed (stigmer/stigmer#1244: every build used to be
+# 372 of 400 MB new bytes): the base's layers change only when its tools do,
+# and a runner-only release changes the one runner layer.
+#
+# Platforms: linux/amd64 + linux/arm64. The slim artifact is glibc-only
+# (bundle-slim.mjs's native triples), so a base must be glibc too. The only
+# arch-named asset in `base` is the yq download, parameterized below.
 
-# Layers are cut by what changes them, so a node already holding one build
-# pulls only what the next one changed (stigmer/stigmer#1244: every build
-# used to be 372 of 400 MB new bytes). The runtime stage copies, in order
-# of how rarely they change:
-#   deps    third-party production node_modules — the runner's manifest and
-#           lockfile only;
-#   libs    the built @stigmer/* file: dependencies — their own sources;
-#   builder the runner's dist — its source.
-# Each stage reads only its own inputs, so with a layer cache a runner-only
-# change rebuilds dist alone and a proto change rebuilds libs and dist.
+# The official Node image at the .nvmrc version, by its multi-arch index
+# digest: the runner's Node and the agent's come from here, never from a
+# floating tag.
+FROM node:22.22.1-bookworm-slim@sha256:4f77a690f2f8946ab16fe1e791a3ac0667ae1c3575c3e4d0d4589e9ed5bfaf3d AS node-runtime
+
+# ---------- The default base image ----------
+FROM debian:bookworm-slim AS base
+
+# TARGETARCH (amd64|arm64) is populated by BuildKit per platform leg —
+# needed by the yq download below, which is the only arch-named asset in
+# this stage (node/go/uv all resolve their arch via multi-arch images or
+# installer detection).
+ARG TARGETARCH
+
+# --- Node.js for agents (Debian's is v18), with npm and npx ---
+COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-runtime /usr/local/lib/node_modules/ /usr/local/lib/node_modules/
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
+    ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+
+# --- System packages ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+        jq \
+        unzip \
+        wget \
+        python3 \
+        python3-pip \
+        python3-venv \
+        ripgrep \
+        yamllint \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Go 1.25 toolchain (for MCP servers via `go run`) ---
+COPY --from=golang:1.25-bookworm /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# Tool versions are pinned so a cached layer is never silently stale and an
+# upgrade is a reviewed one-line change (an unpinned download made every
+# build a different layer, and a cached one would never update).
+ARG UV_VERSION=0.12.18
+ARG YQ_VERSION=v4.53.6
+
+# --- uv / uvx (Python package runner for MCP servers) ---
+RUN curl -LsSf "https://astral.sh/uv/${UV_VERSION}/install.sh" | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv && \
+    mv /root/.local/bin/uvx /usr/local/bin/uvx
+
+# --- yq (YAML processor) ---
+RUN curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${TARGETARCH}" \
+        -o /usr/local/bin/yq && \
+    chmod +x /usr/local/bin/yq
+
+WORKDIR /workspace
+
+CMD ["/bin/bash"]
 
 # ---------- The @stigmer/* file: dependencies, built ----------
-FROM node:22-slim AS libs
+FROM node-runtime AS libs
 
 WORKDIR /build
 
@@ -93,110 +168,56 @@ RUN cd backend/libs/ts/outbound && npm install --ignore-scripts
 COPY backend/libs/ts/outbound/ backend/libs/ts/outbound/
 RUN cd backend/libs/ts/outbound && npm run build
 
-# The runtime copies of the four libs, as the runner's node_modules/@stigmer
-# holds them: each lib whole, with its production dependencies only (its
-# typescript and vitest are build tools, never loaded at run time).
-RUN mkdir -p /out/@stigmer && \
-    for pair in protos:apis/stubs/ts temporal-codecs:backend/libs/ts/temporal-codecs \
-                zip-structure:backend/libs/ts/zip-structure outbound:backend/libs/ts/outbound; do \
-      name="${pair%%:*}" && dir="${pair#*:}" && \
-      cp -r "$dir" "/out/@stigmer/$name" && \
-      (cd "/out/@stigmer/$name" && npm prune --omit=dev --ignore-scripts); \
-    done
-
-# ---------- Third-party production dependencies ----------
-# Keyed on the runner's manifest and lockfile alone. The four libs' manifests
-# are copied so npm can resolve the runner's file: references, and the links
-# it creates are then removed: libs supplies the real copies.
-FROM node:22-slim AS deps
-
-RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /build
-COPY apis/stubs/ts/package.json apis/stubs/ts/
-COPY backend/libs/ts/temporal-codecs/package.json backend/libs/ts/temporal-codecs/
-COPY backend/libs/ts/zip-structure/package.json backend/libs/ts/zip-structure/
-COPY backend/libs/ts/outbound/package.json backend/libs/ts/outbound/
-COPY backend/services/runner/package.json backend/services/runner/package-lock.json backend/services/runner/
-WORKDIR /build/backend/services/runner
-RUN npm ci --omit=dev --legacy-peer-deps && \
-    rm -rf node_modules/@stigmer/protos node_modules/@stigmer/temporal-codecs \
-           node_modules/@stigmer/zip-structure node_modules/@stigmer/outbound
-
-# ---------- The runner, compiled ----------
+# ---------- The runner, compiled and bundled ----------
 # Built against the real libs (the file: references resolve to libs' tree),
-# with every dev dependency; only dist/ leaves this stage.
+# with every dependency; only the slim artifact leaves this stage, split in
+# two by how often each part changes: /build/slim/node_modules (the staged
+# packages, which change with the lockfile) and /build/slim/dist (the
+# bundles, which change with the runner). Every file's time is set to npm's
+# fixed tarball date, so an unchanged dependency tree is the same layer
+# bytes build after build and a node holding it pulls only the bundles
+# (stigmer/stigmer#1244). Its bundler imports the repository's one rule for
+# source-map pragmas, so that file is copied to the path it imports from.
+# meta.json is esbuild's build diagnostics, which no runtime reads (the
+# desktop's staging skips it too).
 FROM libs AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && \
     rm -rf /var/lib/apt/lists/*
 
+COPY scripts/lib/source-map-pragma.mjs /build/scripts/lib/source-map-pragma.mjs
 COPY backend/services/runner/package.json backend/services/runner/package-lock.json backend/services/runner/
 WORKDIR /build/backend/services/runner
 RUN npm ci --legacy-peer-deps
 
 COPY backend/services/runner/ .
-RUN npm run build
+RUN npm run build:slim && rm dist-slim/meta.json && \
+    mkdir -p /build/slim && mv dist-slim/node_modules /build/slim/node_modules && \
+    mv dist-slim /build/slim/dist && \
+    find /build/slim -exec touch -h -d 1985-10-26T08:15:00Z {} +
 
-# ---------- Runtime (the cloud sandbox image) ----------
-FROM debian:bookworm-slim AS sandbox
+# ---------- The runner layer ----------
+# Everything Stigmer adds to a base image, under /runner and nowhere else,
+# as three layers ordered by how often they change: the Node binary alone
+# (no npm: the runner needs nothing else of it), the staged packages, the
+# bundles. Together they are the slim artifact's self-contained directory
+# at /runner/dist.
+FROM scratch AS runner-layer
 
-# TARGETARCH (amd64|arm64) is populated by BuildKit per platform leg —
-# needed by the yq download below, which is the only arch-named asset in
-# this stage (node/go/uv all resolve their arch via multi-arch images or
-# installer detection).
-ARG TARGETARCH
+COPY --from=node-runtime /usr/local/bin/node /runner/bin/node
+COPY --from=builder /build/slim/node_modules/ /runner/dist/node_modules/
+COPY --from=builder /build/slim/dist/ /runner/dist/
 
-# --- Node.js 22 LTS (copied from official image, not Debian's v18) ---
-COPY --from=node:22-slim /usr/local/bin/node /usr/local/bin/node
-COPY --from=node:22-slim /usr/local/lib/node_modules/ /usr/local/lib/node_modules/
-RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
-    ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+# ---------- The cloud sandbox image ----------
+# The default base plus the runner layer: the same three COPY lines as the
+# runner-layer stage (scripts/runner-launch-contract.test.mjs holds them
+# equal), so the image keeps the runner layer's three layers rather than
+# one, and a runner-only release changes only the bundles.
+FROM base AS sandbox
 
-# --- System packages ---
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        curl \
-        git \
-        jq \
-        unzip \
-        wget \
-        python3 \
-        python3-pip \
-        python3-venv \
-        yamllint \
-    && rm -rf /var/lib/apt/lists/*
-
-# --- Go 1.25 toolchain (for MCP servers via `go run`) ---
-COPY --from=golang:1.25-bookworm /usr/local/go /usr/local/go
-ENV PATH="/usr/local/go/bin:${PATH}"
-
-# Tool versions are pinned so a cached layer is never silently stale and an
-# upgrade is a reviewed one-line change (an unpinned download made every
-# build a different layer, and a cached one would never update).
-ARG UV_VERSION=0.12.18
-ARG YQ_VERSION=v4.53.6
-
-# --- uv / uvx (Python package runner for MCP servers) ---
-RUN curl -LsSf "https://astral.sh/uv/${UV_VERSION}/install.sh" | sh && \
-    mv /root/.local/bin/uv /usr/local/bin/uv && \
-    mv /root/.local/bin/uvx /usr/local/bin/uvx
-
-# --- yq (YAML processor) ---
-RUN curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${TARGETARCH}" \
-        -o /usr/local/bin/yq && \
-    chmod +x /usr/local/bin/yq
-
-# --- Unified runner (see the stage notes at the top for the layer order) ---
-COPY --from=deps /build/backend/services/runner/node_modules/ /runner/node_modules/
-COPY --from=libs /out/@stigmer/ /runner/node_modules/@stigmer/
-COPY --from=builder /build/backend/services/runner/dist/ /runner/dist/
-COPY --from=builder /build/backend/services/runner/package.json /runner/package.json
-
-WORKDIR /workspace
-
-CMD ["/bin/bash"]
+COPY --from=node-runtime /usr/local/bin/node /runner/bin/node
+COPY --from=builder /build/slim/node_modules/ /runner/dist/node_modules/
+COPY --from=builder /build/slim/dist/ /runner/dist/
 
 # ---------- Compose runner (the self-host stack's runner) ----------
 # The sandbox stage plus the stigmer CLI. Why the CLI: in the OSS/local
@@ -259,5 +280,6 @@ ENV HOME=/data
 
 # Compose is this image's control plane (the sandbox header's contract),
 # so the launch command is baked here rather than repeated in every
-# compose file. dist/main.js is the runner package's published bin entry.
-CMD ["node", "/runner/dist/main.js"]
+# compose file: the server's runner launch command (src/sandbox/runner-launch.ts,
+# whose test pins this line to it), the runner's own Node by absolute path.
+CMD ["/runner/bin/node", "/runner/dist/main.js"]

@@ -18,10 +18,9 @@
 //     a localhost-only app's secret has negligible value), and the env
 //     override treats an empty value as unset, so no configuration can blank
 //     them. The guard is live only on the cloud edition, whose config
-//     defaults to empty. The editions legitimately diverge here — the
-//     cross-edition disposition of this arm is an owner decision recorded in
-//     the sp.conformance-wave-1 sub-project, not silently encoded by this
-//     suite.
+//     defaults to empty. The editions legitimately diverge here, by the
+//     maintainers' decision, and this suite does not silently encode either
+//     side.
 //   - The exchange happy path and its Unavailable / GitHub-rejection arms
 //     dial github.com FOR REAL on a configured broker — and the OSS broker
 //     is always configured (above). A conformance run must never leave the

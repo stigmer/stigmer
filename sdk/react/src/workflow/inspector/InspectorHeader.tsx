@@ -27,8 +27,6 @@ export interface InspectorHeaderProps {
  *
  * Displays the task name (click-to-rename), kind badge with category color,
  * and a `...` overflow menu for structural actions (Duplicate, Delete, etc.).
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const InspectorHeader = memo(function InspectorHeader({
   identity,

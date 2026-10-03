@@ -51,20 +51,14 @@ export interface UseWorkflowExecutionListOptions {
   /**
    * Server-side filter criteria. When set, the backend filters
    * before returning results, reducing transfer size.
-   *
-   * @since T13 (Execution History)
    */
   readonly filter?: Partial<ExecutionFilterCriteria>;
   /**
    * Server-side sort field.
-   *
-   * @since T13 (Execution History)
    */
   readonly sortField?: ExecutionSortField;
   /**
    * When true, sorts ascending. Defaults to false (descending).
-   *
-   * @since T13 (Execution History)
    */
   readonly sortAscending?: boolean;
 }

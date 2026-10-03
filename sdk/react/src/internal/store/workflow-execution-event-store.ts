@@ -60,21 +60,21 @@ export interface DerivedTaskState {
   readonly messagesCount: number;
   readonly toolCallsCount: number;
   /**
-   * Truncated resolved-input summary from `task_started` (T04). `null`
+   * Truncated resolved-input summary from `task_started`. `null`
    * until the event arrives. Reference-stable across re-derivations: the
    * value is read off the SAME immutable stored event each walk, so
    * downstream identity compares (structural sharing) hold.
    */
   readonly inputSummary: JsonObject | null;
   /**
-   * Truncated output summary from `task_completed` (T04). `null` while
+   * Truncated output summary from `task_completed`. `null` while
    * running and reset on a restart. The FULL output lives on the status
    * snapshot (`status.tasks[].output`) — this is the live-stream preview
    * source only (the event deliberately truncates to prevent bloat).
    */
   readonly outputSummary: JsonObject | null;
   /**
-   * The `approval_requested` payload for a human_input gate (T06) — the
+   * The `approval_requested` payload for a human_input gate — the
    * review material (prompt, outcomes, form schema, payload/artifact ref,
    * ui hint) the gating card's in-thread review surface renders. `null`
    * until the event arrives; reset on a restart (a new attempt re-emits
@@ -84,7 +84,7 @@ export interface DerivedTaskState {
    */
   readonly approvalRequest: ApprovalRequestedPayload | null;
   /**
-   * The `approval_resolved` payload once the gate is decided (T06) —
+   * The `approval_resolved` payload once the gate is decided —
    * reviewer, comment, wait duration. Persists through the task's
    * remaining lifecycle (completed/failed) so the card's resolved-decision
    * summary survives settlement; reset on a restart. Reference-stable, as

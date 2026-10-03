@@ -2,7 +2,7 @@
 // Domain: conformance suites.
 //
 // Everything in this file is edition-unconditional: it needs no Temporal, no
-// clock, no runner. The trigger/resume refusal matrix (DD-014 D-B) is part of
+// clock, no runner. The trigger/resume refusal matrix is part of
 // the contract even where nothing can fire yet — the OSS server enforces
 // it ahead of its clock precisely so these negatives hold on both editions.
 // Coverage spans the full CRUD + query surface: create/delete, apply
@@ -103,7 +103,7 @@ describe("Schedule CRUD contract", () => {
   });
 });
 
-describe("Schedule trigger refusal matrix (DD-014 D-B — unconditional on every edition)", () => {
+describe("Schedule trigger refusal matrix (unconditional on every edition)", () => {
   it("[rpc:ScheduleCommandController.trigger] triggering a missing schedule is NotFound", async () => {
     await expectGrpcCode(
       () => clients.scheduleCommand.trigger({ value: "sch_01conformancemissing" }),

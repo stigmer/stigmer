@@ -34,31 +34,30 @@ interface ApiKeysPageProps {
  * area. Consumed by `quickstart-tour` (beat 0, reveal) and `api-key-setup`
  * (the whole creation flow).
  *
- * Depicts `ApiKeysSection` faithfully per phase (DD-004):
+ * Depicts `ApiKeysSection` faithfully per phase:
  *
  * - **idle**: heading + "+ New API key" + description + key list. The
  *   create control is chrome, not the real button — the real one is a
  *   `useState` flip inside `ApiKeysSection`, unreachable without
- *   live-driving (DD-006) — but it copies the shipped rendering: plain
+ *   live-driving — but it copies the shipped rendering: plain
  *   text, `text-primary`, shown only in this phase.
  * - **creating**: the button hides (as shipped), the real
  *   `CreateApiKeyForm` renders in its bordered card above the list.
  *   `initialName` depicts the form mid-fill; the form is keyed on it so a
- *   step change remounts to the new settled state (DD-006's blessed
+ *   step change remounts to the new settled state (the deterministic
  *   state-reset idiom — the input's text is internal `useState`).
  * - **reveal**: heading + description + the real `ApiKeyCreatedAlert`, and
  *   — one deliberate departure from the component's literal render — **no
  *   key list**. The shipped page would list the just-created key, but that
  *   row renders `formatShortDate(createdAt)` with no pinned locale (the
  *   rendered *format* varies per reader even though the frozen clock now
- *   pins the *instant* — the panel's `now` seam), and the alert-only
- *   depiction is the phase-2 content decision of record. Both consumers
- *   depend on this staying alert-only.
+ *   pins the *instant* — the panel's `now` seam), so the depiction is
+ *   alert-only, and both consumers depend on it staying so.
  *
  * Real components sit under `inert`: the form has a live submit path, the
  * alert a Copy button with a clipboard side effect, the list panel a fetch
- * — none reachable by a viewer mid-playback (DD-006). Chrome is plain CSS
- * on `--stgm-*` tokens (DD-003); the real components keep their own
+ * — none reachable by a viewer mid-playback. Chrome is plain CSS
+ * on `--stgm-*` tokens; the real components keep their own
  * compiled styles.
  */
 export function ApiKeysPage({ state }: ApiKeysPageProps) {

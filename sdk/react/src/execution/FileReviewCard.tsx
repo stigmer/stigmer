@@ -67,7 +67,7 @@ export interface FileReviewCardProps {
    * list (kind letter + linked path + `+N −M` + per-file controls) and the card
    * stays purely the decision surface. Decision semantics — digests, scopes,
    * acknowledgments — are identical in both modes; this is presentation only
-   * (opt-in with a backward-compatible default, DD-011).
+   * (opt-in with a backward-compatible default).
    */
   readonly showDiffs?: boolean;
   /**
@@ -115,8 +115,8 @@ export interface FileReviewCardProps {
  * option records a new decision (the backend reconcile is last-write-wins).
  *
  * A `binary-only` set (binary files are the only blocker) can be kept in one
- * action: the bulk button reads "Keep all" and carries the acknowledgment
- * (DD-17). A `blocked` set (something unavailable to review) cannot be approved
+ * action: the bulk button reads "Keep all" and carries the acknowledgment.
+ * A `blocked` set (something unavailable to review) cannot be approved
  * as a whole — the Approve button is disabled with an explanation, and the
  * per-file path is the escape: keep the reviewable files and discard the rest.
  *
@@ -124,7 +124,7 @@ export interface FileReviewCardProps {
  * `binary` change has no text diff to review; an `unavailable` change is one
  * whose diff isn't available at all, with the honest cause the runner recorded
  * (a secret path whose bytes were never captured, or a diff dropped to bound the
- * status — doc 15). Both are discard-only, and their Keep affordance is disabled
+ * status). Both are discard-only, and their Keep affordance is disabled
  * with the reason associated via `aria-describedby`. Files captured outside
  * normal git tracking (gitignored / non-git CAS) carry a small provenance badge
  * so the reviewer knows the change is not part of the repo's tracked history.
@@ -176,7 +176,7 @@ export const FileReviewCard = memo(function FileReviewCard({
 
   // The set-level reviewability drives the bulk affordance. A "binary-only" set
   // (binary files are the ONLY blocker) is keepable in one acknowledged action
-  // ("Keep all", DD-17); a "blocked" set (a secret/elided file with no keepable
+  // ("Keep all"); a "blocked" set (a secret/elided file with no keepable
   // bytes) can never be approved at once and must be resolved per file.
   const reviewability = changeSetReviewability(fileChangeSet);
   const incomplete = reviewability !== "complete";
@@ -190,7 +190,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   // The bulk (CHANGE_SET) controls live on the bar for multi-file sets and for a
   // single complete file; they are hidden for a single incomplete file, whose
   // only honest decision is the per-file control in the expanded body (a single
-  // binary uses its per-file "Keep anyway" — DD-16 — and a blocked lone file can
+  // binary uses its per-file "Keep anyway" — and a blocked lone file can
   // only be discarded).
   const showBulkControls = total > 1 || !incomplete;
 
@@ -228,7 +228,7 @@ export const FileReviewCard = memo(function FileReviewCard({
       // reviewer saw (the enforcement gate the runner re-verifies at reconcile).
       // A "Keep all" on a binary-only set carries the acknowledgment: the
       // binaries have no text diff but reconcilable bytes, so the user
-      // consciously keeps the whole set (DD-17). The server honors it only when
+      // consciously keeps the whole set. The server honors it only when
       // every incompleteness is binary and never relaxes the digest gate.
       onSubmit?.(action, {
         scope: FileDecisionScope.CHANGE_SET,
@@ -245,8 +245,8 @@ export const FileReviewCard = memo(function FileReviewCard({
       // file's digest (echoed verbatim — the server compares it against the same
       // captured value, so it can never spuriously mismatch). A "Keep anyway" on a
       // binary file carries the acknowledgment: it has no text diff, but its exact
-      // bytes are captured and reconcilable, so the user consciously keeps it
-      // (DD-16). The server honors this only for a binary file and never relaxes
+      // bytes are captured and reconcilable, so the user consciously keeps it.
+      // The server honors this only for a binary file and never relaxes
       // the digest gate.
       onSubmit?.(action, {
         scope: FileDecisionScope.FILE,
@@ -277,7 +277,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   }, [changes]);
 
   // Which non-reviewable classes are present in the set — folded once (memoized
-  // like `totals`, DD-010) so the blocked-set copy is accurate to what's actually
+  // like `totals`) so the blocked-set copy is accurate to what's actually
   // here (never the generic "binary or truncated").
   const blockSummary = useMemo(() => {
     let hasBinary = false;
@@ -295,7 +295,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   const incompleteNoticeId = useId();
 
   const labels = bulkLabels(total, decidedCount, binaryOnly);
-  // A set the DD-28 policy kept (every change produced by a command the user
+  // A set the auto-keep policy kept (every change produced by a command the user
   // already approved) says so explicitly: consent was given at the command
   // gate, and the record must never read as if a human reviewed it here.
   const autoKept = !interactive && isPolicyAutoKept(fileChangeSet);
@@ -476,7 +476,7 @@ export const FileReviewCard = memo(function FileReviewCard({
 });
 
 /**
- * Whether the set was kept by the approved-command auto-keep policy (DD-28):
+ * Whether the set was kept by the approved-command auto-keep policy:
  * some decision carries origin POLICY_APPROVED_COMMAND. Origin is audit
  * provenance — the record label derives from it so an automatic keep is never
  * presented as a human review.
@@ -762,7 +762,7 @@ interface FileVerdictControlProps {
  *
  * `Keep` behavior by reviewability: a `reviewable` file keeps normally; a
  * `binary` file has no text diff but reconcilable bytes, so `Keep` is enabled as
- * an explicit "Keep anyway" that carries the acknowledgment (DD-16); an
+ * an explicit "Keep anyway" that carries the acknowledgment; an
  * `unavailable` file (secret-withheld / size-elided) has no keepable bytes, so
  * `Keep` stays disabled — it can only be discarded. `describedById` associates
  * the group with the note explaining the binary/unavailable case.
@@ -929,7 +929,7 @@ function CaptureBadge({ change }: { change: CapturedFileChange }) {
  * control via `aria-describedby`. Honest per {@link fileReviewability}: a `binary`
  * change has no text diff but is keepable-as-bytes (an explicit "Keep anyway"); an
  * `unavailable` change's diff cannot be shown at all and is discard-only, with the
- * specific cause the runner recorded (secret-withheld vs size-dropped, doc 15). A
+ * specific cause the runner recorded (secret-withheld vs size-dropped). A
  * reviewable file renders no note.
  */
 function BlockReasonNote({
@@ -976,7 +976,7 @@ function blockReasonText(reviewability: FileReviewability): string | null {
  * present (never the generic "binary or truncated"). Unavailable is reported
  * ahead of binary because it is the stronger "nothing to see" signal.
  *
- * A `binaryOnly` set is the keepable case (DD-17): binary files are the only
+ * A `binaryOnly` set is the keepable case: binary files are the only
  * blocker, so the copy explains that "Keep all" is available rather than saying
  * the set can't be approved. A `blocked` set (something unavailable) keeps the
  * discard-oriented copy.
@@ -1047,7 +1047,7 @@ function deriveFileVerdicts(
 
 /**
  * The whole-set action labels, sharpened by file count and review progress. A
- * `binaryOnly` set (DD-17) reads as "Keep all" rather than "Approve all": the
+ * `binaryOnly` set reads as "Keep all" rather than "Approve all": the
  * bulk keep carries the binary acknowledgment, and "Keep" is the same verb the
  * per-file binary control uses ("Keep anyway").
  */

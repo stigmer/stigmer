@@ -85,7 +85,7 @@ export function PlanStreamingDocument({
 
 /**
  * The pill's pulsing dot — a CSS animation inside `.stgm`, covered by the
- * stylesheet's global `prefers-reduced-motion` rule (DD-015).
+ * stylesheet's global `prefers-reduced-motion` rule.
  */
 function WritingDot() {
   return (

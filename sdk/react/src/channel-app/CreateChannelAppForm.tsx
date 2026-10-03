@@ -94,7 +94,7 @@ export function CreateChannelAppForm({
   const [signingSecret, setSigningSecret] = useState("");
 
   // WhatsApp credentials (Meta app dashboard). The verify token is
-  // customer-authored like every WhatsApp credential (DD-WA-3) —
+  // customer-authored like every WhatsApp credential —
   // pre-generated here as a strong default, editable for users bringing
   // their own.
   const [appId, setAppId] = useState("");

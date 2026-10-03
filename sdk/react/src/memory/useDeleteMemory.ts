@@ -21,7 +21,7 @@ export interface UseDeleteMemoryReturn {
  * Behavior hook that wraps `memory.delete()`.
  *
  * Deletion works in any lifecycle state — it is never refused on
- * lifecycle grounds (DD-004) — and is the revocation mechanism for
+ * lifecycle grounds — and is the revocation mechanism for
  * confirmed facts: the fact stops reaching future sessions immediately.
  * Past executions keep their immutable recall snapshots.
  *

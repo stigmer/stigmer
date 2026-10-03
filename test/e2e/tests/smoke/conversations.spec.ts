@@ -17,7 +17,7 @@ import { isAuthGate } from "../../helpers/auth-gate";
 //   so the static-export placeholder mechanism never engages here.
 // - Deployed (STIGMER_E2E_BASE_URL): the serving layer — nginx must answer
 //   a cold deep link with the conversations placeholder document, not the
-//   home page (the channel-conversations F-12 blank-page failure). That is
+//   home page (the blank-page failure this guards). That is
 //   decidable from the raw document before any login, so it runs against
 //   the auth-gated production deployment where the app-layer assertions
 //   cannot (they bail at the auth gate, by design).

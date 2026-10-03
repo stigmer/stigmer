@@ -10,7 +10,7 @@ import { ToolKind } from "@stigmer/sdk";
 import { ApprovalCard, ApprovalCardBody } from "../ApprovalCard";
 
 // Under apply-then-review the deny-gate carries no captured `file_changes`
-// (message.proto field 14 was removed in Phase 5 Slice 4); the gate renders the
+// (message.proto field 14 was removed); the gate renders the
 // proposed change from the tool args. Captured file review renders via
 // FileReviewCard, tested separately.
 
@@ -82,7 +82,7 @@ describe("ApprovalCard chrome", () => {
     expect(occurrences).toBe(1);
   });
 
-  it("states on a shell gate that the command's files are covered by the approval (DD-28)", () => {
+  it("states on a shell gate that the command's files are covered by the approval", () => {
     // Consent at grant time: approving the command covers its file effects
     // (the approved-command auto-keep), so the card says so up front — the user
     // never discovers a second gate they weren't told about, nor gets one.

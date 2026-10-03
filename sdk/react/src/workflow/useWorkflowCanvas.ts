@@ -178,14 +178,12 @@ export interface UseWorkflowCanvasReturn {
  * Orchestrator hook for the workflow canvas editor.
  *
  * Manages the {@link WorkflowGraphModel} through a command/history pipeline
- * (AD-T15-B2-001). Structural mutations (add/delete nodes and edges) go
+ * so every edit is undoable. Structural mutations (add/delete nodes and edges) go
  * through {@link GraphCommand}s dispatched to the history. React Flow state
  * is derived from the model after each mutation.
  *
  * @param yaml - The workflow YAML to initialize from. Changes trigger re-parse.
  * @param options - Optional configuration including a custom layout engine.
- *
- * @since T15 (Visual Canvas Editor)
  */
 export function useWorkflowCanvas(
   yaml: string | null,
@@ -346,7 +344,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Connection validation (AD-T15-B2-004)
+  // Connection validation
   // ---------------------------------------------------------------------------
 
   const isValidConnection: IsValidConnection = useCallback(
@@ -482,8 +480,8 @@ export function useWorkflowCanvas(
         };
         const next = dispatch(new AddNodeCommand(node, autoEdge));
 
-        // AD-T03-006: removed rAF→dagre→history.reset() pattern.
-        // The node is already positioned at the drop coordinates.
+        // No automatic re-layout here: the node is already positioned at the
+        // drop coordinates.
         // Users trigger auto-layout explicitly when they want a clean graph.
       } else if (taskNodes.length === 0) {
         const autoEdge = {
@@ -547,7 +545,7 @@ export function useWorkflowCanvas(
   const registry = useTaskKindRegistry();
 
   // ---------------------------------------------------------------------------
-  // Inspector mutation methods (AD-T15-B3-001)
+  // Inspector mutation methods
   // ---------------------------------------------------------------------------
 
   const updateNodeField = useCallback(
@@ -608,7 +606,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Branch routing methods (AD-T15-B4: edge-config sync for switch_case/human_input)
+  // Branch routing methods (edge-config sync for switch_case/human_input)
   // ---------------------------------------------------------------------------
 
   const updateBranchRouting = useCallback(
@@ -691,7 +689,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Insert task on edge (AD-T15-UX: "+" button affordance)
+  // Insert task on edge (the "+" button affordance)
   // ---------------------------------------------------------------------------
 
   const insertTaskOnEdge = useCallback(
@@ -743,7 +741,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Add successor task (AD-T01: "+" button on node)
+  // Add successor task (the "+" button on a node)
   // ---------------------------------------------------------------------------
 
   const addSuccessorTask = useCallback(
@@ -813,7 +811,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Duplicate node (AD-T05: context menu duplicate)
+  // Duplicate node (context menu duplicate)
   // ---------------------------------------------------------------------------
 
   const duplicateNode = useCallback(
@@ -835,7 +833,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Toggle node disabled (T10: Inspector actions)
+  // Toggle node disabled (Inspector actions)
   // ---------------------------------------------------------------------------
 
   const toggleNodeDisabled = useCallback(
@@ -850,7 +848,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Wrap in try/catch (T10: Inspector actions)
+  // Wrap in try/catch (Inspector actions)
   // ---------------------------------------------------------------------------
 
   const wrapInTryCatch = useCallback(
@@ -870,7 +868,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Add node at position (AD-T05: pane context menu "Add Task")
+  // Add node at position (pane context menu "Add Task")
   // ---------------------------------------------------------------------------
 
   const addNodeAtPosition = useCallback(
@@ -891,7 +889,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Branch-specific insertion (T08)
+  // Branch-specific insertion
   // ---------------------------------------------------------------------------
 
   const addSwitchCase = useCallback(
@@ -916,7 +914,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Branch management (T09)
+  // Branch management
   // ---------------------------------------------------------------------------
 
   const removeSwitchCase = useCallback(
@@ -985,7 +983,7 @@ export function useWorkflowCanvas(
   const getGraphModel = useCallback(() => history.currentModel, [history.currentModel]);
 
   // ---------------------------------------------------------------------------
-  // Select all (AD-T05: pane context menu "Select All")
+  // Select all (pane context menu "Select All")
   // ---------------------------------------------------------------------------
 
   const selectAll = useCallback(() => {
@@ -1018,7 +1016,7 @@ export function useWorkflowCanvas(
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Auto-layout (AD-T03-002: dispatches MoveNodesCommand for undo support)
+  // Auto-layout (dispatches MoveNodesCommand for undo support)
   // ---------------------------------------------------------------------------
 
   const { layoutGraph, isLayouting } = useWorkflowLayout({
@@ -1059,7 +1057,7 @@ export function useWorkflowCanvas(
   }, [history, dispatch, layoutGraph]);
 
   // ---------------------------------------------------------------------------
-  // Clipboard (T11: internal copy/paste)
+  // Clipboard (internal copy/paste)
   // ---------------------------------------------------------------------------
 
   const clipboardRef = useRef<ClipboardEntry | null>(null);
@@ -1113,7 +1111,7 @@ export function useWorkflowCanvas(
   }, [copySelection, getSelectedNodeIds, nodes, onNodesDelete]);
 
   // ---------------------------------------------------------------------------
-  // Batch operations for multi-selection (T11)
+  // Batch operations for multi-selection
   // ---------------------------------------------------------------------------
 
   const duplicateSelection = useCallback(() => {
@@ -1299,5 +1297,5 @@ export function useWorkflowCanvas(
 }
 
 // ---------------------------------------------------------------------------
-// Synchronous dagre layout — delegated to shared utility (T04 extraction)
+// Synchronous dagre layout — delegated to a shared utility
 // ---------------------------------------------------------------------------

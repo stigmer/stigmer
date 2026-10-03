@@ -47,7 +47,7 @@ const COMPOSER_ENABLED_PHASES: ReadonlySet<RefinePhase> = new Set([
  *
  * Powered by the Organization's Workflow Architect agent via
  * {@link useRefineWorkflowFlow}. Styled via `--stgm-*` design tokens.
- * Zero console dependencies (DD-004).
+ * Zero console dependencies.
  */
 export function WorkflowRefinePanel({
   org,

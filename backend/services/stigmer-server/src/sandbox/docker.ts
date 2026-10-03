@@ -48,15 +48,9 @@ import {
   SANDBOX_SCOPE_LABEL,
   sandboxBaseName,
 } from "./naming.js";
+import { runnerCommand } from "./runner-launch.js";
 
 const execFileAsync = promisify(execFile);
-
-/**
- * The runner entrypoint inside the sandbox image — the image's CMD is
- * /bin/bash by design (Dockerfile.sandbox: the provisioner sets the
- * command, exactly as the cloud pod spec does).
- */
-const RUNNER_CONTAINER_COMMAND = ["node", "/runner/dist/main.js"];
 
 /** The in-container workspace mount point (the cloud manifest's value). */
 const CONTAINER_WORKSPACE_DIR = "/workspace";
@@ -113,7 +107,9 @@ export function buildDockerRun(
   };
   if (env.stigmerToken !== "") secretEnv["STIGMER_TOKEN"] = env.stigmerToken;
   for (const name of Object.keys(secretEnv)) args.push("--env", name);
-  args.push(config.runnerImage, ...RUNNER_CONTAINER_COMMAND);
+  // The image's CMD is /bin/bash by design; the driver sets the command,
+  // exactly as the Kubernetes pod spec does.
+  args.push(config.runnerImage, ...runnerCommand());
   return { args, secretEnv };
 }
 

@@ -1,4 +1,4 @@
-// Conformance suite for the McpServer OAuth initiate lanes (CW-1, Class A).
+// Conformance suite for the McpServer OAuth initiate lanes (Class A).
 // Domain: agentic / mcpserver — the connect/OAuth facet, engine-free half.
 //
 // Pins initiateOAuthConnect (both arms: DCR and vendor), the Layer-1 input
@@ -472,8 +472,8 @@ describe("McpServer OAuth conformance — grant-free reads", () => {
   });
 
   it("[rpc:McpServerCommandController.disconnectOAuth] disconnectOAuth is idempotent: no grant answers disconnected=false, not an error", async () => {
-    // The probe targets a REAL owned server (the wave-2 real-owned-resource
-    // convention): on the multi-tenant edition a fabricated id fails closed
+    // The probe targets a REAL owned server (the real-owned-resource
+    // convention, #851): on the multi-tenant edition a fabricated id fails closed
     // in authorization (PermissionDenied, no existence leak) before the
     // handler runs, so only an owned server reaches the shared idempotence
     // contract on both editions — which is also the stronger assertion: a

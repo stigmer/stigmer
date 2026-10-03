@@ -57,9 +57,9 @@ const DOCS_URL = "https://vendor.example.com/oauth-docs";
  * An oauth_only vendor-OAuth server whose platform OAuth app is blocked.
  * `withAppRef` controls the BYOA arm: with a ref and no org override,
  * `canBringOwnApp` is true. The org-override state itself comes from the
- * `getOrgOAuthApp` transport handler (client-side derivation,
- * stigmer-cloud#401) — status.oauth_status carries only the
- * vendor-approval fields, matching what backends actually populate.
+ * `getOrgOAuthApp` transport handler (a client-side derivation) —
+ * status.oauth_status carries only the vendor-approval fields, matching
+ * what backends actually populate.
  */
 function buildBlockedOAuthOnlyServer(options: {
   status: VendorApprovalStatus;
@@ -216,8 +216,8 @@ describe("McpServerConnectDialog — oauth_only + vendor-blocked", () => {
 
   it("enables sign-in with the org's own app when a BYOA override is active", async () => {
     // The platform app is still vendor-blocked, but the org brought its
-    // own approved app — the block describes an app sign-in won't use
-    // (stigmer-cloud#401). Before the client-side derivation this state
+    // own approved app — the block describes an app sign-in won't use.
+    // Before the client-side derivation this state
     // was a dead end: disabled button AND no way forward.
     renderWithTransport(
       <McpServerConnectDialog
@@ -313,7 +313,7 @@ describe("McpServerDetailView — oauth_only + vendor-blocked", () => {
   it("enables 'Sign in with your app' when the org's BYOA override is active", async () => {
     // The vendor block gates the PLATFORM app; with the org's own app
     // effective, sign-in must be enabled and the BYOA CTA retired
-    // (stigmer-cloud#401 — the signal these gates key on never fired).
+    // (the server-side signal these gates once keyed on never fired).
     renderWithTransport(
       <McpServerDetailView
         org={ORG}

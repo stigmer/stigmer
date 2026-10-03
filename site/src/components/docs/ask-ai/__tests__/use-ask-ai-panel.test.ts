@@ -38,7 +38,7 @@ describe("useAskAiPanel", () => {
 
     rerender();
 
-    // Context consumers memoize against this object (DD-010 discipline);
+    // Context consumers memoize against this object (reference stability);
     // churn here re-renders every trigger on every unrelated update.
     expect(result.current).toBe(first);
   });

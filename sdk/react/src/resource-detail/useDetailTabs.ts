@@ -8,7 +8,7 @@ import type { AdditionalTab } from "./types.js";
  * Return type for the internal detail tabs hook.
  *
  * When `effectiveTabs` is `undefined`, the consumer should NOT render
- * a tab bar (single-tab suppression per DD-T05A-002).
+ * a tab bar (single-tab suppression).
  */
 export interface UseDetailTabsReturn {
   /** Tab items to pass to ResourceDetailShell. `undefined` = suppress tab bar. */
@@ -38,12 +38,12 @@ interface UseDetailTabsOptions {
  * Internal hook that manages tab state for detail view components.
  *
  * Implements the uncontrolled-by-default / controlled-when-specified
- * pattern (DD-T05A-001):
+ * pattern:
  * - When both `activeTab` and `onTabChange` are provided, the component
  *   operates in controlled mode (consumer owns the state).
  * - Otherwise, the component manages its own internal tab state.
  *
- * Single-tab suppression (DD-T05A-002):
+ * Single-tab suppression:
  * - When only one tab exists (no additionalTabs), `effectiveTabs` is
  *   `undefined` so the consumer skips rendering the tab bar entirely.
  */

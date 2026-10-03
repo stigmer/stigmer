@@ -8,7 +8,7 @@ import {
   getNodeVisualClass,
 } from "../../helpers/workflow-canvas";
 
-test.describe("Workflow node visual classes (T01)", () => {
+test.describe("Workflow node visual classes", () => {
   test("canvas nodes have data-visual-class attributes", async ({
     page,
     testMultiKindWorkflow,
@@ -178,7 +178,7 @@ test.describe("Workflow node visual classes (T01)", () => {
   });
 });
 
-test.describe("Workflow node shape rendering (T02)", () => {
+test.describe("Workflow node shape rendering", () => {
   test("decision-diamond renders an SVG shape element", async ({
     page,
     testMultiKindWorkflow,

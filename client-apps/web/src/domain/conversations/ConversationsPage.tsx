@@ -28,12 +28,12 @@ function parseSelection(path: string): ConversationIdentity | null {
 }
 
 /**
- * The Conversations area (channel-conversations T04) — a thin shell over
- * the SDK's `ConversationsWorkbench` (DD-002: zero domain logic here).
+ * The Conversations area — a thin shell over the SDK's
+ * `ConversationsWorkbench` (zero domain logic here).
  * This file owns exactly three console concerns: mapping selection onto
  * the URL through the app's single navigation source of truth, mounting
  * the CHANNEL access trigger (participant grants are per channel, never
- * per conversation — DD-010 D-c / F-11) in the workbench's header seam,
+ * per conversation) in the workbench's header seam,
  * and routing the header's channel link to the owning agent's Channels
  * tab (channels have no standalone page).
  */
@@ -70,7 +70,7 @@ export function ConversationsPage() {
                     id: selected.agentChannelId,
                     org,
                     // The dialog's subtitle names the channel — the
-                    // scope every grant covers (F-11).
+                    // scope every grant covers.
                     name: channel?.metadata?.name || channel?.metadata?.slug,
                   }}
                   label="Channel access"

@@ -36,7 +36,7 @@ function createWrapper(whoAmI: ReturnType<typeof vi.fn>, mode: DeploymentMode = 
 afterEach(cleanup);
 
 describe("useAccountExecutionDefaults", () => {
-  it("reads the account in local mode — the open-source server serves identity accounts (20260911.11)", async () => {
+  it("reads the account in local mode — the open-source server serves identity accounts", async () => {
     // Before the tier flip this hook stayed idle on a local server. The
     // operator account exists there since the domain moved into
     // @stigmer/server, so a laptop's saved defaults seed the composer too.

@@ -61,7 +61,7 @@ export interface SubAgentSectionProps {
  * the sub-agent's internal messages and tool calls — the same
  * building blocks used by the top-level {@link MessageThread}.
  *
- * Wrapped in `React.memo` — structural sharing (T04) preserves the
+ * Wrapped in `React.memo` — structural sharing preserves the
  * `SubAgentExecution` reference when the sub-agent's state is
  * unchanged, so completed sub-agents skip re-renders entirely.
  *

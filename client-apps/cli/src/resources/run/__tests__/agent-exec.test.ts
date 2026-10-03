@@ -171,7 +171,7 @@ describe("executeResolvedAgent", () => {
     const sent = creates();
     expect(sent).toHaveLength(1);
     expect(sent[0]?.spec?.sessionSpec?.harness).toBe(Harness.CURSOR);
-    // D2 visibility: a cursor session must announce itself before streaming —
+    // Harness visibility: a cursor session must announce itself before streaming —
     // whether the flag or the account preference selected it.
     expect(stderrLines.join("")).toContain("Harness:");
     expect(stderrLines.join("")).toContain("Cursor");

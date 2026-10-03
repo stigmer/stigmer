@@ -1,5 +1,5 @@
 /**
- * @regression file-hitl-phase0 — pins git capture mode: a no-commit tree-ref
+ * @regression file-hitl-gate — pins git capture mode: a no-commit tree-ref
  * snapshot and restore with one card per changed file; edits stay applied
  * through the WAITING-to-resume boundary and the resume reconciles to the
  * pinned refs.

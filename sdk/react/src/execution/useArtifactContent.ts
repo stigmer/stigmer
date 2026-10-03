@@ -100,7 +100,7 @@ export interface UseArtifactContentReturn {
  *   When the same file is overwritten during execution, the `storageKey` stays
  *   stable but `contentHash` changes, triggering a re-fetch so the UI never
  *   shows stale content. Pass `undefined` or omit for backwards compatibility.
- * @param cacheKey - Optional cross-mount cache key (DD-014). When set, a remount
+ * @param cacheKey - Optional cross-mount cache key. When set, a remount
  *   with the same key renders the previously-fetched content instantly and
  *   refetches in the background (no skeleton flash) — used by the artifact
  *   document so switching back to a recently-viewed tab is instant. Omit for the

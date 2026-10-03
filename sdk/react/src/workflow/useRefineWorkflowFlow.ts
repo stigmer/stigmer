@@ -86,7 +86,7 @@ const MIN_INSTRUCTION_LENGTH = 5;
  * The `currentYaml` prop is captured at send-time (ref-based, not reactive)
  * and included in the message only when it differs from the last-sent version.
  *
- * Framework-agnostic (DD-004), referentially stable returns (DD-010).
+ * Framework-agnostic, referentially stable returns.
  *
  * @example
  * ```tsx
@@ -318,7 +318,7 @@ export function useRefineWorkflowFlow(
   }, []);
 
   // -------------------------------------------------------------------------
-  // Referentially stable return (DD-010)
+  // Referentially stable return
   // -------------------------------------------------------------------------
   return useMemo(
     () => ({

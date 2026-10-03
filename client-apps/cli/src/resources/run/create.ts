@@ -1,8 +1,8 @@
 // Resource creation for the run path: AgentExecution and WorkflowExecution.
 //
 // Ports the Go CLI's run_create.go. We build the full proto messages and drive
-// the generated command controllers directly — the Wave-2 fidelity rule (see
-// resources/apply/handlers.ts): the SDK's typed `create(input)` wrappers model a
+// the generated command controllers directly — the fidelity rule
+// resources/apply/handlers.ts states: the SDK's typed `create(input)` wrappers model a
 // subset of fields, and our attachments/workspace entries are already proto
 // messages, so a round-trip through the input types would be lossy and pointless.
 

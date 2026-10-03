@@ -4,7 +4,7 @@
 // plan, run the confirmation interaction, then perform and render. The plan
 // (resources/delete.ts) owns what to delete and how to describe it; this file
 // owns only the prompt flow and stream wiring. Heavy modules are lazy-imported
-// inside the action so `--help` stays fast (DD-001).
+// inside the action so `--help` stays fast.
 
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";

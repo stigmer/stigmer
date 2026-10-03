@@ -11,11 +11,11 @@
 //    `max-w-3xl`, ~720px of content), the table fits WITHOUT horizontal
 //    scroll and the member column keeps enough width to render typical
 //    emails whole.
-// 2. In a narrower host (the SDK component is embeddable at any width,
-//    DD-004), the grid's min-width guard turns crushing into horizontal
+// 2. In a narrower host (the SDK component is embeddable at any width),
+//    the grid's min-width guard turns crushing into horizontal
 //    scrolling — the member column never collapses.
 //
-// Like the provider layout suite (DD-019), this renders against the
+// Like the provider layout suite, this renders against the
 // SHIPPED stylesheet (`dist/styles.css`, built by `npm run build:libs`),
 // so the contract is verified on the artifact consumers actually load.
 

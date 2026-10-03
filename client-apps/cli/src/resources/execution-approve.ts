@@ -3,10 +3,10 @@
 // Mirrors Go's execution.ApproveWorkflow / ApproveAgent (approve.go), with two
 // deliberate corrections over the Go behavior:
 //
-//   - D-EX-1 (fixed here): the agent `--comment` is carried onto
+//   - Fixed here: the agent `--comment` is carried onto
 //     SubmitApprovalInput.comment. The field exists on the proto; Go accepted the
 //     flag then dropped it. We thread it through.
-//   - D-EX-2 (match Go, backend follow-up): the workflow `reviewer` field is left
+//   - Matched, with a backend follow-up: the workflow `reviewer` field is left
 //     unset by the client. Reviewer is an audit identity and must be attributed
 //     server-side from the authenticated principal — a client-supplied identity
 //     is spoofable. The backend follow-up is to populate it from the token.
@@ -48,7 +48,7 @@ export interface ApproveAgentOptions {
   readonly comment: string;
 }
 
-/** Submit an agent tool-call approval. `--comment` is carried through (D-EX-1). */
+/** Submit an agent tool-call approval. `--comment` is carried through. */
 export async function approveAgentToolCall(client: Stigmer, opts: ApproveAgentOptions): Promise<void> {
   await client.agentExecution.submitApproval(
     create(SubmitApprovalInputSchema, {

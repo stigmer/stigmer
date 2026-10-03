@@ -23,7 +23,7 @@ export interface WorkflowExecutionHeaderProps {
   readonly onCompare?: () => void;
   /**
    * Host-supplied action elements rendered at the trailing edge of the
-   * header (e.g. a Share control). Kept routing/auth-agnostic per DD-004 —
+   * header (e.g. a Share control). Kept routing/auth-agnostic —
    * the SDK renders the slot; the host owns its behavior.
    */
   readonly headerActions?: ReactNode;

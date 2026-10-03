@@ -1,7 +1,7 @@
 // Local execution target: the OSS server + Temporal + TS runner (Class B).
-// Born as local-ts-execution during the TS rewrite (stigmer-cloud program
-// 20260822.01, D4 #18) and renamed to plain `local-execution` when the Go
-// server retired (D4 #25) — there is one local implementation now.
+// Born as local-ts-execution during the TS rewrite and renamed to plain
+// `local-execution` when the Go server retired — there is one local
+// implementation now.
 // Domain: conformance targets (execution engine).
 //
 // Boot order is load-bearing: Temporal must be up before the server (so the
@@ -48,9 +48,10 @@ export class LocalExecutionTarget implements TargetProfile {
   // Same empty composition as `local`, with an engine behind it; having an
   // engine changes no edition. local-postgres-execution inherits it.
   readonly edition: ServerEdition = ServerEdition.oss;
-  // The retired local-go-execution matrix plus exactly ONE deliberate
-  // difference: workflowChildApprovalForwarding is true here (the D4
-  // ratified parity-plus delta, #23) where the Go server never sent it.
+  // The open-source matrix of `local`, with the flags an engine makes true:
+  // workflowChildApprovalForwarding, scheduleFiring and runnerActsAsRunCreator.
+  // versionTagging still reads false here although the server implements it
+  // (stigmer#1804); the execution class runs no suite that reads it.
   readonly capabilities: CapabilityFlags = {
     multiTenant: false,
     // Trusted-local primary, as `local`; the enforcing lane is an OIDC
@@ -61,34 +62,34 @@ export class LocalExecutionTarget implements TargetProfile {
     organizationEnumeration: true,
     versionTagging: false,
     skillArtifactTransferLane: true,
-    // True since D4 #23: this server's agent-execution workflow emits the
-    // child_approval_required signal from its HITL loop (DD-012 identity-only
-    // sender), so a gated agent_call child surfaces at the parent workflow's
-    // pending_approvals. The retired Go OSS server never sent it — this was
-    // the one ratified capability divergence of the TS port.
+    // This server's agent-execution workflow emits the
+    // child_approval_required signal from its HITL loop (an identity-only
+    // signal), so a gated agent_call child surfaces at the parent workflow's
+    // pending_approvals. The retired Go OSS server never sent it.
     workflowChildApprovalForwarding: true,
-    // True since D4 #22 ported the schedule clock (tick workflow +
-    // reconciler on the schedule_stigmer queue).
+    // The schedule clock runs here (tick workflow + reconciler on the
+    // schedule_stigmer queue).
     scheduleFiring: true,
     // The open-source runner presents each run's own credential and the
     // built-in verifier admits its bearer as the run's human; proven on
     // this target's enforcing lane, whose runner is keyed with the
     // founder's API key (stigmer#1138).
     runnerActsAsRunCreator: true,
-    // Single-tenant OSS: the reserved-label write guard is cloud-only
-    // (stigmer-cloud#320), so the caller may create labeled candidates.
+    // Single-tenant OSS: the reserved-label write guard is cloud-only, so the
+    // caller may create labeled candidates.
     clientReservedLabelWrites: true,
     firstPartyMemoryCapture: true,
-    // No channel runtime in this edition (T02 §0-b): the engine this target
+    // No channel runtime in this edition: the engine this target
     // provisions is the agent/workflow execution engine, not a channel
     // delivery runtime — the refusal posture is identical to `local`.
     channelMessaging: false,
     // The org BYOA lane is UNIMPLEMENTED on OSS by design (stigmer#558) —
     // the suite pins the three refusals here.
     orgOAuthAppConfiguration: false,
-    // No billing engine at all — executions run unmetered (DD-001 boundary).
+    // No billing engine at all — executions run unmetered (the edition
+    // boundary).
     billingGates: false,
-    // The cloud-capability surfaces (E1): absent by DD-001, as on local.
+    // The cloud-capability surfaces: absent by the same boundary, as on local.
     billingLedger: false,
     billingPlans: false,
     sideChannelProxy: false,
@@ -132,16 +133,15 @@ export class LocalExecutionTarget implements TargetProfile {
     //    engine-state provider if the frontend is serving already.
     this.temporal = await spawnTemporal();
 
-    // 2. The TS server (node entry, same env contract as the Go binary),
-    //    pointed at the live Temporal frontend, on its own storage.
+    // 2. The TS server (node entry), pointed at the live Temporal frontend,
+    //    on its own storage. Its schedule failure-streak override,
+    //    STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES=2, makes the auto-pause
+    //    provable in two fires.
     this.storage = await this.provisionStorage();
     this.server = await spawnServer(process.execPath, {
       args: [entry],
       temporalHostPort: this.temporal.hostPort,
       env: {
-        // The schedule failure-streak override the Go target pins — makes
-        // the auto-pause provable in two fires (active since #22 ported
-        // the schedule clock).
         STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES: "2",
         ...this.storage.serverEnv,
       },
@@ -180,7 +180,7 @@ export class LocalExecutionTarget implements TargetProfile {
   // over the harness's DB_PATH — the documented config precedence).
   // EVERYTHING else about the target is inherited, so the capability
   // matrix is byte-identical by construction, not by copy discipline
-  // (DD-011: the driver must be wire-invisible).
+  // (the storage driver must be wire-invisible).
   protected async provisionStorage(): Promise<ProvisionedStorage> {
     return ephemeralSqliteStorage();
   }

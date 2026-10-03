@@ -25,7 +25,7 @@ function mcpToolCall(outputRef: ReturnType<typeof create<typeof ToolCallOutputRe
   });
 }
 
-describe("McpToolDetail — offloaded output (DD-016 parity)", () => {
+describe("McpToolDetail — offloaded output", () => {
   it("renders an offloaded image from a freshly minted URL", async () => {
     const getArtifactDownloadUrl = vi
       .fn()

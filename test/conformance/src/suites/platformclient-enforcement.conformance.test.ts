@@ -10,7 +10,7 @@
 //
 // The minting client's contract, on every serving-edge request a user token
 // bears:
-//   - deletion-revocation (stigmer-cloud#342): deleting the platform client
+//   - deletion-revocation: deleting the platform client
 //     revokes its outstanding user tokens on the NEXT request — refused
 //     UNAUTHENTICATED, fail closed;
 //   - Origin vs allowed_origins (stigmer/stigmer#375): a browser request

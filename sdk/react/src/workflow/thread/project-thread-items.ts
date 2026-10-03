@@ -2,17 +2,15 @@
  * Pure projection from the event store's derived task-state map to the
  * ordered card list the workflow task thread renders.
  *
- * Deliberately NOT a second event-log derivation (D-T02-4): the event log
+ * Deliberately NOT a second event-log derivation: the event log
  * already has its canonical walk (`deriveTaskStates` in the store). This
  * module only re-shapes the store's cached map. Thread order is the map's
  * insertion order, which
  * `deriveTaskStates` builds in first-event order (`Map.set` on an existing
- * key preserves position) — the flat start-order model of D-T02-1 with no
+ * key preserves position) — the flat start-order model, with no
  * second ordering source to drift.
  *
- * No React dependency — independently importable and testable (DD-003).
- *
- * @since S8 (Workflow Task Thread)
+ * No React dependency — independently importable and testable.
  */
 
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
@@ -65,14 +63,14 @@ export interface WorkflowThreadItem {
   readonly messagesCount: number;
   readonly toolCallsCount: number;
   /**
-   * Kind-aware one-line preview from `resolveTaskPreview` (T04) — a
+   * Kind-aware one-line preview from `resolveTaskPreview` — a
    * primitive computed HERE (not in a card hook) so the structural-sharing
    * compare below stays a cheap string check. The empty string when there
    * is nothing kind-specific to say.
    */
   readonly previewLine: string;
   /**
-   * Card disclosure mode (T04). Pure function of `taskKind` (like
+   * Card disclosure mode. Pure function of `taskKind` (like
    * `variant`/`kindLabel`), so it is not part of the equality compare.
    */
   readonly disclosure: WorkflowTaskDisclosure;
@@ -85,7 +83,7 @@ export interface WorkflowThreadItem {
   readonly inputSummary: JsonObject | null;
   readonly outputSummary: JsonObject | null;
   /**
-   * The human_input gate's captured request/resolution payloads (T06) —
+   * The human_input gate's captured request/resolution payloads —
    * the in-card review surface's data. Reference-stable like the
    * summaries: the store carries the immutable events' payload messages,
    * so the identity compare below holds across appends and only the
@@ -96,8 +94,8 @@ export interface WorkflowThreadItem {
 }
 
 /**
- * Progress line for the thread header. Pending tasks render no cards
- * (D-T02-5); this is where "what's coming" stays visible (Nielsen #1).
+ * Progress line for the thread header. Pending tasks render no cards;
+ * this is where "what's coming" stays visible (Nielsen #1).
  */
 export interface WorkflowThreadProgress {
   /** Tasks in a terminal state (completed, failed, or skipped). */
@@ -138,7 +136,7 @@ const SETTLED_STATUSES: ReadonlySet<DerivedTaskState["status"]> = new Set([
  * fields are unchanged keeps its previous object identity. The store
  * rebuilds every `DerivedTaskState` on each event append, so without this,
  * every card would get a fresh item per event and `React.memo` rows could
- * never bail (DD-009/DD-010 — only the actively-changing card re-renders).
+ * never bail (only the actively-changing card re-renders).
  */
 export function projectThreadItems(
   taskStates: ReadonlyMap<string, DerivedTaskState>,

@@ -43,14 +43,15 @@ schema.json            JSON Schema for a scenario file
 
 ### Why no `expected.approval_events`
 
-The Phase-1 contract this corpus locks is *projection parity*: the message scan
+The contract this corpus locks is *projection parity*: the message scan
 and the shadow event-stream projection must yield the same `pending_approvals`.
 The intermediate event-stream representation (event ids, actor strings) is an
-internal Phase-1 detail that will evolve, so pinning its exact JSON here would
-over-specify it across editions. The event shape is locked instead by
-language-local unit tests (Go `project_test.go`, the Java mirror). The schema
-keeps `approval_events` as an optional field for when a later phase promotes the
-stream to the source of truth.
+internal detail that will evolve, so pinning its exact JSON here would
+over-specify it. The event shape is the server's own
+(`backend/services/stigmer-server/src/domain/agentexecution/approval/emit.ts`),
+exercised by the corpus tests rather than pinned here. The schema keeps
+`approval_events` as an optional field for if the stream ever becomes the
+source of truth.
 
 ## Who reads this
 

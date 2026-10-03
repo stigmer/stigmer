@@ -33,6 +33,7 @@ import {
   resolveWorkflowSource,
   runCredentialWorkflowInterceptorModule,
   OTEL_WORKFLOW_INTERCEPTOR_MODULE,
+  type WorkflowSource,
 } from "./workflow-source.js";
 import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
@@ -828,7 +829,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
   };
 }
 
-interface InterceptorConfig {
+export interface InterceptorConfig {
   sinks: InjectedSinks<any>;
   interceptors: Record<string, any>;
   /**
@@ -841,7 +842,19 @@ interface InterceptorConfig {
   workflowInterceptorModules: string[];
 }
 
-async function buildInterceptorConfig(): Promise<InterceptorConfig> {
+/**
+ * The manager's interceptors. `workflowSourceKind` decides whether the OTel
+ * workflow module must be registered for bundling: a pre-built bundle has it
+ * baked in (scripts/bundle-slim.mjs), and the slim artifact cannot resolve
+ * the module at all, since it is compiled into the bundle rather than staged
+ * beside it; only the runtime (bundle-on-boot) path resolves it, as worker.ts
+ * does. The kind defaults to the source the manager will use
+ * (resolveWorkflowSource, read again where the bundle is chosen). Exported
+ * for its test.
+ */
+export async function buildInterceptorConfig(
+  workflowSourceKind: WorkflowSource["kind"] = resolveWorkflowSource().kind,
+): Promise<InterceptorConfig> {
   const { createWorkflowMetricsSinks } = await import(
     "./interceptors/workflow-metrics-sink.js"
   );
@@ -898,10 +911,12 @@ async function buildInterceptorConfig(): Promise<InterceptorConfig> {
     ) as unknown as InjectedSinks<any>;
     sinks = { ...sinks, ...otelSinks };
 
-    const esmRequire = createRequire(import.meta.url);
-    workflowInterceptorModules.push(
-      esmRequire.resolve(OTEL_WORKFLOW_INTERCEPTOR_MODULE),
-    );
+    if (workflowSourceKind === "runtime") {
+      const esmRequire = createRequire(import.meta.url);
+      workflowInterceptorModules.push(
+        esmRequire.resolve(OTEL_WORKFLOW_INTERCEPTOR_MODULE),
+      );
+    }
   }
 
   return {

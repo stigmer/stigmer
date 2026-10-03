@@ -33,7 +33,7 @@ export interface UseCanCreateAgentShareReturn {
  *
  * On the open-source edition the answer follows the server's posture. A
  * server without sign-in has the permissive single-team authorizer and
- * answers allowed (decision 011 D4). A server with sign-in enforces the
+ * answers allowed. A server with sign-in enforces the
  * same organization roles as the cloud, so `can_create_agent_share` is
  * the admin's and a member sees no share affordance.
  *

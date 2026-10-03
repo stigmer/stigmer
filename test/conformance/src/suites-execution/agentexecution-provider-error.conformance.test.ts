@@ -11,8 +11,8 @@
 // own console prose ("Plans & Billing", "credit balance is too low") must never
 // reach the customer — the stigmer/stigmer#330 incident, where it did.
 //
-// Two shapes are scripted byte-exact on the mock (DD-001; the Go offline
-// suite's provider_error_attribution_offline_test.go):
+// Two shapes are scripted byte-exact on the mock (the Go offline suite's
+// provider_error_attribution_offline_test.go):
 // - the proxy's own rewrite — a 503 carrying the STIGMER_PLATFORM_MODEL_CAPACITY
 //   sentinel in a provider-native envelope and the `x-should-retry: false` hint
 //   both SDKs honor, so a single turn fails the run fast;

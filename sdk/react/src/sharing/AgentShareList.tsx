@@ -63,7 +63,7 @@ export interface AgentShareListProps {
  * refetch-after-mutation — hosts render it with just the agent and the
  * URL builder.
  *
- * This is an SDK component (DD-001) — embeddable by platform builders.
+ * This is an SDK component — embeddable by platform builders.
  */
 export function AgentShareList({
   agent,

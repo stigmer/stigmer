@@ -3,8 +3,8 @@
 // child AgentExecution's tool-approval decision through its parent workflow.
 //
 // This is a genuinely different machine from the workflow `human_input` gate, so
-// it is a separate file from workflowexecution-approval.conformance.test.ts
-// (DD-011). The two must not be conflated:
+// it is a separate file from workflowexecution-approval.conformance.test.ts.
+// The two must not be conflated:
 //   - human_input (submitWorkflowTaskApproval): a *task-level* gate authored in
 //     workflow YAML, resolved by a Temporal signal. Self-contained in the workflow.
 //   - this forwarder (submitApproval): a workflow invokes an agent via an
@@ -14,7 +14,7 @@
 //     child's AgentExecution.submitApproval. The parent owns no gate of its own — it
 //     is a conduit.
 //
-// ## History: the forwarder was half-built in OSS by design (DD-012)
+// ## History: the forwarder was half-built in OSS by design
 //
 // The receiver/forwarder was complete in OSS from the start (submitApproval,
 // the runner's call-agent orchestrator, all protos), but the upstream half —
@@ -22,8 +22,7 @@
 // when it gates — was cloud-only for months: the retired Go agent-execution
 // workflow never emitted it (source-confirmed), so the happy path was
 // structurally unreachable against it. The OSS sender landed with the
-// TypeScript server (D4 #23), by derivation exactly as DD-012 specified
-// (identity-only signal + derive-from-child).
+// TypeScript server, by derivation (identity-only signal + derive-from-child).
 //
 // Accordingly this suite splits along the workflowChildApprovalForwarding
 // capability:
@@ -233,7 +232,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
 
 // Happy path — gated on workflowChildApprovalForwarding: true on every
 // current target (local-execution and cloud-execution). The gate keeps any
-// future sender-less target SKIPPED rather than falsely green. See DD-012.
+// future sender-less target SKIPPED rather than falsely green.
 describe.skipIf(!forwarderEnabled)(
   "WorkflowExecution submitApproval (child-agent forwarder) — forwarding round-trip",
   () => {

@@ -37,7 +37,7 @@ export interface ExplorerTreeProps {
  * pin, optional per-root remove controls. Search lives in the surface's rail,
  * not per root; listings come from the shared `useWorkspaceFiles` cache.
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  */
 export function ExplorerTree({
   entries,

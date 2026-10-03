@@ -11,7 +11,7 @@ import { useSidebarOpen } from "./use-layout-state";
 
 /**
  * Settings-zone sidebar — a thin wrapper over the SDK's
- * {@link SettingsSidebar} (DD-002): this file only bridges Next.js
+ * {@link SettingsSidebar}: this file only bridges Next.js
  * routing, the permission-aware nav groups, and the app's user menu
  * into the shared chrome.
  */
@@ -39,7 +39,7 @@ export function ManagementSidebar() {
   // Org switch leaves the settings zone: settings pages render the previous
   // org's data (members, API keys, billing). Dashboard is the org-neutral
   // landing; the SDK's OrgProvider clears the fetch cache. Mirrors the
-  // workspace sidebar and desktop (DD-016).
+  // workspace sidebar and desktop.
   const handleOrgChanged = useCallback(() => {
     router.push("/dashboard");
   }, [router]);

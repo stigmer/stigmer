@@ -75,13 +75,13 @@ export interface SetupTabProps {
   readonly sessionId?: string | null;
   /**
    * Interactive mutation callbacks. When provided, items render remove
-   * buttons. When absent, sections are read-only (DD-011).
+   * buttons. When absent, sections are read-only.
    */
   readonly mutations?: SetupTabMutationCallbacks;
   /**
    * Host-injected access management control (e.g. the Console's
    * `ManageAccessButton`) rendered as the facet's final section. A slot keeps
-   * the SDK auth-agnostic (DD-004); the injected control owns its own
+   * the SDK auth-agnostic; the injected control owns its own
    * visibility (permission gating), so this section renders no chrome of its
    * own — an empty heading over a denied control would read as breakage.
    */
@@ -100,9 +100,9 @@ export interface SetupTabProps {
  *
  * When mutation callbacks are provided via `mutations`, items render
  * inline remove affordances. When callbacks are absent, sections render
- * read-only (backward compatible, DD-011).
+ * read-only (backward compatible).
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  */
 export function SetupTab({
   agentRef,

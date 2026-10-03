@@ -7,13 +7,12 @@
  * resource it shows is injected through the view's `mcpServerState` prop as
  * one of two frozen snapshots (registered / connected), so the view issues
  * no `getByReference` and every beat — including the payoff — paints
- * correct data on its first frame, under scrubbing and video export alike
- * (scenar-cloud DD-006).
+ * correct data on its first frame, under scrubbing and video export alike.
  *
  * Internal view state (credential form open, active tab, prefilled values)
  * is set through the view's `default*` initial-state props, applied by
- * remounting on `KEY` — the reset idiom this codebase standardizes on
- * (stigmer DD-014). The remount is visually free precisely because the
+ * remounting on `KEY` — the reset idiom this codebase standardizes on.
+ * The remount is visually free precisely because the
  * resource is a prop: nothing the remount re-fetches is on screen. Each
  * remount resets the frame's scroll, which the steps' `scroll_to`
  * interactions re-establish.

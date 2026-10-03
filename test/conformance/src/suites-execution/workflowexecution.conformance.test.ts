@@ -10,9 +10,10 @@
 // observation, cancel, terminate, pause/resume). Neither needs an LLM, MCP,
 // key, or storage.
 //
-// Deliberately out of scope here (each needs machinery this slice doesn't build):
+// Deliberately out of scope here (each needs machinery this suite doesn't
+// build):
 // - The engine-unavailable create-boundary. Both execution domains now share one
-//   contract (issue #195, formerly the F7/F8 asymmetry): a create while the engine
+//   contract (issue #195): a create while the engine
 //   is down fails fast with Unavailable and persists nothing — no zombie/orphaned
 //   PENDING. That path is only reachable with Temporal DOWN, which this target
 //   never does, so it is covered by the Go controller unit tests (and the Java
@@ -20,7 +21,8 @@
 // - submitApproval / submitWorkflowTaskApproval (need an approval-bearing
 //   human_input workflow) and sendSignal's happy path (needs a `listen` task)
 //   and recover's happy path (needs a FAILED execution) — their precondition
-//   contracts ARE asserted; their success paths await the human-input slice.
+//   contracts ARE asserted; their success paths need a running execution of
+//   that shape, outside this file.
 // - updateStatus is the runner's internal status-merge RPC, exercised implicitly
 //   by every completion rather than as a user-facing contract.
 import { FileDecisionAction, FileDecisionScope } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -176,7 +178,7 @@ describe("WorkflowExecution conformance — completion", () => {
     // Note: status.temporal_workflow_id is NOT populated on the happy path — the
     // runner (not the Go orchestrator) writes the terminal status and does not
     // surface the Temporal correlation id. Asserting it would enshrine an absent
-    // value; recorded as a finding instead (DD-008 / Session 8 checkpoint).
+    // value.
   });
 });
 
@@ -232,9 +234,8 @@ describe("WorkflowExecution conformance — queries", () => {
   it("[rpc:WorkflowExecutionQueryController.getEventLog] getEventLog of an unknown execution returns an empty page (not NotFound)", async (ctx) => {
     // Single-user-posture arm: the multi-tenant edition's authorization
     // fails closed on a fabricated id (PermissionDenied, no existence leak)
-    // before the handler runs — the wave-2 fabricated-id class, disclosed in
-    // the parity register. Only the single-user editions reach the
-    // empty-page contract.
+    // before the handler runs — the fabricated-id class. Only the
+    // single-user editions reach the empty-page contract.
     if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     // Unlike get/subscribe, getEventLog does not 404 — it returns no events.
     const log = await clients.workflowExecutionQuery.getEventLog({ executionId: "wex_doesnotexist" });
@@ -481,16 +482,16 @@ describe("WorkflowExecution conformance — create negative paths", () => {
   });
 });
 
-// --- CW-7: the event log's cursor pagination and the streaming lanes --------
+// --- the event log's cursor pagination and the streaming lanes -------------
 //
 // A completed single-task set_vars run emits exactly FOUR events
 // (execution_started, task_started, task_completed, execution_completed) —
 // small enough to be cheap, rich enough to walk a real has_more/
 // latest_sequence cursor with page_size 1. Streams are consumed through
-// collectStream, the bounded reader that keeps the S4 idle-forever quirk
+// collectStream, the bounded reader that keeps the idle-forever quirk
 // (pinned below) from hanging the suite.
 
-describe("WorkflowExecution conformance — event log pagination & streaming (CW-7)", () => {
+describe("WorkflowExecution conformance — event log pagination & streaming", () => {
   // The server saves an execution's terminal status and then, in a second
   // write, the events of the same update (update-status.ts: the merge, then
   // PersistEvents), so a read right after the phase turns terminal can find
@@ -557,7 +558,7 @@ describe("WorkflowExecution conformance — event log pagination & streaming (CW
     expect(stream.messages[3]?.eventType).toBe(WorkflowEventType.execution_completed);
   });
 
-  it("[rpc:WorkflowExecutionQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned S4 quirk)", async () => {
+  it("[rpc:WorkflowExecutionQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned idle-forever quirk)", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const created = await createExecution(org, workflowId);
@@ -565,8 +566,8 @@ describe("WorkflowExecution conformance — event log pagination & streaming (CW
 
     // The terminal-close check fires only on broker UPDATES, never on the
     // initial snapshot — so a subscription to a finished run receives the
-    // snapshot and then idles forever. Pinned deliberately (wave-2 S4): the
-    // TS port must reproduce it consciously or fix it in both editions.
+    // snapshot and then idles forever. Pinned deliberately: the server keeps
+    // it consciously, or fixes it in both editions.
     const stream = await collectStream(
       (signal) =>
         clients.workflowExecutionQuery.subscribe({ executionId: created.metadata!.id }, { signal }),
@@ -587,8 +588,8 @@ describe("WorkflowExecution conformance — event log pagination & streaming (CW
     await awaitTerminal(clients, created.metadata!.id);
 
     // The deeper file-review arms (digest mismatch, unknown change set)
-    // need mock-LLM file-edit choreography and land with the execution
-    // ports (#17/#20) — this pins the reachable precondition arm.
+    // need mock-LLM file-edit choreography — this pins the reachable
+    // precondition arm.
     const err = await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitFileDecision({

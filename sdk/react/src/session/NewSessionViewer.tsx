@@ -51,21 +51,21 @@ export interface NewSessionViewerProps {
   /**
    * Platform-injected file lister for workspace entries. When provided,
    * each entry in the Setup tab's workspace section renders an
-   * expandable file tree. (DD-004 capability injection, DD-011 opt-in.)
+   * expandable file tree. (Capability injection, opt-in.)
    */
   readonly workspaceFileLister?: WorkspaceFileLister;
 
   /**
    * Platform-injected content reader for the read-only file viewer. When set,
    * clicking a file in the Workspace tree opens it in a contextual "Viewer"
-   * tab — the same capability `SessionViewer` accepts (DD-016 parity).
+   * tab — the same capability `SessionViewer` accepts.
    */
   readonly workspaceFileReader?: WorkspaceFileReader;
 
   /**
    * Platform-injected content (text) searcher — the same capability
-   * `SessionViewer` accepts (DD-016 parity). Desktop injects a native
-   * ripgrep-backed searcher; web leaves it undefined (DD-09).
+   * `SessionViewer` accepts. Desktop injects a native
+   * ripgrep-backed searcher; web leaves it undefined.
    */
   readonly workspaceContentSearcher?: WorkspaceContentSearcher;
 
@@ -104,7 +104,7 @@ export interface NewSessionViewerProps {
   /**
    * Owner-pinned model/tier for the session's first execution
    * (stigmer/stigmer#664). Same contract as
-   * {@link SessionViewerProps.runConfig} (DD-016 parity): wins over the
+   * {@link SessionViewerProps.runConfig}: wins over the
    * composer and the restored preference, hides the model picker, and
    * is ignored for the `"guest"` audience. Pair with the same pin on
    * the conversation's `SessionViewer` so follow-ups match. See
@@ -114,7 +114,7 @@ export interface NewSessionViewerProps {
 
   /**
    * Whether the composer offers the model picker. Same contract as
-   * {@link SessionViewerProps.showModelSelector} (DD-016 parity):
+   * {@link SessionViewerProps.showModelSelector}:
    * forced off by a {@link NewSessionViewerProps.runConfig} model pin
    * and for the `"guest"` audience.
    *
@@ -125,9 +125,8 @@ export interface NewSessionViewerProps {
   /**
    * Whether the launcher offers the session panel at all — `"none"` removes
    * the panel and its toggle chip while keeping every composer capability
-   * the audience allows. Same contract as
-   * {@link SessionViewerProps.panel} (DD-016 parity); see
-   * {@link SessionPanelMode}.
+   * the audience allows. Same contract as {@link SessionViewerProps.panel};
+   * see {@link SessionPanelMode}.
    *
    * @default "auto"
    */
@@ -136,7 +135,7 @@ export interface NewSessionViewerProps {
   /**
    * Initial open state of the session panel in uncontrolled mode. Ignored
    * when {@link NewSessionViewerProps.panelOpen} is provided. Same contract
-   * as {@link SessionViewerProps.defaultPanelOpen} (DD-016 parity).
+   * as {@link SessionViewerProps.defaultPanelOpen}.
    *
    * @default false
    */
@@ -144,14 +143,14 @@ export interface NewSessionViewerProps {
 
   /**
    * Controlled open state of the session panel. Same contract as
-   * {@link SessionViewerProps.panelOpen} (DD-016 parity).
+   * {@link SessionViewerProps.panelOpen}.
    */
   readonly panelOpen?: boolean;
 
   /**
    * Called on every panel open/close transition, in both modes. Same
-   * contract as {@link SessionViewerProps.onPanelOpenChange} (DD-016
-   * parity); the launcher has no plan auto-open, so its transitions come
+   * contract as {@link SessionViewerProps.onPanelOpenChange}; the
+   * launcher has no plan auto-open, so its transitions come
    * from the chip toggle and file opens only.
    */
   readonly onPanelOpenChange?: (open: boolean) => void;
@@ -200,7 +199,7 @@ export interface NewSessionViewerProps {
   /**
    * Slot for host-injected actions rendered below the composer
    * (e.g., submit error messages). Keeps the SDK organism unopinionated
-   * about Console-specific error rendering (DD-004).
+   * about Console-specific error rendering.
    */
   readonly footerContent?: ReactNode;
 
@@ -218,10 +217,10 @@ export interface NewSessionViewerProps {
  * - **Session panel** (secondary pane): the unified `WorkspaceSurface` with a
  *   Config rail view — collapsed by default behind a persistent top-right chip
  *   and homing on the Config facet when opened. Same layout model as
- *   `SessionViewer` (DD-016).
+ *   `SessionViewer`.
  *
  * Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
- * apps inject platform-specific values via props (DD-004/DD-016).
+ * apps inject platform-specific values via props.
  *
  * @example
  * ```tsx
@@ -289,7 +288,7 @@ export function NewSessionViewer({
   const isGuest = audience === "guest";
   // A pinned model makes the picker a dead control (the pin wins over any
   // choice it could offer), so the pin forces it hidden; the guest strip
-  // and the host's explicit opt-out compose with it (DD-016: same rule as
+  // and the host's explicit opt-out compose with it (the same rule as
   // SessionViewer).
   const modelSelectorVisible =
     showModelSelector && !isGuest && runConfig?.modelName === undefined;
@@ -297,7 +296,7 @@ export function NewSessionViewer({
   // integrator pickers; guest adds its own restrictions below.
   const isCurated = audience !== "integrator";
   // Host opt-out or audience restriction — the same single flag
-  // SessionViewer derives (DD-016), gating the chip and the region together.
+  // SessionViewer derives, gating the chip and the region together.
   const panelEnabled = panelMode !== "none" && !isGuest;
 
   // Guest agent binding is host configuration, not a picker interaction:
@@ -313,7 +312,7 @@ export function NewSessionViewer({
     setResolution({ mode: "saved", instanceId: initialInstanceId });
   }, [isGuest, initialAgentRef, initialInstanceId, setAgentRef, setResolution]);
 
-  // The unified-panel controller (shared with SessionViewer, DD-016). The
+  // The unified-panel controller (shared with SessionViewer). The
   // launcher has no execution yet, so the FSM inputs are static. It has no
   // streaming column to isolate either, so subscribing to the editor group in
   // the body is harmless — unlike `SessionViewer`, which subscribes one level
@@ -324,7 +323,7 @@ export function NewSessionViewer({
     hasChanges: false,
     defaultView: "configure",
     // Same inertness contract as SessionViewer: a disabled panel is pinned
-    // controlled-closed and unobserved (DD-016).
+    // controlled-closed and unobserved.
     open: panelEnabled ? panelOpen : false,
     defaultOpen: defaultPanelOpen,
     onOpenChange: panelEnabled ? onPanelOpenChange : undefined,
@@ -334,7 +333,7 @@ export function NewSessionViewer({
   );
 
   // Honor a jump-to-line reveal only while it targets the active editor
-  // (DD-016 parity with SessionViewer).
+  // (parity with SessionViewer).
   const activeReveal =
     reveal && reveal.key === activeKey ? reveal : undefined;
 
@@ -382,7 +381,7 @@ export function NewSessionViewer({
         ? undefined
         : { armed: flow.autoApproveAll, onChange: flow.setAutoApproveAll },
       // Curated audiences see the configuration but cannot strip it — the
-      // Setup tab renders read-only without mutation callbacks (DD-011).
+      // Setup tab renders read-only without mutation callbacks.
       mutations: isCurated
         ? undefined
         : {
@@ -422,7 +421,7 @@ export function NewSessionViewer({
     // when it outgrows it, degrading to a normal top-aligned scroll. The
     // scroll container's `py-6` keeps breathing room in that overflow case.
     // Do NOT reintroduce a context-driven position flip: the composer must not
-    // move as context is attached (DD-16's layout-stability rationale — chrome
+    // move as context is attached (layout stability — chrome
     // that shifts with attached context reads as instability).
     <div className="stg:flex stg:h-full stg:flex-col stg:items-center stg:overflow-y-auto stg:px-4 stg:py-6">
       <div className="stg:my-auto stg:w-full stg:max-w-2xl stg:space-y-6">
@@ -488,14 +487,14 @@ export function NewSessionViewer({
 
   return (
     // The launcher renders the same SessionViewerLayout as SessionViewer
-    // (DD-016) — the shared frame is what makes "the two viewers behave
+    // — the shared frame is what makes "the two viewers behave
     // identically" structural rather than hand-synchronized.
     <SessionViewerLayout
       className={className}
       resizeAriaLabel="Resize composer panel"
       splitStorageKey="stgm-new-session-chat-width"
       // Persistent chrome: the chip is always mounted, matching SessionViewer
-      // (DD-016) rather than the launcher's earlier progressively-revealed
+      // rather than the launcher's earlier progressively-revealed
       // inspector. A toggle that appears/disappears with attached context
       // reads as instability and, worse, unmounts the open panel's only
       // collapse control when the last context item is removed. Always-on is

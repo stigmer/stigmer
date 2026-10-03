@@ -1,4 +1,4 @@
-// Conformance slice for the TypeScript MCP server (@stigmer/mcp-server).
+// Conformance suite for the TypeScript MCP server (@stigmer/mcp-server).
 // Domain: MCP protocol bridge over a live backend (the OSS server or the
 // cloud Java service).
 //

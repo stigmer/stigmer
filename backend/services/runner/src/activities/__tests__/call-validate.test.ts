@@ -9,7 +9,7 @@ import { transformAction } from "../call-transform.js";
 // against the validated data, never pre-resolved by the config resolver.
 
 describe("validateAction — rule expressions", () => {
-  // The exact shape of WF1 ux-linear-basics' check_order task after the
+  // The exact shape of a linear workflow's check_order task after the
   // call-function builder resolves `input` and defers the rule.
   const checkOrderConfig = {
     input: {
@@ -38,7 +38,7 @@ describe("validateAction — rule expressions", () => {
     on_fail: "VALIDATION_FAIL_RAISE",
   };
 
-  it("evaluates a ${ }-wrapped rule against the validate input (WF1 check_order)", async () => {
+  it("evaluates a ${ }-wrapped rule against the validate input (a check_order task)", async () => {
     const result = await validateAction(checkOrderConfig);
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);

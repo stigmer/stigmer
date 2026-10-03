@@ -533,8 +533,7 @@ const TRAILING_SNAPSHOT_DATE = /-(\d{8})$/;
  *
  * The translated id is Vertex wire detail only: it goes into the request
  * URL path and must never escape the adapter into usage metrics or pricing,
- * which key on the canonical id (the canonical-id invariant in the design
- * decision record).
+ * which key on the canonical id.
  *
  * Already-translated ids (`name@date`) and Bedrock-shaped ids
  * (`anthropic.…-v1:0`) don't match the trailing-date pattern, so a second

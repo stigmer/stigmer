@@ -3,7 +3,7 @@
 // Stands up a real Connect backend serving workflowExecution.subscribeEvents
 // (the canonical event stream) plus get + submitApproval, points an SDK node
 // client at it, and drives streamWorkflowExecution end to end: NDJSON vs inline
-// rendering (D-WF-1), policy-driven approval submission on approval_requested,
+// rendering, policy-driven approval submission on approval_requested,
 // terminal-event stop, and the final-Get epilogue summary. Then, against a
 // scripted event source, that the subscription never outlives the stream: it
 // is read to its end after the terminal event, cancelled when a server keeps
@@ -131,7 +131,7 @@ describe("live run workflow streaming", () => {
     expect(result.metadata?.id).toBe("wex_1");
   });
 
-  it("emits NDJSON event envelopes with canonical type names (D-WF-1)", async () => {
+  it("emits NDJSON event envelopes with canonical type names", async () => {
     const cap = capture();
     await streamWorkflowExecution(
       { client, executionId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.APPROVE },

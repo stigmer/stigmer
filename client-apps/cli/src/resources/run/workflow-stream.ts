@@ -4,7 +4,7 @@
 // see resources/stream/headless.ts), WorkflowExecution exposes subscribeEvents:
 // an incremental, sequenced, persisted event stream with explicit terminal
 // markers. A live run view *is* a timeline view, so we consume that stream
-// directly and render through the shared workflow event renderer (B1). This is
+// directly and render through the shared workflow event renderer. This is
 // why `run workflow`, `execution logs`, and the web execution viewer all speak
 // the same event vocabulary — the server's — instead of a CLI-private one.
 //

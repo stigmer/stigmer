@@ -15,8 +15,6 @@ export interface BranchBadgeProps {
  * - fork: branch name chips + join policy
  * - try_catch: catch handler indicator
  * - for_each: iteration info (concurrency, error policy)
- *
- * @since T09 (Branch Management UX)
  */
 export const BranchBadge = memo(function BranchBadge({
   kindString,

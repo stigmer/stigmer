@@ -1,7 +1,6 @@
 // Local target: builds and boots the OSS TypeScript server from source.
-// Born as local-ts during the TS rewrite (stigmer-cloud program 20260822.01,
-// D4) and renamed to plain `local` when the Go server retired (D4 #25) —
-// there is one local implementation now.
+// Born as local-ts during the TS rewrite and renamed to plain `local` when
+// the Go server retired — there is one local implementation now.
 // Domain: conformance targets.
 //
 // This is a managed target — it owns the server process lifecycle. The
@@ -40,9 +39,8 @@ export class LocalTarget implements TargetProfile {
   // The empty composition (`composeServer({ extensions: [] })`) is Stigmer
   // open source; local-postgres inherits it (same composition, other store).
   readonly edition: ServerEdition = ServerEdition.oss;
-  // The retired Go server's exact matrix — the parity promise the TS port
-  // was gated on (D4). The one deliberate divergence, workflowChild-
-  // ApprovalForwarding, lives on local-execution (#23).
+  // The open-source server's matrix without an engine; local-execution adds
+  // the flags an engine makes true.
   readonly capabilities: CapabilityFlags = {
     multiTenant: false,
     // The primary runs trusted-local: its permissive Authorizer admits the
@@ -59,21 +57,22 @@ export class LocalTarget implements TargetProfile {
     // No runner behind this target either; the open-source runner's shape
     // is proven on local-execution, whose enforcing lane boots one.
     runnerActsAsRunCreator: false,
-    // Single-tenant OSS: the reserved-label write guard is cloud-only
-    // (stigmer-cloud#320), so the caller may create labeled candidates.
+    // Single-tenant OSS: the reserved-label write guard is cloud-only, so the
+    // caller may create labeled candidates.
     clientReservedLabelWrites: true,
     firstPartyMemoryCapture: true,
-    // No channel runtime in this edition (T02 §0-b) — the suite pins the
+    // No channel runtime in this edition — the suite pins the
     // documented refusal copy on every runtime lane.
     channelMessaging: false,
     // The org BYOA lane is UNIMPLEMENTED on OSS by design (stigmer#558) —
     // the TS port must reproduce the three refusals byte-for-byte.
     orgOAuthAppConfiguration: false,
-    // No billing engine at all — executions run unmetered (DD-001 boundary).
+    // No billing engine at all — executions run unmetered (the edition
+    // boundary).
     billingGates: false,
-    // The three cloud-capability surfaces (E1) are absent by the same
-    // boundary: no billing controllers are routed (the suite pins the
-    // Unimplemented answer, ruling Q10), no side-channel proxy (runners dial
+    // The three cloud-capability surfaces are absent by the same boundary:
+    // no billing controllers are routed (the suite pins the Unimplemented
+    // answer), no side-channel proxy (runners dial
     // providers directly), no marketing-site lane.
     billingLedger: false,
     // Plans and subscriptions are cloud_only kinds: the suite pins Unimplemented.
@@ -86,17 +85,17 @@ export class LocalTarget implements TargetProfile {
     platformClientTokens: true,
     // Single-operator trusted-local posture: no issuer, no declared
     // posture, zero verifiers — a tokenless request IS the operator (the
-    // authentication suite pins that admission, entry 20260904.02).
+    // authentication suite pins that admission).
     requiresAuthentication: false,
     // No platform identity tenant on the single-operator posture; the OSS
     // OIDC lane is driven through a sibling server (spawnSibling below).
     directLogin: false,
     // No unit composes the federation capability in the empty composition —
-    // the suite pins the four UNIMPLEMENTED refusals here (20260911.11).
+    // the suite pins the four UNIMPLEMENTED refusals here.
     federatedIdentityAccounts: false,
     // The empty composition grants on organizations only and composes no
     // authorization query engine — the suite pins both edition refusals
-    // here (20260913.01).
+    // here.
     perResourceGrants: false,
     authorizationQueries: false,
   };
@@ -128,7 +127,7 @@ export class LocalTarget implements TargetProfile {
   // over the harness's DB_PATH — the documented config precedence).
   // EVERYTHING else about the target is inherited, so the capability
   // matrix is byte-identical by construction, not by copy discipline
-  // (DD-011: the driver must be wire-invisible). The primary and every
+  // (the storage driver must be wire-invisible). The primary and every
   // sibling call it, so a sibling never shares the primary's store.
   protected async provisionStorage(): Promise<ProvisionedStorage> {
     return ephemeralSqliteStorage();

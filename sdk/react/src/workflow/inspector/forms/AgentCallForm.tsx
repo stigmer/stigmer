@@ -24,8 +24,8 @@ const inputClass =
  * agentexecution RunConfig vocabulary, stigmer/stigmer#358): model
  * override plus a per-run USD budget that the runner actually
  * enforces. `max_tool_rounds` is API-reachable but deliberately absent
- * from the form (DD-018 D-5: an implementation knob, not a user
- * concept). Assembly follows the schedule form's empty-means-omit rule:
+ * from the form (an implementation knob, not a user concept).
+ * Assembly follows the schedule form's empty-means-omit rule:
  * a blank field must not become a zero override.
  *
  * Workspace and environments edit the shared vocabulary's
@@ -39,8 +39,6 @@ const inputClass =
  * Composes primitive field controls rather than rendering a generic
  * schema form — following the research report guidance that "the forms
  * should educate the user about the semantics of each step."
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const AgentCallForm = memo(function AgentCallForm({
   node,
@@ -304,7 +302,7 @@ interface WorkspaceEntryRow {
  * local_path — no client is connected when a workflow task fires), so
  * the row model is deliberately git-shaped. Private repos need an
  * org-visibility Environment holding GITHUB_TOKEN bound under
- * Environments below (DD-018 D-4).
+ * Environments below.
  */
 function WorkspaceEntriesSection({
   entries,

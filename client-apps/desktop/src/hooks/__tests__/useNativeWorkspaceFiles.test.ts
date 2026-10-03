@@ -90,7 +90,7 @@ describe("useNativeWorkspaceFiles", () => {
     expect(files?.some((f) => f.notice)).toBe(false);
   });
 
-  it("appends a single notice entry when the walker truncates (DD-11 parity)", async () => {
+  it("appends a single notice entry when the walker truncates, as the web lister does", async () => {
     const mockFiles = [
       { path: "README.md", isDirectory: false },
       { path: "lib", isDirectory: true },

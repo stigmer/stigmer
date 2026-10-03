@@ -22,7 +22,7 @@ function isPlainClick(e: MouseEvent): boolean {
 
 /**
  * Workspace-zone sidebar — a thin wrapper over the SDK's
- * {@link WorkspaceSidebar} (DD-002): this file only bridges Next.js
+ * {@link WorkspaceSidebar}: this file only bridges Next.js
  * routing and the app's navigation providers into the shared chrome.
  *
  * Rows keep real hrefs so modifier-clicks open new tabs, while plain
@@ -36,9 +36,8 @@ export function Sidebar() {
   const recentActivity = useRecentActivity();
   const { refetch, prependOptimistic } = recentActivity;
   const org = useActiveOrgSlug();
-  // The Conversations badge: conversations wanting a human right now
-  // (channel-conversations DD-011 D-f). Data as props — the SDK sidebar
-  // never fetches for itself (DD-020).
+  // The Conversations badge: conversations wanting a human right now.
+  // Data as props — the SDK sidebar never fetches for itself.
   const { count: wantsHumanCount } = useConversationsWantsHumanCount(org || null);
   const { activeSessionId, isSessionZone, navigateToSession, navigateToHome } =
     useSessionNavigation();
@@ -67,7 +66,7 @@ export function Sidebar() {
   // the previous org's view (detail pages are keyed on the URL org, not the
   // active org, so they would otherwise keep rendering stale content).
   // Dashboard is the org-neutral landing; the SDK's OrgProvider clears the
-  // fetch cache. Mirrors desktop's handler (DD-016).
+  // fetch cache. Mirrors desktop's handler.
   const handleOrgChanged = useCallback(() => {
     router.push("/dashboard");
   }, [router]);

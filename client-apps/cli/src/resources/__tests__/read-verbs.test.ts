@@ -94,7 +94,7 @@ const knownSearchResult = create(SearchResultSchema, {
   description: "reviews code",
 });
 
-// The three T07 cutover kinds — wired into get-bindings and list alongside
+// Three more kinds — wired into get-bindings and list alongside
 // this test. environment lists via the SearchService (it is search-indexed);
 // the two channel kinds list via their dedicated query RPCs.
 const knownEnvironment = create(EnvironmentSchema, {

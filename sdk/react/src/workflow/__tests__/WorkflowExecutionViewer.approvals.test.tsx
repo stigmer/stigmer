@@ -1,4 +1,4 @@
-// Composition test for the execution-level HITL surfaces (S10/T06/T07):
+// Composition test for the execution-level HITL surfaces:
 // gating AGENT_CALL cards carry the child's INLINE TRANSCRIPT as their
 // decision surface — the child's gates decide inside it (the transcript's
 // own suite covers the ApprovalCard rendering and workflow-RPC routing) —
@@ -7,10 +7,10 @@
 // streaming transcript) are mocked exactly as in the reconciliation
 // harness; this file proves the seams.
 //
-// REALISTIC FIXTURES (a hard S10 requirement): the gated task states are
+// REALISTIC FIXTURES (a hard requirement): the gated task states are
 // produced by the REAL store derivation from REAL event shapes — an
 // agent_call_progress event carrying the child's WAITING_FOR_APPROVAL phase
-// (D-T02-14). S9's hand-crafted `waiting_approval` states masked that
+// An earlier suite's hand-crafted `waiting_approval` states masked that
 // production never emitted them for child gates; deriving through the store
 // keeps these tests honest about the production path.
 
@@ -138,7 +138,7 @@ function storeEvent(
  * production event sequence — task_started, agent_call_started (child id),
  * then the 15s-cadence agent_call_progress poll reporting the child's
  * WAITING_FOR_APPROVAL phase. `deriveTaskStates` turns that LAST event into
- * the parent's `waiting_approval` (D-T02-14).
+ * the parent's `waiting_approval`.
  */
 function buildGatedStore(): WorkflowExecutionEventStore {
   const store = new WorkflowExecutionEventStore();
@@ -264,7 +264,7 @@ function arrange(actions = mockActions()) {
 }
 
 /**
- * The thread card root element for a task. Since T06 a preview-kind card's
+ * The thread card root element for a task. A preview-kind card's
  * header is a plain layout row (no role) — the shell's `data-cursor-target`
  * is the stable, gesture-independent handle on a card.
  */
@@ -278,7 +278,7 @@ function cardRootOf(taskName: string): HTMLElement {
   return root;
 }
 
-describe("WorkflowExecutionViewer in-thread HITL (S10/T06/T07)", () => {
+describe("WorkflowExecutionViewer in-thread HITL", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
@@ -290,7 +290,7 @@ describe("WorkflowExecutionViewer in-thread HITL (S10/T06/T07)", () => {
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
     // Both tasks crossed into waiting_approval at mount (derived by the
-    // REAL store from real agent_call_progress events — D-T02-14). The
+    // REAL store from real agent_call_progress events). The
     // panel stays closed — the cards ARE the (only) decision surface, and
     // selection died with the Inspect drill-down.
     expect(screen.queryByRole("tab", { name: /Approval/ })).toBeNull();
@@ -315,7 +315,7 @@ describe("WorkflowExecutionViewer in-thread HITL (S10/T06/T07)", () => {
     );
   });
 
-  it("hands each transcript the viewer's SINGLE actions instance — decisions route through the workflow-level RPCs (S5 guardrail)", () => {
+  it("hands each transcript the viewer's SINGLE actions instance — decisions route through the workflow-level RPCs (the routing guardrail)", () => {
     const actions = arrange();
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
@@ -324,7 +324,7 @@ describe("WorkflowExecutionViewer in-thread HITL (S10/T06/T07)", () => {
     // fork — and never the child's agentExecution.* path (checked
     // exhaustively in WorkflowAgentCallTranscript.test.tsx). State fields
     // pass by IDENTITY; the submit fns are asserted by DELEGATION since
-    // the thread's scroll-on-send wrapper (stigmer-cloud#267) pins the
+    // the thread's scroll-on-send wrapper pins the
     // view before handing each call to the single instance — a per-card
     // duplicate would still fail here, because the delegate IS the
     // viewer's own spy.

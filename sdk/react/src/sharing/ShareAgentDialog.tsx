@@ -68,7 +68,7 @@ export interface ShareAgentDialogProps {
    * mode**: a name/slug step creates a new share in the agent's own
    * organization (its URL, billing and credentials belong to that
    * organization), then the dialog becomes its editor. The share's
-   * identity is immutable once created (decision 011 D2) — edit mode
+   * identity is immutable once created — edit mode
    * never renames.
    */
   readonly share?: AgentShare | null;
@@ -107,9 +107,9 @@ export interface ShareAgentDialogProps {
  * dialog states who pays before creation and next to the toggle, so
  * sharing never surprises.
  *
- * Sharing lives in its own **AgentShare resource** (decision 011), and
+ * Sharing lives in its own **AgentShare resource**, and
  * an agent can carry N shares — each its own channel with its own URL,
- * audience, origins, credentials, and link token (D3). The dialog edits
+ * audience, origins, credentials, and link token. The dialog edits
  * exactly the share it is given; it never resolves "the" share of an
  * agent. Every save is an idempotent `apply` of the complete
  * configuration ({@link useSaveAgentShare}), and the local draft is
@@ -271,7 +271,7 @@ function ShareAgentDialogBody({
 /**
  * Names the new share and creates it live (`enabled: true`, public
  * audience — the server's own defaults). Identity is set here because it
- * is immutable afterward (decision 011 D2): the slug becomes the hosted
+ * is immutable afterward: the slug becomes the hosted
  * URL `/chat/<org>/<slug>` in the agent's organization's namespace.
  *
  * The slug auto-derives from the name until the user edits it (the
@@ -568,7 +568,7 @@ function ShareAgentForm({
     (audience: SharingAudience) => {
       if (audience === draft.audience) return;
       // Credential bindings are public-audience only (the proto CEL rule
-      // rejects them on org shares — decision 011 addendum), so switching
+      // rejects them on org shares), so switching
       // to org drops them, and the toast says so: silent config loss is
       // worse than a wordier confirmation.
       const dropsBindings =
@@ -797,7 +797,7 @@ function WhoPaysLine({
   const mode = useDeploymentMode();
   // An Organization's id equals its slug (see ApiResourceMetadata.id), so
   // the share's org reference is directly usable as the billing org id.
-  // The wallet is a cloud-only facility (editions program, DD-001): neither
+  // The wallet is a cloud-only facility: neither
   // the open-source nor the Enterprise edition has billing accounts.
   const { account } = useBillingAccount(mode === "cloud" ? org : null);
 
@@ -968,7 +968,7 @@ function ResetLinkControl({
  * consent act that makes a tool-using agent work for visitors (decision
  * 011: credentials belong to the channel, never to the agent's pristine
  * default instance). Public audience only; the section disappears for
- * org shares, whose member sessions carry no share linkage in Phase A.
+ * org shares, whose member sessions carry no share linkage.
  *
  * Expanded by default when the agent uses MCP tools — for those agents
  * this is essential configuration, not an advanced option.
@@ -1006,7 +1006,7 @@ function ToolCredentialsSection({
   );
 
   // Only org-shared environments are guest-usable (the runtime merge
-  // skips private ones — decision 006), so offering others would bind
+  // skips private ones), so offering others would bind
   // credentials that silently never apply.
   const onlyOrgShared = useCallback(
     (env: Environment) =>

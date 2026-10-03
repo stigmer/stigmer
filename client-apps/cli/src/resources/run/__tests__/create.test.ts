@@ -270,7 +270,7 @@ describe("createAgentExecution", () => {
   it("stamps an explicit native harness rather than leaving it unspecified", async () => {
     // "native" may be a deliberate per-run escape from the account's
     // default_harness preference — it must survive on the wire so it beats
-    // any future change to the server-side default (D3).
+    // any future change to the server-side default.
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
       agentId: "agt_1",

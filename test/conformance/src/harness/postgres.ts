@@ -1,4 +1,4 @@
-// Postgres database provisioning for the local-postgres targets (DD-011).
+// Postgres database provisioning for the local-postgres targets.
 // Domain: conformance harness.
 //
 // CONFORMANCE_POSTGRES_URL is an ADMIN connection URL to a real Postgres

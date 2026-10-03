@@ -23,9 +23,9 @@
  *     owner_type in kind_meta — the event says so; the driver follows it
  *     exactly as the cloud's does) by a `user`-class caller that RESOLVES
  *     to an account: one `owner` row for that account. Only `organization`,
- *     because that row is what the Members page and entry 3's admin rule
- *     read; an owner row on an agent would be the per-resource grant the
- *     grant scope keeps Enterprise.
+ *     because that row is what the Members page and the authorizer's
+ *     admin rule read; an owner row on an agent would be the per-resource
+ *     grant the grant scope keeps Enterprise.
  *   - `organization` and `identity_account` deleted: every row naming the
  *     resource on either side goes, through the grant path's bidirectional
  *     cleanup — the delete chains' CleanupIamPolicies step calls this, so

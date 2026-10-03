@@ -1,4 +1,4 @@
-// Unit arms for the git workspace fixture (entry 20260910.02): the two seeds
+// Unit arms for the git workspace fixture: the two seeds
 // the runner's capture depends on are ignored from the first commit, seeded
 // files are tracked and HEAD moves only when the FIXTURE commits, and the
 // read/exists/remove surface reads the tree the runner will later reconcile.

@@ -21,8 +21,8 @@
 //
 // The completeness case holds the table to the API: every create and apply the
 // committed stubs declare on an open-source kind has a row here, or one of the
-// stated exemptions (a kind no open-source edition serves, whose rows
-// stigmer/stigmer-cloud#1026 asks for in the composition; an input with no
+// stated exemptions (a kind no open-source edition serves, whose rows the
+// hosted edition's own suites carry; an input with no
 // metadata to carry an id, and IdentityAccount's create, which no wire caller
 // may send). A new create RPC fails it until the row is added.
 //
@@ -864,7 +864,7 @@ describe("A create never keeps the id the caller sent", () => {
         continue;
       }
       if (kindMetaOf(kind).tier !== ResourceTier.open_source) {
-        exemptions.push(`${key}: served only by Stigmer Cloud or Enterprise; pinned where its controller lives, in stigmer-cloud (stigmer/stigmer-cloud#1026)`);
+        exemptions.push(`${key}: served only by Stigmer Cloud or Enterprise; pinned where its controller lives, in the hosted edition's own suites`);
       } else if (method.input.fields.every((field) => field.name !== "metadata")) {
         exemptions.push(`${key}: the input carries no id a caller could choose`);
       } else if (EXEMPT_BY_NAME.has(key)) {
