@@ -1,7 +1,7 @@
 /**
  * Pins, end to end, the roles on the organization a one-organization server
  * makes itself under sign-in, when the store it boots on already holds people
- * (domain/iampolicy/membership.ts `ensureRolesOnServerMadeOrganization`).
+ * (domain/iampolicy/membership.ts `ensureRolesOnServerOrganization`).
  *
  * Three boots over ONE data directory:
  *   1. A server that holds any number of organizations (an older open-source
@@ -21,7 +21,10 @@
  * which owns it; booted again with sign-in and no operator email, the first
  * person to sign in owns it and the next is a member, as on a fresh sign-in
  * install. The laptop account's stamp and owner row are nobody's on that
- * organization (domain/iampolicy/membership.ts).
+ * organization (domain/iampolicy/membership.ts). The same holds for an
+ * organization an older release's laptop made (`acme`, through its console
+ * or CLI): the one organization a server holds is the server's, whoever
+ * made it.
  *
  * The unit vouches for unsigned JWT-shaped tokens and declares the
  * require-authentication posture with no Authorizer (composed-support.ts),
@@ -41,12 +44,13 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
-import { SERVER_MADE_ORGANIZATION_ROLES_KEY } from "../../domain/iampolicy/constants.js";
+import { SERVER_ORGANIZATION_ROLES_KEY } from "../../domain/iampolicy/constants.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import { SINGLE_ORG_KEY } from "../../domain/organization/limit.js";
 import type { Store } from "../../store/interface.js";
@@ -77,7 +81,7 @@ async function rolesIn(store: Store): Promise<ReadonlyArray<string>> {
     .sort();
 }
 
-describe("roles on the server-made organization (composed server, OIDC with no unit Authorizer, three boots over one directory)", () => {
+describe("roles on the server's organization (composed server, OIDC with no unit Authorizer, three boots over one directory)", () => {
   let dir: string;
   let server: ComposedServer;
   let port: number;
@@ -105,7 +109,7 @@ describe("roles on the server-made organization (composed server, OIDC with no u
     transportFor(port, fakeJwt(SECOND, "second@example.com"));
 
   beforeAll(async () => {
-    dir = mkdtempSync(path.join(tmpdir(), "server-made-roles-"));
+    dir = mkdtempSync(path.join(tmpdir(), "server-organization-roles-"));
     await boot(signIn);
   });
 
@@ -146,7 +150,7 @@ describe("roles on the server-made organization (composed server, OIDC with no u
       ].sort(),
     );
     expect(
-      await server.store.bootstrapState.get(SERVER_MADE_ORGANIZATION_ROLES_KEY),
+      await server.store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
     ).not.toBe("");
     for (const as of [asFirst, asSecond]) {
       const found = await createClient(
@@ -238,5 +242,69 @@ describe("a laptop that turns sign-in on (composed server, trusted-local then OI
     expect(found.entries.map((entry) => entry.metadata?.id)).toEqual([
       "stigmer",
     ]);
+  });
+});
+
+describe("an older release's laptop organization when sign-in is turned on (composed server, trusted-local with any number, then OIDC with one and no operator email)", () => {
+  let dir: string;
+  let server: ComposedServer;
+  let port: number;
+
+  const signedIn: ServerExtension = {
+    name: "fake-oidc-only",
+    requireAuthentication: true,
+    identityVerifiers: [fakeVerifier],
+    orgLimit: 1,
+  };
+
+  async function boot(
+    extensions: ReadonlyArray<ServerExtension>,
+  ): Promise<void> {
+    server = await composeServer({
+      config: loadConfig(baseConfig(dir)),
+      logger: silentLogger,
+      extensions,
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    port = await server.start();
+  }
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "older-laptop-to-sign-in-"));
+    await boot([]);
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("the first person to sign in owns `acme`, and the next is a member", async () => {
+    await createClient(
+      OrganizationCommandController,
+      transportFor(port),
+    ).create({
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: { name: "acme", slug: "acme", org: "" },
+      spec: { description: "made on the laptop by an older release" },
+    });
+    await server.shutdown();
+
+    await boot([signedIn]);
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("acme");
+    await createClient(
+      IdentityAccountCommandController,
+      transportFor(port, fakeJwt(FIRST, "first@example.com")),
+    ).provisionMyAccount({});
+    await createClient(
+      IdentityAccountCommandController,
+      transportFor(port, fakeJwt(SECOND, "second@example.com")),
+    ).provisionMyAccount({});
+
+    const roles = await rolesIn(server.store);
+    expect(roles).toContain(`${firstId()}:owner@acme|by:${firstId()}`);
+    expect(roles).toContain(`${secondId()}:member@acme|by:${secondId()}`);
   });
 });

@@ -6,17 +6,17 @@
  *   - an empty store gets `stigmer`, made as the caller given (under
  *     sign-in the server acting as nobody, so the stamp is "system"), its
  *     id recorded under SINGLE_ORG_KEY, and the holder settled to it;
- *   - a store that holds one organization is left alone and filled with
- *     it, with nothing recorded (the server did not make it), unless it is
- *     the server's own `stigmer`, stamped "system", left unrecorded by a
- *     start that died between the create and the record;
+ *   - a store that holds one organization is left alone, filled with it,
+ *     and records it as the server's, whoever made it (an older release's
+ *     console or CLI, or a start of this server that died before its
+ *     record); a record that names another organization is replaced;
  *   - a store that holds several fills nothing and warns with the count;
  *   - a store whose ledger retired the slug, holding none, warns and fills
  *     nothing, and boots;
  *   - a create that loses the race to another replica, refused at the
  *     duplicate check (AlreadyExists) or at the limit
  *     (ORGANIZATION_LIMIT_REACHED), finds the winner's organization, fills
- *     it, and leaves the record to the winner;
+ *     it, and records it as the winner does;
  *   - a create refused as a duplicate that leaves the store with none (a
  *     slug claim with no organization) warns, fills nothing, and boots;
  *   - any other failure of the create is a boot throw naming the cause.
@@ -162,20 +162,20 @@ describe("ensureSingleOrganization", () => {
     );
   });
 
-  it("a store that holds one organization is left alone and filled with it", async () => {
+  it("a store that holds one organization, whoever made it, is left alone, filled with it, and recorded as the server's", async () => {
     await composeWith();
-    await seedOrganization("acme");
+    await seedOrganization("acme", "ida_operator");
     const { holder, run } = ensure();
     await run();
 
     expect((await organizations()).map((org) => org.metadata?.id)).toEqual([
       "acme",
     ]);
-    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("acme");
     expect(holder.current()).toBe("acme");
   });
 
-  it('a start that died before recording finds the server\'s own `stigmer`, stamped "system", and records it', async () => {
+  it("a start that died before recording its own `stigmer` records it at the next", async () => {
     await composeWith();
     await seedOrganization("stigmer", SYSTEM_OPERATOR_IDENTITY_ID);
     const { holder, run } = ensure();
@@ -187,14 +187,15 @@ describe("ensureSingleOrganization", () => {
     expect(holder.current()).toBe("stigmer");
   });
 
-  it("a person's `stigmer` (a laptop's CLI-made one) is filled but never recorded as the server's", async () => {
+  it("a record that names an organization the store no longer holds alone is replaced by the one it holds", async () => {
     await composeWith();
-    await seedOrganization("stigmer", "ida_operator");
+    await server.store.bootstrapState.set(SINGLE_ORG_KEY, "gone");
+    await seedOrganization("acme");
     const { holder, run } = ensure();
     await run();
 
-    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
-    expect(holder.current()).toBe("stigmer");
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("acme");
+    expect(holder.current()).toBe("acme");
   });
 
   it("a store that holds several fills nothing and warns with the count", async () => {
@@ -269,7 +270,9 @@ describe("ensureSingleOrganization", () => {
       });
 
       expect(holder.current()).toBe("stigmer");
-      expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
+      expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe(
+        "stigmer",
+      );
     },
   );
 

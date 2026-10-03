@@ -2044,7 +2044,7 @@ export async function composeServer(
         // role reconciliation above ran: the people a store already held
         // get their roles on it here, once (domain/iampolicy/membership.ts).
         if (authorizationPosture === "built-in" && membership !== undefined) {
-          await membership.ensureRolesOnServerMadeOrganization();
+          await membership.ensureRolesOnServerOrganization();
         }
       }
       // Temporal boot is NON-fatal end to end (Go server.go): a failed

@@ -22,11 +22,14 @@
  *     already run, before the organization existed;
  *   - sign-in: the server acting as nobody
  *     (`serverActingFor(SYSTEM_OPERATOR_IDENTITY_ID)`), so the stamp names
- *     no person and the membership rules decide the owner from the
- *     recorded SINGLE_ORG_KEY (iampolicy/membership.ts).
+ *     no person and the membership rules decide the owner of the
+ *     organization recorded under SINGLE_ORG_KEY (iampolicy/membership.ts).
  *
  * After the create the store is read again, and that read settles the
- * holder and the SINGLE_ORG_KEY record, not the create's answer: two replicas
+ * holder and the SINGLE_ORG_KEY record, not the create's answer. The record
+ * names whichever organization the store holds alone, whoever made it, so
+ * an upgraded store's organization is the server's as much as one this
+ * step made, and a start that died before recording heals. Two replicas
  * racing on an empty store end with one organization (the duplicate check,
  * the limit or the slug claim refuses the loser, and its refusal is the lost
  * race), and a store from before this step may hold several. Exactly one
@@ -59,8 +62,6 @@ import {
   SINGLE_ORG_KEY,
 } from "../domain/organization/limit.js";
 import { ORGANIZATION_SLUG_RESERVED } from "../domain/organization/slug-ledger.js";
-import { SYSTEM_OPERATOR_IDENTITY_ID } from "../pipeline/interceptors/auth.js";
-import { auditOf } from "../pipeline/steps/defaults.js";
 import type { Store } from "../store/interface.js";
 
 /** The in-process edge that makes the organization: the whole create chain, as the given caller. */
@@ -88,20 +89,12 @@ export async function ensureSingleOrganization(
     (await store.listResources(ApiResourceKind.organization)).length === 0
       ? await createSingleOrganization(deps)
       : "present";
-  const [onlyOrganization, ...others] = (
+  const [only, ...others] = (
     await store.listResources(ApiResourceKind.organization)
-  ).map((bytes) => fromBinary(OrganizationSchema, bytes));
-  const only = onlyOrganization?.metadata?.id ?? "";
-  if (onlyOrganization !== undefined && only !== "" && others.length === 0) {
-    // Recorded from the store's own answer, by the start that made it (a
-    // replica that lost the race leaves the record to the winner), or by a
-    // later start that finds the server's own organization unrecorded: a
-    // start that died between the create and this write.
-    if (
-      outcome === "made" ||
-      ((await store.bootstrapState.get(SINGLE_ORG_KEY)) === "" &&
-        isServerMade(onlyOrganization))
-    ) {
+  ).map((bytes) => fromBinary(OrganizationSchema, bytes).metadata?.id ?? "");
+  if (only !== undefined && only !== "" && others.length === 0) {
+    // The server's organization, recorded from the store's own answer.
+    if ((await store.bootstrapState.get(SINGLE_ORG_KEY)) !== only) {
       await store.bootstrapState.set(SINGLE_ORG_KEY, only);
     }
     deps.holder.settle(only);
@@ -122,20 +115,6 @@ export async function ensureSingleOrganization(
       { slug: SINGLE_ORGANIZATION_SLUG },
     );
   }
-}
-
-/**
- * Whether an organization is the one this step makes under sign-in, made as
- * nobody: the slug, stamped "system". A person's organization (a laptop's
- * CLI-made `stigmer`, stamped by its operator) is never recorded as the
- * server's.
- */
-function isServerMade(organization: Organization): boolean {
-  return (
-    organization.metadata?.slug === SINGLE_ORGANIZATION_SLUG &&
-    auditOf(OrganizationSchema, organization)?.specAudit?.createdBy?.id ===
-      SYSTEM_OPERATOR_IDENTITY_ID
-  );
 }
 
 /**

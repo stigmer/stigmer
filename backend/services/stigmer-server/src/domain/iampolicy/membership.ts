@@ -33,11 +33,12 @@
  *                   over either;
  *     5. `member` — everyone else.
  *   Arms 3 and 4 both answer `admin`; 3 is checked first because it is a
- *   string compare and 4 reads the organization's rows. On the one
- *   organization a one-organization server made itself (the id recorded
- *   under SINGLE_ORG_KEY, domain/organization/limit.ts — a recorded fact,
- *   never a stamp, because under sign-in the server makes it as nobody),
- *   the person who set the server up owns it, as they would had they
+ *   string compare and 4 reads the organization's rows. On the server's
+ *   organization, the one a one-organization server holds (the id recorded
+ *   under SINGLE_ORG_KEY, domain/organization/limit.ts, at every start
+ *   that fills it, whoever made it: the server itself, as nobody under
+ *   sign-in, or an older release's console or CLI before the server held
+ *   one), the person who set the server up owns it, as they would had they
  *   created it in the console: arm 3 answers `owner`, and arm 4 answers
  *   `owner` when no operator email is configured. With one configured, arm
  *   4 keeps `admin` there, so a stranger who signs in before the operator
@@ -45,7 +46,7 @@
  *   trusted-local principal, idp id `local|…`,
  *   domain/identityaccount/operator.ts) is nobody to these arms: neither
  *   its creator stamps (its account id, its email) nor its role rows count
- *   as another person or as rows. A laptop that made the organization and
+ *   as another person or as rows. A laptop that held the organization and
  *   later turns sign-in on is then a fresh sign-in install, as the
  *   self-hosting guides promise: the operator email owns it, or, with none
  *   configured, the first person to sign in does; the laptop account can no
@@ -90,16 +91,16 @@
  *   port carries no enumeration, by its own rule that a port does not
  *   carry a method only one edition calls, and this act is open source's.
  *
- *   ensureRolesOnServerMadeOrganization() — the same pass, over the one
- *   organization a one-organization server made itself, ONCE per database
- *   (SERVER_MADE_ORGANIZATION_ROLES_KEY). The server makes it in `start()`,
+ *   ensureRolesOnServerOrganization() — the same pass, over the server's
+ *   organization, ONCE per database (SERVER_ORGANIZATION_ROLES_KEY). The
+ *   server records it in `start()` (and on an empty store makes it there),
  *   after the reconciliation above has run, so a store upgraded with people
  *   but no organization (someone signed in and never made one) would hold
  *   an organization no account holds a role on, with the limit refusing a
  *   second and the delete refusing this one. The arms run for every person
  *   account on that organization only, as each account, in creation order,
  *   and the marker is written after the last; a fault leaves it unset and
- *   the next boot converges. Nothing while the server has made none: the
+ *   the next boot converges. Nothing while the server holds none: the
  *   marker waits for the organization. On a fresh install there is nobody
  *   yet, the marker is written, and every later person gets their role at
  *   their first sign-in.
@@ -166,7 +167,7 @@ import type { PolicyChangeCause } from "./change.js";
 import {
   BLUEPRINT_KINDS,
   ROLES_RECONCILED_KEY,
-  SERVER_MADE_ORGANIZATION_ROLES_KEY,
+  SERVER_ORGANIZATION_ROLES_KEY,
 } from "./constants.js";
 import type { IamPolicyGrantPath } from "./grant-path.js";
 import { organizationRole, relationOf } from "./specs.js";
@@ -186,8 +187,8 @@ export interface MembershipRules extends AccountCreatedHook {
   ensureOperatorOwnership(operator: IdentityAccount): Promise<void>;
   /** The built-in posture's boot reconciliation: the arms for every person provisioned before the rules existed, once per database. */
   ensureRolesForExistingAccounts(): Promise<void>;
-  /** The same arms for every person account on the organization the server made itself (SINGLE_ORG_KEY), once per database. */
-  ensureRolesOnServerMadeOrganization(): Promise<void>;
+  /** The same arms for every person account on the server's organization (SINGLE_ORG_KEY), once per database. */
+  ensureRolesOnServerOrganization(): Promise<void>;
 }
 
 /**
@@ -270,9 +271,9 @@ export interface RoleQuestion {
   readonly blueprintsInOrganization: ReadonlyArray<ScannedResource>;
   /** Whether ANY role row exists on the organization — arm 4's "zero rows", read by the caller through the port. */
   readonly organizationHasRows: boolean;
-  /** Whether this is the organization the server made itself (SINGLE_ORG_KEY), where arms 3 and 4 may answer `owner`. */
-  readonly serverMadeOrganization: boolean;
-  /** The laptop operator accounts' creator stamps (account ids and emails): on the server-made organization, nobody's. */
+  /** Whether this is the server's organization (SINGLE_ORG_KEY), where arms 3 and 4 may answer `owner`. */
+  readonly serverOrganization: boolean;
+  /** The laptop operator accounts' creator stamps (account ids and emails): on the server's organization, nobody's. */
   readonly laptopOperatorStamps: ReadonlySet<string>;
 }
 
@@ -292,7 +293,7 @@ export function roleFor(question: RoleQuestion): IamRole {
     organization,
     blueprintsInOrganization,
     organizationHasRows,
-    serverMadeOrganization,
+    serverOrganization,
     laptopOperatorStamps,
   } = question;
   const isMine = (stamp: string): boolean =>
@@ -304,7 +305,7 @@ export function roleFor(question: RoleQuestion): IamRole {
     return IamRole.admin;
   }
   if (operatorEmail !== "" && email === operatorEmail) {
-    return serverMadeOrganization ? IamRole.owner : IamRole.admin;
+    return serverOrganization ? IamRole.owner : IamRole.admin;
   }
   const anotherPersonStamped = [
     organization.createdBy,
@@ -313,10 +314,10 @@ export function roleFor(question: RoleQuestion): IamRole {
     (stamp) =>
       isPersonStamp(stamp) &&
       !isMine(stamp) &&
-      !(serverMadeOrganization && laptopOperatorStamps.has(stamp)),
+      !(serverOrganization && laptopOperatorStamps.has(stamp)),
   );
   if (!anotherPersonStamped && !organizationHasRows) {
-    return serverMadeOrganization && operatorEmail === ""
+    return serverOrganization && operatorEmail === ""
       ? IamRole.owner
       : IamRole.admin;
   }
@@ -327,8 +328,8 @@ export function roleFor(question: RoleQuestion): IamRole {
 interface ScannedWorld {
   readonly organizations: ReadonlyArray<ScannedResource>;
   readonly blueprints: ReadonlyArray<ScannedResource>;
-  /** The id under SINGLE_ORG_KEY, "" when the server made no organization itself. */
-  readonly serverMadeOrganization: string;
+  /** The id under SINGLE_ORG_KEY, "" when the server holds no organization as its one. */
+  readonly serverOrganization: string;
   readonly laptopOperators: LaptopOperators;
 }
 
@@ -418,7 +419,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
     return {
       organizations: await scan(ApiResourceKind.organization),
       blueprints: await scanBlueprints(),
-      serverMadeOrganization: await store.bootstrapState.get(SINGLE_ORG_KEY),
+      serverOrganization: await store.bootstrapState.get(SINGLE_ORG_KEY),
       laptopOperators: await scanLaptopOperators(),
     };
   }
@@ -450,9 +451,9 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       const blueprintsInOrganization = world.blueprints.filter(
         (blueprint) => blueprint.org === organization.id,
       );
-      const serverMadeOrganization =
-        world.serverMadeOrganization !== "" &&
-        organization.id === world.serverMadeOrganization;
+      const serverOrganization =
+        world.serverOrganization !== "" &&
+        organization.id === world.serverOrganization;
       const rows = await policies.findByResource(ORGANIZATION, organization.id);
       const role = roleFor({
         accountId,
@@ -461,18 +462,18 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
         operatorEmail,
         organization,
         blueprintsInOrganization,
-        // On the server-made organization the laptop operator's rows are
+        // On the server's organization the laptop operator's rows are
         // nobody's (the header), so they are not "rows" to arm 4.
         organizationHasRows: rows.some(
           (row) =>
             !(
-              serverMadeOrganization &&
+              serverOrganization &&
               world.laptopOperators.accountIds.has(
                 row.spec?.principal?.id ?? "",
               )
             ),
         ),
-        serverMadeOrganization,
+        serverOrganization,
         laptopOperatorStamps: world.laptopOperators.stamps,
       });
       await grantPath.grant(
@@ -518,8 +519,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
         {
           organizations,
           blueprints: await scanBlueprints(),
-          serverMadeOrganization:
-            await store.bootstrapState.get(SINGLE_ORG_KEY),
+          serverOrganization: await store.bootstrapState.get(SINGLE_ORG_KEY),
           laptopOperators: await scanLaptopOperators(),
         },
         "first_sign_in",
@@ -554,26 +554,25 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       );
     },
 
-    async ensureRolesOnServerMadeOrganization(): Promise<void> {
+    async ensureRolesOnServerOrganization(): Promise<void> {
       if (
-        (await store.bootstrapState.get(SERVER_MADE_ORGANIZATION_ROLES_KEY)) !==
-        ""
+        (await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY)) !== ""
       ) {
         return;
       }
-      const serverMade = await store.bootstrapState.get(SINGLE_ORG_KEY);
-      if (serverMade === "") {
+      const serverOrganization = await store.bootstrapState.get(SINGLE_ORG_KEY);
+      if (serverOrganization === "") {
         return;
       }
       const organizations = (await scan(ApiResourceKind.organization)).filter(
-        (organization) => organization.id === serverMade,
+        (organization) => organization.id === serverOrganization,
       );
       const accounts = await scanPersonAccounts();
       if (organizations.length > 0 && accounts.length > 0) {
         const world: ScannedWorld = {
           organizations,
           blueprints: await scanBlueprints(),
-          serverMadeOrganization: serverMade,
+          serverOrganization,
           laptopOperators: await scanLaptopOperators(),
         };
         for (const account of accounts) {
@@ -587,7 +586,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       }
       // After the last account, as the reconciliation above writes its own.
       await store.bootstrapState.set(
-        SERVER_MADE_ORGANIZATION_ROLES_KEY,
+        SERVER_ORGANIZATION_ROLES_KEY,
         rfc3339Seconds(new Date()),
       );
     },

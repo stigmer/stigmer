@@ -78,7 +78,7 @@ import { SINGLE_ORG_KEY } from "../../organization/limit.js";
 import {
   BLUEPRINT_KINDS,
   ROLES_RECONCILED_KEY,
-  SERVER_MADE_ORGANIZATION_ROLES_KEY,
+  SERVER_ORGANIZATION_ROLES_KEY,
 } from "../constants.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
 import type { IamPolicyGrantPath } from "../grant-path.js";
@@ -527,7 +527,7 @@ describe("membership rules", () => {
     });
   });
 
-  describe("the organization the server made itself (SINGLE_ORG_KEY)", () => {
+  describe("the server's organization (SINGLE_ORG_KEY)", () => {
     // A one-organization server under sign-in makes its organization as
     // nobody: stamped "system", its id recorded under SINGLE_ORG_KEY.
     beforeEach(async () => {
@@ -708,14 +708,14 @@ describe("membership rules", () => {
     ])("%s", (_name, input, expected) => {
       expect(
         roleFor({
-          serverMadeOrganization: false,
+          serverOrganization: false,
           laptopOperatorStamps: NO_LAPTOP_OPERATOR,
           ...input,
         }),
       ).toBe(expected);
     });
 
-    // The organization a one-organization server made itself, under sign-in:
+    // The server's organization as a one-organization server makes it under sign-in:
     // stamped "system" (no person made it) and recorded under SINGLE_ORG_KEY.
     // The person who set the server up owns it.
     const madeByServer: ScannedResource = {
@@ -725,7 +725,7 @@ describe("membership rules", () => {
     };
     it.each([
       [
-        "arm 3 on the server-made organization: the configured operator owns it",
+        "arm 3 on the server's organization: the configured operator owns it",
         {
           ...bob,
           email: OPERATOR_EMAIL,
@@ -737,7 +737,7 @@ describe("membership rules", () => {
         IamRole.owner,
       ],
       [
-        "arm 4 on the server-made organization with no operator email: the first person owns it",
+        "arm 4 on the server's organization with no operator email: the first person owns it",
         {
           ...bob,
           organization: madeByServer,
@@ -748,7 +748,7 @@ describe("membership rules", () => {
         IamRole.owner,
       ],
       [
-        "arm 4 on the server-made organization with an operator email configured: a stranger first is admin, never owner",
+        "arm 4 on the server's organization with an operator email configured: a stranger first is admin, never owner",
         {
           ...bob,
           organization: madeByServer,
@@ -759,7 +759,7 @@ describe("membership rules", () => {
         IamRole.admin,
       ],
       [
-        "the server-made organization whose owner was revoked: rows remain, so the next stranger is a member",
+        "the server's organization whose owner was revoked: rows remain, so the next stranger is a member",
         {
           ...bob,
           organization: madeByServer,
@@ -774,7 +774,7 @@ describe("membership rules", () => {
         roleFor({
           laptopOperatorStamps: NO_LAPTOP_OPERATOR,
           ...input,
-          serverMadeOrganization: true,
+          serverOrganization: true,
         }),
       ).toBe(expected);
     });
@@ -795,21 +795,21 @@ describe("membership rules", () => {
     it.each([
       [
         "with no operator email, the first person to sign in owns it",
-        { operatorEmail: "", serverMadeOrganization: true },
+        { operatorEmail: "", serverOrganization: true },
         IamRole.owner,
       ],
       [
         "with an operator email configured, a stranger first is admin",
-        { operatorEmail: OPERATOR_EMAIL, serverMadeOrganization: true },
+        { operatorEmail: OPERATOR_EMAIL, serverOrganization: true },
         IamRole.admin,
       ],
       [
         "on an organization the server did not make, the laptop's stamps are a person's: member",
-        { operatorEmail: "", serverMadeOrganization: false },
+        { operatorEmail: "", serverOrganization: false },
         IamRole.member,
       ],
     ])(
-      "the laptop operator's stamps on the server-made organization are nobody's: %s",
+      "the laptop operator's stamps on the server's organization are nobody's: %s",
       (_name, input, expected) => {
         expect(
           roleFor({
@@ -837,7 +837,7 @@ describe("membership rules", () => {
         blueprintsInOrganization: [],
         organizationHasRows: false,
         operatorEmail: "",
-        serverMadeOrganization: false,
+        serverOrganization: false,
         laptopOperatorStamps: NO_LAPTOP_OPERATOR,
       };
       expect(roleFor(question)).toBe(IamRole.admin);
@@ -1043,16 +1043,16 @@ describe("membership rules", () => {
     });
   });
 
-  describe("ensureRolesOnServerMadeOrganization", () => {
+  describe("ensureRolesOnServerOrganization", () => {
     it("waits while the server has made none: no rows and no marker", async () => {
       await seedOrg("acme", "system");
       await seedAccount("auth0|operator", OPERATOR_EMAIL, 100);
 
-      await rules.ensureRolesOnServerMadeOrganization();
+      await rules.ensureRolesOnServerOrganization();
 
       expect(policies.rows.size).toBe(0);
       expect(
-        await store.bootstrapState.get(SERVER_MADE_ORGANIZATION_ROLES_KEY),
+        await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
       ).toBe("");
     });
 
@@ -1067,7 +1067,7 @@ describe("membership rules", () => {
       );
       const operator = await seedAccount("auth0|operator", OPERATOR_EMAIL, 200);
 
-      await rules.ensureRolesOnServerMadeOrganization();
+      await rules.ensureRolesOnServerOrganization();
 
       // An operator email is configured: the stranger, first, is admin
       // (arm 4), and the operator owns it (arm 3).
@@ -1078,7 +1078,7 @@ describe("membership rules", () => {
         operator.metadata!.id,
       ]);
       expect(
-        await store.bootstrapState.get(SERVER_MADE_ORGANIZATION_ROLES_KEY),
+        await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
       ).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
     });
 
@@ -1086,10 +1086,10 @@ describe("membership rules", () => {
       await seedOrg("stigmer", "system");
       await store.bootstrapState.set(SINGLE_ORG_KEY, "stigmer");
       await seedAccount("auth0|operator", OPERATOR_EMAIL, 100);
-      await rules.ensureRolesOnServerMadeOrganization();
+      await rules.ensureRolesOnServerOrganization();
       policies.rows.clear();
 
-      await rules.ensureRolesOnServerMadeOrganization();
+      await rules.ensureRolesOnServerOrganization();
 
       expect(policies.rows.size).toBe(0);
     });
@@ -1098,11 +1098,11 @@ describe("membership rules", () => {
       await seedOrg("stigmer", "system");
       await store.bootstrapState.set(SINGLE_ORG_KEY, "stigmer");
 
-      await rules.ensureRolesOnServerMadeOrganization();
+      await rules.ensureRolesOnServerOrganization();
 
       expect(policies.rows.size).toBe(0);
       expect(
-        await store.bootstrapState.get(SERVER_MADE_ORGANIZATION_ROLES_KEY),
+        await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
       ).not.toBe("");
     });
   });

@@ -55,13 +55,16 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 export const SINGLE_ORGANIZATION_SLUG = "stigmer";
 
 /**
- * The bootstrap-state key that names the organization the server made
- * itself (its id): written once, when the boot step creates it. It is a
- * recorded fact the membership rules read (iampolicy/membership.ts, arms 3
- * and 4 answer `owner` on that organization), never the creator stamp:
- * under sign-in the server makes it as nobody (`"system"`), so the stamp
- * cannot say whose it is. It does not decide whether to make one: "none in
- * the store" does.
+ * The bootstrap-state key that names the server's organization (its id):
+ * the one organization a one-organization server holds and fills, recorded
+ * by every start that settles the fill, whoever made it (the server's own
+ * boot step, or an older release's console or CLI before the server held
+ * one). It is a recorded fact the membership rules read
+ * (iampolicy/membership.ts: arms 3 and 4 answer `owner` on that
+ * organization, and the laptop operator account is nobody there), never
+ * the creator stamp: under sign-in the server makes it as nobody
+ * (`"system"`), so the stamp cannot say whose it is. It does not decide
+ * whether to make one: "none in the store" does.
  */
 export const SINGLE_ORG_KEY = "single_org";
 

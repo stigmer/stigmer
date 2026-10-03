@@ -159,16 +159,16 @@ export const ROLES_RECONCILED_KEY = "membership_rules_reconciled";
 
 /**
  * The bootstrap-state key the membership rules write when the person
- * accounts that existed before a one-organization server made its own
- * organization (SINGLE_ORG_KEY) have been given their roles on it
- * (membership.ts `ensureRolesOnServerMadeOrganization`): once per database,
- * the value the RFC 3339 time it finished. Its own key, not
- * ROLES_RECONCILED_KEY: that reconciliation runs before `start()` makes the
- * organization, so on a store upgraded with people and no organization it
- * has already run over none. Once only, for the same reason: a role revoked
+ * accounts a store held have been given their roles on a one-organization
+ * server's organization (SINGLE_ORG_KEY; membership.ts
+ * `ensureRolesOnServerOrganization`): once per database, the value the RFC
+ * 3339 time it finished. Its own key, not ROLES_RECONCILED_KEY: that
+ * reconciliation runs before `start()` makes or records the organization,
+ * so on a store upgraded with people and no organization it has already
+ * run over none. Once only, for the same reason: a role revoked
  * after it is never handed back by a reboot.
  */
-export const SERVER_MADE_ORGANIZATION_ROLES_KEY = "single_org_roles_reconciled";
+export const SERVER_ORGANIZATION_ROLES_KEY = "single_org_roles_reconciled";
 
 /**
  * The principal kinds a PERSON may grant a role to — the user `create`

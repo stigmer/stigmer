@@ -222,7 +222,7 @@ export interface SearchIndexQueryResult {
  * Key-value state for one-shot boot work that must run once per database.
  * Two writers today: the membership rules' reconciliations
  * (`iampolicy/constants.ts` ROLES_RECONCILED_KEY and
- * SERVER_MADE_ORGANIZATION_ROLES_KEY) and the boot step that makes a
+ * SERVER_ORGANIZATION_ROLES_KEY) and the boot step that makes a
  * one-organization server's organization (`domain/organization/limit.ts`
  * SINGLE_ORG_KEY). A database migrated
  * from the Go server carries that server's bootstrap keys too; the
