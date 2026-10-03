@@ -118,7 +118,7 @@ operator account the server creates at boot. A caller with no account yet
 gets NOT_FOUND — the first-sign-in flow (`ensureMyIdentityAccount`, run by
 [`useIdentityAccountGate`](#useidentityaccountgate) and the CLI) is what creates one.
 
-Cached across mounts under a [`FetchCacheProvider`](/docs/sdk/react/core#fetchcacheprovider) (DD-014): a
+Cached across mounts under a [`FetchCacheProvider`](/docs/sdk/react/core#fetchcacheprovider): a
 revisit renders the previous result immediately and refetches in the
 background, so consumers that seed UI from the account (e.g. composer
 defaults) settle synchronously after the first visit.

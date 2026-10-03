@@ -13,9 +13,9 @@ Data hook that loads an agent's `AgentShare` resources — the
 channels carrying its hosted-chat configuration (audience, allowed
 origins, visitor messages, tool credentials, link token).
 
-Sharing is channel configuration, not agent behavior (decision 011):
-an agent can carry N shares, each with its own URL, audience and
-credentials (decision 011 D3), all in the agent's own organization.
+Sharing is channel configuration, not agent behavior: an agent can carry N
+shares, each with its own URL, audience and credentials, all in the agent's
+own organization.
 
 Pass `org` to scope the list to one organization's channels — the
 agent's organization is the one a console tab asks for. The server
@@ -85,7 +85,7 @@ affordance hides on permissions alone.
 
 On the open-source edition the answer follows the server's posture. A
 server without sign-in has the permissive single-team authorizer and
-answers allowed (decision 011 D4). A server with sign-in enforces the
+answers allowed. A server with sign-in enforces the
 same organization roles as the cloud, so `can_create_agent_share` is
 the admin's and a member sees no share affordance.
 
@@ -134,7 +134,7 @@ function useDeleteAgentShare(): UseDeleteAgentShareReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    deleteShare: { type: "(id: string) => Promise<AgentShare>", description: "Delete an agent share by ID. Returns the deleted resource.  Deleting a share is full teardown (decision 011 D1): its hosted link dies immediately — including for visitors mid-conversation — and its configuration (origins, messages, credential bindings, link token) is gone. To stop serving while keeping the configuration, save the share with `enabled: false` instead (a config-preserving pause via useSaveAgentShare)." },
+    deleteShare: { type: "(id: string) => Promise<AgentShare>", description: "Delete an agent share by ID. Returns the deleted resource.  Deleting a share is full teardown: its hosted link dies immediately — including for visitors mid-conversation — and its configuration (origins, messages, credential bindings, link token) is gone. To stop serving while keeping the configuration, save the share with `enabled: false` instead (a config-preserving pause via useSaveAgentShare)." },
     error: { type: "Error | null", description: "Error from the last failed delete, or `null` when healthy." },
     isDeleting: { type: "boolean", description: "`true` while the delete request is in flight." },
   }}
@@ -217,8 +217,8 @@ no `metadata.id` for an update to route by anyway. A create that
 collides on `(org, slug)` rejects with an already-exists error rather
 than touching the existing share.
 
-Disabling is a save with `enabled: false` — a config-preserving pause
-(decision 011 D1). Deleting the share is a separate, destructive
+Disabling is a save with `enabled: false` — a config-preserving pause.
+Deleting the share is a separate, destructive
 operation ([`useDeleteAgentShare`](#usedeleteagentshare)).
 
 A created share lives in the agent's own organization: the share's URL,
@@ -375,7 +375,7 @@ Self-contained: owns its dialog, its confirmation prompts, and its
 refetch-after-mutation — hosts render it with just the agent and the
 URL builder.
 
-This is an SDK component (DD-001) — embeddable by platform builders.
+This is an SDK component — embeddable by platform builders.
 
 **Props** — `AgentShareListProps`
 
@@ -402,9 +402,9 @@ with the running agent — billed to the org that owns the share. The
 dialog states who pays before creation and next to the toggle, so
 sharing never surprises.
 
-Sharing lives in its own **AgentShare resource** (decision 011), and
+Sharing lives in its own **AgentShare resource**, and
 an agent can carry N shares — each its own channel with its own URL,
-audience, origins, credentials, and link token (D3). The dialog edits
+audience, origins, credentials, and link token. The dialog edits
 exactly the share it is given; it never resolves "the" share of an
 agent. Every save is an idempotent `apply` of the complete
 configuration ([`useSaveAgentShare`](#usesaveagentshare)), and the local draft is
@@ -428,7 +428,7 @@ Render it directly only when you own the open-state.
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
     onSharingChanged: { type: "() => void", description: "Called after any sharing change is persisted. Hosts typically pass the share list's `refetch`." },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
-    share: { type: "AgentShare | null", description: "The exact share to edit. When omitted, the dialog opens in **create mode**: a name/slug step creates a new share in the agent's own organization (its URL, billing and credentials belong to that organization), then the dialog becomes its editor. The share's identity is immutable once created (decision 011 D2) — edit mode never renames." },
+    share: { type: "AgentShare | null", description: "The exact share to edit. When omitted, the dialog opens in **create mode**: a name/slug step creates a new share in the agent's own organization (its URL, billing and credentials belong to that organization), then the dialog becomes its editor. The share's identity is immutable once created — edit mode never renames." },
   }}
 />
 
@@ -491,7 +491,7 @@ const client = useMemo(
 
 Identity for a share being created: its display name and URL slug in
 the sharing org's namespace. Only consulted when `current` is `null`
-— an existing share's identity is immutable (decision 011 D2).
+— an existing share's identity is immutable.
 
 <TypeTable
   type={{
@@ -518,7 +518,7 @@ every save verbatim.)
     allowedOrigins: { type: "readonly string[]", description: "Exact web origins allowed to embed the shared agent (e.g. `https://example.com`). Empty list = embeddable anywhere. Embedding is public-audience only.", required: true },
     audience: { type: "SharingAudience", description: "Who can chat: anyone with the link, or org members only.", required: true, typeDescriptionLink: "#sharingaudience" },
     enabled: { type: "boolean", description: "Whether hosted-chat access for the configured audience is enabled.", required: true },
-    environmentRefs: { type: "readonly ResourceRef[]", description: "Org-shared environments whose values guest conversations receive — how a tool-using agent becomes chattable over a share link without touching its pristine default instance. Public-audience only (the proto CEL rule rejects bindings on org-audience shares, whose member sessions carry no share linkage in Phase A — decision 011 addendum).", required: true },
+    environmentRefs: { type: "readonly ResourceRef[]", description: "Org-shared environments whose values guest conversations receive — how a tool-using agent becomes chattable over a share link without touching its pristine default instance. Public-audience only (the proto CEL rule rejects bindings on org-audience shares, whose member sessions carry no share linkage).", required: true },
     messages: { type: "{ conversationEnded: string; rateLimited: string; unavailable: string }", description: "Owner-customized visitor refusal copy. Empty strings mean platform defaults.", required: true },
     runConfig: { type: "RunConfigInput | undefined", description: "The owner's per-share execution override (model / cost cap / tool rounds / service tier), merged over the platform guest profile at run time — stigmer/stigmer#360. The console does not edit it (yet): it rides through every save opaquely so a toggle never wipes an override set via the CLI or API. Public-audience only (the same proto CEL rule as environmentRefs, for the same reason).", required: true },
   }}

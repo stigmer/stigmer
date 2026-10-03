@@ -8,8 +8,8 @@ title: memory
 
 ### useConfirmMemory
 
-Behavior hook that wraps `memory.confirm()` — the consent act
-(DD-005 D3). A confirmed memory is recalled into the caller's future
+Behavior hook that wraps `memory.confirm()` — the consent act. A
+confirmed memory is recalled into the caller's future
 sessions as background context.
 
 Confirming an already-confirmed memory succeeds and changes nothing.
@@ -46,7 +46,7 @@ refetch(); // refresh the list after the decision
 Behavior hook that wraps `memory.delete()`.
 
 Deletion works in any lifecycle state — it is never refused on
-lifecycle grounds (DD-004) — and is the revocation mechanism for
+lifecycle grounds — and is the revocation mechanism for
 confirmed facts: the fact stops reaching future sessions immediately.
 Past executions keep their immutable recall snapshots.
 
@@ -170,7 +170,7 @@ Rejecting a confirmed memory fails with FAILED_PRECONDITION —
 deleting a confirmed memory is how it is revoked.
 
 Rejection is deliberately one click on every surface, with no
-confirmation dialog (DD-005 D4): expensive review teaches users to
+confirmation dialog: expensive review teaches users to
 ignore the proposal queue.
 
 **Signature**
@@ -201,7 +201,7 @@ refetch(); // refresh the list after the decision
 ### useUpdateMemoryContent
 
 Behavior hook that edits a memory's fact text — the one field the
-subject owns after capture (DD-004).
+subject owns after capture.
 
 The update RPC replaces the entire spec, so the loaded record is
 mapped through the generated `toMemoryUpdateInput` and only `content`
@@ -239,13 +239,13 @@ refetch(); // refresh the list after the edit
 ### MemoryListPanel
 
 Lists everything the platform remembers about the caller in an
-organization, grouped pending-proposals-first (DD-005 D4): proposals
+organization, grouped pending-proposals-first: proposals
 awaiting a decision, then confirmed facts, then rejected proposals
 kept for audit.
 
 Every fact is shown VERBATIM — the exact stored text is what future
-prompts inject, byte for byte, so the review surface never paraphrases
-(DD-005 D6). Provenance renders beside each agent-proposed fact.
+prompts inject, byte for byte, so the review surface never paraphrases.
+Provenance renders beside each agent-proposed fact.
 Actions per state: confirm/reject/delete on proposals (reject is
 one-click — no confirmation dialog), edit/delete on confirmed facts,
 delete on rejected ones. Delete asks inline; it works in any state.
@@ -269,7 +269,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ### MemoryProposalCardBody
 
-The in-session consent surface for a memory proposal (DD-005 D4): the
+The in-session consent surface for a memory proposal: the
 body of a `remember` tool call's row in the message thread, rendering
 the proposed fact verbatim with one-click Confirm / Reject actions.
 
@@ -279,8 +279,8 @@ record's current state ([`useMemory`](#usememory)) — a proposal decided from
 the memory settings page (or another device) shows its decided state
 here instead of stale action buttons, and a deleted record reads
 "no longer stored" rather than failing. Rejection is one click, no
-confirmation dialog (the T04 Cursor lesson: expensive review teaches
-users to ignore the queue); deletion-with-confirmation lives on the
+confirmation dialog (expensive review teaches users to ignore the
+queue); deletion-with-confirmation lives on the
 memory page, the catch-up surface.
 
 Borderless by design (the [`ApprovalCardBody`](/docs/sdk/react/execution#approvalcardbody) posture): the tool
@@ -292,7 +292,7 @@ visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    fact: { type: "string", description: "The proposed fact as frozen in the tool result — shown VERBATIM (DD-005 D6: what you confirm is what future prompts inject, byte for byte). The live record's text supersedes it once fetched, so an edit made on the memory page is reflected here too.", required: true },
+    fact: { type: "string", description: "The proposed fact as frozen in the tool result — shown VERBATIM (what you confirm is what future prompts inject, byte for byte). The live record's text supersedes it once fetched, so an edit made on the memory page is reflected here too.", required: true },
     memoryId: { type: "string", description: "The proposed memory's resource id (from the remember tool's answer).", required: true },
   }}
 />
@@ -305,7 +305,7 @@ visual properties flow through `--stgm-*` design tokens.
 One-line provenance attribution for a memory, or `null` when the
 record has none (created directly through the API, not by an agent).
 
-Trust requires "where did this come from" beside every fact (DD-004);
+Trust requires "where did this come from" beside every fact;
 agent/session display names are not resolvable from the record alone,
 so ids are shown — they are what links back to the source surfaces.
 
@@ -317,7 +317,7 @@ function formatMemoryProvenance(memory: Memory): string | null
 ### groupMemoriesByLifecycle
 
 Buckets memories by lifecycle state for the pending-proposals-first
-page layout (DD-005 D4: the memory page is the catch-up surface for
+page layout (the memory page is the catch-up surface for
 proposals scrolled past in session). Input order (newest first from
 the server) is preserved inside each bucket.
 
