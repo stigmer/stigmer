@@ -28,6 +28,8 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -48,6 +50,7 @@ import type {
   SandboxProvisioner,
 } from "../../../sandbox/provisioner.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
+import { PERSONAL_LABEL_KEY, PERSONAL_LABEL_VALUE } from "../../environment/constants.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import {
@@ -249,9 +252,6 @@ function makeHarness(options: HarnessOptions = {}): Harness {
       authorizer: newPermissiveSingleTeamAuthorizer(),
       engineState: () => ({ connected: true, engine }),
       environmentReader: {
-        list: async () => {
-          throw new Error("no personal environment in this harness");
-        },
         getSecretValue: async () => {
           throw new Error("no secrets in this harness");
         },
@@ -491,7 +491,6 @@ describe("connect (blocking lane)", () => {
     harness.deps = {
       ...harness.deps,
       environmentReader: {
-        list: async () => ({ totalCount: 0, items: [] }) as never,
         getSecretValue: async () => {
           throw new Error("unreachable");
         },
@@ -503,6 +502,72 @@ describe("connect (blocking lane)", () => {
       Code.FailedPrecondition,
       "personal environment not found for org 'acme'; save required credentials first: [API_KEY]",
     );
+  });
+
+  it("reads the connecting person's own personal environment, never a teammate's saved later", async () => {
+    // A teammate's personal environment, saved after the caller's, is the
+    // one an organization-wide newest-first list would answer first.
+    const personal = (id: string, creator: string, at: number) =>
+      create(EnvironmentSchema, {
+        metadata: {
+          id,
+          slug: id,
+          org: "acme",
+          labels: { [PERSONAL_LABEL_KEY]: PERSONAL_LABEL_VALUE },
+        },
+        spec: { data: { API_KEY: { value: "ciphertext", isSecret: true } } },
+        status: {
+          audit: {
+            specAudit: {
+              createdBy: { id: creator },
+              createdAt: { seconds: BigInt(at), nanos: 0 },
+            },
+          },
+        },
+      });
+    await store.saveResource(
+      ApiResourceKind.environment,
+      "env_caller",
+      EnvironmentSchema,
+      personal("env_caller", testCaller.identityId, 1_000),
+    );
+    await store.saveResource(
+      ApiResourceKind.environment,
+      "env_teammate",
+      EnvironmentSchema,
+      personal("env_teammate", "acc_teammate", 2_000),
+    );
+    const values: Record<string, string> = {
+      env_caller: "caller-key",
+      env_teammate: "teammate-key",
+    };
+    const reads: string[] = [];
+    const created: Array<Parameters<McpServerConnectDeps["executionContext"]["create"]>[0]> = [];
+    const harness = makeHarness();
+    const recordCreate = harness.deps.executionContext.create;
+    harness.deps = {
+      ...harness.deps,
+      environmentReader: {
+        getSecretValue: async (input) => {
+          reads.push(input.environmentId ?? "");
+          return create(EnvironmentValueSchema, {
+            value: values[input.environmentId ?? ""] ?? "",
+            isSecret: true,
+          });
+        },
+      },
+      executionContext: {
+        ...harness.deps.executionContext,
+        create: async (ec, caller) => {
+          created.push(ec);
+          return recordCreate(ec, caller);
+        },
+      },
+    };
+    const server = await seedServer({ env: true });
+    await connect(harness.deps, connectInput(server.metadata!.id));
+    expect(reads).toEqual(["env_caller"]);
+    expect(created[0]?.spec?.data?.["API_KEY"]?.value).toBe("caller-key");
   });
 
   it("skips the CONNECTING write when attached to an in-flight run", async () => {

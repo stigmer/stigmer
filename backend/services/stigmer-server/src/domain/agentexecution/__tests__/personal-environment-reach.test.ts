@@ -36,13 +36,20 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { createLogger } from "../../../boot/logger.js";
 import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
-import { PERSONAL_LABEL_KEY, PERSONAL_LABEL_VALUE } from "../../environment/constants.js";
+import {
+  PERSONAL_LABEL_KEY,
+  PERSONAL_LABEL_VALUE,
+} from "../../environment/constants.js";
 import type { ManagedEnvironmentService } from "../../mcpserver/oauth/managed-env.js";
 
 import type { ExecutionContextBuilderDeps } from "../create-execution-context-step.js";
 import { buildAndPersistExecutionContext } from "../create-execution-context-step.js";
 
-const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
 
 const ORG = "acme";
 const ANA = "acc_ana";
@@ -52,7 +59,11 @@ let dir: string;
 let store: Store;
 
 function seconds(at: number): Timestamp {
-  return { $typeName: "google.protobuf.Timestamp", seconds: BigInt(at), nanos: 0 };
+  return {
+    $typeName: "google.protobuf.Timestamp",
+    seconds: BigInt(at),
+    nanos: 0,
+  };
 }
 
 /** A personal environment of `creator`, saved at `createdAt` seconds. */
@@ -71,12 +82,18 @@ function personalEnvironment(
     },
     spec: {
       data: Object.fromEntries(
-        Object.entries(data).map(([key, value]) => [key, { value, isSecret: true }]),
+        Object.entries(data).map(([key, value]) => [
+          key,
+          { value, isSecret: true },
+        ]),
       ),
     },
     status: {
       audit: {
-        specAudit: { createdBy: { id: creator }, createdAt: seconds(createdAt) },
+        specAudit: {
+          createdBy: { id: creator },
+          createdAt: seconds(createdAt),
+        },
       },
     },
   });
@@ -127,16 +144,20 @@ interface Reads {
 
 /**
  * Builder deps for a run on an agent that declares nothing, in a session
- * that names a git repository and adds the notes server. The reader lists
- * every personal row of the organization newest-first, as the internal
- * list does, and answers secret reads by environment id.
+ * that names a git repository and adds the notes server. The reader
+ * answers secret reads by environment id and records which row each read
+ * touched.
  */
-function depsFor(reads: Reads, createdEcs: ExecutionContext[]): ExecutionContextBuilderDeps {
+function depsFor(
+  reads: Reads,
+  createdEcs: ExecutionContext[],
+): ExecutionContextBuilderDeps {
   return {
     store,
     logger: silentLogger,
     agentLoader: () => ({
-      get: async () => create(AgentSchema, { metadata: { id: "agt_reach", org: ORG } }),
+      get: async () =>
+        create(AgentSchema, { metadata: { id: "agt_reach", org: ORG } }),
     }),
     agentInstanceLoader: () => ({
       get: async (instanceId) =>
@@ -167,11 +188,6 @@ function depsFor(reads: Reads, createdEcs: ExecutionContext[]): ExecutionContext
         }),
     }),
     environmentReader: () => ({
-      list: async () => ({
-        $typeName: "ai.stigmer.agentic.environment.v1.EnvironmentList",
-        totalCount: ENVIRONMENTS.length,
-        items: ENVIRONMENTS,
-      }),
       getSecretValue: async (input) => {
         const id = input.environmentId ?? "";
         reads.environments.push(id);
@@ -226,7 +242,11 @@ async function build(execution: AgentExecution): Promise<{
 }> {
   const reads: Reads = { environments: [] };
   const createdEcs: ExecutionContext[] = [];
-  await buildAndPersistExecutionContext(depsFor(reads, createdEcs), execution, "");
+  await buildAndPersistExecutionContext(
+    depsFor(reads, createdEcs),
+    execution,
+    "",
+  );
   expect(createdEcs).toHaveLength(1);
   return { data: createdEcs[0]?.spec?.data ?? {}, reads };
 }
@@ -259,7 +279,9 @@ describe("whose personal environment a run reads", () => {
   });
 
   it("a run whose creator holds no personal environment reads none (a visitor's, a channel's)", async () => {
-    const { data, reads } = await build(executionBy("aexec_lane", "acc_guest_lane"));
+    const { data, reads } = await build(
+      executionBy("aexec_lane", "acc_guest_lane"),
+    );
     expect(data["GITHUB_TOKEN"]).toBeUndefined();
     expect(data["NOTES_TOKEN"]).toBeUndefined();
     expect(reads.environments).toEqual([]);
