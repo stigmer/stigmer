@@ -17,6 +17,10 @@
  *    dist-slim/
  *      main.js                     ← esbuild bundle of the whole runner
  *      main.js.map                 ← external sourcemap (identifiers kept)
+ *      attach/main.js              ← the attach entry, its own bundle: a
+ *                                    sandbox snapshot holds this waiter, which
+ *                                    starts ../main.js on attach and loads
+ *                                    none of the runner itself
  *      workflow-bundle.js          ← Temporal workflow code, pre-built here so
  *                                    webpack/@swc never ship (see
  *                                    src/workflow-source.ts)
@@ -61,9 +65,10 @@ import { build } from "esbuild";
 import { bundleWorkflowCode } from "@temporalio/worker";
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stripExternalSourceMapPragma } from "../../../../scripts/lib/source-map-pragma.mjs";
+import { forbiddenAttachModules } from "./attach-graph-rule.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -150,7 +155,7 @@ const runnerPkg = readPackageJson(runnerRoot);
 // ─── Step 1: Pre-build the Temporal workflow bundle ─────────────────────────
 
 async function buildWorkflowBundle() {
-  console.log("[1/5] Pre-building Temporal workflow bundle...");
+  console.log("[1/6] Pre-building Temporal workflow bundle...");
   const { code } = await bundleWorkflowCode({
     workflowsPath: join(distDir, "workflows", "index.js"),
     // Both baked in unconditionally. The run-credential interceptor carries
@@ -177,7 +182,7 @@ async function buildWorkflowBundle() {
  * is patched to point at it (see the plugin below).
  */
 async function buildWorkerThreadBundle() {
-  console.log("[2/5] Bundling Temporal workflow worker-thread entry...");
+  console.log("[2/6] Bundling Temporal workflow worker-thread entry...");
   await build({
     entryPoints: [join(nodeModulesDir, "@temporalio/worker/lib/workflow/workflow-worker-thread.js")],
     outfile: join(outDir, "workflow-worker-thread.cjs"),
@@ -280,7 +285,7 @@ globalThis.__stigmerWorkflowWorkerThreadPath = () => __stigmerJoin(__dirname, "w
 `;
 
 async function buildMainBundle() {
-  console.log("[3/5] Bundling runner entry (dist/main.js)...");
+  console.log("[3/6] Bundling runner entry (dist/main.js)...");
   const result = await build({
     entryPoints: [join(distDir, "main.js")],
     outfile: join(outDir, "main.js"),
@@ -330,6 +335,43 @@ async function buildMainBundle() {
       fail(`bundled-module asset not found: node_modules/${asset.from}`);
     }
     cpSync(src, join(outDir, asset.to));
+  }
+}
+
+// ─── Step 4: Bundle the attach entry ────────────────────────────────────────
+
+/**
+ * The attach entry (dist/attach/main.js) as its own CJS bundle at
+ * attach/main.js, so its `../main.js` (src/attach/entry.ts) is the slim
+ * runner beside it and it is started by the same Node. It is a separate
+ * bundle so it can never load the runner: a sandbox snapshot holds this
+ * process. A bundle hides its module graph from verify-attach-boot.mjs's
+ * resolve hook, so its esbuild inputs are held to the same rule here, and a
+ * runner module reaching it fails the build.
+ */
+async function buildAttachBundle() {
+  console.log("[4/6] Bundling the attach entry (dist/attach/main.js)...");
+  const result = await build({
+    entryPoints: [join(distDir, "attach", "main.js")],
+    outfile: join(outDir, "attach", "main.js"),
+    bundle: true,
+    platform: "node",
+    format: "cjs",
+    target: "node22",
+    minifyWhitespace: true,
+    minifySyntax: true,
+    minifyIdentifiers: false,
+    sourcemap: "linked",
+    define: { "import.meta.url": "__stigmerImportMetaUrl" },
+    banner: {
+      js: `const __stigmerImportMetaUrl = require("node:url").pathToFileURL(__filename).href;`,
+    },
+    metafile: true,
+    logLevel: "warning",
+  });
+  const heavy = forbiddenAttachModules(Object.keys(result.metafile.inputs));
+  if (heavy.length > 0) {
+    fail(`the attach bundle holds modules a sandbox snapshot must not hold:\n${heavy.join("\n")}`);
   }
 }
 
@@ -453,7 +495,7 @@ function metaPackageJson() {
   };
 }
 
-// ─── Step 4: Stage node_modules for the self-contained shape ────────────────
+// ─── Step 5: Stage node_modules for the self-contained shape ────────────────
 
 /**
  * Copies the runtime externals plus their transitive production dependencies
@@ -463,7 +505,7 @@ function metaPackageJson() {
  * behaves exactly as it does in the full install.
  */
 function stageSelfContained(platform, isCrossBuild) {
-  console.log("[4/5] Staging native/runtime packages...");
+  console.log("[5/6] Staging native/runtime packages...");
   const stagedRoot = join(outDir, "node_modules");
   const staged = new Set();
 
@@ -527,7 +569,7 @@ function stageSelfContained(platform, isCrossBuild) {
   writeFileSync(join(outDir, "package.json"), JSON.stringify(metaPackageJson(), null, 2) + "\n");
 }
 
-// ─── Step 5 (optional): publishable npm package directories ─────────────────
+// ─── Step 6 (optional): publishable npm package directories ─────────────────
 
 // Files that ship in the published @stigmer/runner-slim tarball. Sourcemaps are
 // deliberately EXCLUDED here (~26 MB) — they are still generated into dist-slim/
@@ -536,13 +578,14 @@ function stageSelfContained(platform, isCrossBuild) {
 // stack traces remain readable without the maps.
 const META_PACKAGE_FILES = [
   "main.js",
+  "attach/main.js",
   "workflow-bundle.js",
   "workflow-worker-thread.cjs",
   "mappings.wasm",
 ];
 
 function emitNpmPackages() {
-  console.log("[5/5] Emitting npm package directories...");
+  console.log("[6/6] Emitting npm package directories...");
   rmSync(pkgsDir, { recursive: true, force: true });
 
   const metaDir = join(pkgsDir, "runner-slim");
@@ -550,6 +593,7 @@ function emitNpmPackages() {
   for (const file of META_PACKAGE_FILES) {
     const src = join(outDir, file);
     const dest = join(metaDir, file);
+    mkdirSync(dirname(dest), { recursive: true });
     if (file.endsWith(".js") || file.endsWith(".cjs")) {
       // We don't ship the .map files, so strip a trailing sourceMappingURL
       // pragma that points at one rather than leave the published bundle
@@ -636,6 +680,7 @@ mkdirSync(outDir, { recursive: true });
 await buildWorkflowBundle();
 await buildWorkerThreadBundle();
 await buildMainBundle();
+await buildAttachBundle();
 stageSelfContained(platform, isCrossBuild);
 if (emitPackages) {
   emitNpmPackages();

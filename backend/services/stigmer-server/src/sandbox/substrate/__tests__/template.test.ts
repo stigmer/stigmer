@@ -19,6 +19,7 @@ import { describe, expect, it } from "vitest";
 
 import { createLogger } from "../../../boot/logger.js";
 import type { SandboxDriverConfig } from "../../provisioner.js";
+import { waiterCommand } from "../../runner-launch.js";
 import { FakeSubstrate } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
 import {
@@ -81,7 +82,7 @@ describe("the template", () => {
       runnerMode: "local",
     });
     const container = template.containers[0];
-    expect(container?.command).toEqual(["node", "/runner/dist/attach/main.js"]);
+    expect(container?.command).toEqual(waiterCommand());
     expect(container?.image).toBe(config.runnerImage);
     expect(container?.wakeupProbe?.httpGet).toMatchObject({
       path: "/readyz",

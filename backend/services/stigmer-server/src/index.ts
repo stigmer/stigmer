@@ -614,6 +614,16 @@ export { MAX_IN_PLACE_PAUSE_SECONDS as SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS } fr
 // The one queue a sandbox serves, for a composition that pushes to it
 // outside a turn (a renewed token).
 export { sandboxTaskQueue } from "./sandbox/naming.js";
+// How a sandbox image's runner is started: a composition's own driver
+// launches the runner with this command, so it moves with the release that
+// names the image.
+export {
+  RUNNER_ENTRY,
+  RUNNER_NODE,
+  WAITER_ENTRY,
+  runnerCommand,
+  waiterCommand,
+} from "./sandbox/runner-launch.js";
 export type { PushResult as SubstrateAttachPushResult } from "./sandbox/substrate/push.js";
 export type { SubstrateSandboxDriverHandle } from "./sandbox/substrate/builtin.js";
 export { newSubstrateSandboxDriver } from "./sandbox/substrate/builtin.js";

@@ -59,6 +59,7 @@ import {
   SANDBOX_SCOPE_LABEL,
   sandboxBaseName,
 } from "./naming.js";
+import { runnerCommand } from "./runner-launch.js";
 
 // ---------------------------------------------------------------------------
 // Manifest constants — the Java SandboxManifestFactory values, kept
@@ -67,8 +68,6 @@ import {
 
 /** The runner container name (SandboxManifestFactory). */
 const RUNNER_CONTAINER_NAME = "runner";
-/** The image CMD is /bin/bash by design — the provisioner sets the command. */
-const RUNNER_COMMAND = ["node", "/runner/dist/main.js"];
 /** The in-pod workspace mount (SandboxManifestFactory WORKSPACE mount). */
 const WORKSPACE_MOUNT_PATH = "/workspace";
 /** Persistent-scope workspace claim size (the Java default). */
@@ -372,7 +371,8 @@ export function buildSandboxDeployment(
             {
               name: RUNNER_CONTAINER_NAME,
               image: config.runnerImage,
-              command: [...RUNNER_COMMAND],
+              // The image CMD is /bin/bash by design; the driver sets the command.
+              command: runnerCommand(),
               env: containerEnv,
               resources: {
                 requests: { ...RUNNER_RESOURCES.requests },
