@@ -109,7 +109,7 @@ const { create, isCreating, error } = useCreateIamPolicy();
 
 await create({
   principal: { kind: "identity_account", id: accountId },
-  resource: { kind: "organization", id: orgId },
+  resource: { kind: "organization", id: org },
   relation: "admin",
 });
 ```
@@ -146,7 +146,7 @@ const { remove, isDeleting, error } = useDeleteIamPolicy();
 
 await remove({
   principal: { kind: "identity_account", id: accountId },
-  resource: { kind: "organization", id: orgId },
+  resource: { kind: "organization", id: org },
   relation: "admin",
 });
 ```
@@ -218,7 +218,7 @@ function useGranteeCandidates(options: UseGranteeCandidatesOptions): UseGranteeC
 
 ```tsx
 const { people, teams } = useGranteeCandidates({
-  orgId,
+  org,
   includeTeams: share.canShareWithTeams,
 });
 ```
@@ -239,17 +239,17 @@ list ([`useResourceAccess`](#useresourceaccess)) and leaves out the entries
 `isPlatformClientAccount` (from `@stigmer/sdk`) marks, as
 `OrgMembersPanel` does.
 
-Pass `null` as `orgId` to skip fetching (stable no-op).
+Pass `null` as `org` to skip fetching (stable no-op).
 
 **Signature**
 
 ```tsx
-function usePrincipalsCount(orgId: string | null, principalKind: string): UsePrincipalsCountReturn
+function usePrincipalsCount(org: string | null, principalKind: string): UsePrincipalsCountReturn
 ```
 
 <TypeTable
   type={{
-    orgId: { type: "string | null", description: "Organization ID, or `null` to skip.", required: true },
+    org: { type: "string | null", description: "Organization ID, or `null` to skip.", required: true },
     principalKind: { type: "string", description: "Kind of principals to count. Defaults to `\"identity_account\"`.", required: true },
   }}
 />
@@ -267,7 +267,7 @@ function usePrincipalsCount(orgId: string | null, principalKind: string): UsePri
 />
 
 ```tsx
-const { count, isLoading } = usePrincipalsCount(orgId);
+const { count, isLoading } = usePrincipalsCount(org);
 // count = 5
 ```
 
@@ -314,7 +314,7 @@ function useResourceAccess(resource: ResourceAccessRef | null, options?: UseReso
 
 ```tsx
 const { members, isLoading } = useResourceAccess(
-  { kind: "organization", id: orgId },
+  { kind: "organization", id: org },
   { includeInherited: true },
 );
 ```
@@ -343,7 +343,7 @@ function useRevokeOrgAccess(): UseRevokeOrgAccessReturn
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed revoke, or `null` when healthy." },
     isRevoking: { type: "boolean", description: "`true` while the revoke request is in flight." },
-    revoke: { type: "(accountId: string, orgId: string) => Promise<void>", description: "Remove a person from an organization.  Revokes their roles on the organization and everything they hold on its resources: what was shared with them (agents, environments, sessions and the rest) and their team memberships, in a single operation. What they created stays with the organization; it is theirs again only if they are invited back." },
+    revoke: { type: "(accountId: string, org: string) => Promise<void>", description: "Remove a person from an organization.  Revokes their roles on the organization and everything they hold on its resources: what was shared with them (agents, environments, sessions and the rest) and their team memberships, in a single operation. What they created stays with the organization; it is theirs again only if they are invited back." },
   }}
 />
 
@@ -516,7 +516,7 @@ All visual properties flow through `--stgm-*` design tokens.
     includeTeams: { type: "boolean", description: "Offer the organization's teams beside its people. Set it where the resource can be shared with a team (`useShareFlow().canShareWithTeams`)." },
     onCancel: { type: "() => void", description: "Fired when the user cancels." },
     onGranted: { type: "(policy: IamPolicy) => void", description: "Fired after a policy is successfully created." },
-    orgId: { type: "string", description: "Organization whose people (and teams) can be granted access. Drives the PrincipalPicker typeahead.", required: true },
+    org: { type: "string", description: "Organization whose people (and teams) can be granted access. Drives the PrincipalPicker typeahead.", required: true },
     resourceId: { type: "string", description: "ID of the resource being granted access to.", required: true },
     resourceKind: { type: "ApiResourceKind", description: "Resource kind being granted access to. Determines which roles appear.", required: true },
     resourceKindString: { type: "string", description: "Resource kind string (e.g. \"organization\") for the API resource ref.", required: true },
@@ -528,7 +528,7 @@ All visual properties flow through `--stgm-*` design tokens.
   resourceKind={ApiResourceKind.agent}
   resourceKindString="agent"
   resourceId={agentId}
-  orgId={orgId}
+  org={org}
   includeTeams={share.canShareWithTeams}
   onGranted={() => share.refetch()}
   onCancel={() => setShowForm(false)}
@@ -571,12 +571,12 @@ All visual properties flow through `--stgm-*` design tokens.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Exposed refetch for parent-triggered refresh." },
-    orgId: { type: "string", description: "Organization ID (`metadata.id`) whose members to manage.", required: true },
+    org: { type: "string", description: "Organization ID (`metadata.id`) whose members to manage.", required: true },
   }}
 />
 
 ```tsx
-<OrgMembersPanel orgId={activeOrg.metadata.id} />
+<OrgMembersPanel org={activeOrg.metadata.id} />
 ```
 
 
@@ -607,7 +607,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    orgId: { type: "string", description: "Organization the resource belongs to (`metadata.org`). Drives the people-and-teams typeahead in the grant form.", required: true },
+    org: { type: "string", description: "Organization the resource belongs to (`metadata.org`). Drives the people-and-teams typeahead in the grant form.", required: true },
     resource: { type: "ShareFlowResource", description: "The resource whose access list is shown.", required: true, typeDescriptionLink: "#shareflowresource" },
     resourceKind: { type: "ApiResourceKind", description: "ApiResourceKind enum value for grantable-role lookup.", required: true },
     resourceKindString: { type: "string", description: "Resource kind string for the API ref (e.g. \"agent\", \"session\").", required: true },
@@ -677,7 +677,7 @@ All visual properties flow through `--stgm-*` design tokens.
     includeTeams: { type: "boolean", description: "Offer the organization's teams beside its people. Set it where the resource can be shared with a team (`useShareFlow().canShareWithTeams`)." },
     label: { type: "string", description: "The field's label. Defaults to \"Person\", or \"Person or team\" when teams are offered; a surface whose heading already names the act (a team's \"Members\") says what the field does instead, e.g. \"Add a person\"." },
     onChange: { type: "(grantee: GranteeCandidate | null) => void", description: "Fired when the selection changes.", required: true },
-    orgId: { type: "string", description: "Organization whose people (and teams) are selectable.", required: true },
+    org: { type: "string", description: "Organization whose people (and teams) are selectable.", required: true },
     value: { type: "GranteeCandidate | null", description: "Currently selected grantee, or `null`. Controlled.", required: true },
   }}
 />
@@ -755,7 +755,7 @@ All visual properties flow through `--stgm-*` design tokens.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     onClose: { type: "() => void", description: "Fired when the user closes the panel." },
-    orgId: { type: "string", description: "Organization the resource belongs to (`metadata.org`). Drives the org-member typeahead in the grant form.", required: true },
+    org: { type: "string", description: "Organization the resource belongs to (`metadata.org`). Drives the org-member typeahead in the grant form.", required: true },
     resource: { type: "ShareFlowResource", description: "The resource to share.", required: true, typeDescriptionLink: "#shareflowresource" },
     resourceKind: { type: "ApiResourceKind", description: "ApiResourceKind enum value for grantable-role lookup.", required: true },
     resourceKindString: { type: "string", description: "Resource kind string for the API ref (e.g. \"agent\", \"session\").", required: true },
@@ -767,7 +767,7 @@ All visual properties flow through `--stgm-*` design tokens.
   resource={{ kind: "session", id: sessionId, resourceKind: ApiResourceKind.session }}
   resourceKindString="session"
   resourceKind={ApiResourceKind.session}
-  orgId={orgId}
+  org={org}
   onClose={() => setOpen(false)}
 />
 ```
@@ -899,7 +899,7 @@ Options for [`useGranteeCandidates`](#usegranteecandidates).
 <TypeTable
   type={{
     includeTeams: { type: "boolean", description: "Offer the organization's teams too. Pass `false` where teams cannot be granted.", required: true },
-    orgId: { type: "string | null", description: "The organization whose people (and teams) are offered, or `null` to skip.", required: true },
+    org: { type: "string | null", description: "The organization whose people (and teams) are offered, or `null` to skip.", required: true },
   }}
 />
 

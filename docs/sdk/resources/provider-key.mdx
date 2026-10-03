@@ -21,28 +21,28 @@ List the keys that serve the organization, its own and any it inherits from its 
 <Tab value="TypeScript">
 ```typescript
 const listProviderKeysOutput = await stigmer.providerkey.list({
-  orgId: "...",
+  org: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 listProviderKeysOutput, err := client.ProviderKey.List(ctx, &stigmer.ListProviderKeysInput{
-  OrgId: "...",
+  Org: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 list_provider_keys_output = client.providerkeys.list(ListProviderKeysInput(
-    org_id="...",
+    org="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
 ListProviderKeysOutput listProviderKeysOutput = client.providerkeys().list(ListProviderKeysInput.builder()
-    .orgId("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -62,7 +62,7 @@ Allowed on every plan, so an organization that left the plan can always remove w
 <Tab value="TypeScript">
 ```typescript
 const providerKey = await stigmer.providerkey.delete({
-  orgId: "...",
+  org: "...",
   provider: "...",
 });
 ```
@@ -70,7 +70,7 @@ const providerKey = await stigmer.providerkey.delete({
 <Tab value="Go">
 ```go
 providerKey, err := client.ProviderKey.Delete(ctx, &stigmer.DeleteProviderKeyInput{
-  OrgId:    "...",
+  Org:      "...",
   Provider: "...",
 })
 ```
@@ -78,7 +78,7 @@ providerKey, err := client.ProviderKey.Delete(ctx, &stigmer.DeleteProviderKeyInp
 <Tab value="Python">
 ```python
 provider_key = client.providerkeys.delete(DeleteProviderKeyInput(
-    org_id="...",
+    org="...",
     provider="...",
 ))
 ```
@@ -86,7 +86,7 @@ provider_key = client.providerkeys.delete(DeleteProviderKeyInput(
 <Tab value="Java">
 ```java
 ProviderKey providerKey = client.providerkeys().delete(DeleteProviderKeyInput.builder()
-    .orgId("...")
+    .org("...")
     .provider("...")
     .build());
 ```
@@ -107,7 +107,7 @@ The key is checked once against the provider before it is saved, and a key the p
 <Tab value="TypeScript">
 ```typescript
 const providerKey = await stigmer.providerkey.set({
-  orgId: "...",
+  org: "...",
   provider: "...",
   apiKey: "...",
 });
@@ -116,7 +116,7 @@ const providerKey = await stigmer.providerkey.set({
 <Tab value="Go">
 ```go
 providerKey, err := client.ProviderKey.Set(ctx, &stigmer.SetProviderKeyInput{
-  OrgId:    "...",
+  Org:      "...",
   Provider: "...",
   ApiKey:   "...",
 })
@@ -125,7 +125,7 @@ providerKey, err := client.ProviderKey.Set(ctx, &stigmer.SetProviderKeyInput{
 <Tab value="Python">
 ```python
 provider_key = client.providerkeys.set(SetProviderKeyInput(
-    org_id="...",
+    org="...",
     provider="...",
     api_key="...",
 ))
@@ -134,7 +134,7 @@ provider_key = client.providerkeys.set(SetProviderKeyInput(
 <Tab value="Java">
 ```java
 ProviderKey providerKey = client.providerkeys().set(SetProviderKeyInput.builder()
-    .orgId("...")
+    .org("...")
     .provider("...")
     .apiKey("...")
     .build());
@@ -154,7 +154,7 @@ Save the organization's key for a provider, replacing any key it holds for that 
 
 <TypeTable
   type={{
-    orgId: { type: "string", description: "" },
+    org: { type: "string", description: "" },
     provider: { type: "string", description: "" },
     apiKey: { type: "string", description: "The provider API key." },
   }}
@@ -166,7 +166,7 @@ Remove the organization's key for a provider.
 
 <TypeTable
   type={{
-    orgId: { type: "string", description: "" },
+    org: { type: "string", description: "" },
     provider: { type: "string", description: "" },
   }}
 />
@@ -177,7 +177,7 @@ List the organization's provider keys.
 
 <TypeTable
   type={{
-    orgId: { type: "string", description: "" },
+    org: { type: "string", description: "" },
   }}
 />
 
