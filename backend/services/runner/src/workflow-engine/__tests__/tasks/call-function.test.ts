@@ -203,7 +203,7 @@ describe("CallFunctionTaskBuilder", () => {
     expect(calledMeta.workflowExecutionId).toBeUndefined();
   });
 
-  // Deferred-code fields (upstream #7 regression): rule/transform
+  // Deferred-code fields (the `expr.includes` crash's regression): rule/transform
   // expressions are jq CODE the activity evaluates against its own data.
   // The config resolver must never pre-evaluate them — the pre-fix
   // behavior substituted the evaluated boolean back into the config and

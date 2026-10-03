@@ -1,6 +1,6 @@
 /**
- * Semantic selection of recalled memories (stigmer/stigmer#293 Phase 3a,
- * DD-008): when a subject's confirmed-fact set outgrows what wholesale
+ * Semantic selection of recalled memories (stigmer/stigmer#293): when a
+ * subject's confirmed-fact set outgrows what wholesale
  * injection should carry, select the most relevant facts for THIS
  * execution instead of injecting everything.
  *
@@ -9,14 +9,14 @@
  * (`spec.recalled_memories`, the auditable snapshot both editions' compose
  * steps stamp) actually rides the prompt. The compose steps never change;
  * selection is a runner concern because the runner owns prompt assembly,
- * provider credentials, and the metered proxy lane (DD-008 D1 — the
- * titling-convergence doctrine: control-plane-adjacent LLM work runs once,
- * in the shared runner, for both editions).
+ * provider credentials, and the metered proxy lane (control-plane-adjacent
+ * LLM work runs once, in the shared runner, for both editions, as session
+ * titling does).
  *
  * Mechanism: embed-on-read, no stored vectors anywhere.
  * Selection activates ONLY above RETRIEVAL_K candidates; below that,
  * top-k degenerates to wholesale, so no embeddings call is made and the
- * shipped Phase 2 path runs untouched. When active: ONE batched
+ * wholesale-injection path runs untouched. When active: ONE batched
  * embeddings call (query + all candidates), in-process cosine ranking,
  * top-k by relevance, presented in snapshot order (relevance order would
  * carry no information the model needs and would churn the prompt prefix).
@@ -43,7 +43,7 @@
  * wholesale injection with a selection_active=false report, never a
  * failed or degraded execution. Deployments with no
  * embeddings-capable credential (Anthropic-only, Cursor-only OSS) run
- * Phase 2 behavior unchanged, forever.
+ * wholesale injection unchanged, forever.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -186,7 +186,7 @@ export async function selectRecalledFacts(
   const embed = options.embed ?? resolveEmbedder(options);
   if (embed === undefined) {
     // No embeddings-capable credential: the recorded no-embedder posture
-    // — Phase 2 behavior, honestly reported.
+    // — wholesale injection, honestly reported.
     return wholesale(candidates);
   }
 
@@ -340,7 +340,7 @@ function fetchEmbedder(baseUrl: string, headers: Record<string, string>): EmbedF
 
 /**
  * Indices of the top-k facts by cosine similarity to the query, returned
- * ASCENDING — i.e. re-sorted to snapshot order (DD-008 D3: selection is by
+ * ASCENDING — i.e. re-sorted to snapshot order (selection is by
  * relevance, presentation stays oldest-first). Ties break toward the lower
  * snapshot index, so equal scores never reorder across invocations.
  */

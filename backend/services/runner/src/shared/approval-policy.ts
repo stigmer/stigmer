@@ -214,7 +214,7 @@ export type PolicySource =
  * Monotonic identifier of the policy-engine logic that produced a decision,
  * persisted on `ToolCall.policy_engine_version`. Bumped when the
  * merge/classification semantics change so decisions made by different engine
- * versions remain distinguishable in audits. Phase 7 made
+ * versions remain distinguishable in audits. The "phase-7" engine made
  * `annotation_destructive_tighten` a distinct, persisted source.
  */
 export const POLICY_ENGINE_VERSION = "phase-7";

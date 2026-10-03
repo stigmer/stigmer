@@ -421,7 +421,7 @@ export async function buildEngine(
   // built once and inherited verbatim by sub-agents. Null under the global
   // pre-arm, where the gate is inert. Capture mode: file edits flow (tracked
   // to the git diff, ignored into CAS on THIS gate); secret-like paths are
-  // hard-blocked (DD-E); shell/MCP stay gated. The CAS arm additionally
+  // hard-blocked; shell/MCP stay gated. The CAS arm additionally
   // requires storage to persist its blobs.
   const captureMode = input.workspace.captureMode;
   const approvalGateConfig: ApprovalGateConfig | null = !gate.globalBypass
@@ -490,7 +490,7 @@ export async function buildEngine(
     workspaceBackend: workspace.backend,
     approvalGate: approvalGateConfig,
     // Capture is universal: every sub-agent gets a CAS-observing backend wired
-    // to the SAME per-turn observer as the parent (Session 26, DD-19).
+    // to the SAME per-turn observer as the parent.
     casObserver: workspace.casObserver,
     parentModelName: modelName,
     parentThinks,

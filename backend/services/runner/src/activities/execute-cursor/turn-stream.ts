@@ -164,7 +164,7 @@ export function makeCursorTurnOnDelta(
 
 /**
  * Consume a Cursor SDK run to completion (or to a clean early stop), driving the
- * transcript, todos, sub-agent tracking, live persist, and DD-32/DD-33 mid-run
+ * transcript, todos, sub-agent tracking, live persist, and mid-run file-change
  * progress, and reporting WHY the stream ended.
  *
  * Mutates `deps.sink.status` + `deps.state` in place. The caller owns the

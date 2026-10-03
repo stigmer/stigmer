@@ -13,7 +13,7 @@ import { CasCaptureFilesystemBackend } from "../cas-capture-backend.js";
  * only the first touch, never a post-write baseline — AND the cross-instance
  * guarantee that makes sub-agent capture safe: the parent and every sub-agent
  * backend share ONE observer, so first-touch-wins holds even when concurrent
- * graphs touch the same path (Session 26, DD-19).
+ * graphs touch the same path.
  */
 describe("CasCaptureObserver", () => {
   let root: string;

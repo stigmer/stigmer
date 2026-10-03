@@ -316,7 +316,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   // into the createClient factory options and (on the default factory) the
   // SDK constructor. This split is what makes STIGMER_LLM_REQUEST_TIMEOUT_MS
   // bound every path; putting `timeout` in the shared constructor spread is
-  // the exact regression that made it inert for Anthropic (T02 finding 2).
+  // the exact regression that made it inert for Anthropic.
   // The `maxRetries` half above stays constructor-level for both wrappers:
   // that is LangChain's own retry knob, distinct from the SDK-level
   // maxRetries the factories receive.

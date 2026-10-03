@@ -41,7 +41,7 @@ import { utcTimestamp } from "./status.js";
  * re-stamp turn N-1's rows with its own per-turn change set id (silent
  * mis-attribution).
  *
- * Defensive secret clear (DD-12 D4 belt-and-braces): flowed rows are never
+ * Defensive secret clear (belt-and-braces): flowed rows are never
  * secret in practice — the Cursor hook hard-denies secret-like writes before
  * they flow — but a write to a TRACKED secret-like path (e.g. a committed
  * credentials file) is outside the hook's gitignored scope. Such a row keeps
@@ -107,7 +107,7 @@ export function stampFlowedFileEditRows(
 /**
  * The same pass over the turn's sub-agent transcripts. Sub-agent writes fold
  * their files into the SAME parent turn set (shared git diff + one shared CAS
- * observation, DD-19), so they carry the parent change set id and badge
+ * observation), so they carry the parent change set id and badge
  * against the same set the parent's rows do. Scoped to this turn by
  * `priorToolCallIds` (the sub-agent tool-call ids that existed before the
  * turn's stream), because sub-agent rows lack the top-level pass's shields.
@@ -130,8 +130,8 @@ export function stampFlowedSubAgentFileEditRows(
  * needs the diff dropped clears it explicitly (see {@link stampFileEditRow}).
  * Returns whether the row was secret-like (and therefore withheld).
  *
- * The single primitive behind the never-persist-secret-contents contract (design
- * doc 12, D4): a file-mutating tool's `args` holds the full write body, which for
+ * The single primitive behind the never-persist-secret-contents contract: a
+ * file-mutating tool's `args` holds the full write body, which for
  * a secret-like path must never reach the transcript / Temporal history. A
  * filename is not itself the secret, so the path is kept. Fail-closed: an
  * undeterminable path is treated as secret-like ({@link isSecretLikePath} of "").
@@ -145,7 +145,7 @@ export function withholdSecretFileContent(tc: ToolCall): boolean {
 }
 
 /**
- * Universal backstop (DD-26 follow-up #2): withhold secret content from every
+ * Universal backstop: withhold secret content from every
  * built-in file-WRITE row in a transcript (top-level + each sub-agent's), across
  * BOTH harnesses, right before the status is persisted.
  *
@@ -183,8 +183,8 @@ export function withholdSecretContentFromMessages(
  * `file_change_set` (the single review surface), so its content must not linger
  * anywhere: for a file-mutating tool `args` holds the full write body, which for
  * a secret-like path would otherwise persist into the transcript / Temporal
- * history in violation of the never-persist-secret-contents contract (design
- * doc 12, D4). Dropping it is safe at resume — identity is carried by
+ * history in violation of the never-persist-secret-contents contract.
+ * Dropping it is safe at resume — identity is carried by
  * `approval_content_digest`, deliberately immune to `args` being absent (the
  * size-limit elision already drops `args`); no consumer reads a hidden row's
  * `args`.

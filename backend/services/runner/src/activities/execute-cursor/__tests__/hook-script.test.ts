@@ -96,7 +96,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("deny");
     // The broken-gate deny is ATTRIBUTABLE (issue #205): recorded under the
     // primary token with kind "fail-closed" and — like every non-approval
-    // kind — content-free (no input field, DD-26).
+    // kind — content-free (no input field: secret content is never persisted).
     const ledger = h.ledger();
     expect(ledger).toHaveLength(1);
     expect(ledger[0].kind).toBe("fail-closed");
@@ -591,7 +591,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
   // approval. The hook hard-blocks it with the security message and records a
   // kind:"secret" ledger entry — ATTRIBUTABLE (issue #205: the runner must know
   // this block was ours) but non-pausing (approvalDenials filters it out, so it
-  // never becomes an approvable WAITING row) and content-free (DD-26: only the
+  // never becomes an approvable WAITING row) and content-free (only the
   // identity token, never the proposed bytes). A non-secret write still
   // deny-gates as kind:"approval", and a delete (content-less) stays gated.
   describe("deny-gate secret hard-block", () => {
@@ -606,7 +606,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       const ledger = h.ledger();
       expect(ledger).toHaveLength(1);
       expect(ledger[0].kind).toBe("secret");
-      // DD-26 on the raw ledger bytes: no input field, no trace of the content.
+      // Content-free on the raw ledger bytes: no input field, no trace of the content.
       expect(ledger[0]).not.toHaveProperty("input");
       expect(JSON.stringify(ledger[0])).not.toContain("API_KEY");
     });
@@ -805,11 +805,11 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
-  // Slice 2c: a NON-git workspace has no git snapshot, so EVERY file write and
+  // A NON-git workspace has no git snapshot, so EVERY file write and
   // (issue #303) every non-secret delete is CAS-staged and flowed for review —
   // not only gitignored ones — while shell/MCP gate as always. The workspace is
   // deliberately NOT git-initialized.
-  describe("non-git workspace CAS capture (Slice 2c)", () => {
+  describe("non-git workspace CAS capture", () => {
     it("stages EVERY write (not just gitignored) and allows it, no denial", async () => {
       const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
       writeFileSync(join(h.root, "notes.md"), "ORIGINAL", "utf-8");

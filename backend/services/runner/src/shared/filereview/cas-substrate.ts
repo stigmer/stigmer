@@ -28,8 +28,8 @@
  *     "after" bytes; rejected/undecided files are snapped back to their "before"
  *     bytes (or removed, for a rejected create). Symmetric and idempotent.
  *
- * DURABILITY DOMAIN (design doc 11 D3)
- * -----------------------------------
+ * DURABILITY DOMAIN
+ * -----------------
  * Unlike git refs, which live inside the repo, CAS blobs + manifests live in
  * artifact storage (a fixed host path in OSS, R2 via the proxy in Cloud) — a
  * DIFFERENT durability domain that must outlive the multi-day approval wait and
@@ -173,7 +173,7 @@ export async function snapshotCasChangeSet(opts: {
   }
   // Deterministic order (by after path, then before path) so the manifest digest
   // is stable and, later, composes with the git manifest into one aggregate
-  // digest that is byte-identical across editions (design doc 08 D3).
+  // digest that is byte-identical across editions.
   files.sort(compareByPath);
 
   const manifest: CasManifest = { changeSetId, files };
@@ -423,7 +423,7 @@ async function writeVerifiedBlob(
   await writeFile(abs, bytes);
 }
 
-/** Stable order: by after path, then before path (substrate-agnostic, doc 08 D3). */
+/** Stable order: by after path, then before path (substrate-agnostic). */
 function compareByPath(a: CasCapturedFile, b: CasCapturedFile): number {
   const ka = a.pathAfter || a.pathBefore;
   const kb = b.pathAfter || b.pathBefore;

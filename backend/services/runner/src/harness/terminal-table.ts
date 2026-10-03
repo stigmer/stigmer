@@ -258,7 +258,7 @@ export function workspaceLockTimeoutArm(error: WorkspaceLockTimeoutError): Termi
  * be honored) tells the human; a discard tells the human which files were
  * reverted — the agent's native context still believes those edits stuck,
  * and any edit it makes from that belief is re-surfaced next turn (the
- * structural safety net; design-decisions/capture-reject-next-turn-resync-not-built.md).
+ * structural safety net).
  */
 export function fileReviewResolvedArm(settlement: {
   readonly failed: boolean;

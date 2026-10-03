@@ -24,8 +24,8 @@ import { WorkflowExecutionStatusSchema, WorkflowPendingApprovalSchema, WorkflowP
 import { ToolCallStatus, FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /**
- * Derives the child's approval gate onto the parent (DD-012: identity-only
- * signal, derive-from-child). The signal carries only the child execution id;
+ * Derives the child's approval gate onto the parent (an identity-only
+ * signal, derived from the child). The signal carries only the child execution id;
  * this activity reads the child's persisted `status.pending_approvals` — the
  * single source of truth the child's server wrote BEFORE signaling — and
  * mirrors it onto the parent as reference entries.

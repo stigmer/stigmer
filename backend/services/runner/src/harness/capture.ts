@@ -2,7 +2,7 @@
  * The runtime's file-review capture — apply-then-review for every harness,
  * written once: the baseline pinned before the engine runs, the mid-run
  * progress the chokepoint refreshes on every write, the candidate captured
- * after the engine's turn, the DD-28 approved-command provenance, the flowed
+ * after the engine's turn, the approved-command provenance, the flowed
  * transcript rows stamped with the change set, and the one question the
  * outcome table asks afterwards: is a review pending?
  *
@@ -27,7 +27,7 @@
  * scoping rules for the provenance and the stamp. The two rules here are the
  * one reading both engines already produce:
  *
- *  - PROVENANCE (DD-28, `shared/filereview/command-provenance.ts` is the
+ *  - PROVENANCE (`shared/filereview/command-provenance.ts` is the
  *    rule; this is its two inputs). "This turn's commands" are the top-level
  *    rows whose id had not SETTLED before the engine ran — never a message
  *    position, because on BOTH engines an approved command executes on the
@@ -275,7 +275,7 @@ function isCompletedRow(tc: ToolCall): boolean {
 }
 
 /**
- * The runtime's two inputs to the shared DD-28 rule (see the header). Pure
+ * The runtime's two inputs to the shared approved-command rule (see the header). Pure
  * over the status and the pre-turn snapshots; exported for its own tests.
  */
 export function deriveCommandProvenance(
@@ -283,7 +283,7 @@ export function deriveCommandProvenance(
   capture: Pick<TurnCapture, "priorSettledToolCallIds" | "priorSubAgentToolCallIds">,
   globalBypass: boolean,
 ): TurnCommandProvenance | undefined {
-  // DD-28 D1: any sub-agent activity this turn disqualifies — a sub-agent
+  // Any sub-agent activity this turn disqualifies — a sub-agent
   // that ran contributes at least one row id absent from the pre-turn set,
   // and its writes fold into this change set without a consented command.
   for (const id of collectSubAgentToolCallIds(status.subAgentExecutions)) {

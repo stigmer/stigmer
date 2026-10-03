@@ -11,7 +11,7 @@
  *     sub-agent. The single airtight choke point for a deny-gate harness and
  *     the only guarantee under `auto_approve_all`. Idempotent.
  *  2. `file_change_progress` is refreshed from the turn's capture (the "N
- *     files changed so far" strip, DD-32) when the turn is in capture mode:
+ *     files changed so far" strip) when the turn is in capture mode:
  *     the tree is read at most once per floor interval and only re-attached
  *     when it moved (`shared/filereview/progress.ts`), so a write that
  *     changed nothing on disk carries the snapshot it already had. Before

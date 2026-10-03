@@ -445,7 +445,7 @@ describe("buildEnhancedSystemPrompt", () => {
   });
 });
 
-describe("composeUserMessage (conversation catchup, cloud DD-006 / A27)", () => {
+describe("composeUserMessage (conversation catchup)", () => {
   const MESSAGE = "where is my order?";
   const DIGEST =
     "Customer: I want a refund\nTeammate: I've refunded you in full.";

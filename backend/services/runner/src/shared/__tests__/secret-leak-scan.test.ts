@@ -1,5 +1,5 @@
 /**
- * Deny-gate secret leak-scan (DD-26 follow-up #2) — the load-bearing guarantee.
+ * Deny-gate secret leak-scan — the load-bearing guarantee.
  *
  * The runner-level analog of the offline Go `TestOffline_FileReview_
  * SecretUnderGlobalBypass_NeverPersisted`: assemble a realistic deny-gate status
@@ -7,8 +7,8 @@
  * Invariant-A backstop that BOTH harnesses call before persisting, then serialize
  * the whole status and assert none of the secret bytes survive.
  *
- * An offline end-to-end test is structurally infeasible for this path (DD-23 /
- * DD-26 F3: the offline harness always runs a git workspace with LocalArtifactDir,
+ * An offline end-to-end test is structurally infeasible for this path (the
+ * offline harness always runs a git workspace with LocalArtifactDir,
  * so deriveCaptureMode is always true and the no-storage deny-gate is unreachable).
  * This test exercises the exact function the turn runtime's persist chokepoint
  * invokes for both harnesses, over a full AgentExecutionStatus.

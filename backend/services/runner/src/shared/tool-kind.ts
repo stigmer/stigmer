@@ -110,7 +110,7 @@ export function classifyTool(name: string, mcpServerSlug?: string): ToolKind {
  * preToolUse hook reports every file mutation — create or edit — as `Write`,
  * while the SDK stream names them `edit`/`write`. The category is therefore the
  * only tool identity that is stable across the hook and stream taxonomies, which
- * is exactly what the Cursor approval grant (and the Phase-2 coarse approval
+ * is exactly what the Cursor approval grant (and the coarse approval
  * fingerprint) must match on. Built on {@link classifyTool} so this collapse is
  * defined once.
  *

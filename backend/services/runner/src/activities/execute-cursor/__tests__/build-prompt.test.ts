@@ -292,7 +292,7 @@ describe("buildPrompt", () => {
     expect(context).toBeGreaterThan(memories);
   });
 
-  it("never re-sends the memories to a successfully resumed agent — frozen per session by design (DD-002 D3, inherited by DD-006 D4)", () => {
+  it("never re-sends the memories to a successfully resumed agent — frozen per session by design", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "resumed_successfully"),
@@ -521,7 +521,7 @@ describe("HITL recovery — fresh agent mid-HITL (issue #366)", () => {
   });
 });
 
-describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)", () => {
+describe("attachments on a resumed turn (the mid-session WhatsApp case)", () => {
   const RESUMED = { resolution: resolution("local", "resumed_successfully") };
 
   it("announces this turn's attachments to a resumed agent (per-execution value, never inherited)", () => {
@@ -962,7 +962,7 @@ describe("formatImplementPlanSection", () => {
   });
 
   it("announces attachments on a resumed non-build follow-up without the implement-plan directive", () => {
-    // Until T04, a resumed non-build turn was the raw user message even when
+    // A resumed non-build turn used to be the raw user message even when
     // it carried attachments — which left mid-session attachments completely
     // unannounced (materialized on disk, never mentioned to the agent). The
     // per-execution doctrine now applies: THIS turn's files are announced;
@@ -982,7 +982,7 @@ describe("formatImplementPlanSection", () => {
   });
 });
 
-describe("conversation catchup (cloud DD-006, T03 Sitting 3)", () => {
+describe("conversation catchup", () => {
   const DIGEST =
     "Customer: where is my order?\nTeammate: I've refunded you in full.";
 
@@ -1014,7 +1014,7 @@ describe("conversation catchup (cloud DD-006, T03 Sitting 3)", () => {
       .toBeLessThan(prompt.indexOf(USER_MESSAGE));
   });
 
-  it("carries the catchup on the first execution too, AFTER the bridge (DD-007 D-d: bridge first, catchup second)", () => {
+  it("carries the catchup on the first execution too, AFTER the bridge (bridge first, catchup second)", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "created_first_execution"),

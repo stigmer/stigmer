@@ -266,9 +266,9 @@ async function fetchAndFlattenEnv(
 ): Promise<Record<string, unknown>> {
   // The runner acquires a token scoped to this workflow execution so the
   // server's decrypt gate binds the read: a desktop runner exchanges its
-  // bootstrap credential (#156, hard error on failure — the bootstrap
-  // credential no longer decrypts since stigmer-cloud#218, so proceeding
-  // would hydrate redacted placeholders), and an OSS runner asks the
+  // bootstrap credential (hard error on failure — the bootstrap
+  // credential does not decrypt, so proceeding would hydrate redacted
+  // placeholders), and an OSS runner asks the
   // credential-less best-effort exchange (oss#535 — the OSS server redacts
   // EC reads by default and mints execution-scoped tokens). No-op for cloud
   // sandbox runners, whose ambient credential is already scoped.

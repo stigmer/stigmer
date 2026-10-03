@@ -97,7 +97,7 @@ export interface ProgressEntry {
  *
  * `totalFilesChanged` is the honest count of changed files this turn, which may
  * EXCEED `entries.length` when a substrate caps how many files it reads (the cas
- * substrate reads only a bounded prefix — DD-33). Undefined means "the entries
+ * substrate reads only a bounded prefix). Undefined means "the entries
  * ARE every changed file" (the git substrate, whose numstat is free), so
  * {@link buildFileChangeProgress} falls back to `entries.length`.
  */
@@ -289,7 +289,7 @@ function gitEntryToProgressEntry(e: GitProgressEntry): ProgressEntry {
  * git-TRACKED changes (from any source — tool or shell), disjoint from the cas
  * substrate's gitignored set. Preserves the tree-sha short-circuit: on an
  * unchanged tree it returns the cached full delta with `changed:false` (the
- * caller skips the re-attach), byte-identical to the pre-DD-33 behavior.
+ * caller skips the re-attach), byte-identical to the behavior before the cap.
  */
 export function createGitProgressSubstrate(opts: {
   readonly workspaceRoot: string;

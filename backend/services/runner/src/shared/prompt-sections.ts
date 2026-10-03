@@ -90,8 +90,8 @@ export interface StandingPromptContext {
  *
  *  1. The conversation sender first: standing context about WHO the
  *     conversation is with, which everything after may refer back to.
- *  2. Platform-declared standing facts precede embedder-supplied context
- *     (DD-002 D3): both are standing background, but the declared preferences
+ *  2. Platform-declared standing facts precede embedder-supplied context:
+ *     both are standing background, but the declared preferences
  *     are platform-authored while session context is the embedder's overlay —
  *     the more specific overlay reads later and naturally refines.
  *  3. Declared-by-humans precedes learned-and-confirmed: both are

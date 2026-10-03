@@ -173,7 +173,7 @@ export interface SubagentTransformOptions {
    * The parent turn's shared CAS observer, present only in capture mode. When
    * supplied, each sub-agent is built with a CAS-observing filesystem backend
    * wired to THIS observer, so its gitignored writes are captured into the same
-   * change set as the parent's (Session 26, DD-19). Absent outside capture mode,
+   * change set as the parent's. Absent outside capture mode,
    * where sub-agents keep the plain backend and the classic gitignored deny-gate.
    */
   readonly casObserver?: CasCaptureObserver;

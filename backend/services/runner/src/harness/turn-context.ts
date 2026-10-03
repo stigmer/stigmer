@@ -451,7 +451,7 @@ export async function resolveEnvironment(deps: ResolutionDeps): Promise<TurnEnvi
  * reviewed. Non-eligible workspaces (local paths, no credentials) make it a
  * no-op coordinator, here `null`.
  *
- * Apply-then-review is the universal file-review model (Slice 2c): a git work
+ * Apply-then-review is the universal file-review model: a git work
  * tree captures per-file from the git diff at the turn boundary; a NON-git
  * workspace captures every write via the path-scoped CAS substrate, which
  * needs artifact storage to persist blobs, and falls back to the classic
@@ -658,7 +658,7 @@ export async function reconcileReinvocation(
  *
  *  - channel messaging: the discovery read IS the attachment
  *    decision, and every failure mode degrades to honest absence;
- *  - conversation participation (channel-conversations DD-008 D-c): the
+ *  - conversation participation: the
  *    channel-id session label IS the decision, a free local read;
  *  - memory capture: the recall snapshot's enabled bit IS the
  *    decision, server-stamped at execution create.

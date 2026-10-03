@@ -1,5 +1,5 @@
 /**
- * The rollover context bridge (stigmer-cloud DD-013).
+ * The rollover context bridge.
  *
  * When a channel conversation's session hits its bounds (turn cap or
  * inactivity window), the cloud broker rolls it over into a fresh session

@@ -7,7 +7,7 @@
  * Deterministic integration proof of the Cursor deny-gate "what you approve is
  * what gets applied" guarantee, driven through the REAL composition and the REAL
  * deny-oracle hook — the achievable substitute for a pure-Go offline e2e, which
- * is structurally infeasible (no offline Cursor agent driver; see DD-23).
+ * is structurally infeasible (there is no offline Cursor agent driver).
  *
  * It replays the exact chain (and ORDER) `execute-cursor/index.ts` runs on a
  * deny-gate resume, against a REAL {@link LocalWorkspaceBackend} on a temp

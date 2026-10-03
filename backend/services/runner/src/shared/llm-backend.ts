@@ -546,7 +546,7 @@ export function toVertexModelId(apiModelId: string): string {
 
 /**
  * Translate a canonical Anthropic API model id into Bedrock's form, in
- * three layers (approved design, T04) — each a deployment-level knob:
+ * three layers — each a deployment-level knob:
  *
  * 1. `STIGMER_BEDROCK_MODEL_MAP` override, consulted first: the escape
  *    hatch for ids the deterministic rule cannot derive (Bedrock ids for
@@ -588,7 +588,7 @@ export function toBedrockModelId(
 
 /**
  * Translate a canonical Anthropic API model id into a Microsoft Foundry
- * deployment name, in two layers (approved design, T05):
+ * deployment name, in two layers:
  *
  * 1. `STIGMER_FOUNDRY_DEPLOYMENT_MAP` override, consulted first: Foundry
  *    routes by DEPLOYMENT NAME, and the portal lets operators name

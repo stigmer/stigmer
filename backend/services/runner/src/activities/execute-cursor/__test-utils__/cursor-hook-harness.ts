@@ -98,7 +98,7 @@ export interface CursorHookHarnessOptions {
    */
   captureIgnored?: boolean;
   /**
-   * Whether the workspace is a git tree (Slice 2c). Default true. When false the
+   * Whether the workspace is a git tree. Default true. When false the
    * throwaway workspace is NOT git-initialized and the state's `gitWorkspace` flag
    * is false, so the hook CAS-stages EVERY write (not only gitignored ones) and
    * skips the git-tracked flow arm.

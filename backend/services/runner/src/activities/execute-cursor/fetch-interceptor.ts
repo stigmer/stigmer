@@ -39,8 +39,8 @@ interface TimedRestPath {
  *   read, ~0.95s of the pre-cache resolve_agent segment (issue #209).
  * - POST /auth/exchange_user_api_key (`cursor_token_exchange`): the SDK's
  *   API-key → access-token exchange, the strongest suspect for the
- *   remaining unexplained 0.6–1.3s inside Agent.create
- *   (stigmer-cloud#484 — this timeline is that issue's Step 1, measure).
+ *   remaining unexplained 0.6–1.3s inside Agent.create (this timeline
+ *   exists to measure it).
  */
 const TIMED_REST_PATHS: ReadonlyMap<string, TimedRestPath> = new Map([
   ["/v1/models", { event: "cursor_models_fetch", segment: "models_fetch" }],

@@ -44,7 +44,7 @@ import { AgentCallError } from "../workflow-engine/types.js";
  * bare string: it crosses the polyglot boundary from the Java server, whose
  * client serializes proto messages as `json/protobuf` — an encoding this
  * worker's default converter cannot decode, which poisoned the workflow task
- * in a permanent retry loop (the original cloud#509 failure). The object
+ * in a permanent retry loop. The object
  * shape is tolerated for a future Go sender's natural `{executionId}` JSON,
  * mirroring child_execution_started's both-shapes handling below.
  */
@@ -281,7 +281,7 @@ export async function orchestrateAgentCall(
     }
 
     // Handle HITL approval notifications: derive each signaled child's gate
-    // from its persisted record (identity-only signal, DD-012). The child's
+    // from its persisted record (an identity-only signal). The child's
     // server persists the gate BEFORE signaling, so an empty derivation means
     // the gate already resolved — the activity answers false and there is
     // deliberately no retry (see updateWorkflowTaskApprovalStatus).

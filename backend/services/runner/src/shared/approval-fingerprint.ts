@@ -1,6 +1,6 @@
 /**
  * Approval fingerprint — the exact-match enforcement identity for the HITL Tool
- * Execution Gateway (Phase 2).
+ * Execution Gateway.
  *
  * A fingerprint is `HMAC-SHA256(key, canonicalForm)` over a canonicalized tool
  * action (see {@link file://./approval-canonicalize.ts}). It answers exactly one
@@ -9,19 +9,17 @@
  * the transient id of the proposing tool call, so a re-driven action that differs
  * from what was approved is re-asked — never silently executed.
  *
- * Why HMAC and not a bare SHA-256 (binding canonical decision,
- * design-decisions/approval-fingerprint-vs-march-rollback.md, Rule 4): the
+ * Why HMAC and not a bare SHA-256: the
  * fingerprint is an authorization token, not a correlation key. Keying it under a
  * Stigmer-held secret means a model (or a compromised workspace) cannot forge a
- * value that the gateway will accept. In Phase 2 the fingerprint is
+ * value that the gateway will accept. Today the fingerprint is
  * recompute-and-compare at one trusted layer (no bearer token crosses a wire), so
  * the anti-forgery property is forward-looking — it earns its keep when a lease
- * later becomes a server-issued bearer token (Phase 7). We pay the small cost now
+ * later becomes a server-issued bearer token. We pay the small cost now
  * to avoid a migration that re-keys every persisted approval later.
  *
  * Two fidelities share this one canonicalization core, because the two
- * enforcement substrates differ (see the Phase-2 plan, "two enforcement
- * substrates, not one"):
+ * enforcement substrates differ:
  *
  *  - FULL ({@link computeApprovalFingerprint}) — HMAC over the full canonical
  *    action (tool + paths + shellCommand + args). Used by the in-process

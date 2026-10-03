@@ -1,8 +1,8 @@
 /**
  * Unit tests for the Cursor error classifier.
  *
- * Covers the three-source priority cascade, the resumed-handle override
- * (T04 bug fix), captured rejection handling, and the retry-decision
+ * Covers the three-source priority cascade, the resumed-handle override,
+ * captured rejection handling, and the retry-decision
  * function that gates poisoned-handle recovery.
  */
 

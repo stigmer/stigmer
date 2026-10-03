@@ -1,6 +1,6 @@
 /**
- * Unit tests for the declared-preferences module (stigmer/stigmer#293,
- * DD-002). Like conversation-catchup there is no string key to mirror-guard —
+ * Unit tests for the declared-preferences module (stigmer/stigmer#293).
+ * Like conversation-catchup there is no string key to mirror-guard —
  * the value rides the typed `AgentExecutionSpec.declared_preferences` proto
  * field, so codegen enforces the cross-repo contract. What IS pinned here:
  * the per-scope blank-is-absent read semantics (the server stamps the field

@@ -1,7 +1,7 @@
 /**
  * End-to-end proof (real deepagents + LangGraph runtime, no LLM/network) that a
  * SUB-AGENT's gitignored file writes are captured for CAS review at parity with
- * the parent (Session 26, DD-19).
+ * the parent.
  *
  * These tests exercise the ACTUAL wiring under change — `compileSubagents` — which
  * installs a CAS-observing backend on each sub-agent and flips its gate to flow

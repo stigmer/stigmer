@@ -1,11 +1,11 @@
 /**
- * Unit tests for the recalled-memories module (stigmer/stigmer#293 Phase 2,
- * DD-006). Like declared-preferences there is no string key to mirror-guard —
+ * Unit tests for the recalled-memories module (stigmer/stigmer#293). Like
+ * declared-preferences there is no string key to mirror-guard —
  * the value rides the typed `AgentExecutionSpec.recalled_memories` proto
  * field, so codegen enforces the cross-repo contract. What IS pinned here:
  * the render-only-when-something-to-say read semantics (disabled OR empty
- * renders nothing — the enabled bit with zero facts is Stage 3's remember-
- * tool signal, not this module's concern), the server-composed fact order,
+ * renders nothing — the enabled bit with zero facts is the remember tool's
+ * signal, not this module's concern), the server-composed fact order,
  * the content-only rendering (memory_id never reaches the prompt), and the
  * framing's behavioral contract.
  */
@@ -36,7 +36,7 @@ describe("readRecalledMemories", () => {
     });
   });
 
-  it("answers undefined when the field is absent (pre-Phase-2 executions)", () => {
+  it("answers undefined when the field is absent (executions from before the field)", () => {
     expect(readRecalledMemories(undefined)).toBeUndefined();
   });
 
@@ -48,7 +48,7 @@ describe("readRecalledMemories", () => {
     expect(readRecalledMemories(recalled)).toBeUndefined();
   });
 
-  it("answers undefined for enabled-with-zero-facts — a meaningful snapshot state (the remember-tool signal, DD-005 D1) that renders nothing", () => {
+  it("answers undefined for enabled-with-zero-facts — a meaningful snapshot state (the remember-tool signal) that renders nothing", () => {
     const recalled = create(RecalledMemoriesSchema, { enabled: true });
     expect(readRecalledMemories(recalled)).toBeUndefined();
   });

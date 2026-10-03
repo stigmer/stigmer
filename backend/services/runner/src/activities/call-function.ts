@@ -8,7 +8,7 @@
  * - "llm" → callLlmAction
  * - "transform" → transformAction (JQ engine)
  * - "validate" → validateAction (JSON Schema + business rules)
- * - "agent" → placeholder (Phase 4b)
+ * - "agent" → refused: call:agent is its own task kind
  *
  * Activity contract:
  *   Name:   "CallFunction"

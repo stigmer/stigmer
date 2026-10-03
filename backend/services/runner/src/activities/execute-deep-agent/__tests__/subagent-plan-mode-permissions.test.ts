@@ -137,7 +137,7 @@ describe("plan-mode sub-agent filesystem permissions (issue #255)", () => {
     expect(toolResultById(result.messages, "c_write")).not.toMatch(/permission denied/i);
     expect(await readFile(join(root, "dist/out.txt"), "utf8")).toBe("new file");
     // And the backend WAS reached this time — the observer recorded a write.
-    // (Key shape is DD-19 territory, deliberately not pinned here.)
+    // (The key's shape is the observer's business, deliberately not pinned here.)
     expect(observer.before.size).toBe(1);
   });
 

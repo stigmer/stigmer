@@ -157,7 +157,7 @@ export function describeGatewayContract(substrate: GatewaySubstrate): void {
     }
 
     // Invariant 11: a run-lifetime CLASS lease (APPROVE_ALL) auto-approves later
-    // actions of the SAME class but never a different class — the core Phase-7
+    // actions of the SAME class but never a different class — the core
     // scoped-lease safety property, enforced independently on each substrate (the
     // gate clears leased categories; the hook reads leasedCategories).
     if (substrate.capabilities.appliesRunLifetimeLease && substrate.authorizeUnderClassLease) {

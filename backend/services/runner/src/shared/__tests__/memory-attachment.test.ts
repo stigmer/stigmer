@@ -57,7 +57,7 @@ const noLeases: ActiveLeases = {
   servers: new Set(),
 };
 
-describe("memoryCaptureEnabled (the DD-005 D1 injection signal)", () => {
+describe("memoryCaptureEnabled (the injection signal)", () => {
   it("is the snapshot's enabled bit — absent and disabled read false", () => {
     expect(memoryCaptureEnabled(undefined)).toBe(false);
     expect(memoryCaptureEnabled(create(RecalledMemoriesSchema, { enabled: false }))).toBe(false);

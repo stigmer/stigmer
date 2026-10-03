@@ -26,8 +26,8 @@ export async function resolveExecutionEnv(
   // A desktop runner exchanges its bootstrap credential for a token scoped to
   // this execution's session, so cloud's decrypt gate binds the read (#156).
   // No-op for cloud sandbox and OSS runners. A failed exchange throws and
-  // fails the activity: the bootstrap credential no longer decrypts
-  // (stigmer-cloud#218), so proceeding would resolve redacted placeholders.
+  // fails the activity: the bootstrap credential does not decrypt, so
+  // proceeding would resolve redacted placeholders.
   const scopedToken = await client.acquireScopedRunnerToken({
     agentExecutionId: executionId,
   });

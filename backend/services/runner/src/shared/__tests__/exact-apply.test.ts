@@ -5,7 +5,7 @@
  * Unit tests for resume-time exact-apply (the HITL "what you approve is what gets
  * applied" guarantee for the Cursor deny-only harness).
  *
- * Since Phase 5 Slice 4 the approved bytes and target path are read from the
+ * The approved bytes and target path are read from the
  * gated tool call's `args` (the single source — there is no separate captured
  * `file_changes` mirror). These pin the load-bearing invariants:
  * - an APPROVED whole-file write is written to disk with the EXACT approved bytes

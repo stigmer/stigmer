@@ -1,12 +1,12 @@
 /**
- * Proves the T04 vision input path end-to-end through the REAL framework
+ * Proves the vision input path end-to-end through the REAL framework
  * stack: the exact `{ role: "user", content: [...] }` shape that turn-setup.ts
  * builds is driven through `createDeepAgent` (the production graph factory,
  * default middleware included) and the test asserts what the chat model's
  * `_generate` actually received.
  *
- * This is the offline stand-in for the deferred live provider probes (T01
- * A4/A5): it cannot prove Anthropic renders the pixels, but it proves the
+ * This is the offline stand-in for the deferred live provider probes: it
+ * cannot prove Anthropic renders the pixels, but it proves the
  * image blocks survive the LangGraph message reducer and the full deepagents
  * middleware stack byte-identically — the part of the path we own.
  */

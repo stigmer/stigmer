@@ -1,6 +1,5 @@
 /**
- * Unit tests for the conversation-catchup module (cloud channel-conversations
- * DD-006, T03 Sitting 3). Unlike its metadata-keyed siblings there is no
+ * Unit tests for the conversation-catchup module. Unlike its metadata-keyed siblings there is no
  * string key to mirror-guard — the value rides the typed
  * `AgentExecutionSpec.conversation_catchup` proto field, so codegen enforces
  * the cross-repo contract. What IS pinned here: the blank-is-absent read
@@ -35,7 +34,7 @@ describe("readConversationCatchup", () => {
   });
 
   it("a blank digest is no catchup — window_end alone is cloud bookkeeping, never a reason to inject", () => {
-    // A21: the field rides EVERY channel turn so the watermark can advance;
+    // The field rides EVERY channel turn so the watermark can advance;
     // most turns carry an empty digest. The runner must render nothing.
     const catchup = create(ConversationCatchupSchema, {
       digest: "   ",

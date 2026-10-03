@@ -1,6 +1,6 @@
 /**
  * Mid-run progress substrate for the CAS (content-addressed) domain — the
- * non-git and gitignored half of DD-33. The git substrate ({@link ./progress.js}
+ * non-git and gitignored half of the mid-run progress read. The git substrate ({@link ./progress.js}
  * `createGitProgressSubstrate`) covers git-tracked changes cheaply via
  * `--numstat`; this covers the paths git cannot see, sourced from the same
  * per-turn observer the turn-boundary CAS capture reads:

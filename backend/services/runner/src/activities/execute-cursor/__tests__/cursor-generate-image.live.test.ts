@@ -1,6 +1,6 @@
 /**
  * Live ground-truth capture for Cursor's native `generateImage` tool (issue
- * #965) — the Phase-0 discipline from cursor_hitl_test.go applied to the
+ * #965) — the ground-truth capture discipline of cursor_hitl_test.go applied to the
  * interaction-channel tool family.
  *
  * WHY THIS EXISTS. Production incident aex_01m1a6ww3nmp4952ar5v0g4g85: an
@@ -29,7 +29,7 @@
  * hand or in the live lane; skips without `CURSOR_API_KEY` outside the lane
  * (`src/__test-utils__/live-gate.ts`). It spends real credits for one short
  * turn, with no product cost cap (the SDK is driven directly, not through an
- * execution). Findings are PRINTED, not asserted: like the Phase-0 capture,
+ * execution). Findings are PRINTED, not asserted: like that earlier capture,
  * this documents upstream behavior we do not own; the only hard assertion is
  * that the run itself reaches a terminal outcome (no infinite hang at the SDK
  * boundary), which is a promise worth a release check.
