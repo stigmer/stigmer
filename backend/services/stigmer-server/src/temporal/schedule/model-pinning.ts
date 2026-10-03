@@ -13,7 +13,7 @@
  * harness resolves to the OSS platform default (native), so there is no
  * cursor path to guard. The cloud edition additionally judges its
  * configured default harness (cursor there) — same contract, each
- * edition's own default-harness truth (the DD-015 divergence posture).
+ * edition's own default-harness truth.
  *
  * Evaluated at write time (the controller's model-pinning validator
  * delegates here) AND as the run starter's launch backstop, so rows

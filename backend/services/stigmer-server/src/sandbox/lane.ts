@@ -3,19 +3,19 @@
  * steps consume (never a nullable provisioner threaded through deps; the
  * composition doctrine's "optional infrastructure is a modeled state").
  * Disabled IS the OSS default: SANDBOX_PROVISIONER_TYPE unset means the
- * external-runner posture (gate ruling Q1) and every step below
+ * external-runner posture and every step below
  * short-circuits on its fast path — byte-identical wire behavior, pinned
  * by the conformance rosters.
  *
- * Credential minting (gate ruling Q6): sandboxes authenticate on the ONE
- * OSS credential lane — execution-scoped (runnerauth §6c). The token is
+ * Credential minting: sandboxes authenticate on the ONE OSS credential
+ * lane — execution-scoped (runnerauth). The token is
  * minted per execution at ensure time, so the cloud's stale-token refresh
  * arm degenerates to per-execution re-mint here; a disabled mint lane
  * launches the sandbox with no token and ExecutionContext decrypt falls
  * back to redaction (oss#535's posture), degraded but never dark.
  *
- * A provider with the mintSandboxCredential capability (C4, gate ruling
- * Q1) owns the mint instead: the ensure steps hand it the full
+ * A provider with the mintSandboxCredential capability owns the mint
+ * instead: the ensure steps hand it the full
  * provisioning context and bake whatever it returns — the cloud's
  * session/workflow-scoped tokens ride this without the steps knowing any
  * lane vocabulary beyond their own identifiers.

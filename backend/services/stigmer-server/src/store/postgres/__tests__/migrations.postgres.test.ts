@@ -1,5 +1,5 @@
 /**
- * Pins the Postgres migration chain (DD-010 §3, independent v1): fresh
+ * Pins the Postgres migration chain (an independent v1): fresh
  * replay creates the full schema and records the version, reopen is
  * idempotent, a mid-chain database resumes (v1 → v2 picks up the sweep
  * index), and concurrent first boots serialize on the advisory lock

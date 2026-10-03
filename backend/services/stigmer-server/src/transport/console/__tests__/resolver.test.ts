@@ -86,7 +86,7 @@ describe("page contract (the nginx chain)", () => {
   it("prefers the more-literal candidate: a literal segment beats a dynamic one", () => {
     // /workflows/executions/[id] and /workflows/[org]/[slug] are both
     // three segments — the filesystem, not the segment count, decides
-    // (the F-12 lesson nginx.conf documents).
+    // (the blank-page lesson nginx.conf documents).
     expect(servedFile("/workflows/executions/wfe_123")).toBe(
       "/workflows/executions/__placeholder__.html",
     );

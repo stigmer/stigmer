@@ -12,8 +12,8 @@
  * cross-component contract with the runner's execute-from-execution.
  *
  * Go's callback_token / invoker_identity_account_id fields have no OSS
- * producer (cloud-only lanes) and are not modeled — the seam's ratified
- * boundary (src/domain/workflowexecution/engine.ts).
+ * producer (cloud-only lanes) and are not modeled — the seam's boundary
+ * (src/domain/workflowexecution/engine.ts).
  *
  * Sandbox-shared module: type-only, no imports.
  */
@@ -45,8 +45,8 @@ export interface InvokeWorkflowExecutionWorkflowInput {
 }
 
 /**
- * The relaySignal envelope (invoke_workflow_impl.go RelaySignalPayload,
- * June DD-013): an arbitrary signal to forward to the child, sent by the
+ * The relaySignal envelope (invoke_workflow_impl.go RelaySignalPayload):
+ * an arbitrary signal to forward to the child, sent by the
  * controller's sendSignal / submitWorkflowTaskApproval through
  * SignalWithStart. JSON keys are the Go struct tags.
  */

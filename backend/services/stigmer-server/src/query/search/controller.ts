@@ -10,8 +10,7 @@
  * everything else is sanitized to Internal "search failed"
  * (stigmer/stigmer#478 — the raw error is server internals, logged here
  * at the boundary, never on the wire). The conformance suite pins the
- * codes only (ratified guard P2); the texts ride the parity register's
- * protovalidate-es watch item.
+ * codes only; the texts depend on protovalidate-es's wording.
  *
  * SearchService carries no api_resource_kind option and
  * is_skip_authorization (cross-aggregate CQRS read) — the apiresource

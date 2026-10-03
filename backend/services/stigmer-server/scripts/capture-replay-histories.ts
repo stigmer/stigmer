@@ -1,6 +1,6 @@
 /**
  * Captures Temporal workflow histories for the replay determinism gate —
- * the OD-6 go-forward discipline (D2 §4): any change to a running
+ * the go-forward discipline: any change to a running
  * workflow's logic must replay committed histories green, or be gated
  * with patched(). Histories are REGENERATED only when no producing
  * release is still supported (the schedule domain's Go rule, adopted
@@ -174,10 +174,10 @@ async function main(): Promise<void> {
     },
   );
 
-  // 4. Parented HITL cycle (D4 #23): same gate as scenario 2 but with a
+  // 4. Parented HITL cycle: same gate as scenario 2 but with a
   //    parent_workflow_id, so the history carries the two parent
   //    notifications (child_execution_started at start,
-  //    child_approval_required from the HITL loop) — the DD-012 sender
+  //    child_approval_required from the HITL loop) — the child-approval sender
   //    pinned in the replay gate. The parent id is deliberately
   //    nonexistent: the sends fail non-fatally, which is itself part of
   //    the recorded command shape.

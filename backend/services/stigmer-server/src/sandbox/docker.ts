@@ -1,8 +1,7 @@
 /**
- * The Docker sandbox driver — DD-002's second isolation tier, built by
- * O6. Each sandbox is one container running the published
- * runner image, polling exactly one task queue. Mechanism per the
- * mid-session owner ruling: the docker CLI via child_process — zero new
+ * The Docker sandbox driver — the isolation ladder's second tier. Each
+ * sandbox is one container running the published
+ * runner image, polling exactly one task queue. Mechanism: the docker CLI via child_process — zero new
  * dependencies, present wherever this tier's audience (dev and small
  * self-host boxes) already has Docker; the driver seam keeps an
  * Engine-API swap mechanical if demand appears.
@@ -10,8 +9,7 @@
  * The ensure state machine (the Java KubernetesSandboxProvisioner's
  * arms, minus the cloud-only archive ladder): container absent → run;
  * exists but stopped → start; running → fast path. State is derived
- * from the container itself — name + labels — never a store table (gate
- * ruling Q4).
+ * from the container itself — name + labels — never a store table.
  *
  * Deliberate divergences from the cloud manifest, named:
  *
@@ -86,7 +84,7 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
     return stdout.trim();
   }
 
-  /** Live container state by name: absent | stopped | running (Q5's probe). */
+  /** Live container state by name: absent | stopped | running (the live-state probe). */
   async function inspectState(name: string): Promise<SandboxProbeState> {
     try {
       const running = await docker([
@@ -117,7 +115,7 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
     if (state === "stopped") {
       // The scale-up arm: the container keeps its original env (token
       // included) — the cloud's defer-restart posture for a stale token
-      // degenerates here to "the next full recreate re-mints" (Q6).
+      // degenerates here to "the next full recreate re-mints".
       await docker(["start", name]);
       logger.info("Docker sandbox restarted", { scope, id, container: name });
       return;

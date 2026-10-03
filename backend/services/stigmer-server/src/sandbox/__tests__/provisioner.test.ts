@@ -1,6 +1,5 @@
 /**
- * Pins the sandbox driver seam's selection and naming contracts (§6d,
- * O6):
+ * Pins the sandbox driver seam's selection and naming contracts:
  *
  *   - "" selects NO provisioner — the external-runner default whose
  *     byte-identity the conformance rosters ride;
@@ -103,7 +102,7 @@ describe("newSandboxProvisioner selection", () => {
     expect(marker.constructed).toBe(1);
   });
 
-  it("an unselected driver constructs nothing (§6b's factory discipline)", () => {
+  it("an unselected driver constructs nothing (the factory discipline)", () => {
     const selected = { constructed: 0 };
     const bystander = { constructed: 0 };
     newSandboxProvisioner(
@@ -118,7 +117,7 @@ describe("newSandboxProvisioner selection", () => {
     expect(bystander.constructed).toBe(0);
   });
 
-  it("the built-in name set is DD-002's isolation ladder", () => {
+  it("the built-in name set is the isolation ladder", () => {
     expect([...BUILT_IN_SANDBOX_PROVISIONER_TYPES]).toEqual([
       "local-process",
       "docker",

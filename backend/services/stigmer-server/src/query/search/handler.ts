@@ -51,7 +51,7 @@ export class SearchHandler {
    * Errors carry Go's exact wrap prefixes — the controller's error
    * mapping string-matches them (#478 sanitization contract).
    *
-   * With a composed ListReadScope (20260830.01, census lane 21) the
+   * With a composed ListReadScope the
    * store read ALWAYS carries a per-effective-kind authorized-id map —
    * the Java SearchHandler's QueryAuthorizedIds step. There is no request
    * shape that skips the scope: the one that did (the retired public

@@ -4,19 +4,18 @@
  * workflows/invoke_workflow.go, workflows/workflow_creator.go,
  * activities/update_status.go, dispatch.go).
  *
- * Every value here is a byte-pinned cross-edition wire constant (D2 §4).
+ * Every value here is a byte-pinned cross-edition wire constant.
  * The orchestrator workflow NAME, its ID format, the child workflow ID,
  * and the pause/resume/relaySignal channel names are canonically owned by
  * the DOMAIN's constants module (src/domain/workflowexecution/
- * constants.ts — #20 shipped them for the lifecycle steps) and re-exported
+ * constants.ts, where the lifecycle steps read them) and re-exported
  * here so the temporal slice has one import surface and the program has
  * one definition.
  *
  * This module is imported by BOTH the workflow bundle and host code, so it
  * must stay free of node built-ins and framework imports (the Temporal
- * workflow sandbox bundler hard-fails on node imports — sub-project
- * 20260824.03 workflow-bundle import discipline; the domain constants
- * module it re-exports from is import-free).
+ * workflow sandbox bundler hard-fails on node imports; the domain
+ * constants module it re-exports from is import-free).
  */
 export {
   INVOKE_WORKFLOW_EXECUTION_WORKFLOW_NAME,
@@ -40,8 +39,8 @@ export const CHILD_WORKFLOW_TYPE = "stigmer/workflow/execute-from-execution";
  * The ONLY memo key this domain writes (workflow_creator.go); the
  * workflow reads it back to place the child. Go also falls back to the
  * legacy "activityTaskQueue" key for pre-migration in-flight histories —
- * NOT ported: no Go-era history can replay on this server (OD-6
- * start-clean), so the legacy read would be dead code.
+ * NOT ported: no Go-era history can replay on this server (it started
+ * clean), so the legacy read would be dead code.
  */
 export const MEMO_RUNNER_TASK_QUEUE = "runnerTaskQueue";
 
@@ -59,12 +58,12 @@ export const DEFAULT_RUNNER_TASK_QUEUE = "stigmer_runner";
  * the Go-SDK RECORD_MARKER replay bug; the history shape is contract).
  *
  * The name is Go's UpdateWorkflowExecutionStatusActivityName constant.
- * NOTE (sub-project DD-002): Go's production worker registers this
+ * NOTE: Go's production worker registers this
  * activity WITHOUT an explicit name, deriving "UpdateExecutionStatus"
  * from the method — so Go's own orchestrator persists never resolve the
  * activity and fail silently behind their best-effort call sites. This
  * server registers AND invokes under the one constant name, making the
- * lane work (the #18 DD-001 broken-Go-lane precedent; Go issue filed).
+ * lane work.
  */
 export const UPDATE_WORKFLOW_EXECUTION_STATUS_ACTIVITY_NAME =
   "UpdateWorkflowExecutionStatus";

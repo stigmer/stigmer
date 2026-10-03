@@ -1,7 +1,7 @@
 /**
  * The built-in sandbox driver assembly — the name → factory table the
  * composition root hands to newSandboxProvisioner, one entry per tier of
- * DD-002's isolation ladder. Kept separate from provisioner.ts so the
+ * the isolation ladder. Kept separate from provisioner.ts so the
  * contract module never imports driver implementations (extensions
  * compile against the contract alone through the exports map).
  */

@@ -1,8 +1,8 @@
 /**
  * Versioned schema migrations — ports the inline chain in
  * backend/libs/go/store/sqlite/store.go (v1–v6, DDL character-faithful),
- * adds v7, the OD-3 consolidation (D2 §3), v8, the by-resource
- * oauth_grant index (the channel teardown's query pattern, C3 Stage 6),
+ * adds v7, the consolidation of the out-of-chain tables, v8, the
+ * by-resource oauth_grant index (the channel teardown's query pattern),
  * and the later steps each named at its constant below.
  *
  * Schema continuity across cutover is the design point: a database the Go
@@ -23,12 +23,12 @@
  * predate those columns, and Go reconciled them at every boot — v7 is the
  * last writer that must do the same.
  *
- * Rollback safety (DD-006 cutover switch): a database at v7 re-opened by
+ * Rollback safety: a database at v7 re-opened by
  * the Go server passes Go's `currentVersion < 6` checks untouched, and
  * Go's consumer stores find their tables already present.
  *
  * Proven by __tests__/migrations.test.ts: fresh replay, Go-v6 fixture
- * adoption (sub-project DD-002), pre-ALTER pending_oauth_state shape, and
+ * adoption, pre-ALTER pending_oauth_state shape, and
  * v7 data preservation.
  */
 import type { DatabaseSync } from "node:sqlite";
@@ -50,9 +50,9 @@ export const SCHEMA_VERSION_3 = 3;
 export const SCHEMA_VERSION_4 = 4;
 export const SCHEMA_VERSION_5 = 5;
 export const SCHEMA_VERSION_6 = 6;
-/** v7: OD-3 consolidation of the out-of-chain tables (this port's addition). */
+/** v7: consolidation of the out-of-chain tables (this port's addition). */
 export const SCHEMA_VERSION_7 = 7;
-/** v8: the by-resource grant-teardown index (the C3 channel installer). */
+/** v8: the by-resource grant-teardown index (the channel installer's teardown). */
 export const SCHEMA_VERSION_8 = 8;
 /** v9: the rows of the removed Project kind deleted. */
 export const SCHEMA_VERSION_9 = 9;
@@ -226,7 +226,7 @@ function migrateLegacyAuditRecords(db: DatabaseSync): void {
  * v3: the FTS5 full-text search index (Go migrateToV3). porter unicode61 =
  * English stemming + Unicode normalization; UNINDEXED columns are stored
  * for filtering/sorting but not searchable. Availability of FTS5 in
- * node:sqlite is spike SP-C, pinned permanently by the driver tests.
+ * node:sqlite is pinned permanently by the driver tests.
  */
 function migrateToV3(db: DatabaseSync): void {
   db.exec(`
@@ -276,7 +276,7 @@ function migrateToV5(db: DatabaseSync): void {
   `);
 }
 
-/** v6: schedule_runs fire ledger (Go migrateToV6; stigmer-cloud DD-017 D-7). */
+/** v6: schedule_runs fire ledger (Go migrateToV6). */
 function migrateToV6(db: DatabaseSync): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS schedule_runs (
@@ -298,7 +298,7 @@ function migrateToV6(db: DatabaseSync): void {
 }
 
 /**
- * v7: OD-3 consolidation. DDL copied verbatim from the Go consumer stores
+ * v7: the consolidation. DDL copied verbatim from the Go consumer stores
  * (signal_dedupe_store.go createTable; grant_store.go /
  * pending_state_store.go ensureTable) — IF NOT EXISTS adopts a live
  * database's existing tables and data untouched.
@@ -379,7 +379,7 @@ function migrateToV7(db: DatabaseSync): void {
  * primary key leads with identity_account_id, so without this index the
  * sweep scans. The Java edition carries the identical index
  * (idx_oauth_grant_resource) for the identical delete cascade, and the
- * postgres chain's v2 ratified the doctrine: a query pattern owned by a
+ * postgres chain's v2 set the doctrine: a query pattern owned by a
  * cloud extension does not exempt the index.
  */
 function migrateToV8(db: DatabaseSync): void {

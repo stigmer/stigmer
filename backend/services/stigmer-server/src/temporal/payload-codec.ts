@@ -1,7 +1,6 @@
 /**
  * Decode-only Temporal payload codec — ports
- * pkg/encryption/payloadcodec (Go DecryptionCodec; stigmer-cloud#227,
- * stigmer#398).
+ * pkg/encryption/payloadcodec (Go DecryptionCodec; stigmer#398).
  *
  * The runner encrypts its Temporal payloads (activity results, workflow
  * results) under STIGMER_PAYLOAD_ENCRYPTION_KEY. The server must DECRYPT
@@ -15,8 +14,7 @@
  * (the runner encrypts with it). This wrapper delegates decode to it and
  * passes encode through untouched — the decode path only ever consults the
  * codec's accepted-keys set, so a symmetric inner codec is safe to hold.
- * Ratified decision (sub-project 20260824.03 plan, brief #1): a server-local
- * wrapper mirrors Go's server-local DecryptionCodec; the published lib stays
+ * A server-local wrapper mirrors Go's server-local DecryptionCodec; the published lib stays
  * untouched.
  *
  * Enabled-iff-configured: no key in the environment means the codec is not

@@ -7,10 +7,9 @@
  * vocabulary. There is deliberately NO interval-floor knob: the floor is a
  * platform guardrail for a shared metered system, enforced by cloud's
  * pre-persist probe; OSS is one user on their own machine and has no probe
- * (DD-015 D-A) — a present-but-ignored knob would be a lie.
+ * — a present-but-ignored knob would be a lie.
  *
- * Config lives with the clock, not the domain (sub-project decision 1,
- * owner-ratified): every reader is clock-side — the agentexecution
+ * Config lives with the clock, not the domain: every reader is clock-side — the agentexecution
  * precedent of a domain-local config was driven by a domain-step consumer
  * (oss#397) that schedule does not have.
  */

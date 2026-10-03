@@ -5,10 +5,10 @@
  * write→index→query pins: session list mode, the #440 emptiness arm, the
  * #439 newly-searchable-kind arm), plus the scope filter (org strict:
  * visibility never widens or narrows it) and RebuildIndex —
- * including the DD-D proof: rebuilding over an ADOPTED Go-created
+ * including the proof that rebuilding over an ADOPTED Go-created
  * database re-indexes the rows it already holds. The escaping and
  * score-normalization tables moved with their code into the sqlite
- * driver (DD-009 seam redraw): see store/sqlite/__tests__/fts5.test.ts.
+ * driver: see store/sqlite/__tests__/fts5.test.ts.
  * These tests still run the REAL driver through tempStore — the
  * two-layer service→driver integration proof.
  */
@@ -399,7 +399,7 @@ describe("rebuildIndex", () => {
     expect(after.results[0]?.id).toBe("ses-1");
   });
 
-  it("re-indexes existing rows on an ADOPTED Go-created database (DD-D)", async () => {
+  it("re-indexes existing rows on an ADOPTED Go-created database", async () => {
     // The committed Go-v6 fixture, opened through the driver (migrates
     // v6→current — real adoption), then given a skill row the way a Go
     // server would have written one: raw resource bytes.

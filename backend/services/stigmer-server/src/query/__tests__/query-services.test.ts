@@ -1,12 +1,12 @@
 /**
- * Composed-server tests for the two query services (D4 #14): the arms
+ * Composed-server tests for the two query services: the arms
  * conformance cannot cover on local plus the wiring proofs —
  * search/activity ANSWER on the composed server (stigmer#461: OSS
  * historically returned UNIMPLEMENTED for activity), synchronous
  * index-on-write feeds search over the wire, the protovalidate
  * interceptor answers the two InvalidArgument arms, and BOOT-TIME
  * RebuildIndex makes pre-existing rows on an adopted database searchable
- * with zero pipeline writes (DD-D/DD-F).
+ * with zero pipeline writes.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -120,7 +120,7 @@ describe("query services on the composed server", () => {
     expect(queried.entries[0]?.score).toBeGreaterThan(0);
   });
 
-  it("answers the two validation arms via the protovalidate interceptor (codes only, P2)", async () => {
+  it("answers the two validation arms via the protovalidate interceptor (codes only)", async () => {
     const overLength = await grpcError(
       search.search({ query: "x".repeat(501) }),
     );
@@ -136,7 +136,7 @@ describe("query services on the composed server", () => {
   });
 });
 
-describe("boot-time RebuildIndex (DD-D/DD-F)", () => {
+describe("boot-time RebuildIndex", () => {
   let dir: string;
   let server: ComposedServer;
   let port: number;

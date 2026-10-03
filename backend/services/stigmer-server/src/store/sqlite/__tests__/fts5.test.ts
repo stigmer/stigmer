@@ -1,12 +1,12 @@
 /**
  * Pins the sqlite driver's engine-specific search half (fts5.ts) against
  * Go's sqlite_search_query_store_test.go tables — MATCH rendering and
- * bm25 normalization, case-for-case — recomposed for the DD-009 seam:
+ * bm25 normalization, case-for-case — recomposed for the engine-neutral seam:
  * the table inputs pass through the search service's engine-neutral
  * tokenization (goTrimSpace/goFields) so every pinned OUTPUT byte stays
  * identical to the pre-redraw escapeFTS5Query's. The driver-level
  * querySearchIndex read coverage moved to the shared contract suite
- * (../../__tests__/store-contract.ts) with the T01 D-4 extraction — its
+ * (../../__tests__/store-contract.ts) when it was extracted — its
  * semantics are engine-neutral and both drivers must satisfy them.
  */
 import { describe, expect, it } from "vitest";

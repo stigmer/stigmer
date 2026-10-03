@@ -1,8 +1,8 @@
 /**
  * The port-contract runner — the scaffolding every domain store PORT's
- * contract kit is built on (identity-account's store-contract.ts since
- * 20260911.11 A11; IamPolicy's since 20260913.01 slice 2, when this was
- * lifted out of the first kit so the second did not carry a copy).
+ * contract kit is built on (identity-account's store-contract.ts first,
+ * then IamPolicy's, when this was lifted out of the first kit so the
+ * second did not carry a copy).
  *
  * A port kit is a list of named cases a DRIVER's test iterates: open
  * source runs them over its adapter on sqlite and Postgres, a composition

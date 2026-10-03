@@ -1,6 +1,5 @@
 /**
- * Pins the sandbox invocation surface's per-lane postures (§6d, O6 —
- * the T01 gate rulings Q1/Q2/Q3/Q6):
+ * Pins the sandbox invocation surface's per-lane postures:
  *
  *   - the session lane fires ONLY on resolved CLOUD target with
  *     per-session routing, is NON-critical (a provisioning failure never
@@ -61,7 +60,7 @@ import {
 
 /**
  * The caller the ensure bodies split two ways: the identity id into the
- * credential mint (C4 — the OSS execution-scoped mint ignores it, so the
+ * credential mint (the OSS execution-scoped mint ignores it, so the
  * token assertions stay binding-shaped) and the class onto the driver's
  * environment. `user` is the plain lane; the class-propagation cases hand
  * in a composed lane's word to prove the body copies, never normalises.
@@ -143,7 +142,7 @@ const disabledCredentials: RunnerCredentialProvider = {
 };
 
 /**
- * A provider with the C4 mintSandboxCredential capability: records the
+ * A provider with the mintSandboxCredential capability: records the
  * full provisioning context it received and returns a distinguishable
  * token — proving the ensure steps delegate the WHOLE mint decision
  * (the primitives must never be consulted on this path).
@@ -284,7 +283,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
     );
   });
 
-  it("delegates the mint to the capability provider with the full provisioning context (C4)", async () => {
+  it("delegates the mint to the capability provider with the full provisioning context", async () => {
     const provisioner = fakeProvisioner();
     const credentials = capabilityCredentials();
     counter += 1;
@@ -531,7 +530,7 @@ describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
     expect(provisioner.ensured[0]?.env.callerClass).toBe("guest");
   });
 
-  it("delegates the mint to the capability provider on the workflow scope (C4)", async () => {
+  it("delegates the mint to the capability provider on the workflow scope", async () => {
     const provisioner = fakeProvisioner();
     const credentials = capabilityCredentials();
     await ensureWorkflowSandboxForExecution(

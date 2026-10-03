@@ -1,6 +1,6 @@
 /**
  * Replay determinism gate for the workflow-execution orchestrator — the
- * twin of the agentexecution gate (see its header for the OD-6
+ * twin of the agentexecution gate (see its header for the
  * discipline): committed histories from released workflow code must
  * replay green on the CURRENT code; a red run means a change is not
  * replay-safe for in-flight executions and needs patched(), never a

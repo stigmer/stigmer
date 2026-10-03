@@ -1,6 +1,6 @@
 /**
  * The tick workflow — ports pkg/domain/schedule/temporal/tick_workflow.go:
- * one schedule fire, spanning its run (DD-013 via DD-015): record the
+ * one schedule fire, spanning its run: record the
  * fire, start the run, poll it to a terminal phase, record the verdict.
  * Spanning is what makes the artifact's overlap SKIP genuinely mean "never
  * start a run while the last is active", and the verdict is what feeds the
@@ -9,7 +9,7 @@
  * WHY A TIMER-DRIVEN POLL AND NOT THE CALLBACK TOKEN — read before
  * "fixing" this. The platform already uses async activity completion for
  * call:agent, so the token is the tempting shape here too. It loses on
- * grounds that are edition-neutral (DD-015 D-E): the token cannot be
+ * grounds that are edition-neutral: the token cannot be
  * re-armed after a create-then-crash, and its completion fire is
  * best-effort — two silent-hang modes on a surface where a hang is a
  * silenced reminder. The poll holds no worker thread (the workflow is
@@ -20,11 +20,11 @@
  * FORWARD CONSTRAINT: ticks live for minutes-to-an-hour once tracking is
  * real, and OSS releases cut every 1-3 days — an in-flight tick WILL
  * straddle a binary upgrade. Any behavioral change to this workflow body
- * must be gated with patched()/deprecatePatch() (OD-6 discipline), and the
+ * must be gated with patched()/deprecatePatch(), and the
  * replay gate (__tests__/replay.test.ts) must stay green against the
  * committed histories.
  *
- * ERROR POSTURE (the #18 panel lesson, applied from day one): Go's
+ * ERROR POSTURE: Go's
  * `return err` fails the WORKFLOW EXECUTION; a plain thrown Error in the
  * TS sandbox fails only the workflow TASK and retries forever. Every Go
  * error return is therefore an ApplicationFailure here. Cancellation

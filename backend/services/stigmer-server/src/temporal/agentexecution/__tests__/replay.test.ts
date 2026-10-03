@@ -1,11 +1,11 @@
 /**
- * Replay determinism gate — the OD-6 go-forward discipline (D2 §4):
+ * Replay determinism gate — the go-forward discipline:
  * committed histories from released workflow code must replay green on
  * the CURRENT code. A red run here means a change to the workflow's
  * logic is NOT replay-safe for in-flight executions: gate it with
  * patched()/deprecatePatch(), never regenerate the histories (regenerate
  * only when no producing release is still supported — the schedule
- * domain's rule, adopted at #18).
+ * domain's rule).
  *
  * Fully local: replay needs no Temporal server, so this gate runs in the
  * plain vitest suite (and the ci.stigmer-server workflow) on every
@@ -31,8 +31,8 @@ const historyFiles = readdirSync(HISTORY_DIR).filter((name) =>
 
 describe("invoke-agent-execution replay determinism", () => {
   it("has committed histories to replay (the gate cannot be empty)", () => {
-    // 3 from #18 (happy, HITL, pause/resume) + the parented HITL history
-    // that pins the #23 child_approval_required sender + the runner-failed
+    // 3 originals (happy, HITL, pause/resume) + the parented HITL history
+    // that pins the child_approval_required sender + the runner-failed
     // and user-cancel histories captured before stigmer#980 changed the
     // payloads (never the command sequence) of those two paths.
     expect(historyFiles.length).toBeGreaterThanOrEqual(6);

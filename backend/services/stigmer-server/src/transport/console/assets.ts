@@ -9,8 +9,8 @@
  * unit-test posture — the lane is wire-invisible when assets are absent).
  *
  * The export is indexed ONCE at composition: it is immutable for the
- * server's lifetime (it shipped inside the same artifact — DD-012's
- * no-skew property), so a boot-time scan buys O(1) resolution, an exact
+ * server's lifetime (it shipped inside the same artifact, so the two
+ * never skew), so a boot-time scan buys O(1) resolution, an exact
  * availability answer, and a pure resolver.
  */
 import { readdirSync, statSync } from "node:fs";

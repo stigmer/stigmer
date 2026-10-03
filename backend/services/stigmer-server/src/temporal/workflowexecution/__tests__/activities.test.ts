@@ -1,7 +1,7 @@
 /**
  * Pins the worker's UpdateWorkflowExecutionStatus activity against Go's
  * update_status_impl.go — the ACTIVITY merge, deliberately distinct from
- * the RPC's applyUpdateStatusMerge (sub-project DD-001 brief):
+ * the RPC's applyUpdateStatusMerge:
  *
  *   - the statusAudit bump is UNCONDITIONAL (the RPC bumps only on phase
  *     transitions) — the pin that would catch a "consolidate the merges"
@@ -295,7 +295,7 @@ describe("DeleteExecutionContext activity (real store)", () => {
       }),
     );
     // The edge as a recording fake that removes the row the way the delete
-    // chain does (the chain itself: extension-composition.test.ts's C2 arm).
+    // chain does (the chain itself: extension-composition.test.ts).
     const deleted: string[] = [];
     const activities = createWorkflowExecutionActivities({
       store,

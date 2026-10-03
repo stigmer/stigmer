@@ -1,10 +1,8 @@
 /**
- * The Kubernetes sandbox driver — DD-002's third isolation tier, the
- * cloud edition's production provisioner GENERALIZED (stigmer-cloud
- * KubernetesSandboxProvisioner.java + SandboxManifestFactory.java, built
- * by O6 20260827.05; mechanism per the mid-session owner ruling:
- * @kubernetes/client-node, the official client — this driver is the one
- * the cloud composition will eventually run in production, C4).
+ * The Kubernetes sandbox driver — the isolation ladder's third tier, the
+ * cloud edition's production provisioner GENERALIZED (its Java
+ * KubernetesSandboxProvisioner and SandboxManifestFactory; mechanism:
+ * @kubernetes/client-node, the official client).
  *
  * Each sandbox = a per-sandbox Secret (STIGMER_TOKEN, plus the Temporal
  * connection settings when the server's Temporal is authenticated) + a single-replica
@@ -18,14 +16,14 @@
  * archive/restore ladder and pool claim): Deployment absent → apply
  * Secret + PVC + Deployment (the repair arm — a surviving PVC is reused
  * by name); replicas 0 → scale to 1; replicas ≥ 1 → fast path. State is
- * the cluster's, never a store table (gate ruling Q4). NO readiness
- * probes and no post-apply wait, deliberately (gate ruling Q5): the boot
+ * the cluster's, never a store table. NO readiness probes and no
+ * post-apply wait, deliberately: the boot
  * window is covered by Temporal's ScheduleToStartTimeout, and the ensure
  * step's error pre-stamp names provisioning failures.
  *
- * Stale-token posture (gate ruling Q6): OSS tokens are per-execution
+ * Stale-token posture: OSS tokens are per-execution
  * re-mints — a running sandbox keeps the Secret it booted with (the
- * cloud's defer-restart discipline, cloud#485: never SIGTERM the
+ * cloud's defer-restart discipline: never SIGTERM the
  * triggering turn); the repair and provision arms always write the
  * freshest token.
  *

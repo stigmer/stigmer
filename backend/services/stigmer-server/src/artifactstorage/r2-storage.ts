@@ -1,8 +1,6 @@
 /**
  * R2 artifact storage — ports pkg/domain/artifact/storage/r2_storage.go:
- * the Cloudflare R2 (S3-compatible) backend, filling the factory arm #17
- * deferred to this sub-project (owner-ratified, approved at the #13 plan
- * gate together with the @aws-sdk dependency).
+ * the Cloudflare R2 (S3-compatible) backend, over the @aws-sdk client.
  *
  * Not conformance-assertable on the local targets (same as Go — the Go
  * tree carries no R2 tests at all); the port adds unit pins for the pieces
@@ -52,9 +50,9 @@ export interface R2Clients {
 }
 
 /**
- * The exported R2 driver constructor (C1 seam, 20260827.04): a composition
+ * The exported R2 driver constructor: a composition
  * registers R2-backed drivers with ITS OWN config — the cloud's verified
- * shape is distinct buckets/credentials per domain (blueprint §6b) — while
+ * shape is distinct buckets/credentials per domain — while
  * the S3 plumbing, presign clamp, and not-found mapping live exactly once
  * here. Loud-fail: the required-config throws below fire at driver
  * construction, which the registered lazy factory defers to first use of
@@ -130,7 +128,7 @@ export class R2ArtifactStorage implements ArtifactStorage {
       }
       body = await result.Body.transformToByteArray();
     } catch (error) {
-      // The typed not-found arm (O5): consumers mapping "missing" onto
+      // The typed not-found arm: consumers mapping "missing" onto
       // domain vocabulary branch on the class; every other failure stays
       // the wrapped infrastructure fault it always was. Only the log-line
       // text of the missing-object arm changes — every production caller

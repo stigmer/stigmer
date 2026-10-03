@@ -14,7 +14,7 @@
  *     resolves to the callback document;
  *   - the guard: RPC (POST and service-shaped GET), /v1/* paths, and
  *     OPTIONS preflights flow exactly as they do WITHOUT the lane — the
- *     wire-invisibility half of the P3 acceptance;
+ *     lane's wire invisibility;
  *   - both protocol stacks serve the lane (the demux routes browsers to
  *     HTTP/1.1, but HTTP/2 clients share the same lane router);
  *   - asset discovery models "not bundled" as absence, not an error.

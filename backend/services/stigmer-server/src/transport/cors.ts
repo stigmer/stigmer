@@ -18,7 +18,7 @@
  * ANY path, registered or not (server.go:777-784, the silent-preflight-404
  * fix).
  *
- * One ratified extension (D2 delta 2): Go only classifies a preflight as
+ * One deliberate extension: Go only classifies a preflight as
  * gRPC-Web CORS when the requested headers include `x-grpc-web`
  * (grpcweb/wrapper.go IsAcceptableGrpcCorsRequest). The Connect protocol's
  * browser preflights carry `content-type` but not `x-grpc-web`, so under

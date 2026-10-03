@@ -1,14 +1,14 @@
 /**
  * FTS5 query rendering and score normalization — the sqlite driver's
  * engine-specific half of the search read contract. The Store interface
- * carries engine-neutral terms and wire-ready scores (DD-009: engine
- * syntax lives inside each driver; sub-project DD-001: each driver
- * normalizes its own engine's ranking); this module renders FTS5's.
+ * carries engine-neutral terms and wire-ready scores (engine syntax lives
+ * inside each driver, and each driver normalizes its own engine's
+ * ranking); this module renders FTS5's.
  *
  * Ports the retired Go server's EscapeFTS5Query and NormalizeScore
  * (pkg/query/search/store/sqlite_search_query_store.go, git history),
- * which the D4 #14 port first placed in the search service — the Phase-2
- * seam redraw moved them here so the interface could stay engine-neutral.
+ * which the first port placed in the search service — a later seam
+ * redraw moved them here so the interface could stay engine-neutral.
  * The rendering and normalization bytes are unchanged by that move.
  *
  * Proven by __tests__/fts5.test.ts (Go's escaping and normalization

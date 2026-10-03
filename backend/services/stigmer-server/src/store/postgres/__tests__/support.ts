@@ -1,9 +1,9 @@
 /**
  * Postgres test-database provisioning. The driver's DB-backed tests need a
- * real Postgres (DD-011 rejected emulators for anything gate-adjacent);
+ * real Postgres (an emulator is never trusted for anything gate-adjacent);
  * they are gated on TEST_DATABASE_URL — an ADMIN connection URL (CI: the
  * service container; local: `make postgres-dev`). Unset → the suites show
- * as VISIBLE skips (never vacuous passes — the Phase-1 #18 lesson);
+ * as VISIBLE skips (never vacuous passes);
  * ci.stigmer-server provides the service container so CI always runs them.
  *
  * Each caller gets its own throwaway database (unique name, dropped with

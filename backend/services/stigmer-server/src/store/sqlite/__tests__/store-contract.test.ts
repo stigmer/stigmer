@@ -1,8 +1,8 @@
 /**
  * Runs the driver-agnostic Store contract suite (../../__tests__/
  * store-contract.ts) against the sqlite driver — the extraction target of
- * the Phase-1 store.test.ts/substores.test.ts interface-shaped cases (T01
- * D-4). sqlite-physical pins stay in store.test.ts; the engine-specific
+ * the original store.test.ts/substores.test.ts interface-shaped cases.
+ * sqlite-physical pins stay in store.test.ts; the engine-specific
  * search half stays in fts5.test.ts. The escape hatches ride a second
  * connection: the store's own is busy being the subject.
  */

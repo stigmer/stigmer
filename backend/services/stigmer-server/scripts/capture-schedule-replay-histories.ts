@@ -1,6 +1,6 @@
 /**
  * Captures schedule/tick workflow histories for the replay determinism
- * gate — the OD-6 go-forward discipline the schedule domain itself
+ * gate — the go-forward discipline the schedule domain itself
  * originated (Go tick_history_capture_test.go): any change to the tick's
  * logic must replay committed histories green, or be gated with patched().
  * Histories are REGENERATED only when no producing release is still

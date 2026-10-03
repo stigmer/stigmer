@@ -2,12 +2,12 @@
  * Pins the sqlite driver's PHYSICAL contracts — the parts a Go-era
  * database on disk depends on and the contract suite deliberately cannot
  * express: the resources column layout (kind = the proto enum name,
- * updated_at stamped), and the SP-C FTS5 probe (bm25 weights, porter
+ * updated_at stamped), and the FTS5 probe (bm25 weights, porter
  * stemming, DELETE+INSERT upsert), kept permanently so a Node build that
  * drops FTS5 fails CI here, not at a user's laptop.
  *
  * The driver's interface-shaped behavior is pinned by the shared contract
- * suite — see store-contract.test.ts (T01 D-4 extraction).
+ * suite — see store-contract.test.ts.
  */
 import { DatabaseSync } from "node:sqlite";
 
@@ -45,7 +45,7 @@ describe("physical layout", () => {
   });
 });
 
-describe("search index (SP-C, permanent)", () => {
+describe("search index (the permanent FTS5 probe)", () => {
   it("upserts, ranks with Go's bm25 weights, stems with porter, and deletes", async () => {
     await temp.store.upsertSearchIndex(KIND, "acme", {
       name: "Billing Reconciler",
@@ -65,7 +65,7 @@ describe("search index (SP-C, permanent)", () => {
     });
 
     // Read through a second connection — WAL allows concurrent readers,
-    // and the query store (#13) will read exactly this way.
+    // and the search query store reads exactly this way.
     const db = new DatabaseSync(temp.dbPath);
     const ranked = db
       .prepare(
