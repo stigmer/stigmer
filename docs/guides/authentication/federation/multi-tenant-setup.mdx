@@ -587,7 +587,11 @@ carry tenant information.
 
 ## Complete tenant onboarding flow (manual)
 
-Here's the full pattern that runs when a new customer signs up on your platform:
+Here's the full pattern that runs when a new customer signs up on your platform.
+`onboardTenantUser` reuses `provisionUser`, the check-then-create handler from
+[Provision federated accounts](/docs/guides/authentication/federation/provision-federated-accounts#full-provisioning-handler),
+so a user who joins a second tenant keeps their one account and gains a role in
+the new tenant:
 
 {/* vale off */}
 
@@ -599,7 +603,7 @@ flowchart TD
   B --> C["Store Stigmer org ID alongside tenant ID"]
   C --> D["Customer's first user signs up"]
   D --> E["Look up tenant org by external ID"]
-  E --> F["createFederatedAccount (once per user)"]
+  E --> F["Find or create the user's federated account"]
   F --> G["Grant org role via IAM Policy"]
   G --> H["User calls Stigmer API with JWT"]
 `}
@@ -645,17 +649,11 @@ async function onboardTenantUser(
     externalOrgId: tenantExternalId,
   });
 
-  const account = await stigmer.identityAccount.createFederatedAccount({
-    org: idpRef.org,
-    identityProviderRef: idpRef,
-    externalSub: user.oidcSubject,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-  });
+  // One account per user, whichever tenants they join.
+  const accountId = await provisionUser(user);
 
   await stigmer.iamPolicy.create({
-    principal: { kind: "identity_account", id: account.metadata.id },
+    principal: { kind: "identity_account", id: accountId },
     resource: { kind: "organization", id: tenantOrg.metadata.id },
     relation: "viewer",
   });
@@ -703,20 +701,14 @@ func onboardTenantUser(ctx context.Context, client *stigmer.Client, tenantExtern
     return fmt.Errorf("lookup tenant org: %w", err)
   }
 
-  account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
-    Org:                 idpRef.Org,
-    IdentityProviderRef: idpRef,
-    ExternalSub:         user.OIDCSubject,
-    Email:               user.Email,
-    FirstName:           user.FirstName,
-    LastName:            user.LastName,
-  })
+  // One account per user, whichever tenants they join.
+  accountID, err := provisionUser(ctx, client, user)
   if err != nil {
     return fmt.Errorf("provision user: %w", err)
   }
 
   _, err = client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
-    Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: account.Metadata.Id},
+    Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: accountID},
     Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: tenantOrg.Metadata.Id},
     Relation:  "viewer",
   })
@@ -751,17 +743,11 @@ def onboard_tenant_user(client, tenant_external_id: str, user: PlatformUser) -> 
         external_org_id=tenant_external_id,
     ))
 
-    account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
-        org=idp_ref.org,
-        identity_provider_ref=idp_ref,
-        external_sub=user.oidc_subject,
-        email=user.email,
-        first_name=user.first_name,
-        last_name=user.last_name,
-    ))
+    # One account per user, whichever tenants they join.
+    account_id = provision_user(client, user)
 
     client.iam_policies.create(IamPolicySpec(
-        principal=ApiResourceRefInput(kind="identity_account", id=account.metadata.id),
+        principal=ApiResourceRefInput(kind="identity_account", id=account_id),
         resource=ApiResourceRefInput(kind="organization", id=tenant_org.metadata.id),
         relation="viewer",
     ))
@@ -796,17 +782,11 @@ public void onboardTenantUser(StigmerClient client, String tenantExternalId, Pla
         .externalOrgId(tenantExternalId)
         .build());
 
-    IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
-        .org(idpRef.getOrg())
-        .identityProviderRef(idpRef)
-        .externalSub(user.getOidcSubject())
-        .email(user.getEmail())
-        .firstName(user.getFirstName())
-        .lastName(user.getLastName())
-        .build());
+    // One account per user, whichever tenants they join.
+    String accountId = provisionUser(client, user);
 
     client.iamPolicies().create(IamPolicySpec.builder()
-        .principal(ApiResourceRefInput.builder().kind("identity_account").id(account.getMetadata().getId()).build())
+        .principal(ApiResourceRefInput.builder().kind("identity_account").id(accountId).build())
         .resource(ApiResourceRefInput.builder().kind("organization").id(tenantOrg.getMetadata().getId()).build())
         .relation("viewer")
         .build());

@@ -619,9 +619,10 @@ IdentityAccount deprovisioned = client.identityAccounts().deprovisionFederatedAc
   If the Identity Provider has JIT provisioning or SSO enabled, deleting the
   account does not keep the user out: their next sign-in with a valid token
   creates a new account and grants it any role the provider grants
-  automatically. To keep such a user out, revoke only (`deleteAccount: false`).
-  Stigmer grants roles only when it creates an account, so a kept account stays
-  without access.
+  automatically. To keep such a user out of your Organizations, revoke only
+  (`deleteAccount: false`). Stigmer grants roles only when it creates an
+  account, so a kept account can still sign in but holds no role in them. To
+  stop the user signing in at all, stop them at your auth provider.
 </Callout>
 
 ## What's next

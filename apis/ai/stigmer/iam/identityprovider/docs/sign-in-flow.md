@@ -79,16 +79,17 @@ Because Stigmer supports key re-fetching on cache miss, key rotation does not re
 
 ## Multi-Environment Integrations
 
-To support staging and production environments from the same platform, use `allowed_issuers` with multiple values:
+Each environment's auth tenant is its own issuer with its own key set, so register one IdentityProvider per environment. `allowed_issuers` takes several values only when every issuer's discovery document names the same `jwks_uri` (and the same `userinfo_endpoint` when one is set): the save refuses anything else, so an issuer's tokens are verified only with that issuer's own keys. The staging provider beside a production one:
 
 ```yaml validate-as="IdentityProvider"
 spec:
+  jwks_uri: "https://platform-staging.us.auth0.com/.well-known/jwks.json"
   allowed_issuers:
-    - "https://platform-prod.us.auth0.com/"
     - "https://platform-staging.us.auth0.com/"
+  expected_audience: "https://api.platform.example/"
 ```
 
-This allows tokens from either environment to authenticate via the same IdentityProvider registration.
+A user who signs in to both environments has one federated account per provider.
 
 ## Security Considerations
 

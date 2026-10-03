@@ -22,25 +22,24 @@ spec:
   userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
 ```
 
-## Auth0-Based Integration (Multi-Environment)
+## Auth0-Based Integration (Second Environment)
 
-Support tokens from both staging and production Auth0 tenants using the same IdentityProvider.
+A staging Auth0 tenant is its own issuer with its own key set, so it is its own IdentityProvider beside the production one. Stigmer refuses one provider whose issuers' discovery documents name different key sets.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
 kind: IdentityProvider
 metadata:
-  name: Planton (All Environments)
-  slug: planton
+  name: Planton Staging
+  slug: planton-staging
   org: planton
 spec:
-  display_name: "Planton"
-  jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
+  display_name: "Planton (staging)"
+  jwks_uri: "https://planton-staging.us.auth0.com/.well-known/jwks.json"
   allowed_issuers:
-    - "https://planton-prod.us.auth0.com/"
     - "https://planton-staging.us.auth0.com/"
   expected_audience: "https://api.planton.ai/"
-  userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
+  userinfo_endpoint: "https://planton-staging.us.auth0.com/userinfo"
 ```
 
 ## Just-In-Time Provisioning
