@@ -71,7 +71,7 @@
         "kind": "message",
         "messageType": "AgentCallOutputContract"
       },
-      "description": "Structured output contract for this agent call.\n\n When set, the workflow runner extracts structured JSON from the agent's\n final response and validates it against the declared schema. The validated\n JSON is placed in the task output under the \"structured\" key, enabling\n reliable downstream routing via switch_case expressions.\n\n When not set, the task output contains the agent's raw text response.\n\n @since T02 (Structured Agent Output Model)",
+      "description": "Structured output contract for this agent call.\n\n When set, the workflow runner extracts structured JSON from the agent's\n final response and validates it against the declared schema. The validated\n JSON is placed in the task output under the \"structured\" key, enabling\n reliable downstream routing via switch_case expressions.\n\n When not set, the task output contains the agent's raw text response.",
       "required": false
     },
     {

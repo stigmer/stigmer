@@ -8,13 +8,11 @@
  * the interrupt, since the streamed input cache is empty and the interrupt
  * value carries only a few fields). The approval card renders the proposed
  * write/edit content from these args; there is no separate captured
- * `file_changes` (removed in Phase 5 Slice 4 — the args are the single
+ * `file_changes` (removed — the args are the single
  * source, and the Cursor deny-gate's exact-apply reads the same args on
  * resume; see shared/exact-apply.ts). The row's `args_preview` is the
  * builder's to write from these args (since #1097; until then this module
  * rendered it too, a second call of the one sanitizer).
- *
- * @since First-Class Diff Review (#186), approval-gate phase
  */
 
 /** What the gate capture contributes to a `WAITING_APPROVAL` `ToolCall`. */

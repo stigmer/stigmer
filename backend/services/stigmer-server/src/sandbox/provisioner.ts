@@ -1,7 +1,6 @@
 /**
- * The sandbox-provisioner driver seam — convergence program 20260826.02,
- * blueprint/03 §6d and DD-002, built by sub-project 20260827.05 (O6). The
- * contract generalizes the cloud edition's production-proven Java
+ * The sandbox-provisioner driver seam. The contract generalizes the
+ * cloud edition's production-proven Java
  * strategy interface (stigmer-cloud
  * domain/agentic/sandbox/SandboxProvisioner.java) so execution isolation
  * is an OSS capability: a provisioner creates, repairs, and tears down
@@ -27,17 +26,17 @@
  *     one. Without a provisioner, connect keeps the shared queue.
  *
  * The probe is ensure-time LIVE-STATE inspection, never a boot-readiness
- * wait (gate ruling Q5): the verified cloud design has NO readiness
+ * wait: the verified cloud design has NO readiness
  * probes — a sandbox that never polls its queue surfaces as the
  * activity's ScheduleToStartTimeout, with the ensure step's error
  * pre-stamp naming the root cause.
  *
- * Selection follows the artifact-storage precedent (§6b): built-in
+ * Selection follows the artifact-storage precedent: built-in
  * drivers by name behind the SANDBOX_PROVISIONER_TYPE config knob,
  * extension-registered names beyond them (extensions/drivers.ts), an
  * unknown name a loud boot throw. The DEFAULT ("") is the external-runner
  * posture — no provisioner constructed, ensure never invoked — which IS
- * today's OSS behavior, named (gate ruling Q1): an operator-managed
+ * today's OSS behavior, named: an operator-managed
  * runner process polls the queues.
  */
 import type { Logger } from "../boot/logger.js";
@@ -75,7 +74,7 @@ export interface SandboxEnvironment {
   readonly callerClass: CallerClass;
 }
 
-/** One sandbox's observed live state (the Q5 probe result). */
+/** One sandbox's observed live state (the live-state probe's result). */
 export type SandboxProbeState = "absent" | "stopped" | "running";
 
 /** The scope discriminant, shared by probe and the drivers' naming. */
@@ -84,7 +83,7 @@ export type SandboxScope = "session" | "workflow" | "connect";
 /**
  * The driver contract. Implementations must be safe for concurrent use —
  * ensure calls for the same id may race (the cloud accepts check-then-act
- * overshoot, DD-002) and every arm must be idempotent except connect
+ * overshoot) and every arm must be idempotent except connect
  * creation, which is documented one-shot.
  */
 export interface SandboxProvisioner {
@@ -120,7 +119,7 @@ export interface SandboxProvisioner {
   ): Promise<string>;
   /** Tears down a connect sandbox by provider id; missing is success. */
   deprovisionConnectSandbox(sandboxId: string): Promise<void>;
-  /** Live-state inspection (Q5) — consumed by ensure arms and diagnostics. */
+  /** Live-state inspection — consumed by ensure arms and diagnostics. */
   probe(scope: SandboxScope, id: string): Promise<SandboxProbeState>;
   /**
    * Optional: work a driver runs in the background for as long as the
@@ -248,7 +247,7 @@ export const SANDBOX_DRIVER_OWNED_RUNNER_ENV: readonly string[] = [
   "STIGMER_SANDBOX_NAME_FILE",
 ];
 
-/** Constructs a driver. Factories, not instances — an unselected driver constructs nothing (§6b). */
+/** Constructs a driver. Factories, not instances — an unselected driver constructs nothing. */
 export type SandboxProvisionerFactory = (options: {
   readonly config: SandboxDriverConfig;
   readonly logger: Logger;
@@ -257,7 +256,7 @@ export type SandboxProvisionerFactory = (options: {
 /**
  * The built-in driver names — reserved: an extension registering one of
  * these is a boot throw (the registry's shadow rule, extensions/
- * registry.ts). DD-002's isolation ladder: process → Docker → Kubernetes,
+ * registry.ts). The isolation ladder: process → Docker → Kubernetes,
  * then Agent Substrate (gVisor actors that sleep and wake with their
  * files, sandbox/substrate/).
  */

@@ -219,8 +219,6 @@ func (x *GitProvenance) GetSubdir() string {
 // Returns all historical versions ordered by applied_at (newest first).
 // Used by the Console, SDK, and CLI to render version timelines and
 // enable version comparison.
-//
-// @since Workflow Versioning
 type ListWorkflowVersionsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization that owns the workflow.
@@ -296,8 +294,6 @@ func (x *ListWorkflowVersionsInput) GetPageSize() int32 {
 }
 
 // ListWorkflowVersionsResponse contains a page of workflow version history.
-//
-// @since Workflow Versioning
 type ListWorkflowVersionsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Ordered list of versions (newest first).
@@ -365,8 +361,6 @@ func (x *ListWorkflowVersionsResponse) GetTotalCount() int32 {
 //
 // Used by the runner (to hydrate execution from a pinned version) and the
 // execution viewer (to render the graph for historical executions).
-//
-// @since Workflow Versioning
 type GetWorkflowVersionInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the workflow resource.
@@ -426,8 +420,6 @@ func (x *GetWorkflowVersionInput) GetVersionHash() string {
 // Tags are mutable pointers — calling tagVersion with an existing tag name
 // moves it from the previous version to the specified version. A version can
 // have at most one tag (set at apply time or via this RPC).
-//
-// @since Workflow Versioning
 type TagWorkflowVersionInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the workflow resource.

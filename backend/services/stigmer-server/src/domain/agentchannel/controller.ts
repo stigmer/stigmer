@@ -4,18 +4,18 @@
  * connection binding an agent to an external messaging-platform workspace
  * (Slack/WhatsApp). Workspace identity and credentials are produced by
  * the provider install flow and live in STATUS — a declarative apply can
- * never clobber them. Unlike shares (decision 013), channels have NO
+ * never clobber them. Unlike shares, channels have NO
  * cross-org arm: the channel's org is the billing org and the credentials
- * org, and both must be the referenced agent's (decision 004).
+ * org, and both must be the referenced agent's.
  *
- * Install posture (OSS, T02 §0-b — a deliberate, developer-approved
- * divergence): initiateInstall and completeInstall validate, LOAD the
+ * Install posture (OSS, a deliberate divergence): initiateInstall and
+ * completeInstall validate, LOAD the
  * channel (byte-identical NOT_FOUND with cloud's LoadChannel step), then
  * refuse FailedPrecondition — this edition has no webhook receiver and no
  * delivery runtime, so an installed channel could never serve traffic.
  * Nothing is persisted on that path. A composition WITH a delivery
- * runtime registers a ChannelRuntime driver (channel-runtime.ts, C3
- * ruling Q1) and the final refuse line becomes a delegation instead —
+ * runtime registers a ChannelRuntime driver (channel-runtime.ts) and the
+ * final refuse line becomes a delegation instead —
  * everything before it is posture-independent. The messaging/conversation
  * runtime surfaces live in message.ts / conversation.ts (Go's file seams).
  *
@@ -124,19 +124,19 @@ import {
 export interface AgentChannelControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly modelRegistry: ModelCatalogProvider;
   /**
    * The composed channel delivery runtime, or undefined on the storing
-   * edition (channel-runtime.ts — DD-004's serving seam, C3 ruling Q1).
+   * edition (channel-runtime.ts, the serving seam).
    * Explicitly `| undefined` rather than optional: every construction
    * site states which posture it composes.
    */
   readonly channelRuntime: ChannelRuntime | undefined;
-  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan (20260830.01). */
+  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 
@@ -231,7 +231,7 @@ async function createChannel(
  * Update — chain per Go buildUpdatePipeline. The spec is replaced
  * wholesale; status is preserved verbatim, which keeps the install facts
  * and credentials reference immune to declarative clobber (the install
- * flow is their sole writer — decision 004).
+ * flow is their sole writer).
  */
 async function update(
   deps: AgentChannelControllerDeps,
@@ -333,8 +333,8 @@ async function apply(
 // interceptor chain validates every request, matching Go's explicit
 // SharedValidator call); the channel is loaded FIRST so the NOT_FOUND
 // contract is identical to cloud's LoadChannel step in BOTH postures, and
-// only the final step splits: refuse-or-delegate (channel-runtime.ts, C3
-// ruling Q1). With no runtime composed nothing is persisted; a composed
+// only the final step splits: refuse-or-delegate (channel-runtime.ts).
+// With no runtime composed nothing is persisted; a composed
 // runtime owns the install flow end to end.
 // ---------------------------------------------------------------------------
 
@@ -344,12 +344,10 @@ async function initiateInstall(
   ctx: HandlerContext,
 ): Promise<InitiateChannelInstallOutput> {
   const channel = await loadChannelForInstall(deps, ctx, input.resourceId);
-  // can_edit AFTER the load (the Java LoadChannel-then-authorize order,
-  // #224 discipline): a missing id answers NOT_FOUND for everyone; only
-  // an existing channel can produce the annotation's denial. Enforced at
-  // the OSS lane so every composed runtime receives a pre-authorized
-  // caller (C2 close-out — the interim stub the coverage doc recorded as
-  // owing this arm shipped without it on both sides).
+  // can_edit AFTER the load (#224 discipline): a missing id answers
+  // NOT_FOUND for everyone; only an existing channel can produce the
+  // annotation's denial. Enforced at the OSS lane so every composed
+  // runtime receives a pre-authorized caller.
   await authorizeDirect(
     AgentChannelCommandController.method.initiateInstall,
     deps.authorizer,
@@ -424,10 +422,11 @@ async function loadChannelForInstall(
  * Delete — the connection's full teardown; disabling (update with
  * enabled=false) is the config-preserving pause. On the storing edition
  * there is no teardown cascade — none of that state can exist because the
- * install flow never runs (§0-b). A composed runtime splices its cascade
+ * install flow never runs (the install lane refuses). A composed runtime
+ * splices its cascade
  * (TeardownChannelRuntime — credentials environment, OAuth grant, pending
  * deliveries) between the load and the row delete, so dependent runtime
- * state dies before the row (the cloud#425 ordering family).
+ * state dies before the row.
  */
 async function deleteChannel(
   deps: AgentChannelControllerDeps,
@@ -628,10 +627,9 @@ function newLoadChannelsByAgentStep(
           continue;
         }
       }
-      // 20260830.01 census lane 19: the org/agent filters are contract
-      // parity in both editions and run FIRST; the scope narrows the
-      // agent's channels last (the scope is the last per-row predicate,
-      // stigmer-cloud 20260913.04 T02).
+      // The org/agent filters are contract parity in both editions and run
+      // FIRST; the scope narrows the agent's channels last (the scope is
+      // the last per-row predicate).
       const channels = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
@@ -728,10 +726,9 @@ function newListByOrgAndLabelsStep(
           continue;
         }
       }
-      // 20260830.01 census lane 18: the org and label filters serve the
-      // Java handler's arms in both editions and run FIRST; the scope
+      // The org and label filters run FIRST, in both editions; the scope
       // narrows the org's rows last (the scope is the last per-row
-      // predicate, stigmer-cloud 20260913.04 T02).
+      // predicate).
       const channels = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,

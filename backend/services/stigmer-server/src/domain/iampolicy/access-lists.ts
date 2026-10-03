@@ -1,5 +1,5 @@
 /**
- * Access-list machinery (20260913.01 slice 5): the row-driven answer to
+ * Access-list machinery: the row-driven answer to
  * "who has access, with which roles" behind `listResourceAccessByPrincipal`
  * — the Java ResourceHierarchyResolver and PrincipalEnricher ports, moved
  * as-is from the cloud's iam/policy/access-lists.ts so every edition

@@ -26,8 +26,6 @@ export const file_ai_stigmer_agentic_agentexecution_v1_writeback: GenFile = /*@_
  * error message, and processing continues to the next workspace entry.
  * One failed write-back does not block others.
  *
- * @since Platform-Owned Git Write-Back
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
  */
 export type WorkspaceWriteBack = Message<"ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack"> & {

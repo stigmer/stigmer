@@ -8,8 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * PendingApprovalsList contains one page of pending approvals.
- *
- * &#64;since T14 (Dashboard Integration)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList}
@@ -374,8 +372,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * PendingApprovalsList contains one page of pending approvals.
-   *
-   * &#64;since T14 (Dashboard Integration)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList}

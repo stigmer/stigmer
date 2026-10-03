@@ -1,5 +1,5 @@
 /**
- * DD-W01 Spike: Verify jq-wasm works for expression evaluation.
+ * Spike: verify jq-wasm works for expression evaluation.
  *
  * Finding: jq-wasm's Emscripten loader uses require("fs"), require("path"),
  * and require("crypto") — all blocked by the Temporal workflow sandbox.

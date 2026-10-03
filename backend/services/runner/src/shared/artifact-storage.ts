@@ -58,7 +58,7 @@ export interface ArtifactStorage {
 
 /**
  * "none" is the explicit no-store posture: capture degrades to the deny-gate
- * (file writes gated pre-execution, DD-22/DD-26) and offload is disabled —
+ * (file writes gated pre-execution) and offload is disabled —
  * the same first-class absent-store state a proxy misconfig or unwritable
  * local path resolves to, but chosen deliberately (ARTIFACT_STORAGE_TYPE=none)
  * instead of reached by failure. The e2e file-gate stack boots with it, and
@@ -466,11 +466,11 @@ async function isLocalPathWritable(basePath: string): Promise<boolean> {
  * would add a round-trip to every cloud setup and risk falsely degrading on a
  * transient blip; construction already validates its config.
  *
- * An absent store is a first-class, already-supported state (DD-26): capture
+ * An absent store is a first-class, already-supported state: capture
  * degrades to the deny-gate (via {@link deriveCaptureMode}'s `hasArtifactStorage`
  * argument), tool-output offload is disabled (the aggregate size guard still
  * applies), and attachment / plan-artifact publishing surface a clear error.
- * This is the fail-safe realization of DD-26 follow-up #1.
+ * This is the fail-safe: without a store, nothing secret can be persisted.
  *
  * NOTE: this resolver is for the capture/offload path only. Claimcheck (Temporal
  * payload offload) MUST have storage and has no deny-gate to fall back to, so it

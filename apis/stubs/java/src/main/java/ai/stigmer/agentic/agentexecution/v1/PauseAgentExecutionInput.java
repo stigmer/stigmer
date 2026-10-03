@@ -47,8 +47,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * "id": "aex_abc123xyz456",
  * "reason": "Pausing to review progress before continuing"
  * }
- *
- * &#64;since Agent Execution Lifecycle
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput}
@@ -431,8 +429,6 @@ private static final long serialVersionUID = 0L;
    * "id": "aex_abc123xyz456",
    * "reason": "Pausing to review progress before continuing"
    * }
-   *
-   * &#64;since Agent Execution Lifecycle
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput}

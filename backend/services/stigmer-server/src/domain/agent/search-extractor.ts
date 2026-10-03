@@ -1,6 +1,6 @@
 /**
  * Agent search extractor — ports pkg/query/search/extractor/
- * agent_extractor.go (both sides: the #4 index side, the #14 query side).
+ * agent_extractor.go (both sides: the index side, the query side).
  * The search summary uses spec.description if available, falling back to
  * instructions (the system prompt) — the common pattern where older agents
  * may not have a dedicated description field, but all agents have

@@ -1,7 +1,8 @@
 /**
  * Test stub for the connected execution engine: every operation resolves
  * as a no-op unless overridden, so a test asserts exactly the seam calls
- * it cares about (#18 provides the real implementation).
+ * it cares about (temporal/agentexecution/engine-client.ts is the real
+ * implementation).
  */
 import type { ConnectedExecutionEngine } from "../engine.js";
 

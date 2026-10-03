@@ -1,8 +1,8 @@
 /**
- * Pins the C2 Stage-4 enforcement END TO END for the direct handlers whose
+ * Pins the direct-handler authorization END TO END for the handlers whose
  * domain suites run through full composed servers (session updateSubject,
  * workflow getVersion, artifact delete/getDownloadUrl/getContent, and the
- * channel install pair added at the C2 close-out): one
+ * channel install pair): one
  * composed server with a DENYING extension Authorizer, probed over the
  * wire. This proves the whole path — transport → registered handler →
  * authorizeDirect → the composed Authorizer — not just the handler
@@ -119,7 +119,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
         metadata: { id: "ach_01authztarget", name: "target", org: "acme" },
       }),
     );
-    // The Q8 mid-chain-check targets (20260830.01): the two listVersions
+    // The mid-chain-check targets: the two listVersions
     // lanes resolve by org+slug before their can_view checks.
     await server.store.saveResource(
       ApiResourceKind.workflow,
@@ -191,7 +191,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     );
   });
 
-  it("workflow getVersion denies with its annotation copy (the ruled Java-gap divergence)", async () => {
+  it("workflow getVersion denies with its annotation copy (a deliberate divergence from Java)", async () => {
     const query = createClient(WorkflowQueryController, transport);
     await expectDenied(
       () =>
@@ -231,7 +231,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     );
   });
 
-  it("channel initiateInstall and completeInstall deny with their annotation copy (C2 close-out — the arm both sides deferred)", async () => {
+  it("channel initiateInstall and completeInstall deny with their annotation copy", async () => {
     const command = createClient(AgentChannelCommandController, transport);
     // PermissionDenied — NOT the storing edition's FailedPrecondition —
     // proves the authorization runs before the refuse-or-delegate split.
@@ -251,7 +251,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
   });
 
 
-  it("session listByChannel denies at the channel gate with the Java handler's copy (Q8, 20260830.01)", async () => {
+  it("session listByChannel denies at the channel gate with the Java handler's copy", async () => {
     const query = createClient(SessionQueryController, transport);
     await expectDenied(
       () => query.listByChannel({ channelId: "ach_01authztarget" }),
@@ -259,7 +259,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     );
   });
 
-  it("artifact listByExecution denies on the PARENT execution with the Java handler's copy (Q8)", async () => {
+  it("artifact listByExecution denies on the PARENT execution with the Java handler's copy", async () => {
     const query = createClient(ArtifactQueryController, transport);
     await expectDenied(
       () => query.listByExecution({ workflowExecutionId: "wfe_01any" }),
@@ -271,7 +271,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     );
   });
 
-  it("workflow listVersions denies on the RESOLVED workflow with the Java handler's copy (Q8)", async () => {
+  it("workflow listVersions denies on the RESOLVED workflow with the Java handler's copy", async () => {
     const query = createClient(WorkflowQueryController, transport);
     await expectDenied(
       () => query.listVersions({ slug: "authz-target", org: "acme" }),
@@ -287,7 +287,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     expect((error as ConnectError).code).toBe(Code.NotFound);
   });
 
-  it("skill listVersions denies on the RESOLVED skill with the Java handler's copy (Q8)", async () => {
+  it("skill listVersions denies on the RESOLVED skill with the Java handler's copy", async () => {
     const query = createClient(SkillQueryController, transport);
     await expectDenied(
       () => query.listVersions({ slug: "authz-target", org: "acme" }),

@@ -113,7 +113,7 @@ service AgentExecutionCommandController {
   //
   // Records a FILE_DECIDED event in the append-only file_review stream;
   // FileChangeSet.decisions is the derived projection. The runner reconciles
-  // the approved bytes (Phase 2) — this RPC records the decision and enforces
+  // the approved bytes — this RPC records the decision and enforces
   // that expected_digest still matches the captured content the user reviewed.
   //
   // ## Preconditions
@@ -192,8 +192,6 @@ service AgentExecutionCommandController {
   // - PERMISSION_DENIED: User lacks can_edit permission on the execution
   // - FAILED_PRECONDITION: Execution is in a terminal phase
   // - INVALID_ARGUMENT: ID is empty or malformed
-  //
-  // @since Agent Execution Lifecycle
   rpc cancel(CancelAgentExecutionInput) returns (AgentExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -248,8 +246,6 @@ service AgentExecutionCommandController {
   // - PERMISSION_DENIED: User lacks can_edit permission on the execution
   // - FAILED_PRECONDITION: Execution is in a terminal phase
   // - INVALID_ARGUMENT: ID is empty or malformed
-  //
-  // @since Agent Execution Lifecycle
   rpc terminate(TerminateAgentExecutionInput) returns (AgentExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -302,8 +298,6 @@ service AgentExecutionCommandController {
   // - PERMISSION_DENIED: User lacks can_edit permission
   // - FAILED_PRECONDITION: Execution is not in FAILED phase
   // - INVALID_ARGUMENT: ID is empty or malformed
-  //
-  // @since Agent Execution Lifecycle
   rpc recover(RecoverAgentExecutionInput) returns (AgentExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -357,8 +351,6 @@ service AgentExecutionCommandController {
   // - PERMISSION_DENIED: User lacks can_edit permission
   // - FAILED_PRECONDITION: Execution is in a terminal phase
   // - INVALID_ARGUMENT: ID is empty or malformed
-  //
-  // @since Agent Execution Lifecycle
   rpc pause(PauseAgentExecutionInput) returns (AgentExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -404,8 +396,6 @@ service AgentExecutionCommandController {
   // - PERMISSION_DENIED: User lacks can_edit permission
   // - FAILED_PRECONDITION: Execution is not in PAUSED phase
   // - INVALID_ARGUMENT: ID is empty or malformed
-  //
-  // @since Agent Execution Lifecycle
   rpc resume(ResumeAgentExecutionInput) returns (AgentExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -452,8 +442,6 @@ service AgentExecutionCommandController {
   // 2. Server uploads to storage, returns storage_key
   // 3. Client creates AgentExecution with Attachment using storage_key
   // 4. The runner downloads attachment content when execution starts
-  //
-  // @since Artifact Lifecycle (Attachments & Artifacts)
   rpc uploadAttachment(UploadAttachmentRequest) returns (UploadAttachmentResponse) {
     // No authorization - storage_key acts as capability token
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;

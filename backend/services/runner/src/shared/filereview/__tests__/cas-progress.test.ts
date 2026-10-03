@@ -1,5 +1,5 @@
 /**
- * Unit tests for the CAS mid-run progress substrate (DD-33) — the non-git /
+ * Unit tests for the CAS mid-run progress substrate — the non-git /
  * gitignored half of the "N files changed so far" strip.
  *
  * The substrate reads a {@link CasTouchedSnapshot} (the same before-map the

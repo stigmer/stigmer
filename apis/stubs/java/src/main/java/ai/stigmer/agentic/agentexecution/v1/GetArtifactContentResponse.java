@@ -12,8 +12,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * The content field contains the artifact bytes (up to max_bytes). For text
  * artifacts, clients decode via TextDecoder or equivalent. The content_type
  * field provides a hint for rendering (detected by file extension).
- *
- * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse}
@@ -371,8 +369,6 @@ private static final long serialVersionUID = 0L;
    * The content field contains the artifact bytes (up to max_bytes). For text
    * artifacts, clients decode via TextDecoder or equivalent. The content_type
    * field provides a hint for rendering (detected by file extension).
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse}

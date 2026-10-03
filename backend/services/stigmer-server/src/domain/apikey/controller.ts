@@ -1,19 +1,16 @@
 /**
- * ApiKey controller (O3, 20260827.06) — the shared apikey contract served
- * by OSS for the first time (DD-003 owner ruling: issuance + verification
- * wholly OSS; the cloud Java domain retires against this module). Unlike
- * the ported Class-A domains there is no Go provenance: the behavioral
- * reference is the cloud Java handler family
- * (domain/iam/apikey/request/handler/*), inventoried verbatim in the
- * sub-project's T01 records.
+ * ApiKey controller — the shared apikey contract: issuance and
+ * verification live wholly in open source, and every edition serves this
+ * module. Unlike the ported Class-A domains there is no Go provenance:
+ * the behavioral reference is the retired Java handler family
+ * (domain/iam/apikey/request/handler/*).
  *
  * Chains mirror the Java pipelines with two deliberate differences:
- *   - PreserveKeyMaterial on update (ruling Q9 — the Java handler
- *     documents hash/fingerprint immutability but does not enforce it;
- *     see steps.ts for the security rationale).
- *   - findAll returns every key (the permissive single-team posture,
- *     ruling Q5) where the cloud filters through FGA can_view; for a
- *     caller who owns the org's keys the results converge.
+ *   - PreserveKeyMaterial on update (the Java handler documented
+ *     hash/fingerprint immutability but did not enforce it; see steps.ts
+ *     for why it matters).
+ *   - findAll returns every key under the scope-less single-team posture;
+ *     a composed ListReadScope narrows it to the caller's can_view keys.
  *
  * Kind mechanics per kind_meta: id prefix `key`, is_versioned false (no
  * version surface), not_search_indexed true (no IndexSearch steps).
@@ -86,11 +83,11 @@ import {
 export interface ApiKeyControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed list read scope — findAll narrows through it; undefined = every stored key (20260830.01). */
+  /** The composed list read scope — findAll narrows through it; undefined = every stored key. */
   readonly listReadScope: ListReadScope | undefined;
 }
 
@@ -156,8 +153,8 @@ async function createApiKey(
 }
 
 /**
- * Update — the canonical update chain plus PreserveKeyMaterial (ruling
- * Q9): expiry fields are the only client-mutable spec surface.
+ * Update — the canonical update chain plus PreserveKeyMaterial: expiry
+ * fields are the only client-mutable spec surface.
  */
 async function update(
   deps: ApiKeyControllerDeps,
@@ -252,9 +249,9 @@ async function get(
 
 /**
  * GetByKeyHash — the verifier-facing lookup, also served on the wire
- * (Java ApiKeyGetByKeyHashHandler; the cloud gates it behind a
- * platform-admin FGA check inside the handler — OSS's permissive
- * single-team posture serves it openly, ruling Q5).
+ * (Java ApiKeyGetByKeyHashHandler). The lane is is_skip_authorization, so
+ * every edition serves it to any authenticated caller; nothing gates it
+ * further.
  */
 async function getByKeyHash(
   deps: ApiKeyControllerDeps,
@@ -285,9 +282,9 @@ async function getByKeyHash(
 }
 
 /**
- * FindAll — every stored key under the scope-less single-team posture
- * (ruling Q5); with a composed ListReadScope (20260830.01, census lane
- * 9) the list narrows to the caller's can_view keys — the Java
+ * FindAll — every stored key under the scope-less single-team posture;
+ * with a composed ListReadScope the list narrows to the caller's
+ * can_view keys — the Java
  * ApiKeyFindAllHandler baseline (no guest arm, no org intersection).
  * Stored hashes ride the response exactly as the cloud's do — the
  * plaintext exists nowhere. Newest first, as PlatformClient's listByOrg

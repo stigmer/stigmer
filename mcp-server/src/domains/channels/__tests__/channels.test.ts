@@ -3,7 +3,7 @@
 // stubbed messaging service, real MCP client over an in-memory
 // transport).
 //
-// Verifies the DD-006 D5/D8 contract surface:
+// Verifies the channels roster's contract surface:
 //   - the channels-only roster is exactly send_channel_message with NO
 //     org argument (agent audience);
 //   - argument → request mapping mirrors the ChannelOutboundPayload
@@ -91,14 +91,14 @@ afterAll(async () => {
   await new Promise<void>((resolve) => backend.close(() => resolve()));
 });
 
-describe("channels roster (DD-006 D8)", () => {
+describe("channels roster", () => {
   it("exposes exactly send_channel_message with no org argument", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual(["send_channel_message"]);
 
     // The agent audience gets no org argument — a session-bound
     // caller's org is server-derived, and offering the argument would
-    // only invite INVALID_ARGUMENT rejections (the records T05 R3 rule).
+    // only invite INVALID_ARGUMENT rejections.
     const properties = (tools[0].inputSchema as { properties?: Record<string, unknown> })
       .properties;
     expect(Object.keys(properties ?? {}).sort()).toEqual([
@@ -193,7 +193,7 @@ describe("argument → request mapping (the ChannelOutboundPayload oneof)", () =
   });
 });
 
-describe("typed outcomes are answers, not errors (DD-002 D4)", () => {
+describe("typed outcomes are answers, not errors", () => {
   it("a refused outcome returns as a SUCCESS result carrying the detail", async () => {
     sendResponse = () =>
       create(SendChannelMessageOutputSchema, {
@@ -231,7 +231,7 @@ describe("channels error mapper", () => {
     });
   });
 
-  it("carries the ErrorInfo reason on operator-actionable preconditions (DD-005 D8)", async () => {
+  it("carries the ErrorInfo reason on operator-actionable preconditions", async () => {
     sendResponse = () => {
       throw new ConnectError(
         "proactive channel messaging requires Stigmer Cloud",

@@ -6,8 +6,8 @@
 
 /**
  * The run gate's deny copy when a session names an agent instance the
- * caller may not run (P1 sp.run-gate, ruling Q-RG-4). NEW copy quotes the
- * handle single-quoted (the ratified 2026-08-26 quoting rule). Identical to
+ * caller may not run. NEW copy quotes the handle single-quoted (the
+ * quoting rule since 2026-08-26). Identical to
  * the agent-execution domain's instance copy on purpose — one fact, one
  * sentence — the ENGINE_UNAVAILABLE_MESSAGE precedent for cross-domain
  * twins: each domain owns its constant, the twin is named here.

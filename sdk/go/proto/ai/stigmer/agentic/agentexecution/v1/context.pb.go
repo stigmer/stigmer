@@ -40,8 +40,6 @@ const (
 // - Message counts before and after (to understand conversation reduction)
 // - Duration in milliseconds (to track performance)
 // - Model used (to understand cost implications)
-//
-// @since Phase 3 (Context Summarization Architecture)
 type SummarizationEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ISO 8601 timestamp when summarization occurred.
@@ -241,8 +239,6 @@ func (x *SummarizationEvent) GetSummarizationCostUsd() float64 {
 // - **Alerts**: Notify when utilization consistently exceeds thresholds
 // - **Analytics**: Track summarization frequency across agent fleet
 // - **Debugging**: Understand context-related failures
-//
-// @since Phase 3 (Context Summarization Architecture)
 type ContextInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Current token count in the context window.

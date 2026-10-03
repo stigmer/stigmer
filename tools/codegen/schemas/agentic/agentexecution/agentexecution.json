@@ -118,7 +118,7 @@
           "messageType": "Attachment"
         }
       },
-      "description": "Files attached to this execution.\n\n Attachments are injected into the sandbox before execution begins.\n The agent can read these files from the specified mount paths.\n\n Use cases:\n - Provide input data files to process\n - Pass configuration files\n - Supply reference documents for analysis\n\n Example CLI usage:\n   stigmer run agent my-agent --attach ./config.yaml -m \"Process this config\"\n\n @since Artifact Lifecycle (Attachments \u0026 Outputs)",
+      "description": "Files attached to this execution.\n\n Attachments are injected into the sandbox before execution begins.\n The agent can read these files from the specified mount paths.\n\n Use cases:\n - Provide input data files to process\n - Pass configuration files\n - Supply reference documents for analysis\n\n Example CLI usage:\n   stigmer run agent my-agent --attach ./config.yaml -m \"Process this config\"",
       "required": false
     },
     {
@@ -131,7 +131,7 @@
           "kind": "string"
         }
       },
-      "description": "Workspace-relative file paths the user wants the agent to focus on.\n\n When users reference files that exist inside the session's workspace,\n the client records the workspace-relative path here instead of uploading.\n The agent accesses these files directly via the workspace filesystem --\n no upload, no copy, no injection.\n\n This separates the \"attention\" signal (\"look at this file\") from the\n \"transport\" mechanism (upload + inject) that regular attachments use.\n\n Works for any workspace type with a resolvable filesystem post-provisioning\n (local-path workspaces, git-cloned workspaces, or any future source type).\n The runner resolves paths after workspace provisioning regardless of source.\n\n Populated by:\n   - CLI: detects --attach paths inside workspace roots automatically\n   - Web/Desktop: drag-to-reference from workspace file tree to composer\n\n Example CLI usage:\n   stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m \"Review\"\n   # CLI detects src/config.yaml is inside workspace -\u003e workspace_file_ref\n   # No upload, no injection; agent reads directly from src/config.yaml\n\n @since Workspace-Aware File Referencing",
+      "description": "Workspace-relative file paths the user wants the agent to focus on.\n\n When users reference files that exist inside the session's workspace,\n the client records the workspace-relative path here instead of uploading.\n The agent accesses these files directly via the workspace filesystem --\n no upload, no copy, no injection.\n\n This separates the \"attention\" signal (\"look at this file\") from the\n \"transport\" mechanism (upload + inject) that regular attachments use.\n\n Works for any workspace type with a resolvable filesystem post-provisioning\n (local-path workspaces, git-cloned workspaces, or any future source type).\n The runner resolves paths after workspace provisioning regardless of source.\n\n Populated by:\n   - CLI: detects --attach paths inside workspace roots automatically\n   - Web/Desktop: drag-to-reference from workspace file tree to composer\n\n Example CLI usage:\n   stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m \"Review\"\n   # CLI detects src/config.yaml is inside workspace -\u003e workspace_file_ref\n   # No upload, no injection; agent reads directly from src/config.yaml",
       "required": false
     },
     {

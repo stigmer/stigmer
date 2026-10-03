@@ -113,7 +113,7 @@ public interface PricingBlockOrBuilder extends
 
   /**
    * <pre>
-   * When these rates took effect. DD-003 Decision 6 reads this field:
+   * When these rates took effect. The override staleness check reads this field:
    * an ACTIVE override whose derivation window ended before this instant
    * is stale and gets superseded — baseline edits always stamp it fresh.
    * </pre>
@@ -124,7 +124,7 @@ public interface PricingBlockOrBuilder extends
   boolean hasEffectiveAt();
   /**
    * <pre>
-   * When these rates took effect. DD-003 Decision 6 reads this field:
+   * When these rates took effect. The override staleness check reads this field:
    * an ACTIVE override whose derivation window ended before this instant
    * is stale and gets superseded — baseline edits always stamp it fresh.
    * </pre>
@@ -135,7 +135,7 @@ public interface PricingBlockOrBuilder extends
   com.google.protobuf.Timestamp getEffectiveAt();
   /**
    * <pre>
-   * When these rates took effect. DD-003 Decision 6 reads this field:
+   * When these rates took effect. The override staleness check reads this field:
    * an ACTIVE override whose derivation window ended before this instant
    * is stale and gets superseded — baseline edits always stamp it fresh.
    * </pre>

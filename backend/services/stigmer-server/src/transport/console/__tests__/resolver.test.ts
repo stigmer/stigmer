@@ -70,7 +70,7 @@ describe("page contract (the nginx chain)", () => {
     expect(servedFile("/auth/github/callback")).toBe(
       "/auth/github/callback.html",
     );
-    // The OIDC return leg (20260913.02): the provider redirects here with
+    // The OIDC return leg: the provider redirects here with
     // `?code&state`; the handler strips the query, so the resolver sees
     // exactly this path and must answer the callback document, never
     // the 404 page — a 404 here is a login that can never complete.
@@ -86,7 +86,7 @@ describe("page contract (the nginx chain)", () => {
   it("prefers the more-literal candidate: a literal segment beats a dynamic one", () => {
     // /workflows/executions/[id] and /workflows/[org]/[slug] are both
     // three segments — the filesystem, not the segment count, decides
-    // (the F-12 lesson nginx.conf documents).
+    // (the blank-page lesson nginx.conf documents).
     expect(servedFile("/workflows/executions/wfe_123")).toBe(
       "/workflows/executions/__placeholder__.html",
     );

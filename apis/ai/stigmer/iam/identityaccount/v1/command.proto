@@ -18,8 +18,8 @@ service IdentityAccountCommandController {
   // System-level RPC. The handler admits machine, internal and in-process
   // callers — the federation lanes, the provisioner behind provisionMyAccount,
   // the trusted-local operator ensure at boot — and refuses a wire caller of
-  // the user class with PERMISSION_DENIED before the chain runs
-  // (stigmer-cloud#393); the rule is the same in every edition. A caller's
+  // the user class with PERMISSION_DENIED before the chain runs; the rule
+  // is the same in every edition. A caller's
   // metadata.id is replaced by the id derived from spec.idp_id. The
   // self-owner grant is the standard CreateAuthorizationTuples step's work
   // after Persist.

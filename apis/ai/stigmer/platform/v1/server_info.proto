@@ -144,7 +144,7 @@ service PlatformQueryController {
   // session sandbox serves multi-turn executions); a workflow_execution_id
   // yields token_type=workflow_sandbox carrying that id. Both are then bound by
   // RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
-  // cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+  // cloud-sandbox-injected tokens.
   //
   // is_skip_authorization because the FGA target is derived from the input
   // oneof, which the declarative interceptor cannot express — the handler
@@ -330,7 +330,7 @@ message GetRunnerScopedTokenInput {
 // session_id (the DB is the authorization source). Identity and org are minted
 // from the values the claimer recorded on that row — never from the client —
 // and the TTL is the config-owned standard sandbox TTL, like every session
-// token (stigmer-cloud#256; renewal, not lifetime, carries long conversations).
+// token (renewal, not lifetime, carries long conversations).
 // OSS has no pool and mints nothing (empty output, presence-based contract).
 message PoolClaim {
   // Session the pool member was claimed for — the scope of the token it
@@ -362,8 +362,8 @@ message PoolClaim {
 // the same of its workflow_sandboxes row. The record IS the revocation
 // lever: when the lifecycle reconciler reaps the sandbox, renewal dies with
 // it, so a credential's renewable lifetime is exactly its sandbox's
-// lifetime. Minted TTL is the standard sandbox TTL — every mint path uses it
-// (stigmer-cloud#256), and renewal is what makes short TTLs sufficient. OSS
+// lifetime. Minted TTL is the standard sandbox TTL — every mint path uses it,
+// and renewal is what makes short TTLs sufficient. OSS
 // has no signing key and mints nothing (empty output, presence-based
 // contract).
 message TokenRenewal {}

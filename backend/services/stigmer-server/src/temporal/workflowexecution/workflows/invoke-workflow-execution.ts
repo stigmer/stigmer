@@ -19,7 +19,7 @@
  *      non-cancellable scope (Go's disconnected context). On success:
  *      EC delete.
  *
- * Pause/resume ordering guarantee (D2 §4, Go startSignalHandlers): both
+ * Pause/resume ordering guarantee (Go startSignalHandlers): both
  * signals are processed by ONE serialized loop so their relays to the
  * child can never be reordered — both mutate the same `paused` flag in
  * the child, and a resume overtaking its preceding pause would leave the
@@ -27,17 +27,17 @@
  * before the next signal is read; pause wins ties when both are buffered
  * in the same workflow task (Go registers pause first on its Selector).
  *
- * v1 semantics only (OD-6): Go's "child-workflow-migration" and
+ * v1 semantics only: Go's "child-workflow-migration" and
  * "remote-cleanup-stubs" version gates and the legacy ExecuteWorkflow
  * activity path are NOT ported — no Go-era history can replay here. The
  * surviving arms are the child-workflow path and the REGULAR-activity
  * cleanup persists (Go v1 uses remote activities on the failure/cancel
  * paths to dodge a Go-SDK RECORD_MARKER replay bug; the history shape is
- * preserved as contract, the same ruling as agentexecution's port).
+ * preserved as contract, as in agentexecution's port).
  *
  * Status persists are best-effort defense-in-depth: the RPC lifecycle
  * steps persist the same phases synchronously, and the runner streams
- * real statuses via gRPC. NOTE (sub-project DD-002): in Go these persists
+ * real statuses via gRPC. NOTE: in Go these persists
  * are silently DEAD — the production worker registers the activity under
  * a derived name the workflow's constant never matches. This port
  * registers and invokes under the one constant name, so the lane works
@@ -46,7 +46,7 @@
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this file runs in Temporal's
  * deterministic sandbox. Only @temporalio/workflow, @temporalio/common,
  * @bufbuild/protobuf, generated protos, and verified-pure modules may be
- * imported (sub-project 20260824.03 discipline).
+ * imported.
  */
 import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
@@ -199,8 +199,8 @@ export async function invokeWorkflowExecution(
     await deleteExecutionContext(executionId);
 
     // Only a TemporalFailure fails a TS workflow — a plain throw fails
-    // the workflow TASK, which the server retries forever (the #18 panel
-    // finding). Go: temporal.NewApplicationError("Workflow execution
+    // the workflow TASK, which the server retries forever. Go:
+    // temporal.NewApplicationError("Workflow execution
     // failed", "", err).
     throw ApplicationFailure.create({
       message: "Workflow execution failed",
@@ -229,7 +229,7 @@ export async function invokeWorkflowExecution(
  * cancellation their `condition` waits reject in the cancel activation
  * itself — caught and treated as loop exit, because an uncaught rejection
  * would fail the workflow task at the activation boundary and the server
- * would retry it forever (the #18 monitor lesson; Go's goroutines get
+ * would retry it forever (Go's goroutines get
  * this leniency from their SDK for free).
  */
 function startSignalForwarders(executionId: string): void {
@@ -382,7 +382,7 @@ async function executeChildWorkflow(
  * creation (workflow_creator.go). The fallback "should never happen if
  * the workflow is created properly" (Go getRunnerTaskQueue). Go's legacy
  * "activityTaskQueue" memo fallback is deliberately not ported — no
- * pre-migration history can replay on this server (OD-6; names.ts).
+ * pre-migration history can replay on this server (names.ts).
  */
 function getRunnerTaskQueue(): string {
   const memoValue = workflowInfo().memo?.[MEMO_RUNNER_TASK_QUEUE];
@@ -527,7 +527,7 @@ async function deleteExecutionContext(executionId: string): Promise<void> {
 /**
  * Statuses cross the activity payload boundary as proto-JSON — the TS
  * default payload converter cannot serialize typed messages' bigint
- * int64 fields (sub-project 20260824.03 design rule). Server-internal:
+ * int64 fields. Server-internal:
  * this worker's workflow is the only caller.
  */
 function statusToJson(status: WorkflowExecutionStatus): JsonValue {

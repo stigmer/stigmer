@@ -1,7 +1,7 @@
 /**
  * Mid-run live capture — the harness-agnostic glue that turns a per-turn
  * workspace delta into the transient `AgentExecutionStatus.file_change_progress`
- * snapshot the "N files changed so far" strip renders (DD-32 / DD-33).
+ * snapshot the "N files changed so far" strip renders.
  *
  * THE MODEL
  * ---------
@@ -12,7 +12,7 @@
  * `file_change_sets`) remains the single authoritative, reviewable diff; a mid-run
  * snapshot is no more authoritative than a streamed tool-call arg.
  *
- * THE SUBSTRATE ABSTRACTION (DD-33)
+ * THE SUBSTRATE ABSTRACTION
  * ---------------------------------
  * Where the delta comes from differs by workspace: a git tree diffs cheaply with
  * `git --numstat` (the git substrate), a non-git / gitignored workspace reads the
@@ -50,12 +50,10 @@
  * -------------
  * No file bodies are ever carried. A secret-like path ({@link isSecretLikePath})
  * is still surfaced (path visible) but with its line counts ZEROED — the same
- * "path visible, content withheld" rule the ledger uses (DD-12). The cas
+ * "path visible, content withheld" rule the ledger uses. The cas
  * substrate additionally excludes gate-blocked secrets up front
  * ({@link partitionIgnoredPathsBySecret}); this zeroing is the belt-and-suspenders
  * backstop. Nothing new can leak through this field.
- *
- * @since File-Change HITL Redesign (mid-run live capture / DD-32; non-git + hybrid / DD-33)
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -99,7 +97,7 @@ export interface ProgressEntry {
  *
  * `totalFilesChanged` is the honest count of changed files this turn, which may
  * EXCEED `entries.length` when a substrate caps how many files it reads (the cas
- * substrate reads only a bounded prefix — DD-33). Undefined means "the entries
+ * substrate reads only a bounded prefix). Undefined means "the entries
  * ARE every changed file" (the git substrate, whose numstat is free), so
  * {@link buildFileChangeProgress} falls back to `entries.length`.
  */
@@ -132,7 +130,7 @@ export interface ProgressSubstrate {
  * bloat the persisted status (which rides Temporal / the store). `files_changed`
  * and the aggregate counts stay honest over ALL files; the strip shows "… and K
  * more" when the list is capped. Also the cas substrate's read budget — it reads
- * after-bytes for at most this many files per capture (DD-33).
+ * after-bytes for at most this many files per capture.
  */
 export const PROGRESS_MAX_ENTRIES = 200;
 
@@ -291,7 +289,7 @@ function gitEntryToProgressEntry(e: GitProgressEntry): ProgressEntry {
  * git-TRACKED changes (from any source — tool or shell), disjoint from the cas
  * substrate's gitignored set. Preserves the tree-sha short-circuit: on an
  * unchanged tree it returns the cached full delta with `changed:false` (the
- * caller skips the re-attach), byte-identical to the pre-DD-33 behavior.
+ * caller skips the re-attach), byte-identical to the behavior before the cap.
  */
 export function createGitProgressSubstrate(opts: {
   readonly workspaceRoot: string;

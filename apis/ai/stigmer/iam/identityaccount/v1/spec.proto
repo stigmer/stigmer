@@ -94,12 +94,12 @@ message IdentityAccountSpec {
 // @internal
 // Self-service: mutable through the existing update RPC under FGA can_edit
 // (owner, via the self-ownership tuple written at account creation) — zero
-// new IAM. Grows along the user scope's taxonomy path (Phase 2: memory
-// opt-in). Never composed for machine accounts or platform-client user
-// tokens (DD-002 D4 as amended).
+// new IAM. Grows along the user scope's taxonomy path (memory opt-in is
+// one such field). Never composed for machine accounts or platform-client
+// user tokens.
 //
 // The structured default fields (default_harness, default_*_model) are
-// CLIENT-READ seeds per DD-003's resolution-point rule: clients read them
+// CLIENT-READ seeds: clients read them
 // to prefill the composer / fill an omitted CLI --model, and the chosen
 // value rides the execution spec explicitly. The server never substitutes
 // them at execution create. Precedence at the consuming client: explicit
@@ -111,7 +111,7 @@ message IdentityAccountPreferences {
   // @internal
   // Snapshotted verbatim into
   // AgentExecutionSpec.declared_preferences.user_context at execution create
-  // (first-party human operators only, DD-002 D4 as amended). The runner
+  // (first-party human operators only). The runner
   // frames it as context, not instructions that override the task.
   string standing_context = 1 [(buf.validate.field).string.max_len = 2000];
 
@@ -156,26 +156,26 @@ message IdentityAccountPreferences {
   // also enabled memory.
   //
   // @internal
-  // The member half of memory's double opt-in (DD-006 D1): effective
+  // The member half of memory's double opt-in: effective
   // enablement = org memory_enabled AND this flag AND first-party human
   // operator. Self-service under the account's own can_edit (FGA
   // owner), like every field on this message. Enforced fail-closed at
-  // memory create (DD-005 D2) and read at recall compose (DD-006 D3)
+  // memory create and read at recall compose
   // wherever callers are persons (the require-authentication posture,
   // every edition); the single-operator posture (trusted-local) reads the
   // org flag alone, its one operator being the org's decider
   // (stigmer#1387). Toggling off stops capture and recall from the next
   // execution on;
   // existing records remain until the subject deletes them (deletion is
-  // the retention mechanism, DD-006).
+  // the retention mechanism).
   bool memory_enabled = 5;
 
   // Whether new interactive sessions start with "auto-approve tool calls"
   // armed. Off by default — sessions prompt at each approval gate.
   //
   // @internal
-  // A CLIENT-READ seed like default_harness/default_*_model (DD-003's
-  // resolution-point rule): clients read it to seed the session-scoped
+  // A CLIENT-READ seed like default_harness/default_*_model: clients read
+  // it to seed the session-scoped
   // auto-approve state, and an armed session rides each execution spec
   // explicitly (execution_config.auto_approve_all). The server NEVER reads
   // this field at execution create — it is a UI default, not a server-side

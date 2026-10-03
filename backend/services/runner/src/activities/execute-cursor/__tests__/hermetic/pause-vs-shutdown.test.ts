@@ -3,7 +3,8 @@
  * interruptions that THROW, and what tells them apart.
  *
  * Invariant pinned (the throw-vs-return table the runtime owns,
- * `harness/terminal-table.ts`; parent §5c): both interruptions end the activity with a thrown Temporal
+ * `harness/terminal-table.ts`): both interruptions end the activity with a
+ * thrown Temporal
  * `CancelledFailure` (never a return), but they persist DIFFERENT terminal
  * states the control plane keys on:
  *

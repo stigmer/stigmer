@@ -8,8 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowCostBreakdown represents per-workflow cost aggregation.
- *
- * &#64;since T14 (Dashboard Integration)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowCostBreakdown}
@@ -349,8 +347,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowCostBreakdown represents per-workflow cost aggregation.
-   *
-   * &#64;since T14 (Dashboard Integration)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowCostBreakdown}

@@ -1,9 +1,9 @@
 /**
  * Lexical cron and time-zone validation — ports
- * pkg/domain/schedule/controller/cron.go (DD-009 C-4).
+ * pkg/domain/schedule/controller/cron.go.
  *
  * The platform owns NO cron parsing in either edition — calendar and DST
- * semantics live in the Temporal server (DD-008 D2). This module restricts
+ * semantics live in the Temporal server. This module restricts
  * the accepted GRAMMAR to the subset that is safe to store: the classic
  * 5-field form plus the @daily-family shorthands. Everything rejected here
  * is something Temporal's wider grammar would accept but that must not
@@ -41,7 +41,7 @@ const CRON_SHORTHANDS = new Set([
 const CRON_FIELD_PATTERN = /^[0-9A-Za-z*,/-]+$/;
 
 /**
- * Enforces the DD-009 C-4 grammar; throws InvalidArgument with the
+ * Enforces the schedule cron grammar; throws InvalidArgument with the
  * cross-edition byte-pinned copy. Pure and deterministic.
  */
 export function validateScheduleCron(cron: string): void {
@@ -89,7 +89,7 @@ export function validateScheduleCron(cron: string): void {
 /**
  * Requires a name the platform tz database resolves — Go
  * validateScheduleTimeZone (the Temporal server loads the same database
- * when it evaluates the cron, DD-008 D2).
+ * when it evaluates the cron).
  *
  * "Local" is rejected explicitly: Go resolves it to the host's zone
  * (nondeterministic across replicas) while Java's ZoneId does not resolve

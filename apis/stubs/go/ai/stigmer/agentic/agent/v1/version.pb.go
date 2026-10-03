@@ -140,8 +140,6 @@ func (x *AgentVersionEntry) GetGitProvenance() *GitProvenance {
 }
 
 // GitProvenance tracks the git origin of an agent version.
-//
-// @since Agent Versioning (future)
 type GitProvenance struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RemoteUrl     string                 `protobuf:"bytes,1,opt,name=remote_url,json=remoteUrl,proto3" json:"remote_url,omitempty"`
@@ -211,8 +209,6 @@ func (x *GitProvenance) GetSubdir() string {
 }
 
 // ListAgentVersionsInput requests the version history for an agent.
-//
-// @since Agent Versioning (future)
 type ListAgentVersionsInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
@@ -282,8 +278,6 @@ func (x *ListAgentVersionsInput) GetPageSize() int32 {
 }
 
 // ListAgentVersionsResponse contains a page of agent version history.
-//
-// @since Agent Versioning (future)
 type ListAgentVersionsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Versions      []*AgentVersionEntry   `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
@@ -345,8 +339,6 @@ func (x *ListAgentVersionsResponse) GetTotalCount() int32 {
 }
 
 // GetAgentVersionInput requests a specific historical version.
-//
-// @since Agent Versioning (future)
 type GetAgentVersionInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AgentId       string                 `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
@@ -400,8 +392,6 @@ func (x *GetAgentVersionInput) GetVersionHash() string {
 }
 
 // TagAgentVersionInput assigns or moves a tag to a specific agent version.
-//
-// @since Agent Versioning (future)
 type TagAgentVersionInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AgentId       string                 `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`

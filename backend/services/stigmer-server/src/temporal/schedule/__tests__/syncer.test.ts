@@ -3,8 +3,7 @@
  * on ScheduleAlreadyRunning, next_fire_at stamped from Temporal's OWN
  * answer through the atomic row write (undefined while paused), teardown's
  * not-found-is-success idempotence, and the unavailable posture when no
- * client exists (panel finding 1 — this machinery previously shipped
- * untested).
+ * client exists (this machinery once shipped untested).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

@@ -11,7 +11,7 @@
  *
  * The sink is the one seam for a structured export. A deployable that
  * ships records to a collector (the cloud composition's OTLP log export,
- * convergence entry 20260909.05; a self-hosting team's own exporter next)
+ * or a self-hosting team's own exporter)
  * needs the entry — level, instant, message, fields — not the formatted
  * line, and it needs it exactly for the lines the threshold let through,
  * so LOG_LEVEL governs every output from one place. The written line stays

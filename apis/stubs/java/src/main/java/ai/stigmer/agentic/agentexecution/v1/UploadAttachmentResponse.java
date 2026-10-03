@@ -12,8 +12,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * The storage_key should be used in the Attachment message when creating
  * an agent execution. The key is opaque to clients - do not parse or
  * construct keys manually.
- *
- * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse}
@@ -281,8 +279,6 @@ private static final long serialVersionUID = 0L;
    * The storage_key should be used in the Attachment message when creating
    * an agent execution. The key is opaque to clients - do not parse or
    * construct keys manually.
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse}

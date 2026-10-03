@@ -346,7 +346,7 @@ export function buildBaselineCapturedEvent(
  * - else (≥1 non-binary incomplete: secret-withheld / size-elided /
  *   uncapturable — no keepable bytes) → `PARTIAL_BLOCKED`
  *
- * Binary is proven by `FileContent.is_binary` on either side (DD-15 D2), never
+ * Binary is proven by `FileContent.is_binary` on either side, never
  * by the block reason. This mirrors the backend gate's `isBinaryChange`, so the
  * runner's rollup and the gate's per-file re-derivation agree by construction.
  */
@@ -372,7 +372,7 @@ export function deriveDiffCompleteness(
  * authoritative per-file diff and the aggregate digest. `diff_completeness` is
  * the {@link deriveDiffCompleteness} rollup over the changes.
  *
- * `commandProvenance` (optional, DD-28) is the harness's approved-command turn
+ * `commandProvenance` (optional) is the harness's approved-command turn
  * facts: when present, the backend verifies the cited consent rows against its
  * server-authored approval record and — on success — auto-keeps the set with a
  * policy-origin decision instead of arming the review gate. Never folded into

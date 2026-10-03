@@ -290,7 +290,7 @@ describe("VisionBudget — size and count budgets", () => {
     expect(budget.offerOversized()).toEqual({ kind: "degraded", reason: "too_large" });
   });
 
-  it("ships the production constants agreed in T04 (raw bytes)", () => {
+  it("ships the agreed production constants (raw bytes)", () => {
     // Also the ADVERTISED == ENFORCED drift alarm (stigmer/stigmer#365):
     // the registry document advertises these exact values in its
     // `limits.vision` block, pinned by the cloud codec's own test. If this

@@ -7,19 +7,19 @@
  *   1. idempotent early return when the subject already has an account
  *      (no create, no userinfo call);
  *   2. the profile comes from the userinfo endpoint of the ISSUER THAT
- *      VOUCHED for the token (caller.issuer; T01_1_review.md A8), fetched
+ *      VOUCHED for the token (caller.issuer), fetched
  *      with the caller's own access token, for every token-bearing caller
  *      — the cloud's posture, one path, given_name/family_name as the IdP
  *      states them (a claims shortcut that split `name` into two would be
- *      guesswork; recorded in T01_3_execution.md). A caller with no issuer
+ *      guesswork). A caller with no issuer
  *      never dials out: its profile is what the CallerIdentity carries;
  *   3. create through the ONE create path the domain owns (the same path
  *      the create RPC's chain runs, so the tuple lifecycle and the
  *      provisioning slot fire for both); a first-login race resolves the
  *      winner by subject whatever the failure's shape.
  *
- * The answer says whether THIS call created the row (`created`; 20260913.01
- * slice 4): the early return and the race loser answer false, so a rule
+ * The answer says whether THIS call created the row (`created`): the early
+ * return and the race loser answer false, so a rule
  * keyed on first provisioning (the membership rules) runs exactly once per
  * account and never on the idempotent path.
  *

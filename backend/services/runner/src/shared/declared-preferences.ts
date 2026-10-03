@@ -1,5 +1,5 @@
 /**
- * Declared preferences (stigmer/stigmer#293, DD-002): standing free-text
+ * Declared preferences (stigmer/stigmer#293): standing free-text
  * preferences the organization and the calling user declared once — "keep
  * answers terse", "we deploy to us-east-1" — that every eligible execution
  * receives without the user re-typing them.

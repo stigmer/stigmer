@@ -26,8 +26,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * - Message counts before and after (to understand conversation reduction)
  * - Duration in milliseconds (to track performance)
  * - Model used (to understand cost implications)
- *
- * &#64;since Phase 3 (Context Summarization Architecture)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.SummarizationEvent}
@@ -671,8 +669,6 @@ private static final long serialVersionUID = 0L;
    * - Message counts before and after (to understand conversation reduction)
    * - Duration in milliseconds (to track performance)
    * - Model used (to understand cost implications)
-   *
-   * &#64;since Phase 3 (Context Summarization Architecture)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.SummarizationEvent}

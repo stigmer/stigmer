@@ -153,8 +153,6 @@ export type EvalTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.EvalT
    * this limit, independent of the workflow-level budget.
    * Optional — when 0, no per-task cost limit is enforced.
    *
-   * @since T05 (Workflow-Level Budget Primitives)
-   *
    * @generated from field: int64 max_cost_micros = 10;
    */
   maxCostMicros: bigint;

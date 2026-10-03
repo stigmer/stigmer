@@ -59,7 +59,7 @@ export type AgentExecutionFileDecisionForwarderProvider =
 export interface SubmitFileDecisionDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   readonly fileDecisionForwarder: AgentExecutionFileDecisionForwarderProvider;
 }

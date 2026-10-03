@@ -333,8 +333,6 @@ func (x *GetArtifactContentRequest) GetMaxBytes() int64 {
 // The content field contains the artifact bytes (up to max_bytes). For text
 // artifacts, clients decode as UTF-8. The content_type field is the type
 // recorded at creation (ArtifactSpec.content_type).
-//
-// @since Review Payloads (stigmer/stigmer#234)
 type GetArtifactContentResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Raw artifact content (up to max_bytes).

@@ -260,10 +260,10 @@ export async function createStigmerRunner(
   });
 
   // Adopt the bootstrap-minted embedded_runner credential for gRPC runner-class
-  // calls (stigmer-cloud#507). The static path historically discarded it ("the
+  // calls. The static path historically discarded it ("the
   // static token is already proxy-valid") — true for the PROXY lane, but the
-  // ExecutionContext decrypt lane is gated on runner-class token_type
-  // (stigmer-cloud#152/#155): a user-token static runner (conformance harness,
+  // ExecutionContext decrypt lane is gated on runner-class token_type:
+  // a user-token static runner (conformance harness,
   // CLI daemon with a cloud token) had its scoped-token exchange refused and
   // silently read REDACTED secret values. The coordinator owns the mint's TTL
   // (same module the desktop manager uses — one refresh implementation, not

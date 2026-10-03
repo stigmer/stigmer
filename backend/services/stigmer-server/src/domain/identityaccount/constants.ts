@@ -1,13 +1,13 @@
 /**
- * Identity-account domain constants (20260911.11, T01_1_review.md A1, A2,
- * A7): the derived account id, the one function that turns a caller into
+ * Identity-account domain constants: the derived account id, the one
+ * function that turns a caller into
  * an issuer subject, and the byte-pinned wire copy.
  *
- * The derived id (A1). A direct account's id is a pure function of its
+ * The derived id. A direct account's id is a pure function of its
  * subject: `ida_` + the top 130 bits of sha256(idp_id) as 26 lowercase
  * Crockford-base32 characters, through `derivedId` in
- * pipeline/steps/defaults.ts (the one encoder every derived kind shares
- * since 20260913.01 slice 2; the IamPolicy id is the other). The shape is
+ * pipeline/steps/defaults.ts (the one encoder every derived kind shares;
+ * the IamPolicy id is the other). The shape is
  * indistinguishable from a minted `{prefix}_{ulid}`, so nothing downstream
  * learns a second id grammar, and the PRIMARY KEY becomes the one home of
  * "one account per subject": the generic store has no secondary uniqueness
@@ -20,13 +20,13 @@
  * wire-adjacent contract: a change here re-addresses every direct account
  * open source ever created.
  *
- * `idpIdOf` (A2) is the ONE place a CallerIdentity becomes a subject. An
+ * `idpIdOf` is the ONE place a CallerIdentity becomes a subject. An
  * issuer-vouched token is read for its `sub` (already verified at
  * position 1, so this is a read of trusted state, never a verification);
  * a caller with no issuer and no token is the trusted-local operator,
  * whose subject is `local|<identityId>`. It deliberately knows nothing
  * about API keys: every verifier resolves its stamp to the account when
- * one exists (A6), so a credential's shape is the verifier's business.
+ * one exists, so a credential's shape is the verifier's business.
  *
  * The copy moved from the cloud's iam/account/handlers.ts as-is: the CLI,
  * console and SDK show these sentences verbatim, so they are contract.
@@ -175,9 +175,9 @@ export function accountNotFoundMessage(handle: string): string {
 }
 
 /**
- * The cloud#393 gate's refusal (PERMISSION_DENIED): the create RPC admits
+ * The create gate's refusal (PERMISSION_DENIED): the create RPC admits
  * the platform's own pipelines only — machine-class callers and
- * server-composed (in-process) requests (T01_1_review.md A7).
+ * server-composed (in-process) requests.
  */
 export const CREATE_IS_INTERNAL_MESSAGE =
   "this RPC is internal to the platform";
@@ -197,7 +197,7 @@ export function federationUnimplementedMessage(method: string): string {
 
 /**
  * update with a changed spec.idp_id (FAILED_PRECONDITION; the schedule
- * domain's immutability shape, T01_1_review.md A1). The subject IS the
+ * domain's immutability shape). The subject IS the
  * identity; a client that sends a different one has a bug it should hear
  * about, never a silent preserve.
  */

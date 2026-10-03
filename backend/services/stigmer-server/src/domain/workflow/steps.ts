@@ -54,7 +54,7 @@ export const VERSION_CHANGED_KEY = "version_changed";
 export const DEFAULT_INSTANCE_ID_KEY = "default_instance_id";
 
 // ---------------------------------------------------------------------------
-// The workflowinstance in-process edge (DD-002): workflow create provisions
+// The workflowinstance in-process edge: workflow create provisions
 // the default instance through the full interceptor chain. Go's
 // CreateAsSystem is the Create RPC under the process-global operator
 // identity, so a plain create IS the system-actor create in this edition.
@@ -62,9 +62,9 @@ export const DEFAULT_INSTANCE_ID_KEY = "default_instance_id";
 
 export interface WorkflowInstanceCreator {
   /**
-   * Creates AS THE ORIGINAL CALLER (C2 Stage 3, ruling R5 — the Java
-   * createAsCaller posture): the propagated identity gives the default
-   * instance real owner attribution under an enforcing Authorizer.
+   * Creates AS THE ORIGINAL CALLER (the Java createAsCaller posture): the
+   * propagated identity gives the default instance real owner attribution
+   * under an enforcing Authorizer.
    */
   createAsCaller(
     instance: WorkflowInstance,
@@ -74,7 +74,7 @@ export interface WorkflowInstanceCreator {
 
 /**
  * Lazy provider for the workflow↔workflowinstance true cycle — resolved at
- * call time, never at construction (the ratified DI story, D2 §2).
+ * call time, never at construction.
  */
 export type WorkflowInstanceCreatorProvider = () => WorkflowInstanceCreator;
 
@@ -240,7 +240,7 @@ export function newPopulateServerlessValidationStepForUpdate(
 
 // ---------------------------------------------------------------------------
 // Version machinery — version_steps.go. The hash is deterministic because
-// the converter renders canonically (DD-B): same workflow spec = same YAML
+// the converter renders canonically: same workflow spec = same YAML
 // = same hash.
 // ---------------------------------------------------------------------------
 
@@ -542,8 +542,8 @@ export function newCreateDefaultInstanceStep(
       // Go create.go:118-121 wraps the downstream error with fmt.Errorf
       // ("failed to create default instance: %w"); the wire keeps the inner
       // CODE but carries the wrapped text, transport formatting included —
-      // mirrored via goWrappedStatusError (parent DD-003; the leak is
-      // oss#852, a both-editions post-cutover fix). Unstatused failures
+      // mirrored via goWrappedStatusError (the leak is oss#852, to fix in
+      // both editions). Unstatused failures
       // fall to the pipeline's Internal fallback, exactly Go's plain-error
       // path.
       let created: WorkflowInstance;
@@ -610,7 +610,7 @@ export function newUpdateWorkflowStatusWithDefaultInstanceStep(
         );
       }
 
-      // The default_of invariant rides the pointer persist (C2 Stage 3).
+      // The default_of invariant rides the pointer persist.
       await notifyDefaultInstanceLinked(authorizationLifecycle, {
         instanceKind: ApiResourceKind.workflow_instance,
         instanceId: defaultInstanceId,

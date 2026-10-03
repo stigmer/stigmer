@@ -1,11 +1,10 @@
 /**
- * The IamPolicyStore PORT-CONTRACT KIT (20260913.01, T01_0_plan.md §3a;
- * the 2a A11/A12 discipline): every behavior an implementation of store.ts
+ * The IamPolicyStore PORT-CONTRACT KIT: every behavior an implementation of store.ts
  * must satisfy identically, as cases a driver's test iterates. Open source
  * runs them over its own adapter (resource-store.ts) on sqlite and Postgres
  * in __tests__/resource-store.postgres.test.ts; a composition runs the SAME cases
- * over the store it registers as `drivers.iamPolicyStore` (the cloud's
- * `cloud.iam_policy` store, S3), so "the port holds" is one statement
+ * over the store it registers as `drivers.iamPolicyStore`, so "the port holds" is
+ * one statement
  * proven per driver, never restated per repository.
  *
  * Shape. A list of declarations over the port-contract runner
@@ -16,7 +15,7 @@
  * lifecycle by design, yet "an outage never reads as no grant" is the line
  * that matters most.
  *
- * The corners A12 taught are cases from the start, not later additions:
+ * Known corners are cases from the start, not later additions:
  * every relation on a pair; distinct principals, not rows; the scope-tuple
  * exclusions verbatim; unknown-id delete a no-op; a held id refused. A
  * change record changes nothing about the row; what a store that keeps a

@@ -19,7 +19,7 @@ import { tryUnmarshalTaskConfig } from "../converter/unmarshal.js";
 /**
  * Go renders dollar amounts with %.2f — correct decimal rounding with ties
  * to EVEN — where toFixed(2) rounds ties away from zero: max_cost_usd
- * 0.125 must print $0.12 on both editions (panel finding). Intl's halfEven
+ * 0.125 must print $0.12 on both editions. Intl's halfEven
  * mode matches Go's semantics on the same float64.
  */
 const GO_2DP = new Intl.NumberFormat("en-US", {

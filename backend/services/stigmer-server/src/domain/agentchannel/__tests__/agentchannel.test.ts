@@ -218,7 +218,7 @@ async function createTestAgent(
 
 /**
  * A named Slack channel for an agent. Unlike shares, channels have no
- * canonical-slug default (P7: N-per-agent), so tests always provide a
+ * canonical-slug default (N per agent), so tests always provide a
  * name for the generic derive-from-name slug.
  */
 function channelFor(agent: Agent, name: string, enabled: boolean) {
@@ -234,7 +234,7 @@ function channelFor(agent: Agent, name: string, enabled: boolean) {
   };
 }
 
-/** The whatsapp variant — no app_ref by default (DD-WA-2 arms test it). */
+/** The whatsapp variant — no app_ref by default (the BYO-only arms test it). */
 function whatsAppChannelFor(agent: Agent, name: string) {
   return {
     apiVersion: API_VERSION,
@@ -328,7 +328,7 @@ describe("agentchannel create", () => {
     );
   });
 
-  it("no slug default from the agent — name derives the slug (P7)", async () => {
+  it("no slug default from the agent — name derives the slug", async () => {
     const agent = await createTestAgent(uniqueName("Slug Discipline Agent"));
     const name = uniqueName("Team Slack");
     const channel = await channels.create(channelFor(agent, name, true));
@@ -603,7 +603,7 @@ describe("apply semantics", () => {
 });
 
 // ---------------------------------------------------------------------------
-// environment_refs (Go TestAgentChannelController_EnvironmentRefs, T04).
+// environment_refs (Go TestAgentChannelController_EnvironmentRefs).
 // ---------------------------------------------------------------------------
 
 describe("environment_refs (channel-bound credentials)", () => {
@@ -657,7 +657,7 @@ describe("environment_refs (channel-bound credentials)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// app_ref (Go TestAgentChannelController_AppRef, T04 item 2).
+// app_ref (Go TestAgentChannelController_AppRef).
 // ---------------------------------------------------------------------------
 
 describe("app_ref (BYO channel-app binding)", () => {
@@ -779,10 +779,10 @@ describe("app_ref (BYO channel-app binding)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// WhatsApp app_ref (Go TestAgentChannelController_WhatsAppAppRef, DD-WA-2).
+// WhatsApp app_ref (Go TestAgentChannelController_WhatsAppAppRef).
 // ---------------------------------------------------------------------------
 
-describe("whatsapp app_ref (BYO-only, DD-WA-2)", () => {
+describe("whatsapp app_ref (BYO-only)", () => {
   it("create without app_ref is INVALID_ARGUMENT with the shared copy", async () => {
     const agent = await createTestAgent(uniqueName("WA No App Agent"));
     const err = await grpcError(() =>
@@ -946,10 +946,10 @@ describe("delete and queries", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Install posture (Go TestAgentChannelController_InstallPosture, §0-b).
+// Install posture (Go TestAgentChannelController_InstallPosture).
 // ---------------------------------------------------------------------------
 
-describe("install posture (§0-b)", () => {
+describe("install posture", () => {
   it("the full contract: NOT_FOUND with the cloud copy, refusal on existing, nothing persisted", async () => {
     const agent = await createTestAgent(uniqueName("Install Posture Agent"));
     const created = await channels.create(
@@ -1077,7 +1077,7 @@ describe("channel messaging posture (cloud-only runtime)", () => {
     expect(err.rawMessage).toBe(PROACTIVE_MESSAGING_UNAVAILABLE_MESSAGE);
   });
 
-  it("listMessagingChannels answers with an empty list, never a refusal (DD-006 D3)", async () => {
+  it("listMessagingChannels answers with an empty list, never a refusal", async () => {
     const res = await messageQuery.listMessagingChannels({});
     expect(res.entries).toHaveLength(0);
   });

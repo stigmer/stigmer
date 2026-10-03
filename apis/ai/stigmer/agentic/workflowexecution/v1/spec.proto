@@ -135,10 +135,7 @@ message WorkflowExecutionSpec {
   // Same pattern as AgentExecution.spec.callback_token.
   //
   // References:
-  // - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
   // - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-  //
-  // @since 2026-01-22
   bytes callback_token = 7;
 
   // Where workflow activities are executed — shared runner pool or dedicated sandbox.
@@ -154,7 +151,5 @@ message WorkflowExecutionSpec {
   // on AgentExecutionSpec, avoiding N separate sandbox cold starts.
   //
   // Immutable after creation (sandbox provisioning is a one-time operation).
-  //
-  // @since Workflow Sandbox Affinity
   ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8;
 }

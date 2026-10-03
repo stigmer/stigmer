@@ -7,15 +7,14 @@
  *
  *   1. exact match  /v1/proxy/task-kind-registry   (registry proxy)
  *   2. exact match  /v1/proxy/model-registry       (registry proxy)
- *   3. prefix       /v1/skill-artifacts            (seam — lands with the
- *                                                   skill domain sub-project)
- *   4. guarded      console statics                (phase 2, DD-005/DD-012 —
- *                                                   GET/HEAD only, never RPC
+ *   3. prefix       /v1/skill-artifacts            (the skill transfer
+ *                                                   lane)
+ *   4. guarded      console statics                (GET/HEAD only, never RPC
  *                                                   or /v1/* paths; absent
  *                                                   when no export is bundled)
  *   5. RPC adapter  gRPC + gRPC-Web + Connect      (replaces Go's lanes
  *                                                   4–5; WebSocket retired
- *                                                   per ratified delta 1)
+ *                                                   deliberately)
  *   6. 404          (the adapter's fallback — CW-10 asserts unknown
  *                    /v1/proxy/* paths land here)
  *
@@ -54,7 +53,7 @@ export type { LaneHandler } from "./lanes.js";
 
 export interface UnifiedPortServerOptions {
   logger: Logger;
-  /** RPC surface registration (health service now; domains per sub-project). */
+  /** RPC surface registration (the health service and every domain's services). */
   routes: (router: ConnectRouter) => void;
   /** The pipeline chain, outermost first (pipeline/interceptors). */
   interceptors: Interceptor[];
@@ -63,13 +62,13 @@ export interface UnifiedPortServerOptions {
   /** Lane 2: bundled + refreshed model registry proxy. */
   modelRegistryLane: LaneHandler;
   /**
-   * Lane 3 seam: skill artifact transfer (#675). Absent until the skill
-   * domain sub-project lands its handlers; the prefix then falls through to
-   * the adapter's 404, which is also what Go answers for unknown paths.
+   * Lane 3: skill artifact transfer (#675). When absent, the prefix falls
+   * through to the adapter's 404, which is also what Go answers for
+   * unknown paths.
    */
   skillTransferLane?: LaneHandler;
   /**
-   * Lane 4: console statics + /config.json (DD-012). Present only when a
+   * Lane 4: console statics + /config.json. Present only when a
    * console export is bundled/configured — absent, every request flows
    * exactly as before the lane existed. The eligibility guard lives with
    * the handler (console/handler.ts): GET/HEAD only, never /v1/* or

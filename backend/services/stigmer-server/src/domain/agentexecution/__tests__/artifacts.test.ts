@@ -38,7 +38,7 @@ import {
   uploadAttachment,
 } from "../artifacts.js";
 
-// The two read RPCs now evaluate their can_view annotations (C2 Stage 4);
+// The two read RPCs now evaluate their can_view annotations;
 // these direct-call tests exercise them under the OSS permissive
 // authorizer with one fixed caller — the authorize.test.ts suite owns the
 // deny/not-found arms.
@@ -587,7 +587,7 @@ describe("osMimeTypeByExtension (the upload path's detection)", () => {
     // Go's upload path uses mime.TypeByExtension alone: .yaml is NOT a
     // Go mime builtin, so an uploaded YAML stores octet-stream even
     // though the READ path reports text/yaml (edition-identical object
-    // metadata for #13's R2 backend).
+    // metadata for the R2 backend).
     expect(osMimeTypeByExtension("values.yaml")).toBe(
       "application/octet-stream",
     );

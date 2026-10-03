@@ -258,8 +258,6 @@ public interface EvalTaskConfigOrBuilder extends
    * When set, the runtime terminates this eval call if its cost exceeds
    * this limit, independent of the workflow-level budget.
    * Optional — when 0, no per-task cost limit is enforced.
-   *
-   * &#64;since T05 (Workflow-Level Budget Primitives)
    * </pre>
    *
    * <code>int64 max_cost_micros = 10 [json_name = "maxCostMicros"];</code>

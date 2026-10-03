@@ -9,7 +9,7 @@
  * updateStatus RPC merge (the choice agentexecution's port made): in Go
  * the two merges are DIFFERENT code with different semantics, and the
  * differences are wire-visible for exactly the payloads this workflow
- * sends (sub-project DD-001 brief, owner-ratified):
+ * sends:
  *
  *   - The activity bumps statusAudit.updatedAt on EVERY call; the RPC
  *     bumps only on phase TRANSITIONS (the recents-sidebar rule). A
@@ -20,12 +20,12 @@
  *     ("workflow execution not found: …"), not the RPC's NotFound.
  *
  * What IS adopted from the domain: the atomic `updateResource` persist
- * (the #20 DD-001 posture — Go's activity is a load-then-save with the
+ * (Go's activity is a load-then-save with the
  * same lost-update window its RPC has; not ported) and the post-persist
  * broadcast through the domain's StreamBroker (Go wires the same broker
  * into both).
  *
- * Payload boundary (sub-project 20260824.03 design rule): statuses cross
+ * Payload boundary: statuses cross
  * as proto-JSON — the TS default payload converter cannot serialize the
  * bigint int64 fields of typed messages. Server-internal payloads; only
  * the activity NAMES are byte-pinned.
@@ -61,10 +61,9 @@ export interface WorkflowExecutionActivityDeps {
   readonly logger: Logger;
   readonly broker: StreamBroker;
   /**
-   * Fires the workflow-sandbox teardown on terminal transitions (§6d,
-   * O6) — this activity is the orchestrator's failure/cancellation
-   * persist site, one of the three status write sites the Q3b ruling
-   * wires.
+   * Fires the workflow-sandbox teardown on terminal transitions — this
+   * activity is the orchestrator's failure/cancellation persist site, one
+   * of the three status write sites that fire it.
    */
   readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
   /**
@@ -92,7 +91,7 @@ export function createWorkflowExecutionActivities(
      * The orchestrator's status persist, invoked as a LOCAL activity
      * (pause/resume handlers) AND a REGULAR activity (failure/
      * cancellation paths) — one implementation serves both modes,
-     * exactly one named registration (see names.ts's DD-002 note on why
+     * exactly one named registration (see names.ts's note on why
      * the NAME is load-bearing).
      */
     [UPDATE_WORKFLOW_EXECUTION_STATUS_ACTIVITY_NAME]: async (
@@ -103,7 +102,7 @@ export function createWorkflowExecutionActivities(
 
       let updated: WorkflowExecution;
       // The phase BEFORE this merge, read under the write lock — the
-      // sandbox observer below keys on the transition (§6d, O6).
+      // sandbox observer below keys on the transition.
       let previousPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
       try {
         updated = await store.updateResource(

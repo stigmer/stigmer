@@ -177,7 +177,7 @@
     "openbao": { "$ref": "#/$defs/reservedEnterpriseUnit" },
     "licenseKeySecret": {
       "type": "string",
-      "description": "Reserved for Stigmer Enterprise (sp.helm-ee). This version of the chart serves the open-source image and refuses a license Secret."
+      "description": "Reserved for Stigmer Enterprise. This version of the chart serves the open-source image and refuses a license Secret."
     }
   },
   "$defs": {
@@ -237,7 +237,7 @@
     "reservedEnterpriseUnit": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Reserved for Stigmer Enterprise (sp.helm-ee); only enabled: false is accepted in this version.",
+      "description": "Reserved for Stigmer Enterprise; only enabled: false is accepted in this version.",
       "properties": {
         "enabled": { "type": "boolean" }
       }

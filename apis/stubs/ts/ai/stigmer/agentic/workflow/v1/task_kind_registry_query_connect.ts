@@ -19,8 +19,6 @@ import { MethodKind } from "@bufbuild/protobuf";
  * It does not require authentication — task metadata is public knowledge about
  * the platform's capabilities, not user-specific data.
  *
- * @since T04 (Task Schema Registry)
- *
  * @generated from service ai.stigmer.agentic.workflow.v1.TaskKindRegistryQueryController
  */
 export const TaskKindRegistryQueryController = {

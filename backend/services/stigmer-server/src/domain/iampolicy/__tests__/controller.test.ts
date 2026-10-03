@@ -1,5 +1,5 @@
 /**
- * Pins controller.ts (20260913.01 slice 5) at the handler level, over a
+ * Pins controller.ts at the handler level, over a
  * router transport with fakes — the query/search controller.test.ts
  * shape — so every arm of the fourteen RPCs is proven without booting a
  * server; the composed proof over real boots is iampolicy.test.ts.
@@ -12,7 +12,7 @@
  * interceptor that sets the caller the chassis would have stamped (the
  * verifier chain is the chassis's business, proven in its own tests).
  *
- * What the arms pin (T01_1_review.md Q-OR-7, Q-OR-8; Q-S5-1..3, Q-S5-10):
+ * What the arms pin:
  *   - the three system RPCs admit machine and internal callers and refuse
  *     a wire user PERMISSION_DENIED with the annotation's own copy;
  *   - checkMyPermission's full order, incl. the arms the Authorizer is
@@ -106,7 +106,7 @@ const OPERATOR_EMAIL = "operator@example.com";
 const OPERATOR_ID = accountIdFor(localIdpIdFor(OPERATOR_EMAIL));
 const ALICE_ID = "ida_alice";
 
-/** The trusted-local operator: stamped by EMAIL, resolves to an account (the Q-S4-1 fact). */
+/** The trusted-local operator: stamped by EMAIL, resolves to an account. */
 const operator: CallerIdentity = trustedLocalIdentityFor({
   email: OPERATOR_EMAIL,
   displayName: "The Operator",
@@ -295,7 +295,7 @@ const structural: IamPolicySpec = triple(
   { kind: "agent", id: "agt_1" },
 );
 
-describe("the three system RPCs (Q-OR-7, Q-S5-10)", () => {
+describe("the three system RPCs", () => {
   const cases: ReadonlyArray<
     [name: string, copy: string, call: (h: Harness) => Promise<unknown>]
   > = [
@@ -381,7 +381,7 @@ describe("each lane hands the store its own door and its caller", () => {
   });
 });
 
-describe("checkMyPermission (Q-OR-8, Q-S5-3)", () => {
+describe("checkMyPermission", () => {
   const platform = ref("platform", "stigmer");
   const acme = ref("organization", "acme");
 
@@ -404,7 +404,7 @@ describe("checkMyPermission (Q-OR-8, Q-S5-3)", () => {
     expect(h.authorizer.checks).toEqual([]);
   });
 
-  it("an unknown resource kind is INVALID_ARGUMENT with the wire copy (Q-S5-2)", async () => {
+  it("an unknown resource kind is INVALID_ARGUMENT with the wire copy", async () => {
     const h = await harness({ caller: alice });
     const error = await refusal(() =>
       h.query.checkMyPermission({
@@ -819,7 +819,7 @@ describe("the row reads", () => {
     ]);
   });
 
-  it("listResourceAccessByPrincipal enriches the operator's row through the account port with the Q-S5-4 name", async () => {
+  it("listResourceAccessByPrincipal enriches the operator's row through the account port with its display name", async () => {
     const h = await harness({ caller: machine });
     await h.command.create(orgRole(OPERATOR_ID, "owner", "acme"));
     const access = await h.query.listResourceAccessByPrincipal({
@@ -835,7 +835,7 @@ describe("the row reads", () => {
 });
 
 describe("the write lanes' order", () => {
-  it("delete authorizes BEFORE it loads: a denied caller hears PERMISSION_DENIED even for an absent triple (Q-OR-2)", async () => {
+  it("delete authorizes BEFORE it loads: a denied caller hears PERMISSION_DENIED even for an absent triple", async () => {
     const h = await harness({ caller: alice });
     h.authorizer.decision = { kind: "deny", reason: "" };
     const error = await refusal(() =>
@@ -845,7 +845,7 @@ describe("the write lanes' order", () => {
     expect(error.rawMessage).toBe("unauthorized to revoke access");
   });
 
-  it("create validates the role BEFORE the write: a held row under a non-grantable role is INVALID_ARGUMENT, not the duplicate (the cloud's order, Q-S5-1)", async () => {
+  it("create validates the role BEFORE the write: a held row under a non-grantable role is INVALID_ARGUMENT, not the duplicate", async () => {
     const h = await harness({ caller: alice });
     const legacy = orgRole(ALICE_ID, "editor", "acme");
     await h.policies.save(
@@ -888,7 +888,7 @@ describe("the write lanes' order", () => {
     expect(h.policies.rows.size).toBe(0);
   });
 
-  it("create grants to people only: an organization as the principal is INVALID_ARGUMENT after position 1, and no row is written (Q-S9-2)", async () => {
+  it("create grants to people only: an organization as the principal is INVALID_ARGUMENT after position 1, and no row is written", async () => {
     // The row a person could otherwise write — organization:other holds
     // `member` on organization:acme — is exactly what findScopeTuple reads
     // as acme's structural parent, so the hierarchy walk would have listed
@@ -1065,7 +1065,7 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
   });
 });
 
-describe("a wire kind string is refused BEFORE position 1 on every annotated lane (Q-S6-1)", () => {
+describe("a wire kind string is refused BEFORE position 1 on every annotated lane", () => {
   // A kind string that names no kind names no authorization target, so
   // there is nothing to ask the Authorizer — the same reason
   // checkMyPermission refuses an unknown permission name first, and the

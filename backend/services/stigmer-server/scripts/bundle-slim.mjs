@@ -2,8 +2,7 @@
 
 /**
  * Builds the slim distribution artifact for stigmer-server — the entry
- * the CLI daemon launches after the cutover (STIGMER_SERVER_ENTRY, D2 §6
- * cutover mechanics; D4 #24).
+ * the CLI daemon launches (STIGMER_SERVER_ENTRY).
  *
  * This is the runner's bundle-slim.mjs recipe (stigmer/stigmer#170),
  * adapted: the plain dist resolves @temporalio/* from node_modules at
@@ -13,7 +12,7 @@
  * artifact bundles ALL JavaScript into one main.js and carries the native
  * bridge as a per-platform package.
  *
- * `pg` (the Postgres driver, Phase-2 P2) lazy-requires optional `pg-native`.
+ * `pg` (the Postgres driver) lazy-requires optional `pg-native`.
  * That package is NEVER a dependency — `pg` catches the MODULE_NOT_FOUND
  * and uses its JS client. esbuild would otherwise fail the slim build
  * trying to resolve it; it is marked `external` on the main bundle so the
@@ -39,8 +38,8 @@
  *                                               the unified port's lane 4 and
  *                                               discovered as a main.js sibling
  *                                               by src/transport/console/assets.ts
- *                                               (DD-012: the console ships INSIDE
- *                                               this artifact — no skew possible)
+ *                                               (the console ships INSIDE this
+ *                                               artifact, so the two never skew)
  *      node_modules/
  *        @stigmer/server-slim-<platform>      ← Temporal native bridge, pruned
  *                                               to ONE platform
@@ -138,7 +137,7 @@ const BUNDLED_MODULE_ASSETS = [
  * The web console's static export, built by `npm run build -w
  * client-apps/web` (`make build-web`). Its ABSENCE fails the build: a
  * slim artifact without the console would resurrect the version-skew
- * failure mode DD-012 dissolved by shipping both in one artifact — and
+ * failure mode that shipping both in one artifact removes — and
  * would ship a `stigmer up` that silently lost its console again.
  */
 const CONSOLE_EXPORT_DIR = join(
@@ -192,7 +191,7 @@ function readPackageJson(dir) {
 
 const serverPkg = readPackageJson(serverRoot);
 
-// The ldflags equivalent (D4 #13): release lanes export these env vars and
+// The ldflags equivalent: release lanes export these env vars and
 // the defines stamp them into their fallback chains
 // (src/domain/platform/version.ts, boot/config.ts's bundled GitHub OAuth
 // defaults). Unset keeps each source default — exactly Go's unstamped
@@ -570,7 +569,7 @@ function stageConsoleExport() {
     fail(
       `web console export not found at ${CONSOLE_EXPORT_DIR} — ` +
         "run `npm run build -w client-apps/web` (make build-web) first. " +
-        "The console ships INSIDE this artifact (DD-012); an artifact " +
+        "The console ships INSIDE this artifact; an artifact " +
         "without it would silently lose `stigmer up`'s web console.",
     );
   }
@@ -661,7 +660,7 @@ const META_PACKAGE_FILES = [
   ...WORKFLOW_BUNDLES.map(({ sibling }) => sibling),
   "workflow-worker-thread.cjs",
   "mappings.wasm",
-  // The console export rides the meta package (DD-012): it is platform-
+  // The console export rides the meta package: it is platform-
   // independent, so it ships once here, never in the platform packages.
   "console",
 ];

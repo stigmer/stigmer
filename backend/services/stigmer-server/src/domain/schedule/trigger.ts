@@ -1,7 +1,6 @@
 /**
  * The trigger command's steps — ports
- * pkg/domain/schedule/controller/trigger.go (DD-017 D-5/D-6, amending
- * DD-014).
+ * pkg/domain/schedule/controller/trigger.go.
  *
  * The manual fire runs SYNCHRONOUSLY through the standard execution create
  * pipeline — every launch gate runs — and the result names what happened:
@@ -12,7 +11,7 @@
  * refused run is a successful trigger honestly reported, never an
  * exception.
  *
- * Semantics settled by DD-017 D-5:
+ * Semantics:
  *   - A PAUSED schedule may be triggered (test-then-resume): a test fire
  *     is exactly how an owner verifies a fix before resuming, and resume
  *     stays the one path that clears the latch.
@@ -65,7 +64,7 @@ import type { RunOutcomeResult } from "../../temporal/schedule/run-starter.js";
  * The owner's switch is off. OSS has no blueprint-access layer, so the
  * refusal here is pure contract parity: cloud MUST refuse (a
  * disabled-schedule run would die mid-execution after billing side
- * effects, DD-017 D-5), and the two editions must not diverge on a refusal
+ * effects), and the two editions must not diverge on a refusal
  * a user can observe. Consoles turn the dead end into a one-click
  * "Enable & run now".
  */
@@ -84,8 +83,8 @@ export const TRIGGER_NO_RUNNER_MESSAGE =
  * The narrow slice of the scheduling runtime the trigger needs (satisfied
  * by the clock's RunStarter): start one run through the full execution
  * create pipeline and answer with the real outcome. Deliberately NOT the
- * Clock — a manual fire needs no Temporal artifact (DD-017 D-5 amending
- * DD-014 D-A): the artifact round-trip made the fire asynchronous, so the
+ * Clock — a manual fire needs no Temporal artifact: the artifact
+ * round-trip made the fire asynchronous, so the
  * RPC answered "started" before the launch gates ran — exactly the false
  * toast the owner hit (Go Runner).
  */
@@ -104,8 +103,8 @@ export const TRIGGER_RESULT_KEY = "trigger_result";
 
 /**
  * Refuses a disabled schedule (the owner's switch) — the ONE remaining
- * trigger refusal (DD-017 D-5 narrowed DD-014 D-B's matrix: paused
- * schedules are now triggerable, and the tick's revalidation no longer
+ * trigger refusal (paused schedules are triggerable, and the tick's
+ * revalidation no longer
  * guards manual fires because manual fires no longer pass through the
  * tick). Go validateTriggerableStep.
  */
@@ -170,7 +169,7 @@ export function newFireDirectRunStep<Desc extends DescMessage>(
         );
         // The in-process client's error instance carries the INNER
         // response's metadata; echoing it corrupts the serving HTTP/2
-        // trailers (NGHTTP2_PROTOCOL_ERROR — the #18 transport finding).
+        // trailers (NGHTTP2_PROTOCOL_ERROR).
         // Re-mint code + message, exactly the workflowexecution
         // forwarding posture.
         throw error instanceof ConnectError

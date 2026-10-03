@@ -3,15 +3,14 @@
  * pkg/domain/agentexecution/temporal (workflow_types.go,
  * workflows/invoke_workflow.go, activities/*.go).
  *
- * Every value here is a byte-pinned cross-edition wire constant (D2 §4):
+ * Every value here is a byte-pinned cross-edition wire constant:
  * the TS runner, the Go server, and the Java control plane all address
  * workflows, signals, activities, and memos by these exact strings.
  * Renaming one is a wire-protocol break, not a style fix.
  *
  * This module is imported by BOTH the workflow bundle and host code, so it
  * must stay free of node built-ins and framework imports (the Temporal
- * workflow sandbox bundler hard-fails on node imports — sub-project
- * 20260824.03 workflow-bundle import discipline).
+ * workflow sandbox bundler hard-fails on node imports).
  */
 
 /** Go workflows.InvokeAgentExecutionWorkflowName. */
@@ -48,20 +47,20 @@ export const SIGNAL_CHILD_EXECUTION_STARTED = "child_execution_started";
 
 /**
  * The outbound parent notification the workflow fires from the HITL loop
- * when it has a parent_workflow_id — the OSS half of the DD-012 forwarding
- * contract (D4 #23, parity-plus: Go never sends this). Mirrors cloud's
+ * when it has a parent_workflow_id — the OSS half of the child-approval
+ * forwarding contract (Go never sent this). Mirrors cloud's
  * AgentExecutionTemporalWorkflowTypes.SIGNAL_CHILD_APPROVAL_REQUIRED; the
  * receiver is the runner's call-agent orchestrator. The payload is a BARE
  * STRING (the child execution id): proto-shaped payloads poisoned the
- * receiving workflow task under the Java sender's json/protobuf encoding
- * (stigmer-cloud#509), so the identity-only string is the pinned wire shape.
+ * receiving workflow task under the Java sender's json/protobuf encoding,
+ * so the identity-only string is the pinned wire shape.
  */
 export const SIGNAL_CHILD_APPROVAL_REQUIRED = "child_approval_required";
 
 /**
  * The ONLY memo key this domain writes (workflow_creator.go); the workflow
  * reads it back on every dispatch. workflowexecution's `runnerTaskQueue`
- * memo key arrives with #21 — it does not exist in this domain.
+ * memo key belongs to that domain — it does not exist in this one.
  */
 export const MEMO_ACTIVITY_TASK_QUEUE = "activityTaskQueue";
 
@@ -87,8 +86,7 @@ export const GENERATE_SESSION_SUBJECT_ACTIVITY_NAME = "GenerateSessionSubject";
  * Registered once, invoked in BOTH modes: as a regular activity on the
  * stigmer queue from the failure/cancellation paths (dodging a Go-SDK
  * replay bug with local-activity markers after remote-activity failures —
- * the history SHAPE is preserved as contract, ratified brief #2 of
- * sub-project 20260824.03), and as a local activity from
+ * the history SHAPE is preserved as contract), and as a local activity from
  * persistFinalStatus/persistInterruptedStatus.
  */
 export const UPDATE_EXECUTION_STATUS_ACTIVITY_NAME = "UpdateExecutionStatus";
@@ -97,8 +95,9 @@ export const LOAD_AGENT_EXECUTION_ACTIVITY_NAME = "LoadAgentExecution";
 export const READ_HARNESS_STATE_ID_ACTIVITY_NAME = "ReadHarnessStateId";
 
 /**
- * The async activity completion lane (token handshake ADR
- * 20260122-async-agent-execution-temporal-token-handshake).
+ * The async activity completion lane: the runner finishes the execution's
+ * activity by its callback token, Temporal's asynchronous activity
+ * completion.
  */
 export const COMPLETE_EXTERNAL_ACTIVITY_NAME =
   "stigmer/system/complete-external-activity";

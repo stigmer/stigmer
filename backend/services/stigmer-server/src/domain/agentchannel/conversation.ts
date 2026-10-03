@@ -4,8 +4,8 @@
  * messaging controllers, on the same runtime side of the resource/runtime
  * split. Stateless on the storing edition — no store.
  *
- * The whole surface is posture-split at REGISTRATION (channel-runtime.ts,
- * C3 ruling Q1): with no ChannelRuntime composed the storing bodies below
+ * The whole surface is posture-split at REGISTRATION (channel-runtime.ts):
+ * with no ChannelRuntime composed the storing bodies below
  * serve byte-identically to before the seam existed; with one composed,
  * EVERY method delegates — on the serving edition even the discovery
  * reads are real store-backed lookups (truthful emptiness is an OUTCOME
@@ -13,8 +13,8 @@
  * identically, which only the runtime can do.
  *
  * Storing posture — queries answer EMPTY and commands refuse
- * FailedPrecondition, the two established postures side by side
- * (channel-conversations DD-003 D-f): a conversation list is a
+ * FailedPrecondition, the two established postures side by side: a
+ * conversation list is a
  * discovery-shaped read whose truthful storing answer is "none"
  * (conversations are created by the serving channel runtime, which does
  * not run here), while every command asks to DO a cloud-only thing. The

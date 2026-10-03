@@ -46,7 +46,7 @@ import type { Store } from "../../store/interface.js";
  * The narrow in-process surface the agentinstance domain needs from agent —
  * consumer-defined so the dependency reads at the domain boundary (the Go
  * twin is pkg/downstream/agent.Client). Calls ride the in-process router
- * transport, traversing the full interceptor chain (DD-002).
+ * transport, traversing the full interceptor chain.
  */
 export interface ParentAgentLoader {
   get(agentId: string): Promise<Agent>;
@@ -54,7 +54,7 @@ export interface ParentAgentLoader {
 
 /**
  * Lazy provider for the agent↔agentinstance true cycle — resolved at call
- * time, never at construction (the ratified DI story, D2 §2).
+ * time, never at construction.
  */
 export type ParentAgentLoaderProvider = () => ParentAgentLoader;
 
@@ -296,8 +296,8 @@ export function newRejectDefaultInstanceVisibilityUpdateStep<
 // ---------------------------------------------------------------------------
 // List filters — list.go and get_by_agent.go. Full scans with client-side
 // filtering, exactly Go (no pagination; no scope composed = no authorization
-// filtering). With a composed ListReadScope (20260830.01, census lanes
-// 14–15) both lanes narrow to the caller's authorized instances; the org
+// filtering). With a composed ListReadScope both lanes narrow to the caller's
+// authorized instances; the org
 // filters below are contract parity in both editions.
 // ---------------------------------------------------------------------------
 
@@ -344,9 +344,9 @@ export function newListByOrgAndLabelsStep(
           continue;
         }
       }
-      // Census lane 14: the org and label filters (contract in both
-      // editions) first, the scope last over the org's rows (the scope is
-      // the last per-row predicate, stigmer-cloud 20260913.04 T02).
+      // The org and label filters (contract in both editions) first, the
+      // scope last over the org's rows (the scope is the last per-row
+      // predicate).
       const instances = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,

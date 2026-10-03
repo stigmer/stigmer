@@ -1,5 +1,5 @@
 /**
- * The schedule-fire caller seam (stigmer-cloud#572) — WHO a schedule fire
+ * The schedule-fire caller seam — WHO a schedule fire
  * acts as when the RunStarter re-enters the execution create pipeline.
  *
  * With no driver composed a fire enters as the in-process `internal`
@@ -16,7 +16,7 @@
  * open source, under the built-in authorization posture, makes the fire
  * act as the schedule's CREATOR (authorization/schedule-fire-caller.ts),
  * so the run and its session are that person's. The fire then propagates
- * the identity through the R5 caller-propagation header exactly like the
+ * the identity through the caller-propagation header exactly like the
  * other request-origin in-process creates.
  *
  * Single-instance point. The mint is per fire — the schedule id is a

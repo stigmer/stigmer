@@ -11,8 +11,6 @@ package ai.stigmer.agentic.workflow.v1;
  *
  * Fields within the same group are rendered together in a collapsible section.
  * Groups are ordered by their position in the TaskKindDescriptor.field_groups list.
- *
- * &#64;since T04 (Task Schema Registry)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.TaskFieldGroup}
@@ -383,8 +381,6 @@ private static final long serialVersionUID = 0L;
    *
    * Fields within the same group are rendered together in a collapsible section.
    * Groups are ordered by their position in the TaskKindDescriptor.field_groups list.
-   *
-   * &#64;since T04 (Task Schema Registry)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.TaskFieldGroup}

@@ -3,7 +3,7 @@
  * pure local SigV4 computation; no call leaves the host). The Go tree
  * ships r2_storage.go untested; these pins are what the port adds:
  * required-config copy, the 7-day presign clamp, the signed
- * Content-Disposition, the not-found mapping, and the O5 widened surface
+ * Content-Disposition, the not-found mapping, and the widened surface
  * (typed not-found on download/size, presigned-PUT under the caller's key
  * with the signed Content-Length).
  */
@@ -62,7 +62,7 @@ describe("R2ArtifactStorage presigned URLs", () => {
   });
 });
 
-describe("R2ArtifactStorage O5 widened surface", () => {
+describe("R2ArtifactStorage widened surface", () => {
   it("presignPut signs a PUT under the caller's key, clamps the TTL, and signs the declared size", async () => {
     const storage = new R2ArtifactStorage(VALID);
     const key = "skills/staging/0123456789abcdef0123456789abcdef.zip";

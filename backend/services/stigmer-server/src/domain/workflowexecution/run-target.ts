@@ -1,5 +1,5 @@
 /**
- * The workflow-execution run-target resolver (P1 sp.run-gate): the chain's
+ * The workflow-execution run-target resolver: the chain's
  * own precedence — an explicit workflow_instance_id fully names the target
  * (CreateDefaultInstanceIfNeeded returns early on it):
  * workflow_instance#can_execute; else workflow_id names the blueprint whose

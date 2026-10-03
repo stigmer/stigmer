@@ -33,7 +33,7 @@ const (
 	ForEachErrorPolicy_FOR_EACH_ERROR_POLICY_UNSPECIFIED ForEachErrorPolicy = 0
 	// Stop on first error, cancel in-flight iterations.
 	// This is the default and preserves backward compatibility with the
-	// pre-T17 sequential behavior.
+	// original sequential behavior.
 	ForEachErrorPolicy_FOR_EACH_FAIL_FAST ForEachErrorPolicy = 1
 	// Continue remaining iterations after a failure.
 	// Failed items are recorded in the output with their errors.
@@ -107,7 +107,7 @@ type ForTaskConfig struct {
 	// Maximum number of iterations to execute concurrently.
 	//
 	// 0 (default): sequential execution — iterations run one at a time
-	// in input order. This preserves pre-T17 behavior.
+	// in input order. This preserves the original behavior.
 	//
 	// 1: effectively sequential (one at a time, but uses the parallel
 	// execution path — useful for testing).
@@ -116,8 +116,6 @@ type ForTaskConfig struct {
 	// goroutines with a semaphore-based concurrency limiter. Results are
 	// always reassembled in original input order regardless of completion
 	// order.
-	//
-	// @since T17 (Advanced Agentic Orchestration)
 	MaxParallelism int32 `protobuf:"varint,4,opt,name=max_parallelism,json=maxParallelism,proto3" json:"max_parallelism,omitempty"`
 	// Number of items to process in each batch before moving to the next.
 	//
@@ -129,16 +127,12 @@ type ForTaskConfig struct {
 	// max_parallelism iterations run concurrently.
 	//
 	// Only meaningful when max_parallelism > 0; ignored in sequential mode.
-	//
-	// @since T17 (Advanced Agentic Orchestration)
 	BatchSize int32 `protobuf:"varint,5,opt,name=batch_size,json=batchSize,proto3" json:"batch_size,omitempty"`
 	// Policy for handling individual iteration failures.
 	//
 	// Default: FOR_EACH_FAIL_FAST (stop on first error).
 	// Only meaningful when max_parallelism > 0; in sequential mode, any
-	// failure stops the loop regardless of this setting (pre-T17 behavior).
-	//
-	// @since T17 (Advanced Agentic Orchestration)
+	// failure stops the loop regardless of this setting.
 	OnError       ForEachErrorPolicy `protobuf:"varint,6,opt,name=on_error,json=onError,proto3,enum=ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy" json:"on_error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

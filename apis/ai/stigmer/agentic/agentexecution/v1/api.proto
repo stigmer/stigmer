@@ -107,7 +107,6 @@ message AgentExecutionStatus {
   //
   // References:
   // - WorkflowExecution.spec.callback_token (field 7) - Same pattern
-  // - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
   bytes callback_token = 10;
 
   // Field 12 held `ResolvedExecutionContext resolved_context` — a snapshot of
@@ -191,7 +190,7 @@ message AgentExecutionStatus {
   ApprovalEventStream approval_event_stream = 22;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Context Management (Phase 3)
+  // Context Management
   //
   // Context window utilization and automatic summarization tracking.
   // ─────────────────────────────────────────────────────────────────────────────
@@ -209,8 +208,6 @@ message AgentExecutionStatus {
   // - **Debugging**: Understand why an execution hit context limits
   // - **Cost optimization**: Identify executions with excessive summarization
   // - **UX**: Show users their context window health
-  //
-  // @since Phase 3 (Context Summarization Architecture)
   ContextInfo context_info = 14;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -229,8 +226,6 @@ message AgentExecutionStatus {
   // Use the execution download endpoint to refresh expired URLs.
   //
   // Ordered by creation time (oldest first).
-  //
-  // @since Artifact Lifecycle (Attachments & Artifacts)
   repeated ExecutionArtifact artifacts = 15;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -250,8 +245,6 @@ message AgentExecutionStatus {
   // Populated during post-execution processing. Each entry tracks the
   // write-back lifecycle (committed -> pushed -> PR created) and carries
   // the PR URL for UI display.
-  //
-  // @since Platform-Owned Git Write-Back
   repeated WorkspaceWriteBack workspace_write_backs = 17;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -322,7 +315,7 @@ message AgentExecutionStatus {
   // Recomputed on every status write from file_review_event_stream (never
   // merged), so it is always consistent with the authoritative ledger — exactly
   // as pending_approvals is recomputed from the message scan / approval stream.
-  // Empty until the runner's capture activity authors events (Phase 2). A
+  // Empty until the runner's capture activity authors events. A
   // terminal execution projects no actionable review. See FileChangeSet.
   //
   // Field 23: appended after approval_event_stream (22), the prior maximum.
@@ -371,7 +364,7 @@ message AgentExecutionStatus {
   FileChangeProgress file_change_progress = 25;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Recalled-Memories Injection Report (Phase 3a Semantic Retriever)
+  // Recalled-Memories Injection Report
   //
   // Runner-owned record of which spec.recalled_memories facts the semantic
   // retriever injected into the prompt. Absent report = wholesale injection.
@@ -389,7 +382,7 @@ message AgentExecutionStatus {
   // posture): written at most once per execution, at prompt build, through
   // the runner's status lane. The server merges it presence-guarded and
   // never writes it — the create pipeline stamps only the spec snapshot
-  // (DD-008 D5, stigmer/stigmer#293 Phase 3a).
+  // (stigmer/stigmer#293).
   //
   // The audit contract: spec.recalled_memories is the server-composed
   // CANDIDATE set (everything the caller's consent state made recallable);
@@ -419,12 +412,12 @@ message SetupProgress {
 // for one execution.
 //
 // @internal
-// Runner-owned, written at most once per execution at prompt build
-// (DD-008 D5). Selection activates only when the candidate set exceeds the
+// Runner-owned, written at most once per execution at prompt build.
+// Selection activates only when the candidate set exceeds the
 // retriever's threshold (k); every other path — at-or-below threshold, no
 // embeddings-capable provider, embed/rank failure — injects the snapshot
-// wholesale and reports selection_active=false. Wholesale is never worse
-// than the shipped Phase 2 behavior: selection is an optimization, its
+// wholesale and reports selection_active=false. Wholesale is the behavior
+// from before selection existed: selection is an optimization, its
 // absence is not a degradation.
 message RecalledMemoriesReport {
   // Whether semantic selection was active for this execution's prompt.
@@ -437,8 +430,8 @@ message RecalledMemoriesReport {
   // @internal
   // Always a subset of the spec.recalled_memories snapshot's memory_ids,
   // in SNAPSHOT order (oldest-first): selection is by relevance, but
-  // presentation preserves the stable prompt order both editions pin
-  // (DD-008 D3). Empty when selection_active is false — readers fall back
+  // presentation preserves the stable prompt order both editions pin.
+  // Empty when selection_active is false — readers fall back
   // to the snapshot, which is exactly correct.
   repeated string injected_memory_ids = 2;
 

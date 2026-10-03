@@ -9,13 +9,21 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**"],
-      // Generated stubs are buf's output, not code a test owes coverage to
-      // (scripts/test-coverage.mjs: a generated module is excluded here).
       exclude: [
         ...coverageConfigDefaults.exclude,
         "**/__test-utils__/**",
         "**/__fixtures__/**",
         "**/__mocks__/**",
+        // Workflow modules whose functions run only inside the Temporal
+        // workflow sandbox: the suites reach them through the worker's bundle,
+        // which V8 coverage never maps back to these files, so their bodies
+        // would read as unrun and refuse every edit made inside them. The list
+        // names files, not a rule: a module whose functions a test calls
+        // in-process comes off the list, so it is measured again.
+        "src/temporal/agentexecution/workflows/invoke-agent-execution.ts",
+        "src/temporal/workflowexecution/workflows/invoke-workflow-execution.ts",
+        // Generated stubs are buf's output, not code a test owes coverage to
+        // (scripts/test-coverage.mjs: a generated module is excluded here).
         "src/sandbox/substrate/gen/**",
       ],
       reporter: ["json", "json-summary"],

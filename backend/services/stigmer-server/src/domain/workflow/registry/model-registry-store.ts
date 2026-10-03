@@ -3,9 +3,9 @@
  * (pkg/domain/workflow/registry/model_registry_store.go). Domain-owned, as
  * in Go: the workflow validators and the transport's /v1/proxy/model-registry
  * lane read this ONE store, so the document the pickers see and the set
- * validation accepts can never drift (DD-004). Sub-project #3 first landed
- * the serving/refresh half under src/transport/; the workflow-family port
- * moved it home and added the catalog indexes (sub-project DD-A).
+ * validation accepts can never drift. The serving/refresh half first
+ * lived under src/transport/; the workflow domain owns it now and added
+ * the catalog indexes.
  *
  * The store always holds a complete, valid document: it starts from the
  * bundled build-time snapshot (offline-install contract — a server with no
@@ -20,11 +20,11 @@
  * failure logs at warn, repeats at debug until a success resets the flag —
  * an offline laptop must not fill its log with hourly warnings.
  *
- * Since O5 (20260827.02) this class is the OSS implementation of the
- * ModelCatalogProvider seam (DD-008) — consumers hold the interface; the
+ * This class is the OSS implementation of the
+ * ModelCatalogProvider seam — consumers hold the interface; the
  * refresh lifecycle below stays composition-owned, outside the contract.
  * The document INTERPRETATION (sanity gate, indexes, the query methods)
- * lives in document-catalog.ts since the C1 seam extraction (20260827.04):
+ * lives in document-catalog.ts:
  * this class owns only the bundled/upstream lifecycle and delegates every
  * read to the current DocumentModelCatalog, swapped atomically per
  * accepted document.

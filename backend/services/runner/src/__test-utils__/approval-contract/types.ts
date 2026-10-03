@@ -10,7 +10,7 @@
  *
  * The safety invariants they must uphold are identical, so the contract describes
  * them once and runs them against anything that implements {@link GatewaySubstrate}.
- * A future substrate (e.g. the T04 TS server's runner) joins the safety net by
+ * A future substrate (another runner, say) joins the safety net by
  * implementing this one interface — it does not get to redefine the invariants.
  *
  * This seam intentionally does NOT carry raw, harness-specific tool names. The

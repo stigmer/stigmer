@@ -98,11 +98,11 @@
       "type": "string"
     },
     "max_parallelism": {
-      "description": "Maximum number of iterations to execute concurrently. 0 (default): sequential execution — iterations run one at a time in input order. This preserves pre-T17 behavior. 1: effectively sequential (one at a time, but uses the parallel execution path — useful for testing). N \u003e 1: up to N iterations run concurrently using Temporal workflow goroutines with a semaphore-based concurrency limiter. Results are always reassembled in original input order regardless of completion order.",
+      "description": "Maximum number of iterations to execute concurrently. 0 (default): sequential execution — iterations run one at a time in input order. This preserves the original behavior. 1: effectively sequential (one at a time, but uses the parallel execution path — useful for testing). N \u003e 1: up to N iterations run concurrently using Temporal workflow goroutines with a semaphore-based concurrency limiter. Results are always reassembled in original input order regardless of completion order.",
       "type": "integer"
     },
     "on_error": {
-      "description": "Policy for handling individual iteration failures. Default: FOR_EACH_FAIL_FAST (stop on first error). Only meaningful when max_parallelism \u003e 0; in sequential mode, any failure stops the loop regardless of this setting (pre-T17 behavior).",
+      "description": "Policy for handling individual iteration failures. Default: FOR_EACH_FAIL_FAST (stop on first error). Only meaningful when max_parallelism \u003e 0; in sequential mode, any failure stops the loop regardless of this setting.",
       "enum": [
         "FOR_EACH_FAIL_FAST",
         "FOR_EACH_CONTINUE",

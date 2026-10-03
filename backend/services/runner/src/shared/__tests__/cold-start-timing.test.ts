@@ -1,9 +1,9 @@
 /**
  * Unit tests for the cold-start timing instrumentation.
  *
- * The warm-agent-surfaces baseline report derives its waterfall from these
- * emissions, so the invariants pinned here are load-bearing for a spend
- * decision: `mark` segments must partition the timeline (total == sum, no
+ * The cold-start baseline report derives its waterfall from these
+ * emissions, so the invariants pinned here are load-bearing: `mark` segments
+ * must partition the timeline (total == sum, no
  * gaps), `span` segments may overlap and never move the mark cursor (so the
  * two idioms compose on one recorder), the emitted line must keep its stable
  * shape (`stigmer_timing` selector, context spread, `segments` with

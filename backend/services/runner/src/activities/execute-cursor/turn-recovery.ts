@@ -14,7 +14,7 @@
  * agent's own conversation is best-effort at most; the handle is the thing
  * that failed).
  *
- * Doctrine (mirrors `ChannelRolloverBridgeComposer`, cloud DD-013 — the
+ * Doctrine (mirrors the rollover context bridge's composer — the
  * platform's reference for conversation digests):
  * - Content here, presentation framing separate: {@link composeTurnRecoveryDigest}
  *   emits bare `Assistant:` / `Tool:` / `System:` lines;
@@ -35,7 +35,7 @@
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-/** Per-line text budget; longer texts are cut with an ellipsis (DD-013 twin). */
+/** Per-line text budget; longer texts are cut with an ellipsis (as the bridge does). */
 const MAX_LINE_CHARS = 400;
 
 /**
@@ -46,7 +46,7 @@ const MAX_LINE_CHARS = 400;
 const MAX_ARGS_CHARS = 200;
 
 /**
- * Whole-digest budget (DD-013 twin). Enforced by dropping the OLDEST lines
+ * Whole-digest budget (as the bridge's). Enforced by dropping the OLDEST lines
  * first — recency wins, matching how a human skims their own recent work
  * before continuing it.
  */
@@ -105,7 +105,7 @@ export function composeTurnRecoveryDigest(
     if (lines.length === 0) return undefined;
 
     // Oldest-first; drop from the FRONT when over budget so the newest work
-    // always survives, and disclose the drop (DD-013 enforcement shape). The
+    // always survives, and disclose the drop (the bridge's enforcement shape). The
     // notice participates in the budget so the result never overshoots.
     let first = 0;
     while (first < lines.length && totalLength(lines, first) > MAX_DIGEST_CHARS) {

@@ -12,8 +12,6 @@ package ai.stigmer.agentic.workflow.v1;
  * Returns all historical versions ordered by applied_at (newest first).
  * Used by the Console, SDK, and CLI to render version timelines and
  * enable version comparison.
- *
- * &#64;since Workflow Versioning
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput}
@@ -414,8 +412,6 @@ private static final long serialVersionUID = 0L;
    * Returns all historical versions ordered by applied_at (newest first).
    * Used by the Console, SDK, and CLI to render version timelines and
    * enable version comparison.
-   *
-   * &#64;since Workflow Versioning
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput}

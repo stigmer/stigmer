@@ -11,13 +11,13 @@
  * the first Temporal blip — Go's createWorkers warning), and let domain
  * code observe the CURRENT client at call time.
  *
- * Two deliberate TS-idiom deviations from Go, both internal (sub-project
- * 20260824.03 plan; neither is wire-visible):
+ * Two deliberate TS-idiom deviations from Go, both internal (neither is
+ * wire-visible):
  *
  *   - Go re-injects workflow creators into controllers via duck-typed
  *     SetWorkflowCreator/SetTemporalClient assertions on an untyped
  *     dependency bag. Here the domain's engine implementation reads
- *     getClient() at call time — the engine-state provider #17 wired IS
+ *     getClient() at call time — the engine-state provider IS
  *     the injection mechanism, so reconnects propagate with no reinject
  *     step and "forgot to wire it" is a compile error.
  *   - Go passes the client to CompleteExternalActivity through a mutable
@@ -135,8 +135,8 @@ export interface WorkerFactoryDeps {
    * over the manager's NativeConnection, namespace, and decode-only codec
    * chain, so every worker — OSS and extension alike — is built by THIS
    * package's @temporalio/worker instance. Handing factories the raw
-   * NativeConnection instead was the finding-16 trap (stigmer-cloud C4
-   * session 6): a composition's own @temporalio/worker copy pairs the
+   * NativeConnection instead was a trap: a composition's own
+   * @temporalio/worker copy pairs the
    * foreign connection with its own Tokio bridge, every extension poller
    * dies at boot with "there is no reactor running", and the worker still
    * reports RUNNING.
@@ -155,7 +155,7 @@ export interface WorkerFactoryDeps {
 
 /**
  * Creates one domain worker (agent-execution here; workflow-execution and
- * the schedule clock append theirs in #21/#22 — Go createWorkers' list;
+ * the schedule clock append theirs — Go createWorkers' list;
  * extension workers append after the OSS set via the registry).
  */
 export type WorkerFactory = (deps: WorkerFactoryDeps) => Promise<Worker>;
@@ -222,8 +222,8 @@ export class TemporalManager {
 
   /**
    * Registers a callback run after every successful RECONNECTION, once
-   * workers are recreated (Go AddReconnectHook). First consumer arrives
-   * with #22: the schedule reconciliation kick — an OSS reconnect very
+   * workers are recreated (Go AddReconnectHook). Its consumer is the
+   * schedule reconciliation kick — an OSS reconnect very
    * often means the dev server restarted with empty state.
    */
   addReconnectHook(hook: () => void): void {
@@ -426,7 +426,7 @@ export class TemporalManager {
       // close() may have completed while the dial was in flight; adopting
       // the fresh connection now would RESURRECT the manager after
       // shutdown — live pollers, open connections, reconnect hooks firing
-      // post-close (panel finding; Go is immune because its monitor's
+      // post-close (Go is immune because its monitor's
       // context is cancelled before Close). Discard and stand down.
       if (this.closed) {
         await closeQuietly(() => dialed.connection.close(), this.logger);
@@ -462,7 +462,7 @@ export class TemporalManager {
       // getClient() at call time (see the module header).
 
       // Reconnect hooks last, once workers poll again (Go ordering) —
-      // e.g. #22's schedule re-arm must find a worker to fire against.
+      // e.g. the schedule re-arm must find a worker to fire against.
       for (const hook of [...this.reconnectHooks]) {
         hook();
       }
@@ -556,7 +556,7 @@ export class TemporalManager {
     // Each worker is tracked THE MOMENT it starts (not after the whole
     // loop): a later factory throwing must leave the earlier workers
     // stoppable by shutdownWorkers/close — an untracked running worker
-    // polls forever (panel finding; latent until #21/#22 add factories).
+    // polls forever.
     this.workers = [];
     for (const factory of this.workerFactories) {
       const worker = await factory(deps);
@@ -565,7 +565,7 @@ export class TemporalManager {
       // run() resolves on graceful shutdown and rejects on fatal worker
       // errors; a rejection is logged and left to the health monitor —
       // Go's "worker died, reconnect recreates it" model. ERROR level with
-      // the queue identity, deliberately: a PERMANENT death (finding 16's
+      // the queue identity, deliberately: a PERMANENT death (the
       // dual-module-instance class) re-dies on every recreate while the
       // worker still reports RUNNING — this line is the only signal.
       const runPromise = worker.run().catch((error: unknown) => {

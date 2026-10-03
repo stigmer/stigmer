@@ -14,7 +14,7 @@
  *     are two spellings of one setting;
  *   - a plain compose value equals the chart's after the address table for
  *     the profile (one host became one pod; the artifact path moved out of
- *     `/data`, F11; a bring-your-own profile names its own addresses; the
+ *     `/data`; a bring-your-own profile names its own addresses; the
  *     public URLs follow the Ingress hosts when there are any);
  *   - the chart may add exactly the names listed in CHART_ONLY (the
  *     `$(POSTGRES_PASSWORD)` expansion source) and, per profile, the names the
@@ -226,7 +226,7 @@ test("the runner task queue is one value on both sides, as compose anchors it", 
   );
 });
 
-test("the artifact root is the same path in both containers and is not nested under /data (F11)", () => {
+test("the artifact root is the same path in both containers and is not nested under /data", () => {
   const docs = renderProfile("bundled");
   const pod = findOne(docs, "Deployment", RELEASE).spec.template.spec;
   const server = envMap(containerNamed(pod, "server"));

@@ -1,14 +1,15 @@
 /**
- * Pins the workflowexecution Phase-1 surfaces against Go's controller —
+ * Pins the workflowexecution surfaces against Go's controller —
  * through the REAL stack: a composed server on an ephemeral port, a
  * native gRPC client, the full interceptor chain. Executions cannot be
  * created through the RPC surface here (the engine gate refuses without
- * Temporal — exactly the production posture until #21), so records are
+ * Temporal — the production posture while no engine is connected), so
+ * records are
  * seeded directly through the store, the same way Go's controller tests
  * seed with SaveResource.
  *
  * Load-bearing pins the zero-record conformance arm cannot cover:
- *   - list's legacy-phase fallback vs filter.phases precedence, the T13
+ *   - list's legacy-phase fallback vs filter.phases precedence, the
  *     structured filter over seeded rows, the newest-created default
  *     order and its cursor pages (a token refused on another request),
  *     and a non-default sort answering its first page with no token;
@@ -804,7 +805,7 @@ describe("[rpc:WorkflowExecutionCommandController.updateStatus] updateStatus ove
       expect(log.events).toHaveLength(1);
       expect(log.latestSequence).toBe(1n);
 
-      // The broadcast carries the merged state (ADR 011 write path).
+      // The broadcast carries the merged state (the broker's write path).
       expect(subscription.queue).toHaveLength(1);
       expect(subscription.queue[0].status?.phase).toBe(
         ExecutionPhase.EXECUTION_COMPLETED,
@@ -996,7 +997,7 @@ describe("subscribeEvents over the wire (the first server-side poll loop)", () =
   });
 });
 
-describe("create over the wire (the engine gate, F7 regression)", () => {
+describe("create over the wire (the engine gate)", () => {
   async function seedWorkflow(slug: string): Promise<string> {
     const id = `wf_${slug.replaceAll("-", "_")}`;
     await server.store.saveResource(

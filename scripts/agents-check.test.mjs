@@ -237,9 +237,9 @@ test("both pattern lists are exported for source guards, and guidance is judged 
 test("private-record identifiers fail public guidance; --private-repo relaxes the record path and id, never the record-internal ids", () => {
   const root = repo({
     "AGENTS.md": [
-      "Decided in _projects/2026-09/some-record/tasks/T01_0_plan.md.",
-      "Ruled at Q-AB-1; see F-CD-2.",
-      "Record 20260101.07 chose DD-012.",
+      "Decided in _projects/2026-09/some-record/tasks/T09_9_plan.md.",
+      "Ruled at Q-ZZ-9; see F-ZZ-9.",
+      "Record 20260101.07 chose DD-998.",
       "T0 alone, 2026-09-16, a 2026.09 release, DD-MM dates, or PR #1136, are fine.",
       // A private repository's guidance may point at a record by path: the path carries the id.
       "Seam changes follow _projects/2026-09/20260101.07.some-record/coding-guidelines/001-seam.md.",
@@ -251,11 +251,11 @@ test("private-record identifiers fail public guidance; --private-repo relaxes th
       publicFindings.map((f) => f.split(": ").slice(1).join(": ")),
       [
         "planning-record path in public guidance: _projects/",
-        "task file id in public guidance: T01_0",
-        "ruling id in public guidance: Q-AB-1",
-        "finding id in public guidance: F-CD-2",
+        "task file id in public guidance: T09_9",
+        "ruling id in public guidance: Q-ZZ-9",
+        "finding id in public guidance: F-ZZ-9",
         "planning-record id in public guidance: 20260101.07",
-        "decision id in public guidance: DD-012",
+        "decision id in public guidance: DD-998",
         "planning-record path in public guidance: _projects/",
         "planning-record id in public guidance: 20260101.07",
       ],
@@ -264,12 +264,74 @@ test("private-record identifiers fail public guidance; --private-repo relaxes th
     assert.deepEqual(
       privateFindings.map((f) => f.split(": ").slice(1).join(": ")),
       [
-        "task file id in public guidance: T01_0",
-        "ruling id in public guidance: Q-AB-1",
-        "finding id in public guidance: F-CD-2",
-        "decision id in public guidance: DD-012",
+        "task file id in public guidance: T09_9",
+        "ruling id in public guidance: Q-ZZ-9",
+        "finding id in public guidance: F-ZZ-9",
+        "decision id in public guidance: DD-998",
       ],
       "private mode keeps every record-internal id a finding and lets the record path line through",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("bare task ids, two-digit decisions, bare rulings and findings, record stages and private repository references fail public guidance; their near-misses do not", () => {
+  const root = repo({
+    "AGENTS.md": [
+      "Landed at T00.",
+      "Then at T19z.",
+      "See DD-98 and Q-ZZ.",
+      "Then DD-ZZ-9.",
+      "Per decision 998.",
+      "See design doc 98.",
+      "As finding 98 showed.",
+      "Decision 997, Design doc 97 and Finding 97 open a sentence.",
+      "Closes F-98.",
+      "Shipped in Z9 Stage 7.",
+      "Tracked as stigmer-cloud#0.",
+      // Near-misses: an ISO time, a timestamp, a bare build stage, a standard's
+      // section, a public issue.
+      "At 2026-09-30T12:00, `${day}T00:00:00Z`, a DD-MM-YYYY, DD-MMM-YYYY, DD-MON-YY or HH:MM DD-YYYY format, an F-1 score, stigmer#778 finding 3, Stage 1 of make check, RFC 6749 §2.3.1, #1249 and stigmer#1249 are fine.",
+    ].join("\n"),
+  });
+  try {
+    const found = (privateRepo) =>
+      checkLeakage(root, ["AGENTS.md"], { privateRepo }).map((f) => f.split(": ").slice(1).join(": "));
+    assert.deepEqual(found(false), [
+      "task id in public guidance: T00",
+      "task id in public guidance: T19z",
+      "decision id in public guidance: DD-98",
+      "ruling id in public guidance: Q-ZZ",
+      "decision id in public guidance: DD-ZZ-9",
+      "decision number in public guidance: decision 998",
+      "design document number in public guidance: design doc 98",
+      "finding number in public guidance: finding 98",
+      "decision number in public guidance: Decision 997",
+      "design document number in public guidance: Design doc 97",
+      "finding number in public guidance: Finding 97",
+      "finding id in public guidance: F-98",
+      "record stage in public guidance: Z9 Stage 7",
+      "private repository reference in public guidance: stigmer-cloud#0",
+    ]);
+    assert.deepEqual(
+      found(true),
+      [
+        "task id in public guidance: T00",
+        "task id in public guidance: T19z",
+        "decision id in public guidance: DD-98",
+        "ruling id in public guidance: Q-ZZ",
+        "decision id in public guidance: DD-ZZ-9",
+        "decision number in public guidance: decision 998",
+        "design document number in public guidance: design doc 98",
+        "finding number in public guidance: finding 98",
+        "decision number in public guidance: Decision 997",
+        "design document number in public guidance: Design doc 97",
+        "finding number in public guidance: Finding 97",
+        "finding id in public guidance: F-98",
+        "record stage in public guidance: Z9 Stage 7",
+      ],
+      "the private repository may cite its own issues",
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

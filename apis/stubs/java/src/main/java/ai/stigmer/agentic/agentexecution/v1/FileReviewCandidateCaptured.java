@@ -285,7 +285,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance commandProvenance_;
   /**
    * <pre>
-   * The runner's approved-command turn facts (DD-28). When present AND the
+   * The runner's approved-command turn facts. When present AND the
    * backend's verification passes, the set is auto-kept by a policy-origin
    * FILE_DECIDED instead of arming the review gate. Absent → manual review.
    * See TurnCommandProvenance.
@@ -300,7 +300,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The runner's approved-command turn facts (DD-28). When present AND the
+   * The runner's approved-command turn facts. When present AND the
    * backend's verification passes, the set is auto-kept by a policy-origin
    * FILE_DECIDED instead of arming the review gate. Absent → manual review.
    * See TurnCommandProvenance.
@@ -315,7 +315,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The runner's approved-command turn facts (DD-28). When present AND the
+   * The runner's approved-command turn facts. When present AND the
    * backend's verification passes, the set is auto-kept by a policy-origin
    * FILE_DECIDED instead of arming the review gate. Absent → manual review.
    * See TurnCommandProvenance.
@@ -1574,7 +1574,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance, ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.Builder, ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenanceOrBuilder> commandProvenanceBuilder_;
     /**
      * <pre>
-     * The runner's approved-command turn facts (DD-28). When present AND the
+     * The runner's approved-command turn facts. When present AND the
      * backend's verification passes, the set is auto-kept by a policy-origin
      * FILE_DECIDED instead of arming the review gate. Absent → manual review.
      * See TurnCommandProvenance.
@@ -1588,7 +1588,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The runner's approved-command turn facts (DD-28). When present AND the
+     * The runner's approved-command turn facts. When present AND the
      * backend's verification passes, the set is auto-kept by a policy-origin
      * FILE_DECIDED instead of arming the review gate. Absent → manual review.
      * See TurnCommandProvenance.
@@ -1606,7 +1606,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The runner's approved-command turn facts (DD-28). When present AND the
+     * The runner's approved-command turn facts. When present AND the
      * backend's verification passes, the set is auto-kept by a policy-origin
      * FILE_DECIDED instead of arming the review gate. Absent → manual review.
      * See TurnCommandProvenance.
@@ -1629,7 +1629,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The runner's approved-command turn facts (DD-28). When present AND the
+     * The runner's approved-command turn facts. When present AND the
      * backend's verification passes, the set is auto-kept by a policy-origin
      * FILE_DECIDED instead of arming the review gate. Absent → manual review.
      * See TurnCommandProvenance.
@@ -1650,7 +1650,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The runner's approved-command turn facts (DD-28). When present AND the
+     * The runner's approved-command turn facts. When present AND the
      * backend's verification passes, the set is auto-kept by a policy-origin
      * FILE_DECIDED instead of arming the review gate. Absent → manual review.
      * See TurnCommandProvenance.
@@ -1678,7 +1678,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The runner's approved-command turn facts (DD-28). When present AND the
+     * The runner's approved-command turn facts. When present AND the
      * backend's verification passes, the set is auto-kept by a policy-origin
      * FILE_DECIDED instead of arming the review gate. Absent → manual review.
      * See TurnCommandProvenance.
@@ -1698,7 +1698,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The runner's approved-command turn facts (DD-28). When present AND the
+     * The runner's approved-command turn facts. When present AND the
      * backend's verification passes, the set is auto-kept by a policy-origin
      * FILE_DECIDED instead of arming the review gate. Absent → manual review.
      * See TurnCommandProvenance.
@@ -1713,7 +1713,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The runner's approved-command turn facts (DD-28). When present AND the
+     * The runner's approved-command turn facts. When present AND the
      * backend's verification passes, the set is auto-kept by a policy-origin
      * FILE_DECIDED instead of arming the review gate. Absent → manual review.
      * See TurnCommandProvenance.
@@ -1731,7 +1731,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The runner's approved-command turn facts (DD-28). When present AND the
+     * The runner's approved-command turn facts. When present AND the
      * backend's verification passes, the set is auto-kept by a policy-origin
      * FILE_DECIDED instead of arming the review gate. Absent → manual review.
      * See TurnCommandProvenance.

@@ -1,6 +1,6 @@
 /**
  * Characterization test for the ChatAnthropic `createClient` ->
- * AnthropicFoundry seam — the integration the T05 foundry backend adapter
+ * AnthropicFoundry seam — the integration the foundry backend adapter
  * is built on. Sibling of vertex-seam.test.ts and bedrock-seam.test.ts;
  * same rules: this pins REAL cross-package behavior (`@langchain/anthropic`
  * driving `@anthropic-ai/foundry-sdk`, both resolving the single
@@ -159,7 +159,7 @@ interface SeamHarness {
  * The factory honors `maxRetries` from the incoming options: LangChain owns
  * retrying (its AsyncCaller wraps every request) and passes `maxRetries: 0`
  * so the underlying SDK must not retry underneath it — same contract the
- * vertex and bedrock seams pin, preserved by the T05 adapter.
+ * vertex and bedrock seams pin, preserved by the foundry adapter.
  *
  * Auth is either the static test API key or a caller-supplied Entra token
  * provider — the same either/or the production adapter selects between.

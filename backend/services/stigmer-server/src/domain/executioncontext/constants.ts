@@ -2,7 +2,7 @@
  * ExecutionContext domain constants — the byte-pinned wire copy shared
  * with the Go server. Every string here reaches clients verbatim (the
  * conformance suite and the runner's error surfaces read them), so none
- * is editable without an owner-ratified wire change.
+ * is editable without an deliberate wire change.
  *
  * The redaction marker itself is NOT defined here: it is imported from
  * the environment domain's constants (the single source of truth both Go
@@ -27,7 +27,7 @@ export function ciphertextShapedMessage(key: string): string {
  * Internal copy for an encrypt failure at write. Replaced the ported
  * per-key `failed to encrypt secret value for '<key>'` (Go
  * encrypt_secret_values.go) when EC sealing became one batch through the
- * v2-capped verb (20260830.04 Stage 1) — a batch failure has no single
+ * v2-capped verb — a batch failure has no single
  * failing key. Unreachable for the local v1 codec; a vault-backed write
  * codec reaches it on KEK-provider failure, with the real error logged.
  */

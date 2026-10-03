@@ -17,8 +17,8 @@
  * requests diverge at byte 0 ("GET", "POST", "OPTI"…), so the common browser
  * path decides on the first chunk.
  *
- * The two handoffs are deliberately different (spike SP-A finding,
- * 2026-08-23): Node's HTTP/1.1 parser reads the socket as a JS stream, so
+ * The two handoffs are deliberately different (measured 2026-08-23): Node's
+ * HTTP/1.1 parser reads the socket as a JS stream, so
  * `unshift` replays the peeked bytes for it. Node's HTTP/2 core instead
  * consumes the socket's NATIVE handle — bytes unshifted into the JS stream
  * buffer never reach it, and the session fails with "bad client magic". The
@@ -33,7 +33,7 @@
  * close before a decision are simply released; they must never log errors
  * or crash the process.
  *
- * Proven by spike SP-A (D2 spike register): the co-located test exercises
+ * Proven by the co-located test, which exercises
  * all four verified client transports against this demux.
  */
 import type { Server as Http1Server } from "node:http";
@@ -146,7 +146,7 @@ function routeByPreface(socket: Socket, targets: DemuxTargets): void {
  * A Duplex that delivers `head` before the socket's live bytes and forwards
  * writes/shutdown to the socket. Required for the h2 handoff only: http2
  * consumes the native socket handle directly, so JS-level `unshift` cannot
- * replay peeked bytes for it (verified in spike SP-A). Backpressure maps
+ * replay peeked bytes for it (verified by measurement). Backpressure maps
  * both ways: a full Duplex buffer pauses the socket; http2 reads resume it.
  */
 function createReplayDuplex(socket: Socket, head: Buffer): Duplex {

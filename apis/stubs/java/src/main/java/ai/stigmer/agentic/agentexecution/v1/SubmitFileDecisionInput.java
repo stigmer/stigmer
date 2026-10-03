@@ -12,7 +12,7 @@ package ai.stigmer.agentic.agentexecution.v1;
  *
  * The decision is recorded in the append-only file_review event stream as a
  * FILE_DECIDED event; FileChangeSet.decisions is the derived projection. The
- * runner reconciles approved bytes (Phase 2); this RPC only records the
+ * runner reconciles approved bytes; this RPC only records the
  * decision and enforces that expected_digest still matches what the user saw.
  *
  * Example:
@@ -634,7 +634,7 @@ private static final long serialVersionUID = 0L;
    *
    * The decision is recorded in the append-only file_review event stream as a
    * FILE_DECIDED event; FileChangeSet.decisions is the derived projection. The
-   * runner reconciles approved bytes (Phase 2); this RPC only records the
+   * runner reconciles approved bytes; this RPC only records the
    * decision and enforces that expected_digest still matches what the user saw.
    *
    * Example:

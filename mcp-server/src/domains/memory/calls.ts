@@ -1,5 +1,5 @@
 // Memory RPC invocation for the remember tool — a 1:1 projection of
-// MemoryCommandController.create (DD-005 D2: the tool layer adds no
+// MemoryCommandController.create (the tool layer adds no
 // semantics; enablement, the caller gate, subject derivation, the 500-char
 // contract, and the 100-record cap all live in the server's create path).
 //
@@ -8,7 +8,7 @@
 //
 //   { "outcome": "<honest one-liner for the model>", "memory": {…} }
 //
-// `outcome` is the DD-005 D2 relay — the fact was PROPOSED and awaits the
+// `outcome` is the relay — the fact was PROPOSED and awaits the
 // user's decision, so the model never claims "I'll remember that". `memory`
 // is the created record, verbatim proto JSON — the machine-checked contract
 // the SDK's normalizeToolResult parses to render the consent chip (pinned
@@ -51,7 +51,7 @@ export async function proposeMemory(
     spec: create(MemorySpecSchema, {
       content: fact,
       // subject_identity_account_id is deliberately absent: the server
-      // derives it from the calling credential (DD-005 D2) and ignores
+      // derives it from the calling credential and ignores
       // any supplied value.
       provenance: create(MemoryProvenanceSchema, {
         agentId: context.agentId,

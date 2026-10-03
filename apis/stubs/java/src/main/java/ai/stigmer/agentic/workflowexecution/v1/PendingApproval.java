@@ -8,8 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * PendingApproval represents a single human_input task awaiting a reviewer decision.
- *
- * &#64;since T14 (Dashboard Integration)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.PendingApproval}
@@ -390,8 +388,6 @@ private static final long serialVersionUID = 0L;
    * (approval_requested event), read when the reviewer opens the gate.
    * Empty when the task declares no hint or the execution predates the
    * field — consumers treat empty as a generic review.
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
@@ -420,8 +416,6 @@ private static final long serialVersionUID = 0L;
    * (approval_requested event), read when the reviewer opens the gate.
    * Empty when the task declares no hint or the execution predates the
    * field — consumers treat empty as a generic review.
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
@@ -689,8 +683,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * PendingApproval represents a single human_input task awaiting a reviewer decision.
-   *
-   * &#64;since T14 (Dashboard Integration)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.PendingApproval}
@@ -1854,8 +1846,6 @@ private static final long serialVersionUID = 0L;
      * (approval_requested event), read when the reviewer opens the gate.
      * Empty when the task declares no hint or the execution predates the
      * field — consumers treat empty as a generic review.
-     *
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      *
      * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
@@ -1883,8 +1873,6 @@ private static final long serialVersionUID = 0L;
      * (approval_requested event), read when the reviewer opens the gate.
      * Empty when the task declares no hint or the execution predates the
      * field — consumers treat empty as a generic review.
-     *
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      *
      * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
@@ -1913,8 +1901,6 @@ private static final long serialVersionUID = 0L;
      * (approval_requested event), read when the reviewer opens the gate.
      * Empty when the task declares no hint or the execution predates the
      * field — consumers treat empty as a generic review.
-     *
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      *
      * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
@@ -1939,8 +1925,6 @@ private static final long serialVersionUID = 0L;
      * (approval_requested event), read when the reviewer opens the gate.
      * Empty when the task declares no hint or the execution predates the
      * field — consumers treat empty as a generic review.
-     *
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      *
      * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
@@ -1962,8 +1946,6 @@ private static final long serialVersionUID = 0L;
      * (approval_requested event), read when the reviewer opens the gate.
      * Empty when the task declares no hint or the execution predates the
      * field — consumers treat empty as a generic review.
-     *
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      *
      * <code>string ui_hint = 8 [json_name = "uiHint"];</code>

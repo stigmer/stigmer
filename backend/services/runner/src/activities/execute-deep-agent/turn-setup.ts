@@ -130,7 +130,7 @@ export interface DeepAgentGateState {
   readonly leasedCategories: ReadonlySet<ToolApprovalCategory>;
   /** Pre-armed spec.auto_approve_all — the one unscoped, whole-run bypass; the gate is not installed under it. */
   readonly globalBypass: boolean;
-  /** Unattended approval mode (DD-014): the gate auto-skips instead of interrupting. */
+  /** Unattended approval mode: the gate auto-skips instead of interrupting. */
   readonly unattended: boolean;
   /** Tool-call ids the gate auto-skipped this turn; written by the gate, read by `reconcileUnattendedSkips`. */
   readonly unattendedSkips: Set<string>;
@@ -190,7 +190,7 @@ export async function openCheckpointer(input: TurnInput, sink: TurnSink, config:
  * (the one root). The platform dir the shared provision ensured rides along so
  * the backend routes `.stigmer/…` reads to it.
  *
- * CAS capture (design docs 08/11/12): the single per-turn observer owns the
+ * CAS capture: the single per-turn observer owns the
  * before-bytes of first-touched CAS-owned paths AND the secret-blocked
  * paths, keyed workspace-root-relative. Shared by the parent AND every
  * sub-agent CAS backend, giving race-free first-touch-wins across
@@ -286,7 +286,7 @@ export function composeSystemPrompt(input: TurnInput, recalledMemories: Recalled
     containerRoot: primaryDir,
     skillsPromptSection: renderSkillsSection(input.skills.root),
     // "" (nothing sendable) threads as undefined: the tool alone still serves
-    // text sends inside a 24-hour window (DD-006 D6).
+    // text sends inside a 24-hour window.
     channelTemplatesPromptSection: input.mcp.channelMessaging.length > 0
       ? formatChannelTemplatesSection(input.mcp.channelMessaging) || undefined
       : undefined,
@@ -421,7 +421,7 @@ export async function buildEngine(
   // built once and inherited verbatim by sub-agents. Null under the global
   // pre-arm, where the gate is inert. Capture mode: file edits flow (tracked
   // to the git diff, ignored into CAS on THIS gate); secret-like paths are
-  // hard-blocked (DD-E); shell/MCP stay gated. The CAS arm additionally
+  // hard-blocked; shell/MCP stay gated. The CAS arm additionally
   // requires storage to persist its blobs.
   const captureMode = input.workspace.captureMode;
   const approvalGateConfig: ApprovalGateConfig | null = !gate.globalBypass
@@ -490,7 +490,7 @@ export async function buildEngine(
     workspaceBackend: workspace.backend,
     approvalGate: approvalGateConfig,
     // Capture is universal: every sub-agent gets a CAS-observing backend wired
-    // to the SAME per-turn observer as the parent (Session 26, DD-19).
+    // to the SAME per-turn observer as the parent.
     casObserver: workspace.casObserver,
     parentModelName: modelName,
     parentThinks,

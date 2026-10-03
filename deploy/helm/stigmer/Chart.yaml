@@ -1,7 +1,6 @@
-# The open-source Stigmer stack as a Helm chart: docker-compose.yml translated
-# (stigmer-cloud project 20260914.02.sp.oss-helm-chart; DD-013 for the
-# posture it carries, DD-003 of the editions program for "one chart, two
-# server images").
+# The open-source Stigmer stack as a Helm chart: docker-compose.yml translated,
+# with its posture (secrets are explicit keys the operator supplies, and a
+# missing one fails loudly at render instead of being generated silently).
 #
 # version == appVersion == the release version. This file is the FOURTH
 # release pin: `make release-pins version=X.Y.Z` bumps both lines and

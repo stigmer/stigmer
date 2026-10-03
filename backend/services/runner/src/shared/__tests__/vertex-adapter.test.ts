@@ -167,7 +167,7 @@ describe("buildChatModel vertex adapter", () => {
   it("forwards the request timeout to the SDK client (STIGMER_LLM_REQUEST_TIMEOUT_MS path)", async () => {
     // The timeout rides clientOptions -> factory options -> SDK constructor.
     // A factory that drops it silently unbounds the operator's timeout on
-    // this backend (the regression T06 repaired for the public path).
+    // this backend (the regression repaired for the public path).
     const { model } = await buildChatModel({
       modelName: "claude-sonnet-4-6",
       maxTokens: 256,

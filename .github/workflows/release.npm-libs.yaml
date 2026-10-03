@@ -231,8 +231,7 @@ jobs:
           done
           cd dist-slim-pkgs/runner-slim && npm publish --access public --tag "$NPM_TAG"
 
-  # @stigmer/server as a LIBRARY (stigmer-cloud project 20260910.04, amending
-  # the convergence program's DD-005): the composable server — composeServer,
+  # @stigmer/server as a LIBRARY: the composable server — composeServer,
   # the extension registry, the driver seams — that a composition such as the
   # cloud control plane pins by exact version. Distinct from @stigmer/server-
   # slim below, the bundled deployable `stigmer up` launches. Same standalone
@@ -297,10 +296,10 @@ jobs:
             --package backend/services/stigmer-server \
             --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
 
-  # The TS server's slim artifact (D4 #24 cli-cutover): @stigmer/server-slim
+  # The TS server's slim artifact: @stigmer/server-slim
   # plus per-platform native-bridge packages, the runner-slim pattern exactly.
   # The CLI installs it on demand at `stigmer up` and launches `node main.js`
-  # as the local stack's server — the DD-006 cutover's distribution half.
+  # as the local stack's server.
   # Runs after `publish` only for release-train symmetry: the slim artifact
   # bundles everything, so it has no registry dependency on @stigmer/protos.
   publish-server-slim:
@@ -334,7 +333,7 @@ jobs:
       - name: Build TS server
         run: make build-server
 
-      # The slim artifact ships the web console's static export (DD-012:
+      # The slim artifact ships the web console's static export (the
       # console and server travel in ONE artifact, so no version skew can
       # exist); bundle-slim loud-fails without a built client-apps/web/out.
       - name: Build the web console static export
@@ -373,7 +372,7 @@ jobs:
       # start all three Temporal workers from the pre-built workflow bundles
       # through the per-platform native bridge, against a real Temporal dev
       # server, answer the console lane's live-HTTP probes (config.json,
-      # documents, flight payloads, the 404 posture — DD-012), then shut
+      # documents, flight payloads, the 404 posture), then shut
       # down cleanly.
       - name: Set up Temporal CLI
         uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
@@ -390,7 +389,7 @@ jobs:
           done
           node scripts/verify-slim-artifact.mjs
 
-      # ── The Docker image's input (DD-014, Phase-2 P4) ──
+      # ── The Docker image's input ──
       # The amd64 tree is a byte copy of the tree the deep verify above
       # just proved; the arm64 tree is the same bundle invocation
       # retargeted (core-bridge's npm tarball carries every platform's
@@ -439,7 +438,7 @@ jobs:
           done
           cd dist-slim-pkgs/server-slim && npm publish --access public --tag "$NPM_TAG"
 
-  # ══ The official server Docker image (DD-014, Phase-2 P4) ══
+  # ══ The official server Docker image ══
   # Push → prove → promote: the version tag is pushed first, both-arch
   # NATIVE boot smokes run against the PUSHED bytes, and only then does
   # `latest` move (the release.sandbox-cloud :prod blessing pattern applied
@@ -569,7 +568,7 @@ jobs:
   promote-server-image-latest:
     needs: [determine-version, smoke-server-image-amd64, smoke-server-image-arm64, rehearse-compose]
     # Stable only: a prerelease (any '-') never becomes `latest` — the npm
-    # `next`-tag logic applied to the image channel (DD-014: latest on
+    # `next`-tag logic applied to the image channel (latest only on
     # stable). imagetools create re-points the manifest list without
     # rebuilding, so `latest` is bit-identical to the smoked version tag.
     if: ${{ !contains(needs.determine-version.outputs.version, '-') }}
@@ -593,7 +592,7 @@ jobs:
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-server:latest" \
             "ghcr.io/${{ github.repository_owner }}/stigmer-server:v${VERSION}"
 
-  # ══ The compose-runner image (DD-013/DD-014, Phase-2 P5) ══
+  # ══ The compose-runner image ══
   # The self-host stack's runner: Dockerfile.sandbox's `compose-runner`
   # stage (the cloud sandbox stage + the stigmer CLI the OSS-shape MCP
   # attachments spawn). Published as ghcr.io/stigmer/stigmer-runner with
@@ -722,7 +721,7 @@ jobs:
             "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-arm64"
       # (Package visibility: see the note on publish-server-image.)
 
-  # The published-tag re-verification the P5 gate ruled (Q-A): the SAME
+  # The published-tag re-verification: the SAME
   # test/install/smoke-compose.mjs that gates PRs (there: build-from-source)
   # runs the full stack — Postgres, Temporal, server, runner — from the
   # images just pushed, up to one end-to-end workflow run, natively per
@@ -867,8 +866,8 @@ jobs:
             "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}"
 
   # ---------------------------------------------------------------------------
-  # The all-in-one evaluation image: ghcr.io/<owner>/stigmer (P3 entry 2,
-  # stigmer-cloud project 20260913.03). A pre-warmed `stigmer up`: every
+  # The all-in-one evaluation image: ghcr.io/<owner>/stigmer. A pre-warmed
+  # `stigmer up`: every
   # package the CLI would acquire, pre-installed into its own runtimes layout,
   # plus the CLI and the checksum-verified Temporal binary, run in the
   # foreground under tini. Stage once (the npm-shaped packages are
@@ -1181,8 +1180,8 @@ jobs:
   # images the same run is proving.
 
   # ---------------------------------------------------------------------------
-  # The Helm chart: oci://ghcr.io/<owner>/charts/stigmer (P3 entry 3,
-  # stigmer-cloud project 20260914.02). docker-compose.yml translated for
+  # The Helm chart: oci://ghcr.io/<owner>/charts/stigmer. docker-compose.yml
+  # translated for
   # Kubernetes, pinning the two images this same run pushed. Chart.yaml is
   # the fourth release pin (version == appVersion == the release version;
   # `make release` refuses to tag otherwise), verified here before anything

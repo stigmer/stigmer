@@ -5,7 +5,7 @@ package ai.stigmer.agentic.memory.v1;
 // MemoryLifecycleState tracks a memory's consent lifecycle.
 //
 // @internal
-// The state machine (DD-005 D3):
+// The state machine:
 //
 //   lifecycle_state_proposed → lifecycle_state_confirmed
 //   lifecycle_state_proposed → lifecycle_state_rejected
@@ -13,11 +13,11 @@ package ai.stigmer.agentic.memory.v1;
 // Confirmed and rejected are terminal relative to each other: a
 // rejected memory is never confirmable (delete it and let the agent
 // re-propose), and a confirmed memory is never rejectable (deleting it
-// IS the revocation — user deletion is the retention mechanism,
-// DD-006). Re-confirming a confirmed memory and re-rejecting a rejected
+// IS the revocation — user deletion is the retention mechanism).
+// Re-confirming a confirmed memory and re-rejecting a rejected
 // one are idempotent no-ops. The confirm and reject RPCs are the ONLY
 // writers of this state — consent is enforced at the control plane,
-// never delegated to client-side approval mechanisms (DD-005 D3).
+// never delegated to client-side approval mechanisms.
 // Rejected records are kept, not deleted: auditable, and their presence
 // prevents immediate re-proposal loops.
 enum MemoryLifecycleState {

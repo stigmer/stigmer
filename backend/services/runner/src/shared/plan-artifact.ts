@@ -22,9 +22,9 @@
  * identically in the list. Deriving it from content (not a random or
  * execution-scoped value) keeps naming honestly idempotent — identical content
  * yields an identical name, so a finalize retry re-uploads to the same key,
- * while any real edit yields a distinct one. This refines DD-23 §D3 ("no
- * uniqueness hash"), which was correct about storage but overlooked the
- * download/list basename namespace introduced by DD-23 §D1.
+ * while any real edit yields a distinct one. A plain no-uniqueness-hash rule
+ * would be correct about storage but would overlook the download/list
+ * basename namespace.
  *
  * This is deliberately a single, harness-agnostic helper:
  * - The native (deepagents) harness already auto-publishes files an agent

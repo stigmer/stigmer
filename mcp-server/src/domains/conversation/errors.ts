@@ -1,5 +1,5 @@
 // The conversation-domain error mapper — the channels-domain sibling
-// (DD-004 S-7's recorded posture: siblings share the idiom, never an
+// (siblings share the idiom, never an
 // abstraction over it; each domain documents its own contract).
 //
 // Conversation domain errors carry agent-relayable messages that are

@@ -63,8 +63,6 @@ message Duration {
 //   - waitUntilMarketOpen:
 //       wait:
 //         until: "2026-03-02T09:30:00Z"
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
 message WaitTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "wait";
 

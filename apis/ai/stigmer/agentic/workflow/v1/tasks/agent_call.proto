@@ -16,8 +16,7 @@ import "google/protobuf/struct.proto";
 // @internal
 // This message is the workflow DSL's adoption of the shared
 // AgentInvocation vocabulary (agentexecution/v1/invocation.proto) at
-// the TYPE level — issue stigmer/stigmer#358, per DD-018
-// (whatsapp-proactive-messaging, stigmer-cloud). Because
+// the TYPE level (stigmer/stigmer#358). Because
 // WorkflowTask.task_config is a "kind + Struct" envelope, this message
 // IS the authoring schema: its field names are the YAML keys workflow
 // authors write. Embedding AgentInvocation as a nested message would
@@ -40,8 +39,7 @@ import "google/protobuf/struct.proto";
 //                server-side at execution create, never carried in the
 //                create request (the schedule/channel/share posture).
 //
-// Surface-specific fields with their reasons (the DD-017/018 bucket
-// discipline):
+// Surface-specific fields with their reasons:
 // - env: the workflow's context-forwarding channel. Values are JQ
 //   expressions resolved from workflow state/secrets at run time, not
 //   plaintext literals in a manifest — which is why AgentInvocation's
@@ -156,7 +154,7 @@ message AgentCallTaskConfig {
   // platform defaults.
   //
   // @internal
-  // The shared RunConfig (DD-018 D-2) — the same message schedules
+  // The shared RunConfig — the same message schedules
   // embed, so the run-bound vocabulary cannot drift between
   // triggering surfaces. Semantics at the workflow surface:
   // model_name replaces the agent's default outright; max_cost_usd
@@ -176,8 +174,6 @@ message AgentCallTaskConfig {
   // reliable downstream routing via switch_case expressions.
   //
   // When not set, the task output contains the agent's raw text response.
-  //
-  // @since T02 (Structured Agent Output Model)
   AgentCallOutputContract output = 5;
 
   // Execution harness for the agent invocation.
@@ -209,8 +205,8 @@ message AgentCallTaskConfig {
   // Maps onto SessionSpec.workspace_entries of the session each call
   // creates. Surface constraint, enforced in workflow validation (both
   // editions): sources must be git_repo — no client is connected to
-  // serve a local_path when a workflow task fires. Credentials follow
-  // DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
+  // serve a local_path when a workflow task fires. Credentials: the
+  // provisioner resolves GITHUB_TOKEN from the merged
   // environment; for private repos the supported contract is an
   // org-visibility Environment holding GITHUB_TOKEN bound via
   // environment_refs. Public repos need no token.
@@ -287,8 +283,6 @@ message AgentCallTaskConfig {
 //     on_invalid: ON_INVALID_RETRY
 //     max_retries: 2
 //     fallback_task: human_review
-//
-// @since T02 (Structured Agent Output Model)
 message AgentCallOutputContract {
   // JSON Schema that the agent's structured output must conform to.
   //

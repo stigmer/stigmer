@@ -5,7 +5,7 @@
 // (the credential, and thus the gRPC client) is derived from the transport's
 // auth context, so the registration is identical regardless of transport.
 //
-// One structural difference from Go is called out in DD-008: the TS McpServer
+// One structural difference from Go: the TS McpServer
 // "assumes ownership" of a single transport, so `both` mode uses one McpServer
 // per transport rather than sharing a single instance across stdio + HTTP.
 
@@ -75,8 +75,8 @@ export function createServer(target: BackendTarget): McpServer {
 
 /**
  * Build a channels-only MCP server: send_channel_message with the
- * agent-facing argument surface, and nothing else (proactive-messaging
- * DD-006 D8 — the records-roster pattern). This is the roster the
+ * agent-facing argument surface, and nothing else (the records-roster
+ * pattern). This is the roster the
  * runner-synthesized channel attachment connects to; the structural
  * guarantee mirrors the records roster's. Served on the /channels HTTP
  * route and as the stdio roster when STIGMER_MCP_ROSTER=channels.
@@ -90,8 +90,8 @@ export function createChannelsServer(target: BackendTarget): McpServer {
 
 /**
  * Build a conversation-only MCP server: escalate_to_human with the
- * agent-facing argument surface, and nothing else (channel-conversations
- * DD-008 D-c / A14 — the channels-roster pattern). This is the roster
+ * agent-facing argument surface, and nothing else (the channels-roster
+ * pattern). This is the roster
  * the runner-synthesized conversation attachment connects to; the
  * structural guarantee mirrors the channels roster's.
  *
@@ -115,7 +115,7 @@ export function createConversationServer(target: BackendTarget): McpServer {
 
 /**
  * Build a memory-only MCP server: remember with the agent-facing argument
- * surface, and nothing else (DD-005 D1 — the channels-roster pattern).
+ * surface, and nothing else (the channels-roster pattern).
  * This is the roster the runner-synthesized memory attachment connects
  * to; the structural guarantee mirrors the channels roster's. Served on
  * the /memory HTTP route and as the stdio roster when
@@ -216,13 +216,13 @@ export type RouteServerFactory = (path: string) => McpServer | undefined;
 /** HTTP route serving the full roster: the bare origin every published config uses. */
 export const FULL_ROUTE = "/";
 
-/** HTTP route serving the channels-only roster (DD-006 D8). */
+/** HTTP route serving the channels-only roster. */
 export const CHANNELS_ROUTE = "/channels";
 
-/** HTTP route serving the conversation-only roster (channel-conversations A14). */
+/** HTTP route serving the conversation-only roster. */
 export const CONVERSATION_ROUTE = "/conversation";
 
-/** HTTP route serving the memory-only roster (memory capture, DD-005 D1). */
+/** HTTP route serving the memory-only roster (memory capture). */
 export const MEMORY_ROUTE = "/memory";
 
 /**

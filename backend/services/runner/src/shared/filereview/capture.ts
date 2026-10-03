@@ -116,7 +116,7 @@ export function deriveCaptureMode(
  * turn-end diff. Appends onto `status.fileReviewEventStream`; the event rides the
  * next persist.
  *
- * `gitWorkspace=false` (a non-git workspace, DD-21 D2) has no whole-tree baseline
+ * `gitWorkspace=false` (a non-git workspace) has no whole-tree baseline
  * to pin — a file's pre-edit bytes are captured per-path by the CAS observer at
  * mutation time, and the reconcile sources them from the durable CAS manifest,
  * not this snapshot. The BASELINE event is still authored (it is the projection's
@@ -177,14 +177,14 @@ export async function captureCandidateToLedger(opts: {
    * Ignored / non-git paths captured this turn (before/after bytes the harness
    * recorded at mutation time). When present, they are stored as content-
    * addressed CAS blobs and composed with the git-tracked changes into ONE
-   * hybrid change set (design doc 11). Omit for a git-only turn — existing
+   * hybrid change set. Omit for a git-only turn — existing
    * callers are unaffected.
    */
   readonly casCaptures?: readonly CasPathCapture[];
   /** The CAS blob store; required when {@link casCaptures} is non-empty. */
   readonly storage?: ArtifactStorage;
   /**
-   * Gitignored paths whose bytes are deliberately NOT captured — the DD-E secret
+   * Gitignored paths whose bytes are deliberately NOT captured — the secret
    * gate refused them. Each is authored as a content-less `DIFF_UNREVIEWABLE`
    * change entry (`diff_complete=false`, no before/after) so the change set is
    * PARTIAL_BLOCKED (approval blocked) and the path is honestly surfaced, while
@@ -203,13 +203,13 @@ export async function captureCandidateToLedger(opts: {
   /**
    * True (default) for a git work tree — git-tracked edits are diffed from the
    * pinned baseline/after trees and composed with any CAS captures. False for a
-   * CAS-only non-git workspace (DD-21 D2): there is no git tree to diff, so the
+   * CAS-only non-git workspace: there is no git tree to diff, so the
    * change set is sourced ENTIRELY from `casCaptures` (+ `unreviewablePaths`) and
    * the snapshot is `CAS_MANIFEST`, not `GIT_TREE_REF`/`HYBRID`.
    */
   readonly gitWorkspace?: boolean;
   /**
-   * The harness's approved-command turn facts (DD-28): present only when the
+   * The harness's approved-command turn facts: present only when the
    * turn's sole mutation source was consented shell commands. Carried verbatim
    * on the CANDIDATE event for the backend to verify and — on success — author
    * the policy auto-keep decision. Omitted → the set reviews manually.
@@ -248,7 +248,7 @@ export async function captureCandidateToLedger(opts: {
   // Secret handling is three-way across the substrates, and this is the last of
   // the three (the other two happen upstream at the harness gate):
   //   1. A gitignored secret WRITE never flows — hard-blocked at the gate /
-  //      deny-gate (DD-12/DD-30). It arrives here only as a path in
+  //      deny-gate. It arrives here only as a path in
   //      `unreviewablePaths` (recorded by the gate), authored content-less below.
   //   2. A gitignored secret that flowed under the global bypass is withheld from
   //      CAS by `partitionIgnoredPathsBySecret` (secret-paths.ts), so its bytes
@@ -363,7 +363,7 @@ export async function applyCaptureDecisions(opts: {
   readonly readBlob?: BlobReader;
   /**
    * True (default) for a git work tree; false for a CAS-only non-git workspace
-   * (DD-21 D2). When false, git refs are never consulted — the reconcile is driven
+   * When false, git refs are never consulted — the reconcile is driven
    * entirely by the durable CAS manifest, and RECONCILED carries a `CAS_MANIFEST`
    * snapshot instead of a re-pinned git tree.
    */
@@ -596,7 +596,7 @@ function gitTreeSnapshotRef(treeOid: string, ref: string): SnapshotRef {
 /**
  * Build a HYBRID {@link SnapshotRef} composing the git after-tree with the CAS
  * manifest — the shape for a turn that touched both git-tracked and ignored /
- * non-git paths (design doc 06 D3).
+ * non-git paths.
  */
 function hybridSnapshotRef(treeOid: string, ref: string, cas: CasSnapshotRef): SnapshotRef {
   return create(SnapshotRefSchema, {
@@ -612,7 +612,7 @@ function hybridSnapshotRef(treeOid: string, ref: string, cas: CasSnapshotRef): S
 /**
  * Build a CAS-only {@link SnapshotRef} — the shape for a non-git workspace, whose
  * every captured path lives in the content-addressed manifest and no git tree
- * exists (DD-21 D2). `cas` is absent for the BASELINE placeholder (the manifest is
+ * exists. `cas` is absent for the BASELINE placeholder (the manifest is
  * authored at candidate time); present for CANDIDATE/RECONCILED once it exists.
  */
 function casManifestSnapshotRef(cas?: CasSnapshotRef): SnapshotRef {
@@ -714,7 +714,7 @@ function secretWithheldChangeInput(
 
 /**
  * Map a secret-blocked GITIGNORED path (the write never flowed — hard-blocked at
- * the harness gate, design doc 12 / DD-E) to a content-less entry. The write was
+ * the harness gate) to a content-less entry. The write was
  * blocked before it ran, so create-vs-modify is unknown and irrelevant (nothing
  * is ever applied or reconciled for this entry) — kind is MODIFY. `captureClass`
  * is the turn's CAS substrate class (GIT_IGNORED_CAPTURED | NON_GIT_CAS).
@@ -734,8 +734,8 @@ function unreviewableChangeInput(
 }
 
 /**
- * Map a secret-like GIT-TRACKED change to a content-less entry (DD-26 follow-up
- * #3). Unlike a gitignored secret, a tracked secret write actually FLOWED (the
+ * Map a secret-like GIT-TRACKED change to a content-less entry. Unlike a
+ * gitignored secret, a tracked secret write actually FLOWED (the
  * capture-mode gate allows tracked mutations), so it is present in the git diff
  * with real bytes — which must never be persisted into the ledger. We author it
  * content-less here so its CONTENT never reaches the ledger / Temporal history /
@@ -774,7 +774,7 @@ function trackedSecretChangeInput(
  * exported for direct unit testing. Keyed on the same {@link isSecretLikePath}
  * classifier the CAS/gitignored path uses ({@link partitionIgnoredPathsBySecret}
  * in secret-paths.ts), so a path is classified identically everywhere. NOTE: the
- * classifier is path-based (DD-12 D2), so a rename to an innocuous name defeats
+ * classifier is path-based, so a rename to an innocuous name defeats
  * it — an intentional, cross-substrate limitation, not introduced here.
  */
 export function partitionGitChangesBySecret(changes: readonly GitCapturedChange[]): {

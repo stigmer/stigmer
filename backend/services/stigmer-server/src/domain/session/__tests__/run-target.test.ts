@@ -1,5 +1,5 @@
 /**
- * Pins the session run-target resolver (P1 sp.run-gate): a session's run
+ * Pins the session run-target resolver: a session's run
  * target is the agent instance it binds to — agent_instance#can_execute on
  * spec.agent_instance_id, with the domain's byte-pinned deny copy — and a
  * session with no instance yet has no target (ResolveDefaultAgentInstance

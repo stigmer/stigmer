@@ -1,6 +1,6 @@
 /**
- * Pins the per-request server-stamped reserved-label record (parity entry
- * 20260830.05, the Java ServerStampedReservedLabels port): recording
+ * Pins the per-request server-stamped reserved-label record (the Java
+ * ServerStampedReservedLabels port): recording
  * accumulates across calls, reads never invent, and the record is
  * request-scoped — a second context sees nothing.
  */

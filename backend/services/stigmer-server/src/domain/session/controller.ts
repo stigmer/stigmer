@@ -124,9 +124,9 @@ import {
 export interface SessionControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * The agent-execution temporal config — the update pipeline's
@@ -134,17 +134,17 @@ export interface SessionControllerDeps {
    * same deployment default dispatch uses (oss#397).
    */
   readonly temporalConfig: AgentExecutionTemporalConfig;
-  /** The composed slot registrations — this domain's create slot (O4). */
+  /** The composed slot registrations — this domain's create slot. */
   readonly gateSteps: ResolvedGateSteps;
   /**
-   * The sandbox lane (§6d, O6): session delete tears the session's
+   * The sandbox lane: session delete tears the session's
    * sandbox down best-effort (the Java SessionDeleteHandler posture).
    */
   readonly sandboxLane: SandboxLane;
   /**
    * The composed list read scope — the three list lanes narrow to the
    * caller's authorized sessions through it; undefined = the OSS full
-   * scan (20260830.01, census lanes 1–3: guest rule rides the driver,
+   * scan (the guest rule rides the driver, the
    * org deliberately NOT intersected — the Java session lanes never do).
    */
   readonly listReadScope: ListReadScope | undefined;
@@ -177,7 +177,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 
 /**
  * Create — chain per Go buildCreatePipeline. AuthorizeRunTarget (the run
- * gate, P1 sp.run-gate) runs right after Authorize: the instance the
+ * gate) runs right after Authorize: the instance the
  * session binds to is the caller's own spec, so a caller who may not run
  * that instance is refused before validation reads anything further and
  * before any step the chain owns side-effects. An empty agent_instance_id
@@ -186,8 +186,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * conversation (sessionRunTarget's header).
  *
  * The pre-side-effect gate slot splices before Persist, after the last
- * pure step (O4 plan-gate ruling Q2, mirroring the Java baseline's
- * post-resolution gate position). Every step above it is pure, so a gate
+ * pure step (mirroring the Java baseline's post-resolution gate
+ * position). Every step above it is pure, so a gate
  * refusal leaves nothing behind.
  */
 async function createSession(
@@ -217,8 +217,8 @@ async function createSession(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer));
-  // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4; Q2
-  // ruling — see the create doc comment). Empty in OSS.
+  // The pre-side-effect gate slot (see the create doc comment). Empty in
+  // OSS.
   for (const step of stepsForSlot<typeof SessionSchema>(
     deps.gateSteps,
     "session-create:pre-side-effect-gate",
@@ -367,7 +367,7 @@ async function deleteSession(
       "deleted session not found in context",
     );
   }
-  // The session's sandbox tears down AFTER the row is gone (§6d, O6) —
+  // The session's sandbox tears down AFTER the row is gone —
   // best-effort, never failing the delete (the Java SessionDeleteHandler
   // posture; the helper carries the leak-logging rationale).
   await deprovisionSessionSandboxBestEffort(
@@ -389,7 +389,7 @@ async function deleteSession(
  *
  * The annotation's can_edit check runs AFTER the load — the Java
  * SessionUpdateSubjectHandler order (load-before-authorize, stigmer#224:
- * a missing id answers NOT_FOUND, never PERMISSION_DENIED). C2 Stage 4.
+ * a missing id answers NOT_FOUND, never PERMISSION_DENIED).
  */
 async function updateSubject(
   deps: SessionControllerDeps,

@@ -1,8 +1,8 @@
 /**
- * The IamPolicy specs server code builds ITSELF, spelled once
- * (20260913.01 slice 4). A wire caller hands the domain a spec; the
- * built-in role lifecycle, the membership rules and slice 5's
- * `revokeOrgAccess` and contextual `checkMyPermission` build their own.
+ * The IamPolicy specs server code builds ITSELF, spelled once. A wire
+ * caller hands the domain a spec; the built-in role lifecycle, the
+ * membership rules, `revokeOrgAccess` and contextual `checkMyPermission`
+ * build their own.
  * The derived policy id hashes the spec's exact text (constants.ts
  * `policyIdFor`), so two spellings of one triple would be two rows — this
  * module is where "identity_account:<id> holds <role> on

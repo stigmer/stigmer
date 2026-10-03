@@ -1,6 +1,6 @@
 /**
  * The schema negatives: what `helm install` must REFUSE, and with which
- * words. DD-013's "explicit keys, loud fail" lives in docker-compose.yml's
+ * words. Compose's "explicit keys, loud fail" lives in docker-compose.yml's
  * `${VAR:?…}` interpolation, not in the server (which would auto-generate a
  * key into its home); the chart carries the same refusal itself, at render,
  * through `values.schema.json` and `required`. These tests pin that the
@@ -8,7 +8,8 @@
  *
  *   - no `secrets.existingSecret`: the .env.example sentence and the
  *     one-liner to create the Secret;
- *   - an Enterprise key turned on: the sentence naming P4's sp.helm-ee;
+ *   - an Enterprise key turned on: the sentence saying it is reserved for
+ *     Stigmer Enterprise and what to leave it at;
  *   - an unknown top-level key (a typo): refused, never silently ignored;
  *   - Postgres disabled without an external host, Temporal likewise;
  *   - Temporal authentication against the bundled Temporal, TLS keys without
@@ -36,15 +37,15 @@ test("a render without secrets.existingSecret is refused with the .env.example s
   expectRefusal(result, /openssl rand -base64 32/, "missing Secret");
 });
 
-test("the reserved Enterprise keys are refused when turned on, naming sp.helm-ee", () => {
+test("the reserved Enterprise keys are refused when turned on", () => {
   for (const key of ["openfga", "redis", "openbao"]) {
     const result = helmTemplate("bundled", { sets: [`${key}.enabled=true`] });
-    expectRefusal(result, /Enterprise/, `${key}.enabled=true`);
+    expectRefusal(result, /reserved for Stigmer Enterprise.*leave openfga\/redis\/openbao at enabled: false/s, `${key}.enabled=true`);
   }
   const license = helmTemplate("bundled", {
     sets: ["licenseKeySecret=my-license"],
   });
-  expectRefusal(license, /Enterprise/, "licenseKeySecret");
+  expectRefusal(license, /reserved for Stigmer Enterprise.*licenseKeySecret empty/s, "licenseKeySecret");
 });
 
 test("an unknown top-level values key is refused rather than ignored", () => {
@@ -52,7 +53,7 @@ test("an unknown top-level values key is refused rather than ignored", () => {
   expectRefusal(result, /postgress|additional propert/i, "typo'd key");
 });
 
-test("a sandbox key is refused: the driver has no artifact path in open source (F2, stigmer#1099)", () => {
+test("a sandbox key is refused: the driver has no artifact path in open source (stigmer#1099)", () => {
   const result = helmTemplate("bundled", {
     sets: ["sandbox.provisioner=kubernetes"],
   });

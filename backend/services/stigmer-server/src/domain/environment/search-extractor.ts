@@ -1,6 +1,6 @@
 /**
  * Environment search extractor — ports pkg/query/search/extractor/
- * environment_extractor.go (both sides: the #4 index side, the #14 query
+ * environment_extractor.go (both sides: the index side, the query
  * side; the search summary is spec.description). Secret DATA is
  * deliberately never indexed — only name, description, tags, org, and
  * visibility reach the search index, and the query projection carries

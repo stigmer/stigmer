@@ -1,6 +1,5 @@
 /**
- * Pins the identity-account domain's constants (project 20260911.11,
- * T01_1_review.md A1 and A2):
+ * Pins the identity-account domain's constants:
  *
  *   - the account-id derivation — `ida_` + the top 130 bits of
  *     sha256(idp_id) as 26 lowercase Crockford-base32 characters, so a

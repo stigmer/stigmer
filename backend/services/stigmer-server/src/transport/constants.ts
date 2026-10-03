@@ -1,7 +1,7 @@
 /**
  * Transport-layer semantic constants. Every value here was tuned in the Go
  * server against real behavior; the rationale rides with the constant so
- * nobody "fixes" one casually (coding guideline 001 §5).
+ * nobody "fixes" one casually.
  */
 
 /**
@@ -23,8 +23,8 @@ export const MAX_MESSAGE_BYTES = 10 * 1024 * 1024;
  * http2 auto-acks client pings below the API surface and emits no event
  * for them, so the enforcement half is not implementable here. It is
  * protective-only (guards against ping-flooding clients) and invisible to
- * every well-behaved client — recorded as a disclosed parity nuance in the
- * sub-project record, not silently dropped.
+ * every well-behaved client — a disclosed parity nuance, not silently
+ * dropped.
  */
 export const KEEPALIVE_PING_INTERVAL_MS = 15_000;
 export const KEEPALIVE_PING_TIMEOUT_MS = 5_000;

@@ -3,7 +3,7 @@
  *
  * The digest is the replacement agent's only account of the work its lost
  * predecessor did, so these pins cover the three doctrine properties it
- * inherits from the DD-013 bridge composer — bounded lines, drop-oldest
+ * inherits from the rollover context bridge's composer — bounded lines, drop-oldest
  * budget enforcement with disclosure, never-throw — plus the rendering
  * contract per message/tool-call kind.
  */

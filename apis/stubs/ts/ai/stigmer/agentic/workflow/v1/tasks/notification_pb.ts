@@ -83,7 +83,7 @@ export type NotificationTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tas
    * cannot be resolved.
    *
    * Examples: "incident-alert", "order-confirmation", "approval-request"
-   * Template resolution and rendering is a runtime concern (T13).
+   * Template resolution and rendering is a runtime concern.
    *
    * @generated from field: string template = 5;
    */

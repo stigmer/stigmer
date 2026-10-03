@@ -1,18 +1,18 @@
 /**
  * Pins `grantableRolesFor` (pipeline/apiresource-meta.ts), the one read of
  * a kind's `kind_meta.authorization.grantable_roles` — what the IamPolicy
- * domain's ValidateGrantableRole consults FIRST (20260913.01, Q-OR-3 as
- * refined: the proto says what can be granted at all; the composed
+ * domain's ValidateGrantableRole consults FIRST (the proto says what can be
+ * granted at all; the composed
  * PolicyGrantScope only narrows by edition) and what open source's
  * organization-only scope reads for the organization.
  *
  * Three properties are load-bearing and pinned here rather than assumed:
  *
  *   - The ORGANIZATION lists exactly owner, admin, member, viewer, in the
- *     proto's order. This is the Q-OR-4 ruling made a test: the four roles
+ *     proto's order. The four roles
  *     every edition grants on an organization are the proto's, not a list
  *     in code, so a change to `api_resource_kind.proto` fails here and
- *     someone reads the ruling before the console shows a fifth word.
+ *     someone decides it on purpose before the console shows a fifth word.
  *   - The five system-managed kinds list NO roles. ValidateGrantableRole's
  *     first arm refuses a grant on them with the cloud's byte-pinned
  *     INVALID_ARGUMENT in every edition; this is the data that arm reads.
@@ -36,7 +36,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { grantableRolesFor } from "../apiresource-meta.js";
 
 describe("grantableRolesFor — the proto's grantable roles per kind", () => {
-  it("the organization grants exactly owner, admin, member, viewer, in proto order (Q-OR-4)", () => {
+  it("the organization grants exactly owner, admin, member, viewer, in proto order", () => {
     expect(grantableRolesFor(ApiResourceKind.organization)).toEqual([
       IamRole.owner,
       IamRole.admin,
@@ -63,13 +63,13 @@ describe("grantableRolesFor — the proto's grantable roles per kind", () => {
     ["invitation", ApiResourceKind.invitation],
     ["agent_execution", ApiResourceKind.agent_execution],
   ])(
-    "%s is system-managed: no grantable roles (Q-OR-3 arm 1)",
+    "%s is system-managed: no grantable roles",
     (_name, kind) => {
       expect(grantableRolesFor(kind)).toEqual([]);
     },
   );
 
-  it("the unknown kind answers the empty list and never throws (the second vocabulary's doctrine)", () => {
+  it("the unknown kind answers the empty list and never throws (the second vocabulary's rule)", () => {
     expect(
       grantableRolesFor(ApiResourceKind.api_resource_kind_unknown),
     ).toEqual([]);

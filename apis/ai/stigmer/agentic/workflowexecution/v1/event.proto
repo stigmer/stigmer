@@ -18,7 +18,7 @@ import "google/protobuf/struct.proto";
 // by adding the temporal dimension ("what happened?").
 //
 // The event log enables:
-// - Execution viewer timeline (T09) — ordered sequence of task transitions
+// - Execution viewer timeline — ordered sequence of task transitions
 // - Retry visibility — task_started + task_failed + task_retrying + task_started
 //   tells the full story that a point-in-time snapshot cannot
 // - Cost attribution — per-task cost/token breakdown over time
@@ -38,8 +38,6 @@ import "google/protobuf/struct.proto";
 // Consumption:
 // - getEventLog RPC: paginated fetch for completed or in-progress executions
 // - subscribeEvents RPC: real-time server-stream of incremental events
-//
-// @since T06 (Execution Event Stream Model)
 message WorkflowExecutionEvent {
   // Unique event identifier.
   //
@@ -136,8 +134,6 @@ message WorkflowExecutionEvent {
 // - 31–39: Human input / approval
 // - 41–49: Budget
 // - 51–59: Signals and emitted events
-//
-// @since T06 (Execution Event Stream Model)
 enum WorkflowEventType {
   workflow_event_type_unspecified = 0;
 
@@ -255,8 +251,6 @@ enum WorkflowEventType {
 // @internal
 // Emitted once per execution when the runner picks up the workflow and
 // transitions phase from PENDING to IN_PROGRESS.
-//
-// @since T06
 message ExecutionStartedPayload {
   // Total number of top-level tasks in the workflow definition.
   // Enables progress calculation (completed_count / total_tasks).
@@ -274,8 +268,6 @@ message ExecutionStartedPayload {
 // @internal
 // Emitted when all tasks have reached terminal states and the workflow
 // produces its final output. This is the last event for a successful execution.
-//
-// @since T06
 message ExecutionCompletedPayload {
   // Final workflow output, truncated if exceeding size limits.
   // The full output is available on WorkflowExecutionStatus.output.
@@ -296,8 +288,6 @@ message ExecutionCompletedPayload {
 // @internal
 // Emitted when the workflow transitions to EXECUTION_FAILED. Contains the
 // top-level error and a reference to the task that caused the failure.
-//
-// @since T06
 message ExecutionFailedPayload {
   // Human-readable error description.
   // Same as WorkflowExecutionStatus.error.
@@ -314,7 +304,6 @@ message ExecutionFailedPayload {
 // Payload for execution_paused events.
 //
 // @internal
-// @since T06
 message ExecutionPausedPayload {
   // Human-readable reason for the pause, from PauseWorkflowExecutionInput.reason.
   string reason = 1;
@@ -326,7 +315,6 @@ message ExecutionPausedPayload {
 // Payload for execution_resumed events.
 //
 // @internal
-// @since T06
 message ExecutionResumedPayload {
   // Identity of the user or system that resumed the execution.
   string resumed_by = 1;
@@ -335,7 +323,6 @@ message ExecutionResumedPayload {
 // Payload for execution_cancelled events.
 //
 // @internal
-// @since T06
 message ExecutionCancelledPayload {
   // Human-readable reason for cancellation, from CancelWorkflowExecutionInput.reason.
   string reason = 1;
@@ -347,7 +334,6 @@ message ExecutionCancelledPayload {
 // Payload for execution_terminated events.
 //
 // @internal
-// @since T06
 message ExecutionTerminatedPayload {
   // Human-readable reason for termination.
   string reason = 1;
@@ -364,8 +350,6 @@ message ExecutionTerminatedPayload {
 //
 // @internal
 // Emitted when a task transitions from PENDING to IN_PROGRESS.
-//
-// @since T06
 message TaskStartedPayload {
   // Task kind from the workflow definition (e.g., agent_call, llm_call, http_call).
   ai.stigmer.agentic.workflow.v1.WorkflowTaskKind task_kind = 1;
@@ -383,8 +367,6 @@ message TaskStartedPayload {
 //
 // @internal
 // Emitted when a task transitions to WORKFLOW_TASK_COMPLETED.
-//
-// @since T06
 message TaskCompletedPayload {
   // Task kind for correlation with task_started.
   ai.stigmer.agentic.workflow.v1.WorkflowTaskKind task_kind = 1;
@@ -408,8 +390,6 @@ message TaskCompletedPayload {
 // @internal
 // Emitted when a task transitions to WORKFLOW_TASK_FAILED.
 // If the task will be retried, a task_retrying event follows this one.
-//
-// @since T06
 message TaskFailedPayload {
   // Task kind for correlation.
   ai.stigmer.agentic.workflow.v1.WorkflowTaskKind task_kind = 1;
@@ -443,8 +423,6 @@ message TaskFailedPayload {
 //    skipped during recovery mode (outputs restored from the event log).
 //
 // The `reason` field distinguishes the cause for UI rendering and debugging.
-//
-// @since T06
 message TaskSkippedPayload {
   // Task kind that was skipped.
   ai.stigmer.agentic.workflow.v1.WorkflowTaskKind task_kind = 1;
@@ -459,8 +437,6 @@ message TaskSkippedPayload {
 // @internal
 // Emitted between a task_failed and the next task_started for the same task.
 // Indicates the runner is scheduling a retry with optional backoff.
-//
-// @since T06
 message TaskRetryingPayload {
   // Which attempt failed, prompting this retry.
   int32 failed_attempt = 1;
@@ -487,8 +463,6 @@ message TaskRetryingPayload {
 // Emitted when the runner creates a child AgentExecution for an
 // agent_call task. The child_execution_id enables the UI to open a
 // drill-down stream into the agent's execution.
-//
-// @since T06
 message AgentCallStartedPayload {
   // ID of the child AgentExecution (format: "aex_{ulid}").
   // Use this to subscribe to the agent's execution stream for full detail.
@@ -506,11 +480,9 @@ message AgentCallStartedPayload {
 //
 // @internal
 // Periodic lightweight summary emitted while the child agent is running.
-// Frequency is a runtime decision (T13) — typically on agent phase transitions
+// Frequency is a runtime decision — typically on agent phase transitions
 // or at regular intervals. The full agent stream with messages and tool calls
 // is available via AgentExecution.subscribe using child_execution_id.
-//
-// @since T06
 message AgentCallProgressPayload {
   // ID of the child AgentExecution.
   string child_execution_id = 1;
@@ -536,8 +508,6 @@ message AgentCallProgressPayload {
 //
 // @internal
 // Emitted when the child AgentExecution reaches a terminal phase.
-//
-// @since T06
 message AgentCallCompletedPayload {
   // ID of the child AgentExecution.
   string child_execution_id = 1;
@@ -569,8 +539,6 @@ message AgentCallCompletedPayload {
 // that carries only what the approval UI needs: the identifier to submit
 // and the label to display. The `then` routing field is deliberately
 // excluded — routing is a runner concern, not a UI concern.
-//
-// @since T13c (Workflow HITL Approval UI)
 message HumanInputOutcomeInfo {
   // Outcome identifier submitted as the "outcome" string in
   // SubmitWorkflowTaskApprovalInput (e.g. "approve", "pause_campaigns").
@@ -595,8 +563,6 @@ message HumanInputOutcomeInfo {
 //
 // For agent tool approvals (tool_call_id is populated):
 // - outcomes and form_schema are empty (agent approvals use ApprovalAction enum)
-//
-// @since T06, extended T13c (outcomes + form_schema)
 message ApprovalRequestedPayload {
   // Human-readable prompt explaining what needs approval.
   string prompt = 1;
@@ -625,8 +591,6 @@ message ApprovalRequestedPayload {
   // the human-readable button label. Empty for agent tool approvals
   // and for human_input tasks with no custom outcomes (which default
   // to binary approve/deny).
-  //
-  // @since T13c (Workflow HITL Approval UI)
   repeated HumanInputOutcomeInfo outcomes = 6;
 
   // JSON Schema for the reviewer's input form.
@@ -637,8 +601,6 @@ message ApprovalRequestedPayload {
   // based on this schema, and the reviewer's response is submitted as
   // form_data in SubmitWorkflowTaskApprovalInput. Empty when no form
   // is required or for agent tool approvals.
-  //
-  // @since T13c (Workflow HITL Approval UI)
   google.protobuf.Struct form_schema = 7;
 
   // Resolved review payload the gate presented to the reviewer.
@@ -651,8 +613,6 @@ message ApprovalRequestedPayload {
   // without a payload, and when the resolved payload was promoted to the
   // artifact store (payload_artifact_id is set instead — the two fields
   // are mutually exclusive).
-  //
-  // @since Review Payloads (stigmer/stigmer#234)
   google.protobuf.Value payload = 8;
 
   // UI hint identifying which renderer should present the payload.
@@ -662,8 +622,6 @@ message ApprovalRequestedPayload {
   // registered renderer for this hint present domain-native review UI;
   // all other clients fall back to showing the payload as structured
   // data. Empty when the task config sets no hint.
-  //
-  // @since Review Payloads (stigmer/stigmer#234)
   string ui_hint = 9;
 
   // Artifact holding the resolved review payload when it exceeded the
@@ -674,8 +632,6 @@ message ApprovalRequestedPayload {
   // via ArtifactQueryController.getContent — API-proxied, so embedded SDK
   // consumers avoid CORS exposure — or offer a download via getDownloadUrl.
   // Format: "art_{unique-suffix}".
-  //
-  // @since Review Payloads (stigmer/stigmer#234)
   string payload_artifact_id = 10;
 }
 
@@ -685,8 +641,6 @@ message ApprovalRequestedPayload {
 // Emitted when an approval decision is made: an agent tool approval
 // (approve, skip, or reject, carried in action) or a workflow human_input
 // gate (one of its declared outcomes, carried in outcome).
-//
-// @since T06
 message ApprovalResolvedPayload {
   // The agent tool approval decision that was made.
   //
@@ -721,8 +675,6 @@ message ApprovalResolvedPayload {
   // the moment of the decision (later profile changes do not rewrite
   // history). Stamped server-side by the control plane from the
   // authenticated caller; unset when no attribution exists.
-  //
-  // @since Reviewer Attribution
   ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5;
 
   // Outcome chosen at a workflow human_input gate, by its declared name
@@ -737,8 +689,6 @@ message ApprovalResolvedPayload {
   // decision was made, and the task_failed event that follows ends the
   // task. Empty for agent tool approvals, which carry action instead, and
   // for events recorded before this field existed.
-  //
-  // @since Approval Outcome (stigmer/stigmer#1431)
   string outcome = 6;
 
   // Whether the gate's timeout policy made the decision, with no reviewer.
@@ -748,8 +698,6 @@ message ApprovalResolvedPayload {
   // the policy's outcome, or empty when the policy is fail and the gate
   // ended without a decision (stigmer/stigmer#1442). Always false for agent
   // tool approvals.
-  //
-  // @since Approval Outcome (stigmer/stigmer#1431)
   bool auto_resolved = 7;
 }
 
@@ -764,14 +712,12 @@ message ApprovalResolvedPayload {
 // (after each cost-incurring task completes). Enables the execution viewer
 // to render a cost timeline and budget utilization gauge.
 //
-// Emission frequency is a runtime decision (T13). Typical triggers:
+// Emission frequency is a runtime decision. Typical triggers:
 // - After every agent_call or llm_call task completes
 // - When a budget threshold is breached (e.g., 50%, 80%, 100%)
 //
 // All cost values are in micro-USD (1 USD = 1,000,000 micros), consistent
-// with the WorkflowBudget.max_cost_micros field (T05).
-//
-// @since T06
+// with the WorkflowBudget.max_cost_micros field.
 message BudgetCheckpointPayload {
   // Cumulative cost consumed so far in micro-USD.
   int64 cost_consumed_micros = 1;
@@ -805,8 +751,6 @@ message BudgetCheckpointPayload {
 // Emitted when a listen task receives an external signal (via the sendSignal
 // RPC or from another workflow's emit_event). Documents the signal arrival
 // in the execution timeline.
-//
-// @since T06
 message SignalReceivedPayload {
   // Signal name matching the listen task's signal ID.
   string signal_name = 1;
@@ -821,8 +765,6 @@ message SignalReceivedPayload {
 // Emitted when an emit_event task publishes a CloudEvent. Documents the
 // emission in the execution timeline. The full CloudEvents envelope is
 // available in the task output.
-//
-// @since T06
 message EventEmittedPayload {
   // CloudEvents type identifier from the EmitEventSpec.
   string event_type = 1;
@@ -843,12 +785,10 @@ message EventEmittedPayload {
 // @internal
 // Emitted when a task output is persisted as an artifact, either because
 // it exceeded the auto-promotion size threshold (256KB) or because the
-// workflow author explicitly declared artifact persistence (Phase 1).
+// workflow author explicitly declared artifact persistence.
 //
 // The artifact_id can be used with the Artifact.get() and
 // Artifact.getDownloadUrl() RPCs to retrieve or download the content.
-//
-// @since T07 (Artifact Store)
 message ArtifactCreatedPayload {
   // ID of the created artifact (format: "art_{unique-suffix}").
   // Use this to fetch metadata via Artifact.get() or download

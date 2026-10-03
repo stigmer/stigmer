@@ -8,8 +8,6 @@ package ai.stigmer.agentic.agent.v1;
 /**
  * <pre>
  * TagAgentVersionInput assigns or moves a tag to a specific agent version.
- *
- * &#64;since Agent Versioning (future)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.TagAgentVersionInput}
@@ -353,8 +351,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * TagAgentVersionInput assigns or moves a tag to a specific agent version.
-   *
-   * &#64;since Agent Versioning (future)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.TagAgentVersionInput}

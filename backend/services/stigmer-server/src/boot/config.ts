@@ -1,12 +1,11 @@
 /**
  * Server configuration — stage 1 of the composition root
- * (config → storage → temporal → controllers → routes → listen, D2 §2).
+ * (config → storage → temporal → controllers → routes → listen).
  *
  * Deliberately covers ONLY the env contract the transport scaffold consumes.
- * Go's full config surface (pkg/config/config.go) is ported alongside the
- * sub-projects that consume each entry — DB_PATH/STORAGE_PATH arrive with
- * storage (#4), Temporal pins with the workers, artifact storage with its
- * domain — so no config entry exists here before the code that reads it.
+ * Go's full config surface (pkg/config/config.go) is ported entry by entry
+ * with the code that consumes it, so no config entry exists here before the
+ * code that reads it.
  *
  * Env semantics mirror Go exactly (pkg/config/config.go getEnvInt/
  * getEnvString): a missing OR malformed value falls back to the default,
@@ -52,7 +51,7 @@ export interface ServerConfig {
   /** SQLite database file (DB_PATH; Go defaultDBPath ~/.stigmer/stigmer.db). */
   readonly dbPath: string;
   /**
-   * Postgres connection URL (DATABASE_URL; DD-010). PRECEDENCE: when set
+   * Postgres connection URL (DATABASE_URL). PRECEDENCE: when set
    * (non-empty), the Postgres driver is selected and dbPath is ignored —
    * DB_PATH always has a value (it defaults), so "Postgres wins" is the
    * only order under which DATABASE_URL can select anything. "" = sqlite,
@@ -69,7 +68,7 @@ export interface ServerConfig {
   readonly operatorName: string;
   /**
    * Temporal coordinates this server runs against (Go TemporalHostPort/
-   * TemporalNamespace). The Temporal workers (#18) read the same fields;
+   * TemporalNamespace). The Temporal workers read the same fields;
    * connection failure is NON-fatal (the server serves with the engine
    * unavailable and the TemporalManager's health monitor keeps retrying —
    * Go server.go InitialConnect posture). The address runners are told to
@@ -101,15 +100,15 @@ export interface ServerConfig {
   readonly runnerBootstrapTemporalAddress: string;
   /**
    * Artifact blob storage (attachments + execution outputs; Go
-   * config.ArtifactStorage). "local" is the OSS default; "r2" boot-fails
-   * on this server until #13 (the owner-ratified deferral).
+   * config.ArtifactStorage). "local" is the OSS default; "r2" selects
+   * Cloudflare R2 with the settings below.
    */
   readonly artifactStorageType: string;
   /** The artifact root — shared with the runner's LOCAL_ARTIFACT_PATH (#285). */
   readonly artifactLocalBasePath: string;
   /**
-   * Base URL for local artifact download URLs (ARTIFACT_LOCAL_SERVE_URL;
-   * #13); no trailing path segment (the storage key carries the full path).
+   * Base URL for local artifact download URLs (ARTIFACT_LOCAL_SERVE_URL);
+   * no trailing path segment (the storage key carries the full path).
    * "" = unset: the URL follows the port the artifact file server actually
    * bound (boot/artifact-lane.ts), so an ephemeral lane mints URLs that
    * reach it.
@@ -124,8 +123,8 @@ export interface ServerConfig {
    */
   readonly artifactHttpPort: number | undefined;
   /**
-   * The artifact file server's bind host (ARTIFACT_HTTP_HOST, DD-013;
-   * shipped with the Docker image, Phase-2 P4). Defaults to 127.0.0.1 —
+   * The artifact file server's bind host (ARTIFACT_HTTP_HOST;
+   * shipped with the Docker image). Defaults to 127.0.0.1 —
    * the retired Go server's posture, byte-identical for every bare-metal
    * install: download URLs are minted for the local machine. Containers
    * set 0.0.0.0 (the official image does, with its rationale) because a
@@ -172,7 +171,7 @@ export interface ServerConfig {
   readonly storagePath: string;
   /**
    * Skill artifact storage backend (SKILL_ARTIFACT_STORAGE_TYPE) — the
-   * per-domain opt-in of §6b/O5, deliberately SEPARATE from
+   * per-domain opt-in, deliberately SEPARATE from
    * ARTIFACT_STORAGE_TYPE: skill artifacts stay on the local storagePath
    * root (the Go-written-directory serving invariant) regardless of the
    * generic artifact store's backend, until a deployment opts skill in
@@ -204,14 +203,14 @@ export interface ServerConfig {
   readonly consoleDir: string;
   /**
    * The OIDC issuer URL (STIGMER_OIDC_ISSUER) — THE auth-enabled switch
-   * (O3, 20260827.06, gate ruling Q1): non-empty registers the OSS
+   * non-empty registers the OSS
    * identity verifiers (API tokens + OIDC) on the chassis and turns on
    * the require-authentication posture (absent token → UNAUTHENTICATED
-   * except is_public methods, ruling Q2 — the Java interceptor's
+   * except is_public methods — the Java interceptor's
    * posture). Empty — the default — is the trusted-local single-operator
-   * state, byte-identical to the pre-O3 wire behavior. For Stigmer Cloud
-   * this is the Auth0 issuer URL: DD-003's "Auth0 is configuration, not
-   * code", literally this field.
+   * state, byte-identical to the wire behavior before authentication
+   * existed. Any OIDC issuer works here: sign-in is configuration, not
+   * code.
    */
   readonly oidcIssuer: string;
   /**
@@ -224,24 +223,24 @@ export interface ServerConfig {
   readonly oidcAudience: string;
   /**
    * The OAuth client the served web console signs in with
-   * (STIGMER_OIDC_CONSOLE_CLIENT_ID; 20260913.02 sp.console-login, Q-CL-1):
+   * (STIGMER_OIDC_CONSOLE_CLIENT_ID):
    * a PUBLIC client the operator registers at the issuer for the browser's
    * Authorization Code + PKCE flow — a public identifier, never a secret.
    * Deliberately lenient beside the two boot-fatal OIDC fields: a
    * self-host that set the issuer before this knob existed, and uses the
    * CLI and SDKs with API keys, must keep booting on upgrade. Empty means
    * the console cannot sign in; the composition root WARNs and the served
-   * console says so itself (Q-CL-2). Named for the console on purpose — a
+   * console says so itself. Named for the console on purpose — a
    * future CLI or desktop sign-in against a self-host is a different
    * client type (loopback/native) and should not be tempted to reuse it.
    */
   readonly oidcConsoleClientId: string;
   /**
-   * Sandbox provisioner driver (SANDBOX_PROVISIONER_TYPE; §6d, O6). ""
+   * Sandbox provisioner driver (SANDBOX_PROVISIONER_TYPE). ""
    * — the default — is the external-runner posture: no provisioner is
    * constructed and an operator-managed runner polls the queues (today's
    * behavior, named). "local-process" / "docker" / "kubernetes" select
-   * the built-in isolation tiers (DD-002's ladder); any other name
+   * the built-in isolation tiers (weakest to strongest); any other name
    * selects a composition-registered driver, and an unknown name is a
    * boot throw. Routing coherence (a selected driver requires at least
    * one per-queue routing mode) is validated in compose.ts where the
@@ -274,8 +273,7 @@ export interface ServerConfig {
   /**
    * The runner image container-based provisioners launch
    * (STIGMER_SANDBOX_RUNNER_IMAGE). The default is the published cloud
-   * sandbox image (Dockerfile.sandbox's `sandbox` stage — DD-014's
-   * release lane).
+   * sandbox image (Dockerfile.sandbox's `sandbox` stage).
    */
   readonly sandboxRunnerImage: string;
   /**
@@ -367,7 +365,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   // Go validateR2Config: boot-fatal on incomplete r2 configuration — a
   // second deliberate exception to the lenient-loader posture (a server
   // that silently ignored half an R2 config would write blobs nowhere).
-  // Skill's per-domain knob (O5) shares the settings, so its r2 arm gets
+  // Skill's per-domain knob shares the settings, so its r2 arm gets
   // the same completeness gate.
   if (artifactStorageType === "r2" || skillArtifactStorageType === "r2") {
     validateR2Config(r2);
@@ -463,7 +461,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
 }
 
 /**
- * OIDC issuer/audience (O3 ruling Q1) — boot-FATAL on the two certain
+ * OIDC issuer/audience — boot-FATAL on the two certain
  * misconfigurations, joining the operator-identity and R2 exceptions to
  * the lenient-loader posture: an issuer that is not an http(s) URL can
  * never complete discovery, and an issuer without an audience (or the

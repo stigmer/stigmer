@@ -1,6 +1,6 @@
 /**
- * The trusted-local operator account (20260911.11, T01_1_review.md A2,
- * A5): under the posture with no authentication, the server knows its one
+ * The trusted-local operator account: under the posture with no
+ * authentication, the server knows its one
  * principal from config, so the server states the fact at boot instead of
  * asking three clients to provision it (the console's gate is off on the
  * laptop and the desktop has none).
@@ -23,7 +23,7 @@
  * identity that seam yields for it (trustedLocalIdentityFor — the one
  * construction of that principal), never from config directly: one
  * source, so the row, its audit stamp and the per-request caller cannot
- * disagree (A5).
+ * disagree.
  *
  * Whether this runs at all — only when no authentication posture is on —
  * is the composition root's decision (boot/compose.ts); the cloud and an

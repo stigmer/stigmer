@@ -16,8 +16,8 @@
  *
  * Both mean the same thing: infrastructure interrupted the turn; the user
  * did nothing. Recognizing them in ONE place keeps two behaviors
- * consistent across the agentexecution (#18) and workflowexecution (#21)
- * workflows: status.error carries the honest platform-failure copy
+ * consistent across the agentexecution and workflowexecution workflows:
+ * status.error carries the honest platform-failure copy
  * instead of raw Temporal internals, and the interruption is treated as
  * recoverable by the bounded recovery loop (owner ruling on #776).
  *

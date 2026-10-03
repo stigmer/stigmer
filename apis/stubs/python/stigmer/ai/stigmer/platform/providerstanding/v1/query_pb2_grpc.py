@@ -8,7 +8,7 @@ from ai.stigmer.platform.providerstanding.v1 import io_pb2 as ai_dot_stigmer_dot
 class ProviderStandingQueryControllerStub(object):
     """ProviderStandingQueryController serves the operator console's read-only
     view of platform provider standing: the canary-probe verdicts the
-    cloud#370 detection core records hourly (health, billing/auth
+    detection core records hourly (health, billing/auth
     rejections, latency, bounded error summaries).
 
     Platform-gated and view-only: provider account health is
@@ -33,7 +33,7 @@ class ProviderStandingQueryControllerStub(object):
 class ProviderStandingQueryControllerServicer(object):
     """ProviderStandingQueryController serves the operator console's read-only
     view of platform provider standing: the canary-probe verdicts the
-    cloud#370 detection core records hourly (health, billing/auth
+    detection core records hourly (health, billing/auth
     rejections, latency, bounded error summaries).
 
     Platform-gated and view-only: provider account health is
@@ -68,7 +68,7 @@ def add_ProviderStandingQueryControllerServicer_to_server(servicer, server):
 class ProviderStandingQueryController(object):
     """ProviderStandingQueryController serves the operator console's read-only
     view of platform provider standing: the canary-probe verdicts the
-    cloud#370 detection core records hourly (health, billing/auth
+    detection core records hourly (health, billing/auth
     rejections, latency, bounded error summaries).
 
     Platform-gated and view-only: provider account health is

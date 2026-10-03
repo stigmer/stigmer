@@ -32,7 +32,6 @@ import "buf/validate/validate.proto";
 // to a change. This is the platform's standing "fingerprint = enforcement,
 // never correlation" rule applied to file review.
 //
-// @since File-Change HITL Redesign (Phase 1)
 // ─────────────────────────────────────────────────────────────────────────────
 
 // The set of file deltas produced by one agent turn, reviewed and reconciled
@@ -53,8 +52,6 @@ import "buf/validate/validate.proto";
 // folds over the ledger, not stored-mutable state. A terminal execution
 // projects no actionable review (the workflow that would reconcile is gone),
 // mirroring the phase-aware pending_approvals rule.
-//
-// @since File-Change HITL Redesign (Phase 1)
 message FileChangeSet {
   // Stable id of this change set, unique per turn. The correlation key a
   // FileDecision and every ledger event reference. Never a content hash.
@@ -113,8 +110,6 @@ message FileChangeSet {
 // the apply-then-review successor to the tool-call-coupled FileChange in
 // message.proto; the two coexist until the legacy file-change coupling is
 // deleted, at which point this message takes the canonical FileChange name.
-//
-// @since File-Change HITL Redesign (Phase 1)
 message CapturedFileChange {
   // Stable id of this file change within its set. The correlation key a
   // FILE-scoped FileDecision references. Never a content hash.
@@ -188,8 +183,6 @@ message CapturedFileChange {
 // One of git / cas is set per kind; HYBRID carries both (git-tracked files via
 // the tree ref, ignored/non-git files via the CAS manifest). Snapshots are
 // captured by the runner and are idempotent under Temporal retries.
-//
-// @since File-Change HITL Redesign (Phase 1)
 message SnapshotRef {
   // Which substrate holds this snapshot. See SnapshotKind.
   SnapshotKind kind = 1 [(buf.validate.field).enum.defined_only = true];
@@ -198,13 +191,11 @@ message SnapshotRef {
   GitTreeRef git = 2;
 
   // Content-addressed manifest reference for ignored/non-git paths; set when
-  // kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+  // kind is CAS_MANIFEST or HYBRID.
   CasManifestRef cas = 3;
 }
 
 // A git no-commit tree snapshot (write-tree + a stigmer-namespaced ref).
-//
-// @since File-Change HITL Redesign (Phase 1)
 message GitTreeRef {
   // The tree object id produced by git write-tree.
   string tree_oid = 1;
@@ -217,12 +208,6 @@ message GitTreeRef {
 
 // A content-addressed snapshot manifest for paths git cannot capture
 // (gitignored or non-git workspaces).
-//
-// @internal
-// Realized in Phase 3 (CAS). Present in the contract now so the snapshot shape
-// is stable before producers exist.
-//
-// @since File-Change HITL Redesign (Phase 1)
 message CasManifestRef {
   // Digest of the manifest listing each captured path and its blob digest.
   string manifest_digest = 1;
@@ -238,8 +223,6 @@ message CasManifestRef {
 // saw, so "what you approve is what gets applied". expected_digest is an
 // ENFORCEMENT gate, never a correlation key — correlation is by change_set_id
 // (+ file_change_id for FILE scope).
-//
-// @since File-Change HITL Redesign (Phase 1)
 message FileDecision {
   // Stable id of this decision.
   string id = 1;
@@ -281,7 +264,7 @@ message FileDecision {
 
   // Which authority authored this decision: a human reviewer (USER; also the
   // reading for UNSPECIFIED pre-origin records) or the approved-command
-  // auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+  // auto-keep policy. Audit provenance only — never enforcement, never
   // correlation, never folded into any digest. See FileDecisionOrigin.
   FileDecisionOrigin origin = 11 [(buf.validate.field).enum.defined_only = true];
 }
@@ -306,8 +289,6 @@ message FileDecision {
 // Authored by the runner's turn-begin capture activity. The first event of a
 // change set's lifecycle; carries the change set's stable identity so the
 // projection can materialize the set before any candidate exists.
-//
-// @since File-Change HITL Redesign (Phase 1)
 message FileReviewBaselineCaptured {
   // Stable id of the change set this baseline opens.
   string change_set_id = 1;
@@ -322,8 +303,8 @@ message FileReviewBaselineCaptured {
   SnapshotRef baseline_snapshot = 4;
 }
 
-// The runner's turn facts backing the approved-command auto-keep policy
-// (DD-28): its assertion that EVERY mutation in the candidate was produced by
+// The runner's turn facts backing the approved-command auto-keep policy:
+// its assertion that EVERY mutation in the candidate was produced by
 // executed shell commands the human had already authorized, with the consent
 // evidence the backend can verify.
 //
@@ -339,8 +320,6 @@ message FileReviewBaselineCaptured {
 // decision, so a runner cannot mint authorization it was never given. Absent
 // on any turn that does not qualify — the set then reviews manually, exactly
 // as before this field existed (fail-closed).
-//
-// @since File-Change HITL Redesign (DD-28 approved-command auto-keep)
 message TurnCommandProvenance {
   // Ids of the transcript tool calls whose SERVER-AUTHORED approval_action
   // (written only by SubmitApproval, preserved against runner writes)
@@ -362,8 +341,6 @@ message TurnCommandProvenance {
 // @internal
 // Authored by the runner's turn-boundary capture activity. Large before/after
 // bodies are offloaded (FileContent.ref) before this event is persisted.
-//
-// @since File-Change HITL Redesign (Phase 1)
 message FileReviewCandidateCaptured {
   // The change set this candidate closes.
   string change_set_id = 1;
@@ -382,7 +359,7 @@ message FileReviewCandidateCaptured {
   // blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
   DiffCompleteness diff_completeness = 5 [(buf.validate.field).enum.defined_only = true];
 
-  // The runner's approved-command turn facts (DD-28). When present AND the
+  // The runner's approved-command turn facts. When present AND the
   // backend's verification passes, the set is auto-kept by a policy-origin
   // FILE_DECIDED instead of arming the review gate. Absent → manual review.
   // See TurnCommandProvenance.
@@ -395,8 +372,6 @@ message FileReviewCandidateCaptured {
 // Authored by the runner's reconcile activity after decisions land. Idempotent:
 // it reconciles to an exact approved snapshot and verifies hashes, so re-running
 // converges.
-//
-// @since File-Change HITL Redesign (Phase 1)
 message FileReviewReconciled {
   // The change set that was reconciled.
   string change_set_id = 1;
@@ -411,8 +386,6 @@ message FileReviewReconciled {
 // Authored by the runner. A DIFF_UNREVIEWABLE failure blocks the change set
 // from becoming approvable (the diff cannot be shown completely); the others
 // record capture/reconcile/verification failures for audit and resume.
-//
-// @since File-Change HITL Redesign (Phase 1)
 message FileReviewFailure {
   // The change set the failure pertains to.
   string change_set_id = 1;
@@ -432,8 +405,6 @@ message FileReviewFailure {
 // the payload carries fidelity.
 //
 // @internal
-//
-// @since File-Change HITL Redesign (Phase 1)
 message FileReviewEvent {
   // Unique id of this event, deterministic by design: derived from
   // change_set_id + scope id + event_type. The permanent idempotency key for
@@ -494,8 +465,6 @@ message FileReviewEvent {
 // stream is idempotent under retries and an existing event is never overwritten.
 // The stored stream is server-owned: preserved in place across UpdateStatus
 // writes and only ever extended by the fold above and by SubmitFileDecision.
-//
-// @since File-Change HITL Redesign (Phase 1)
 message FileReviewEventStream {
   // AgentExecution.metadata.id this stream belongs to.
   string execution_id = 1;
@@ -524,9 +493,7 @@ message FileReviewEventStream {
 //
 // Secret safety: it carries paths + kinds + line counts ONLY — no file bodies —
 // so nothing new can leak. A secret-like path is surfaced with zeroed counts
-// (path visible, content withheld), consistent with the DD-12 rule.
-//
-// @since File-Change HITL Redesign (mid-run live capture)
+// (path visible, content withheld), the same rule the change-set ledger applies.
 message FileChangeProgress {
   // Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
   // The server keeps this snapshot only while a CAPTURING FileChangeSet with this
@@ -560,8 +527,6 @@ message FileChangeProgress {
 // NOT a CapturedFileChange (which is the digest-bound, reviewable ledger delta);
 // it has no content, no digests, no unified diff. Path/kind naming mirrors
 // CapturedFileChange so renames read honestly.
-//
-// @since File-Change HITL Redesign (mid-run live capture)
 message FileChangeProgressEntry {
   // Path before the change (workspace-root-relative). Empty for ADD.
   string path_before = 1;

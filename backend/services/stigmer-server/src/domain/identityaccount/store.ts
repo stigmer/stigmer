@@ -1,5 +1,5 @@
 /**
- * The IdentityAccountStore PORT (20260911.11, T01_0_plan.md §3a; Q-IA-4):
+ * The IdentityAccountStore PORT:
  * the storage contract the identity-account domain writes and reads
  * through, cut from the cloud's row store (iam/account/store.ts) to its
  * DIRECT subset. This is the first OSS domain whose persistence is a port
@@ -43,8 +43,8 @@
  *   - `findByIds` answers one row per distinct id, in first-occurrence
  *     order, and skips unknown ids;
  *   - a typed not-found reads as `undefined`; any other storage failure
- *     propagates as the infrastructure fault it is (the ratified
- *     store-fault mapping — an outage must never read as "no account").
+ *     propagates as the infrastructure fault it is (the store-fault
+ *     mapping — an outage must never read as "no account").
  */
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 

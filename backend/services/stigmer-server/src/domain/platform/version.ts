@@ -4,7 +4,7 @@
  *
  * The TS equivalent of ldflags is an esbuild `define`: release builds
  * replace the __STIGMER_SERVER_VERSION__ identifier in scripts/
- * bundle-slim.mjs (owner-ratified at this sub-project's plan gate), so the
+ * bundle-slim.mjs, so the
  * bundle carries its version as a compile-time constant — hermetic, no
  * package.json read at boot. Unbundled runs (tsx dev mode, vitest) leave
  * the identifier undefined and fall back to "dev", exactly Go's unstamped

@@ -5,8 +5,8 @@
  *
  * It is the shared core of the apply-time validation added for issue #402:
  * the agent controller checks McpServerUsage.enabled_tools and the
- * mcpserver controller (arriving with sub-project #9 — this module is its
- * first resident, placed here so the tree keeps corresponding to Go's)
+ * mcpserver controller (this module sits in its directory so the tree
+ * keeps corresponding to Go's)
  * checks McpServerSpec.default_enabled_tools, and both must agree on what
  * counts as a valid tool name. Keeping the classification here — in the
  * domain that owns capability semantics — prevents the two error paths

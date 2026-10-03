@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Boot-smokes the official server Docker image (DD-014, Phase-2 P4) — the
+ * Boot-smokes the official server Docker image — the
  * ONE smoke, shared by three consumers so their proofs cannot drift:
  *
  *   - local dev:        make smoke-docker-image
@@ -19,7 +19,7 @@
  *      (wiring-complete, not merely port-bound);
  *   3. the console is served: /config.json is the trusted-local document
  *      (the shared probe in test/install/lib/stigmer-smoke.mjs; #1087) and /
- *      answers HTML — DD-012's restoration must survive packaging;
+ *      answers HTML — the bundled console must survive packaging;
  *   4. a CRUD round-trip (Organization create → get) through the Connect
  *      JSON lane;
  *   5. state survives `docker restart` — the /data volume story is
@@ -192,7 +192,7 @@ async function main() {
     }
     log("health service: SERVING");
 
-    // 3. The console lane (DD-012): the one trusted-local /config.json
+    // 3. The console lane: the one trusted-local /config.json
     // document and a real page (test/install/lib/stigmer-smoke.mjs).
     await assertConsoleServed(baseUrl);
     log("console lane: /config.json contract + / html both answer");

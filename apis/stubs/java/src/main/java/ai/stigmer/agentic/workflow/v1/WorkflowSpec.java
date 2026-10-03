@@ -322,7 +322,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   /**
    * <pre>
    * Budget limits for this workflow execution.
-   * When set, the runtime (T13) enforces cost, token, and duration limits
+   * When set, the runtime enforces cost, token, and duration limits
    * across all tasks. The existing org-level billing reservation system
    * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
    * for overall credit exhaustion; workflow budgets prevent individual
@@ -340,7 +340,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   /**
    * <pre>
    * Budget limits for this workflow execution.
-   * When set, the runtime (T13) enforces cost, token, and duration limits
+   * When set, the runtime enforces cost, token, and duration limits
    * across all tasks. The existing org-level billing reservation system
    * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
    * for overall credit exhaustion; workflow budgets prevent individual
@@ -358,7 +358,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
   /**
    * <pre>
    * Budget limits for this workflow execution.
-   * When set, the runtime (T13) enforces cost, token, and duration limits
+   * When set, the runtime enforces cost, token, and duration limits
    * across all tasks. The existing org-level billing reservation system
    * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
    * for overall credit exhaustion; workflow budgets prevent individual
@@ -1672,7 +1672,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Budget limits for this workflow execution.
-     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
      * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
@@ -1689,7 +1689,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Budget limits for this workflow execution.
-     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
      * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
@@ -1710,7 +1710,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Budget limits for this workflow execution.
-     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
      * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
@@ -1736,7 +1736,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Budget limits for this workflow execution.
-     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
      * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
@@ -1760,7 +1760,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Budget limits for this workflow execution.
-     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
      * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
@@ -1791,7 +1791,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Budget limits for this workflow execution.
-     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
      * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
@@ -1814,7 +1814,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Budget limits for this workflow execution.
-     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
      * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
@@ -1832,7 +1832,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Budget limits for this workflow execution.
-     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
      * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual
@@ -1853,7 +1853,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Budget limits for this workflow execution.
-     * When set, the runtime (T13) enforces cost, token, and duration limits
+     * When set, the runtime enforces cost, token, and duration limits
      * across all tasks. The existing org-level billing reservation system
      * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
      * for overall credit exhaustion; workflow budgets prevent individual

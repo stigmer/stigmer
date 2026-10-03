@@ -2,11 +2,12 @@
  * Task builder factory — creates the appropriate TaskBuilder for a
  * given task definition based on the `kind` discriminator.
  *
- * Phases 1–2: set, switch, do (nested), for (iteration).
- * Phase 4: call:http, call:grpc, call:function (llm, etc.).
- * Phase 4b: call:agent (async completion, HITL signals).
- * Phase 5.1: raise (error throwing), try (placeholder — execution in do-executor).
- * Phase 5.2: fork (parallel branches — execution in do-executor).
+ * Kinds built here:
+ *   - set, switch, do (nested), for (iteration);
+ *   - call:http, call:grpc, call:function (llm, etc.);
+ *   - call:agent (async completion, HITL signals);
+ *   - raise (error throwing), try (placeholder — execution in do-executor);
+ *   - fork (parallel branches — execution in do-executor).
  *
  * Mirrors Go's `NewTaskBuilder` type switch in `task_builder.go`.
  */

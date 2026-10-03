@@ -10,12 +10,11 @@ import "google/protobuf/timestamp.proto";
 // @internal
 // Infrastructure-only. Not a public API resource — no kind, no apiVersion,
 // no CRUD RPCs, no FGA (the OAuthGrant / ExecutionReservation pattern).
-// Stored in an internal Mongo collection with a hand-written repo;
-// decision 002's correctness backbone. Created at webhook time in the same
-// motion as the Session/AgentExecution; claimed atomically by the delivery
-// worker (status-guarded findAndModify, the atomicIncrementConsumed idiom);
-// swept by a Temporal Schedule for executions whose terminal write raced
-// or bypassed the hook.
+// Stored by the serving edition's channel runtime; the reply lane's
+// correctness backbone. Created at webhook time in the same motion as the
+// Session/AgentExecution; claimed atomically by the delivery worker with a
+// status-guarded update; swept for executions whose terminal write raced or
+// bypassed the hook.
 message ChannelDelivery {
   // Unique delivery identifier.
   string delivery_id = 1;
@@ -33,7 +32,7 @@ message ChannelDelivery {
   // Session the execution belongs to (conversation continuity + audit).
   string session_id = 5;
 
-  // Provider-neutral conversation key (decision 005: the DM thread
+  // Provider-neutral conversation key (the DM thread
   // timestamp or the mention thread_ts, per mapping).
   string conversation_key = 6;
 
@@ -75,8 +74,7 @@ message ChannelDelivery {
   // on rows terminal before this field existed.
   //
   // @internal
-  // channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
-  // the conversation timeline renders agent replies from THIS field, never
+  // The conversation timeline renders agent replies from THIS field, never
   // by re-running ChannelReplyExtractor at read time — the extractor's
   // error/cancelled/limit copy constants change over releases, and a
   // re-derivation would attribute today's words to yesterday's send.
@@ -90,7 +88,7 @@ message ChannelDelivery {
   // existed).
   //
   // @internal
-  // cloud#262 (channel-conversations F-25): the classification that
+  // The classification that
   // decides whether the failure's explanation may reach the conversation
   // timeline. Written only by markFailed and the delete cascade, never by
   // markRetry — a scheduled retry is not a verdict.
@@ -101,7 +99,7 @@ message ChannelDelivery {
   // attempt_refused or attempt_withdrawn.
   //
   // @internal
-  // cloud#262: PLATFORM-authored copy, unlike the outbound ledger's
+  // PLATFORM-authored copy, unlike the outbound ledger's
   // provider-owned receipt_detail. The write side is the guarantee: only
   // the refusal and withdrawal arms carry copy here, so raw exception
   // text (which stays in last_error, an operator-only fact) can
@@ -115,9 +113,9 @@ message ChannelDelivery {
 // pending -> delivering is the atomic claim (single winner across
 // replicas). delivering -> delivered | pending (retry, with backoff via
 // next_attempt_at) | failed (dead-lettered after max attempts, or
-// immediately on a known-terminal provider refusal — cloud#263) |
-// suppressed (withheld under human control — channel-conversations
-// DD-005 D-e; terminal, intended behavior, never an alert condition).
+// immediately on a known-terminal provider refusal) |
+// suppressed (withheld under human control; terminal, intended
+// behavior, never an alert condition).
 enum ChannelDeliveryStatus {
   // Default value when no status is set.
   channel_delivery_status_unspecified = 0;
@@ -140,7 +138,7 @@ enum ChannelDeliveryStatus {
   // due; the customer never received it.
   //
   // @internal
-  // channel-conversations DD-005 D-e: terminal like delivered/failed,
+  // Terminal like delivered/failed,
   // but intended behavior — a suppressed settle records its own metric
   // and never feeds the bad-turn alert. The reply text is deliberately
   // NOT extracted or persisted (the customer never saw any words, and
@@ -154,8 +152,7 @@ enum ChannelDeliveryStatus {
 // operator-only diagnostic (last_error).
 //
 // @internal
-// cloud#262 (channel-conversations F-25, the DD-014 D-d deferred copy
-// ruling). Values carry the attempt_ prefix because proto3 enum values
+// Values carry the attempt_ prefix because proto3 enum values
 // are package-scoped — and, as with ChannelReceiptState's receipt_
 // prefix, that is also a feature: the attempt axis and the receipt axis
 // can never be confused on the wire. Shared by ChannelDelivery and
@@ -195,7 +192,7 @@ message SlackDeliveryContext {
   // Timestamp of the placeholder ("thinking") message to chat.update.
   //
   // @internal
-  // Set on the @mention and degraded-DM paths only (decision 008); the
+  // Set on the @mention and degraded-DM paths only; the
   // Assistant DM path uses assistant.threads.setStatus and carries no
   // placeholder timestamp.
   string placeholder_ts = 3;
@@ -208,8 +205,8 @@ message SlackDeliveryContext {
 // No placeholder field: WhatsApp cannot edit a sent message, so there is
 // no "thinking" message to update (the Slack chat.update UX has no
 // analog). No credentials either — the deliverer loads the channel by
-// agent_channel_id and resolves the access token from its ChannelApp
-// (DD-WA-3), the SlackOutboundDeliverer channel-load pattern.
+// agent_channel_id and resolves the access token from its ChannelApp,
+// the SlackOutboundDeliverer channel-load pattern.
 message WhatsAppDeliveryContext {
   // Phone number ID the reply sends FROM (the business number).
   string phone_number_id = 1;

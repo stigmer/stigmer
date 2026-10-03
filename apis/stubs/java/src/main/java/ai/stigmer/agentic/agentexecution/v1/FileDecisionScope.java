@@ -11,8 +11,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  *
  * HUNK is intentionally deferred — per-hunk approval is a derived approved
  * snapshot, not a new lease, and ships after file-level is stable.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.FileDecisionScope}

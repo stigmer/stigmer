@@ -59,7 +59,7 @@ public interface SnapshotRefOrBuilder extends
   /**
    * <pre>
    * Content-addressed manifest reference for ignored/non-git paths; set when
-   * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+   * kind is CAS_MANIFEST or HYBRID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -69,7 +69,7 @@ public interface SnapshotRefOrBuilder extends
   /**
    * <pre>
    * Content-addressed manifest reference for ignored/non-git paths; set when
-   * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+   * kind is CAS_MANIFEST or HYBRID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -79,7 +79,7 @@ public interface SnapshotRefOrBuilder extends
   /**
    * <pre>
    * Content-addressed manifest reference for ignored/non-git paths; set when
-   * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+   * kind is CAS_MANIFEST or HYBRID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>

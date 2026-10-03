@@ -7,13 +7,13 @@ import "buf/validate/validate.proto";
 // Input for sending a business-initiated message on an agent channel.
 //
 // @internal
-// proactive-messaging DD-002 D4, amended: channel + org are separate
+// Channel + org are separate
 // fields, never a slug-or-id union. Dispatch is token-class-driven:
 // session-bound runner credentials leave both empty and the server
 // derives them from the session's serving channel; direct principals
 // (console, CLI, SDK) set them. Ambiguity — the caller's agent has more
 // than one proactive-enabled channel and no channel is named — is an
-// INVALID_ARGUMENT whose detail lists the candidates (D7).
+// INVALID_ARGUMENT whose detail lists the candidates.
 message SendChannelMessageInput {
   // AgentChannel slug to send through, resolved within `org`. Optional
   // when the caller's agent has exactly one proactive-enabled channel.
@@ -38,7 +38,7 @@ message SendChannelMessageInput {
 // message. Exactly one kind must be set.
 //
 // @internal
-// The payments seam (proactive-messaging DD-001 D4 / DD-002 D3): the
+// The payments seam: the
 // payments follow-up adds `OrderDetailsPayload order_details = 3` —
 // the provider_config / delivery_context oneof-extension pattern
 // ("extends this oneof; touches zero kinds"). Deliverers dispatch on
@@ -71,11 +71,11 @@ message TextPayload {
 // with the supplied parameter values.
 //
 // @internal
-// proactive-messaging DD-003 D4. Registry-dependent validation (name
+// Registry-dependent validation (name
 // exists, status APPROVED, language resolution, parameter arity, header
 // requirement) is deliberately NOT proto-level: it is the cloud
-// handler's courtesy pre-check plus the provider's send-time verdict
-// (D7), mapped to ChannelSendOutcome — never a local approval state
+// handler's courtesy pre-check plus the provider's send-time verdict,
+// mapped to ChannelSendOutcome — never a local approval state
 // machine.
 message TemplatePayload {
   // Name of the approved template on the channel's provider registry
@@ -91,7 +91,7 @@ message TemplatePayload {
   // @internal
   // Omitted-language resolution echoes SendChannelMessageInput.channel:
   // unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-  // candidate languages in the detail (DD-003 D4).
+  // candidate languages in the detail.
   string language = 2 [(buf.validate.field).string.max_len = 16];
 
   // Variable values. Named templates key by parameter name
@@ -124,10 +124,9 @@ message SendChannelMessageOutput {
 // message on the inline delivery attempt.
 //
 // @internal
-// proactive-messaging DD-002 D1/D4: policy refusals the agent adapts to
+// Policy refusals the agent adapts to
 // are typed outcomes; contract violations and authority failures are
-// gRPC errors. Provider verdicts map into the same vocabulary (DD-003
-// D7).
+// gRPC errors. Provider verdicts map into the same vocabulary.
 enum ChannelSendOutcome {
   // Default value when no outcome is set.
   channel_send_outcome_unspecified = 0;
@@ -161,8 +160,8 @@ message ListChannelTemplatesInput {
   // @internal
   // The two callers split on this flag: the runner's discovery fetch
   // sets it (an agent must never compose against a paused or pending
-  // template, DD-003 D5); the console leaves it unset to render every
-  // status with its badge (DD-003 D10).
+  // template); the console leaves it unset to render every
+  // status with its badge.
   bool approved_only = 3;
 }
 
@@ -177,7 +176,7 @@ message ChannelTemplates {
 // registry reports it.
 //
 // @internal
-// proactive-messaging DD-003 D6: provider vocabulary verbatim — status,
+// Provider vocabulary verbatim — status,
 // category, format, and rejection copy are the provider's own strings,
 // never re-encoded into a Stigmer enum. The provider is the registry
 // and the send-time authority; this projection is a read-through view.
@@ -220,7 +219,7 @@ message ChannelTemplate {
   // template can be sent.
   //
   // @internal
-  // proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+  // Distinct from
   // rejection_reason: that is the PROVIDER's verdict on the template;
   // this is Stigmer's verdict on its own ability to supply the
   // template's send payload (e.g. a text-header variable or dynamic-URL
@@ -235,9 +234,9 @@ message ChannelTemplate {
 // business-initiated messages on.
 //
 // @internal
-// proactive-messaging DD-006 D2. Deliberately empty (the
+// Deliberately empty (the
 // GetServerInfoInput house style): org, agent, and session all derive
-// from the caller's token (DD-013 — never from arguments). Session-bound
+// from the caller's token, never from arguments. Session-bound
 // callers only in this slice; a direct principal is told to use the
 // channel resource surface instead. Room is reserved for a
 // direct-caller `org` arm if one is ever justified.
@@ -254,7 +253,7 @@ message MessagingChannels {
 // messaging, as a slim projection.
 //
 // @internal
-// proactive-messaging DD-006 D2: deliberately NOT the AgentChannel
+// Deliberately NOT the AgentChannel
 // resource — provider_config and status carry install facts and
 // credential references that must never reach a sandbox-token surface.
 // The runner needs exactly enough to name the channel in a send and

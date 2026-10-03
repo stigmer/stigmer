@@ -1,12 +1,12 @@
 # =============================================================================
-# Compose Stack — the self-host phase gate (DD-013, Phase-2 P5)
+# Compose Stack — the self-host gate
 # =============================================================================
 # Proves `docker compose up` from a clean clone: server + one Postgres +
 # real Temporal + containerized runner, up to ONE END-TO-END workflow run
-# through the runner (LLM-free, zero provider secrets — the gate ruling Q-C).
+# through the runner (LLM-free, so no provider secrets are needed).
 #
-# Both images build FROM SOURCE via docker-compose.dev.yml (the gate ruling
-# Q-A): the committed docker-compose.yml pins published version tags for
+# Both images build FROM SOURCE via docker-compose.dev.yml: the committed
+# docker-compose.yml pins published version tags for
 # users, but a PR must prove the real topology without waiting for a
 # release. The published-tag path is re-proven by the release lane
 # (release.npm-libs.yaml), which runs the SAME test/install/smoke-compose.mjs
@@ -59,7 +59,7 @@ jobs:
         run: npm ci
 
       # make smoke-compose = build-server (stubs + deps + compile) +
-      # build-web (the console export bundle-slim stages, DD-012) +
+      # build-web (the console export bundle-slim stages) +
       # stage-compose-runner-cli (the CLI tarballs the runner image
       # installs) + bundle-slim + test/install/smoke-compose.mjs --build. One
       # entry point, identical to what a contributor runs locally.

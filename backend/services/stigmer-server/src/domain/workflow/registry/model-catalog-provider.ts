@@ -1,11 +1,10 @@
 /**
- * The model-catalog provider seam — DD-008 (convergence program
- * 20260826.02, blueprint/03 §6a), extracted with O5 (20260827.02).
+ * The model-catalog provider seam.
  *
  * ONE interface covers catalog data AND pin-policy source: the registry
  * document, model/harness validity, pricing-variant and capability
- * queries, canonical-model listing. A split seam was rejected by the
- * ratified DD-008 ruling — separating the priced catalog from the pin
+ * queries, canonical-model listing. A split seam was rejected:
+ * separating the priced catalog from the pin
  * policy lets them drift apart, recreating exactly the selectable-vs-billed
  * drift the one-store design exists to prevent.
  *
@@ -15,7 +14,7 @@
  *      invalidation), but consumers never build boot-time indexes over
  *      this provider. The named counterexample is the cloud Java
  *      ModelValidationHelper's @PostConstruct index, which captured the
- *      stage-1 embedded registry before the DB baseline loaded and served
+ *      embedded registry before the DB baseline loaded and served
  *      stale validity for the process's whole life.
  *   2. Validation logic stays OSS and edition-neutral. The did-you-mean
  *      pin machinery (pin-validation.ts) and every refusal message CONSUME

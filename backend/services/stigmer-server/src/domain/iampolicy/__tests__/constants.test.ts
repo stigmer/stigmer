@@ -1,6 +1,5 @@
 /**
- * Pins the IamPolicy domain's constants (project 20260913.01,
- * T01_0_plan.md §3a, T01_1_review.md Q-OR-9):
+ * Pins the IamPolicy domain's constants:
  *
  *   - the policy-id derivation — `iamp_` + the top 130 bits of sha256 over
  *     the triple's canonical text as 26 lowercase Crockford-base32
@@ -11,7 +10,7 @@
  *     triple". The golden vectors are wire-adjacent constants: a change
  *     re-addresses every policy open source ever wrote;
  *   - `BLUEPRINT_KINDS` — the kinds an admin authors, the legacy-creator
- *     rule's whole scan (Q-OR-6b); sessions and executions are personal
+ *     rule's whole scan; sessions and executions are personal
  *     and never appear here;
  *   - the byte-pinned copy moved from the cloud's handlers as-is, plus the
  *     new sentences (the two edition refusals, the unknown permission, the
@@ -19,8 +18,7 @@
  *     refusals a team grantee brought);
  *   - `USER_GRANT_PRINCIPAL_KINDS` — a person and a team, and no kind the
  *     hierarchy walk would read as a structural parent;
- *   - the canonical text's one weakness and its closure (slice 2 ruling
- *     Q-S2-1): `ApiResourceRef` fields carry no character pattern, so an
+ *   - the canonical text's one weakness and its closure: `ApiResourceRef` fields carry no character pattern, so an
  *     id or relation holding `:`, `#` or `@` could spell another triple's
  *     text. `malformedTripleField` names the offending field and
  *     `policyIdFor` refuses to hash such a spec; the grant path turns the
@@ -193,7 +191,7 @@ describe("policyIdFor — the derived policy id", () => {
     ).toBe(`team:tm_1#member@agent:${AGENT}#viewer`);
   });
 
-  it("refuses a triple whose text would be ambiguous — a delimiter inside any field (Q-S2-1)", () => {
+  it("refuses a triple whose text would be ambiguous — a delimiter inside any field", () => {
     // `a#b` with an empty qualifier and `a` with qualifier `b#` would spell
     // one text; the refusal is what keeps one text one triple.
     expect(() =>
@@ -285,13 +283,13 @@ describe("malformedTripleField — the delimiter check the id and the writer sha
 });
 
 describe("the contract's identity strings", () => {
-  it("stamps the proto's apiVersion const, not the Java-era value (Q-OR-9)", () => {
+  it("stamps the proto's apiVersion const, not the Java-era value", () => {
     expect(IAM_POLICY_API_VERSION).toBe("iam.stigmer.ai/v1");
     expect(IAM_POLICY_KIND).toBe("IamPolicy");
   });
 });
 
-describe("BLUEPRINT_KINDS — the legacy-creator rule's scan (Q-OR-6b)", () => {
+describe("BLUEPRINT_KINDS — the legacy-creator rule's scan", () => {
   it("is exactly the six kinds an admin authors, in registry order", () => {
     expect([...BLUEPRINT_KINDS]).toEqual([
       ApiResourceKind.agent,
@@ -303,7 +301,7 @@ describe("BLUEPRINT_KINDS — the legacy-creator rule's scan (Q-OR-6b)", () => {
     ]);
   });
 
-  it("never names a personal kind — those stay with their creator by DD-002 rule 2, no role needed", () => {
+  it("never names a personal kind — those stay with their creator, no role needed", () => {
     for (const personal of [
       ApiResourceKind.session,
       ApiResourceKind.agent_execution,
@@ -316,7 +314,7 @@ describe("BLUEPRINT_KINDS — the legacy-creator rule's scan (Q-OR-6b)", () => {
   });
 });
 
-describe("USER_GRANT_PRINCIPAL_KINDS — who a person may grant a role to (Q-S9-2)", () => {
+describe("USER_GRANT_PRINCIPAL_KINDS — who a person may grant a role to", () => {
   it("is exactly a person and a team of people — the one vocabulary the writer admits and the reader treats as no structural parent", () => {
     expect([...USER_GRANT_PRINCIPAL_KINDS]).toEqual([
       ApiResourceKind.identity_account,

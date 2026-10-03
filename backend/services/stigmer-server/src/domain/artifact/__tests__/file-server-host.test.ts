@@ -1,6 +1,6 @@
 /**
  * Pins the artifact file server's bind-host contract (ARTIFACT_HTTP_HOST,
- * DD-013; shipped with the Docker image, Phase-2 P4): the listener binds
+ * shipped with the Docker image): the listener binds
  * exactly the host the composition root passes. Loopback — the default —
  * must stay unreachable through non-loopback interfaces (the retired Go
  * server's posture), and the container override (0.0.0.0) must serve the

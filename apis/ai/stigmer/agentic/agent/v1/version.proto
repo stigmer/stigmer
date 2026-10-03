@@ -40,8 +40,6 @@ import "google/protobuf/timestamp.proto";
 //
 // @internal
 // NOT YET IMPLEMENTED — design placeholder for the agent versioning phase.
-//
-// @since Agent Versioning (future)
 message AgentVersionEntry {
   // SHA-256 hash of the canonical protojson of AgentSpec.
   string version_hash = 1;
@@ -71,8 +69,6 @@ message AgentVersionEntry {
 }
 
 // GitProvenance tracks the git origin of an agent version.
-//
-// @since Agent Versioning (future)
 message GitProvenance {
   string remote_url = 1;
   string ref = 2;
@@ -81,8 +77,6 @@ message GitProvenance {
 }
 
 // ListAgentVersionsInput requests the version history for an agent.
-//
-// @since Agent Versioning (future)
 message ListAgentVersionsInput {
   string org = 1 [(buf.validate.field).required = true];
   string slug = 2 [(buf.validate.field).required = true];
@@ -91,8 +85,6 @@ message ListAgentVersionsInput {
 }
 
 // ListAgentVersionsResponse contains a page of agent version history.
-//
-// @since Agent Versioning (future)
 message ListAgentVersionsResponse {
   repeated AgentVersionEntry versions = 1;
   string next_page_token = 2;
@@ -100,16 +92,12 @@ message ListAgentVersionsResponse {
 }
 
 // GetAgentVersionInput requests a specific historical version.
-//
-// @since Agent Versioning (future)
 message GetAgentVersionInput {
   string agent_id = 1 [(buf.validate.field).required = true];
   string version_hash = 2 [(buf.validate.field).string.pattern = "^[a-f0-9]{64}$"];
 }
 
 // TagAgentVersionInput assigns or moves a tag to a specific agent version.
-//
-// @since Agent Versioning (future)
 message TagAgentVersionInput {
   string agent_id = 1 [(buf.validate.field).required = true];
   string version_hash = 2 [(buf.validate.field).string.pattern = "^[a-f0-9]{64}$"];

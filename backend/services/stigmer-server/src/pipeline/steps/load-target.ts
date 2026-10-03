@@ -3,7 +3,7 @@
  * inputs (OrganizationId, AgentId, …): loads by id into the
  * TargetResource context key; NotFound when absent.
  *
- * Deliberate divergence from the Go source (ratified 2026-08-26): Go
+ * Deliberate divergence from the Go source (decided 2026-08-26): Go
  * mapped ANY store error to NotFound — a locked file or corrupted page
  * presented as a missing resource, inviting clients to discard real
  * state. Here only the store's typed ResourceNotFoundError is NotFound;

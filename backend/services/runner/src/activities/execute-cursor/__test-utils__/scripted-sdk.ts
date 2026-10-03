@@ -17,7 +17,7 @@
  *    `instanceof` the error classifier keys on.
  *
  * Neither the SDK nor the client is injectable into the activity (the real
- * seam arrives with the harness contract; parent Q1/Q2), so — exactly as the
+ * seam arrives with the harness contract), so — exactly as the
  * native activity tests already do for their boundary modules — the modules
  * are substituted with `vi.mock`. Three existing tests each mock ONE of these
  * surfaces (`session-lifecycle.test.ts`, `service-tier.test.ts`,

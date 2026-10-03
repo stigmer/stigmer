@@ -1,12 +1,12 @@
 /**
  * Interceptor-chain behavior tests, exercised through the REAL stigmer
- * service descriptors over the in-process router transport (the SP-B path,
- * so these tests double as proof that in-process calls get full pipeline
+ * service descriptors over the in-process router transport (so these
+ * tests double as proof that in-process calls get full pipeline
  * treatment — the Go bufconn parity property).
  *
  * Pinned behaviors:
  *   - protovalidate refuses an invalid Agent BEFORE the handler runs,
- *     with InvalidArgument (D2 §2);
+ *     with InvalidArgument;
  *   - a valid request reaches the handler with the apiresource kind
  *     injected from the service option (interceptor.go parity);
  *   - the logging tiers (grpc lib server.go:295-345): success info,
@@ -77,7 +77,7 @@ function testHarness(handlers: {
       });
     },
     // The serving-shape identity source with zero verifiers — the OSS
-    // default posture (O2): every request resolves to trusted-local.
+    // default posture: every request resolves to trusted-local.
     {
       router: {
         interceptors: buildInterceptorChain(

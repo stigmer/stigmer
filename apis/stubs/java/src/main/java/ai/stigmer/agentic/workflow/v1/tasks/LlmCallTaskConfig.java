@@ -463,8 +463,6 @@ private static final long serialVersionUID = 0L;
    * exceeds this limit, independent of the workflow-level budget.
    * The runtime checks both: per-task limit first, then workflow remaining budget.
    * Optional — when 0, no per-task cost limit is enforced.
-   *
-   * &#64;since T05 (Workflow-Level Budget Primitives)
    * </pre>
    *
    * <code>int64 max_cost_micros = 11 [json_name = "maxCostMicros"];</code>
@@ -484,8 +482,6 @@ private static final long serialVersionUID = 0L;
    * exceed this limit. Complements max_tokens (field 6), which limits only
    * the output token count as a generation parameter.
    * Optional — when 0, no per-task total token limit is enforced.
-   *
-   * &#64;since T05 (Workflow-Level Budget Primitives)
    * </pre>
    *
    * <code>int64 max_total_tokens = 12 [json_name = "maxTotalTokens"];</code>
@@ -2090,8 +2086,6 @@ private static final long serialVersionUID = 0L;
      * exceeds this limit, independent of the workflow-level budget.
      * The runtime checks both: per-task limit first, then workflow remaining budget.
      * Optional — when 0, no per-task cost limit is enforced.
-     *
-     * &#64;since T05 (Workflow-Level Budget Primitives)
      * </pre>
      *
      * <code>int64 max_cost_micros = 11 [json_name = "maxCostMicros"];</code>
@@ -2108,8 +2102,6 @@ private static final long serialVersionUID = 0L;
      * exceeds this limit, independent of the workflow-level budget.
      * The runtime checks both: per-task limit first, then workflow remaining budget.
      * Optional — when 0, no per-task cost limit is enforced.
-     *
-     * &#64;since T05 (Workflow-Level Budget Primitives)
      * </pre>
      *
      * <code>int64 max_cost_micros = 11 [json_name = "maxCostMicros"];</code>
@@ -2130,8 +2122,6 @@ private static final long serialVersionUID = 0L;
      * exceeds this limit, independent of the workflow-level budget.
      * The runtime checks both: per-task limit first, then workflow remaining budget.
      * Optional — when 0, no per-task cost limit is enforced.
-     *
-     * &#64;since T05 (Workflow-Level Budget Primitives)
      * </pre>
      *
      * <code>int64 max_cost_micros = 11 [json_name = "maxCostMicros"];</code>
@@ -2152,8 +2142,6 @@ private static final long serialVersionUID = 0L;
      * exceed this limit. Complements max_tokens (field 6), which limits only
      * the output token count as a generation parameter.
      * Optional — when 0, no per-task total token limit is enforced.
-     *
-     * &#64;since T05 (Workflow-Level Budget Primitives)
      * </pre>
      *
      * <code>int64 max_total_tokens = 12 [json_name = "maxTotalTokens"];</code>
@@ -2170,8 +2158,6 @@ private static final long serialVersionUID = 0L;
      * exceed this limit. Complements max_tokens (field 6), which limits only
      * the output token count as a generation parameter.
      * Optional — when 0, no per-task total token limit is enforced.
-     *
-     * &#64;since T05 (Workflow-Level Budget Primitives)
      * </pre>
      *
      * <code>int64 max_total_tokens = 12 [json_name = "maxTotalTokens"];</code>
@@ -2192,8 +2178,6 @@ private static final long serialVersionUID = 0L;
      * exceed this limit. Complements max_tokens (field 6), which limits only
      * the output token count as a generation parameter.
      * Optional — when 0, no per-task total token limit is enforced.
-     *
-     * &#64;since T05 (Workflow-Level Budget Primitives)
      * </pre>
      *
      * <code>int64 max_total_tokens = 12 [json_name = "maxTotalTokens"];</code>

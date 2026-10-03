@@ -1,6 +1,6 @@
 /**
- * Pins the Q7 secret-cleanup wiring END TO END (convergence 20260830.04
- * Stage 3): a composed server with an extension-registered fake "v9"
+ * Pins the secret-cleanup wiring END TO END: a composed server with an
+ * extension-registered fake "v9"
  * codec (write version v9, so every sealed value has recordable backing
  * state) proves, through real gRPC calls, that:
  *
@@ -14,7 +14,7 @@
  *     the updateVariables merge lane destroys nothing;
  *   - a destroy failure NEVER fails the request (best-effort after the
  *     store write);
- *   - the composed facade rides ComposedServer.secrets (gate ruling G2)
+ *   - the composed facade rides ComposedServer.secrets
  *     — the same instance the domains sealed with.
  *
  * The v1-only default arm (cleanup as a silent no-op) is pinned by the
@@ -170,7 +170,7 @@ async function storedEnvData(id: string): Promise<Record<string, string>> {
   );
 }
 
-describe("the composed facade exposure (gate ruling G2)", () => {
+describe("the composed facade exposure", () => {
   it("ComposedServer.secrets is the instance the domains sealed with", async () => {
     const created = await envCommand.create(
       envInput({ TOKEN: { value: "open-sesame", isSecret: true } }),

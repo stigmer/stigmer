@@ -4,7 +4,7 @@
  *
  * Lived in the runner (src/shared/zip-structure.ts) until the TS server's
  * skill push gate became its second consumer; extracted to backend/libs/ts/
- * per the program's shared-library rule (a library moves here when a second
+ * under the shared-library rule (a library moves here when a second
  * consumer exists — @stigmer/temporal-codecs is the precedent).
  *
  * Parsing is *central-directory-based* — never a front-to-back walk of

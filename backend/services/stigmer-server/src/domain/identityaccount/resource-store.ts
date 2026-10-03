@@ -1,7 +1,7 @@
 /**
  * The open-source IdentityAccountStore: the port (store.ts) over the
- * generic Store, rows of the `resources` table by kind (20260911.11,
- * T01_1_review.md A1). The composition root installs it when no
+ * generic Store, rows of the `resources` table by kind. The composition
+ * root installs it when no
  * extension registers `drivers.identityAccountStore`.
  *
  * Every subject lookup is a PRIMARY-KEY read of the derived id
@@ -12,14 +12,14 @@
  * no scan, and it is why `save` refuses a direct account whose id is not
  * its derived id — a stray row would be unreachable by subject forever.
  * `findDirectByEmail` is the one lookup that scans (Store.findByField, a
- * decode-and-scan of the kind's rows, T01_1_review.md finding 2): an
+ * decode-and-scan of the kind's rows): an
  * administrative RPC, never a per-request path.
  *
  * `save` and `update` are both read-then-write because the generic
  * Store's saveResource is an upsert with neither a create-only nor an
  * update-only form. `save` refuses when the read finds a row (the port:
  * a held id is DuplicateAccountError, never a silent overwrite); `update`
- * returns when the read finds none (the port, A12: replace, never
+ * returns when the read finds none (the port: replace, never
  * create — a driver whose UPDATE matches no row writes nothing, and this
  * adapter must not differ). The residual window between the read and
  * the write admits a same-content overwrite of the first writer's audit
@@ -31,7 +31,7 @@
  * refuse an account whose provider ref and federated mode disagree (the
  * port's shape line), so a refused write costs no store round trip.
  *
- * Store faults follow the ratified mapping (domain/apikey/lookup.ts): a
+ * Store faults follow the store-fault mapping (domain/apikey/lookup.ts): a
  * typed ResourceNotFoundError reads as `undefined`; anything else
  * propagates — an outage must never read as "no account".
  *
@@ -139,7 +139,7 @@ export function newResourceIdentityAccountStore(
 
     async findByIds(ids): Promise<ReadonlyArray<IdentityAccount>> {
       const found: IdentityAccount[] = [];
-      // One row per distinct id, at its first position (the port, A12):
+      // One row per distinct id, at its first position (the port):
       // a Set iterates in insertion order, so the dedupe keeps the order.
       for (const id of new Set(ids)) {
         const account = await readById(id);

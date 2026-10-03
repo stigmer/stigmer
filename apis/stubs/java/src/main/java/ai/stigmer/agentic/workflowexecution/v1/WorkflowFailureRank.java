@@ -8,8 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowFailureRank represents a workflow and its failure count within a time window.
- *
- * &#64;since T14 (Dashboard Integration)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowFailureRank}
@@ -325,8 +323,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowFailureRank represents a workflow and its failure count within a time window.
-   *
-   * &#64;since T14 (Dashboard Integration)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowFailureRank}

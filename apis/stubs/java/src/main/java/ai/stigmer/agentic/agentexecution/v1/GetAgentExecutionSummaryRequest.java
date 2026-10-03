@@ -9,8 +9,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * <pre>
  * GetAgentExecutionSummaryRequest fetches aggregated execution statistics
  * for an organization's agent executions.
- *
- * &#64;since Unified Platform Dashboard
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest}
@@ -304,8 +302,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * GetAgentExecutionSummaryRequest fetches aggregated execution statistics
    * for an organization's agent executions.
-   *
-   * &#64;since Unified Platform Dashboard
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest}

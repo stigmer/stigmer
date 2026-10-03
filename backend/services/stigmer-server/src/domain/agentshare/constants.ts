@@ -2,7 +2,7 @@
  * AgentShare domain constants — the byte-pinned wire copy shared with the
  * Go server and the cloud edition. Every string here is asserted by the
  * conformance suite or the cross-edition error contract; none is editable
- * without an owner-ratified wire change.
+ * without an deliberate wire change.
  */
 
 /**

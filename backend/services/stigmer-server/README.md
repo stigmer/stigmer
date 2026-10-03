@@ -9,17 +9,17 @@ store, with Temporal workers for the execution engine.
 TypeScript port of the original Go server, built behind the cross-edition
 conformance suite in [`test/conformance/`](../../../test/conformance) and cut
 over once its roster equalled the Go server's whole gate. The Go server
-retired shortly after (go-server-retirement; its source lives in git
-history). Ported modules cite the Go packages they came from — those
-citations are the port's provenance record.
+retired shortly after (its source lives in git history). Ported modules
+cite the Go packages they came from — those citations are the port's
+provenance record.
 
 ## Contract promise
 
 The wire contract is shared: the cloud composition, the runner, every
 published SDK, and databases written before the cutover all speak it.
 Byte-pinned identifiers, error copy, and streaming behavior are contract —
-every deliberate exception is recorded in the program's parity-deltas
-register, and nothing diverges silently. The conformance suite
+every deliberate exception is noted at the code that makes it, and nothing
+diverges silently. The conformance suite
 (`test/conformance/`, targets `local` and `local-execution`) is the gate for
 every change that lands here.
 

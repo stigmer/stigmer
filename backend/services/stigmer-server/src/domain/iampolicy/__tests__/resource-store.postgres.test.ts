@@ -10,9 +10,9 @@
  * them on every check.
  *
  * The kit's case list is pinned by name so a case cannot drop out unnoticed:
- * the cloud driver's test iterates the same export over `cloud.iam_policy`
- * and would silently prove less (the 2a A11 discipline). The corners A12
- * taught are cases from the start: every relation on a pair; distinct
+ * another driver's test iterates the same export over its own table and
+ * would silently prove less. Known corners are cases from the start: every
+ * relation on a pair; distinct
  * principals, not rows; the scope-tuple exclusions verbatim; unknown-id
  * delete a no-op; a held triple refused.
  */

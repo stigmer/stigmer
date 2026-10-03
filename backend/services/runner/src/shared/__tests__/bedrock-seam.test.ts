@@ -1,6 +1,6 @@
 /**
  * Characterization test for the ChatAnthropic `createClient` ->
- * AnthropicBedrock seam — the integration the T04 bedrock backend adapter
+ * AnthropicBedrock seam — the integration the bedrock backend adapter
  * is built on. Sibling of vertex-seam.test.ts; same rules: this pins REAL
  * cross-package behavior (`@langchain/anthropic` driving
  * `@anthropic-ai/bedrock-sdk`, both resolving the single override-pinned
@@ -29,7 +29,7 @@ import { HumanMessage, AIMessage, AIMessageChunk } from "@langchain/core/message
 
 /**
  * Bedrock's id form for a dated pre-4.6 Claude: `anthropic.` vendor prefix
- * and `-v1:0` version suffix (see llm-backend.ts translation, T04).
+ * and `-v1:0` version suffix (see llm-backend.ts translation).
  */
 const BEDROCK_MODEL_ID = "anthropic.claude-sonnet-4-5-20250929-v1:0";
 const REGION = "asia-south1";
@@ -140,7 +140,7 @@ interface SeamHarness {
  * The factory honors `maxRetries` from the incoming options: LangChain owns
  * retrying (its AsyncCaller wraps every request) and passes `maxRetries: 0`
  * so the underlying SDK must not retry underneath it — same contract the
- * vertex seam pins, preserved by the T04 adapter.
+ * vertex seam pins, preserved by the bedrock adapter.
  */
 function buildSeamHarness(streamBody?: Buffer): SeamHarness {
   const requests: RecordedRequest[] = [];

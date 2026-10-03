@@ -109,7 +109,7 @@ message UpdateStatusResponse {
   string signal_reason = 2;
 }
 
-// Input for submitting an approval decision (HITL Phase 1).
+// Input for submitting an approval decision.
 //
 // All required fields must be provided. The handler validates:
 // 1. The execution exists and is in EXECUTION_WAITING_FOR_APPROVAL phase
@@ -166,7 +166,7 @@ message ApprovalDecisionList {
 //
 // The decision is recorded in the append-only file_review event stream as a
 // FILE_DECIDED event; FileChangeSet.decisions is the derived projection. The
-// runner reconciles approved bytes (Phase 2); this RPC only records the
+// runner reconciles approved bytes; this RPC only records the
 // decision and enforces that expected_digest still matches what the user saw.
 //
 // Example:
@@ -450,8 +450,6 @@ message RecoverAgentExecutionInput {
 //   "id": "aex_abc123xyz456",
 //   "reason": "Pausing to review progress before continuing"
 // }
-//
-// @since Agent Execution Lifecycle
 message PauseAgentExecutionInput {
   // Agent execution ID to pause.
   //
@@ -507,8 +505,6 @@ message PauseAgentExecutionInput {
 // {
 //   "id": "aex_abc123xyz456"
 // }
-//
-// @since Agent Execution Lifecycle
 message ResumeAgentExecutionInput {
   // Agent execution ID to resume.
   //
@@ -567,8 +563,6 @@ message ResumeAgentExecutionInput {
 // {
 //   "storage_key": "attachments/01HGXXX.../dataset.csv"
 // }
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 message UploadAttachmentRequest {
   // Original filename of the attachment.
   //
@@ -612,8 +606,6 @@ message UploadAttachmentRequest {
 // The storage_key should be used in the Attachment message when creating
 // an agent execution. The key is opaque to clients - do not parse or
 // construct keys manually.
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 message UploadAttachmentResponse {
   // Storage key for the uploaded attachment.
   //
@@ -662,8 +654,6 @@ message UploadAttachmentResponse {
 //   "download_url": "https://r2.example.com/...",
 //   "expires_at": "2026-02-20T10:30:00Z"
 // }
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 message GetArtifactDownloadUrlRequest {
   // ID of the agent execution that produced the artifact.
   //
@@ -712,8 +702,6 @@ message GetArtifactDownloadUrlRequest {
 // The download_url can be used with a simple HTTP GET request to download
 // the artifact. No authentication headers are required - the URL contains
 // embedded authorization.
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 message GetArtifactDownloadUrlResponse {
   // Presigned URL for downloading the artifact.
   //
@@ -782,8 +770,6 @@ message GetArtifactDownloadUrlResponse {
 //   "total_size_bytes": 1842,
 //   "truncated": false
 // }
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 message GetArtifactContentRequest {
   // ID of the agent execution that produced the artifact.
   //
@@ -838,8 +824,6 @@ message GetArtifactContentRequest {
 // The content field contains the artifact bytes (up to max_bytes). For text
 // artifacts, clients decode via TextDecoder or equivalent. The content_type
 // field provides a hint for rendering (detected by file extension).
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 message GetArtifactContentResponse {
   // Raw artifact content (up to max_bytes).
   //
@@ -1172,7 +1156,6 @@ message HarnessCostSummary {
 // sources cost from getOrgUsageReport to avoid double-counting when workflows
 // delegate to agents (see AD-DASH-005).
 //
-// @since Unified Platform Dashboard
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Controls the time range for agent execution summary queries.
@@ -1186,8 +1169,6 @@ enum AgentExecutionSummaryTimeWindow {
 
 // GetAgentExecutionSummaryRequest fetches aggregated execution statistics
 // for an organization's agent executions.
-//
-// @since Unified Platform Dashboard
 message GetAgentExecutionSummaryRequest {
   // Organization slug to scope the summary.
   string org = 1 [(buf.validate.field).string.min_len = 1];
@@ -1204,8 +1185,6 @@ message GetAgentExecutionSummaryRequest {
 // Cost is intentionally omitted. The dashboard sources cost from
 // getOrgUsageReport (billing source of truth) to prevent double-counting
 // when workflows delegate to agents. See AD-DASH-005.
-//
-// @since Unified Platform Dashboard
 message AgentExecutionSummary {
   // Number of executions currently in a non-terminal phase
   // (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
@@ -1231,8 +1210,6 @@ message AgentExecutionSummary {
 
 // AgentFailureRank represents an agent and its failure count within
 // a time window.
-//
-// @since Unified Platform Dashboard
 message AgentFailureRank {
   // Agent slug (org/name format).
   string agent_slug = 1;

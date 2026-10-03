@@ -1,22 +1,18 @@
 /**
  * Artifact storage — ports pkg/domain/artifact/storage/{storage.go,
  * local_storage.go,disposition.go}: the execution-output/attachment blob
- * store SHARED (D1) by agentexecution attachments (#17), the artifact
- * domain + its port+1 file server (#13), and skill's
- * pushFromExecutionArtifact (#8). Cross-cutting home, like
- * src/encryption/ (the ratified sub-project DD).
+ * store SHARED by agentexecution attachments, the artifact domain + its
+ * port+1 file server, and skill's pushFromExecutionArtifact. Cross-cutting
+ * home, like src/encryption/.
  *
  * The LOCAL backend is the OSS default: the configured base path IS the
  * artifact root — a key K stores at <basePath>/<K> with no implicit
  * segment, so the server and the runner (LOCAL_ARTIFACT_PATH) share one
  * store by construction (#285).
  *
- * The R2 backend (S3-compatible, AWS SDK) lives in r2-storage.ts — it
- * arrived with the artifact domain (#13) per the ratified deferral, closing
- * the temporary ARTIFACT_STORAGE_TYPE=r2 boot-fail divergence #17 shipped.
+ * The R2 backend (S3-compatible, AWS SDK) lives in r2-storage.ts.
  *
- * Since O5 (20260827.02, blueprint 03 §6b) this is the ONE blob-driver
- * seam of the convergence program: it gained the presigned-PUT capability,
+ * This is the ONE blob-driver seam: it carries the presigned-PUT capability,
  * `size`, a typed not-found error, and registry-driven driver registration
  * (extensions/drivers.ts). Domain semantics — content-addressed keys,
  * staging lanes, write-once postures — deliberately live ABOVE this
@@ -38,13 +34,13 @@ import { goQueryEscape } from "../gocompat/query-escape.js";
 import { R2ArtifactStorage } from "./r2-storage.js";
 
 /** Query key carrying the desired download filename on local URLs; the
- * artifact file server (#13) reads it to set Content-Disposition. */
+ * artifact file server reads it to set Content-Disposition. */
 export const LOCAL_DOWNLOAD_QUERY_PARAM = "download";
 
 /**
  * A storage key that addresses no stored blob. Consumers that must map
  * "missing" onto their own domain vocabulary (skill's ArtifactNotFoundError,
- * a NotFound wire code) branch on this class per the ratified store-fault
+ * a NotFound wire code) branch on this class per the store-fault
  * instanceof idiom; every OTHER driver failure is an infrastructure fault
  * to rethrow or wrap, never a not-found.
  */
@@ -62,7 +58,7 @@ export class ArtifactStorageNotFoundError extends Error {
  * the caller reads back through download() under the key IT named. Staged
  * blobs are short-lived by contract — the local lane sweeps them on TTL
  * expiry and boot; a bucket deployment configures a lifecycle rule on the
- * domain's staging prefix (the §6b driver-side sweep expectation).
+ * domain's staging prefix (the sweep is the driver side's job).
  */
 export interface PresignedUpload {
   /** Accepts an HTTP PUT of exactly the declared byte count. */
@@ -97,7 +93,7 @@ export interface ArtifactStorage {
   ): Promise<string>;
   /**
    * A time-limited upload URL for a blob of exactly declaredSizeBytes at
-   * the key the CALLER names (§6b). The key is the domain's: it chooses
+   * the key the CALLER names. The key is the domain's: it chooses
    * the staging prefix its sweep targets and the mapping from its wire
    * reference, and reads the bytes back through download(key) — the
    * driver never invents a key of its own. Per-driver semantics differ
@@ -135,9 +131,9 @@ export type ArtifactStorageDriverFactory = () => ArtifactStorage;
 /**
  * The staged-upload mechanism a LocalArtifactStorage instance rides for
  * presignPut — the seam the composition root adapts the skill transfer
- * lane's UploadSlots + URL renderer into (Q1 ruling, 20260827.02 T01: one
- * upload surface, no new lane). Declared HERE, not imported from the skill
- * domain: the §6b layering runs domain-over-driver, so the driver states
+ * lane's UploadSlots + URL renderer into (one upload surface, no new
+ * lane). Declared HERE, not imported from the skill domain: the layering
+ * runs domain-over-driver, so the driver states
  * the shape it needs and stays ignorant of who provides it.
  */
 export interface StagedUploadLane {
@@ -174,13 +170,13 @@ export interface ArtifactStorageConfig {
 /**
  * The built-in driver names. Registered drivers may not shadow them —
  * resolveExtensions enforces that at boot (a shadowed built-in would be
- * silently unreachable, the §2b loud-fail rules forbid exactly that).
+ * silently unreachable, which the loud-fail rules forbid).
  */
 export const BUILT_IN_STORAGE_TYPES = ["local", "r2"] as const;
 
 /**
- * Factory mirroring Go NewArtifactStorage, opened to registered drivers
- * with O5 (§6b): built-ins first, then the composition's registered driver
+ * Factory mirroring Go NewArtifactStorage, opened to registered drivers:
+ * built-ins first, then the composition's registered driver
  * map — the cloud substitutes its per-domain R2 drivers without this
  * switch ever growing a case.
  */
@@ -393,7 +389,7 @@ export class LocalArtifactStorage implements ArtifactStorage {
 }
 
 // goQueryEscape moved to src/gocompat/query-escape.ts when the github
-// broker became its second consumer (#13) — the shared-steps promotion
+// broker became its second consumer — the shared-steps promotion
 // rule. Behavior unchanged; the URL parity tests below still pin it.
 
 /**
@@ -416,7 +412,7 @@ function isWithin(root: string, p: string): boolean {
  * (ASCII-sanitized fallback) plus, when the name carries non-ASCII, the
  * RFC 5987 `filename*=UTF-8''...` parameter modern browsers prefer. The
  * fallback escapes embedded quotes and backslashes, so a crafted name can
- * never break out of the header value. Consumed by #13's file server;
+ * never break out of the header value. Consumed by the artifact file server;
  * defined with the storage it describes.
  */
 export function contentDispositionAttachment(filename: string): string {

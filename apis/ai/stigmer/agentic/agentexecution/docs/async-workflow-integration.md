@@ -165,13 +165,13 @@ execution := &agentexecutionv1.AgentExecution{
 ```
 Agent enters WAITING_FOR_APPROVAL
     │
-    ├── The control plane (cloud Java, or the OSS TS server since D4 #23)
+    ├── The control plane (the Stigmer server, in either edition)
     │   sends Temporal signal "child_approval_required" to parent workflow ID
     │
     ├── Signal payload: the bare child execution id string, e.g. "aex_abc123"
-    │   (identity-only per DD-012; the legacy ChildApprovalNotification
-    │   full-payload shape was retired after stigmer-cloud#509 — proto-encoded
-    │   payloads poisoned the receiving workflow task)
+    │   (identity-only; the legacy ChildApprovalNotification full-payload
+    │   shape was retired because proto-encoded payloads poisoned the
+    │   receiving workflow task)
     │
     ├── The runner's call-agent orchestrator receives the signal
     ├── Derives the gate from the child's persisted pending_approvals
@@ -220,5 +220,4 @@ The token is logged at creation time (Base64-encoded, first 20 characters only) 
 - Proto definition: `spec.callback_token` in `ai/stigmer/agentic/agentexecution/v1/spec.proto`
 - Status field: `status.callback_token` in `ai/stigmer/agentic/agentexecution/v1/api.proto`
 - Parent workflow notification: `status.parent_workflow_id`, `ChildApprovalNotification` in `api.proto`
-- ADR: `docs/adr/20260122-async-agent-execution-temporal-token-handshake.md`
 - Temporal docs: https://docs.temporal.io/activities#asynchronous-activity-completion

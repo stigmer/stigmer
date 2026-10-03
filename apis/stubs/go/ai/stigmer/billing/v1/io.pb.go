@@ -398,7 +398,7 @@ func (x *AuthorizeExecutionResponse) GetDenialReason() string {
 // `sequence`. A report that is redelivered under the same identity records
 // nothing new; two reports for the same execution with distinct call ids
 // are two calls even when they share a sequence number (a proxy that
-// restarted mid-execution numbers from 1 again — stigmer-cloud#659).
+// restarted mid-execution numbers from 1 again).
 type RecordLlmCallUsageInput struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	ExecutionId string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
@@ -2058,7 +2058,7 @@ func (*GetModelPricingGovernanceInput) Descriptor() ([]byte, []int) {
 }
 
 // ModelPricingGovernanceResponse is the operator's view of the pricing
-// feedback loop (DD-003): what the platform charges with today, where each
+// feedback loop: what the platform charges with today, where each
 // rate came from, and what awaits a decision.
 type ModelPricingGovernanceResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -2143,7 +2143,7 @@ type ModelPricingGovernanceEntry struct {
 	ActiveOverrides []*ModelPricingOverride `protobuf:"bytes,17,rep,name=active_overrides,json=activeOverrides,proto3" json:"active_overrides,omitempty"`
 	// Whether an external provider ledger can verify this entry's rates.
 	// False for OSS/self-hosted models and Cursor first-party models — those
-	// are manually governed by the registry baseline (DD-003 Decision 7).
+	// are manually governed by the registry baseline.
 	LedgerReconcilable bool `protobuf:"varint,18,opt,name=ledger_reconcilable,json=ledgerReconcilable,proto3" json:"ledger_reconcilable,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
@@ -2379,8 +2379,8 @@ func (x *DecideModelPricingOverrideInput) GetDecisionNote() string {
 // RETIRED key). Lifecycle fields on the embedded baseline (baseline_id,
 // status, supersedes_baseline_id, decided_by/at, created_at) are
 // server-owned and ignored; pricing effective_at is stamped server-side so
-// baseline edits always win DD-003 Decision 6 staleness against older
-// ledger-derived overrides.
+// baseline edits always win the staleness check against older
+// ledger-derived overrides (see ModelPricingBaseline.effective_at).
 type UpsertModelPricingBaselineInput struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	Baseline *ModelPricingBaseline  `protobuf:"bytes,1,opt,name=baseline,proto3" json:"baseline,omitempty"`

@@ -65,8 +65,6 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
   /**
    * <pre>
    * Structured filter criteria for advanced filtering.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 4 [json_name = "filter"];</code>
@@ -76,8 +74,6 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
   /**
    * <pre>
    * Structured filter criteria for advanced filtering.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 4 [json_name = "filter"];</code>
@@ -87,8 +83,6 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
   /**
    * <pre>
    * Structured filter criteria for advanced filtering.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 4 [json_name = "filter"];</code>
@@ -100,8 +94,6 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
    * Sort field: unspecified is newest created first and pages by
    * page_token, any other sorts the whole matching set and returns its
    * first page_size entries with no token.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 5 [json_name = "sortField"];</code>
@@ -113,8 +105,6 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
    * Sort field: unspecified is newest created first and pages by
    * page_token, any other sorts the whole matching set and returns its
    * first page_size entries with no token.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 5 [json_name = "sortField"];</code>
@@ -126,8 +116,6 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
    * <pre>
    * When true, sorts in ascending order. Default (false) is descending.
    * Read only with a sort field other than the default.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>bool sort_ascending = 6 [json_name = "sortAscending"];</code>

@@ -1,8 +1,8 @@
 /**
  * Environment layer merging — ports backend/libs/go/envmerge/merge.go.
- * Consumed by the agentexecution execution-context builder (#17) and,
- * with #20, the workflowexecution equivalent. Lives inside the server per
- * the ratified shared-library posture (extraction to backend/libs/ts/
+ * Consumed by the agentexecution execution-context builder and the
+ * workflowexecution equivalent. Lives inside the server per the
+ * shared-library posture (extraction to backend/libs/ts/
  * only on a second SERVICE consumer — the temporal-codecs precedent).
  */
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";

@@ -1,7 +1,7 @@
 /**
  * Pin-validation tests — pin the Go pin_validation.go behavior: the
- * harness-name mapping (unset → native, the DD-015 edition-honest
- * posture), the write-time existence rule's refusal copy with did-you-mean
+ * harness-name mapping (unset → native, the edition-honest posture), the
+ * write-time existence rule's refusal copy with did-you-mean
  * (oss#774), the any-harness arm for surfaces without a serving harness,
  * the degrade-to-no-op postures, and the suggestion ranking (distance cap
  * 5, top 3, name-ascending ties).

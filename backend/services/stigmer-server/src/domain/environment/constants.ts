@@ -2,7 +2,7 @@
  * Environment domain constants — the byte-pinned wire copy and label
  * contract shared with the Go server and the cloud edition. Every string
  * here is asserted by clients, the conformance suite, or the cross-edition
- * error contract; none is editable without an owner-ratified wire change.
+ * error contract; none is editable without an deliberate wire change.
  */
 
 /**
@@ -11,8 +11,8 @@
  * conformance suite and mirrored by the cloud edition. A client sending it
  * BACK on a write means "keep the existing secret" (the round-trip
  * contract; see preserveRedactedSecrets). The definition moved to the
- * encryption facade with the codec seam (20260830.04 Stage 1 — reencrypt
- * refuses the marker, and domain → encryption is the dependency
+ * encryption facade with the codec seam (reencrypt refuses the marker, and
+ * domain → encryption is the dependency
  * direction); re-exported here for the historical importers, byte
  * unchanged.
  */

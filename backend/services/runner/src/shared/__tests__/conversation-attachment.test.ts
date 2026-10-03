@@ -1,6 +1,6 @@
 /**
- * The conversation participation attachment (channel-conversations
- * DD-008 D-c, A14): the label-keyed attachment decision, the HTTP-only
+ * The conversation participation attachment: the label-keyed attachment
+ * decision, the HTTP-only
  * shape (the deliberate no-stdio divergence from both siblings), the
  * structural approval-freedom, and the pinned strings. The route is the
  * cross-repo string — pinned here and in the mcp-server's conversation
@@ -125,7 +125,7 @@ describe("synthesizeConversationAttachment", () => {
 
     // Channel surfaces run APPROVAL_MODE_UNATTENDED, where a gated tool
     // resolves as skip-and-adapt — a gated escalation would never fire
-    // (DD-008's approval-free ruling, the DD-001 SD-3 structural bypass).
+    // (synthesized attachments are approval-free by construction).
     const merged = mergeApprovalPolicies([attachment], noLeases);
     expect(merged.size).toBe(0);
   });

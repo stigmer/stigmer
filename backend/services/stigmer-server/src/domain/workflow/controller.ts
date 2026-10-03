@@ -165,16 +165,16 @@ import type { WorkflowInstanceCreatorProvider } from "./steps.js";
 export interface WorkflowControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The Layer-2 validator (converter + structural checks + registry). */
   readonly validator: InProcessValidator;
   /**
    * The workflowinstance in-process edge — a lazy provider because
-   * workflow↔workflowinstance is a true dependency cycle (DD-002; the
-   * ratified DI story breaks cycles with `() => client` closures resolved
+   * workflow↔workflowinstance is a true dependency cycle (the server's DI
+   * breaks cycles with `() => client` closures resolved
    * at call time, never at construction).
    */
   readonly workflowInstanceCreator: WorkflowInstanceCreatorProvider;
@@ -192,10 +192,9 @@ export function registerWorkflowServices(
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (id, ctx) => deleteWorkflow(deps, id, ctx),
     // validateSpec deliberately evaluates NO authorization despite its
-    // can_create_workflow annotation — the Java handler's documented
-    // "no persist, no authorize" posture, ruled matched at the C2 Stage 4
-    // gate (nothing is loaded or persisted; the caller only gets a
-    // verdict on their own submitted spec). The annotation mismatch is
+    // can_create_workflow annotation: nothing is loaded or persisted, and
+    // the caller only gets a verdict on their own submitted spec. The
+    // annotation mismatch is
     // recorded in docs/authorization-coverage.md.
     validateSpec: (workflow) => validateSpec(deps, workflow),
     tagVersion: (input, ctx) => tagVersion(deps, input, ctx),
@@ -1082,7 +1081,7 @@ function newLoadAndMapWorkflowVersionsStep(
 /**
  * Base64 offset token → index; malformed tokens are InvalidArgument.
  *
- * Decoding mirrors Go's exact acceptance set (panel finding — Node's
+ * Decoding mirrors Go's exact acceptance set (Node's
  * Buffer.from is far more lenient): base64.StdEncoding.DecodeString
  * requires the standard alphabet with proper trailing padding but ignores
  * \r and \n; strconv.Atoi accepts an optional sign and leading zeros. The
@@ -1126,11 +1125,9 @@ async function getVersion(
   if (req.versionHash === "") {
     throw invalidArgumentError("version_hash is required");
   }
-  // The annotation's can_view check. DELIBERATE divergence from the Java
-  // edition, ruled at the C2 Stage 4 gate: the Java handler declares the
-  // annotation but never evaluates it (its javadoc claims framework
-  // enforcement that does not exist) — a cross-org version-read gap. The
-  // annotation is the contract; the composition enforces it.
+  // The annotation's can_view check. The annotation is the contract and
+  // this server enforces it; declared but never evaluated, it would leave
+  // a cross-organization version read open.
   await authorizeDirect(
     WorkflowQueryController.method.getVersion,
     deps.authorizer,

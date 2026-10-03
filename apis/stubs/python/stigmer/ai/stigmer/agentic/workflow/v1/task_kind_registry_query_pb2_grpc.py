@@ -17,8 +17,6 @@ class TaskKindRegistryQueryControllerStub(object):
     The registry is a static catalog derived from proto definitions at build time.
     It does not require authentication — task metadata is public knowledge about
     the platform's capabilities, not user-specific data.
-
-    @since T04 (Task Schema Registry)
     """
 
     def __init__(self, channel):
@@ -46,8 +44,6 @@ class TaskKindRegistryQueryControllerServicer(object):
     The registry is a static catalog derived from proto definitions at build time.
     It does not require authentication — task metadata is public knowledge about
     the platform's capabilities, not user-specific data.
-
-    @since T04 (Task Schema Registry)
     """
 
     def getTaskKindRegistry(self, request, context):
@@ -91,8 +87,6 @@ class TaskKindRegistryQueryController(object):
     The registry is a static catalog derived from proto definitions at build time.
     It does not require authentication — task metadata is public knowledge about
     the platform's capabilities, not user-specific data.
-
-    @since T04 (Task Schema Registry)
     """
 
     @staticmethod

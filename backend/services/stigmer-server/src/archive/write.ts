@@ -9,7 +9,7 @@
  * fixed DOS-epoch mtime on every entry (fflate would otherwise stamp the
  * wall clock), and one fixed deflate level.
  *
- * fflate is the ratified server dependency for ZIP work (see
+ * fflate is the server's chosen dependency for ZIP work (see
  * domain/agentexecution/artifacts.ts); this module is its one write site.
  *
  * Proven by __tests__/write.test.ts: two writes of the same files are

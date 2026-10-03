@@ -1,5 +1,5 @@
 /**
- * The memory capture attachment (DD-005 D1): the recall-snapshot gate
+ * The memory capture attachment: the recall-snapshot gate
  * (enabled bit, zero-facts included), both connection shapes with the
  * capture-context carriers, the structural approval-freedom of
  * synthesized attachments, and the cross-repo string pins (route +
@@ -57,7 +57,7 @@ const noLeases: ActiveLeases = {
   servers: new Set(),
 };
 
-describe("memoryCaptureEnabled (the DD-005 D1 injection signal)", () => {
+describe("memoryCaptureEnabled (the injection signal)", () => {
   it("is the snapshot's enabled bit — absent and disabled read false", () => {
     expect(memoryCaptureEnabled(undefined)).toBe(false);
     expect(memoryCaptureEnabled(create(RecalledMemoriesSchema, { enabled: false }))).toBe(false);
@@ -168,7 +168,7 @@ describe("synthesizeMemoryAttachment", () => {
   });
 
   it("is approval-free by construction: zero entries in the merged approval map", () => {
-    // Consent is the confirm RPC, not tool approval (DD-005 D3): the
+    // Consent is the confirm RPC, not tool approval: the
     // tool only creates a proposal, so gating it would stack a second
     // consent gate in front of the real one.
     const attachment = synthesizeMemoryAttachment(enabled, context, cloudOptions)!;

@@ -21,7 +21,7 @@
  *   - HITL loop: while the runner reports WAITING_FOR_APPROVAL, persist
  *     the phase, re-read the unified gate from the DB, and either wait
  *     for approvalGateResolved, re-invoke immediately (decided-awaiting-
- *     reconcile, DD-28 auto-keep race), or fail fast after
+ *     reconcile, the approved-command auto-keep race), or fail fast after
  *     MAX_ZERO_GATE_CYCLES empty-gate cycles.
  *   - Bounded auto-recovery: heartbeat-timeout / infra-cancellation /
  *     worker-shutdown (#776) interruptions re-invoke from persisted
@@ -42,9 +42,9 @@
  *     by the runner-failed, user-cancel and pause-resume replay
  *     histories.
  *   - Recovery is terminate-and-start-fresh ONLY (stigmer#200); no
- *     version gates (OD-6 — no Go-era history can replay here).
+ *     version gates (no Go-era history can replay here).
  *
- * Payload-boundary rule (sub-project 20260824.03 design rule): proto
+ * Payload-boundary rule: proto
  * Message instances never cross activity payloads — statuses travel as
  * proto-JSON (toJson/fromJson), int64 fields are converted explicitly
  * where the callback contract requires JSON numbers.
@@ -313,9 +313,8 @@ interface ServerActivities {
  * activities on the workflow's own (stigmer) queue: local activities
  * produce RECORD_MARKER events that trigger a Go-SDK state-machine bug
  * when executed in the same workflow task as a remote-activity failure.
- * The history SHAPE is preserved as contract in this port (ratified
- * brief #2, sub-project 20260824.03) — recovery semantics were tuned
- * against it.
+ * The history SHAPE is preserved as contract in this port — recovery
+ * semantics were tuned against it.
  */
 const failurePathActivities = proxyActivities<
   Pick<ServerActivities, typeof UPDATE_EXECUTION_STATUS_ACTIVITY_NAME>
@@ -324,7 +323,7 @@ const failurePathActivities = proxyActivities<
   retry: { maximumAttempts: 3, initialInterval: "2s" },
 });
 
-/** The async activity completion lane (token handshake ADR). */
+/** The async activity completion lane (Temporal's asynchronous activity completion). */
 const completionActivities = proxyActivities<
   Pick<ServerActivities, typeof COMPLETE_EXTERNAL_ACTIVITY_NAME>
 >({
@@ -481,9 +480,9 @@ export async function invokeAgentExecution(
     // The whole callback sequence shares one error boundary: a throw here
     // must FAIL the workflow (Go's `return err`), and in the TS SDK only
     // a TemporalFailure does that — a plain Error would fail the workflow
-    // TASK, which the server retries forever (panel finding: the workflow
-    // would wedge instead of failing, and the parent's external activity
-    // would never complete). External cancellation mid-sequence takes the
+    // TASK, which the server retries forever (the workflow would wedge
+    // instead of failing, and the parent's external activity would never
+    // complete). External cancellation mid-sequence takes the
     // cancellation-cleanup path exactly like a mid-flow cancel.
     try {
       let execution: AgentExecution;
@@ -799,9 +798,9 @@ async function runWithPauseAndRecovery(
         executionId,
         pauseCycle,
       });
-      // Re-assert IN_PROGRESS after resume (TS-side divergence in the
-      // correct direction, owner-ratified; oss#869 tracks the shared
-      // root cause). The PAUSED persist above carries no ordering
+      // Re-assert IN_PROGRESS after resume (a deliberate TS-side divergence
+      // in the correct direction; oss#869 tracks the shared root cause).
+      // The PAUSED persist above carries no ordering
       // information: on a fast pause→resume it can land AFTER the Resume
       // RPC's IN_PROGRESS write and resurrect PAUSED — and no later
       // writer exists until the turn's terminal persist, so the
@@ -942,9 +941,8 @@ interface HitlLoopOptions {
   readonly signals: SignalBuffers;
   /**
    * The workflow input's parent_workflow_id ("" when invoked directly) —
-   * the HITL loop notifies this parent whenever the gate engages (D4 #23,
-   * DD-012). The loop cannot read the workflow input itself, so the flows
-   * thread it through.
+   * the HITL loop notifies this parent whenever the gate engages. The loop
+   * cannot read the workflow input itself, so the flows thread it through.
    */
   readonly parentWorkflowId: string;
   readonly firstInvoke: () => Promise<RunnerActivityResult | null>;
@@ -955,9 +953,9 @@ interface HitlLoopOptions {
 
 /**
  * Notify the parent workflow that this child is gated — the OSS sender half
- * of the DD-012 child-approval forwarding contract (D4 #23, parity-plus:
- * cloud's InvokeAgentExecutionWorkflowImpl.notifyParentWorkflowOfApproval;
- * Go OSS never sends it). Identity-only BARE-STRING payload — the parent
+ * of the child-approval forwarding contract (the Java edition's
+ * InvokeAgentExecutionWorkflowImpl.notifyParentWorkflowOfApproval did the
+ * same; Go OSS never sent it). Identity-only BARE-STRING payload — the parent
  * (the runner's call-agent orchestrator) derives the gate from this
  * execution's persisted pending_approvals, so approval details never travel
  * through the signal (see SIGNAL_CHILD_APPROVAL_REQUIRED in names.ts).
@@ -1080,7 +1078,7 @@ async function executeWithHitlLoop(
     if (gateCount === 0) {
       if (loadedStatus !== undefined && hasDecidedAwaitingReconcile(loadedStatus)) {
         // LEGITIMATE empty gate: a change set was decided before this
-        // check — the DD-28 approved-command auto-keep authors its
+        // check — the approved-command auto-keep authors its
         // decision in the same write that folds the candidate (and a
         // fast human decision can race the check the same way). The
         // runner is owed a reconcile; re-invoke immediately without
@@ -1260,7 +1258,7 @@ async function updateStatusOnCancellation(executionId: string): Promise<void> {
 
 /**
  * Fallback status persist (LOCAL activity — the regular/local split is
- * brief #2's contract): safe to call when the runner already persisted
+ * part of the history contract): safe to call when the runner already persisted
  * via gRPC — the merge is idempotent for identical data.
  */
 async function persistFinalStatus(
@@ -1302,7 +1300,7 @@ async function persistInterruptedStatus(executionId: string): Promise<void> {
  * Re-asserts IN_PROGRESS after a resume, healing the stale-PAUSED write
  * the pause branch's defense persist can land over a fast resume's
  * IN_PROGRESS (oss#869 — the race is shared with Go; this correcting
- * write is a TS-side addition in the safe direction, owner-ratified,
+ * write is a deliberate TS-side addition in the safe direction,
  * mirroring persistInterruptedStatus's idiom). Phase-only and idempotent
  * across pause cycles; best-effort like every defense persist.
  */
@@ -1437,8 +1435,8 @@ function buildCallbackResult(
  * because it crashed, slept, or was reaped mid-run), an infrastructure
  * cancellation that is NOT a user pause (the pause branch handles those)
  * and NOT an external workflow cancellation (the caller guards on the
- * workflow-cancelled flag), and a worker-shutdown drain (#776 owner
- * ruling). NOT recoverable: SCHEDULE_TO_START / START_TO_CLOSE timeouts
+ * workflow-cancelled flag), and a worker-shutdown drain (#776). NOT
+ * recoverable: SCHEDULE_TO_START / START_TO_CLOSE timeouts
  * and application errors — re-invoking those would not change the
  * outcome.
  */
@@ -1454,8 +1452,7 @@ function isRecoverableActivityError(error: unknown): boolean {
  * Wraps activity errors with operator-actionable context (Go
  * wrapActivityError). The prefix copy is OURS and byte-pinned from Go;
  * the "Original error:" tail carries the SDK-authored failure text,
- * which necessarily differs between the Go and TS SDKs (disclosed in the
- * sub-project's parity register).
+ * which necessarily differs between the Go and TS SDKs.
  */
 function wrapActivityError(activityName: string, error: unknown): Error {
   const original = errorMessage(error);

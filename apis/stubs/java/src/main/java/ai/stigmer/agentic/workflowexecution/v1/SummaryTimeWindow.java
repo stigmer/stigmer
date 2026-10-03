@@ -8,8 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * SummaryTimeWindow controls the time range for aggregated dashboard queries.
- *
- * &#64;since T14 (Dashboard Integration)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow}

@@ -83,7 +83,7 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
  * back to a name lookup, so this is never worse than no classification).
  */
 export function classifyTool(name: string, mcpServerSlug?: string): ToolKind {
-  // The first-party remember tool (DD-005), slug-scoped on purpose: it is
+  // The first-party remember tool, slug-scoped on purpose: it is
   // served by the synthesized memory attachment, so only that reserved
   // slug earns the MEMORY kind (and its consent-chip rendering) — a
   // third-party MCP server's coincidental `remember` stays a plain MCP
@@ -110,7 +110,7 @@ export function classifyTool(name: string, mcpServerSlug?: string): ToolKind {
  * preToolUse hook reports every file mutation — create or edit — as `Write`,
  * while the SDK stream names them `edit`/`write`. The category is therefore the
  * only tool identity that is stable across the hook and stream taxonomies, which
- * is exactly what the Cursor approval grant (and the Phase-2 coarse approval
+ * is exactly what the Cursor approval grant (and the coarse approval
  * fingerprint) must match on. Built on {@link classifyTool} so this collapse is
  * defined once.
  *

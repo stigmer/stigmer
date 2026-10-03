@@ -547,7 +547,7 @@ describe("delete", () => {
   });
 });
 
-describe("pushFromExecutionArtifact — validation surface (happy path is integration-layer per D1)", () => {
+describe("pushFromExecutionArtifact — validation surface (the happy path is the integration layer's)", () => {
   it("rejects missing required fields — the protovalidate interceptor answers on the wire (both editions run it before the handler's manual arms)", async () => {
     const cases: Array<[Record<string, string>, string]> = [
       [

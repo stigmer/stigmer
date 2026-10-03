@@ -1,8 +1,7 @@
 /**
  * Document-driven ModelCatalogProvider — the registry-document
- * interpretation extracted from ModelRegistryStore (C1 seam request,
- * 20260827.04; DD-008's "validation logic stays OSS and edition-neutral"
- * applied to the interpretation itself).
+ * interpretation extracted from ModelRegistryStore ("validation logic
+ * stays OSS and edition-neutral" applied to the interpretation itself).
  *
  * Why the extraction exists: a composition whose catalog comes from
  * somewhere other than the bundled-snapshot-plus-upstream-refresh
@@ -14,7 +13,7 @@
  * interpretation lives here exactly once: ModelRegistryStore delegates to
  * it per document swap, and compositions build their own providers from
  * documents via newModelCatalogProviderFromDocument (exported through the
- * DD-005 map).
+ * package's exports map).
  *
  * The interpretation is byte-identical to the pre-extraction store (which
  * ported Go's applyDocument, model_registry_store.go:302-412): both
@@ -183,7 +182,7 @@ export class DocumentModelCatalog implements ModelCatalogProvider {
 }
 
 /**
- * The exported constructor (DD-005 map): a provider over one document,
+ * The exported constructor (in the exports map): a provider over one document,
  * for compositions whose catalog source is their own (the cloud's
  * DB-resident baseline). Loud-fail by contract — a document that fails
  * the sanity gate throws, because a composition-supplied catalog that

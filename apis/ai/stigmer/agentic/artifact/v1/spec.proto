@@ -14,8 +14,6 @@ import "buf/validate/validate.proto";
 //
 // The spec is immutable after creation — artifacts are append-only.
 // To update an artifact's content, create a new artifact.
-//
-// @since T07 (Artifact Store)
 message ArtifactSpec {
   // MIME content type of the artifact payload.
   //
@@ -42,7 +40,7 @@ message ArtifactSpec {
   // Shown in the execution viewer's artifact list and download dialogs.
   // When auto-promoted, this is derived from the task name and output field
   // (e.g., "analyze_code — output.json"). When explicitly created by a
-  // workflow author (Phase 1), this is user-provided.
+  // workflow author, this is user-provided.
   //
   // Does not need to be unique — multiple tasks can produce artifacts
   // with the same display name across different executions.
@@ -76,8 +74,6 @@ message ArtifactSpec {
 // Exactly one of workflow_execution_id or agent_execution_id should be set,
 // identifying the producer. task_name is set when the artifact was produced
 // by a specific task within a workflow execution.
-//
-// @since T07 (Artifact Store)
 message ArtifactSource {
   // WorkflowExecution that produced this artifact.
   // Format: "wex_{unique-suffix}"
@@ -102,8 +98,6 @@ message ArtifactSource {
 // The backend computes an absolute expires_at timestamp from this policy
 // at artifact creation time. A background garbage collection job
 // periodically scans for expired artifacts and deletes their blobs.
-//
-// @since T07 (Artifact Store)
 message RetentionPolicy {
   // Time-to-live in days from creation.
   //

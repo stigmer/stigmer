@@ -5,7 +5,7 @@
  * step vocabulary.
  *
  * Every Temporal touchpoint rides the engine seam. With the engine
- * disconnected (pre-#18) the Temporal steps refuse
+ * disconnected the Temporal steps refuse
  * FailedPrecondition("Temporal is not available") — Go's nil-client arm,
  * asserted by the Class A conformance lifecycle negatives. With a
  * connected engine, workflow-not-found is warn-and-proceed (the local
@@ -97,7 +97,7 @@ export const TEMPORAL_UNAVAILABLE_MESSAGE = "Temporal is not available";
 export interface LifecycleDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /**
    * Recover's per-execution turn (pipeline/keyed-serializer.ts). One
@@ -109,11 +109,11 @@ export interface LifecycleDeps {
   readonly engineState: ExecutionEngineStateProvider;
   /** The shared EC-builder deps, consumed by recover's recreate step. */
   readonly executionContextBuilder: ExecutionContextBuilderDeps;
-  /** The composed slot registrations — recover's pre-side-effect slot (O4). */
+  /** The composed slot registrations — recover's pre-side-effect slot. */
   readonly gateSteps: ResolvedGateSteps;
-  /** The composed status-transition observers (O4, DD-006 §3). */
+  /** The composed status-transition observers. */
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
-  /** The sandbox lane (§6d, O6) — recover re-ensures the session sandbox. */
+  /** The sandbox lane — recover re-ensures the session sandbox. */
   readonly sandboxLane: SandboxLane;
   /** Dispatch config for the sandbox ensure's target/queue resolution. */
   readonly temporalConfig: AgentExecutionTemporalConfig;
@@ -390,7 +390,7 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
         }
         throw internalError(error, "failed to persist execution");
       }
-      // O4 site 2 of 5 (status-observers.ts): observers see the persisted
+      // Notify site 2 of 5 (status-observers.ts): observers see the persisted
       // transition before LifecycleBroadcast runs — broadcast stays last.
       await notifyStatusObservers(deps, updated, oldPhase, targetPhase);
       // Hand the persisted result to the broadcast step and the handler's
@@ -726,17 +726,16 @@ function runRecoverPipeline(
           ),
         failureMessage: "failed to terminate previous workflow during recovery",
       }),
-      // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4):
-      // after workflow termination, before re-launch side effects — the
-      // verified RearmBillingStep ordering (a terminated workflow issues
-      // no new settles). Empty in OSS.
+      // The pre-side-effect gate slot: after workflow termination, before
+      // re-launch side effects, where a billing composition re-arms (a
+      // terminated workflow issues no new settles). Empty in OSS.
       ...stepsForSlot<Desc>(
         deps.gateSteps,
         "agent-execution-recover:pre-side-effect-gate",
       ),
       newRecreateExecutionContextStep(deps),
       newStartFreshWorkflowStep(deps),
-      // The session-lane sandbox ensure (§6d, O6) — same position and
+      // The session-lane sandbox ensure — same position and
       // non-critical posture as the create chain's step: after the
       // workflow start, never failing the recover (the shared body
       // pre-stamps failures onto status.error instead).

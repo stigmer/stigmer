@@ -4,12 +4,11 @@
  * functions (sdk/typescript/src/resource-availability.ts: editions
  * oss < enterprise < cloud; a tier admits its own edition and every edition
  * above it; the enum NUMBERS are wire identifiers, never ranks —
- * `enterprise` sits at 3 in both enums and ranks second). T01_1_review.md
- * Q-OR-8 and claim check C5: the two implementations must agree on the
+ * `enterprise` sits at 3 in both enums and ranks second). The two
+ * implementations must agree on the
  * whole matrix, because the console reads the SDK's answer to decide what
  * to SHOW and `checkMyPermission` reads the server's to decide what is
- * HELD; a disagreement is a surface that appears and then fails, the
- * Q-EC-2b class.
+ * HELD; a disagreement is a surface that appears and then fails.
  *
  * The matrix is spelled out rather than computed, so a change on either
  * side is a visible diff here and the SDK's own test remains the SDK's.

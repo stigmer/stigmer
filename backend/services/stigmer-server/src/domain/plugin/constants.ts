@@ -19,7 +19,7 @@ export const VERSION_TAG_PATTERN = /^[a-zA-Z0-9._-]+$/;
 /**
  * The runner's built-in sub-agents. A plugin sub-agent bearing one of these
  * names shadows a built-in at run time; the runner only warns, so the
- * install warns too rather than refusing (an M1 finding kept as data here).
+ * install warns too rather than refusing.
  */
 export const BUILT_IN_SUB_AGENT_NAMES: ReadonlySet<string> = new Set([
   "explore",

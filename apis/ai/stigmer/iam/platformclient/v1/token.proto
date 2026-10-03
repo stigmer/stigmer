@@ -77,7 +77,7 @@ service PlatformClientTokenController {
   // on an enabled public-audience share (NOT_FOUND when disabled or missing)
   // and stamps the resolved share's id into the guest JWT as the share_id
   // claim — the create-time gate re-reads the live share by that id on every
-  // session/execution create (decision 011 D6).
+  // session/execution create.
   rpc mintGuestToken(MintGuestTokenRequest) returns (MintGuestTokenResponse) {
     option (ai.stigmer.commons.rpc.is_public) = true;
   }
@@ -177,7 +177,7 @@ message MintGuestTokenRequest {
   // guest create-time gate.
   //
   // The hosted server cross-checks this field against the request's
-  // browser-enforced Origin header (stigmer-cloud#341). When the header
+  // browser-enforced Origin header. When the header
   // is a third-party origin (a direct SDK embed), the header is
   // authoritative: a non-empty field that disagrees with it is refused
   // PERMISSION_DENIED naming both origins, and an empty field resolves
@@ -187,7 +187,7 @@ message MintGuestTokenRequest {
   // the widget code derives it from browser-authentic sources the
   // embedder cannot alter. Non-browser callers send no Origin header and
   // keep the self-report semantics; they gain nothing by omitting it
-  // since the hosted link is anyone-with-link (decision 001) — rate
+  // since the hosted link is anyone-with-link — rate
   // limits and the billing gate remain the API guards.
   string embed_origin = 4 [(buf.validate.field).cel = {
     id: "embed_origin.format"

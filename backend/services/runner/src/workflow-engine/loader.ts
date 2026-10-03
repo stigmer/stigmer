@@ -5,7 +5,7 @@
  * Runs outside the Temporal workflow sandbox (activity-side).
  * The parsed model is passed as input to the workflow function.
  *
- * Design decision (DD-W02): We parse YAML directly and build our
+ * Design decision: we parse YAML directly and build our
  * own WorkflowModel types rather than using the CNCF SDK classes.
  * This avoids the SDK's strict Ajv validation issues (rejects
  * `document.description`) and decouples us from SDK version changes.

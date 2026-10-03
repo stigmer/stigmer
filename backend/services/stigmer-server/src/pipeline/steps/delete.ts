@@ -3,7 +3,7 @@
  * context), LoadExistingForDelete (loads the doomed resource so Delete can
  * return it; NotFound when absent), DeleteResource (the store delete).
  *
- * Deliberate divergence from the Go source (ratified 2026-08-26): Go
+ * Deliberate divergence from the Go source (decided 2026-08-26): Go
  * mapped ANY store error on the load to NotFound. Here only the typed
  * ResourceNotFoundError is NotFound; other store failures surface as
  * sanitized Internal — rethrown from the load (the executor converts,

@@ -1,10 +1,9 @@
 /**
- * IamPolicy domain constants (20260913.01, T01_0_plan.md §3a;
- * T01_1_review.md Q-OR-6b, Q-OR-9; slice 2 ruling Q-S2-1): the derived
+ * IamPolicy domain constants: the derived
  * policy id and the one spelling of a triple it hashes, the kinds the
  * legacy-creator rule scans, and the byte-pinned wire copy.
  *
- * The derived id (Q-OR-9). A policy's id is a pure function of its triple:
+ * The derived id. A policy's id is a pure function of its triple:
  * `iamp_` + `derivedId` (pipeline/steps/defaults.ts, the encoder shared
  * with the identity account) over the triple's canonical text. The text
  * IS the tuple notation the contract's own comment documents
@@ -16,7 +15,7 @@
  * vectors in __tests__/constants.test.ts are wire-adjacent contract: a
  * change here re-addresses every policy open source ever wrote.
  *
- * The text's one weakness (Q-S2-1): `ApiResourceRef` fields carry no
+ * The text's one weakness: `ApiResourceRef` fields carry no
  * character pattern, so an id or relation holding one of the three
  * delimiters could spell another triple's text (`a#b` with an empty
  * qualifier and `a` with qualifier `b#` read alike). `malformedTripleField`
@@ -27,9 +26,9 @@
  * relation an FGA relation name — and OpenFGA itself rejects `:` and `#`
  * in ids, so the cloud loses nothing it could ever have written.
  *
- * `BLUEPRINT_KINDS` (Q-OR-6b) is the legacy-creator rule's whole scan: the
+ * `BLUEPRINT_KINDS` is the legacy-creator rule's whole scan: the
  * kinds an admin authors. Sessions, executions, keys and memories are
- * personal and stay with their creator by DD-002 rule 2; they never appear
+ * personal and stay with their creator; they never appear
  * here.
  *
  * The copy moved from the cloud's iam/policy/handlers.ts as-is: the CLI,
@@ -55,7 +54,7 @@ export const POLICY_ID_PREFIX = "iamp";
 
 /**
  * The proto's `api_version` const (api.proto). The cloud's Java-era rows
- * carry `iam.stigmer.com/v1` and are read as they are (Q-OR-9); every row
+ * carry `iam.stigmer.com/v1` and are read as they are; every row
  * this domain writes carries the contract's value.
  */
 export const IAM_POLICY_API_VERSION = "iam.stigmer.ai/v1";
@@ -119,7 +118,7 @@ export function malformedTripleField(spec: IamPolicySpec): string | undefined {
 /**
  * The derived policy id of a triple. Pure; refuses a spec missing either
  * reference (a triple is the whole key) and a spec whose text would be
- * ambiguous (Q-S2-1) — both are the assert behind the grant path's gate,
+ * ambiguous — both are the assert behind the grant path's gate,
  * which is where a caller hears INVALID_ARGUMENT.
  */
 export function policyIdFor(spec: IamPolicySpec): string {
@@ -132,7 +131,7 @@ export function policyIdFor(spec: IamPolicySpec): string {
 }
 
 /**
- * The kinds an admin authors — the legacy-creator rule's scan (Q-OR-6b),
+ * The kinds an admin authors — the legacy-creator rule's scan,
  * in registry order. A caller who created one of these idp-shaped, before
  * an account existed, becomes admin on first sign-in.
  */
@@ -159,8 +158,8 @@ export const ROLES_RECONCILED_KEY = "membership_rules_reconciled";
 
 /**
  * The principal kinds a PERSON may grant a role to — the user `create`
- * lane's grantee vocabulary (2026-09-14, session 9 ruling Q-S9-2; the
- * security read's finding 41): a person (the identity account) and a team
+ * lane's grantee vocabulary (since 2026-09-14): a person (the identity
+ * account) and a team
  * of people. A row whose principal is a RESOURCE
  * (`organization:A#organization@platform_client:X`, `#managed_org`) is a
  * structural link, and structural links are `bootstrapPolicy`'s — the
@@ -224,7 +223,7 @@ export const AUTHENTICATION_REQUIRED_MESSAGE =
  * A spec whose resource kind is not an ApiResourceKind member name
  * (INVALID_ARGUMENT; the cloud's `kindFromSpecString` sentence). The grant
  * path is where a permissive Authorizer's caller hears it; an enforcing
- * Authorizer denies the unknown kind at position 1 first (slice 1, ruling 2).
+ * Authorizer denies the unknown kind at position 1 first.
  */
 export function unknownResourceKindMessage(kind: string): string {
   return `Unknown resource kind: '${kind}'`;
@@ -257,7 +256,7 @@ export function unknownPrincipalKindMessage(kind: string): string {
 }
 
 /**
- * A user grant whose principal is not a person (INVALID_ARGUMENT; Q-S9-2),
+ * A user grant whose principal is not a person (INVALID_ARGUMENT),
  * in the role sentence's shape: the offending kind, then the vocabulary.
  */
 export function principalNotGrantableMessage(kind: string): string {
@@ -294,7 +293,7 @@ export function teamRoleNotGrantableMessage(
   return `Role '${role}' cannot be granted to a team on resource kind '${kind}'. Roles a team can hold: [${grantable.join(", ")}]`;
 }
 
-/** A triple field holding a canonical-text delimiter (INVALID_ARGUMENT; Q-S2-1). */
+/** A triple field holding a canonical-text delimiter (INVALID_ARGUMENT). */
 export function malformedTripleMessage(field: string): string {
   return `policy ${field} must not contain ':', '#' or '@'`;
 }

@@ -7,8 +7,8 @@
  * → BroadcastToStreams. Go still does the merge as a separate
  * LoadExisting step followed by a plain SaveResource — a lost-update
  * window under concurrent updates. This port runs the SAME merge body
- * inside the store's atomic `updateResource` instead (sub-project DD-001,
- * owner-ratified): Go's own agentexecution domain already calls that
+ * inside the store's atomic `updateResource` instead: Go's own
+ * agentexecution domain already calls that
  * discipline load-bearing, and this domain's per-child pending-gate merge
  * is exactly the concurrent-children write that the window can corrupt.
  * Wire-identical in sequential flows; strictly safer under concurrency;
@@ -23,7 +23,7 @@
  * re-sort long-running executions above new ones in the recents sidebar).
  *
  * The chain opens with Authorize (can_edit on the execution); the
- * broadcast rides the in-memory stream broker (ADR 011) — there is no
+ * broadcast rides the in-memory stream broker — there is no
  * Redis.
  */
 import { create, toBinary } from "@bufbuild/protobuf";
@@ -68,10 +68,10 @@ import type { StreamBroker } from "./stream-broker.js";
 export interface UpdateStatusDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
-  /** Fires the workflow-sandbox teardown on terminal transitions (§6d, O6). */
+  /** Fires the workflow-sandbox teardown on terminal transitions. */
   readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
 }
 
@@ -118,7 +118,7 @@ export async function updateStatus(
         let updated: WorkflowExecution;
         // Captured inside the modify closure — the phase BEFORE this
         // merge, read under the same write lock that persists it (the
-        // sandbox observer below keys on the transition, §6d/O6).
+        // sandbox observer below keys on the transition).
         let previousPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
         try {
           updated = await deps.store.updateResource(
@@ -173,8 +173,8 @@ export async function updateStatus(
             "execution not found in context",
           );
         }
-        // Push to active subscribers AFTER the persist commits (ADR 011
-        // write path) — the ordering subscribe's register-before-snapshot
+        // Push to active subscribers AFTER the persist commits (the
+        // broker's write path) — the ordering subscribe's register-before-snapshot
         // guarantee builds on.
         deps.broker.broadcast(execution as WorkflowExecution);
       },

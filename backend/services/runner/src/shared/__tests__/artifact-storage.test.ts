@@ -763,7 +763,7 @@ describe("loadArtifactStorageConfig", () => {
   });
 });
 
-// ── resolveUsableArtifactStorage (DD-26 follow-up #1) ─────────────────
+// ── resolveUsableArtifactStorage ──────────────────────────────────────
 //
 // The shared construct-or-degrade seam: it must return `undefined` (never throw)
 // for every "no working substrate" condition so both harnesses fall to the

@@ -10,7 +10,7 @@
  * revert a fire record, a streak write, or a PAUSE — breaking the "resume
  * is the one clearing path" pin. The OSS twin of the cloud's targeted
  * metadata+spec+status.audit patch, shaped for a store whose unit of write
- * is the whole protobuf blob (DD-015 D-C).
+ * is the whole protobuf blob.
  *
  * Unlike a save, the graft never resurrects a concurrently deleted row:
  * updateResource answers not-found, relayed as NOT_FOUND — the delete won,

@@ -7,7 +7,7 @@
  * getRunnerBootstrapConfig and getLicenseStatus shapes; getRunnerScopedToken
  * is deliberately excluded there — its arms are exercised mid-execution)
  * and __tests__/platform.test.ts (the fail-soft mint matrix, the license
- * status arms, the stated-version arm, the #15 composed-server pattern).
+ * status arms, the stated-version arm, over a composed server).
  *
  * getLicenseStatus is the one arm every edition answers from a driver
  * point: a server's license is a fact about the server, like its edition,
@@ -36,7 +36,7 @@
  *     their credential from the dispatch itself (the engine clients put
  *     it on the workflow input); this exchange is the runner's fallback.
  *
- * The C4 capability delegation (20260827.09, gate ruling Q1): when the
+ * The capability delegation: when the
  * composed provider defines exchangeScopedToken / bootstrapCredentials,
  * this controller delegates the exchange arms and the bootstrap
  * credential fields to it wholesale — per-arm caller gating, row
@@ -96,8 +96,8 @@ export interface PlatformControllerDeps {
    */
   readonly runnerAuthService: RunnerCredentialProvider;
   /**
-   * The served edition, composition-derived (DD-006; blueprint §11 item
-   * 11): the extension registry declares it and defaults to oss, so the
+   * The served edition, composition-derived: the extension registry
+   * declares it and defaults to oss, so the
    * cloud composition answers `cloud` without forking this controller.
    */
   readonly edition: ServerEdition;

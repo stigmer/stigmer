@@ -1,6 +1,6 @@
 /**
- * Pins the built-in authorization POSTURE end to end (20260913.01,
- * T01_1_review.md Q-OR-6): `builtInAuthorization = extensions.authorizer
+ * Pins the built-in authorization POSTURE end to end: `builtInAuthorization
+ * = extensions.authorizer
  * === undefined`, named once in compose.ts. The open-source membership
  * rules and the built-in role lifecycle exist to feed the built-in
  * authorizer; a composition that registers its OWN Authorizer has its own
@@ -20,21 +20,21 @@
  * a positive one (the create succeeded, the accounts exist, the unit's
  * Authorizer WAS consulted) so the file cannot pass vacuously.
  *
- * The POSITIVE proof of the WIRING (slice 4), through real boots on both
+ * The POSITIVE proof of the WIRING, through real boots on both
  * open-source postures:
  *   - OIDC with no Authorizer (the unit's verifier alone): the creator
  *     founds an organization idp-shaped → no row yet; provisions → one
  *     `owner` row, stamped by the account; founds a SECOND organization
  *     after provisioning (the verifier still stamps the raw subject) → its
- *     owner row lands through the subject read of `accountForCaller`
- *     (Q-S4-1); a newcomer provisions → one `member` row per organization;
+ *     owner row lands through the subject read of `accountForCaller`;
+ *     a newcomer provisions → one `member` row per organization;
  *     provisions again → nothing new;
  *   - trusted-local: an organization created over the wire is owned by the
  *     operator's account; a second boot on the same database writes
- *     nothing (Q-S4-3); an owner row deleted underneath is written back at
- *     the next boot (Q-OR-6c).
+ *     nothing; an owner row deleted underneath is written back at
+ *     the next boot.
  * The positive proof of the RPCs over these rows is
- * domain/iampolicy/__tests__/iampolicy.test.ts (slice 5).
+ * domain/iampolicy/__tests__/iampolicy.test.ts.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

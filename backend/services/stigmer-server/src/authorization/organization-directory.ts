@@ -26,7 +26,7 @@
  * subject. The `internal` class — the server acting as itself over the
  * in-process transport — is answered `ALL_ORGANIZATIONS`: the Authorize
  * step treats that class as the in-process authorization skip (pipeline/
- * interceptors/auth.ts, ruling Q4), and a directory answer IS an
+ * interceptors/auth.ts), and a directory answer IS an
  * authorization answer, so a server-internal hop sees what the permissive
  * default showed it. `findMyOrganizations` is skip-authorization by
  * annotation, which is why this driver meets that caller at all: a

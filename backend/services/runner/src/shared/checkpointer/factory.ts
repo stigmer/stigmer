@@ -10,7 +10,7 @@
  * - http: HttpCheckpointSaver (proxy-backed) — for cloud / managed runners.
  * - memory: MemorySaver (ephemeral, zero-config) — explicit opt-in for tests.
  *
- * The returned saver is used by the deep agent activity (Phase 3).
+ * The returned saver is used by the deep agent activity.
  * Cursor executions do not use LangGraph checkpointers — they rely on
  * the Cursor SDK's native agent state persistence.
  */

@@ -142,8 +142,6 @@ export const FileChangeSetSchema: GenMessage<FileChangeSet> = /*@__PURE__*/
  * message.proto; the two coexist until the legacy file-change coupling is
  * deleted, at which point this message takes the canonical FileChange name.
  *
- * @since File-Change HITL Redesign (Phase 1)
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.CapturedFileChange
  */
 export type CapturedFileChange = Message<"ai.stigmer.agentic.agentexecution.v1.CapturedFileChange"> & {
@@ -288,8 +286,6 @@ export const CapturedFileChangeSchema: GenMessage<CapturedFileChange> = /*@__PUR
  * the tree ref, ignored/non-git files via the CAS manifest). Snapshots are
  * captured by the runner and are idempotent under Temporal retries.
  *
- * @since File-Change HITL Redesign (Phase 1)
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.SnapshotRef
  */
 export type SnapshotRef = Message<"ai.stigmer.agentic.agentexecution.v1.SnapshotRef"> & {
@@ -309,7 +305,7 @@ export type SnapshotRef = Message<"ai.stigmer.agentic.agentexecution.v1.Snapshot
 
   /**
    * Content-addressed manifest reference for ignored/non-git paths; set when
-   * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+   * kind is CAS_MANIFEST or HYBRID.
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3;
    */
@@ -325,8 +321,6 @@ export const SnapshotRefSchema: GenMessage<SnapshotRef> = /*@__PURE__*/
 
 /**
  * A git no-commit tree snapshot (write-tree + a stigmer-namespaced ref).
- *
- * @since File-Change HITL Redesign (Phase 1)
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.GitTreeRef
  */
@@ -392,8 +386,6 @@ export const CasManifestRefSchema: GenMessage<CasManifestRef> = /*@__PURE__*/
  * saw, so "what you approve is what gets applied". expected_digest is an
  * ENFORCEMENT gate, never a correlation key — correlation is by change_set_id
  * (+ file_change_id for FILE scope).
- *
- * @since File-Change HITL Redesign (Phase 1)
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.FileDecision
  */
@@ -479,7 +471,7 @@ export type FileDecision = Message<"ai.stigmer.agentic.agentexecution.v1.FileDec
   /**
    * Which authority authored this decision: a human reviewer (USER; also the
    * reading for UNSPECIFIED pre-origin records) or the approved-command
-   * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+   * auto-keep policy. Audit provenance only — never enforcement, never
    * correlation, never folded into any digest. See FileDecisionOrigin.
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin origin = 11;
@@ -537,8 +529,8 @@ export const FileReviewBaselineCapturedSchema: GenMessage<FileReviewBaselineCapt
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 6);
 
 /**
- * The runner's turn facts backing the approved-command auto-keep policy
- * (DD-28): its assertion that EVERY mutation in the candidate was produced by
+ * The runner's turn facts backing the approved-command auto-keep policy:
+ * its assertion that EVERY mutation in the candidate was produced by
  * executed shell commands the human had already authorized, with the consent
  * evidence the backend can verify.
  *
@@ -619,7 +611,7 @@ export type FileReviewCandidateCaptured = Message<"ai.stigmer.agentic.agentexecu
   diffCompleteness: DiffCompleteness;
 
   /**
-   * The runner's approved-command turn facts (DD-28). When present AND the
+   * The runner's approved-command turn facts. When present AND the
    * backend's verification passes, the set is auto-kept by a policy-origin
    * FILE_DECIDED instead of arming the review gate. Absent → manual review.
    * See TurnCommandProvenance.

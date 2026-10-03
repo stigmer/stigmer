@@ -15,9 +15,9 @@ export const ENGINE_UNAVAILABLE_MESSAGE =
   "The execution engine is temporarily unavailable. Please try again shortly.";
 
 /**
- * The run gate's deny copy per request shape (P1 sp.run-gate, ruling
- * Q-RG-4; wire once merged, asserted by the conformance run-gate suite).
- * NEW copy quotes the handle single-quoted (the ratified 2026-08-26 rule).
+ * The run gate's deny copy per request shape (wire copy, asserted by the
+ * conformance run-gate suite). NEW copy quotes the handle single-quoted
+ * (the rule since 2026-08-26).
  * An AgentExecution is a RUN in the ubiquitous language, hence "run";
  * a turn added to an existing conversation is "an execution in a session",
  * the session's own permission.

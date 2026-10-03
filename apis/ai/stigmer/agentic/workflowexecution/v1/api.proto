@@ -306,8 +306,6 @@ message WorkflowExecutionStatus {
   //
   // Consistent with WorkflowBudget.max_cost_micros and the billing domain's
   // micro-USD convention (CostStamp.provider_cost_micros, etc.).
-  //
-  // @since Cost Data Pipeline
   int64 total_cost_micros = 10;
 
   // Cumulative input tokens consumed across all LLM and agent tasks.
@@ -315,8 +313,6 @@ message WorkflowExecutionStatus {
   // @internal
   // Input tokens represent prompt/context tokens sent to the model.
   // Updated alongside total_cost_micros from the budget tracker.
-  //
-  // @since Cost Data Pipeline
   int64 total_input_tokens = 11;
 
   // Cumulative output tokens consumed across all LLM and agent tasks.
@@ -324,8 +320,6 @@ message WorkflowExecutionStatus {
   // @internal
   // Output tokens represent completion/generation tokens returned by the model.
   // Updated alongside total_cost_micros from the budget tracker.
-  //
-  // @since Cost Data Pipeline
   int64 total_output_tokens = 12;
 
   // SHA-256 hash identifying which workflow version was used for this execution.
@@ -345,8 +339,6 @@ message WorkflowExecutionStatus {
   // Empty for executions created before workflow versioning was introduced.
   // In that case, consumers fall back to fetching the current workflow
   // definition (legacy behavior with mismatch warning).
-  //
-  // @since Workflow Versioning
   string workflow_version_hash = 13;
 
   // Pending file reviews from child agent executions, surfaced for
@@ -366,8 +358,6 @@ message WorkflowExecutionStatus {
   // entry, so parallel child agents never clobber each other. A scoped write with
   // an empty change_set list removes that child's entry. Only call-agent-status
   // manages this field.
-  //
-  // @since Workflow-Parent File Review
   repeated WorkflowPendingFileReview pending_file_reviews = 14;
 }
 
@@ -555,8 +545,6 @@ message WorkflowTask {
   // artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
   // the original inline data. Consumers (execution viewer, SDK hooks)
   // detect these references and resolve them via the Artifact APIs.
-  //
-  // @since T07 (Artifact Store)
   repeated string artifact_ids = 11;
 
   // Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
@@ -565,24 +553,18 @@ message WorkflowTask {
   // Non-zero for cost-incurring task kinds (llm_call, agent_call).
   // Zero for non-LLM tasks (transform, validate, emit_event, etc.).
   // Set by the runner when the task completes.
-  //
-  // @since Cost Data Pipeline
   int64 cost_micros = 12;
 
   // Input (prompt/context) tokens consumed by this task.
   //
   // @internal
   // Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-  //
-  // @since Cost Data Pipeline
   int64 input_tokens = 13;
 
   // Output (completion/generation) tokens produced by this task.
   //
   // @internal
   // Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-  //
-  // @since Cost Data Pipeline
   int64 output_tokens = 14;
 
   // Hint identifying which UI should present this task's review payload.
@@ -605,7 +587,5 @@ message WorkflowTask {
   // Not to be confused with WorkflowExecutionStatus.pending_approvals,
   // which carries forwarded child-agent *tool* approvals — workflow-native
   // human_input gates live only here, on tasks[].
-  //
-  // @since Review Payloads (stigmer/stigmer#234)
   string ui_hint = 15;
 }

@@ -3,13 +3,13 @@
  * over the OSS adapter (../resource-store.ts) on both drivers through the
  * drivers' own fixtures (sqlite always; Postgres under TEST_DATABASE_URL,
  * the store contract's gating), and pins the two behaviors that are the
- * OSS adapter's rather than the port's (T01_1_review.md A1):
+ * OSS adapter's rather than the port's:
  *
  *   - every subject lookup is a PRIMARY-KEY read of the derived id — it
- *     never calls Store.findByField (the per-request scan A1 removed).
+ *     never calls Store.findByField (no per-request scan).
  *     Asserted with a spy over the real store, not by inspection;
  *     findDirectByEmail is the one lookup that scans (an administrative
- *     RPC, T01_1_review.md finding 2);
+ *     RPC);
  *   - save refuses a direct account whose id is not its derived id — the
  *     invariant that makes the primary-key read correct, since a stray row
  *     would be unreachable by subject forever.

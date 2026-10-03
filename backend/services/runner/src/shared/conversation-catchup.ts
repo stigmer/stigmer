@@ -1,11 +1,11 @@
 /**
- * Conversation catchup (cloud channel-conversations DD-006): what happened on
+ * Conversation catchup: what happened on
  * a live channel conversation that the agent has not seen — customer messages
  * handled by a human teammate, the teammate's replies, platform notices,
- * notes, and the agent's own earlier escalations. Since cloud#347 a line
+ * notes, and the agent's own earlier escalations. A line
  * whose send is known-undelivered carries a `(not delivered)` speaker
  * annotation and an in-flight one carries `(sending)` — the digest no longer
- * implies every public-lane line reached the customer. Since cloud#352 the
+ * implies every public-lane line reached the customer. The
  * digest also closes the feedback loop on send OUTCOMES: the agent's own
  * dead-lettered sends surface as `You (not delivered):` lines, and a send
  * that failed only after an earlier digest already conveyed it surfaces as a
@@ -15,7 +15,7 @@
  * `You escalated:` / `Note:` lines, oldest first) on the execution spec's
  * `conversation_catchup` field, fresh per turn. This module owns the
  * PRESENTATION framing; the digest is prepended to the TURN'S USER MESSAGE on
- * both harnesses (A27) — never the system prompt — because it is per-turn
+ * both harnesses — never the system prompt — because it is per-turn
  * conversation content that must persist in the conversation history: the
  * native system prompt is rebuilt per invocation and would forget the digest
  * one turn later, while a message rides the checkpointer/agent store forever.
@@ -25,7 +25,7 @@
  * TYPED proto field, so codegen enforces the cross-repo contract. The
  * degradation posture still holds — an absent or blank digest renders
  * nothing, and a runner predating this module simply ignores the field: the
- * agent re-enters blind, exactly the pre-DD-006 behavior, never worse.
+ * agent re-enters blind, exactly the behavior before catchup existed, never worse.
  */
 
 import type { ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
@@ -35,19 +35,19 @@ import type { ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/age
  * behavioral contract ("known history, don't answer or announce it") cannot
  * drift between them. Deliberately takeover-neutral: a digest can exist with
  * no human handoff at all (a failed turn's re-composed window), so the
- * preamble asserts only what is always true (the A15/A20 honesty bar).
+ * preamble asserts only what is always true.
  *
- * The send-status annotations (cloud#347) get an explicit exception from the
+ * The send-status annotations get an explicit exception from the
  * don't-re-answer contract: a `(not delivered)` teammate reply is words the
  * customer never got, so treating it as settled history would silently
  * abandon whatever it was meant to convey. The preamble defines the
- * annotations — the DD-013 split puts model-facing meaning here, while the
- * cloud composer owns which lines earn them.
+ * annotations — model-facing meaning lives here (presentation), while the
+ * content's composer owns which lines earn them.
  *
- * The send-outcome lines (cloud#352, cloud triage DD-009) extend the same
+ * The send-outcome lines extend the same
  * exception to the agent's OWN sends: `You (not delivered):` lines and
  * `System:` delivery-failure notices mean the customer never got those
- * words. The behavioral contract is owner-ruled (DD-009 Q-4): treat the
+ * words. The behavioral contract is deliberate: treat the
  * failure as unfinished conversation business — weigh what still needs
  * saying and re-say it naturally in the next turn — but never resend the
  * failed text verbatim: a multi-chunk send can partially land, and a

@@ -1,9 +1,9 @@
 /**
- * Pins the extension registry's merge semantics and the DD-006 §2b
- * loud-fail contract (sub-project 20260826.09/O1): explicit empty
+ * Pins the extension registry's merge semantics and its
+ * loud-fail contract: explicit empty
  * defaults, unit-order concatenation for list points, single-declaration
  * enforcement for authorizer and edition, unique unit names, the
- * unknown-gate-slot boot throw, and the O5 driver points (single-instance
+ * unknown-gate-slot boot throw, and the driver points (single-instance
  * providers, name-keyed storage-driver registration with duplicate and
  * built-in-shadow throws), the row readers' kind-keyed merge with its
  * reserved kinds, and the units' hand-over and start points kept in unit
@@ -95,7 +95,7 @@ const fakeSandboxDriver: SandboxProvisionerFactory = () => {
   throw new Error("unit-test sandbox driver factory — never constructed");
 };
 
-// Never invoked — the merge tests assert identity and the §2b throws.
+// Never invoked — the merge tests assert identity and the loud-fail throws.
 function fakeCodec(version: string): SecretCodec {
   const never = (): never => {
     throw new Error("unit-test secret codec — never invoked");
@@ -209,7 +209,7 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolved.responseDecorators).toEqual([decoratorB]);
   });
 
-  it("merges the O5 driver points: singleton providers, name-keyed storage drivers across units", () => {
+  it("merges the driver points: singleton providers, name-keyed storage drivers across units", () => {
     const catalog = fakeCatalog();
     const credentials = fakeCredentials();
     const resolved = resolveExtensions([
@@ -241,7 +241,7 @@ describe("resolveExtensions — merge semantics", () => {
     );
   });
 
-  it("merges the O6 sandbox-provisioner drivers as a name-keyed map across units", () => {
+  it("merges the sandbox-provisioner drivers as a name-keyed map across units", () => {
     const resolved = resolveExtensions([
       {
         name: "fly-unit",
@@ -268,7 +268,7 @@ describe("resolveExtensions — merge semantics", () => {
     );
   });
 
-  it("keeps the declared ChannelRuntime as the resolved singleton (C3 ruling Q1)", () => {
+  it("keeps the declared ChannelRuntime as the resolved singleton", () => {
     const runtime = fakeChannelRuntime();
     const resolved = resolveExtensions([
       { name: "channels", drivers: { channelRuntime: runtime } },
@@ -276,7 +276,7 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolved.drivers.channelRuntime).toBe(runtime);
   });
 
-  it("keeps the declared ListReadScope as the resolved singleton (20260830.01)", () => {
+  it("keeps the declared ListReadScope as the resolved singleton", () => {
     const scope = {
       authorizedResourceIds: () => Promise.resolve(new Set<string>()),
       restrictListEntries: () => Promise.resolve(new Set<string>()),
@@ -289,7 +289,7 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolveExtensions([]).drivers.listReadScope).toBeUndefined();
   });
 
-  it("keeps the declared ScheduleFireCallerMint as the resolved singleton (stigmer-cloud#572)", () => {
+  it("keeps the declared ScheduleFireCallerMint as the resolved singleton", () => {
     const mint = {
       mintFireCaller: () =>
         Promise.resolve({
@@ -327,7 +327,7 @@ describe("resolveExtensions — merge semantics", () => {
     );
   });
 
-  it("merges secret codecs as a version-keyed map across units (20260830.04)", () => {
+  it("merges secret codecs as a version-keyed map across units", () => {
     const v2 = fakeCodec("v2");
     const v3 = fakeCodec("v3");
     const resolved = resolveExtensions([
@@ -346,7 +346,7 @@ describe("resolveExtensions — merge semantics", () => {
   });
 });
 
-describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
+describe("resolveExtensions — loud-fail throws", () => {
   it("throws on an empty unit name", () => {
     expect(() => resolveExtensions([{ name: "" }])).toThrowError(/empty name/);
   });
@@ -394,7 +394,7 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
     );
   });
 
-  it("throws on a second require-authentication declaration, naming both units (20260904.02)", () => {
+  it("throws on a second require-authentication declaration, naming both units", () => {
     expect(() =>
       resolveExtensions([
         { name: "first-posture", requireAuthentication: true },
@@ -476,10 +476,10 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
     ).toEqual(["SeedTuples"]);
   });
 
-  it("keeps DECLARED_GATE_SLOTS in lockstep with the ratified slot names", () => {
+  it("keeps DECLARED_GATE_SLOTS in lockstep with the declared slot names", () => {
     // The boot-time set derives from the one literal tuple; this pin
     // catches an accidental edit to either the tuple or the derivation
-    // (the names are protected vocabulary — blueprint 03 §3a).
+    // (the names are protected vocabulary).
     expect([...DECLARED_GATE_SLOTS].sort()).toEqual(
       [...GATE_SLOT_NAMES].sort(),
     );
@@ -490,7 +490,7 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
       // The eighth: the IamPolicy create chain before the write, where an
       // edition that serves teams refuses a team it cannot admit.
       "iam-policy-create:pre-side-effect-gate",
-      // 20260911.11 Q-IA-9: the seventh ratified slot — after the account
+      // The seventh slot — after the account
       // persists inside provisionMyAccount, before the reply (the cloud's
       // personal-organization ensure and backfill ride it).
       "identity-account-provision:post-persist",

@@ -1,7 +1,7 @@
 /**
  * The open-source IamPolicyStore: the port (store.ts) over the generic
- * Store, rows of the `resources` table by kind (20260913.01, T01_0_plan.md
- * §3a, §4). The composition root installs it when no extension registers
+ * Store, rows of the `resources` table by kind. The composition root
+ * installs it when no extension registers
  * `drivers.iamPolicyStore`.
  *
  * Reads. `findById` is a PRIMARY-KEY read. `findByPrincipal` is an
@@ -36,7 +36,7 @@
  * grant path hands `save` and `deleteById` (store.ts) is not read here, and
  * the same facts ride the grant path's log lines.
  *
- * Store faults follow the ratified mapping (domain/apikey/lookup.ts): a
+ * Store faults follow the store-fault mapping (domain/apikey/lookup.ts): a
  * typed ResourceNotFoundError reads as `undefined`; anything else
  * propagates — an outage must never read as "no grant".
  *
@@ -64,7 +64,7 @@ const KIND = ApiResourceKind.iam_policy;
  * The cloud SQL's scope-tuple exclusions (store.ts): a scope tuple is a
  * row whose principal is a RESOURCE and whose relation is structural. The
  * principal half is derived from the user lane's grantee vocabulary
- * (constants.ts USER_GRANT_PRINCIPAL_KINDS; Q-S9-2) so the writer's "who a
+ * (constants.ts USER_GRANT_PRINCIPAL_KINDS) so the writer's "who a
  * person may grant to" and the reader's "what is a person, not a parent"
  * are one definition: the identity account and the team.
  */

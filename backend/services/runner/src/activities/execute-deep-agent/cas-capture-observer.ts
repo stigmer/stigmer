@@ -24,7 +24,7 @@
  *    (`null` = the path did not exist → an ADD), read at the turn boundary to
  *    build the CAS `before` side.
  *  - `blockedSecretPaths`: gitignored paths the approval gate hard-blocked as
- *    secret-like (DD-E) — never applied, never captured; the boundary authors a
+ *    secret-like — never applied, never captured; the boundary authors a
  *    content-less `DIFF_UNREVIEWABLE` entry for each (path only — the name is not
  *    the secret; the CONTENT never leaves the workspace).
  *
@@ -32,9 +32,6 @@
  * net result of the turn), so multiple edits to one path collapse to one
  * before/after. Git-tracked paths are never recorded here — the turn-boundary git
  * diff captures them — so memory is bounded to the gitignored scope.
- *
- * @since File-Change HITL Redesign (Phase 3 — CAS deep-agent wiring); sub-agent
- * gitignored capture parity (Session 26, DD-19)
  */
 
 import { readFile } from "node:fs/promises";

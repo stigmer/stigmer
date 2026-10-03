@@ -263,7 +263,7 @@ export const UpdateStatusResponseSchema: GenMessage<UpdateStatusResponse> = /*@_
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 6);
 
 /**
- * Input for submitting an approval decision (HITL Phase 1).
+ * Input for submitting an approval decision.
  *
  * All required fields must be provided. The handler validates:
  * 1. The execution exists and is in EXECUTION_WAITING_FOR_APPROVAL phase
@@ -358,7 +358,7 @@ export const ApprovalDecisionListSchema: GenMessage<ApprovalDecisionList> = /*@_
  *
  * The decision is recorded in the append-only file_review event stream as a
  * FILE_DECIDED event; FileChangeSet.decisions is the derived projection. The
- * runner reconciles approved bytes (Phase 2); this RPC only records the
+ * runner reconciles approved bytes; this RPC only records the
  * decision and enforces that expected_digest still matches what the user saw.
  *
  * Example:
@@ -726,8 +726,6 @@ export const RecoverAgentExecutionInputSchema: GenMessage<RecoverAgentExecutionI
  *   "reason": "Pausing to review progress before continuing"
  * }
  *
- * @since Agent Execution Lifecycle
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput
  */
 export type PauseAgentExecutionInput = Message<"ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput"> & {
@@ -802,8 +800,6 @@ export const PauseAgentExecutionInputSchema: GenMessage<PauseAgentExecutionInput
  *   "id": "aex_abc123xyz456"
  * }
  *
- * @since Agent Execution Lifecycle
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput
  */
 export type ResumeAgentExecutionInput = Message<"ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput"> & {
@@ -869,8 +865,6 @@ export const ResumeAgentExecutionInputSchema: GenMessage<ResumeAgentExecutionInp
  *   "storage_key": "attachments/01HGXXX.../dataset.csv"
  * }
  *
- * @since Artifact Lifecycle (Attachments & Artifacts)
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest
  */
 export type UploadAttachmentRequest = Message<"ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest"> & {
@@ -929,8 +923,6 @@ export const UploadAttachmentRequestSchema: GenMessage<UploadAttachmentRequest> 
  * The storage_key should be used in the Attachment message when creating
  * an agent execution. The key is opaque to clients - do not parse or
  * construct keys manually.
- *
- * @since Artifact Lifecycle (Attachments & Artifacts)
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse
  */
@@ -994,8 +986,6 @@ export const UploadAttachmentResponseSchema: GenMessage<UploadAttachmentResponse
  *   "download_url": "https://r2.example.com/...",
  *   "expires_at": "2026-02-20T10:30:00Z"
  * }
- *
- * @since Artifact Lifecycle (Attachments & Artifacts)
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest
  */
@@ -1067,8 +1057,6 @@ export const GetArtifactDownloadUrlRequestSchema: GenMessage<GetArtifactDownload
  * The download_url can be used with a simple HTTP GET request to download
  * the artifact. No authentication headers are required - the URL contains
  * embedded authorization.
- *
- * @since Artifact Lifecycle (Attachments & Artifacts)
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse
  */
@@ -1157,8 +1145,6 @@ export const GetArtifactDownloadUrlResponseSchema: GenMessage<GetArtifactDownloa
  *   "truncated": false
  * }
  *
- * @since Artifact Lifecycle (Attachments & Artifacts)
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest
  */
 export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest"> & {
@@ -1239,8 +1225,6 @@ export const GetArtifactContentRequestSchema: GenMessage<GetArtifactContentReque
  * The content field contains the artifact bytes (up to max_bytes). For text
  * artifacts, clients decode via TextDecoder or equivalent. The content_type
  * field provides a hint for rendering (detected by file extension).
- *
- * @since Artifact Lifecycle (Attachments & Artifacts)
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse
  */
@@ -1995,8 +1979,6 @@ export const HarnessCostSummarySchema: GenMessage<HarnessCostSummary> = /*@__PUR
  * GetAgentExecutionSummaryRequest fetches aggregated execution statistics
  * for an organization's agent executions.
  *
- * @since Unified Platform Dashboard
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest
  */
 export type GetAgentExecutionSummaryRequest = Message<"ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest"> & {
@@ -2031,8 +2013,6 @@ export const GetAgentExecutionSummaryRequestSchema: GenMessage<GetAgentExecution
  * Cost is intentionally omitted. The dashboard sources cost from
  * getOrgUsageReport (billing source of truth) to prevent double-counting
  * when workflows delegate to agents. See AD-DASH-005.
- *
- * @since Unified Platform Dashboard
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary
  */
@@ -2085,8 +2065,6 @@ export const AgentExecutionSummarySchema: GenMessage<AgentExecutionSummary> = /*
 /**
  * AgentFailureRank represents an agent and its failure count within
  * a time window.
- *
- * @since Unified Platform Dashboard
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.AgentFailureRank
  */

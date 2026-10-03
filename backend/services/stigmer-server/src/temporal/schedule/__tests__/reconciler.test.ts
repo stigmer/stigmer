@@ -1,7 +1,7 @@
 /**
  * Pins the reconciler against Go's reconcile.go — the OSS-load-bearing
- * convergence pass (panel finding 1 — this machinery previously shipped
- * untested, with a comment claiming otherwise):
+ * convergence pass (this machinery once shipped untested, with a comment
+ * claiming otherwise):
  *
  *   - phase 2 arms rows without artifacts and repairs note/paused drift;
  *   - phase 3 reaps orphans ONLY after the point read confirms the row is
@@ -10,7 +10,7 @@
  *   - probe-prefixed and foreign artifacts are never touched;
  *   - per-row failures count and the pass continues;
  *   - the kick queue coalesces, stop() drains, and a rejected pass can
- *     neither brick the queue nor escape into shutdown (finding 2).
+ *     neither brick the queue nor escape into shutdown.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -262,7 +262,7 @@ describe("runPass — the four phases", () => {
     expect(counts).toMatchObject({ rowsExamined: 0, failures: 0 });
   });
 
-  it("phase 4 prunes ledger rows past retention and keeps fresh ones (DD-017 D-7)", async () => {
+  it("phase 4 prunes ledger rows past retention and keeps fresh ones", async () => {
     const base = {
       scheduleId: "sch_prune",
       org: "acme",

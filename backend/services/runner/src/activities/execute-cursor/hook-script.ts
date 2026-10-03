@@ -29,13 +29,13 @@
  *
  * Denial kinds (the attribution taxonomy, mirrored in approval-state.ts):
  *   - "approval"      — the normal gate: pauses the run for user approval.
- *   - "secret"        — DD-26 secret hard-block: the agent continues, no pause.
+ *   - "secret"        — secret hard-block: the agent continues, no pause.
  *   - "capture-error" — CAS staging failed, write kept on the deny-gate.
  *   - "fail-closed"   — approval state file missing, everything gated denies.
  *   - "disabled"      — enabled_tools manifest exclusion (issue #350): the
  *                       agent continues, no pause, permanent for the run.
  * Only approval-kind records carry the captured tool_input: a secret write's
- * content must never be persisted (DD-26), a capture-error's content is
+ * content must never be persisted, a capture-error's content is
  * UNCLASSIFIED (the staging error means secret classification may never have
  * run), and fail-closed has no state to classify against.
  *
@@ -135,7 +135,7 @@ const APPROVAL_REQUIRED_AGENT_MESSAGE =
   "automatically after the user responds — continue with the rest of the task.";
 
 // Shown to the model when the gate denies a tool call under UNATTENDED
-// approval mode (DD-014): the creating surface (a messaging channel, a guest
+// approval mode: the creating surface (a messaging channel, a guest
 // share) has no approver, so — unlike APPROVAL_REQUIRED_AGENT_MESSAGE — this
 // must NOT promise a resume: the deny is final for this turn and the model
 // must adapt. It also enforces the anti-leak posture: the end user hears a
@@ -152,8 +152,8 @@ const UNATTENDED_SKIP_AGENT_MESSAGE =
   "what they can do instead — never mention tools, approvals, or platform " +
   "mechanics.";
 
-// Shown to the model when a secret-like gitignored write is hard-blocked (DD-E /
-// DD-18). Unlike APPROVAL_REQUIRED_AGENT_MESSAGE, this must NOT promise a resume:
+// Shown to the model when a secret-like gitignored write is hard-blocked.
+// Unlike APPROVAL_REQUIRED_AGENT_MESSAGE, this must NOT promise a resume:
 // the write is discarded and never captured for review, so the model must move on
 // rather than wait or retry. Same embedding constraint (single-quoted bash echo
 // of a JSON object): no double quotes, apostrophes, or backslashes.
@@ -523,7 +523,7 @@ fi
 # and the runner can tell its own denials from a foreign hook's (issue #205).
 # Best-effort: a ledger write failure must never abort the decision (the deny
 # still goes out on stdout). ONLY approval-kind records carry the captured
-# tool_input (DD-26: secret / unclassified content must never be persisted);
+# tool_input (secret or unclassified content must never be persisted);
 # input is base64(JSON(tool_input)) — the authoritative pre-execution args the
 # runner overlays for the approval preview (empty on the grep fallback path).
 # Written with printf (a builtin, so no ARG_MAX limit) because the input can be
@@ -572,7 +572,7 @@ CAPTURE_IGNORED=false
 if echo "$STATE" | grep -q '"captureIgnored":true'; then
   CAPTURE_IGNORED=true
 fi
-# gitWorkspace selects the capture substrate (Slice 2c). Default true when the
+# gitWorkspace selects the capture substrate. Default true when the
 # key is absent (older state files). When false the workspace is NOT a git tree:
 # there is no git snapshot, so EVERY file write/delete is CAS-staged below (not
 # only gitignored ones) and the git-tracked flow arm is skipped.
@@ -580,7 +580,7 @@ GIT_WORKSPACE=true
 if echo "$STATE" | grep -q '"gitWorkspace":false'; then
   GIT_WORKSPACE=false
 fi
-# Unattended approval mode (DD-014): the surface has no approver. Same gate,
+# Unattended approval mode: the surface has no approver. Same gate,
 # different RESOLUTION — the approval-deny arms below record kind "unattended"
 # (non-pausing) with an adapt-and-explain message instead of kind "approval"
 # (pausing). Secret/fail-closed/capture-error arms are mode-independent.
@@ -613,7 +613,7 @@ if [ "$CAPTURE_IGNORED" = "true" ] && [ "$CATEGORY" = "write" ] && [ -n "$SALIEN
     exit 0
   elif [ "$OBS_RESULT" = "secret" ]; then
     # Kind "secret": attributable but deliberately non-pausing (the agent moves
-    # on) and content-free (DD-26 — the token is the only identity recorded).
+    # on) and content-free (the token is the only identity recorded).
     record_denial "$PRIMARY_TOKEN" "secret"
     echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written or captured for review."}'
     exit 0
@@ -705,7 +705,7 @@ if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
         MSG="Tool requires approval: $TOOL_NAME"
       fi
       if [ "$UNATTENDED_SKIP" = "true" ]; then
-        # Unattended resolution (DD-014): non-pausing kind, final for this
+        # Unattended resolution: non-pausing kind, final for this
         # turn — the model adapts and the turn boundary stamps SKIPPED.
         record_denial "$MCP_TOKEN" "unattended"
         echo '{"permission":"deny","agent_message":"${UNATTENDED_SKIP_AGENT_MESSAGE}","user_message":"Skipped (approval not available on this surface): '"$TOOL_NAME"'"}'
@@ -739,7 +739,7 @@ if [ -n "$CATEGORY" ]; then
       exit 0
     fi
   fi
-  # Deny-gate secret hard-block (DD-26 #2): a secret-like WRITE that reaches the
+  # Deny-gate secret hard-block: a secret-like WRITE that reaches the
   # deny-gate (no capture substrate for it — capture off, or captureIgnored off in
   # a git-no-storage workspace) must not surface its content for approval. Classify
   # byte-identically to isSecretLikePath (no staging) and, on a match, hard-block
@@ -752,8 +752,8 @@ if [ -n "$CATEGORY" ]; then
   if [ "$CATEGORY" = "write" ] && [ -n "$SALIENT" ]; then
     SECRET_RESULT=$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${secretClassifyScript}' 2>/dev/null || echo ok)
     if [ "$SECRET_RESULT" = "secret" ]; then
-      # Kind "secret": attributable but non-pausing and content-free (DD-26 —
-      # only the identity token is recorded, never the proposed content).
+      # Kind "secret": attributable but non-pausing and content-free (only
+      # the identity token is recorded, never the proposed content).
       record_denial "$PRIMARY_TOKEN" "secret"
       echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written."}'
       exit 0
@@ -779,7 +779,7 @@ if [ -n "$CATEGORY" ]; then
   # Record the PRIMARY token (content-exact when available, else coarse) so the
   # runner's denial correlation keys on the SAME identity it grants on approval.
   if [ "$UNATTENDED_SKIP" = "true" ]; then
-    # Unattended resolution (DD-014): non-pausing kind, final for this turn —
+    # Unattended resolution: non-pausing kind, final for this turn —
     # the model adapts and the turn boundary stamps SKIPPED.
     record_denial "$PRIMARY_TOKEN" "unattended"
     echo '{"permission":"deny","agent_message":"${UNATTENDED_SKIP_AGENT_MESSAGE}","user_message":"Skipped (approval not available on this surface): '"$TOOL_NAME"'"}'

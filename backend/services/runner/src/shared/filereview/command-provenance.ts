@@ -1,5 +1,5 @@
 /**
- * The DD-28 approved-command turn qualification rule — the harness-agnostic core
+ * The approved-command turn qualification rule — the harness-agnostic core
  * of the auto-keep policy's runner-side facts.
  *
  * A turn whose ONLY mutation source was shell commands the human had already
@@ -26,7 +26,8 @@
  * runner cannot mint authorization it was never given.
  *
  * FAIL-CLOSED. Every uncertainty disqualifies (returns undefined → the set
- * reviews manually, exactly as before DD-28): a file-tool call, an MCP tool, a
+ * reviews manually, exactly as before auto-keep existed): a file-tool call, an
+ * MCP tool, a
  * sub-agent delegation, an unrecognized tool name, or an executed shell command
  * with no provable consent source. Being conservative here costs only an extra
  * review; being permissive would silently waive one.
@@ -56,7 +57,7 @@ export const NON_MUTATING_KINDS: ReadonlySet<ToolKind> = new Set([
 ]);
 
 /**
- * The harness-supplied inputs to the shared DD-28 qualification rule. The two
+ * The harness-supplied inputs to the shared qualification rule. The two
  * function inputs are exactly the two things that differ between harnesses
  * (turn scoping is expressed by which calls appear in {@link turnToolCalls}).
  */
@@ -92,7 +93,7 @@ export interface CommandProvenanceCoreInputs {
 }
 
 /**
- * Apply the DD-28 qualification rule to a harness-scoped turn, returning the
+ * Apply the qualification rule to a harness-scoped turn, returning the
  * {@link TurnCommandProvenance} to attach to the candidate — or undefined when
  * the turn does not qualify (any non-shell mutation-capable call, any unknown
  * tool, any executed command without a provable consent source, or no executed

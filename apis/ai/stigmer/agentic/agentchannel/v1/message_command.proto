@@ -10,7 +10,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // messages on agent channels.
 //
 // @internal
-// proactive-messaging DD-002 D2: the runtime messaging surface beside
+// The runtime messaging surface beside
 // the AgentChannel resource controllers — a dedicated runtime service
 // next to the resource CRUD service, so resource CRUD and runtime
 // traffic never mix. Dual-audience by token-class dispatch: the agent's
@@ -26,9 +26,9 @@ service ChannelMessageCommandController {
   // truth of the inline attempt.
   //
   // @internal
-  // Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,
+  // Authorization in-handler: token-class dispatch,
   // fail closed; agent-anchored chain (never session-sender-anchored —
-  // the recipient is an argument). Error contract (DD-002 D4): unknown
+  // the recipient is an argument). Error contract: unknown
   // or foreign token class, no serving channel, proactive messaging not
   // enabled, or channel/org mismatch → PERMISSION_DENIED with no policy
   // detail leaked; malformed input or ambiguous channel/language →
@@ -36,8 +36,7 @@ service ChannelMessageCommandController {
   // FAILED_PRECONDITION; rate caps, recipient policy, and provider
   // refusals → outcome=refused; transient provider failures →
   // outcome=queued. Cloud-first runtime: the OSS edition returns
-  // FAILED_PRECONDITION (decision 001 D-g posture, the initiateInstall
-  // precedent).
+  // FAILED_PRECONDITION (the initiateInstall precedent).
   rpc sendMessage(SendChannelMessageInput) returns (SendChannelMessageOutput) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

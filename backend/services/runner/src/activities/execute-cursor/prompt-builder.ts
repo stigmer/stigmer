@@ -100,8 +100,8 @@ export interface EnhancedPromptOptions {
   skills: readonly SkillMetadata[];
   /**
    * Serving proactive channels + their approved templates — rendered as
-   * the `<available_channel_templates>` section (proactive-messaging
-   * DD-003 D5) beside the synthesized send_channel_message tool.
+   * the `<available_channel_templates>` section beside the synthesized
+   * send_channel_message tool.
    */
   channelMessaging?: readonly ChannelMessagingInfo[];
   subAgents: SubAgent[];
@@ -109,7 +109,7 @@ export interface EnhancedPromptOptions {
   workspaceFileRefs: string[];
   /** This turn's resolved input files, as the runtime's attachment phase returns them. */
   attachments: readonly ResolvedAttachment[];
-  /** Inline/degraded image facts for the input-files section (T04 vision). */
+  /** Inline/degraded image facts for the input-files section. */
   vision?: VisionPromptInfo;
   /**
    * What kind of URL the turn's storage backend mints — keys the input-files
@@ -126,7 +126,7 @@ export interface EnhancedPromptOptions {
    */
   buildFromPlan?: boolean;
   /**
-   * Rollover context bridge (cloud DD-013): a digest of the previous
+   * Rollover context bridge: a digest of the previous
    * session's conversation, read from `SessionSpec.metadata`. Lands in the
    * first message, so it persists in the cursor agent's own conversation
    * store for the session's lifetime — buildEnhancedPrompt firing only on
@@ -154,22 +154,22 @@ export interface EnhancedPromptOptions {
    * and user's standing context, server-snapshotted onto the execution
    * spec's `declared_preferences` at create. Like the bridge, it lands in
    * the first message and persists in the cursor agent's own conversation
-   * store — deliberately frozen per Cursor session (DD-002 D3): repeating
+   * store — deliberately frozen per Cursor session: repeating
    * it every resumed turn would bloat the store with identical content.
    */
   declaredPreferences?: DeclaredPreferencesContent;
   /**
-   * The subject's confirmed memories (stigmer/stigmer#293 Phase 2, DD-006):
+   * The subject's confirmed memories (stigmer/stigmer#293):
    * consent-gated facts server-snapshotted onto the execution spec's
    * `recalled_memories` at create. Like the preferences, it lands in the
    * first message and persists in the cursor agent's own conversation
-   * store — deliberately frozen per Cursor session (DD-002 D3, inherited
-   * by DD-006 D4): repeating it every resumed turn would bloat the store
+   * store — deliberately frozen per Cursor session: repeating it every
+   * resumed turn would bloat the store
    * with identical content.
    */
   recalledMemories?: RecalledMemoriesContent;
   /**
-   * Conversation catchup (cloud DD-006): what happened on the channel
+   * Conversation catchup: what happened on the channel
    * conversation that the agent has not seen, read from the execution
    * spec's `conversation_catchup`. PER-TURN, unlike the standing siblings
    * above: it rides BOTH prompt paths — this enhanced prompt and
@@ -213,7 +213,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
 
   if (options.channelMessaging !== undefined && options.channelMessaging.length > 0) {
     // "" when nothing is sendable — the tool alone still serves text
-    // sends inside a 24-hour window (DD-006 D6).
+    // sends inside a 24-hour window.
     const channelSection = formatChannelTemplatesSection(options.channelMessaging);
     if (channelSection !== "") {
       sections.push(channelSection);
@@ -262,7 +262,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
     sections.push(`<${tag}>\n${section.body}\n</${tag}>`);
   }
 
-  // Catchup after the bridge (DD-007 D-d: bridge first, catchup second) —
+  // Catchup after the bridge (bridge first, catchup second) —
   // the bridge carries the pre-takeover conversation, the catchup the human
   // episode, strictly newer by construction; recency puts it closer to the
   // task.
@@ -692,7 +692,7 @@ const TOOL_APPROVAL_PROTOCOL_INTRO =
  *
  * The fourth rule is the load-bearing fix for the Cursor harness: because the
  * deny-based gate surfaces an approval pause to the model as a tool *failure*
- * (often Cursor's own generic "blocked by a hook" text — confirmed in Phase 0,
+ * (often Cursor's own generic "blocked by a hook" text — confirmed by observation,
  * and unavoidable since the SDK exposes no non-leaky approval primitive), a
  * well-behaved model otherwise concludes the environment is broken and tells the
  * user to "enable hooks in your Cursor settings", contradicting the approval
@@ -772,8 +772,8 @@ export interface BuildPromptInput {
   userMessage: string;
   skills: readonly SkillMetadata[];
   /**
-   * Serving proactive channels + their templates (the DD-006 D2
-   * discovery read) — the `<available_channel_templates>` section.
+   * Serving proactive channels + their templates (the discovery
+   * read) — the `<available_channel_templates>` section.
    */
   channelMessaging?: readonly ChannelMessagingInfo[];
   subAgents: SubAgent[];
@@ -782,7 +782,7 @@ export interface BuildPromptInput {
   /** This turn's resolved input files for the `<input_files>` section, as the runtime's attachment phase returns them. */
   attachments: readonly ResolvedAttachment[];
   /**
-   * Vision facts for the input-files section (T04): which attachments the
+   * Vision facts for the input-files section: which attachments the
    * model sees inline and which degraded to path-only. PER-TURN like the
    * catchup — it rides both the enhanced prompt and a resumed turn's prefix.
    */
@@ -807,7 +807,7 @@ export interface BuildPromptInput {
    */
   buildFromPlan?: boolean;
   /**
-   * Rollover context bridge from `SessionSpec.metadata` (cloud DD-013).
+   * Rollover context bridge from `SessionSpec.metadata`.
    * Only the enhanced-prompt path consumes it — a resumed agent's native
    * context IS the previous conversation, so it needs no bridge.
    */
@@ -829,24 +829,24 @@ export interface BuildPromptInput {
    * Platform-declared standing preferences from the execution spec's
    * `declared_preferences` (stigmer/stigmer#293). Like the bridge, only
    * the enhanced-prompt path consumes it — deliberately frozen per Cursor
-   * session (DD-002 D3): the first turn delivers it into the agent's own
+   * session: the first turn delivers it into the agent's own
    * conversation store, and repeating it on resumed turns would bloat the
    * store with identical content.
    */
   declaredPreferences?: DeclaredPreferencesContent;
   /**
    * The subject's confirmed memories from the execution spec's
-   * `recalled_memories` (stigmer/stigmer#293 Phase 2, DD-006). Like the
+   * `recalled_memories` (stigmer/stigmer#293). Like the
    * preferences, only the enhanced-prompt path consumes it — deliberately
-   * frozen per Cursor session (DD-002 D3, inherited by DD-006 D4): the
+   * frozen per Cursor session: the
    * first turn delivers it into the agent's own conversation store, and
    * repeating it on resumed turns would bloat the store with identical
    * content.
    */
   recalledMemories?: RecalledMemoriesContent;
   /**
-   * Conversation catchup from the execution spec's `conversation_catchup`
-   * (cloud DD-006): what happened on the channel conversation that the
+   * Conversation catchup from the execution spec's `conversation_catchup`:
+   * what happened on the channel conversation that the
    * agent has not seen. PER-TURN, so unlike the standing values
    * above it rides BOTH prompt paths — the enhanced prompt and a resumed
    * turn's prefix (the `interaction_mode` shape). Handback lands
@@ -1028,8 +1028,8 @@ export function buildPrompt(input: BuildPromptInput): string {
   // is per-execution — a file sent on a follow-up turn materializes for this
   // turn and would otherwise never be announced at all), and the conversation
   // catchup (handback ALWAYS lands mid-session on a resumed agent — this
-  // prefix is the property the metadata lane structurally cannot deliver,
-  // cloud DD-006). Catchup last: it is context, and context sits closest to
+  // prefix is the property the metadata lane structurally cannot deliver).
+  // Catchup last: it is context, and context sits closest to
   // the task (the enhanced prompt's own ordering doctrine); the input files
   // precede it because they are this turn's payload, not background.
   if (!promptCarriesStandingContext(resolution.reason)) {

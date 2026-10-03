@@ -7,10 +7,10 @@
  * vocabulary. There is deliberately NO interval-floor knob: the floor is a
  * platform guardrail for a shared metered system, enforced by cloud's
  * pre-persist probe; OSS is one user on their own machine and has no probe
- * (DD-015 D-A) — a present-but-ignored knob would be a lie.
+ * — a present-but-ignored knob would be a lie.
  *
- * Config lives with the clock, not the domain (sub-project decision 1,
- * owner-ratified): every reader is clock-side — the agentexecution
+ * Config lives with the clock, not the domain: every reader is clock-side
+ * — the agentexecution
  * precedent of a domain-local config was driven by a domain-step consumer
  * (oss#397) that schedule does not have.
  */
@@ -34,7 +34,7 @@ export class ScheduleTemporalConfig {
      * (the tracking budget is the policy). Default: 24.
      */
     readonly tickRunTimeoutHours: number,
-    /** The auto-pause threshold (DD-008 D7). Default: 5. */
+    /** The auto-pause threshold. Default: 5. */
     readonly maxConsecutiveFailures: number,
     /**
      * One fire's tracking budget — under overlap SKIP, literally the
@@ -63,7 +63,7 @@ export class ScheduleTemporalConfig {
      */
     readonly executionProfileMaxCostUsd: number,
     /**
-     * Bounds the fire ledger (DD-017 D-7): rows recorded earlier than this
+     * Bounds the fire ledger: rows recorded earlier than this
      * are pruned by the reconciliation pass. Default: 90 (a quarter of
      * monthly reminder cycles — run history is a product surface, not
      * delivery plumbing).

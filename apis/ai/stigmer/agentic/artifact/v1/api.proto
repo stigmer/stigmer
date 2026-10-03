@@ -19,8 +19,6 @@ syntax = "proto3";
 // - Lifecycle-independent: artifact retention is separate from execution retention
 // - Auto-promoted: the runtime transparently externalizes outputs exceeding
 //   the size threshold (default: 256KB), replacing inline data with artifact refs
-//
-// @since T07 (Artifact Store)
 package ai.stigmer.agentic.artifact.v1;
 
 import "ai/stigmer/agentic/artifact/v1/enum.proto";
@@ -37,7 +35,7 @@ import "buf/validate/validate.proto";
 //
 // Artifacts are created by the runner when task
 // outputs exceed the auto-promotion threshold or when the workflow author
-// explicitly declares an artifact (Phase 1).
+// explicitly declares an artifact.
 //
 // The content blob is stored externally (local filesystem in OSS, S3 in Cloud).
 // The Artifact resource holds metadata and a content hash that references
@@ -49,8 +47,6 @@ import "buf/validate/validate.proto";
 // 3. Runner replaces inline task output with artifact reference
 // 4. Clients retrieve artifact via get() or download via getDownloadUrl()
 // 5. Background GC deletes expired artifacts based on retention policy
-//
-// @since T07 (Artifact Store)
 message Artifact {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
@@ -84,8 +80,6 @@ message Artifact {
 // @internal
 // Populated by the backend at creation time and updated by the GC job.
 // Users cannot modify status fields directly.
-//
-// @since T07 (Artifact Store)
 message ArtifactStatus {
   // Standard audit information.
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;

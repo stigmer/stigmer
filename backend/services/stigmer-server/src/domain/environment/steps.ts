@@ -485,8 +485,8 @@ export function newMergeVariablesAndPersistStep(
  * re-index, as in Go.
  *
  * The removed keys' sealed values have their external backing state
- * destroyed AFTER the persist (the Java RemoveAndPersist site, wired by
- * convergence 20260830.04 Stage 3): the old values must be captured
+ * destroyed AFTER the persist (the Java RemoveAndPersist site): the old
+ * values must be captured
  * BEFORE the deletion mutates the loaded resource, and destruction is
  * best-effort — a failure never fails the remove (secret-cleanup.ts
  * carries the full contract). A no-op under the OSS v1-only codec set.
@@ -564,8 +564,8 @@ export function newRemoveVariableKeysAndPersistStep(
 
 /**
  * DestroyDroppedEnvironmentSecrets — the Java
- * DestroyDroppedEnvironmentSecrets step (wired by convergence
- * 20260830.04 Stage 3): post-persist in the full-resource update chain,
+ * DestroyDroppedEnvironmentSecrets step: post-persist in the
+ * full-resource update chain,
  * destroys the external backing state of secret keys the update DROPPED.
  * Strictly dropped keys only — a key that survives with a rotated value
  * keeps its KV path (superseded versions age out via the store's

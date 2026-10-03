@@ -1,5 +1,5 @@
 /**
- * Identity-account domain steps (20260911.11; T01_1_review.md A1, A9).
+ * Identity-account domain steps.
  *
  * This is the first OSS domain whose persistence is a PORT
  * (IdentityAccountStore) rather than the generic Store, so the cloud can
@@ -17,7 +17,7 @@
  *     the subject. ResolveSlug refuses an empty name and the field is not
  *     proto-required, and a machine subject whose IdP releases no email
  *     must still provision.
- *   - DeriveAccountId (A1): `metadata.id = accountIdFor(spec.idp_id)`,
+ *   - DeriveAccountId: `metadata.id = accountIdFor(spec.idp_id)`,
  *     replacing whatever the caller sent (the organization's CopySlugToId
  *     precedent, `metadata.proto`'s documented exception). Runs BEFORE
  *     BuildNewState and claims the id through `assignServerId`, the one
@@ -30,10 +30,10 @@
  *     suffix and the provisioning mode the path was given (`direct`, or
  *     `platform_client` for the mint's end users) on create (the spec's
  *     "assigned by backend" fields); on update, every backend-assigned
- *     field and the email are preserved from the existing row (A9: the
+ *     field and the email are preserved from the existing row (the
  *     cloud's writable surface — first/last name, picture, preferences —
  *     and nothing else; the `preserveImmutableFields` shape).
- *   - GuardImmutableSubject (A1): a changed `spec.idp_id` is refused
+ *   - GuardImmutableSubject: a changed `spec.idp_id` is refused
  *     FAILED_PRECONDITION (the schedule domain's shape), never silently
  *     preserved — the subject IS the identity, and a client that sends a
  *     different one has a bug it should hear about.
@@ -282,7 +282,7 @@ export function newGuardImmutableSubjectStep(): AccountStep {
   };
 }
 
-/** Preserves the backend-assigned fields and the email from the existing row (A9). */
+/** Preserves the backend-assigned fields and the email from the existing row. */
 export function newPreserveBackendFieldsStep(): AccountStep {
   return {
     name: "AssignBackendFields",

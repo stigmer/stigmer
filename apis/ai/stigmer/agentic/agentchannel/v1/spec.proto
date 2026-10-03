@@ -16,20 +16,21 @@ import "buf/validate/validate.proto";
 // status — a declarative apply can never clobber them.
 //
 // @internal
-// P1: the provider arms carry only genuinely user-declarable fields. For
+// Honest modeling: the provider arms carry only genuinely user-declarable
+// fields. For
 // the multi-tenant Slack app everything concrete (team_id, bot_user_id,
 // scopes, credentials env) is OAuth-observed → status. Owner-customizable
 // refusal copy (the AgentShareMessages analog) is deliberately deferred:
-// platform-default copy lives in the deliverer (decision 006); adding a
+// platform-default copy lives in the deliverer; adding a
 // messages block later is a non-breaking change.
 message AgentChannelSpec {
   // Reference to the agent this channel serves.
   //
   // @internal
   // Invariant (enforced in create/update/apply handlers of both editions,
-  // mirroring AgentShare's Phase A rule): agent_ref.org must equal
+  // mirroring AgentShare's same-org rule): agent_ref.org must equal
   // metadata.org — the connection-owning org is the billing org and
-  // provider credentials resolve in that org (decision 004; T06 invariant).
+  // provider credentials resolve in that org.
   ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [
     (ai.stigmer.commons.apiresource.reference_kind) = agent,
     (buf.validate.field).required = true,
@@ -47,17 +48,17 @@ message AgentChannelSpec {
   // re-enabled. Delete the channel instead for a full teardown.
   //
   // @internal
-  // Decision 001 D-d. Pause must never drop the install: re-installing a
-  // Slack app to re-auth is painful. The per-turn gate re-reads this live
-  // (decision 003), so disabling takes effect on the next message.
+  // Pause must never drop the install: re-installing a
+  // Slack app to re-auth is painful. The per-turn gate re-reads this live,
+  // so disabling takes effect on the next message.
   bool enabled = 2;
 
   // Provider this channel connects to. Exactly one must be specified.
   //
   // @internal
-  // Decision 001: provider variance is config-shaped, not lifecycle-shaped
+  // Provider variance is config-shaped, not lifecycle-shaped
   // — one kind, a validated oneof (McpServerSpec.server_type precedent).
-  // Adding WhatsApp (T05) extends this oneof; it touches zero kinds.
+  // Adding WhatsApp extends this oneof; it touches zero kinds.
   oneof provider_config {
     option (buf.validate.oneof).required = true;
 
@@ -77,8 +78,8 @@ message AgentChannelSpec {
   // runtime. The agent and its default instance stay untouched.
   //
   // @internal
-  // The AgentShareSpec.environment_refs analog (decision 011: sharing is
-  // a channel — both connection kinds carry their own credentials).
+  // The AgentShareSpec.environment_refs analog (sharing is a channel —
+  // both connection kinds carry their own credentials).
   // Resolved in the channel's org through the org-shared environment
   // resolution seam (EnvironmentRuntimeResolutionService /
   // OrgSharedEnvironmentPolicy): each referenced environment must be
@@ -107,10 +108,10 @@ message AgentChannelSpec {
   // own provider app instead: the bot carries the app's name and icon,
   // and each app is its own bot identity, so multiple agents can serve
   // one workspace. For WhatsApp the reference is required — every
-  // WhatsApp channel installs through your own Meta app (DD-WA-2).
+  // WhatsApp channel installs through your own Meta app.
   //
   // @internal
-  // T04 item 2. Invariants (enforced in handlers of both editions):
+  // Invariants (enforced in handlers of both editions):
   // app_ref.org must equal metadata.org (secrets never cross orgs — the
   // agent_ref rule), and the ref is immutable while install_state ==
   // installed (the workspace granted THAT app; switching apps requires
@@ -132,10 +133,10 @@ message AgentChannelSpec {
   // until its owner grants this.
   //
   // @internal
-  // proactive-messaging DD-002 D5, the DD-014 two-consents operator
-  // lever, living where `enabled` lives (the surface owns the grant).
+  // The owner's consent lever, alongside the platform's own (two consents),
+  // living where `enabled` lives (the surface owns the grant).
   // Existing channels keep reply-only behavior on deploy. Tuning knobs
-  // (rate caps) stay platform config (DD-006 posture); what owners
+  // (rate caps) stay platform config; what owners
   // control is this grant. The runner attaches the send_channel_message
   // tool only when getByAgent finds an installed + enabled channel with
   // this flag set — an agent with no proactive channel never sees the
@@ -151,8 +152,7 @@ message AgentChannelSpec {
   // turn may spend, never raise it past the platform profile.
   //
   // @internal
-  // Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
-  // owner-settable run shape (stigmer/stigmer#360), embedded directly —
+  // The shared owner-settable run shape (stigmer/stigmer#360), embedded directly —
   // never a ChannelRunConfig mirror, mirroring being the drift mechanism
   // the shared message exists to end. Merged at the single broker write
   // site (ChannelSessionBroker — the promise recorded on
@@ -172,9 +172,9 @@ message AgentChannelSpec {
 // recorded in status. Future user-tunable Slack behavior lands here.
 //
 // @internal
-// P1. An empty message is set explicitly in manifests (`slack: {}`),
+// An empty message is set explicitly in manifests (`slack: {}`),
 // satisfying the required oneof. Do not add OAuth-observed facts here —
-// that is the spec-clobbering bug class decision 004 rejected.
+// that is the spec-clobbering bug class (observed facts live in status).
 message SlackChannelConfig {}
 
 // WhatsAppChannelConfig selects WhatsApp as the channel provider and names
@@ -186,11 +186,11 @@ message SlackChannelConfig {}
 // the Meta Cloud API and records the observed facts in status.
 //
 // @internal
-// DD-WA-2: unlike Slack, WhatsApp v1 is BYO-only — app_ref presence is
+// Unlike Slack, WhatsApp v1 is BYO-only — app_ref presence is
 // enforced in the create/update/apply handlers of both editions (the
 // oneof-conditional rule does not fit a field-level CEL). phone_number_id
 // lives in SPEC because it is genuinely user-declared (a WABA holds many
-// numbers; the owner picks which one this agent serves) — the P1
+// numbers; the owner picks which one this agent serves) — the
 // honest-modeling rule, not an exception to it. The install flow echoes it
 // into status.whatsapp as the routing/uniqueness fact, mirroring
 // status.slack.team_id.

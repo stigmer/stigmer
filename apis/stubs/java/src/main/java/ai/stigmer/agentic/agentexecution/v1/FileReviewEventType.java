@@ -10,8 +10,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * FileReviewEventType is the kind of event in the append-only file-review
  * stream (see FileReviewEvent in filereview.proto). It is the coarse lifecycle
  * bucket; failure fidelity lives on FileReviewFailure.kind.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.FileReviewEventType}

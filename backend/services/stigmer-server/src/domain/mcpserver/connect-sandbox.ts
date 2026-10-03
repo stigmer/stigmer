@@ -30,7 +30,7 @@
  *
  * Failure posture: provisioning is CRITICAL here. A connect whose sandbox
  * cannot be created fails at once with an honest Unavailable instead of
- * starving to its run timeout (the ask of the closed stigmer-cloud#302),
+ * starving to its run timeout,
  * the workflow sandbox's posture and copy shape (sandbox/steps.ts).
  * Release is best-effort and never throws: a settle must never fail on
  * teardown, and a sandbox a release could not delete is what the edition's

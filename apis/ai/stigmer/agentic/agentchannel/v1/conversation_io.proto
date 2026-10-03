@@ -14,16 +14,16 @@ import "google/protobuf/timestamp.proto";
 // spanning sessions.
 //
 // @internal
-// channel-conversations DD-001/DD-003: the Conversation aggregate.
-// Infrastructure aggregate — no kind, no apiVersion (the ChannelDelivery
+// The Conversation aggregate. Infrastructure aggregate — no kind, no
+// apiVersion (the ChannelDelivery
 // posture) — but WITH a public query/command surface, because the console
 // reads conversations and operates the control token (the
 // ChannelMessageQueryController precedent for channel-scoped public RPCs
 // without a kind). Identity is (agent_channel_id, conversation_key), the
-// same key channel_conversation_binding anchors (DD-013 of
-// agent-channel-integrations); the binding stays a separate aggregate (the
+// same key channel_conversation_binding anchors; the binding stays a
+// separate aggregate (the
 // session pointer) and never carries participation state. Field ownership
-// is single-writer per DD-003 D-c; last_activity_at is the documented
+// is single-writer (the participation writer); last_activity_at is the documented
 // commutative-max exception.
 message ChannelConversation {
   // AgentChannel connection this conversation belongs to.
@@ -51,9 +51,9 @@ message ChannelConversation {
   // True when the conversation is flagged for human attention.
   //
   // @internal
-  // DD-008 D-e: a projection of the latest escalation event, updated by
+  // A projection of the latest escalation event, updated by
   // the participation writer in the same motion that appends the event.
-  // Orthogonal to control (DD-002 D-a #4): takeover clears it, handback
+  // Orthogonal to control: takeover clears it, handback
   // never touches it.
   bool needs_attention = 7;
 
@@ -77,7 +77,7 @@ message ChannelConversation {
   // answer — from the agent or from a teammate.
   //
   // @internal
-  // channel-conversations DD-011 D-b/D-c: derived on read from
+  // Derived on read from
   // last_customer_message_at vs the server-side last_answered_at fact
   // column — never stored, so no boolean exists to drift. Only real
   // answers stamp the fact (an agent turn delivered with Outcome.OK; a
@@ -87,8 +87,8 @@ message ChannelConversation {
   // instant stays server-side deliberately: carrying the derived boolean
   // keeps the NULL-and-compare rule in one place instead of re-implemented
   // per client, and "waiting since" already rides field 11. proto3
-  // default (false) degrades to the pre-T05 surface in both skew
-  // directions.
+  // default (false) degrades to the surface without this field in both
+  // skew directions.
   bool awaiting_reply = 13;
 }
 
@@ -96,9 +96,8 @@ message ChannelConversation {
 // conversation's public lane.
 //
 // @internal
-// channel-conversations DD-002 (lane x control): exactly one holder at a
-// time; transitions are CAS-guarded through the participation writer
-// (DD-007 D-f). Values carry the control_ prefix — proto3 enum values are
+// Exactly one holder at a time; transitions are CAS-guarded through the
+// participation writer. Values carry the control_ prefix — proto3 enum values are
 // package-scoped and bare names invite collisions (the receipt_ precedent).
 enum ConversationControl {
   // Default value when no control state is set.
@@ -114,9 +113,9 @@ enum ConversationControl {
 // ConversationLane distinguishes customer-visible items from internal ones.
 //
 // @internal
-// channel-conversations DD-002: every timeline item has a lane. lane_internal
-// carries the internal event store's items — escalations and attention clears
-// since T03 Sitting 4, notes when their writer lands (the v1-stretch decision).
+// Every timeline item has a lane. lane_internal carries the internal event
+// store's items: escalations and attention clears today, and notes when their
+// writer lands.
 enum ConversationLane {
   // Default value when no lane is set.
   conversation_lane_unspecified = 0;
@@ -146,8 +145,8 @@ enum ConversationItemAuthor {
   // acknowledgment), neither the agent's words nor a teammate's.
   //
   // @internal
-  // channel-conversations DD-005 D-d: acknowledgment rows carry the
-  // platform outbound origin (lands in T03); rendering them as the agent
+  // Acknowledgment rows carry the platform outbound origin; rendering
+  // them as the agent
   // would be a lie. The value exists from day one so the item vocabulary
   // never needs a patch when the first platform row appears.
   author_platform = 4;
@@ -156,11 +155,11 @@ enum ConversationItemAuthor {
 // ConversationTimelineItem is one entry in a conversation's timeline.
 //
 // @internal
-// channel-conversations DD-004: computed on read by stitching four
+// Computed on read by stitching four
 // stores — inbound webhook events, reply deliveries (rendered from the
 // same extraction the delivery posted, never from execution transcripts),
-// the outbound ledger, and the internal-lane event store (joined at T03
-// Sitting 4). item_id is source-prefixed ("wa:", "dl:", "ob:", "ev:"),
+// the outbound ledger, and the internal-lane event store. item_id is
+// source-prefixed ("wa:", "dl:", "ob:", "ev:"),
 // which makes cross-store collisions structurally impossible and gives
 // cursors a total order without a synthetic sequence.
 message ConversationTimelineItem {
@@ -185,12 +184,11 @@ message ConversationTimelineItem {
   // "image", "audio", "document", ...). Empty on outbound items in v1.
   //
   // @internal
-  // channel-conversations DD-004 amendment (T02 planning): non-text
-  // inbound is ignored by the reply pipeline today
+  // Non-text inbound is ignored by the reply pipeline today
   // (WhatsAppInboundEventProcessor marks "non_text:<type>"), but the
   // customer still sent it — a handoff timeline that hides it fails the
-  // product. Verbatim pass-through, never re-encoded (the DD-004 S-6
-  // posture); the UI renders known kinds as placeholders. Media content
+  // product. Verbatim pass-through, never re-encoded; the UI renders
+  // known kinds as placeholders. Media content
   // retrieval is a named non-goal of this slice.
   string provider_message_type = 6;
 
@@ -213,7 +211,7 @@ message ConversationTimelineItem {
   // details when present). Empty otherwise.
   //
   // @internal
-  // channel-conversations DD-014 D-c: a pure relay of
+  // A pure relay of
   // ChannelOutboundMessage.receipt_detail (field 17), inheriting its
   // discipline verbatim — provider-owned vocabulary, relayed, never
   // pattern-matched; receipt_error_code is the structured twin a
@@ -227,7 +225,7 @@ message ConversationTimelineItem {
   // required"). Zero otherwise.
   //
   // @internal
-  // The relay of the row's field 18 (DD-014 D-c), shipped WITH
+  // The relay of the row's field 18, shipped WITH
   // receipt_detail and never after it: a client handed prose first will
   // pattern-match the prose, which is the coupling this pair prevents.
   int32 receipt_error_code = 12;
@@ -239,7 +237,7 @@ message ConversationTimelineItem {
   // keep the bare provider_message_type placeholder.
   //
   // @internal
-  // whatsapp-media DD-001 D4: descriptive facts only — the storage key
+  // Descriptive facts only — the storage key
   // deliberately never rides the wire. Clients fetch bytes through
   // getMediaDownloadUrl addressed by (channel, conversation, item_id),
   // and the server resolves the key from its own row, so the read path
@@ -254,7 +252,7 @@ message ConversationTimelineItem {
   // diagnostics deliberately stay off the thread.
   //
   // @internal
-  // cloud#262 (channel-conversations F-25). The attempt-axis sibling of
+  // The attempt-axis sibling of
   // receipt_detail (field 11) with one deliberate doctrine difference:
   // receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
   // field carries PLATFORM-authored thread-safe copy — the guarantee is
@@ -283,7 +281,7 @@ message ConversationTimelineItem {
 // size) and decide whether to fetch the bytes.
 //
 // @internal
-// whatsapp-media DD-001 D4. Deliberately NOT the agentexecution
+// Deliberately NOT the agentexecution
 // Attachment shape: that message carries transport facts (storage_key,
 // mount_path) for the sandbox, while this one is a display reference —
 // sharing a message would couple the console's read surface to the
@@ -323,11 +321,11 @@ message ListChannelConversationsInput {
 // conversation list can be narrowed to.
 //
 // @internal
-// channel-conversations DD-011 D-f/D-g: filter_wants_human expresses
+// filter_wants_human expresses
 // EXACTLY the nav badge's union, and the badge count is the filtered
 // list's total_count — one predicate in one handler, so the count and the
-// list it opens can never disagree. Server-side deliberately (T04 D1's
-// standing objection): a client-side tab over one fetched page would
+// list it opens can never disagree. Server-side deliberately: a
+// client-side tab over one fetched page would
 // silently lie across pages. Values carry the filter_ prefix — proto3
 // enum values are package-scoped (the control_ precedent).
 enum ChannelConversationListFilter {
@@ -390,7 +388,7 @@ message GetConversationTimelineInput {
 // newest first.
 //
 // @internal
-// Cursor pagination, not PageInfo, deliberately (DD-004 D-b): the
+// Cursor pagination, not PageInfo, deliberately: the
 // timeline is stitched across three stores at read time, so an offset is
 // neither cheap nor stable while new items land; the cursor encodes
 // (instant, item_id). No total_count for the same reason — a
@@ -455,12 +453,12 @@ message ConversationControlInput {
 // Input for replying to a conversation as the business.
 //
 // @internal
-// channel-conversations DD-009 D-a: conversation-scoped by design — the
+// Conversation-scoped by design — the
 // operator addresses a conversation they are looking at, never types a
 // recipient, and the handler derives the recipient from the conversation
 // key. This seam (not the cold-send lane) is where staff-reply semantics
-// live: implicit takeover orders the control flip before-or-with the send
-// (T03), and staff replies are exempt from the proactive caps (DD-009 D-c).
+// live: implicit takeover orders the control flip before-or-with the send,
+// and staff replies are exempt from the proactive caps.
 message ReplyToConversationInput {
   // AgentChannel the conversation belongs to.
   string agent_channel_id = 1 [

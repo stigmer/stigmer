@@ -3,7 +3,7 @@
  * "these are THE things every `HarnessAdapter` must do," runnable against any
  * {@link HarnessContractSubject}.
  *
- * Two halves exist in the program's design; this file is the ADAPTER-SIDE
+ * The contract has two halves; this file is the ADAPTER-SIDE
  * half: what an adapter owes the runtime through `runTurn`, `boot`,
  * `shutdown` and `releaseSession`. The runtime-side half (the throw-vs-return
  * table end to end, the whole-activity heartbeat, the single persist

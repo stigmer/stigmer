@@ -1,4 +1,4 @@
-# Stigmer self-host compose stack (Phase-2 P5; design record: DD-013/DD-014).
+# Stigmer self-host compose stack.
 #
 #   cp .env.example .env   # fill in the three required values (see the file)
 #   docker compose up -d
@@ -118,7 +118,7 @@ services:
       - "7235:7235"
     environment:
       GRPC_PORT: "7234"
-      # Non-empty DATABASE_URL selects the Postgres driver (DD-010); the
+      # Non-empty DATABASE_URL selects the Postgres driver; the
       # image's sqlite path is the single-container `docker run` tier.
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?missing — copy .env.example to .env and fill it in}@postgres:5432/stigmer
       TEMPORAL_HOST_PORT: temporal:7233
@@ -133,7 +133,7 @@ services:
       # proxy, STIGMER_PUBLIC_URL in .env is the address clients reach the
       # API on (the chart's server.publicUrl).
       SKILL_TRANSFER_BASE_URL: "${STIGMER_PUBLIC_URL:-http://localhost:7234}"
-      # Explicit keys, loud fail (DD-013): the server would otherwise
+      # Explicit keys, loud fail: the server would otherwise
       # auto-generate keys into the volume, making the backup/rotation
       # story invisible exactly where self-hosters need it explicit.
       STIGMER_ENCRYPTION_KEY: ${STIGMER_ENCRYPTION_KEY:?missing — copy .env.example to .env and fill it in}

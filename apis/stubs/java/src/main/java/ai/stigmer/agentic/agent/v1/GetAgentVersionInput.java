@@ -8,8 +8,6 @@ package ai.stigmer.agentic.agent.v1;
 /**
  * <pre>
  * GetAgentVersionInput requests a specific historical version.
- *
- * &#64;since Agent Versioning (future)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.GetAgentVersionInput}
@@ -303,8 +301,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GetAgentVersionInput requests a specific historical version.
-   *
-   * &#64;since Agent Versioning (future)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.GetAgentVersionInput}

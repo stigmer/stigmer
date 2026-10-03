@@ -169,13 +169,13 @@ function deps(
     broker,
     engineState: () => engineStub?.state ?? ENGINE_DISCONNECTED,
     executionContextBuilder: builderDeps(),
-    // The OSS default sandbox posture (§6d, O6): lane disabled — the
+    // The OSS default sandbox posture: lane disabled — the
     // recover ensure short-circuits and the terminal observer no-ops.
     sandboxLane: { enabled: false },
     temporalConfig: newWorkflowExecutionConfigFromEnv(),
     sandboxTerminalObserver: () => {},
     // Empty slots — the OSS shape; the recover chain's
-    // sandbox-acquisition:gate splice contributes nothing here (C4).
+    // sandbox-acquisition:gate splice contributes nothing here.
     gateSteps: new Map(),
   };
 }
@@ -836,8 +836,7 @@ describe("recover engineless posture (fresh-start message)", () => {
   it("start-fresh's creator-specific copy is distinct", async () => {
     // Reach StartFreshWorkflow with a connected-then-broken engine is not
     // possible through one provider — instead pin the constant here so a
-    // rename breaks loudly (the Class B suite asserts the wire arm once
-    // #21 wires a real engine).
+    // rename breaks loudly (the Class B suite asserts the wire arm).
     expect(TEMPORAL_UNAVAILABLE_CREATOR_MESSAGE).toBe(
       "Temporal is not available (workflow creator not set)",
     );

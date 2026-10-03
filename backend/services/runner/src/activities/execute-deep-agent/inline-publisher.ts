@@ -110,8 +110,8 @@ export class InlinePublisher {
     try {
       const sandboxPath = normalizePath(path);
 
-      // Never publish a secret-like file to durable artifact storage (design
-      // doc 12, D4). This is the third secret-withholding choke point beside the
+      // Never publish a secret-like file to durable artifact storage. This
+      // is the third secret-withholding choke point beside the
       // CAS capture gate and the transcript args scrub: under the global bypass
       // (spec.auto_approve_all) a secret write is not blocked up front, so it
       // would otherwise be uploaded here (keyed by basename) and registered as an

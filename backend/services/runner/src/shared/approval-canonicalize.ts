@@ -1,6 +1,6 @@
 // Deterministic canonicalization of a tool action into a byte-stable form.
 // Domain: HITL approval. This is the cross-language contract the approval
-// fingerprint (Phase 2) will hash; Phase 1 *defines and computes* it without
+// fingerprint hashes (approval-fingerprint.ts); this module computes it without
 // hashing, so Go/Java/TS can be pinned to byte-identical output via the shared
 // vector corpus (apis/testdata/hitl/canonicalization/).
 //
@@ -152,8 +152,8 @@ function redactSecrets(
 function redactValue(v: unknown): string {
   // Redact-but-stable: a SHA-256 digest keeps the canonical form stable across
   // runs without ever placing the secret in cleartext. This is NOT the approval
-  // fingerprint — that is an HMAC keyed on a Stigmer secret, introduced in
-  // Phase 2. This digest is unkeyed redaction only.
+  // fingerprint — that is an HMAC keyed on a Stigmer secret
+  // (approval-fingerprint.ts). This digest is unkeyed redaction only.
   const material = typeof v === "string" ? v : canonicalJson(v);
   return "sha256:" + createHash("sha256").update(material, "utf8").digest("hex");
 }

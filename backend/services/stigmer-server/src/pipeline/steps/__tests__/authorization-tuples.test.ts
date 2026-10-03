@@ -1,6 +1,6 @@
 /**
- * Pins the edition-neutral half of the C2 tuple-lifecycle seam
- * (20260827.10, ruling Q2): the visibility shape policy and its set-diff
+ * Pins the edition-neutral half of the tuple-lifecycle seam: the visibility
+ * shape policy and its set-diff
  * (re-pinning the Java VisibilityTupleReconcilerTest transition matrix),
  * the run-audience policy of a workflow instance's execution visibility,
  * and the config-driven creation-event resolution

@@ -13,8 +13,8 @@
  * - Optional `while` condition checked per iteration (after variable binding)
  * - Result is an ordered array of per-iteration outputs
  *
- * T17 parallelism (max_parallelism, batch_size, on_error) is deferred
- * to a future phase — sequential execution only.
+ * Parallelism (max_parallelism, batch_size, on_error) is not implemented
+ * here — sequential execution only.
  */
 
 import type {

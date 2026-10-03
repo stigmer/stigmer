@@ -1,7 +1,7 @@
 /**
  * StreamBroker — ports controller/stream_broker.go: the in-memory
- * broadcast fabric for real-time workflow-execution updates (ADR 011's
- * "Stream Broker" responsibility; the OSS stand-in for cloud's Redis
+ * broadcast fabric for real-time workflow-execution updates (the stream
+ * broker responsibility; the OSS stand-in for cloud's Redis
  * streams).
  *
  * Go's shape is a map of executionID → buffered channels (capacity 100)
@@ -15,13 +15,12 @@
  * replaces the channel buffer.
  *
  * Deliberately a domain-local twin of agentexecution/stream-broker.ts
- * rather than a shared generic (sub-project DD-002): Go duplicates the
- * broker per execution domain, and #18 is concurrently building on the
- * agentexecution instance. The `StreamBroker<T>` consolidation is a
- * recorded post-#18/#21 cleanup candidate.
+ * rather than a shared generic: Go duplicates the broker per execution
+ * domain. Consolidating into a shared `StreamBroker<T>` is a possible
+ * cleanup.
  *
- * ONE instance serves both routers (serving + in-process): #21's Temporal
- * activities will update status through the in-process client, and those
+ * ONE instance serves both routers (serving + in-process): the Temporal
+ * activities update status through the in-process client, and those
  * broadcasts must reach externally-connected subscribers — the same
  * reason Go exposes GetStreamBroker. The composition root owns the
  * instance.

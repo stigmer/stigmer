@@ -482,11 +482,12 @@ async function main(): Promise<void> {
   //
   // Setting it to proxyEndpoint makes connect-node send the BiDi stream to
   // the proxy, where path routing (Caddy/Istio) dispatches /agent.v1* to the
-  // Netty BiDi proxy on port 8082.
+  // proxy's BiDi lane on port 8082.
   //
   // Side-effect: REST calls (#2, #3) also target proxyEndpoint via fetch.
   // The fetch interceptor detects these (proxy-endpoint host, non-Connect path)
-  // and rewrites them to /v1/proxy/cursor/{upstream_host}{path} for Tomcat.
+  // and rewrites them to /v1/proxy/cursor/{upstream_host}{path} for the
+  // proxy's REST lane.
   //
   // CURSOR_API_BASE_URL is also set for completeness — older SDK versions
   // may read it for token exchange instead of CURSOR_BACKEND_URL.

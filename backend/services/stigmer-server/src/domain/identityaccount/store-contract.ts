@@ -1,6 +1,6 @@
 /**
- * The IdentityAccountStore PORT-CONTRACT KIT (20260911.11, T01_1_review.md
- * A11 and A12): every behavior an implementation of store.ts must satisfy
+ * The IdentityAccountStore PORT-CONTRACT KIT: every behavior an implementation of
+ * store.ts must satisfy
  * identically, as cases a driver's test iterates. Open source runs them
  * over its own adapter (resource-store.ts) on sqlite and Postgres in
  * __tests__/resource-store.postgres.test.ts; a composition runs the SAME cases over
@@ -9,8 +9,8 @@
  * statement proven per driver, never restated per repository.
  *
  * Shape. The kit is a list of declarations over the port-contract runner
- * (store/port-contract.ts, lifted from this file in 20260913.01 slice 2
- * when the IamPolicy kit became the second): the runner owns the fresh
+ * (store/port-contract.ts, lifted from this file when the IamPolicy kit
+ * became the second): the runner owns the fresh
  * fixture per case, the cleanup, the rule that a failing assertion wins
  * over a failing cleanup, and the reason the kit returns cases instead of
  * calling vitest's `describe`. `disconnect` is the one escape hatch: the

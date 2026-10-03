@@ -19,11 +19,11 @@ import "buf/validate/validate.proto";
 // disabling pauses serving while preserving the install.
 //
 // @internal
-// Sibling of AgentShare (decision 001): one kind per target, provider
-// variance in spec.provider_config. metadata.org is the billing org
-// (decision 001 D-b). N channels per agent; the defaults resolver does
+// Sibling of AgentShare: one kind per target, provider
+// variance in spec.provider_config. metadata.org is the billing org.
+// N channels per agent; the defaults resolver does
 // NOT default the slug to the agent slug (org+slug is unique and channels
-// are N-per-agent — P7), standard derive-from-name applies. The overview.md
+// are N-per-agent), standard derive-from-name applies. The overview.md
 // file provides the SDK-facing description and example YAML.
 message AgentChannel {
   // API version for this resource type.

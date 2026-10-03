@@ -2,13 +2,12 @@
  * Registry-lane tests, mirroring the CW-10 conformance suite's assertions
  * (test/conformance/src/suites/registry-proxy.conformance.test.ts — the
  * self-declared gate for these lanes) against the FULLY composed server,
- * demux and lane router included. When #4 lands the `local` target, the
- * real suite runs these same assertions over the wire; until then this
- * file keeps the contract enforced in this package's own gate.
+ * demux and lane router included, so the contract is enforced in this
+ * package's own gate as well as by the conformance suite over the wire.
  *
  * The byte-pin of the bundled data files against Go's embeds lives with
  * the data now — src/domain/workflow/registry/__tests__/bundled.test.ts
- * (the registry moved home to the domain, workflow-family DD-A).
+ * (the registry moved home to the domain).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -37,7 +36,7 @@ beforeAll(async () => {
   // Every filesystem-touching stage is pinned into a throwaway dir: this
   // test previously composed against the DEFAULT paths, which meant
   // opening the developer's real ~/.stigmer/stigmer.db — and with the
-  // skill domain's boot-time staging wipe (#8) it would now also clear
+  // skill domain's boot-time staging wipe it would now also clear
   // ~/.stigmer/storage/skills/staging. Tests never touch the home dir.
   testDir = mkdtempSync(path.join(tmpdir(), "registry-lanes-test-"));
   const config = loadConfig({

@@ -13,8 +13,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * never an enforcement input and never folded into file_digest/aggregate_digest.
  * Binary changes are conveyed by FileContent.is_binary, not here, so there is no
  * BINARY value (it would duplicate a signal the wire already carries).
- *
- * &#64;since File-Change HITL Redesign (Phase 4)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason}
@@ -33,7 +31,7 @@ public enum FileReviewBlockReason
   FILE_REVIEW_BLOCK_REASON_UNSPECIFIED(0),
   /**
    * <pre>
-   * A secret-like path (doc 12, DD-E): the bytes were deliberately never
+   * A secret-like path: the bytes were deliberately never
    * captured, so there is nothing to review. Authored content-less by the runner.
    * </pre>
    *
@@ -81,7 +79,7 @@ public enum FileReviewBlockReason
   public static final int FILE_REVIEW_BLOCK_REASON_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * A secret-like path (doc 12, DD-E): the bytes were deliberately never
+   * A secret-like path: the bytes were deliberately never
    * captured, so there is nothing to review. Authored content-less by the runner.
    * </pre>
    *

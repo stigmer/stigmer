@@ -191,7 +191,7 @@ function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt
  *   delivered none, so the transcript row is never blank.
  *
  * `approval_action` / `approved_by` are deliberately NOT touched — those are
- * server-owned fields recording HUMAN decisions only (DD-014 D-e). No
+ * server-owned fields recording HUMAN decisions only. No
  * approval-request event exists for these calls, so the pending-approvals
  * projection stays empty by construction. Idempotent: re-running re-resolves
  * identically. Covers sub-agent transcripts because sub-agent gates inherit

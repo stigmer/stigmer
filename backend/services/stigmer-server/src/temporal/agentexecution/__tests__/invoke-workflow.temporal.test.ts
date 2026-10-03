@@ -9,7 +9,7 @@
  *   - the HITL loop (WAITING persist → gate re-read → approvalGateResolved
  *     → re-invoke with TurnSeq = approvalCycle — the deterministic
  *     change-set id input);
- *   - the DD-28 decided-awaiting-reconcile immediate re-invoke;
+ *   - the decided-awaiting-reconcile immediate re-invoke;
  *   - the zero-gate fail-fast bound (MAX_ZERO_GATE_CYCLES);
  *   - pause/resume (activity cancelled, PAUSED persisted, resume
  *     re-invokes) — Go's CancellationScope pattern;
@@ -22,8 +22,8 @@
  *     flow gets the platform's two lines;
  *   - external cancellation cleanup (CANCELLED persisted quietly —
  *     stigmer#282 — and the EC deleted);
- *   - callback-token completion on success AND failure (the DD-001 lane,
- *     oss#861: the TS error completion WORKS);
+ *   - callback-token completion on success AND failure (oss#861: the TS
+ *     error completion WORKS);
  *   - the cursor flow's harness_state_id re-read discipline;
  *   - the run credential handed on (2026-09-16): the workflow input's
  *     `execution_context_token` reaches EVERY Execute* invocation, first
@@ -88,7 +88,7 @@ let workerRunPromise: Promise<void> | null = null;
 // When the local Temporal test server cannot start (no `temporal` CLI),
 // every test calls testCtx.skip() — VISIBLY skipped, never a vacuous
 // green: a silent pass here would mean the whole orchestration contract
-// stopped being tested (panel finding).
+// stopped being tested.
 let envReady = false;
 
 // ─── Scriptable activity doubles ────────────────────────────────────────
@@ -220,7 +220,7 @@ function statusWithEmptyGate(): AgentExecutionStatus {
   });
 }
 
-/** DD-28: a change set already DECIDED (verdicts in) but not yet reconciled. */
+/** A change set already DECIDED (verdicts in) but not yet reconciled. */
 function statusDecidedAwaitingReconcile(): AgentExecutionStatus {
   return create(AgentExecutionStatusSchema, {
     phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
@@ -505,7 +505,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expectExecutionContextDeleted();
   }, 30_000);
 
-  it("re-invokes immediately without a signal when the gate is decided-awaiting-reconcile (DD-28)", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("re-invokes immediately without a signal when the gate is decided-awaiting-reconcile", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
       async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),
@@ -565,7 +565,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     const pausedAt = phases.indexOf(ExecutionPhase.EXECUTION_PAUSED);
     expect(pausedAt, "the pause branch persists PAUSED").toBeGreaterThanOrEqual(0);
     // The resume path re-asserts IN_PROGRESS AFTER the PAUSED persist —
-    // the oss#869 healing write (owner-ratified TS addition): the PAUSED
+    // the oss#869 healing write (a deliberate TS addition): the PAUSED
     // defense persist can land over a fast resume's IN_PROGRESS, and this
     // sequenced write is what guarantees the phase never sticks PAUSED
     // while the resumed turn runs.
@@ -741,7 +741,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     // The success-path boundary must convert the exhausted retries into a
     // FAILED WORKFLOW (Go's `return err`) — a plain-Error rethrow would
     // fail only the workflow TASK, which the server retries forever
-    // (panel finding), and handle.result() would hang instead of reject.
+    // and handle.result() would hang instead of reject.
     script.loadResults = [];
 
     const handle = await startWorkflow(
@@ -758,7 +758,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expect(script.completions).toHaveLength(0);
   }, 60_000);
 
-  it("completes the callback token with the error on failure (DD-001 — the lane Go cannot deliver, oss#861)", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("completes the callback token with the error on failure (the lane Go cannot deliver, oss#861)", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(ExecutionPhase.EXECUTION_FAILED, "agent blew up"),
     ];
@@ -887,11 +887,11 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expect(script.executeCalls).toHaveLength(1);
   }, 30_000);
 
-  // ─── The child_approval_required sender (DD-012, D4 #23) ───────────────
+  // ─── The child_approval_required sender ────────────────────────────────
   // The OSS half of the child-approval forwarding contract: the HITL loop
   // notifies parent_workflow_id on EVERY cycle with an identity-only
-  // BARE-STRING payload (cloud#509 — the one shape every SDK's default
-  // converter decodes). Asserted from the workflow's own history, the
+  // BARE-STRING payload (the one shape every SDK's default converter
+  // decodes). Asserted from the workflow's own history, the
   // exact wire a real parent would receive.
 
   it("emits child_approval_required to the parent on every HITL cycle, including the zero-gate reconcile cycle", async (testCtx) => {    if (!envReady) return testCtx.skip();

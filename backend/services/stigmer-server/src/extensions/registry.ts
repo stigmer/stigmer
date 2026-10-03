@@ -1,40 +1,39 @@
 /**
- * The extension registry — the ONE extension surface of the convergence
- * program (20260826.02 blueprint/03 §2, DD-006; built by sub-project
- * 20260826.09 / O1). `composeServer` gains an optional `extensions` list
+ * The extension registry — the ONE extension surface of the server.
+ * `composeServer` gains an optional `extensions` list
  * of named contribution units; this module merges them into the resolved
  * registry the composition stages consume. With no units, OSS behaves
  * byte-identically to today — every point resolves to an explicit empty
- * default, never a nullable surprise (the composition doctrine).
+ * default, never a nullable surprise.
  *
  * Why a LIST of named units and not one flat object: the cloud composes
  * MANY extension packages (billing, IAM lifecycle, channel delivery, the
- * FGA authorizer, drivers — blueprint §10), each contributing its piece.
- * Units give the §2b collision rules something real to enforce — a second
+ * FGA authorizer, drivers), each contributing its piece.
+ * Units give the collision rules something real to enforce — a second
  * Authorizer is representable and therefore rejectable — and every boot
  * error names its offending unit(s). Single-instance points share one
  * uniform merge rule (at most one declaring unit; a second throws naming
  * both); list points concatenate in unit order.
  *
- * Loud-fail discipline (DD-006 §2b): resolution runs FIRST in
+ * Loud-fail discipline: resolution runs FIRST in
  * composeServer, before any stage has side effects. Registering into a
  * gate slot that does not exist, duplicating a unit name, or doubling a
  * single-instance point is a boot throw. Nothing degrades silently.
  *
- * Consumption map (each point's consumer entry): services + workers +
- * edition are consumed here in O1; identity verifiers + authorizer land
- * with O2; gate steps are consumed at the chain splice sites (the
+ * Consumption map (each point's consumer): services + workers +
+ * edition are consumed here; identity verifiers + authorizer where
+ * compose.ts builds the chains; gate steps at the chain splice sites (the
  * gate-slots.ts slot table) and status hooks at the agentexecution
- * transition sites (status-observers.ts), both O4; the O5 driver kinds
+ * transition sites (status-observers.ts); the driver kinds
  * (catalog provider, artifact-storage registration, runner-credential
- * provider) and O6's sandbox provisioners are consumed at their
+ * provider) and the sandbox provisioners are consumed at their
  * compose.ts construction sites; the require-authentication posture
- * (20260904.02) is consumed where compose.ts builds the serving chain's
+ * is consumed where compose.ts builds the serving chain's
  * identity source, OR'd with the OIDC-issuer arm; the identity-account
- * points (20260911.11) at the identity-accounts stage (the store driver,
+ * points at the identity-accounts stage (the store driver,
  * ahead of the boot-time operator ensure) and the routes stage (the
  * federation capability and the provision slot's steps, into the
- * identity-account controller); the IamPolicy points (20260913.01) at
+ * identity-account controller); the IamPolicy points at
  * the same two stages — the store driver where the grant path is built,
  * beside the identity-account store, and the grant scope and the query
  * engine into the IamPolicy controller at the routes stage.
@@ -94,7 +93,7 @@ import type {
 /**
  * Registers one or more ConnectRPC services on a router. Runs inside the
  * ONE `routes` closure, so both the serving router and the in-process
- * transport see the services automatically (blueprint §2a — a missed
+ * transport see the services automatically (a missed
  * in-process wiring silently skipping extension services on cross-domain
  * calls is exactly the bug this placement makes impossible).
  */
@@ -125,13 +124,12 @@ export interface ServerExtension {
   /**
    * The served edition (single-declaration point). Exactly one unit may
    * declare it; undeclared compositions serve ServerEdition.oss. The
-   * cloud composition's first-party unit declares `cloud` — the D4
-   * addendum on blueprint §11 item 11.
+   * cloud composition's first-party unit declares `cloud`.
    */
   readonly edition?: ServerEdition;
   /**
    * The require-authentication admission posture (single-declaration
-   * point, the edition's shape; entry 20260904.02). Declaring it turns
+   * point, the edition's shape). Declaring it turns
    * the serving chain's tokenless-refusal arm on INDEPENDENTLY of the OSS
    * OIDC issuer: a request with no credential on a non-`is_public` method
    * is UNAUTHENTICATED "authentication token missing" (the Java
@@ -153,28 +151,28 @@ export interface ServerExtension {
    * its own (the API-key lane alone cannot mint the first key).
    */
   readonly requireAuthentication?: true;
-  /** The authorization decision seam (single-instance point; consumed by O2). */
+  /** The authorization decision seam (single-instance point). */
   readonly authorizer?: Authorizer;
-  /** Ordered verifier-chain entries, appended in unit order (consumed by O2). */
+  /** Ordered verifier-chain entries, appended in unit order. */
   readonly identityVerifiers?: ReadonlyArray<IdentityVerifier>;
   /**
-   * Post-authentication caller guards, appended in unit order (entry
-   * 20260902.02 ruling Q1) — run by the serving chain's identity source
+   * Post-authentication caller guards, appended in unit order — run by the
+   * serving chain's identity source
    * after the stamp, never by the in-process chain (caller-guards.ts).
    */
   readonly callerGuards?: ReadonlyArray<CallerGuard>;
   /**
-   * Gate-step registrations per declared slot (consumed by O4). Every key
-   * must name a declared slot — an unknown slot is a boot throw, the §2b
+   * Gate-step registrations per declared slot. Every key
+   * must name a declared slot — an unknown slot is a boot throw, the
    * contract that keeps a composition and its pinned server honest.
    */
   readonly gateSteps?: ReadonlyMap<
     GateSlotName,
     ReadonlyArray<PipelineStep<DescMessage>>
   >;
-  /** Agent-execution status observers/decorators (consumed by O4). */
+  /** Agent-execution status observers/decorators. */
   readonly statusTransitionHooks?: AgentExecutionStatusHooks;
-  /** Driver substitutions (the O5 kinds — see drivers.ts). */
+  /** Driver substitutions (see drivers.ts). */
   readonly drivers?: ExtensionDrivers;
   /** Service registrations, appended to the routes closure after the OSS set. */
   readonly services?: ReadonlyArray<ExtensionServiceRegistration>;
@@ -220,7 +218,7 @@ export interface ResolvedExtensions {
   readonly requireAuthentication: { readonly declaredBy: string } | undefined;
   /**
    * The single composed Authorizer, or undefined when none is registered —
-   * O2's consumption site installs the OSS permissive single-team default
+   * the consumption site in compose.ts installs the OSS default
    * for the undefined arm (the default lives with the consumer that
    * defines its semantics, not with this data holder).
    */
@@ -251,18 +249,18 @@ export interface ResolvedExtensions {
 export interface ResolvedExtensionDrivers {
   readonly modelCatalogProvider: ModelCatalogProvider | undefined;
   readonly runnerCredentialProvider: RunnerCredentialProvider | undefined;
-  /** The C2 tuple-lifecycle driver — undefined = the shared steps no-op. */
+  /** The tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly resourceAuthorizationLifecycle:
     | ResourceAuthorizationLifecycle
     | undefined;
-  /** The C2 organization query directory — undefined = OSS behavior. */
+  /** The organization query directory — undefined = OSS behavior. */
   readonly organizationDirectory: OrganizationDirectory | undefined;
   /** Registered name → factory, validated against the built-in names. */
   readonly artifactStorageDrivers: ReadonlyMap<
     string,
     ArtifactStorageDriverFactory
   >;
-  /** Registered name → factory, validated against the built-in names (§6d). */
+  /** Registered name → factory, validated against the built-in names. */
   readonly sandboxProvisionerDrivers: ReadonlyMap<
     string,
     SandboxProvisionerFactory
@@ -274,50 +272,50 @@ export interface ResolvedExtensionDrivers {
    * that defines its semantics, not with this data holder).
    */
   readonly channelRuntime: ChannelRuntime | undefined;
-  /** The 20260830.01 list read scope — undefined = the OSS full scan. */
+  /** The list read scope — undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
   /**
-   * The 20260830.03 visitor error policy — undefined = the error
+   * The visitor error policy — undefined = the error
    * boundary runs only its structural raw-error conversion.
    */
   readonly visitorErrorPolicy: VisitorErrorPolicy | undefined;
   /**
-   * The stigmer-cloud#572 schedule-fire caller mint — undefined =
+   * The schedule-fire caller mint — undefined =
    * schedule fires enter the create pipeline as the `internal` class,
    * OSS behavior byte-identical.
    */
   readonly scheduleFireCaller: ScheduleFireCallerMint | undefined;
   /**
-   * Registered version token → codec (20260830.04 Stage 1), validated
+   * Registered version token → codec, validated
    * against the built-in v1. Empty = the facade is v1-only, OSS behavior
    * byte-identical. The compose.ts keys stage merges the built-in v1
    * codec in and resolves the write version fail-fast.
    */
   readonly secretCodecs: ReadonlyMap<string, SecretCodec>;
   /**
-   * The 20260911.11 identity-account store driver — undefined = the
+   * The identity-account store driver — undefined = the
    * compose.ts identity-accounts stage installs the OSS adapter over the
    * generic Store, OSS behavior byte-identical.
    */
   readonly identityAccountStore: IdentityAccountStore | undefined;
   /**
-   * The 20260911.11 identity-federation capability — undefined = the
+   * The identity-federation capability — undefined = the
    * four federated RPCs refuse UNIMPLEMENTED with the edition reason.
    */
   readonly identityFederation: IdentityFederation | undefined;
   /**
-   * The 20260913.01 IamPolicy store driver — undefined = the compose.ts
+   * The IamPolicy store driver — undefined = the compose.ts
    * stage that builds the grant path installs the OSS adapter over the
    * generic Store, OSS behavior byte-identical.
    */
   readonly iamPolicyStore: IamPolicyStore | undefined;
   /**
-   * The 20260913.01 policy grant scope — undefined = compose.ts installs
+   * The policy grant scope — undefined = compose.ts installs
    * open source's organization-only default.
    */
   readonly policyGrantScope: PolicyGrantScope | undefined;
   /**
-   * The 20260913.01 authorization-query engine — undefined = the
+   * The authorization-query engine — undefined = the
    * tuple-half RPC arms refuse UNIMPLEMENTED with the edition reason.
    */
   readonly authorizationQueries: AuthorizationQueryEngine | undefined;
@@ -367,7 +365,7 @@ export interface ResolvedExtensionDrivers {
 }
 
 /**
- * Merges the composed units, enforcing the §2b loud-fail rules. Runs
+ * Merges the composed units, enforcing the loud-fail rules. Runs
  * before any composition stage — a throw here aborts boot with zero side
  * effects. Plain Errors, not ConnectErrors: these are boot faults, the
  * same class as the composition root's wiring throws.

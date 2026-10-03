@@ -6,8 +6,8 @@
  * The load-bearing pins:
  *   - create starts the consent lifecycle at proposed with
  *     state_changed_at set; the subject is forced to the OSS single-user
- *     sentinel "" (DD-005 D2); provenance is stored as supplied with
- *     tool_call_id force-cleared (the Stage 3 contract); an unnamed
+ *     sentinel ""; provenance is stored as supplied with
+ *     tool_call_id force-cleared; an unnamed
  *     create defaults its name from the minted mem_ id, and an id the
  *     request carried is replaced by that mint (stigmer#1266); a missing
  *     org is the exact InvalidArgument copy;
@@ -90,7 +90,7 @@ beforeAll(async () => {
       // a live local Temporal (the conformance CRUD harness does the same).
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
       DB_PATH: path.join(dir, "stigmer.db"),
-      // The skill artifact store + staging wipe (#8) must stay inside the
+      // The skill artifact store + staging wipe must stay inside the
       // test dir — the default resolves to ~/.stigmer/storage.
       STORAGE_PATH: path.join(dir, "storage"),
       // Keep the artifact store inside the test dir — the default

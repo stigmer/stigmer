@@ -3,7 +3,7 @@
  * `ExecuteCursor` invocations, with the REAL bash hook as the out-of-process
  * half.
  *
- * Invariant pinned (the Cursor pause primitive, parent §4a `pausePrimitive:
+ * Invariant pinned (the Cursor pause primitive, `pausePrimitive:
  * "deny-and-retry"`): the model proposes a gated built-in (`shell`); the
  * workspace hook the activity installed DENIES it and appends to the denial
  * ledger; the stream loop reads the ledger on the next `tool_call` event, cancels

@@ -167,7 +167,7 @@ describe("detectPendingInterrupts", () => {
   });
 });
 
-describe("reconcileUnattendedSkips (DD-014)", () => {
+describe("reconcileUnattendedSkips", () => {
   function statusWithCalls(
     toolCalls: Array<{ id: string; status: ToolCallStatus; result?: string }>,
   ) {
@@ -200,7 +200,7 @@ describe("reconcileUnattendedSkips (DD-014)", () => {
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
     expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.UNATTENDED_SKIP);
     expect(tc.policyEngineVersion).not.toBe("");
-    // Server-owned human-decision fields stay untouched (DD-014 D-e).
+    // Server-owned human-decision fields stay untouched.
     expect(tc.approvalAction).toBe(ApprovalAction.UNSPECIFIED);
     expect(tc.approvedBy).toBe("");
   });

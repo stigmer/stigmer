@@ -79,7 +79,7 @@ function compose(
     DB_PATH: path.join(testDir, "stigmer.db"),
     // Keep the artifact store inside the test dir (never ~/.stigmer).
     ARTIFACT_LOCAL_BASE_PATH: path.join(testDir, "artifacts"),
-    // Same for the skill artifact store — its boot-time staging wipe (#8)
+    // Same for the skill artifact store — its boot-time staging wipe
     // must never run against the real ~/.stigmer/storage.
     STORAGE_PATH: path.join(testDir, "storage"),
   });

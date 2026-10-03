@@ -9,8 +9,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * <pre>
  * FileChangeSetStatus is the state of a FileChangeSet, DERIVED by folding its
  * file-review events (never stored-mutable).
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus}

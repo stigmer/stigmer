@@ -1,5 +1,5 @@
 /**
- * The approved-command auto-keep policy (DD-28) — ports
+ * The approved-command auto-keep policy — ports
  * filereview/autokeep.go.
  *
  * A turn whose ONLY mutation source was shell commands the human
@@ -152,7 +152,7 @@ export function autoKeepApprovedCommandSets(
     );
     kept++;
     logger.info(
-      "Auto-kept change set: every change produced by an approved command (DD-28)",
+      "Auto-kept change set: every change produced by an approved command",
       {
         executionId,
         changeSetId: cs.id,

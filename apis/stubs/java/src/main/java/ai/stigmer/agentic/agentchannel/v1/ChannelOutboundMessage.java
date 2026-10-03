@@ -265,7 +265,7 @@ private static final long serialVersionUID = 0L;
   private int origin_ = 0;
   /**
    * <pre>
-   * How the send was authorized (DD-002 D9's surface-aware policy).
+   * How the send was authorized (the surface-aware recipient policy).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin origin = 5 [json_name = "origin"];</code>
@@ -276,7 +276,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * How the send was authorized (DD-002 D9's surface-aware policy).
+   * How the send was authorized (the surface-aware recipient policy).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin origin = 5 [json_name = "origin"];</code>
@@ -2200,7 +2200,7 @@ private static final long serialVersionUID = 0L;
     private int origin_ = 0;
     /**
      * <pre>
-     * How the send was authorized (DD-002 D9's surface-aware policy).
+     * How the send was authorized (the surface-aware recipient policy).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin origin = 5 [json_name = "origin"];</code>
@@ -2211,7 +2211,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How the send was authorized (DD-002 D9's surface-aware policy).
+     * How the send was authorized (the surface-aware recipient policy).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin origin = 5 [json_name = "origin"];</code>
@@ -2227,7 +2227,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How the send was authorized (DD-002 D9's surface-aware policy).
+     * How the send was authorized (the surface-aware recipient policy).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin origin = 5 [json_name = "origin"];</code>
@@ -2240,7 +2240,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How the send was authorized (DD-002 D9's surface-aware policy).
+     * How the send was authorized (the surface-aware recipient policy).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin origin = 5 [json_name = "origin"];</code>
@@ -2256,7 +2256,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How the send was authorized (DD-002 D9's surface-aware policy).
+     * How the send was authorized (the surface-aware recipient policy).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin origin = 5 [json_name = "origin"];</code>

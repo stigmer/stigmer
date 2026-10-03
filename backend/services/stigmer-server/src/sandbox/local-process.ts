@@ -1,7 +1,7 @@
 /**
- * The local-process sandbox driver — DD-002's first isolation tier
- * (process → Docker → Kubernetes), built by O6 (20260827.05, gate ruling
- * Q1: a REAL driver, not a named no-op). Each sandbox is a managed
+ * The local-process sandbox driver — the first tier of the isolation
+ * ladder (process → Docker → Kubernetes), a REAL driver, not a named
+ * no-op. Each sandbox is a managed
  * runner child process polling exactly one task queue, with its own
  * isolated workspace directory — today's implicit "the runner is a local
  * process" posture made explicit and per-execution.
@@ -23,7 +23,7 @@
  *     atomicity — the same reason the map needs no lock).
  *   - An exited child removes itself from the table, so the next ensure
  *     observes "absent" and respawns — the state machine's repair arm
- *     without stored state (gate ruling Q4: runtime-derived).
+ *     without stored state (runtime-derived).
  *   - Children are killed on server-process exit (the exit hook below):
  *     a process-tier sandbox must not outlive the server that provisions
  *     it — unlike the container tiers, nothing could ever re-adopt it.

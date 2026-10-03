@@ -215,7 +215,7 @@ interface SynthesizeErrorOpts {
   messageCount?: number;
   /**
    * True when the execution key is platform-managed (the run rides the
-   * Stigmer proxy). Enables the D4 attribution of the platform provider
+   * Stigmer proxy). Enables the attribution rule of the platform provider
    * error contract (see shared/model-error.ts): billing errors on a
    * platform key must never tell the customer to fix an account they do
    * not own. BYO-key runs leave this false — there the raw Cursor message
@@ -258,7 +258,7 @@ export function synthesizeError(opts: SynthesizeErrorOpts): ClassifiedError {
 }
 
 /**
- * D4 attribution (platform provider error contract, Cursor surface): a
+ * Attribution (platform provider error contract, Cursor surface): a
  * billing error on a platform-managed key is the PLATFORM's fault — the
  * customer's org credits are fine, and Cursor's raw prose ("reach out to
  * an admin to enable on-demand usage") points at a Cursor dashboard they

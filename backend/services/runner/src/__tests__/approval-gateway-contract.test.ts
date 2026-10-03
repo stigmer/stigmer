@@ -7,7 +7,7 @@
  * out-of-process Cursor deny-oracle (the real bash hook) — and then asserts the
  * two substrates AGREE on the same logical action.
  *
- * This is the consolidation home for the Phase-2 (T03) gateway safety behaviors:
+ * This is the consolidation home for the gateway safety behaviors:
  * reverting any P0 behavior on either substrate fails here, and a future
  * substrate joins the safety net by implementing `GatewaySubstrate` and adding
  * one line below. The Cursor suite self-skips where `bash` is unavailable.

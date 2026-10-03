@@ -15,8 +15,6 @@ import "google/protobuf/struct.proto";
 // OnInvalidOutputPolicy (which handles LLM/agent output schema failures
 // with retry semantics) — validate tasks check data correctness, not
 // LLM output quality, so retry (re-prompting) is not applicable.
-//
-// @since T03 (P0 New Task Types)
 enum ValidationFailPolicy {
   // Unspecified: defaults to VALIDATION_FAIL_RAISE behavior.
   VALIDATION_FAIL_POLICY_UNSPECIFIED = 0;
@@ -55,8 +53,6 @@ enum ValidationFailPolicy {
 //
 // Expressions use the same expression engine as switch_case.when for
 // consistency across the workflow domain.
-//
-// @since T03 (P0 New Task Types)
 message ValidationRule {
   // Rule identifier for error reporting and debugging.
   // Appears in validation error output so operators can identify which
@@ -95,7 +91,7 @@ message ValidationRule {
 //
 // While switch_case + raise_error can approximate validation, a dedicated
 // validate task makes the intent explicit, the error messages richer, and
-// the execution trace clearer. In the execution viewer (T09), a validate
+// the execution trace clearer. In the execution viewer, a validate
 // task shows exactly what was checked, what passed, and what failed —
 // visible as a distinct verification step.
 //

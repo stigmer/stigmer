@@ -1,6 +1,6 @@
 /**
- * Unit tests for the conversation-catchup module (cloud channel-conversations
- * DD-006, T03 Sitting 3). Unlike its metadata-keyed siblings there is no
+ * Unit tests for the conversation-catchup module. Unlike its metadata-keyed
+ * siblings there is no
  * string key to mirror-guard — the value rides the typed
  * `AgentExecutionSpec.conversation_catchup` proto field, so codegen enforces
  * the cross-repo contract. What IS pinned here: the blank-is-absent read
@@ -35,7 +35,7 @@ describe("readConversationCatchup", () => {
   });
 
   it("a blank digest is no catchup — window_end alone is cloud bookkeeping, never a reason to inject", () => {
-    // A21: the field rides EVERY channel turn so the watermark can advance;
+    // The field rides EVERY channel turn so the watermark can advance;
     // most turns carry an empty digest. The runner must render nothing.
     const catchup = create(ConversationCatchupSchema, {
       digest: "   ",
@@ -55,7 +55,7 @@ describe("formatConversationCatchupText", () => {
     expect(framed).toContain("Continue from the customer's newest message.");
   });
 
-  it("defines the send-status annotations — undelivered words are not settled history (cloud#347)", () => {
+  it("defines the send-status annotations — undelivered words are not settled history", () => {
     // The cloud composer marks lines the customer never got or may not
     // have gotten yet; the preamble must define both annotations and
     // carve them out of the don't-re-answer contract, or the agent would
@@ -67,7 +67,7 @@ describe("formatConversationCatchupText", () => {
     expect(framed).toContain("weigh that when deciding what still needs saying");
   });
 
-  it("defines the send-outcome lines and the no-verbatim-resend contract (cloud#352, DD-009 Q-4)", () => {
+  it("defines the send-outcome lines and the no-verbatim-resend contract", () => {
     // The agent's own failed sends reach it as `You (not delivered):`
     // lines and `System:` delivery-failure notices. The owner-ruled
     // behavior: unfinished business, re-said naturally — never a
@@ -79,7 +79,7 @@ describe("formatConversationCatchupText", () => {
     expect(framed).toContain("never resend the failed text word-for-word");
   });
 
-  it("asserts no takeover — a digest can exist with no human handoff at all (the A15/A20 honesty bar)", () => {
+  it("asserts no takeover — a digest can exist with no human handoff at all", () => {
     // The preamble may DESCRIBE what the digest can contain ("may include"),
     // but must never state that a handoff happened on THIS conversation: a
     // failed turn's re-composed window has no teammate in it anywhere.

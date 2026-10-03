@@ -6,12 +6,12 @@
  * like an external one. Here the bufconn equivalent is ConnectRPC's
  * `createRouterTransport` built from the SAME routes registration function
  * the unified-port server uses, with the SAME interceptor chain EXCEPT the
- * position-1 identity source (O2, ruling Q4): this chain stamps the
+ * position-1 identity source: this chain stamps the
  * `internal` caller class only it can mint, where the serving chain runs
  * the verifier chassis over the wire's credentials. Chain traversal proven
- * by spike SP-B (src/pipeline/__tests__/router-transport.test.ts): every
+ * by src/pipeline/__tests__/router-transport.test.ts: every
  * interceptor runs, in registration order, and a chain rejection
- * short-circuits with a ConnectError the in-process caller sees (DD-002).
+ * short-circuits with a ConnectError the in-process caller sees.
  *
  * The agent↔agentinstance true cycle is broken at the CONSUMERS with lazy
  * providers (`() => client`) resolved at call time; this module only
@@ -87,7 +87,7 @@ import type { CallerIdentity } from "../extensions/identity.js";
 import type { Logger } from "./logger.js";
 import type { CallOptions } from "@connectrpc/connect";
 
-/** The narrow in-process surfaces the domains consume (DD-002). */
+/** The narrow in-process surfaces the domains consume. */
 export interface InProcessClients {
   readonly agentInstanceApplier: AgentInstanceApplier;
   readonly parentAgentLoader: ParentAgentLoader;
@@ -104,8 +104,8 @@ export interface InProcessClients {
   /**
    * Reads for the EC builder plus the full managed-environment lifecycle
    * (ManagedEnvironmentClient): the secret rewrite the OAuth pre-flight
-   * refresh needs (#17) and the create/delete edges the connect/OAuth
-   * slice mints and tears managed environments with (#19) — one surface,
+   * refresh needs and the create/delete edges the connect/OAuth
+   * slice mints and tears managed environments with — one surface,
    * every call through the full chain.
    */
   readonly executionEnvironmentReader: EnvironmentReader &
@@ -169,9 +169,9 @@ export interface InProcessClients {
  * The in-process wiring: the narrow typed clients above PLUS the transport
  * they ride. The transport is exposed because it is the one lane that can
  * reach EVERY service the routes closure registers — extension services
- * included (blueprint 20260826.02/03 §8) — which the fixed client set
+ * included — which the fixed client set
  * above cannot know about; it doubles as the extension test suite's
- * both-router visibility proof (O1) and stays behavior-identical to the
+ * both-router visibility proof and stays behavior-identical to the
  * clients' own calls (same routes, same interceptor chain).
  */
 export interface InProcessWiring {
@@ -189,10 +189,10 @@ export function createInProcessClients(
   logger: Logger,
 ): InProcessWiring {
   // Position 1 of this chain is the in-process identity stamper, NOT the
-  // serving chassis (O2, ruling Q4): every call through this transport
+  // serving chassis: every call through this transport
   // carries the internal caller class, which only this chain can mint —
   // the TS rendering of the Java in-process authorization skip. Positions
-  // 2–4 stay identical to the serving chain (validation parity, DD-002).
+  // 2–4 stay identical to the serving chain (validation parity).
   const transport = createRouterTransport(routes, {
     router: {
       interceptors: buildInterceptorChain(
@@ -240,22 +240,23 @@ export function createInProcessClients(
   const mcpServerCommand = createClient(McpServerCommandController, transport);
   const skillCommand = createClient(SkillCommandController, transport);
 
-  // The caller-propagation call options (C2 Stage 3, ruling R5 — the
-  // Java posture restored): the ORIGINAL caller's identity rides the
+  // The caller-propagation call options (the Java posture restored): the
+  // ORIGINAL caller's identity rides the
   // propagation header (the one client→router channel; contextValues are
   // server-side); the in-process position-1 interceptor decodes it and
   // stamps `origin: "in-process"` instead of minting internal. Explicit
-  // per call, never ambient (DD-007's threading doctrine); the serving
+  // per call, never ambient (identity is threaded, never global); the serving
   // chassis strips the header, so the wire cannot forge it.
   const asCaller = (caller: CallerIdentity): CallOptions => ({
     headers: { [IN_PROCESS_CALLER_HEADER]: encodeInProcessCaller(caller) },
   });
 
   const clients: InProcessClients = {
-    // The Apply RPC AS THE ORIGINAL CALLER (ruling R5; Java
-    // applyAsCaller): the default instance's owner attribution lands on
+    // The Apply RPC AS THE ORIGINAL CALLER (Java applyAsCaller): the default
+    // instance's owner attribution lands on
     // the requesting user, so it stays manageable under an enforcing
-    // Authorizer. Pre-R5 this lane minted the internal class (Go's
+    // Authorizer. Before caller propagation this lane minted the
+    // internal class (Go's
     // ApplyAsSystem shape) — the recorded attribution gap.
     agentInstanceApplier: {
       applyAsCaller: (instance, caller) =>
@@ -266,7 +267,7 @@ export function createInProcessClients(
         agentQuery.get(create(AgentIdSchema, { value: agentId })),
     },
     // CREATE (not apply) for the same AlreadyExists posture — as the
-    // original caller (ruling R5), matching the agent edge above.
+    // original caller, matching the agent edge above.
     workflowInstanceCreator: {
       createAsCaller: (instance, caller) =>
         workflowInstanceCommand.create(instance, asCaller(caller)),
@@ -279,7 +280,7 @@ export function createInProcessClients(
     },
     // The agentexecution edges: reads stay under the internal class (the
     // daemon-safe default); the CREATES propagate the original caller
-    // (ruling R5) so instances and sessions born during execution create
+    // so instances and sessions born during execution create
     // carry their real owner.
     executionAgentLoader: {
       get: (agentId) =>
@@ -307,8 +308,8 @@ export function createInProcessClients(
       getSecretValue: (input) => environmentQuery.getSecretValue(input),
       updateVariables: (request) => environmentCommand.updateVariables(request),
       // The managed-env create propagates the connecting user when the
-      // lane has one (ruling R5 — the Java createAsCaller posture; parity
-      // entry 20260830.05): ownership tuples land on the user, not the
+      // lane has one (the Java createAsCaller posture): ownership tuples
+      // land on the user, not the
       // unattributable internal class.
       create: (environment, caller) =>
         environmentCommand.create(
@@ -328,7 +329,7 @@ export function createInProcessClients(
       },
     },
     // The connect lane's ephemeral EC is created AS THE CONNECTING PERSON
-    // (ruling R5's asCaller lane): its creator stamp is what the
+    // (the asCaller lane): its creator stamp is what the
     // runner-subject verifier resolves the connect token's bearer to under
     // the built-in posture (runnerauth/bound-execution.ts). The delete
     // stays the server's own act — the row is the lane's, whoever asked.
@@ -338,7 +339,7 @@ export function createInProcessClients(
       delete: (input) => executionContextCommand.delete(input),
     },
     // The workflowexecution edges: the default-instance self-heal creates
-    // as the original caller (ruling R5), surfacing duplicate slugs as
+    // as the original caller, surfacing duplicate slugs as
     // AlreadyExists exactly as before.
     workflowExecutionInstanceCreator: {
       createAsCaller: (instance, caller) =>
@@ -377,13 +378,13 @@ export function createInProcessClients(
         ),
     },
     // The schedule clock's fire edge — the plain Create RPC (Go's
-    // ExecutionCreator). Since O2 every call through this transport
+    // ExecutionCreator). Every call through this transport
     // carries the internal caller class stamped at position 1; its audit
     // derivation equals the old process-global operator identity. A
-    // composed fire caller (the scheduleFireCaller driver point,
-    // stigmer-cloud#572) propagates instead — the RunStarter mints it per
+    // composed fire caller (the scheduleFireCaller driver point)
+    // propagates instead — the RunStarter mints it per
     // fire, so the created execution and its auto-created session carry
-    // the edition's schedule identity (ruling R5's asCaller lane).
+    // the edition's schedule identity (the asCaller lane).
     scheduleExecutionCreator: {
       create: (execution, fireCaller) =>
         agentExecutionCommand.create(

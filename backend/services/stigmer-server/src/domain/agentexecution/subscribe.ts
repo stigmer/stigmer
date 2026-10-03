@@ -1,6 +1,6 @@
 /**
  * Subscribe — ports controller/subscribe.go: the real-time execution
- * stream (ADR 011 read path). The first DOMAIN server-streaming RPC on
+ * stream (the broker's read path). The first DOMAIN server-streaming RPC on
  * the TS server; the generator shape follows transport/health.ts watch,
  * the transport's proven streaming idiom.
  *
@@ -25,8 +25,7 @@
  *     loop). Faithful port.
  *   - Subscribe's terminal set is COMPLETED/FAILED/CANCELLED — it OMITS
  *     TERMINATED, so a stream over a terminated execution never
- *     self-closes. Known Go quirk, ported byte-faithfully; disclosed as a
- *     both-editions issue candidate at the sub-project wrap-up.
+ *     self-closes. Known Go quirk, ported byte-faithfully.
  *   - Registration and the loop share one owner so the unsubscribe fires
  *     on every exit path (Go's defer → the generator's finally, which
  *     ConnectRPC runs on client disconnect too).
@@ -61,7 +60,7 @@ export interface SubscribeDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly broker: StreamBroker;
-  /** The composed authorization seam — the pre-stream check below (C2 Stage 4). */
+  /** The composed authorization seam — the pre-stream check below. */
   readonly authorizer: Authorizer;
 }
 
@@ -77,8 +76,8 @@ export async function* subscribeExecution(
   // The annotation's can_view check, once at subscription start — the
   // Java AgentExecutionSubscribeHandler order (validate → authorize).
   // The composed authorizer's guest-isolation arm rides this same check
-  // (the G2 per-visitor cookie match), matching Java's GuestVisitorScope
-  // filter on this stream. C2 Stage 4.
+  // (the per-visitor cookie match), matching Java's GuestVisitorScope
+  // filter on this stream.
   await authorizeDirect(
     AgentExecutionQueryController.method.subscribe,
     deps.authorizer,

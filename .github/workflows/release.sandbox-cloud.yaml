@@ -173,7 +173,7 @@ jobs:
         # version tag nor :prod is written.
         # The smoke runs on Daytona (that is where CI has credentials); it validates
         # "the runner boots", not k8s-specific concerns (PVC/gVisor). A deeper
-        # worker-level assertion is a future enhancement (see design-decision 003).
+        # worker-level assertion is a future enhancement.
         timeout-minutes: 8
         env:
           DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}

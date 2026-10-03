@@ -12,8 +12,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * The download_url can be used with a simple HTTP GET request to download
  * the artifact. No authentication headers are required - the URL contains
  * embedded authorization.
- *
- * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse}
@@ -351,8 +349,6 @@ private static final long serialVersionUID = 0L;
    * The download_url can be used with a simple HTTP GET request to download
    * the artifact. No authentication headers are required - the URL contains
    * embedded authorization.
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse}

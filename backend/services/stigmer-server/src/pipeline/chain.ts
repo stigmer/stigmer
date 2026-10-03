@@ -1,12 +1,10 @@
 /**
- * The server's interceptor chain, in the ratified order (D2 §2; position
- * 0 added by 20260830.03, gate ruling Q1; the request-metrics position
- * added by 20260909.02, gate ruling Q1):
+ * The server's interceptor chain, in order:
  *
  *   0. error boundary   — SERVING chain only
  *                         (interceptors/error-boundary.ts: the raw-error
  *                         conversion net + the visitor sanitizer seam)
- *   1. identity source  — REQUIRED parameter (DD-004; O2)
+ *   1. identity source  — REQUIRED parameter
  *      request metrics  — SERVING chain only, immediately inside the
  *                         identity source (interceptors/request-metrics.ts:
  *                         Java's RED emitter at Java's position — an
@@ -17,10 +15,10 @@
  *   4. apiresource      — kind context from the service option
  *
  * ConnectRPC applies array order as nesting order (first = outermost),
- * verified by spike SP-B. Positions 2–4 are the SAME for external
+ * verified by a spike. Positions 2–4 are the SAME for external
  * transports and in-process router-transport calls — validation parity is
- * the point. Position 1 deliberately differs per transport (O2, ruling
- * Q4): the serving chain runs the verifier chassis over the wire's
+ * the point. Position 1 deliberately differs per transport: the serving
+ * chain runs the verifier chassis over the wire's
  * credentials, the in-process chain stamps the internal caller class its
  * own interceptor mints (interceptors/auth.ts owns both sources and the
  * spoofing-impossible invariant). The parameter is required — a chain

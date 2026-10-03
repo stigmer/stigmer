@@ -172,20 +172,39 @@ const NON_PATH_PREFIXES = ["http://", "https://", "mailto:", "#", "@", "~", "$",
  * Private-record identifier patterns. The first two locate the planning-record
  * tree (its path, and a record's `YYYYMMDD.NN` folder id) and are the ones a
  * private repository may cite (`privateOk`), because a record path carries its
- * id and the cited-path check then proves the record exists; the rest are the
- * record-internal ids (task files `T01_`, decisions `DD-012`, rulings `Q-AB-1`,
- * findings `F-CD-2`) that only a holder of the records can resolve, and stay
- * findings everywhere. The shapes are illustrative; none of these examples
- * names a real record. Exported so a source guard over files a repository
- * publishes refuses the same shapes instead of restating them.
+ * id and the cited-path check then proves the record exists. The record-internal
+ * ids follow (task files `T09_` and bare tasks `T00` or `T19z`, decisions
+ * `DD-998`, `DD-98` or `DD-ZZ-9` but never a date format such as `DD-MM`,
+ * `DD-MMM` or `DD-YYYY`, rulings `Q-ZZ-9` or `Q-ZZ`, findings `F-ZZ-9` or
+ * `F-98` but never `F-1` (the F-1 score), the same ids spelled out
+ * (`decision 998`, `Design doc 98`, `finding 98`, in either case, though a public issue's
+ * `#778 finding 3` is not one),
+ * and a short code's stage `Z9 Stage 7`): only a holder of the records can
+ * resolve them, and they stay findings everywhere. A bare `Stage 3` is not one
+ * of them, because a build's own steps are named that way. Last, a private
+ * repository's issue or URL (`stigmer-cloud#0`): a public reader cannot open
+ * it, and the private repository may cite its own (`privateOk`). The examples
+ * are synthetic, chosen to match no id this repository has ever cited.
+ * Exported so a source guard over files a repository publishes refuses the
+ * same shapes instead of restating them.
  */
 export const LEAK_PATTERNS = [
   { name: "planning-record path", re: /_projects\//, privateOk: true },
   { name: "planning-record id", re: /\b20[0-9]{6}\.[0-9]{2}\b/, privateOk: true },
   { name: "task file id", re: /\bT0[0-9]_[0-9]/, privateOk: false },
-  { name: "decision id", re: /\bDD-[0-9]{3}\b/, privateOk: false },
-  { name: "ruling id", re: /\bQ-[A-Z][A-Z0-9]*-[0-9]+\b/, privateOk: false },
-  { name: "finding id", re: /\bF-[A-Z][A-Z0-9]*-[0-9]+\b/, privateOk: false },
+  { name: "decision id", re: /\bDD-(?!(?:MM|MMM|MON|YY|YYYY)\b|HH)(?:[0-9]{2,3}|[A-Z][A-Z0-9]*(?:-[0-9]+[a-z]?)?)\b/, privateOk: false },
+  { name: "ruling id", re: /\bQ-[A-Z][A-Z0-9]*(?:-[0-9]+[a-z]?)?\b/, privateOk: false },
+  { name: "finding id", re: /\bF-(?:[A-Z][A-Z0-9]*-[0-9]+|[0-9]{2,})\b/, privateOk: false },
+  { name: "task id", re: /\bT[01][0-9][a-z]?\b(?!:[0-9])/, privateOk: false },
+  { name: "decision number", re: /\b(?:[Dd]esign[- ])?[Dd]ecisions? [0-9]{3}\b/, privateOk: false },
+  { name: "design document number", re: /\b[Dd]esign docs? [0-9]{1,3}\b/, privateOk: false },
+  { name: "finding number", re: /(?<!#[0-9]{1,6} )\b[Ff]indings? [0-9]+\b/, privateOk: false },
+  { name: "record stage", re: /\b[A-Z][0-9]{1,2}[ -](?:[Ss]tage|[Ss]lice)[ -]?[0-9]/, privateOk: false },
+  {
+    name: "private repository reference",
+    re: /stigmer-cloud#[0-9]+|\bcloud#[0-9]+|github\.com\/stigmer\/stigmer-cloud/,
+    privateOk: true,
+  },
 ];
 
 /**

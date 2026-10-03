@@ -26,8 +26,6 @@ import "buf/validate/validate.proto";
 //               with:
 //                 body:
 //                   error: ${ .error }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
 message TryTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "try_catch";
 
@@ -60,8 +58,6 @@ message CatchBlock {
   // Compensation failures do not prevent the catch block from running.
   // They are logged and included in the task output for diagnostics.
   //
-  // Default: false (no compensation — preserves pre-T17 behavior).
-  //
-  // @since T17 (Advanced Agentic Orchestration)
+  // Default: false (no compensation).
   bool compensate = 3;
 }

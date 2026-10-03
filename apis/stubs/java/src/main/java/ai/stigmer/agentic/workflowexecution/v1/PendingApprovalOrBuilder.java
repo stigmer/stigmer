@@ -196,8 +196,6 @@ public interface PendingApprovalOrBuilder extends
    * (approval_requested event), read when the reviewer opens the gate.
    * Empty when the task declares no hint or the execution predates the
    * field — consumers treat empty as a generic review.
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
@@ -214,8 +212,6 @@ public interface PendingApprovalOrBuilder extends
    * (approval_requested event), read when the reviewer opens the gate.
    * Empty when the task declares no hint or the execution predates the
    * field — consumers treat empty as a generic review.
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * <code>string ui_hint = 8 [json_name = "uiHint"];</code>

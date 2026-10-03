@@ -1,19 +1,19 @@
 /**
  * The driver-agnostic Store contract suite — every behavior a driver must
- * satisfy identically, extracted from the Phase-1 sqlite driver tests when
- * the Postgres driver arrived (T01 gate decision D-4). Each driver invokes
+ * satisfy identically, extracted from the sqlite driver tests when the
+ * Postgres driver arrived. Each driver invokes
  * describeStoreContract with its own fixture; the assertions here may only
  * speak the Store interface (plus the two named escape hatches below for
  * arms the interface deliberately cannot express).
  *
  * Covered contracts and their provenance: resource CRUD round-trips,
- * updateResource atomic RMW incl. the DD-010 no-lost-update guarantee
+ * updateResource atomic RMW incl. the no-lost-update guarantee
  * (per-resource atomicity — the parallel-updates assertion is
  * deliberately order-agnostic: sqlite serializes globally, Postgres
  * per-row), findAllByField's filter (the rows whose field equals the
  * value, as stored bytes), audit ordering + the #341 single-holder tag move,
  * first-writer-wins events (oss#308), the terminal-immutable schedule-run
- * ledger (DD-017 D-7), the engine-neutral search read semantics (DD-009:
+ * ledger, the engine-neutral search read semantics (
  * token match / single-term prefix / AND; wire-ready 0–1 scores;
  * list-mode newest-first at exactly 1.0 — search-mode ranking ORDER is
  * deliberately NOT asserted here, it is driver-relative), the two-phase
@@ -307,7 +307,7 @@ export function describeStoreContract(
       ).rejects.toThrow(ResourceNotFoundError);
     });
 
-    it("parallel updates to ONE resource both land — no lost update (DD-010 per-resource atomicity)", async () => {
+    it("parallel updates to ONE resource both land — no lost update (per-resource atomicity)", async () => {
       await fx.store.saveResource(
         KIND,
         "acme",
@@ -474,7 +474,7 @@ export function describeStoreContract(
     });
   });
 
-  // The maintenance surface (20260830.04 Stage 1, ruling Q3) — ports the
+  // The maintenance surface — ports the
   // Java contract shapes (PostgresAgentRepositoryContractTest): keyset
   // paging from "", stale-expectation loses, deleted-row loses.
   describe("maintenance surface: raw ordered scan + bytes-level CAS", () => {
@@ -735,7 +735,7 @@ export function describeStoreContract(
       );
     });
 
-    it("duplicate rows for one hash are legal — newest wins (stigmer-cloud#191)", async () => {
+    it("duplicate rows for one hash are legal — newest wins", async () => {
       await fx.store.saveAudit(
         KIND,
         "acme",
@@ -971,7 +971,7 @@ export function describeStoreContract(
     });
   });
 
-  describe("search index (DD-009 engine-neutral read semantics)", () => {
+  describe("search index (engine-neutral read semantics)", () => {
     function entry(overrides: Partial<SearchIndexEntry>): SearchIndexEntry {
       return {
         name: "unnamed",
@@ -1060,7 +1060,7 @@ export function describeStoreContract(
       // "NEAR" (an FTS5 operator, not an English stopword) keeps this arm
       // engine-safe: Postgres's 'english' config DROPS stopwords like
       // "not"/"and" from queries where FTS5 keeps them — a declared
-      // tokenization divergence (DD-009), so no stopword may carry a
+      // tokenization divergence, so no stopword may carry a
       // cross-driver membership assertion.
       const result = await fx.store.querySearchIndex({
         kinds: ["agent"],
@@ -1073,7 +1073,7 @@ export function describeStoreContract(
       expect(result.totalCount).toBe(0);
     });
 
-    it("authorizedIdsByKind narrows per kind; an empty set matches nothing; absent kinds stay unrestricted (20260830.01)", async () => {
+    it("authorizedIdsByKind narrows per kind; an empty set matches nothing; absent kinds stay unrestricted", async () => {
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
         "agt-mine",

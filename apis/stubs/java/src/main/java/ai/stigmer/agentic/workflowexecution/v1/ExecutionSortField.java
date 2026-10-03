@@ -8,8 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * ExecutionSortField defines the column to sort execution lists by.
- *
- * &#64;since T13 (Execution History)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField}

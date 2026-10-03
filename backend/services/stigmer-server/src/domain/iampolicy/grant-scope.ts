@@ -1,6 +1,6 @@
 /**
- * Open source's PolicyGrantScope (20260913.01, T01_1_review.md Q-OR-3 and
- * Q-OR-4): the ORGANIZATION grants the roles its `kind_meta` lists —
+ * Open source's PolicyGrantScope: the ORGANIZATION grants the roles its
+ * `kind_meta` lists —
  * owner, admin, member, viewer — and no other kind grants anything. This
  * is what lights the console's Members page in every edition while a
  * viewer on one agent, the per-resource grant, stays what the Enterprise

@@ -44,7 +44,7 @@ export async function getOAuthGrantStatus(
     throw invalidArgumentError("org is required");
   }
   // The annotation's can_view check (validate → authorize, the Java
-  // McpServerGetOAuthGrantStatusHandler order — no load step). C2 Stage 4.
+  // McpServerGetOAuthGrantStatusHandler order — no load step).
   await authorizeDirect(
     McpServerQueryController.method.getOAuthGrantStatus,
     deps.authorizer,

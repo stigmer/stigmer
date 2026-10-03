@@ -1,5 +1,5 @@
 /**
- * Pins the OIDC userinfo client (oidc-userinfo.ts; 20260911.11 A8): the
+ * Pins the OIDC userinfo client (oidc-userinfo.ts): the
  * endpoint is the vouching issuer's discovered `userinfo_endpoint`, called
  * with the caller's own token as a bearer; the claims map as the cloud's
  * client maps them (email, given_name, family_name, picture; missing or

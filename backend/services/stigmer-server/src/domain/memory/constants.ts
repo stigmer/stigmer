@@ -3,15 +3,15 @@
  * ported character-for-character from Go
  * pkg/domain/memory/controller/steps.go. Every string here is pinned by
  * the conformance suite and mirrored byte-identically by the cloud
- * edition's handlers; none is editable without an owner-ratified wire
+ * edition's handlers; none is editable without an deliberate wire
  * change. Refusals are visible and actionable — never silent eviction
- * (the ChatGPT Memory-Full pattern, DD-006 D5).
+ * (the ChatGPT Memory-Full pattern).
  */
 
 /**
  * The per-subject-per-org record ceiling, counted across ALL lifecycle
  * states — proposed clutter counts, which pressures honest rejection over
- * letting proposals pile up (DD-006 D5). Go MaxMemoriesPerSubject.
+ * letting proposals pile up. Go MaxMemoriesPerSubject.
  */
 export const MAX_MEMORIES_PER_SUBJECT = 100;
 
@@ -33,7 +33,7 @@ export function memoryDisabledMessage(org: string): string {
 /**
  * Refuses a create while the PERSON the memory would be about has not
  * enabled memory on their own account — the member half of the double
- * opt-in (DD-006 D1), and the answer for a caller no account stands for,
+ * opt-in, and the answer for a caller no account stands for,
  * since only an unprovisioned person reaches that arm. The Java
  * MemoryPolicy.MEMORY_ACCOUNT_DISABLED_MESSAGE, byte-pinned: the hosted
  * edition's clients have rendered it since the Java handler shipped.
@@ -51,7 +51,7 @@ export const MEMORY_CONFIRM_REJECTED_MESSAGE =
 
 /**
  * Refuses rejecting a confirmed memory: deletion IS the revocation of a
- * confirmed fact (DD-006). Go MemoryRejectConfirmedMessage.
+ * confirmed fact. Go MemoryRejectConfirmedMessage.
  */
 export const MEMORY_REJECT_CONFIRMED_MESSAGE =
   "memory was confirmed — delete it to stop it from being recalled";

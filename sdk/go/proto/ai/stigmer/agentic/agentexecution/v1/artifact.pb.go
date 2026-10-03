@@ -37,8 +37,6 @@ const (
 //
 // Directories are automatically archived as ZIP files before storage.
 // The kind field indicates DIRECTORY so clients know to extract after download.
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 type ExecutionArtifact struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Display name for this artifact.

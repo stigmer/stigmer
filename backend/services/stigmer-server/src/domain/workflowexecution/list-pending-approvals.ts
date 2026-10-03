@@ -1,5 +1,5 @@
 /**
- * ListPendingApprovals — ports list_pending_approvals.go (T14 dashboard):
+ * ListPendingApprovals — ports list_pending_approvals.go (the dashboard):
  * reads the org's IN_PROGRESS executions for tasks in
  * WORKFLOW_TASK_WAITING_APPROVAL and projects them into PendingApproval
  * entries, newest execution first. total_count is the whole set's; the

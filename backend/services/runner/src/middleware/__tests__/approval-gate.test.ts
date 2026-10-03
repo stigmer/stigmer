@@ -408,7 +408,7 @@ describe("ApprovalGateMiddleware", () => {
     it("KEEPS GATING a non-secret gitignored write (it cannot be captured or reverted)", async () => {
       // A NON-secret gitignored path: no CAS routing (captureIgnored unset) and not
       // secret-like, so it stays on the interrupt gate. (A secret-like gitignored
-      // write is hard-blocked instead — see the DD-26 #2 deny-gate cases below.)
+      // write is hard-blocked instead — see the secret deny-gate cases below.)
       const mw = createApprovalGateMiddleware(makeConfig({
         fileCaptureMode: true,
         isCapturablePath: async () => false, // gitignored
@@ -757,7 +757,7 @@ describe("ApprovalGateMiddleware", () => {
     // When deriveCaptureMode returns false (a non-git workspace with no artifact
     // storage), setup builds the gate with fileCaptureMode/captureIgnored OFF, so
     // file writes fall back to the classic deny-gate. This is the native harness's
-    // DD-22 parity with Cursor: the agent still runs; file writes gate.
+    // parity with Cursor: the agent still runs; file writes gate.
 
     it("gates a built-in write when capture mode is off — the deny-gate fallback", async () => {
       const mw = createApprovalGateMiddleware(makeConfig({
@@ -789,8 +789,8 @@ describe("ApprovalGateMiddleware", () => {
       expect(mockedInterrupt).toHaveBeenCalledTimes(1);
     });
 
-    it("HARD-BLOCKS a secret-like write when capture mode is off (DD-26 #2): never gated, never applied", async () => {
-      // DD-26 follow-up #2 supersedes the earlier "gated, not hard-blocked" parity:
+    it("HARD-BLOCKS a secret-like write when capture mode is off: never gated, never applied", async () => {
+      // This supersedes the earlier "gated, not hard-blocked" parity:
       // a secret-like write must NEVER surface its content for approval, in ANY
       // mode. On the deny-gate it is hard-blocked exactly like the capture-mode
       // secret block — never interrupted, never applied. The content never reaches
@@ -914,7 +914,7 @@ describe("ApprovalGateMiddleware", () => {
     expect((result as ToolMessage).content).toContain("unknown action");
   });
 
-  describe("unattended approval mode (DD-014)", () => {
+  describe("unattended approval mode", () => {
     const gatedMcpPolicies = new Map<string, MergedToolPolicy>([
       ["srv/gated_tool", {
         toolName: "gated_tool",

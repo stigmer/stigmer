@@ -1,6 +1,6 @@
 /**
- * Pins the lineage-label vouching step (parity entry 20260830.05, the
- * Java RecordRunnerLineageLabelsStep port): no lineage labels means no
+ * Pins the lineage-label vouching step (the Java
+ * RecordRunnerLineageLabelsStep port): no lineage labels means no
  * capability consult; the capability's true vouches exactly the present
  * lineage keys (the guard then passes them while a smuggled sibling still
  * refuses); false vouches nothing; a binding-violation throw propagates;

@@ -1,7 +1,7 @@
 /**
  * Pins the agent domain against Go's pkg/domain/agent tests — through the
  * REAL stack: a composed server on an ephemeral port, a native gRPC
- * client, the full interceptor chain, and the DD-002 in-process
+ * client, the full interceptor chain, and the in-process
  * agentinstance edge (agent create applies its default instance through
  * the router transport, traversing the whole chain).
  *
@@ -73,7 +73,7 @@ beforeAll(async () => {
       // a live local Temporal (the conformance CRUD harness does the same).
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
       DB_PATH: path.join(dir, "stigmer.db"),
-      // The skill artifact store + staging wipe (#8) must stay inside the
+      // The skill artifact store + staging wipe must stay inside the
       // test dir — the default resolves to ~/.stigmer/storage.
       STORAGE_PATH: path.join(dir, "storage"),
       // Keep the artifact store inside the test dir — the default
@@ -327,7 +327,7 @@ describe("agent cascade delete (oss#611)", () => {
     const agentId = agent.metadata!.id;
     const agentSlug = agent.metadata!.slug;
     // Agent create provisioned the default instance through the
-    // in-process edge and recorded the pointer (DD-002 choreography).
+    // in-process edge and recorded the pointer.
     const defaultInstanceId = agent.status!.defaultInstanceId;
     expect(defaultInstanceId).not.toBe("");
 
@@ -349,8 +349,8 @@ describe("agent cascade delete (oss#611)", () => {
     // A bystander agent whose instance must survive the sweep untouched.
     const bystander = await command.create(agentInput({ name: "Bystander" }));
 
-    // Shares are seeded directly (the agentshare controller arrives with
-    // its own sub-project); the cascade matches spec.agent_ref.
+    // Shares are seeded directly into the store; the cascade matches
+    // spec.agent_ref.
     const sameOrgShare = create(AgentShareSchema, {
       metadata: { id: "ash_same_org", name: "same-org-share", org: ORG },
       spec: {

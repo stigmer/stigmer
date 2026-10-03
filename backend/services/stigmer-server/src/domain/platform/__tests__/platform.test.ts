@@ -1,7 +1,7 @@
 /**
  * Pins the platform domain against Go's platform_controller_test.go +
  * get_runner_scoped_token_test.go — through the real stack (composed
- * server, native gRPC client, full interceptor chain; the #15 pattern),
+ * server, native gRPC client, full interceptor chain),
  * plus a keyless-service arm on an in-process router.
  *
  * The load-bearing pins the conformance suite deliberately does NOT cover
@@ -429,14 +429,14 @@ describe("platform domain (license status)", () => {
 });
 
 /**
- * The C4 capability delegation (gate ruling Q1), proven through the FULL
+ * The capability delegation, proven through the FULL
  * stack: a provider registered via the extension registry, the identity
  * interceptor stamping the trusted-local caller, and the platform
  * controller delegating every arm. This is the seam the cloud
  * composition's exchange rides — the fakes record exactly what crossed
  * it.
  */
-describe("platform domain (capability-delegating provider — C4)", () => {
+describe("platform domain (capability-delegating provider)", () => {
   let server: ComposedServer;
   let client: PlatformClient;
   let dir: string;

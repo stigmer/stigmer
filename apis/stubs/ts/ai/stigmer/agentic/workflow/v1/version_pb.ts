@@ -144,8 +144,6 @@ export const GitProvenanceSchema: GenMessage<GitProvenance> = /*@__PURE__*/
  * Used by the Console, SDK, and CLI to render version timelines and
  * enable version comparison.
  *
- * @since Workflow Versioning
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput
  */
 export type ListWorkflowVersionsInput = Message<"ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput"> & {
@@ -190,8 +188,6 @@ export const ListWorkflowVersionsInputSchema: GenMessage<ListWorkflowVersionsInp
 /**
  * ListWorkflowVersionsResponse contains a page of workflow version history.
  *
- * @since Workflow Versioning
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse
  */
 export type ListWorkflowVersionsResponse = Message<"ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse"> & {
@@ -230,8 +226,6 @@ export const ListWorkflowVersionsResponseSchema: GenMessage<ListWorkflowVersions
  * Used by the runner (to hydrate execution from a pinned version) and the
  * execution viewer (to render the graph for historical executions).
  *
- * @since Workflow Versioning
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput
  */
 export type GetWorkflowVersionInput = Message<"ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput"> & {
@@ -263,8 +257,6 @@ export const GetWorkflowVersionInputSchema: GenMessage<GetWorkflowVersionInput> 
  * Tags are mutable pointers — calling tagVersion with an existing tag name
  * moves it from the previous version to the specified version. A version can
  * have at most one tag (set at apply time or via this RPC).
- *
- * @since Workflow Versioning
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput
  */

@@ -1,13 +1,12 @@
 /**
  * Pins the identity-account domain through a composed OSS server in the
  * trusted-local posture — the behaviours the conformance suite cannot
- * express cross-edition because only open source has this posture
- * (T01_0_plan.md §3a, §5, §10; T01_1_review.md A1, A2):
+ * express cross-edition because only open source has this posture:
  *
  *   - a fresh server answers whoAmI with the operator's account before any
- *     client has called anything (A2: the boot-time ensure), and
+ *     client has called anything (the boot-time ensure), and
  *     provisionMyAccount is then the idempotent early return;
- *   - create is internal to the platform (the cloud#393 gate, A7): a wire
+ *   - create is internal to the platform: a wire
  *     user is PERMISSION_DENIED; the platform's own pipelines reach it
  *     through the in-process transport (the `internal` caller class),
  *     which is how every create arm below creates;
@@ -29,7 +28,7 @@
  *
  * The OIDC arms (resolve on hit, idp-shaped on miss, provision, then
  * resolve) need a token-bearing caller and live in the conformance suite's
- * OIDC-posture file (Q-IA-10).
+ * OIDC-posture file.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -82,7 +81,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "identityaccount-domain-test-"));
-    // The operator seam main.ts installs once per process (A5): the
+    // The operator seam main.ts installs once per process: the
     // interceptor stamps callers from it and the boot-time ensure reads it.
     setOperatorIdentity(OPERATOR_EMAIL, OPERATOR_NAME);
     server = await composeServer({
@@ -173,7 +172,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     throw new Error("expected the call to fail");
   }
 
-  describe("the operator account (A2)", () => {
+  describe("the operator account", () => {
     it("a fresh server answers whoAmI with the operator before any client called anything", async () => {
       const me = await query.whoAmI({});
       expect(me.metadata?.id).toBe(accountIdFor(`local|${OPERATOR_EMAIL}`));
@@ -220,7 +219,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
   });
 
-  describe("create (A1)", () => {
+  describe("create", () => {
     it("derives the id from the subject and replaces a caller-supplied id", async () => {
       const created = await platform.create(
         accountInput({
@@ -293,7 +292,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
   });
 
-  describe("update (A1)", () => {
+  describe("update", () => {
     it("refuses a changed subject with FAILED_PRECONDITION and the fixed copy", async () => {
       const created = await platform.create(
         accountInput({ idpId: "auth0|immutable" }),
@@ -325,7 +324,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         }),
       );
       expect(updated.spec?.firstName).toBe("Edited");
-      // The IdP asserted the email; the client cannot rewrite it (A9).
+      // The IdP asserted the email; the client cannot rewrite it.
       expect(updated.spec?.email).toBe(created.spec?.email);
       expect(updated.spec?.isMachineAccount).toBe(false);
       expect(updated.spec?.provisioningMode).toBe(
@@ -334,7 +333,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
   });
 
-  describe("the create RPC is internal to the platform (A7, the cloud#393 gate)", () => {
+  describe("the create RPC is internal to the platform", () => {
     it("a wire user is PERMISSION_DENIED with the cloud's copy, and nothing is written", async () => {
       const before = (
         await server.store.listResources(ApiResourceKind.identity_account)
@@ -451,7 +450,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
   });
 
-  describe("the federation capability, absent (Q-IA-9, §5)", () => {
+  describe("the federation capability, absent", () => {
     // Inputs that pass the boundary validator (chain position 3, before
     // any handler) so the refusal under test is the HANDLER's: the
     // capability is consulted before any lookup or authorization.

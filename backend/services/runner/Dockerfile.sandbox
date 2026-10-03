@@ -9,7 +9,7 @@
 #     docker build --build-arg STIGMER_CLI_VERSION=$(cat backend/services/runner/stage/cli/VERSION) \
 #       -f backend/services/runner/Dockerfile.sandbox .
 #
-# TWO published images derive from one stage chain (DD-014: the compose
+# TWO published images derive from one stage chain (the compose
 # runner derives from the sandbox image; no second runner image is invented):
 #
 #   libs           — builds the runner's file:-linked @stigmer libs
@@ -42,8 +42,8 @@
 # IS allowed — its subprocesses spawn inside this container.
 #
 # Platforms: linux/amd64 + linux/arm64. The historical amd64-only claim
-# (arch-specific Temporal native bindings) was re-verified stale at Phase-2
-# P5: @temporalio/core-bridge ships linux-arm64 prebuilds and loads cleanly;
+# (arch-specific Temporal native bindings) was re-verified stale:
+# @temporalio/core-bridge ships linux-arm64 prebuilds and loads cleanly;
 # the only arch-named asset here is the yq download, parameterized below.
 
 # Layers are cut by what changes them, so a node already holding one build

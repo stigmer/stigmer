@@ -133,7 +133,7 @@ describe("loadServerPayloadCodecs", () => {
     expect(() => loadServerPayloadCodecs()).toThrow(/32 bytes/);
   });
 
-  // The resolvePayloadKey threading (C4 Stage 2): the composed provider's
+  // The resolvePayloadKey threading: the composed provider's
   // capability rides the decode codec as its resolveKey fallback —
   // consulted for key ids outside the env pair, never installed without
   // the env-keyed codec (the named coupling in the module header).

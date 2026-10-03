@@ -266,7 +266,7 @@ export async function executeDoTasks(
 
     const taskDurationMs = Date.now() - taskStartMs;
 
-    // T07: Promote large outputs to artifact store before truncation.
+    // Promote large outputs to artifact store before truncation.
     // If promote is unavailable or the output is small, this is a no-op.
     let promotedOutput = taskOutput;
     let promotionArtifactIds: string[] = [];

@@ -7,7 +7,7 @@
  *     approval-kind subset may pause, see approval-state.ts);
  *  2. reconcile denied (approval-kind) tool calls to WAITING_APPROVAL gate rows
  *     and redact the model's provisional post-denial narration;
- *  3. settle unattended-mode denials as SKIPPED (DD-014);
+ *  3. settle unattended-mode denials as SKIPPED;
  *  4. detect UNATTRIBUTED hook blocks (issue #205) — a tool blocked by a hook
  *     with no ledger entry of any kind was denied by a FOREIGN hook the merge
  *     preserved, and the caller fails the run rather than completing silently;
@@ -227,7 +227,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     }
   }
 
-  // Unattended approval mode (DD-014): denials the hook resolved with the
+  // Unattended approval mode: denials the hook resolved with the
   // non-pausing "unattended" kind never became gates above; settle their
   // streamed rows (FAILED-with-hook-error or interrupted non-terminal) to
   // honest TOOL_CALL_SKIPPED + UNATTENDED_SKIP provenance — the same shape

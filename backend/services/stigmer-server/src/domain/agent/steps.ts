@@ -59,15 +59,15 @@ type AgentDesc = typeof AgentSchema;
  * The narrow in-process surface the agent domain needs from agentinstance —
  * consumer-defined so the dependency reads at the domain boundary (the Go
  * twin is pkg/downstream/agentinstance.Client). Calls ride the in-process
- * router transport, traversing the full interceptor chain (DD-002).
+ * router transport, traversing the full interceptor chain.
  */
 export interface AgentInstanceApplier {
   /**
-   * Applies AS THE ORIGINAL CALLER (C2 Stage 3, ruling R5 — the Java
-   * applyAsCaller posture): the propagated identity gives the default
-   * instance real owner attribution, so its creator can manage it under
-   * an enforcing Authorizer. Pre-R5 this ran as the internal class,
-   * which the cloud's tuple driver deliberately never attributes.
+   * Applies AS THE ORIGINAL CALLER: the propagated identity gives the
+   * default instance real owner attribution, so its creator can manage it
+   * under an enforcing Authorizer. Run as the internal class instead, the
+   * instance would have no owner, since a tuple driver deliberately never
+   * attributes the internal class.
    */
   applyAsCaller(
     instance: AgentInstance,
@@ -77,7 +77,7 @@ export interface AgentInstanceApplier {
 
 /**
  * Lazy provider for the agent↔agentinstance true cycle — resolved at call
- * time, never at construction (the ratified DI story, D2 §2).
+ * time, never at construction.
  */
 export type AgentInstanceApplierProvider = () => AgentInstanceApplier;
 
@@ -316,8 +316,9 @@ export function newMergeMcpServerEnvSpecsStep(
  * Applies (not creates — idempotency) the agent's default instance through
  * the in-process client. Agent delete cascades the default instance, so
  * this normally routes to CREATE; the UPDATE route remains as self-heal for
- * pre-cascade legacy orphans (self-hosters upgrading across the T08
- * release), which Apply recovers by re-pointing agent_id at the new agent.
+ * pre-cascade legacy orphans (self-hosters upgrading from a release
+ * before the cascade), which Apply recovers by re-pointing agent_id at the
+ * new agent.
  *
  * Versus Go: no nil-client skip — the provider is a required dependency
  * (the staged composition root eliminates the nil-then-inject window whose
@@ -384,7 +385,7 @@ export function newCreateDefaultInstanceStep(
  * Writes status.default_instance_id onto the just-persisted agent and
  * re-persists. Reads the id from context (set by CreateDefaultInstance).
  * Fires the driver's default-instance link event AFTER the pointer
- * persists (C2 Stage 3 — the default_of invariant rides the pointer).
+ * persists (the default_of invariant rides the pointer).
  */
 export function newUpdateAgentStatusWithDefaultInstanceStep(
   store: Store,

@@ -4,7 +4,7 @@
  * interrupt?
  *
  * This is the make-or-break question behind installing the approval gate on
- * sub-agent graphs (HITL Phase 2, Slice B). The resume path in `hitl.ts` /
+ * sub-agent graphs. The resume path in `hitl.ts` /
  * `index.ts` reads pending interrupts from the PARENT's top-level
  * `graphState.tasks[].interrupts` and resumes via `Command(resume={taskId: …})`.
  * If a sub-agent interrupt does NOT surface there (or cannot be resumed),

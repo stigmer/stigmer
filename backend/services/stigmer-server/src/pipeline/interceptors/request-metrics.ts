@@ -1,7 +1,6 @@
 /**
  * Request-metrics interceptor — the serving chain's RED emitter, the TS
- * port of the cloud Java `GrpcRequestMetricsInterceptor` (convergence
- * entry 20260909.02, gate rulings Q1–Q5 as recommended). One record per
+ * port of the cloud Java `GrpcRequestMetricsInterceptor`. One record per
  * RPC into `observability/rpc-metrics.ts`: the count and the duration,
  * labelled with the service, the method and the gRPC status name.
  *
@@ -12,7 +11,7 @@
  * position the logging interceptor already holds, so metrics and logs
  * observe the same set of requests: an identity refusal is position 1's
  * own record (auth.ts logs it), never a counted error. The choice has a
- * paging consequence and was ruled, not assumed: `grpc-error-rate-spike`
+ * paging consequence and was decided, not assumed: `grpc-error-rate-spike`
  * counts every non-OK code with no exclusions, and an outermost emitter
  * would page on an expired console tab's retries or an internet scanner
  * at a quiet hour. The disclosed deviation from Java: the caller guards

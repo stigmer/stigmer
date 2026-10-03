@@ -9,8 +9,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * ExecutionFilterCriteria defines structured filter conditions for listing
  * workflow executions. All specified conditions are combined with AND logic.
- *
- * &#64;since T13 (Execution History)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria}
@@ -698,8 +696,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ExecutionFilterCriteria defines structured filter conditions for listing
    * workflow executions. All specified conditions are combined with AND logic.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria}

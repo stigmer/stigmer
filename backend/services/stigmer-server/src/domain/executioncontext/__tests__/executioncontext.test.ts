@@ -25,11 +25,11 @@
  *     activity and both recover steps): found by run id, handed to the
  *     in-process delete edge, idempotent, best-effort, never throws, and a
  *     failed read or delete leaves the operator's WARN with its cause (the
- *     edge's real chain is pinned in extension-composition.test.ts's C2
- *     arm, stigmer#1647).
+ *     edge's real chain is pinned in extension-composition.test.ts's case
+ *     for the server's own delete, stigmer#1647).
  *
  * Keys are injected via env (vi.stubEnv) so the ladder short-circuits
- * before its file steps — the real ~/.stigmer is never touched (DD-002).
+ * before its file steps — the real ~/.stigmer is never touched.
  * Adversarial tokens (expired, forged) are HAND-CRAFTED HS256 JWTs, not
  * sleeps or timer games — determinism is non-negotiable.
  */
@@ -108,7 +108,7 @@ async function startServer(env: Record<string, string>): Promise<TestServer> {
       // a live local Temporal (the conformance CRUD harness does the same).
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
       DB_PATH: path.join(dir, "stigmer.db"),
-      // The skill artifact store + staging wipe (#8) must stay inside the
+      // The skill artifact store + staging wipe must stay inside the
       // test dir — the default resolves to ~/.stigmer/storage.
       STORAGE_PATH: path.join(dir, "storage"),
       // Keep the artifact store inside the test dir — the default

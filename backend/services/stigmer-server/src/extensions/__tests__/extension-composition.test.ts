@@ -185,7 +185,7 @@ describe("extension composition (composed server)", () => {
       (router): void => {
         // Partial implementation is deliberate: the fake pins service
         // VISIBILITY and chain traversal, not the billing contract
-        // (that is C5's job, years of entries away).
+        // (the billing extension's own suites own that).
         router.service(BillingQueryController, {
           getBillingAccount: (input) =>
             create(BillingAccountSchema, { org: input.org }),
@@ -333,7 +333,7 @@ describe("extension composition (enterprise edition on the wire)", () => {
 });
 
 /**
- * The caller-guard arm (entry 20260902.02 ruling Q1): a composed guard
+ * The caller-guard arm: a composed guard
  * is enforced on the SERVING chain and structurally absent from the
  * in-process chain. This is the wiring proof the unit arms cannot give —
  * it pins that compose.ts threads resolved guards into the serving
@@ -416,7 +416,7 @@ describe("extension composition (caller guards)", () => {
 });
 
 /**
- * The require-authentication registry point (entry 20260904.02): a unit
+ * The require-authentication registry point: a unit
  * whose own verifiers are the admission path declares the posture
  * WITHOUT an OSS OIDC issuer, and the serving chain refuses tokenless
  * non-exempt requests exactly as the issuer arm does — the Java copy,
@@ -746,13 +746,13 @@ describe("extension composition (require-authentication posture)", () => {
 });
 
 /**
- * The O5 driver-substitution arm: every consumption site routes through
+ * The driver-substitution arm: every consumption site routes through
  * the composed drivers — the registry lane serves the substituted
  * catalog's document, the platform exchange mints through the substituted
  * credential provider, and the artifact factory selects the registered
  * blob driver by its configured name.
  */
-describe("extension composition (O5 driver substitution)", () => {
+describe("extension composition (driver substitution)", () => {
   const FAKE_DOCUMENT = `{"models":[{"id":"fake/model","harness":"native"}]}`;
   let server: ComposedServer;
   let dir: string;
@@ -819,7 +819,7 @@ describe("extension composition (O5 driver substitution)", () => {
         DB_PATH: path.join(dir, "stigmer.db"),
         STORAGE_PATH: path.join(dir, "storage"),
         // The registered driver serves the GENERIC artifact store; the
-        // skill store stays on its default local arm (Q2b: per-domain).
+        // skill store stays on its default local arm (per-domain).
         ARTIFACT_STORAGE_TYPE: "fake-blob",
         ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
       }),
@@ -862,19 +862,19 @@ describe("extension composition (O5 driver substitution)", () => {
 });
 
 /**
- * The O4 gate-slot + status-hook arms: an extension gate spliced into a
+ * The gate-slot + status-hook arms: an extension gate spliced into a
  * declared slot refuses with its own ConnectError code and copy — before
  * the side effect on a pre-side-effect slot (nothing persisted: the
  * session and organization chains), after it on the post-persist slot
- * (the row survives the failed request, the inherited Java semantics — O4
- * verification V1); the status observers
- * see the terminal updateStatus transition exactly once (the Q4
+ * (the row survives the failed request, the inherited Java semantics);
+ * the status observers
+ * see the terminal updateStatus transition exactly once (the
  * phase-change rule) and the response decorator contributes the control
  * signal on the shared reply schema.
  */
-describe("extension composition (O4 gate slots + status hooks)", () => {
-  const REFUSED_SESSION = "o4-refused-session";
-  const REFUSED_ORG_SLUG = "o4refusedorg";
+describe("extension composition (gate slots + status hooks)", () => {
+  const REFUSED_SESSION = "gate-refused-session";
+  const REFUSED_ORG_SLUG = "gaterefusedorg";
   const PRE_REFUSED_ORG_SLUG = "prerefusedorg";
   let server: ComposedServer;
   let dir: string;
@@ -984,7 +984,7 @@ describe("extension composition (O4 gate slots + status hooks)", () => {
     } catch (error) {
       refused = ConnectError.from(error);
     }
-    // The gate's own code and copy reach the wire (the §3b refusal
+    // The gate's own code and copy reach the wire (the refusal
     // contract: a gate refuses exactly as OSS steps do).
     expect(refused?.code).toBe(Code.PermissionDenied);
     expect(refused?.rawMessage).toBe("fake session gate refuses this session");
@@ -1005,7 +1005,7 @@ describe("extension composition (O4 gate slots + status hooks)", () => {
       create(SessionSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Session",
-        metadata: { name: "o4-allowed-session", org: "acme" },
+        metadata: { name: "gate-allowed-session", org: "acme" },
         spec: { agentInstanceId: "agi_gate_test" },
       }),
     );
@@ -1022,7 +1022,7 @@ describe("extension composition (O4 gate slots + status hooks)", () => {
         create(OrganizationSchema, {
           apiVersion: "tenancy.stigmer.ai/v1",
           kind: "Organization",
-          metadata: { name: "O4 Refused Org", slug: REFUSED_ORG_SLUG },
+          metadata: { name: "Gate Refused Org", slug: REFUSED_ORG_SLUG },
         }),
       );
     } catch (error) {
@@ -1094,7 +1094,7 @@ describe("extension composition (O4 gate slots + status hooks)", () => {
       },
     });
     // The decorator's contribution rides the field the shared reply
-    // schema already carries (§7 — the cloud's control-signal seam).
+    // schema already carries (the cloud's control-signal seam).
     expect(reply.signal).toBe(ExecutionControlSignal.STOP);
     expect(observed).toHaveLength(1);
     expect(observed[0]?.oldPhase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
@@ -1102,7 +1102,7 @@ describe("extension composition (O4 gate slots + status hooks)", () => {
     expect(observed[0]?.execution.metadata?.id).toBe(executionId);
 
     // A repeat report with the phase unchanged decorates the reply but
-    // does NOT re-notify (the Q4 phase-change rule).
+    // does NOT re-notify (the phase-change rule).
     const repeat = await command.updateStatus({
       executionId,
       status: {
@@ -1116,7 +1116,7 @@ describe("extension composition (O4 gate slots + status hooks)", () => {
   });
 });
 
-describe("extension composition (C2 tuple lifecycle + organization directory)", () => {
+describe("extension composition (tuple lifecycle + organization directory)", () => {
   let server: ComposedServer;
   let dir: string;
   let portTransport: Transport;
@@ -1160,9 +1160,9 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
   // Providers by `org/slug` → id, and mappings by `providerId:externalId`:
   // the directory scopes every lookup to the provider the request names.
   const providers = new Map<string, string>([
-    ["c2seededorg/test-idp", "idp_viewable"],
-    ["c2seededorg/other-idp", "idp_other"],
-    ["c2seededorg/hidden-idp", "idp_hidden"],
+    ["seededorg/test-idp", "idp_viewable"],
+    ["seededorg/other-idp", "idp_other"],
+    ["seededorg/hidden-idp", "idp_hidden"],
   ]);
   const externalOrgMap = new Map<string, string>();
   const fakeDirectory: OrganizationDirectory = {
@@ -1235,7 +1235,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       create(OrganizationSchema, {
         apiVersion: "tenancy.stigmer.ai/v1",
         kind: "Organization",
-        metadata: { name: "C2 Seeded Org", slug: "c2seededorg" },
+        metadata: { name: "Seeded Org", slug: "seededorg" },
       }),
     );
     expect(createdEvents).toHaveLength(1);
@@ -1257,8 +1257,8 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Agent",
         metadata: {
-          name: "c2-seeded-agent",
-          org: "c2seededorg",
+          name: "seeded-agent",
+          org: "seededorg",
           visibility: ApiResourceVisibility.visibility_org,
         },
         spec: { instructions: "a conformant instruction body" },
@@ -1276,7 +1276,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       {
         relation: "organization",
         parentKind: ApiResourceKind.organization,
-        parentId: "c2seededorg",
+        parentId: "seededorg",
       },
     ]);
     expect(agentEvent?.visibilityShapes).toEqual(["org-viewer"]);
@@ -1297,8 +1297,8 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Agent",
         metadata: {
-          name: "c2-visibility-agent",
-          org: "c2seededorg",
+          name: "seeded-visibility-agent",
+          org: "seededorg",
           visibility: ApiResourceVisibility.visibility_org,
         },
         spec: { instructions: "a conformant instruction body" },
@@ -1323,7 +1323,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       create(AgentSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Agent",
-        metadata: { name: "c2-deleted-agent", org: "c2seededorg" },
+        metadata: { name: "seeded-deleted-agent", org: "seededorg" },
         spec: { instructions: "a conformant instruction body" },
       }),
     );
@@ -1340,7 +1340,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       create(AgentSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Agent",
-        metadata: { name: "c2-orphaned-agent", org: "c2seededorg" },
+        metadata: { name: "seeded-orphaned-agent", org: "seededorg" },
         spec: { instructions: "a conformant instruction body" },
       }),
     );
@@ -1379,7 +1379,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
 
     function expectOneCallerAndOrganization(events: ReadonlyArray<ResourceDeletedEvent>): void {
       for (const event of events) {
-        expect(event.orgId, `${ApiResourceKind[event.kind]} ${event.resourceId}`).toBe("c2seededorg");
+        expect(event.orgId, `${ApiResourceKind[event.kind]} ${event.resourceId}`).toBe("seededorg");
         expect(event.caller).toEqual(events.at(-1)?.caller);
       }
     }
@@ -1390,7 +1390,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
         create(AgentSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "Agent",
-          metadata: { name: "c2-cascade-agent", org: "c2seededorg" },
+          metadata: { name: "seeded-cascade-agent", org: "seededorg" },
           spec: { instructions: "a conformant instruction body" },
         }),
       );
@@ -1398,19 +1398,19 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       const personal = await createClient(AgentInstanceCommandController, portTransport).create({
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "AgentInstance",
-        metadata: { name: "c2-cascade-personal", org: "c2seededorg" },
+        metadata: { name: "seeded-cascade-personal", org: "seededorg" },
         spec: { agentId },
       });
       // Shares are seeded as the agent domain suite seeds them; the cascade
       // finds a share by its agent reference.
       await server.store.saveResource(
         ApiResourceKind.agent_share,
-        "ash_c2_cascade",
+        "ash_seeded_cascade",
         AgentShareSchema,
         create(AgentShareSchema, {
-          metadata: { id: "ash_c2_cascade", name: "c2-cascade-share", org: "c2seededorg" },
+          metadata: { id: "ash_seeded_cascade", name: "seeded-cascade-share", org: "seededorg" },
           spec: {
-            agentRef: { kind: ApiResourceKind.agent, org: "c2seededorg", slug: agent.metadata?.slug ?? "" },
+            agentRef: { kind: ApiResourceKind.agent, org: "seededorg", slug: agent.metadata?.slug ?? "" },
           },
         }),
       );
@@ -1421,7 +1421,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       const children: Array<[ApiResourceKind, string]> = [
         [ApiResourceKind.agent_instance, agent.status?.defaultInstanceId ?? ""],
         [ApiResourceKind.agent_instance, personal.metadata?.id ?? ""],
-        [ApiResourceKind.agent_share, "ash_c2_cascade"],
+        [ApiResourceKind.agent_share, "ash_seeded_cascade"],
       ];
       children.sort((a, b) => a[1].localeCompare(b[1]));
       expect(cascadeOrder(deletedEvents)).toEqual([...children, [ApiResourceKind.agent, agentId]]);
@@ -1434,9 +1434,9 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
         create(WorkflowSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "Workflow",
-          metadata: { name: "c2-cascade-workflow", org: "c2seededorg" },
+          metadata: { name: "seeded-cascade-workflow", org: "seededorg" },
           spec: {
-            document: { dsl: "1.0.0", namespace: "tests", name: "c2-cascade", version: "0.1.0" },
+            document: { dsl: "1.0.0", namespace: "tests", name: "seeded-cascade", version: "0.1.0" },
             tasks: [{ name: "seed", kind: 1, taskConfig: { variables: { greeting: "hello" } } }],
           },
         }),
@@ -1446,7 +1446,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
         create(WorkflowInstanceSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "WorkflowInstance",
-          metadata: { name: "c2-cascade-extra", org: "c2seededorg" },
+          metadata: { name: "seeded-cascade-extra", org: "seededorg" },
           spec: { workflowId },
         }),
       );
@@ -1472,7 +1472,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
         create(SessionSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "Session",
-          metadata: { id: sessionId, name: "c2-cascade-session", org: "c2seededorg" },
+          metadata: { id: sessionId, name: "seeded-cascade-session", org: "seededorg" },
           spec: { agentInstanceId: "ain_c2_cascade" },
         }),
       );
@@ -1485,7 +1485,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
           create(AgentExecutionSchema, {
             apiVersion: "agentic.stigmer.ai/v1",
             kind: "AgentExecution",
-            metadata: { id: runId, name: runId, org: "c2seededorg" },
+            metadata: { id: runId, name: runId, org: "seededorg" },
             spec: { sessionId },
             status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
           }),
@@ -1508,7 +1508,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
         create(AgentSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "Agent",
-          metadata: { name: "c2-cascade-unclean", org: "c2seededorg" },
+          metadata: { name: "seeded-cascade-unclean", org: "seededorg" },
           spec: { instructions: "a conformant instruction body" },
         }),
       );
@@ -1543,7 +1543,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
         create(AgentSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "Agent",
-          metadata: { name: "c2-halfcreated-agent", org: "c2seededorg" },
+          metadata: { name: "seeded-halfcreated-agent", org: "seededorg" },
           spec: { instructions: "a conformant instruction body" },
         }),
       );
@@ -1557,17 +1557,17 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     // The step runs post-persist: the row survived the failed request
     // (ids are generated, so the surviving row is found by reference).
     const half = await query.getByReference({
-      org: "c2seededorg",
-      slug: "c2-halfcreated-agent",
+      org: "seededorg",
+      slug: "seeded-halfcreated-agent",
     });
-    expect(half.metadata?.name).toBe("c2-halfcreated-agent");
+    expect(half.metadata?.name).toBe("seeded-halfcreated-agent");
   });
 
   it("the directory's enumeration refusal answers UNIMPLEMENTED on a valid find", async () => {
     const query = createClient(OrganizationQueryController, portTransport);
     let refused: ConnectError | undefined;
     try {
-      await query.find({ org: "c2seededorg", pageSize: 10, pageNumber: 1 });
+      await query.find({ org: "seededorg", pageSize: 10, pageNumber: 1 });
     } catch (error) {
       refused = ConnectError.from(error);
     }
@@ -1584,7 +1584,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     const query = createClient(OrganizationQueryController, portTransport);
     lookupChecks.length = 0;
     const org = await query.getByExternalOrgId({
-      identityProviderRef: { org: "c2seededorg", slug: "test-idp" },
+      identityProviderRef: { org: "seededorg", slug: "test-idp" },
       externalOrgId: "ext-org-42",
     });
     expect(org.metadata?.id).toBe(myOrgIds[0]);
@@ -1602,7 +1602,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     for (const externalOrgId of ["ext-org-42", "ext-org-unknown"]) {
       const refused = await refusalOf(
         query.getByExternalOrgId({
-          identityProviderRef: { org: "c2seededorg", slug: "hidden-idp" },
+          identityProviderRef: { org: "seededorg", slug: "hidden-idp" },
           externalOrgId,
         }),
       );
@@ -1620,7 +1620,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     ] as const) {
       const missing = await refusalOf(
         query.getByExternalOrgId({
-          identityProviderRef: { org: "c2seededorg", slug },
+          identityProviderRef: { org: "seededorg", slug },
           externalOrgId,
         }),
       );
@@ -1637,12 +1637,12 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
   it("the server's own delete of an execution context cleans it as its delete RPC would", async () => {
     const command = createClient(ExecutionContextCommandController, server.inProcessTransport);
     const query = createClient(ExecutionContextQueryController, server.inProcessTransport);
-    const executionId = "aex_c2_internal_delete";
+    const executionId = "aex_internal_delete";
     const context = await command.create(
       create(ExecutionContextSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "ExecutionContext",
-        metadata: { name: `exec-ctx-${executionId}`, org: "c2seededorg" },
+        metadata: { name: `exec-ctx-${executionId}`, org: "seededorg" },
         spec: { executionId },
       }),
     );
@@ -1665,7 +1665,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     await deleteExecutionContextAsTheServer(executionId);
 
     expect(deletedEvents.map((event) => [event.kind, event.resourceId, event.orgId])).toEqual([
-      [ApiResourceKind.execution_context, contextId, "c2seededorg"],
+      [ApiResourceKind.execution_context, contextId, "seededorg"],
     ]);
     expect(await searchRows(), "the search row went with the context").toBe(0);
     let getError: ConnectError | undefined;
@@ -1694,7 +1694,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
 
   // The run audience of a workflow instance (`spec.execution_visibility`):
   // open source derives `execution_viewer` from the row when a check asks;
-  // an edition that stores tuples hears it here (stigmer-cloud#720). The
+  // an edition that stores tuples hears it here. The
   // event carries the audience the level now names — the whole target
   // state, so a retry or a repeat converges — and fires from the two doors
   // that may set the level: create, and the dedicated RPC. Update and Apply
@@ -1711,9 +1711,9 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
         create(WorkflowSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "Workflow",
-          metadata: { name: "c2-run-audience-workflow", org: "c2seededorg" },
+          metadata: { name: "seeded-run-audience-workflow", org: "seededorg" },
           spec: {
-            document: { dsl: "1.0.0", namespace: "tests", name: "c2-run-audience", version: "0.1.0" },
+            document: { dsl: "1.0.0", namespace: "tests", name: "seeded-run-audience", version: "0.1.0" },
             tasks: [{ name: "seed", kind: 1, taskConfig: { variables: { greeting: "hello" } } }],
           },
         }),
@@ -1725,7 +1725,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       return create(WorkflowInstanceSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "WorkflowInstance",
-        metadata: { name, org: "c2seededorg" },
+        metadata: { name, org: "seededorg" },
         spec: { workflowId, executionVisibility: level },
       });
     }
@@ -1735,14 +1735,14 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       // at the unset level, which names no audience.
       expect(executionVisibilityEvents).toEqual([]);
       const shared = await instances().create(
-        instanceInput("c2-shared-runs", WorkflowExecutionVisibility.organization),
+        instanceInput("seeded-shared-runs", WorkflowExecutionVisibility.organization),
       );
-      await instances().create(instanceInput("c2-private-runs", WorkflowExecutionVisibility.private));
+      await instances().create(instanceInput("seeded-private-runs", WorkflowExecutionVisibility.private));
       expect(executionVisibilityEvents).toEqual([
         {
           instanceKind: ApiResourceKind.workflow_instance,
           instanceId: shared.metadata?.id,
-          orgId: "c2seededorg",
+          orgId: "seededorg",
           shapes: ["org-viewer"],
         },
       ]);
@@ -1750,7 +1750,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
 
     it("updateExecutionVisibility fires the level's audience every time, the empty one included", async () => {
       const instance = await instances().create(
-        instanceInput("c2-toggled-runs", WorkflowExecutionVisibility.private),
+        instanceInput("seeded-toggled-runs", WorkflowExecutionVisibility.private),
       );
       const id = instance.metadata?.id ?? "";
       executionVisibilityEvents.length = 0;
@@ -1770,7 +1770,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
 
     it("update and apply keep the stored level whatever the request carries, and fire nothing", async () => {
       const instance = await instances().create(
-        instanceInput("c2-kept-runs", WorkflowExecutionVisibility.organization),
+        instanceInput("seeded-kept-runs", WorkflowExecutionVisibility.organization),
       );
       const id = instance.metadata?.id ?? "";
       executionVisibilityEvents.length = 0;
@@ -1791,7 +1791,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
 
     it("a driver failure fails the RPC with the level already persisted; the retry converges", async () => {
       const instance = await instances().create(
-        instanceInput("c2-retried-runs", WorkflowExecutionVisibility.private),
+        instanceInput("seeded-retried-runs", WorkflowExecutionVisibility.private),
       );
       const id = instance.metadata?.id ?? "";
       failExecutionVisibility = true;

@@ -1,5 +1,5 @@
 /**
- * Unit tests for the DD-E secret-safety gate. These pin the block-vs-capture
+ * Unit tests for the secret-safety gate. These pin the block-vs-capture
  * decision that keeps secret bytes out of durable CAS storage; the same corpus
  * intent will be mirrored cross-edition.
  */

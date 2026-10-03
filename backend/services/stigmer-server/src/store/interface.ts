@@ -1,10 +1,10 @@
 /**
  * Storage contract — ports backend/libs/go/store/interface.go
- * surface-for-surface (D2 §3, DD-003).
+ * surface-for-surface.
  *
- * The interface is async even though the phase-1 node:sqlite driver is
- * synchronous: the phase-2 Postgres driver is async by nature, and the
- * contract must be implementable by both (D2 §3, Postgres-reserved seams).
+ * The interface is async even though the node:sqlite driver is
+ * synchronous: the Postgres driver is async by nature, and the contract
+ * must be implementable by both.
  * The sqlite driver simply resolves immediately.
  *
  * Mechanics are idiomatic TS where Go's are Go-specific: methods RETURN
@@ -15,13 +15,13 @@
  * names keep every "is this what Go does?" review one hop away.
  *
  * Three surfaces that Go kept OUTSIDE store.Store are deliberate members
- * here (D2 §3 — the `DB()` escape hatch is not ported; OD-3):
+ * here (the `DB()` escape hatch is not ported):
  *   - bootstrapState  — concrete-type-only methods in Go (sqlite/store.go)
  *   - signalDedupe    — pkg/domain/workflowexecution/dedupe (via DB())
  *   - oauthGrants / pendingOAuthStates — pkg/domain/mcpserver/oauth (via DB())
  * They are grouped sub-stores rather than flat methods so their Go method
  * names (claim, markDelivered, release, upsert, find, save, getAndDelete…)
- * survive verbatim for the #19/#20 domain ports.
+ * survive verbatim for the domain ports.
  *
  * Proven by the driver unit tests (sqlite/__tests__/) and, end-to-end, by
  * every conformance suite on CONFORMANCE_TARGET=local.
@@ -151,9 +151,9 @@ export interface SearchIndexEntry {
 }
 
 /**
- * Parameters for one search-index read, stated engine-neutrally (DD-009:
- * each driver renders its own engine's query syntax; OD-3: the SQL lives
- * in the driver, the search service composes criteria). The caller
+ * Parameters for one search-index read, stated engine-neutrally (each
+ * driver renders its own engine's query syntax; the SQL lives in the
+ * driver, the search service composes criteria). The caller
  * guarantees `kinds` is non-empty — the empty effective-kind set
  * short-circuits ABOVE the store (stigmer/stigmer#440), never as an
  * `IN ()` syntax accident here.
@@ -175,7 +175,7 @@ export interface SearchIndexQuery {
   readonly orgFilter: string;
   /**
    * Optional per-kind authorized-id allowlist (kind NAME → ids) — the
-   * multi-tenant list-read scoping arm (20260830.01): a listed kind
+   * multi-tenant list-read scoping arm: a listed kind
    * matches only rows whose resource_id is in its set, and an EMPTY set
    * matches nothing for that kind (each driver renders it without ever
    * emitting an `IN ()` accident); kinds absent from the map are
@@ -199,8 +199,7 @@ export interface SearchIndexHit {
    * Wire-ready relevance: 0–1, higher = better, exactly 1.0 in list
    * mode. Each driver normalizes from its own engine's ranking; absolute
    * values and cross-driver ordering are NOT contract — only
-   * deterministic ordering WITHIN a driver is (DD-009; the driver-side
-   * normalization is this sub-project's DD-001).
+   * deterministic ordering WITHIN a driver is.
    */
   readonly score: number;
 }
@@ -239,7 +238,7 @@ export interface BootstrapStateStore {
 }
 
 // =============================================================================
-// Signal dedupe (Go: pkg/domain/workflowexecution/dedupe, Gap B2 / oss#442)
+// Signal dedupe (Go: pkg/domain/workflowexecution/dedupe, oss#442)
 // =============================================================================
 
 /**
@@ -398,7 +397,7 @@ export interface OrganizationSlugStore {
 }
 
 // =============================================================================
-// MCP OAuth (Go: pkg/domain/mcpserver/oauth, tables consolidated by v7 / OD-3)
+// MCP OAuth (Go: pkg/domain/mcpserver/oauth, tables consolidated by migration v7)
 // =============================================================================
 
 /**
@@ -554,8 +553,8 @@ export interface Store {
    * Atomic read-modify-write: reads the resource, applies `modify` (which
    * mutates the message in place), persists the result — all inside a
    * write transaction (BEGIN IMMEDIATE) so concurrent updates never
-   * overwrite each other (D2 §2; load-then-save stays banned in status
-   * paths carrying append-only event streams).
+   * overwrite each other (load-then-save stays banned in status paths
+   * carrying append-only event streams).
    *
    * `modify` MUST be synchronous: the sqlite driver holds an open write
    * transaction on the sole connection while it runs, and an `await` in
@@ -607,8 +606,8 @@ export interface Store {
    * Finds a single resource whose field at `fieldPath` (dot notation, e.g.
    * "spec.executionId"; camelCase parts fall back to snake_case) equals
    * `value`. Full-scan + proto reflection, exactly as Go — indexability is
-   * guaranteed at the interface, physical indexing is the phase-2 driver's
-   * concern (D2 §3). Throws ResourceNotFoundError if none match.
+   * guaranteed at the interface, physical indexing is each driver's
+   * concern. Throws ResourceNotFoundError if none match.
    */
   findByField<Desc extends DescMessage>(
     kind: ApiResourceKind,
@@ -648,7 +647,7 @@ export interface Store {
   ): Promise<Uint8Array[]>;
 
   // ---------------------------------------------------------------------------
-  // The maintenance surface (20260830.04 Stage 1, ruling Q3) — the
+  // The maintenance surface — the
   // secret-convergence sweep's storage contract, mirroring the cloud
   // repository primitives (AbstractPostgresApiResourceRepository.
   // findRawOrderedAfter / replaceDataIfUnchanged). Blessed exports:
@@ -790,8 +789,8 @@ export interface Store {
    * Single archived version by exact hash, authoritative tag included.
    * Duplicate rows for one (kind, resourceId, versionHash) are LEGAL data
    * (skill re-push archives prior content as a fresh row; pre-#341
-   * workflow rows) — newest wins, matching every other audit read
-   * (stigmer/stigmer-cloud#191). Throws AuditNotFoundError if absent.
+   * workflow rows) — newest wins, matching every other audit read.
+   * Throws AuditNotFoundError if absent.
    */
   getAuditRecordByHash(
     kind: ApiResourceKind,
@@ -847,7 +846,7 @@ export interface Store {
   // ---------------------------------------------------------------------------
   // Schedule runs (fire ledger — every fire leaves a row, incl. fires that
   // created no execution: the only durable trace of a refused launch gate
-  // below the auto-pause threshold; stigmer-cloud project DD-017 D-7)
+  // below the auto-pause threshold)
   // ---------------------------------------------------------------------------
 
   /**
@@ -915,9 +914,9 @@ export interface Store {
    * empty page at zero matches, then the ranked page — order is
    * deterministic within the driver (relevance in search mode, newest
    * first in list mode). Engine query syntax and score normalization are
-   * rendered INSIDE the driver from the structured query (DD-009; OD-3:
-   * no DB() escape hatch — the driver owns the SQL, the search service
-   * owns criteria and conversion).
+   * rendered INSIDE the driver from the structured query (no DB() escape
+   * hatch — the driver owns the SQL, the search service owns criteria
+   * and conversion).
    */
   querySearchIndex(query: SearchIndexQuery): Promise<SearchIndexQueryResult>;
 
@@ -928,7 +927,7 @@ export interface Store {
   clearSearchIndex(): Promise<void>;
 
   // ---------------------------------------------------------------------------
-  // Consolidated sub-stores (D2 §3 — inside the boundary, no DB() hatch)
+  // Consolidated sub-stores (inside the boundary, no DB() hatch)
   // ---------------------------------------------------------------------------
 
   readonly bootstrapState: BootstrapStateStore;

@@ -1077,7 +1077,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     expect(tc.approvalContentDigest).not.toBe("");
   });
 
-  it("does NOT overlay a secret-like write's content (DD-26 #2 defensive guard)", async () => {
+  it("does NOT overlay a secret-like write's content (defensive guard)", async () => {
     // Normally unreachable — the hook hard-blocks a secret write and records no
     // ledger entry — but if a hook classify failure fell one through with content,
     // that content must still never reach args / args_preview / the digest.
@@ -1673,7 +1673,7 @@ describe("watchDenialLedger", () => {
 // instead of the silent completion the issue describes. These pin the whole
 // attribution matrix.
 describe("detectUnattributedHookBlocks (issue #205)", () => {
-  // Cursor's generic replacement text for a hook deny (Phase 0 ground truth).
+  // Cursor's generic replacement text for a hook deny (observed ground truth).
   const HOOK_BLOCK = "Command blocked by a hook. Check the hooks configuration.";
 
   const failedShell = (id: string, command: string, error: string = HOOK_BLOCK) =>
@@ -1829,7 +1829,7 @@ describe("reconcileDeniedToolCalls — non-approval kinds never gate", () => {
   });
 });
 
-describe("stampUnattendedSkippedToolCalls (DD-014)", () => {
+describe("stampUnattendedSkippedToolCalls", () => {
   it("settles a hook-blocked FAILED row to SKIPPED with UNATTENDED_SKIP provenance", () => {
     const denied = toolCall({
       id: "u1", name: "shell", status: ToolCallStatus.TOOL_CALL_FAILED,
@@ -1846,7 +1846,7 @@ describe("stampUnattendedSkippedToolCalls (DD-014)", () => {
     expect(denied.approvalPolicySource).toBe(ApprovalPolicySource.UNATTENDED_SKIP);
     expect(denied.error).toBe("");
     expect(denied.result).toContain("skipped automatically");
-    // Server-owned human-decision fields stay untouched (DD-014 D-e).
+    // Server-owned human-decision fields stay untouched.
     expect(denied.approvalAction).toBe(ApprovalAction.UNSPECIFIED);
   });
 
@@ -1943,7 +1943,7 @@ describe("generateHookScript ledger wiring", () => {
     // CAS staging-error fail-closed deny, and the missing-state-file failsafe.
     expect(script).toContain('record_denial "$PRIMARY_TOKEN" "approval"');
     expect(script).toContain('record_denial "$MCP_TOKEN" "approval"');
-    // DD-014: both approval arms have an unattended-resolution sibling.
+    // Both approval arms have an unattended-resolution sibling.
     expect(script).toContain('record_denial "$PRIMARY_TOKEN" "unattended"');
     expect(script).toContain('record_denial "$MCP_TOKEN" "unattended"');
     expect(script.split('"secret"').length - 1).toBeGreaterThanOrEqual(2);

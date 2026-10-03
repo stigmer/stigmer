@@ -2,8 +2,7 @@
  * McpServer connect workflow wire identifiers — cross-edition constants
  * copied character-for-character from Go (connect.go:31-32, 584-586), plus
  * the connect sandbox's task queue (stigmer/stigmer#1474), which a
- * sandboxed runner polls. Renaming one is a wire protocol break
- * (guidelines §2).
+ * sandboxed runner polls. Renaming one is a wire protocol break.
  */
 
 /** The runner's connect workflow type (Go connectWorkflowName). */

@@ -167,7 +167,7 @@ export interface PromptBuilderInput {
    */
   approvedPlanPath?: string;
   /**
-   * Rollover context bridge (cloud DD-013): a digest of the previous
+   * Rollover context bridge: a digest of the previous
    * session's conversation, read from `SessionSpec.metadata`. Injected on
    * EVERY turn by design: the native system prompt is rebuilt per
    * invocation (never checkpointed with the message history), so a
@@ -201,7 +201,7 @@ export interface PromptBuilderInput {
    */
   declaredPreferences?: DeclaredPreferencesContent;
   /**
-   * The subject's confirmed memories (stigmer/stigmer#293 Phase 2, DD-006):
+   * The subject's confirmed memories (stigmer/stigmer#293):
    * consent-gated facts server-snapshotted onto the execution spec's
    * `recalled_memories` at create. Injected on EVERY turn like the
    * preferences — the native system prompt is rebuilt per invocation, so a
@@ -295,12 +295,12 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
 export interface TurnMessageInput {
   /** What the user typed (`spec.message`); never mutated. */
   readonly message: string;
-  /** The conversation catchup digest (cloud DD-006), when the turn carries one. */
+  /** The conversation catchup digest, when the turn carries one. */
   readonly conversationCatchup?: string;
   /** This turn's resolved input files, as the runtime's attachment phase returns them. */
   readonly inputFiles: readonly ResolvedAttachment[];
   /**
-   * Vision facts about this turn's attachments (T04): which images the model
+   * Vision facts about this turn's attachments: which images the model
    * sees inline in this same message and which degraded to path-only.
    * Rendered inside the Input Files section.
    */
@@ -318,11 +318,11 @@ export interface TurnMessageInput {
 /**
  * Compose the turn's USER MESSAGE for the graph invocation: this turn's
  * payload (its input files, then the workspace paths it references), then the
- * framed conversation catchup (cloud DD-006), then what the user typed, each
+ * framed conversation catchup, then what the user typed, each
  * set off by a horizontal rule. Payload first and context closest to the task
  * is the Cursor harness's resumed-turn order.
  *
- * In the user message and never the system prompt (A27, and the module
+ * In the user message and never the system prompt (see the module
  * header): the system prompt is rebuilt per invocation, so a turn's content
  * there would vanish one turn later and, while it lasted, change the cached
  * prefix; a message enters the checkpointer with the turn and persists in

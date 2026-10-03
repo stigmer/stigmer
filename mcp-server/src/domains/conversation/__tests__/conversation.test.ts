@@ -3,13 +3,13 @@
 // stubbed conversation service, real MCP client over an in-memory
 // transport).
 //
-// Verifies the DD-008 D-b / A14 / A15 contract surface:
+// Verifies the conversation roster's contract surface:
 //   - the conversation-only roster is exactly escalate_to_human with a
 //     single `reason` argument (agent audience — identity is
 //     server-derived, so nothing else exists to send);
-//   - the success answer is the A15 fixed copy, never the RPC's
+//   - the success answer is the fixed copy, never the RPC's
 //     ChannelConversation row, and claims nothing the platform cannot
-//     keep (no console claim until the T04+ surface renders attention);
+//     keep (it makes no console claim);
 //   - the conversation-own error mapper passes domain messages verbatim
 //     as {error, code} JSON — including NOT_FOUND, this domain's
 //     deliberate addition — while transport errors delegate to the
@@ -92,13 +92,13 @@ afterAll(async () => {
   await new Promise<void>((resolve) => backend.close(() => resolve()));
 });
 
-describe("conversation roster (DD-008 D-c / A14)", () => {
+describe("conversation roster", () => {
   it("exposes exactly escalate_to_human with a single reason argument", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual(["escalate_to_human"]);
 
     // The conversation identity is server-derived from the session
-    // credential's channel labels (the DD-003 identity doctrine), so
+    // credential's channel labels (identity is never caller-supplied), so
     // reason is the ONLY argument — a channel or conversation id here
     // would be a caller-supplied identity the reach must never trust.
     const properties = (tools[0].inputSchema as { properties?: Record<string, unknown> })
@@ -114,7 +114,7 @@ describe("conversation roster (DD-008 D-c / A14)", () => {
   });
 });
 
-describe("the success answer is the A15 copy, not the row", () => {
+describe("the success answer is the fixed copy, not the row", () => {
   it("sends the reason verbatim and answers with fixed copy", async () => {
     escalateResponse = () =>
       create(ChannelConversationSchema, {
@@ -133,7 +133,7 @@ describe("the success answer is the A15 copy, not the row", () => {
 
     const text = result.content[0]?.text ?? "";
     expect(text).toContain("recorded on this conversation");
-    // A15: the answer instructs against the promise at the moment of
+    // The answer instructs against the promise at the moment of
     // temptation — the model's next message to the customer.
     expect(text).toContain("do not");
     // The row must never leak back: its control state and conversation
@@ -141,9 +141,9 @@ describe("the success answer is the A15 copy, not the row", () => {
     // narrate platform state to the customer.
     expect(text).not.toContain("919000000001");
     expect(text).not.toContain("needs_attention");
-    // No console surface renders attention yet (T04+); the copy must
-    // not claim one. Delete this pin when the Conversations surface
-    // ships and the copy gains the claim.
+    // The copy makes no console claim, though the console now renders
+    // attention (sdk/react ConversationAttentionBanner); adding the claim
+    // is a copy change that updates this pin.
     expect(text.toLowerCase()).not.toContain("console");
   });
 });

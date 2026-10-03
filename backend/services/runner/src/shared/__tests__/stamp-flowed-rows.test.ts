@@ -2,7 +2,7 @@
  * Unit tests for the shared turn-boundary flowed-row stamping
  * (`shared/tool-row.ts` `stampFlowedFileEditRows` /
  * `stampFlowedSubAgentFileEditRows`; the deep-agent's copy until #1096), with
- * emphasis on the sub-agent path added by the DD-24 follow-up: sub-agent edit
+ * emphasis on the sub-agent path: sub-agent edit
  * rows fold into the parent turn's change set, so they carry the parent change
  * set id, scoped to this turn by tool-call-id novelty (they lack the
  * already-stamped/hidden shields the top-level pass has). The `flowed`
@@ -125,7 +125,7 @@ describe("stampFlowedSubAgentFileEditRows", () => {
     expect(spanning.messages[1].toolCalls[0].fileChangeSetId).toBe("exec-1:1"); // continuation stamped
   });
 
-  it("withholds content for a sub-agent write to a tracked secret-like path (DD-12 D4 inherited)", () => {
+  it("withholds content for a sub-agent write to a tracked secret-like path (the parent's rule, inherited)", () => {
     const sub = subAgent("sa-1", editMessage("sa-tc-secret", "config/credentials.json"));
 
     stampFlowedSubAgentFileEditRows([sub], CHANGE_SET_ID, new Set());

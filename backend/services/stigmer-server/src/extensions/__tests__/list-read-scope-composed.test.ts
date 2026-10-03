@@ -1,19 +1,19 @@
 /**
- * Pins the ListReadScope seam END TO END (20260830.01.sp.list-read-scoping):
+ * Pins the ListReadScope seam END TO END:
  * one composed server with a fake scope extension, probed over the wire —
  * transport → registered handler → the compose.ts driver wiring → the
  * scope. Representative lanes from each consumer family:
  *
- *   - session.list (restrict verb, no org intersection — census lane 1),
- *   - apikey.findAll (restrict verb through the direct-read tail, lane 9),
+ *   - session.list (restrict verb, no org intersection),
+ *   - apikey.findAll (restrict verb through the direct-read tail),
  *   - channelapp.listByOrg (restrict verb behind the domain's own org
  *     predicate: the scope is offered the request org's rows only, the
  *     listByOrg family's shape; stigmer/stigmer#1384),
  *   - workflowexecution.list (restrict verb + the org arm: non-blank
- *     narrows, blank spans orgs — lane 6),
- *   - activity.listRecentActivity (enumeration verb, two kinds — lane 22),
+ *     narrows, blank spans orgs),
+ *   - activity.listRecentActivity (enumeration verb, two kinds),
  *   - search (enumeration verb feeding the engine allowlist, and the
- *     proof that no request shape bypasses it — lane 21),
+ *     proof that no request shape bypasses it),
  *   - the OUTAGE arm: a throwing scope answers the sanitized INTERNAL,
  *     never an empty (or full!) list;
  *   - the SERVER'S OWN reads over `inProcessTransport` (stigmer#1207):

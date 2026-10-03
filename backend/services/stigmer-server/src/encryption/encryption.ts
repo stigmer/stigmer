@@ -4,9 +4,8 @@
  * SecretService identity every domain already holds.
  *
  * Provenance: began as a port of pkg/encryption/encryption.go (the
- * retired Go server, single static-key format); reshaped by the pre-X1
- * sealing slice (20260830.04 Stage 1, rulings Q1/Q2) into the port of the
- * cloud edition's SecretEncryptionService + SecretCodecRegistry so the
+ * retired Go server, single static-key format); reshaped into the port of
+ * the cloud edition's SecretEncryptionService + SecretCodecRegistry so the
  * cloud composition can register the vault-backed enc:v2/v3 codecs
  * through the `secretCodecs` extension driver point. The v1 crypto lives
  * in v1-codec.ts; the taxonomy in errors.ts; the scope in scope.ts.
@@ -111,8 +110,8 @@ const VERSION_TOKEN = /^v(\d+)$/;
  * Go IsCiphertextShaped: whether a value merely has the SHAPE of
  * ciphertext — the enc:v<N>: prefix — regardless of whether it is genuine.
  *
- * This is the request-boundary provenance test (oss#395, the Go twin of
- * cloud#229): the prefix is a server-reserved sentinel, so client-supplied
+ * This is the request-boundary provenance test (oss#395): the prefix is a
+ * server-reserved sentinel, so client-supplied
  * values matching it must be rejected with INVALID_ARGUMENT before they
  * reach encrypt(), whose idempotent pass-through would otherwise persist
  * them verbatim (letting a client store forged ciphertext that
@@ -292,7 +291,7 @@ export class SecretService {
    * Encrypts a batch capped at the v2 envelope format: the write codec
    * when the write version is v1 or v2, the v2 codec when the write
    * version is above it. The generalization of the Java facade's
-   * encryptAllV2 pin (vault project DD-005) for a family that includes
+   * encryptAllV2 pin for a family that includes
    * v1-only OSS deployments — see the executioncontext rationale:
    * ephemeral values on a latency-budgeted read path, sealed where v2
    * costs one batched Transit round trip and v3 (no KV batch endpoint,
@@ -379,7 +378,7 @@ export class SecretService {
    * v1/v2 values are no-ops by codec contract (their stored string IS
    * the value). Call sites are resource-delete and key-removal paths
    * whose database write already succeeded, so callers treat failures as
-   * best-effort (the Stage 3 wiring owns that posture).
+   * best-effort.
    */
   async delete(storedValue: string): Promise<void> {
     const token = versionTokenOf(storedValue);

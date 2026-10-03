@@ -158,7 +158,7 @@ export const BEST_EFFORT_CONNECT_GET_BUFFER_MS = 15_000;
 /**
  * The narrow environment read surface the connect lanes consume for
  * personal-environment resolution — satisfied by the composition root's
- * in-process clients (DD-002: full interceptor traversal).
+ * in-process clients (full interceptor traversal).
  */
 export interface ConnectEnvironmentReader {
   getSecretValue(
@@ -171,8 +171,8 @@ export interface ConnectEnvironmentReader {
  * Go's downstream executioncontext client (create + delete).
  *
  * `create` takes the connecting caller and the composition creates the
- * row AS THAT PERSON (boot/inprocess.ts, the `asCaller` lane of ruling
- * R5), never under the internal class: the row's creator stamp is what
+ * row AS THAT PERSON (boot/inprocess.ts, the `asCaller` lane), never under the
+ * internal class: the row's creator stamp is what
  * the runner-subject verifier resolves the connect's person from when
  * the runner presents the connect token under the built-in posture
  * (runnerauth/bound-execution.ts, the `mcp-connect` binding). A row
@@ -195,7 +195,7 @@ export interface ConnectExecutionContextClient {
  * SetConnectDependencies/SetOAuthDependencies fields, made REQUIRED
  * constructor-style parameters per the composition-root idiom
  * (guidelines §4): "Temporal is down" is the engine-state provider's
- * modeled state, never a missing dependency. Ratified DB-1 consequence:
+ * modeled state, never a missing dependency. A deliberate consequence:
  * the OAuth RPCs (managed-env service included) work on a Temporal-less
  * server where Go's composition gate refuses completeOAuthConnect —
  * disclosed, deliberately unpinned divergence.
@@ -206,7 +206,7 @@ export interface McpServerConnectDeps {
   /**
    * The composed authorization seam — every connect-family lane evaluates
    * its can_connect/can_view annotation (the Java handlers' bespoke
-   * authorize steps carry the same config; C2 Stage 4).
+   * authorize steps carry the same config).
    */
   readonly authorizer: Authorizer;
   readonly engineState: McpServerEngineStateProvider;

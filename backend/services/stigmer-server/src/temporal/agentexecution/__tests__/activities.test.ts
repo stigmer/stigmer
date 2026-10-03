@@ -16,7 +16,7 @@
  *     run's context, handing the context to the in-process delete edge
  *     (stigmer#1647), idempotently;
  *   - CompleteExternalActivity: empty-token skip, base64 token decode,
- *     error-over-result precedence — the DD-001 lane Go cannot deliver
+ *     error-over-result precedence — the error lane Go cannot deliver
  *     (oss#861), so the ERROR path is the load-bearing assertion.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -111,7 +111,7 @@ function newFixture() {
 
   // The in-process delete edge as a recording fake that removes the row
   // the way the delete chain does, so a repeat finds nothing (the chain
-  // itself is pinned in extension-composition.test.ts's C2 arm).
+  // itself is pinned in extension-composition.test.ts).
   const deletedContexts: string[] = [];
   const executionContextDeleter = {
     delete: async (contextId: string): Promise<void> => {
@@ -352,7 +352,7 @@ describe("CompleteExternalActivity", () => {
     expect(completions[0]!.payload).toEqual({ agent_execution_id: "aex_1" });
   });
 
-  it("fails with the error message — and error takes precedence over result (DD-001, oss#861)", async () => {
+  it("fails with the error message — and error takes precedence over result (oss#861)", async () => {
     const { activities, completions } = newFixture();
     await (activities[COMPLETE_EXTERNAL_ACTIVITY_NAME] as CompleteFn)({
       callbackToken: Buffer.from("task-token-2").toString("base64"),

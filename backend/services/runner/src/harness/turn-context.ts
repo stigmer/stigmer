@@ -59,9 +59,6 @@
  *    agent already holds it), which the runtime learns only after the
  *    adapter runs. The runtime prepares the selection once; the adapter
  *    pulls it when its prompt needs it.
- *
- * Every `index.ts` line reference below was read from `2c06bc7ea` on
- * 2026-09-11, before the orchestrator moved onto this module.
  */
 
 import { CancelledFailure } from "@temporalio/activity";
@@ -254,7 +251,7 @@ export type ReinvocationOutcome =
  *    the adapter binds an id, so a non-empty `threadId` IS the evidence.
  *    Correct today because a pure-reconcile turn does not advance `turnSeq`
  *    and the legacy positional wire shape yields 0, so `turnSeq` cannot be
- *    the signal (`index.ts` L402-407).
+ *    the signal.
  *  - `deterministic` (native: the runtime-minted thread id): the id exists
  *    on the FIRST turn too, so the evidence is the persisted transcript.
  *    Whether the execution already has committed history is the ONE signal
@@ -401,7 +398,7 @@ export function seedFromPersistedStatus(
 // The phases, in the order the turn runs them
 // ---------------------------------------------------------------------------
 
-/** Phase 1 (`index.ts` L325-330): hydrate the execution from the control plane. */
+/** Phase 1: hydrate the execution from the control plane. */
 export async function fetchExecution(deps: ResolutionDeps): Promise<{
   readonly execution: AgentExecution;
   /** `execution.spec`, asserted once here: the control plane never dispatches an execution without one. */
@@ -416,7 +413,7 @@ export async function fetchExecution(deps: ResolutionDeps): Promise<{
   return { execution, spec, sessionId: spec.sessionId };
 }
 
-/** Phase 2 (`index.ts` L332-336): load the session and resolve the full agent blueprint through it. */
+/** Phase 2: load the session and resolve the full agent blueprint through it. */
 export async function resolveAgentBlueprint(
   deps: ResolutionDeps,
   sessionId: string,
@@ -429,7 +426,7 @@ export async function resolveAgentBlueprint(
   return { session, blueprint };
 }
 
-/** Phase 2b (`index.ts` L338-343): the execution environment (MCP server credentials). */
+/** Phase 2b: the execution environment (MCP server credentials). */
 export async function resolveEnvironment(deps: ResolutionDeps): Promise<TurnEnvironment> {
   deps.enterPhase("resolve_environment");
   await deps.reportProgress("Resolving environment");
@@ -439,7 +436,7 @@ export async function resolveEnvironment(deps: ResolutionDeps): Promise<TurnEnvi
 }
 
 /**
- * Phase 2c, first half (`index.ts` L351-408): provision the workspace (clone
+ * Phase 2c, first half: provision the workspace (clone
  * git repos / mount local paths) so the LOCAL agent operates on the actual
  * repo, wire the git write-back coordinator, and decide the capture posture.
  *
@@ -451,7 +448,7 @@ export async function resolveEnvironment(deps: ResolutionDeps): Promise<TurnEnvi
  * reviewed. Non-eligible workspaces (local paths, no credentials) make it a
  * no-op coordinator, here `null`.
  *
- * Apply-then-review is the universal file-review model (Slice 2c): a git work
+ * Apply-then-review is the universal file-review model: a git work
  * tree captures per-file from the git diff at the turn boundary; a NON-git
  * workspace captures every write via the path-scoped CAS substrate, which
  * needs artifact storage to persist blobs, and falls back to the classic
@@ -496,7 +493,7 @@ export async function provisionWorkspace(
 }
 
 /**
- * Phase 2c, second half (`index.ts` L410-449): serialize this turn against
+ * Phase 2c, second half: serialize this turn against
  * every other execution sharing the primary working tree. Sessions declaring
  * the same localPath (or the shared runner root) resolve to ONE directory,
  * and an unserialized concurrent write lands inside this turn's
@@ -539,7 +536,7 @@ export async function acquireWorkspaceTurnLock(
 }
 
 /**
- * `index.ts` L451-461: set OTel baggage so downstream calls carry execution
+ * Set OTel baggage so downstream calls carry execution
  * context. Best-effort; tracing not initialized is a silent skip. Runs after
  * the lock, as it always has.
  */
@@ -560,7 +557,7 @@ export async function bindTelemetryBaggage(
 }
 
 /**
- * Phase 3 (`index.ts` L475-619): what the previous invocation left, and
+ * Phase 3: what the previous invocation left, and
  * whether this one runs the agent at all.
  *
  * On a reinvocation, first seed the in-progress status from the persisted
@@ -644,7 +641,7 @@ export async function reconcileReinvocation(
 }
 
 /**
- * Phases 4 to 4b (`index.ts` L620-770): the tool surface.
+ * Phases 4 to 4b: the tool surface.
  *
  * The MCP-bound env map (and ONLY it, never the agent process env) carries
  * the reserved caller-identity keys, so a server that declares them in
@@ -656,14 +653,14 @@ export async function reconcileReinvocation(
  * attachments, deliberately AFTER resolve + backfill so the backfill's
  * destructiveHint tightener can never force-gate an attachment's tools:
  *
- *  - channel messaging (DD-006 D7/D8): the discovery read IS the attachment
+ *  - channel messaging: the discovery read IS the attachment
  *    decision, and every failure mode degrades to honest absence;
- *  - conversation participation (channel-conversations DD-008 D-c): the
+ *  - conversation participation: the
  *    channel-id session label IS the decision, a free local read;
- *  - memory capture (DD-005 D1): the recall snapshot's enabled bit IS the
+ *  - memory capture: the recall snapshot's enabled bit IS the
  *    decision, server-stamped at execution create.
  *
- * Their credential story (DD-006 D4): the exchanged scoped runner token
+ * Their credential story: the exchanged scoped runner token
  * authenticates the discovery reads per call; the exchange is opportunistic
  * (every consumer degrades to an empty answer by contract, and the server
  * refuses the ambient fallback safely), so a failed exchange must not kill
@@ -779,10 +776,10 @@ export async function resolveMcpServersAndPolicies(
 }
 
 /**
- * Phase 5 (`index.ts` L493-501, the orchestrator's position between the
- * tool surface and the attachments): mount the skills under the session's
- * platform dir, reachable from the workspace through its `.stigmer` link,
- * and return what a prompt renders, per owner (`shared/skill-resolver.ts`).
+ * Phase 5 (between the tool surface and the attachments): mount the skills
+ * under the session's platform dir, reachable from the workspace through its
+ * `.stigmer` link, and return what a prompt renders, per owner
+ * (`shared/skill-resolver.ts`).
  * Reads the control plane, which is why it is the runtime's and not a
  * harness's; each harness places the returned metadata in its own prompt
  * shapes — the root's in its system prompt, a sub-agent's in that
@@ -829,7 +826,7 @@ export async function mountSkills(
 }
 
 /**
- * Phase 5b (`index.ts` L803-838): resolve the turn's attachments, fail-hard
+ * Phase 5b: resolve the turn's attachments, fail-hard
  * (they are explicit user inputs; see `shared/attachment-resolver.ts`).
  * Downloads by storage key through the same artifact storage resolved for
  * status offload. The vision budget rides along so image attachments are
@@ -915,7 +912,7 @@ export function regeneratesApprovedWrites(pausePrimitive: PausePrimitive): boole
 }
 
 /**
- * Phase 5b3 (`index.ts` L849-867): exact-apply approved whole-file writes
+ * Phase 5b3: exact-apply approved whole-file writes
  * (HITL "what you approve is what gets applied"). A deny-only harness
  * reinvokes the model, which regenerates content, so a resource grant alone
  * cannot guarantee the bytes that land match the bytes the user approved.
@@ -961,7 +958,7 @@ export async function applyApprovedWrites(
 }
 
 /**
- * Phase 6, the harness-agnostic half (`index.ts` L998, L1005-1006): the
+ * Phase 6, the harness-agnostic half: the
  * requested model name as the execution states it, and the effective service
  * tier and thinking mode. UNSPECIFIED → STANDARD (#357) and UNSPECIFIED →
  * DISABLED (#772) resolve here and nowhere else; every upstream layer
@@ -976,13 +973,13 @@ export function resolveModelPreferences(spec: AgentExecutionSpec): TurnModelPref
   };
 }
 
-/** Phase 9b (`index.ts` L1183-1184): the structured-output schema the execution asks for, if any. */
+/** Phase 9b: the structured-output schema the execution asks for, if any. */
 export function structuredOutputSchemaOf(spec: AgentExecutionSpec): Record<string, unknown> | undefined {
   return spec.executionConfig?.structuredOutputSchema as Record<string, unknown> | undefined;
 }
 
 /**
- * Phase 9c (`index.ts` L1186-1216, and the metadata reads at L1240-1245):
+ * Phase 9c:
  * the standing context, read once, and the memory selection prepared once.
  *
  * Selection runs against the frozen first message's semantics: above the

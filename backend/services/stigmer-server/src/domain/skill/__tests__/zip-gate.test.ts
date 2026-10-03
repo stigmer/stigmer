@@ -1,6 +1,6 @@
 /**
  * Pins the ZIP gate against Go's zip_extractor_test.go arms plus the
- * DD-001 pre-filter integration: every rejection message byte-for-byte
+ * pre-filter integration: every rejection message byte-for-byte
  * where the text is static, prefix-matched where it embeds sizes.
  */
 import { deflateRawSync } from "node:zlib";
@@ -45,7 +45,7 @@ describe("extractSkillMd — happy path", () => {
     expect(extractSkillMd(zip).name).toBe("test-skill");
   });
 
-  it("accepts a traversal-named SKILL.md — safearchive sanitizes it to root (DD-001)", () => {
+  it("accepts a traversal-named SKILL.md — safearchive sanitizes it to root", () => {
     const zip = buildZip([{ name: "../SKILL.md", content: VALID_SKILL_MD }]);
     expect(extractSkillMd(zip).name).toBe("test-skill");
   });

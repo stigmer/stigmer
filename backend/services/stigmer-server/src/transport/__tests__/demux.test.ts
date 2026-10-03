@@ -1,21 +1,21 @@
 /**
- * Spike SP-A (D2 spike register): the cleartext preface demux serves all
+ * The cleartext preface demux serves all
  * four verified client transports on ONE port. These tests pin the demux
  * against the exact transport constructors the real clients use:
  *
  *   1. native gRPC over h2c        — runner (stigmer-client.ts) and the
  *                                    conformance harness (harness/clients.ts)
  *   2. gRPC-Web over HTTP/1.1      — browser SDK (sdk/typescript/transport.ts)
- *   3. Connect over HTTP/1.1       — SDK `transport: "connect"` (additive
- *                                    delta 2, ratified 2026-08-22)
+ *   3. Connect over HTTP/1.1       — SDK `transport: "connect"` (added
+ *                                    2026-08-22)
  *   4. Connect over HTTP/2         — same protocol on the h2 path
  *
  * Plus the two socket shapes that must never wedge the port: the CLI
  * readiness gate's bare TCP probe (connect + close, no bytes) and a
  * byte-fragmented preface (TCP permits 24 bytes in two segments).
  *
- * A failure here is a protocol surprise (collaboration protocol): the
- * fallback ladder in D2's spike register is an OWNER decision.
+ * A failure here is a protocol surprise: falling back from one shared
+ * port is a design decision for the maintainers, not a test fix.
  */
 import { createClient, type Transport } from "@connectrpc/connect";
 import {
@@ -97,7 +97,7 @@ async function checkHealth(
   return response.status;
 }
 
-describe("SP-A: the preface demux serves all four verified client transports", () => {
+describe("the preface demux serves all four verified client transports", () => {
   it("serves native gRPC over h2c (runner / conformance harness shape)", async () => {
     const status = await checkHealth(createGrpcTransport({ baseUrl }));
     expect(status).toBe(HealthCheckResponse_ServingStatus.SERVING);
@@ -125,7 +125,7 @@ describe("SP-A: the preface demux serves all four verified client transports", (
   });
 });
 
-describe("SP-A: socket shapes that must not wedge the port", () => {
+describe("socket shapes that must not wedge the port", () => {
   it("survives the CLI readiness gate's bare TCP probe (connect, no bytes, close)", async () => {
     await new Promise<void>((resolve, reject) => {
       const probe = netConnect(port, "127.0.0.1", () => {
@@ -147,9 +147,9 @@ describe("SP-A: socket shapes that must not wedge the port", () => {
     // preface prefix to HTTP/1.1.
     //
     // The assertion demands a PING ACK — not merely a SETTINGS frame. An h2
-    // server emits its SETTINGS before parsing the client preface (spike
-    // SP-A observed exactly that on a session that then died on "bad client
-    // magic"), so SETTINGS proves nothing about the replay path. A PING is
+    // server emits its SETTINGS before parsing the client preface (observed
+    // on a session that then died on "bad client magic"), so SETTINGS
+    // proves nothing about the replay path. A PING is
     // only acknowledged by a session that accepted the preface and is
     // processing client frames.
     const socket = netConnect(port, "127.0.0.1");

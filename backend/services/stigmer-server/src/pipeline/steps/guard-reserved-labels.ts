@@ -1,7 +1,6 @@
 /**
  * GuardReservedLabels — the write-boundary guard for the platform-reserved
- * `stigmer.ai/*` label namespace (the Java GuardReservedLabelsStep port,
- * cloud#320/#386; C2 Stage 3, 20260827.10).
+ * `stigmer.ai/*` label namespace (the Java GuardReservedLabelsStep port).
  *
  * Reserved labels carry platform semantics the server reads and acts on
  * (the personal-environment marker, the default-instance marker, the
@@ -16,7 +15,7 @@
  *   - REMOVALS pass — dropping a reserved label only shrinks what it
  *     granted (de-escalation, and the operator cleanup path).
  *   - INTRODUCTIONS and CHANGES reject with INVALID_ARGUMENT (the
- *     cloud#229 boundary doctrine: server-reserved sentinels are not
+ *     boundary rule: server-reserved sentinels are not
  *     accepted from clients) — unless the caller holds
  *     `can_write_reserved_labels` on `platform:stigmer`, consulted
  *     LAZILY through the one composed Authorizer, so normal writes pay
@@ -28,14 +27,14 @@
  *     TS rendering of Java's skipAuthorization + isInProcessCall arms).
  *   - PER-KIND CLIENT CONTRACTS pass: `stigmer.ai/personal` on
  *     Environment, which the console legitimately sends on create — the
- *     one allowlist entry, kept here with the doctrine so widening it is
+ *     one allowlist entry, kept here with the rule so widening it is
  *     one reviewable diff.
  *   - SERVER-STAMPED KEYS pass (server-stamped-reserved-labels.ts, the
- *     Java ServerStampedReservedLabels arm, cloud#386): a step that made
+ *     Java ServerStampedReservedLabels arm): a step that made
  *     the trust decision for specific keys on THIS request records
  *     exactly those keys, and the guard exempts exactly them (the
  *     agentexecution create chain's RecordRunnerLineageLabels is the
- *     first recorder — parity entry 20260830.05).
+ *     first recorder).
  *   - LABELS only, deliberately not annotations (annotations carry no
  *     resolution or authorization semantics).
  *
@@ -119,10 +118,10 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
     name: "GuardReservedLabels",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       if (isServerComposedRequest(ctx.callerIdentity)) {
-        // The Java isInProcessCall arm (cloud#386): the trust decision was
+        // The Java isInProcessCall arm: the trust decision was
         // made by the service code that built the request — default-instance
         // factories stamp reserved labels by design, even when the call
-        // propagates the user's identity for attribution (ruling R5).
+        // propagates the user's identity for attribution.
         return;
       }
       const state = stateOf(ctx);

@@ -17,9 +17,9 @@ export const ENGINE_UNAVAILABLE_MESSAGE =
   "The execution engine is temporarily unavailable. Please try again shortly.";
 
 /**
- * The run gate's deny copy per request shape (P1 sp.run-gate, ruling
- * Q-RG-4; wire once merged, asserted by the conformance run-gate suite).
- * NEW copy quotes the handle single-quoted (the ratified 2026-08-26 rule).
+ * The run gate's deny copy per request shape (wire copy, asserted by the
+ * conformance run-gate suite). NEW copy quotes the handle single-quoted
+ * (the rule since 2026-08-26).
  * The agent-execution domain's `runAgent*` functions are these copies'
  * twins; each domain owns its own.
  */
@@ -36,8 +36,8 @@ export function runWorkflowInstanceDeniedMessage(
 /**
  * The lifecycle steps' engineless refusal (lifecycle_steps.go, five
  * sites: pause/resume/cancel/terminate signal steps and recover's
- * terminate-existing). FailedPrecondition, not Unavailable — the ratified
- * Go asymmetry between the create gate and the lifecycle surface.
+ * terminate-existing). FailedPrecondition, not Unavailable — the
+ * deliberate Go asymmetry between the create gate and the lifecycle surface.
  */
 export const TEMPORAL_UNAVAILABLE_MESSAGE = "Temporal is not available";
 
@@ -83,7 +83,7 @@ export function childWorkflowId(executionId: string): string {
 /**
  * Signal channel names on the orchestrator (temporal/workflows). pause and
  * resume are handled by Go's single selector goroutine; every other signal
- * rides the generic relaySignal envelope (June DD-013).
+ * rides the generic relaySignal envelope.
  */
 export const PAUSE_SIGNAL_NAME = "pause";
 export const RESUME_SIGNAL_NAME = "resume";

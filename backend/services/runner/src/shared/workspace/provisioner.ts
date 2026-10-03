@@ -10,8 +10,8 @@
  * Multi-entry sessions provision each WorkspaceEntry into its own
  * subdirectory of the workspace root.
  *
- * Phase 2 scope: local backend only. The remote (Daytona sandbox)
- * backend will be added in Phase 3.
+ * Scope: the local backend only; there is no remote (sandbox-hosted)
+ * backend.
  */
 
 import type { ProvisionResult, WorkspaceBackend } from "./types.js";

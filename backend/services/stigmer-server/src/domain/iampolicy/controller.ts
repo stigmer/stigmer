@@ -1,18 +1,17 @@
 /**
- * IamPolicy controller (20260913.01, T01_0_plan.md §3a; T01_1_review.md
- * Q-OR-2, Q-OR-3, Q-OR-7, Q-OR-8 and the slice-5 rulings Q-S5-1..10) —
- * the ROW half of the IamPolicy contract served ONCE by @stigmer/server in
+ * IamPolicy controller — the ROW half of the IamPolicy contract served
+ * ONCE by @stigmer/server in
  * every edition, all fourteen RPCs. The behavioural reference is the
- * cloud's iam/policy/handlers.ts (the Java pipelines rendered flat), whose
- * handlers retire against this module at the S3 re-point; the byte-pinned
- * copy moved with it (constants.ts). The cloud keeps what differs per
+ * cloud's former iam/policy/handlers.ts (the Java pipelines rendered flat),
+ * which this module replaced; the byte-pinned copy moved with it
+ * (constants.ts). The cloud keeps what differs per
  * edition and registers it: its row store (`drivers.iamPolicyStore`), its
  * grant scope (`drivers.policyGrantScope`), its OpenFGA query engine
  * (`drivers.authorizationQueries`) and the tuple mirror in the lifecycle
  * driver's two policy hooks — and reaches the write lanes here as
- * in-process RPCs (Q-OR-1), never through an exported constructor.
+ * in-process RPCs, never through an exported constructor.
  *
- * Shape (Q-S5-1). The six command RPCs are pipeline chains, each
+ * Shape. The six command RPCs are pipeline chains, each
  * `Authorize → ValidateProto → <one domain step>` (steps.ts), with the two
  * owner steps before the write on `create`, `delete` and `revokeOrgAccess`
  * (owner is assigned by owners, steps.ts's last section): the write is
@@ -29,29 +28,28 @@
  *
  * What the cloud's handlers recorded as surprises, kept or corrected:
  *   - `delete` and `create` are idempotent (absent → the default instance;
- *     held → the row). `delete` now authorizes BEFORE it loads (Q-OR-2:
- *     the annotation names the spec's resource), so a caller without
+ *     held → the row). `delete` now authorizes BEFORE it loads (the
+ *     annotation names the spec's resource), so a caller without
  *     `can_grant_access` hears PERMISSION_DENIED even for an absent
  *     triple — strictly safer than the cloud's silent default instance.
  *   - `create` validates the role BEFORE it writes (the cloud's order): a
  *     held row under a role the kind does not grant is refused, never
  *     answered as a duplicate. It also grants to PEOPLE and TEAMS only
- *     (Q-S9-2, 2026-09-14): any other principal is INVALID_ARGUMENT, and a
+ *     (since 2026-09-14): any other principal is INVALID_ARGUMENT, and a
  *     team only on the roles its kind lets a team hold (steps.ts) and,
  *     where an edition serves teams, only a team the create gate slot
  *     admits — a row naming a resource as its principal is the
  *     structural link the hierarchy walk follows, `bootstrapPolicy`'s to
  *     write, and through this lane would have let a right on one
- *     organization list another's members. The cloud's create had the
- *     gap; the corrected answer lands at the re-point.
+ *     organization list another's members. The cloud's former create had
+ *     the gap; this lane closes it in every edition.
  *   - `checkMyPermission`, `checkAuthorization` and
  *     `listAuthorizedResourceIds` skip position 1 by proto option (IAM
  *     authorizing IAM would recurse); trust is authentication plus the
  *     principal-trust rule, compared against the caller's ACCOUNT
- *     (`accountForCaller`, Q-S4-1 — the trusted-local interceptor stamps
+ *     (`accountForCaller` — the trusted-local interceptor stamps
  *     the operator's email, so the stamp alone would never match).
- *   - `listAuthorizedPrincipalIds` is annotation-driven since slice 1
- *     (finding 7): the same target `listResourceAccessByPrincipal` checks.
+ *   - `listAuthorizedPrincipalIds` is annotation-driven: the same target `listResourceAccessByPrincipal` checks.
  *   - `get` is the one load-then-authorize lane: its target is the ROW's
  *     resource, handed to the annotation's evaluation as an override.
  *   - the three system RPCs (`bootstrapPolicy`, `cleanupResourcePolicies`,
@@ -59,18 +57,18 @@
  *     (`isPlatformPipelineCaller`) and refuse a wire user
  *     PERMISSION_DENIED with the annotation's own `error_msg`, BEFORE the
  *     chain — under the permissive Authorizer the annotation alone would
- *     admit anyone (Q-OR-7). Position 1 still runs the static platform
+ *     admit anyone. Position 1 still runs the static platform
  *     check, so the cloud's `can_bootstrap_iam` FGA check is unchanged.
  *   - every kind string that came off the wire passes the domain's wire
- *     refusals (Q-S5-2) BEFORE position 1 (Q-S6-1, 2026-09-14):
+ *     refusals BEFORE position 1 (since 2026-09-14):
  *     INVALID_ARGUMENT with the pinned copy, on every lane, in every
  *     edition. This is not input validation moved ahead of authorization
  *     — it is naming the authorization target. A kind string that names
  *     no kind names nothing to authorize against, so there is no
  *     position-1 question to ask; `checkMyPermission` refuses an unknown
- *     permission name first for the same reason, and the cloud's
+ *     permission name first for the same reason, and the cloud's former
  *     handlers kept this order (`kindFromSpecString` before
- *     `authorizeRpc`), so the wire is unchanged at the re-point. Safe by
+ *     `authorizeRpc`), so the wire did not change when they retired. Safe by
  *     construction: the protovalidate interceptor (chain position 3) has
  *     validated every request before a handler runs, so both refs are
  *     present. The resolver's "resolution never throws" rule
@@ -78,7 +76,7 @@
  *     the backstop for a stored row on `get`, the one kind string that is
  *     not wire input.
  *
- * `checkMyPermission` has one definition (Q-OR-8; Q-S5-3), in this order:
+ * `checkMyPermission` has one definition, in this order:
  * UNAUTHENTICATED for an empty identity; the relation must be an
  * IamPermission name; the resource kind must be known; contextual
  * policies ride the query engine or refuse UNIMPLEMENTED; then (1) a kind
@@ -86,7 +84,7 @@
  * kind that does not exist here, which is what keeps the operator-only
  * settings navigation hidden on open source; (2) `can_grant_access` on a
  * kind outside the grant scope is `false` — the console's PermissionGate
- * hides grant controls with no new SDK surface (Q-OR-5); (3) the composed
+ * hides grant controls with no new SDK surface; (3) the composed
  * Authorizer: allow → true, deny and not-found → false, unavailable →
  * INTERNAL, never softened into a denial.
  *
@@ -293,7 +291,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * The admission rule of the three system RPCs (Q-OR-7): the platform's own
+ * The admission rule of the three system RPCs: the platform's own
  * pipelines only, refused with the RPC's own annotation copy — the proto
  * owns that sentence, so no second pinned copy exists here.
  */
@@ -598,7 +596,7 @@ async function checkAuthorization(
   return create(CheckAuthorizationResultSchema, { isAuthorized: allowed });
 }
 
-/** The skip lane with no resource (finding 7): trust on the principal, then the engine. */
+/** The skip lane with no resource: trust on the principal, then the engine. */
 async function listAuthorizedResourceIds(
   deps: IamPolicyControllerDeps,
   input: ListAuthorizedResourceIdsInput,

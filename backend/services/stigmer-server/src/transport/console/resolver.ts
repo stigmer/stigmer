@@ -1,7 +1,7 @@
 /**
  * The console static-export route resolver — the PURE routing half of the
- * unified port's console lane (DD-005 lane 4; DD-012 in the parent
- * program's records). Given a decoded request path and an index of the
+ * unified port's console lane (lane 4). Given a decoded request path and
+ * an index of the
  * export's files, it answers WHICH document serves — no I/O, so the
  * contract is exhaustively unit-testable and machine-checkable against
  * the nginx model (see __tests__/nginx-equivalence.test.ts).
@@ -9,8 +9,7 @@
  * The contract merges the correct half of each prior implementation:
  *
  * - PAGE resolution reproduces client-apps/web/nginx.conf (the cloud
- *   serving rules, hardened after the channel-conversations F-12
- *   blank-page failures): try the literal file, its `.html` sibling, the
+ *   serving rules, hardened after blank-page failures): try the literal file, its `.html` sibling, the
  *   directory index, then the Next.js `__placeholder__.html` candidates —
  *   most-literal first, at most two trailing dynamic segments — and
  *   unknown URLs land on /404.html WITH a 404 status, never the blank app

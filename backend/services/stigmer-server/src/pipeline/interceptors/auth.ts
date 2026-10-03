@@ -1,6 +1,5 @@
 /**
- * Identity chassis — chain position 1, outermost (reserved by DD-004;
- * filled by O2, 20260827.01, per DD-007 §1). Every request enters the
+ * Identity chassis — chain position 1, outermost. Every request enters the
  * server through exactly one of the two identity sources this module
  * owns, and every request leaves position 1 with a CallerIdentity stashed
  * under `callerIdentityKey`:
@@ -8,12 +7,11 @@
  *   - createVerifierChainInterceptor — the serving chain's source: an
  *     ordered claim-or-pass walk over the composed IdentityVerifiers (the
  *     TS rendering of the Java ProviderManager chain), followed by the
- *     composed CallerGuards over the stamped identity (entry 20260902.02
- *     ruling Q1 — see extensions/caller-guards.ts for the contract and
- *     its doctrine).
+ *     composed CallerGuards over the stamped identity (see
+ *     extensions/caller-guards.ts for the contract and its reasons).
  *   - createInProcessCallerInterceptor — the in-process router
- *     transport's source: stamps the `internal` caller class (ruling Q4,
- *     the TS rendering of the Java in-process authorization skip). It
+ *     transport's source: stamps the `internal` caller class (the TS
+ *     rendering of the Java in-process authorization skip). It
  *     takes NO guards — the in-process exemption is structural
  *     (caller-guards.ts), not a runtime skip.
  *
@@ -28,7 +26,7 @@
  * IdentityVerifier may produce the class (contract on CallerClass).
  * Spoofing is structurally impossible, not policed.
  *
- * # Conditional strictness (ruling Q6 — pinned contract)
+ * # Conditional strictness (a pinned contract)
  *
  * Strictness is a function of whether any verifier is configured:
  *
@@ -42,11 +40,11 @@
  *     UNAUTHENTICATED. A configured issuer must never silently admit
  *     garbage tokens as trusted-local.
  *   - An ABSENT token falls to trusted-local UNLESS the composition asks
- *     for the require-authentication posture (O3 rulings Q1+Q2,
- *     20260827.06): with requireAuthentication on — compose.ts sets it
+ *     for the require-authentication posture: with requireAuthentication on
+ * — compose.ts sets it
  *     when STIGMER_OIDC_ISSUER is configured OR when a composed extension
- *     unit declares `requireAuthentication` (entry 20260904.02, the
- *     cloud's ask: its own lanes resolve its users, and the issuer knob
+ *     unit declares `requireAuthentication` (the
+ *     cloud's case: its own lanes resolve its users, and the issuer knob
  *     cannot stand in because it also registers the OSS OIDC verifier
  *     ahead of them; the OSS API-key lane, by contrast, rides EITHER
  *     posture source — stigmer#984) — a tokenless request is
@@ -58,7 +56,7 @@
  *     tokenless Health/Check; without this arm the posture crash-loops the
  *     pod, stigmer#974). Extension-only verifier sets that declare
  *     nothing keep the fall-to-trusted-local arm: strictness against
- *     PRESENTED tokens is a function of verifier count (Q6); strictness
+ *     PRESENTED tokens is a function of verifier count; strictness
  *     against ABSENT tokens is the composition's explicit ask.
  *
  * # Trusted-local identity (the explicit modeled state)
@@ -66,17 +64,17 @@
  * No issuer + no claim = the single-operator trust domain's one
  * principal, minted from the #400 operator seam (steps/defaults.ts):
  * identityId is the operator email (email-first, matching the audit
- * doctrine there), or "system" when unconfigured. The audit-actor seam
+ * rule there), or "system" when unconfigured. The audit-actor seam
  * derives from this identity the exact bytes currentAuditActor stamped
- * before O2.
+ * before the chassis existed.
  *
  * # Verifier faults
  *
  * A verifier that throws a ConnectError chose its wire shape (signature/
  * expiry/audience failures are UNAUTHENTICATED by the verifier's own
  * mapping); any other throw is an infrastructure fault — INTERNAL, never
- * softened into an auth denial (the DD-007 unavailable doctrine, applied
- * to the verification side).
+ * softened into an auth denial (an unavailable dependency is never
+ * read as a refusal, here on the verification side).
  */
 import { Code, ConnectError, createContextKey } from "@connectrpc/connect";
 import type {
@@ -149,7 +147,7 @@ export const callerIdentityKey = createContextKey<CallerIdentity | undefined>(
 
 /**
  * The request's caller identity — the ONE read idiom for controllers
- * (threaded into RequestContext exactly once, ruling Q3). Throws the
+ * (threaded into RequestContext exactly once). Throws the
  * composition-root wiring fault when position 1 did not stamp: that state
  * is unreachable through either chain, so reaching it means a transport
  * was built without an identity source.
@@ -182,8 +180,8 @@ export function trustedLocalIdentity(): CallerIdentity {
  * what every audit actor on such a laptop carries as `created_by.id`; the
  * operator account derives its subject from it (`local|system`) and the
  * membership rules read it as "not a person" when they classify creator
- * stamps (domain/iampolicy/membership.ts). One home (20260913.01 slice 4,
- * Q-S4-6): a second spelling anywhere would make a stamp and its reader
+ * stamps (domain/iampolicy/membership.ts). One home: a second spelling
+ * anywhere would make a stamp and its reader
  * disagree silently.
  */
 export const SYSTEM_OPERATOR_IDENTITY_ID = "system";
@@ -256,8 +254,8 @@ export function serverActingFor(principalId: string): CallerIdentity {
  * verifiers in order (OSS entries first, extension entries after, in
  * extension-unit order — registry contract), stamps the claimed identity
  * or the trusted-local fallback per the strictness contract above, then
- * runs the composed caller guards over the stamped identity (entry
- * 20260902.02 ruling Q1). Covers unary AND streams — identity is
+ * runs the composed caller guards over the stamped identity. Covers unary
+ * AND streams — identity is
  * per-request state, not a unary-pipeline concern like the apiresource
  * kind.
  *
@@ -276,7 +274,7 @@ export function createVerifierChainInterceptor(
   return (next) => async (request) => {
     // The in-process propagation header is meaningless — and forgeable —
     // on the wire: stripped unconditionally before anything downstream
-    // could read it (ruling R5's unspoofability-by-construction arm).
+    // could read it (unspoofable by construction).
     request.header.delete(IN_PROCESS_CALLER_HEADER);
     const token = parseBearerToken(request.header.get("authorization") ?? "");
     let identity: CallerIdentity | undefined;
@@ -297,7 +295,7 @@ export function createVerifierChainInterceptor(
       requireAuthentication &&
       !isAuthenticationExempt(request.method)
     ) {
-      // Rulings Q1+Q2: the auth-enabled posture requires a credential on
+      // The auth-enabled posture requires a credential on
       // every non-exempt method — the Java interceptor's exact behavior
       // and copy. is_public methods and the health service stay reachable
       // tokenless (the Java isPublic and by-name skips), so the console's
@@ -354,8 +352,8 @@ async function runCallerGuards(
 }
 
 /**
- * The caller-propagation header of the in-process lane (C2 Stage 3,
- * ruling R5). Client CallOptions carry no contextValues across the
+ * The caller-propagation header of the in-process lane. Client CallOptions
+ * carry no contextValues across the
  * router transport, so the asCaller adapters (boot/inprocess.ts) ride
  * the one channel that does cross it: a request header, base64url JSON.
  * Unspoofable from the wire BY CONSTRUCTION: the serving chassis strips
@@ -370,9 +368,9 @@ export function encodeInProcessCaller(caller: CallerIdentity): string {
 }
 
 /**
- * The in-process transport's position-1 identity source. Two arms since
- * C2 Stage 3 (ruling R5 — the caller-propagation amendment restoring the
- * Java posture, where in-process calls carried the ORIGINAL caller):
+ * The in-process transport's position-1 identity source. Two arms (caller
+ * propagation restores the Java posture, where in-process calls carried
+ * the ORIGINAL caller):
  *
  *   - PROPAGATED: a request-origin adapter passed the original caller's
  *     identity through {@link IN_PROCESS_CALLER_HEADER} (the asCaller
@@ -383,9 +381,10 @@ export function encodeInProcessCaller(caller: CallerIdentity): string {
  *   - MINTED: no propagated identity — the daemon-origin default (the
  *     schedule clock): the internal caller class
  *     carrying the operator's identity fields, so audit stamps on
- *     daemon writes stay byte-identical to the pre-R5 posture. The
+ *     daemon writes stay byte-identical to the posture before caller
+ *     propagation. The
  *     Authorize step treats the internal class as the in-process
- *     authorization skip (ruling Q4).
+ *     authorization skip.
  *
  * A malformed propagation header is a WIRING BUG (only server code can
  * write it) — loud INTERNAL, never a silent fall-through to a wrong
@@ -428,15 +427,15 @@ export function createInProcessCallerInterceptor(): Interceptor {
  * mapping, any other throw is an infrastructure fault (INTERNAL — a JWKS
  * outage must never read as a credential rejection). `undefined` means no
  * verifier claimed the token — the CALLER decides what that means
- * (the serving interceptor applies the Q6 strictness contract above).
+ * (the serving interceptor applies the strictness contract above).
  *
  * Exported (stigmer#991) so a composition's extension-owned HTTP lanes —
  * edges that are not Connect requests and so never pass through
  * createVerifierChainInterceptor — authenticate a presented bearer with
  * the SAME composed chain, in the same order, under the same fault
- * doctrine. The alternative, a composition re-instantiating its verifier
+ * mapping. The alternative, a composition re-instantiating its verifier
  * list at the HTTP edge, is a second copy of chain order and fault
- * mapping — exactly the drift DD-007's "one chain" rules out. This is the
+ * mapping — exactly the drift one shared chain rules out. This is the
  * identity walk ONLY: caller guards (caller-guards.ts) are RPC-shaped by
  * contract and stay the serving interceptor's; an HTTP edge that wants
  * them is a contract widening, not a call site.

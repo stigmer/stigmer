@@ -10,7 +10,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // MemoryCommandController handles write operations for memories.
 //
 // @internal
-// No apply RPC by design (DD-004): a memory is system-generated — an
+// No apply RPC by design: a memory is system-generated — an
 // agent proposes it, a person decides on it — so there is no manifest
 // lane, no SDK apply registry entry, and no CLI apply verb. The kind
 // belongs to the Session/AgentExecution/Artifact family: records the
@@ -29,13 +29,12 @@ service MemoryCommandController {
   // @internal
   // Authorization: skip standard resource authorization — the record
   // does not exist yet and the subject IS the caller. In-handler
-  // enforcement instead (DD-005 D2, both editions where applicable):
+  // enforcement instead (both editions where applicable):
   // 1. Capture-eligibility gate (cloud): a first-party human operator
   //    (no token_type, no platform_client_id, not machine, not
   //    impersonated) OR the remember tool's session-scoped sandbox
   //    credential (token_type=sandbox — isSessionSandbox(), acting as
-  //    its human subject; the Stage 3 decision, owner-ratified
-  //    2026-08-22).
+  //    its human subject, since 2026-08-22).
   // 2. Enablement re-check, FAIL-CLOSED: org memory_enabled AND (where
   //    callers are persons — the require-authentication posture, every
   //    edition; stigmer#1387) the subject's memory_enabled must both be
@@ -53,7 +52,7 @@ service MemoryCommandController {
   //    force-cleared in v1 on both editions.
   // 5. Per-subject-per-org count cap (100, all lifecycle states):
   //    FAILED_PRECONDITION "memory is full — review and delete existing
-  //    memories" (visible-full, never silent eviction — DD-006 D5).
+  //    memories" (visible-full, never silent eviction).
   //
   // Error Cases:
   //
@@ -73,8 +72,8 @@ service MemoryCommandController {
   // reject to decide on a proposal.
   //
   // @internal
-  // Authorization: requires can_edit on the memory (FGA: subject-only —
-  // DD-004 as ratified). Immutability of spec.subject_identity_account_id
+  // Authorization: requires can_edit on the memory (FGA: subject-only).
+  // Immutability of spec.subject_identity_account_id
   // and spec.provenance is enforced by a validate step with
   // FAILED_PRECONDITION (the Schedule agent_ref pattern): an editable
   // subject would re-aim a record at another person, and editable
@@ -96,7 +95,7 @@ service MemoryCommandController {
   // @internal
   // Authorization: requires can_delete on the memory (subject-only).
   // Any-state delete is load-bearing for the trust story: "delete this
-  // one" must never be refused on lifecycle grounds (DD-004).
+  // one" must never be refused on lifecycle grounds.
   rpc delete(MemoryId) returns (Memory) {
     option (ai.stigmer.commons.rpc.config).resource_kind = memory;
     option (ai.stigmer.commons.rpc.config).permission = can_delete;
@@ -115,8 +114,8 @@ service MemoryCommandController {
   // @internal
   // Authorization: requires can_edit on the memory (subject-only) — the
   // ONLY consent gate in the system; client-side approval mechanisms
-  // are never trusted with retention (DD-005 D3, three recorded
-  // bypasses). The cloud handler loads before authorizing (#224: a
+  // are never trusted with retention (three such mechanisms were
+  // bypassed). The cloud handler loads before authorizing (#224: a
   // missing memory answers NOT_FOUND, not PERMISSION_DENIED) and
   // patches status leaves rather than saving the row. OSS excludes the
   // authorization step per its recorded single-user posture. Both
@@ -140,8 +139,7 @@ service MemoryCommandController {
   // @internal
   // Authorization and implementation posture identical to confirm (one
   // command pair, one contract). Rejection is deliberately one click on
-  // every surface — expensive review teaches users to ignore the queue
-  // (DD-005 D4).
+  // every surface — expensive review teaches users to ignore the queue.
   rpc reject(MemoryId) returns (Memory) {
     option (ai.stigmer.commons.rpc.config).resource_kind = memory;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;

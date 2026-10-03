@@ -4,7 +4,7 @@
  * U+2029, U+202F, U+205F, U+3000) — which EXCLUDES U+FEFF. JS String.trim's
  * set is White_Space PLUS U+FEFF and MINUS U+0085, so the two disagree on
  * BOM'd and NEL-padded input: a .trim()-based port flips Go's verdict on
- * both (first found by the #8 skill parity panel on BOM'd SKILL.md files;
+ * both (first found on BOM'd SKILL.md files;
  * promoted here when search criteria became the second consumer — a
  * .trim()'d search query of exactly "\uFEFF" reads as LIST MODE where Go
  * runs an empty-match SEARCH, and "\u0085" the mirror image).

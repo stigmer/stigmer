@@ -1,12 +1,12 @@
 /**
  * Pins the Kubernetes driver's ensure state machine and manifest shapes
- * against the Java provisioner it generalizes (§6d, O6) — over a fake
+ * against the Java provisioner it generalizes — over a fake
  * gateway, no cluster:
  *
  *   - absent → Secret first, PVC for persistent scopes, then Deployment;
- *     no readiness wait (gate ruling Q5);
+ *     no readiness wait;
  *   - replicas 0 → scale to 1, nothing re-applied;
- *   - running → the fast path applies nothing (defer-restart, Q6);
+ *   - running → the fast path applies nothing (defer-restart);
  *   - deprovision deletes Deployment + Secret (+ PVC when persistent);
  *   - the manifests carry the Java shapes: Recreate, the runner command,
  *     MODE=local, the secretKeyRef token env only when a token exists,

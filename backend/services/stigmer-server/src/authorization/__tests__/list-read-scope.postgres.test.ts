@@ -5,8 +5,7 @@
  * evaluator the Authorizer uses, over tuples derived from the facts the
  * candidate carries — no candidate row is read twice.
  *
- * The adversarial cells come first, because until slice 5's sibling
- * cells this file and the composed proof are the only proof that a
+ * The adversarial cells come first, because they prove that a
  * member's list is a member's list: the outsider sees nothing (a row
  * still carrying the retired public level included); the viewer rung sees
  * the org-visible blueprints

@@ -1,9 +1,10 @@
 /**
  * Characterization test for the ChatAnthropic `createClient` -> AnthropicVertex
- * seam — the integration T02's vertex backend adapter will be built on.
+ * seam — the integration the vertex backend adapter is built on.
  *
- * This is NOT a unit test of our code (there is no production vertex code
- * yet). It pins the exact cross-package behavior production will rely on:
+ * This is NOT a unit test of our code (the vertex backend adapter lives in
+ * shared/llm-backend.ts). It pins the exact cross-package behavior production
+ * will rely on:
  * the REAL `ChatAnthropic` (@langchain/anthropic) driving the REAL
  * `AnthropicVertex` client (@anthropic-ai/vertex-sdk), both resolving the
  * single override-pinned @anthropic-ai/sdk copy. If a future bump of
@@ -113,7 +114,7 @@ interface SeamHarness {
  * retrying (its AsyncCaller wraps every request) and passes `maxRetries: 0`
  * so the underlying SDK must not retry underneath it. A factory that ignored
  * this would nest the Vertex SDK's default 2 retries inside LangChain's loop,
- * multiplying every transient failure — the T02 adapter must preserve this.
+ * multiplying every transient failure — the vertex adapter must preserve this.
  */
 function buildSeamHarness(): SeamHarness {
   const requests: RecordedRequest[] = [];

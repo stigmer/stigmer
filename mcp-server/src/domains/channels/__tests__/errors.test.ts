@@ -1,7 +1,7 @@
 // Unit tests for the channels-domain error projection: the verbatim
 // message and status name always; the google.rpc.ErrorInfo reason only
-// when the server attached one with a non-empty reason (DD-005 D8 —
-// absence means the message alone carries the contract).
+// when the server attached one with a non-empty reason (absence means
+// the message alone carries the contract).
 
 import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";

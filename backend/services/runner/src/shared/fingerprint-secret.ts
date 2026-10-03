@@ -1,5 +1,5 @@
 /**
- * Runner-held master secret for HITL approval fingerprints (Phase 2).
+ * Runner-held master secret for HITL approval fingerprints.
  *
  * The per-execution fingerprint key is derived from this secret + `execution_id`
  * (see {@link file://./approval-fingerprint.ts} `deriveExecutionFingerprintKey`).
@@ -7,9 +7,9 @@
  *
  *  1. `STIGMER_RUNNER_HITL_SECRET` env var (UTF-8), when set — the only way to get
  *     a key that is STABLE across runner processes/replicas. Required once a lease
- *     becomes a cross-process bearer token (Phase 7); optional today.
- *  2. A per-process random secret generated once at first use — sufficient for
- *     Phase 2 because the fingerprint is recompute-and-compare WITHIN one runner
+ *     becomes a cross-process bearer token; optional today.
+ *  2. A per-process random secret generated once at first use — sufficient
+ *     today because the fingerprint is recompute-and-compare WITHIN one runner
  *     process for a given execution: the deep-agent gateway runs in-process, and
  *     the Cursor key is written to and read from the per-session state file by the
  *     same process. A process restart re-keys, which can only *re-ask* a pending
@@ -47,8 +47,7 @@ export function getRunnerHitlMasterSecret(): BinaryLike {
     console.warn(
       `[hitl-gateway] ${ENV_VAR} is not set; using a per-process random ` +
       "fingerprint secret. Fingerprints are stable within this process only — " +
-      `set ${ENV_VAR} for a key stable across runner restarts/replicas ` +
-      "(required in Phase 7).",
+      `set ${ENV_VAR} for a key stable across runner restarts/replicas.`,
     );
   }
   return cached;

@@ -1,7 +1,6 @@
 /**
- * The open-source membership rules (20260913.01, T01_0_plan.md §3a;
- * T01_1_review.md Q-OR-6b, Q-OR-6c; slice 4 rulings Q-S4-2 to Q-S4-7):
- * how organization roles come to exist on a self-host that has no
+ * The open-source membership rules: how organization roles come to exist
+ * on a self-host that has no
  * administrator to grant them. Core code, installed only under the
  * built-in authorization posture (boot/compose.ts `builtInAuthorization`:
  * no unit registered an Authorizer); a composition with its own
@@ -19,8 +18,7 @@
  *                   idp-shaped before any row existed;
  *     2. `admin`  — this account created a blueprint in it (BLUEPRINT_KINDS,
  *                   constants.ts: the kinds an admin authors; sessions and
- *                   executions are personal and confer nothing, DD-002
- *                   rule 2);
+ *                   executions are personal and confer nothing);
  *     3. `admin`  — the account's email is the configured operator email
  *                   (an empty configuration matches nobody);
  *     4. `admin`  — the organization has ZERO role rows and no PERSON other
@@ -29,21 +27,21 @@
  *                   trusted-local-turned-OIDC laptop whose stamps are all
  *                   "system". "Zero rows", never "no admin now" — revoking
  *                   every admin of a bootstrapped organization must not
- *                   hand it to the next stranger (plan finding 2); and the
- *                   founder's own stamp counts as a person (Q-S4-7), so a
+ *                   hand it to the next stranger; and the
+ *                   founder's own stamp counts as a person, so a
  *                   revoked founder's empty organization is not handed
  *                   over either;
  *     5. `member` — everyone else.
  *   Arms 3 and 4 both answer `admin`; 3 is checked first because it is a
  *   string compare and 4 reads the organization's rows. `user`-class
- *   callers only (Q-OR-6b): a runner, a machine or the in-process class
+ *   callers only: a runner, a machine or the in-process class
  *   never earns a role. Nothing on an organization the account already
  *   holds a row on, so a run that faulted midway converges on the next.
  *
- *   ensureOperatorOwnership(operator) — the trusted-local boot ensure
- *   (Q-OR-6c): the laptop's operator becomes `owner` of every organization
- *   that has NO owner row. "No owner row", not "no row of this operator"
- *   (Q-S4-3): a boot-time write never overrides a human grant recorded
+ *   ensureOperatorOwnership(operator) — the trusted-local boot ensure:
+ *   the laptop's operator becomes `owner` of every organization
+ *   that has NO owner row. "No owner row", not "no row of this operator":
+ *   a boot-time write never overrides a human grant recorded
  *   under an earlier OIDC life of the same database, and the permissive
  *   Authorizer admits the operator regardless. A second boot writes
  *   nothing. The row is granted AS the operator — the trusted-local
@@ -70,9 +68,9 @@
  *   idempotent and an organization already held is skipped, so the next
  *   boot converges. The marker, not "zero rows", is what makes it
  *   one-shot: a database whose every role was revoked after the marker is
- *   never handed back to anyone by a reboot (plan finding 2's reason,
+ *   never handed back to anyone by a reboot (the zero-rows rule's reason,
  *   applied to the whole store). Accounts are read through the generic
- *   Store as the organizations and blueprints are (Q-S4-5) — the account
+ *   Store as the organizations and blueprints are — the account
  *   port carries no enumeration, by its own rule that a port does not
  *   carry a method only one edition calls, and this act is open source's.
  *
@@ -85,26 +83,26 @@
  * "equals my subject or my id" (an email stamp is nobody's by this rule;
  * the operator is covered by arm 3 and by ensureOperatorOwnership), and a
  * stamp is a PERSON when it is non-empty and not the "system" placeholder
- * (SYSTEM_OPERATOR_IDENTITY_ID, the one home of that word — Q-S4-6). The
- * rules classify stamps by shape and consult no account store (Q-S4-5).
+ * (SYSTEM_OPERATOR_IDENTITY_ID, the one home of that word). The
+ * rules classify stamps by shape and consult no account store.
  *
  * Reads. Policy rows through the IamPolicyStore PORT (`policies`, the
- * same instance the grant path writes through) — never around it
- * (Q-S4-5). Organizations and blueprints through the generic Store,
- * decoded with each kind's own schema (CREATOR_SCAN_SCHEMAS; Q-S4-2: the
- * envelope shares its field numbers but each status carries its audit
- * under its own, so no generic decode exists). Cost, measured in the
- * entry's execution record: one scan of each of seven kinds and one row
+ * same instance the grant path writes through) — never around it.
+ * Organizations and blueprints through the generic Store, decoded with
+ * each kind's own schema (CREATOR_SCAN_SCHEMAS: the envelope shares its
+ * field numbers but each status carries its audit
+ * under its own, so no generic decode exists). Cost: one scan of each
+ * of seven kinds and one row
  * read per organization, once per account creation.
  *
- * The window this design accepts (Q-S4-4). A store fault after the
+ * The window this design accepts. A store fault after the
  * account row persisted fails the request INTERNAL (the controller's
  * mapping) with the account in place; later calls answer `created:
  * false`, so the rules never run again for that person. The writes ride
  * the idempotent grant path, so a partial run leaves only correct rows,
  * and the recovery is an administrator's grant — or, on a fresh install,
  * arm 3 at the operator's own sign-in. An account created through the
- * `create` RPC (the platform's own pipelines, cloud#393) never reaches
+ * `create` RPC (the platform's own pipelines) never reaches
  * this hook either: the rules are about a person signing in.
  */
 import type { DescMessage } from "@bufbuild/protobuf";

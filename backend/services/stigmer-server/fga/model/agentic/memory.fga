@@ -4,7 +4,7 @@ module agentic
 # MEMORY TYPE (Organization-scoped, Subject-Only Resource)
 # ========================================
 # Memory is an agent-proposed, user-confirmed fact about a person
-# (stigmer/stigmer#293 Phase 2; subject-only as ratified 2026-08-18).
+# (stigmer/stigmer#293; subject-only since 2026-08-18).
 #
 # Authorization model (SUBJECT-ONLY — the strictest in the platform):
 # - The SUBJECT (the identity account the memory is ABOUT) is the only

@@ -1,8 +1,7 @@
 /**
  * ServerStampedReservedLabels — the per-request record of reserved
  * `stigmer.ai/*` label keys that pipeline steps vouched for server-side
- * (the Java ServerStampedReservedLabels port, cloud#386; parity entry
- * 20260830.05).
+ * (the Java ServerStampedReservedLabels port).
  *
  * Some lanes legitimately carry reserved labels the client "sent": the
  * workflow runner's CallAgent activity stamps the lineage pair

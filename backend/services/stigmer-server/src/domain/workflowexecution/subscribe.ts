@@ -1,6 +1,6 @@
 /**
  * Subscribe — ports controller/subscribe.go: the real-time
- * workflow-execution stream (ADR 011 read path), streaming full
+ * workflow-execution stream (the broker's read path), streaming full
  * WorkflowExecution snapshots. The generator shape follows the sibling
  * agentexecution subscribe (itself derived from transport/health.ts
  * watch); every delivery rule ports verbatim:
@@ -22,9 +22,8 @@
  *   - The terminal set is COMPLETED/FAILED/CANCELLED — it OMITS
  *     TERMINATED, so a stream over a terminated execution never
  *     self-closes. Known Go quirk (isWorkflowTerminalPhase,
- *     subscribe.go:216), ported byte-faithfully; disclosed as a
- *     both-editions issue candidate, the same finding #17 made on
- *     agentexecution.
+ *     subscribe.go:216), ported byte-faithfully, as agentexecution's
+ *     subscribe does.
  */
 import { equals } from "@bufbuild/protobuf";
 import type { HandlerContext } from "@connectrpc/connect";
@@ -55,7 +54,7 @@ export interface SubscribeDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly broker: StreamBroker;
-  /** The composed authorization seam — the pre-stream check below (C2 Stage 4). */
+  /** The composed authorization seam — the pre-stream check below. */
   readonly authorizer: Authorizer;
 }
 
@@ -85,7 +84,7 @@ export async function* subscribeExecution(
   // The annotation's can_view check, once at subscription start — the
   // stream cannot run inside the pipeline executor, so the Authorize
   // evaluation runs here directly (the Java subscribe handlers' validate →
-  // authorize order; C2 Stage 4).
+  // authorize order).
   await authorizeDirect(
     WorkflowExecutionQueryController.method.subscribe,
     deps.authorizer,

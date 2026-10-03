@@ -13,9 +13,8 @@
 import yaml from "js-yaml";
 
 // goTrimSpace: Go's exact TrimSpace set — a .trim()-based delimiter check
-// would accept BOM'd "---" lines Go rejects (found by the #8 parity review
-// panel; promoted to gocompat when search criteria became the second
-// consumer, #14).
+// would accept BOM'd "---" lines Go rejects (promoted to gocompat when
+// search criteria became the second consumer).
 import { goTrimSpace } from "../../../gocompat/trim.js";
 
 /** Parsed SKILL.md frontmatter (Go SkillFrontmatter). */

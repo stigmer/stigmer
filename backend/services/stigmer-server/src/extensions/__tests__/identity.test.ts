@@ -1,10 +1,10 @@
 /**
- * Pins `isPlatformPipelineCaller` (extensions/identity.ts; 20260913.01
- * slice 5, Q-S5-10): the ONE definition of "the platform's own pipelines"
+ * Pins `isPlatformPipelineCaller` (extensions/identity.ts): the ONE
+ * definition of "the platform's own pipelines"
  * — a `machine` or `internal` caller, or any identity that entered
  * through the in-process transport — read by the identity-account
- * `create` RPC's admission rule (2a A7) and the three IamPolicy system
- * RPCs' (Q-OR-7). A wire `user`, `runner` or a composition's own class
+ * `create` RPC's admission rule and the three IamPolicy system
+ * RPCs'. A wire `user`, `runner` or a composition's own class
  * (guest) is never one.
  *
  * Also pins `isServerComposedRequest`, the narrower predicate the label

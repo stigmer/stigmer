@@ -8,8 +8,6 @@ package ai.stigmer.agentic.agent.v1;
 /**
  * <pre>
  * ListAgentVersionsResponse contains a page of agent version history.
- *
- * &#64;since Agent Versioning (future)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse}
@@ -335,8 +333,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ListAgentVersionsResponse contains a page of agent version history.
-   *
-   * &#64;since Agent Versioning (future)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse}

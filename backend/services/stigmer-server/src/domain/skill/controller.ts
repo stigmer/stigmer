@@ -150,9 +150,9 @@ const EXECUTION_ARTIFACT_DOWNLOAD_TIMEOUT_MS = 60_000;
 export interface SkillControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly artifactStorage: SkillArtifactStorage;
   /**
@@ -210,7 +210,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * delegates here after its artifact download). Each authorizes under its
  * OWN annotation — a hardcoded method.push would silently evaluate the
  * wrong config the day the two annotations diverge (the runLifecyclePipeline
- * pattern, O2).
+ * pattern).
  */
 async function push(
   deps: SkillControllerDeps,

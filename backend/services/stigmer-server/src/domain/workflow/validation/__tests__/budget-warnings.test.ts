@@ -121,7 +121,7 @@ describe("checkBudgetWarnings", () => {
 
   it("renders exact-tie dollar amounts with Go's %.2f half-to-even rounding", () => {
     // 0.125 is binary-exact: Go %.2f prints $0.12 (ties to even);
-    // toFixed(2) would print $0.13 (panel finding).
+    // toFixed(2) would print $0.13.
     const warnings = checkBudgetWarnings(
       budget({
         maxCostMicros: 1n,

@@ -1,5 +1,5 @@
 /**
- * Pins the versioned-codec seam (20260830.04 Stage 1, rulings Q2/Q7):
+ * Pins the versioned-codec seam:
  * read dispatch on the value's own version token, fail-fast write-version
  * resolution, the facade-owned policy layer (idempotent pass-through,
  * unprefixed pass-through, unknown-version refusal on the unavailable
@@ -210,7 +210,7 @@ describe("batch verbs", () => {
   });
 });
 
-describe("encryptAllAtMostV2 (the executioncontext pin, vault project DD-005)", () => {
+describe("encryptAllAtMostV2 (the executioncontext pin)", () => {
   it("uses the write codec at write-version v1 (the OSS default)", async () => {
     const svc = SecretService.create(KEY);
     const out = await svc.encryptAllAtMostV2(new Map([["A", "alpha"]]), SCOPE);

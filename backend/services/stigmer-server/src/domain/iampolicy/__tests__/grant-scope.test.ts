@@ -1,6 +1,6 @@
 /**
- * Pins open source's default PolicyGrantScope (domain/iampolicy/grant-scope.ts;
- * 20260913.01, T01_1_review.md Q-OR-3 and Q-OR-4): the organization grants
+ * Pins open source's default PolicyGrantScope (domain/iampolicy/grant-scope.ts):
+ * the organization grants
  * the roles its `kind_meta` lists and no other kind grants anything.
  * Per-resource grants — a viewer on one agent — are what the Enterprise and
  * Cloud editions add through a composed scope; open source's Members page

@@ -1,6 +1,7 @@
 /**
- * TemporalManager lifecycle tests — pins the two panel findings, the
- * availability posture, and the worker-construction capability:
+ * TemporalManager lifecycle tests — pins the shutdown race and the
+ * partial-start tracking, the availability posture, and the worker-construction
+ * capability:
  *
  *   - close() racing an in-flight reconnect must NOT resurrect the
  *     manager (fresh dial discarded; no workers recreated; no hooks
@@ -8,7 +9,7 @@
  *     this port re-checks `closed` across every await;
  *   - a worker factory throwing mid-loop must leave the already-started
  *     workers TRACKED so close() can stop them (an untracked poller
- *     lives forever — latent until #21/#22 add factories);
+ *     lives forever);
  *   - the Go availability parity: getClient() is undefined only until
  *     the first successful connect;
  *   - both connections, the client's and the workers' native one, carry
@@ -16,7 +17,7 @@
  *     address, and a plaintext manager passes neither;
  *   - deps.createWorker builds through THIS package's Worker.create with
  *     the manager's connection, namespace, and codec chain pre-wired
- *     (the finding-16 seam — factories never see the NativeConnection);
+ *     (factories never see the NativeConnection);
  *   - a worker's run() rejection logs at ERROR with its queue identity
  *     (a permanent death re-dies on every recreate while the worker
  *     reports RUNNING — the log line is the only signal);
@@ -270,7 +271,7 @@ describe("TemporalManager availability posture", () => {
   });
 });
 
-describe("TemporalManager createWorker capability (the finding-16 seam)", () => {
+describe("TemporalManager createWorker capability", () => {
   it("builds through this package's Worker.create with connection, namespace, and codecs pre-wired", async () => {
     const fakeCodec = { encode: async () => [], decode: async () => [] };
     const manager = newManager(

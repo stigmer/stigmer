@@ -140,10 +140,10 @@ message PendingApproval {
   // without a client-side lookup. See ToolKind.
   ToolKind tool_kind = 13;
 
-  // Field 14 (file_changes) was removed in Phase 5 Slice 4. The pre-execution
+  // Field 14 (file_changes) was removed. The pre-execution
   // deny-gate no longer carries a captured diff: file review moved to the
   // apply-then-review FileChangeSet ledger, and the no-storage deny-gate renders
-  // the proposed change from the tool args instead. See design-decisions 21 & 22.
+  // the proposed change from the tool args instead.
   reserved 14;
 
   // Policy layer that gated this tool call, copied from
@@ -158,7 +158,8 @@ message PendingApproval {
 // Child Approval Notification (legacy full-payload shape)
 //
 // The LIVE "child_approval_required" Temporal signal carries only the child
-// execution id as a bare string (identity-only, cloud#509); the receiver
+// execution id as a bare string (identity-only: proto-encoded payloads
+// poisoned the receiving workflow task); the receiver
 // derives pending approvals from the child execution record. This message is
 // the retired full-payload signal shape, kept for wire compatibility.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -173,7 +174,7 @@ message PendingApproval {
 //
 // @internal
 //
-// The identity-only shape replaced this message in both editions (cloud#509);
+// The identity-only shape replaced this message in both editions;
 // both the OSS TypeScript server's and the cloud Java service's
 // agent-execution workflows send the bare-string signal on every HITL cycle.
 //
@@ -201,18 +202,16 @@ message ChildApprovalNotification {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Approval Event Stream (HITL re-architecture, Phase 1)
+// Approval Event Stream
 //
-// An append-only event stream is the target single source of truth for
-// approvals: harnesses *propose* tool calls, the stream *records* requests and
-// decisions, and pending_approvals becomes a projection of the stream rather
-// than a scan of tool-call status embedded in messages.
+// An append-only event stream is the single source of truth for approvals:
+// harnesses *propose* tool calls, the stream *records* requests and
+// decisions, and pending_approvals is a projection of the stream rather than
+// a scan of tool-call status embedded in messages.
 //
-// Phase 1 introduces these types and dual-projects pending_approvals from BOTH
-// the existing message scan (authoritative) and a shadow event stream derived
-// from the same tool calls, asserting equality in CI. The stream does not feed
-// the UI and the source of truth does not flip until a later phase, so adding
-// these messages changes no runtime behavior.
+// The server still runs the message scan beside the projection as a
+// cross-check: the two must agree, and a disagreement is logged and counted
+// without changing the projected result.
 //
 // Correlation is always by approval_request_id (never by a content hash).
 // approval_request_id is set equal to the harness tool_call_id by a deliberate,
@@ -274,8 +273,7 @@ message ApprovalRequest {
   // Harness-agnostic tool category. Copied from ToolCall.tool_kind.
   ToolKind tool_kind = 11;
 
-  // Field 12 (file_changes) was removed in Phase 5 Slice 4 (see PendingApproval
-  // above and design-decisions 21 & 22).
+  // Field 12 (file_changes) was removed (see PendingApproval above).
   reserved 12;
 
   // Policy layer that gated this call. Copied from

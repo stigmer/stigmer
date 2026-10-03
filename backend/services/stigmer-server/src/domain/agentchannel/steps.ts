@@ -2,8 +2,8 @@
  * AgentChannel domain steps — ports pkg/domain/agentchannel/controller/
  * steps.go: channel defaults with the anti-probing ordering (same-org
  * invariant BEFORE the agent load), the write-time model-pin existence
- * rule (stigmer/stigmer#774), the WhatsApp BYO app_ref rules (DD-WA-2 /
- * T04 item 2), the install-state stamp, and the update immutability
+ * rule (stigmer/stigmer#774), the WhatsApp BYO app_ref rules, the
+ * install-state stamp, and the update immutability
  * rules.
  *
  * Proven by agentchannel.conformance.test.ts (CONFORMANCE_TARGET=local)
@@ -59,9 +59,8 @@ type AgentChannelDesc = typeof AgentChannelSchema;
  * ride through opaquely and silently run (and bill) as Auto wherever the
  * channel serves. Validated against EVERY registry harness section (the
  * "" harness mode) because this edition stores channel specs without a
- * serving runtime (the DD-015 divergence posture). Go reads a
- * package-level registry; here the composed ModelCatalogProvider (DD-008,
- * workflow-family DD-A) is passed explicitly. Shared by create
+ * serving runtime. Go reads a package-level registry; here the composed
+ * ModelCatalogProvider is passed explicitly. Shared by create
  * (ResolveChannelDefaults) and update (ValidateChannelUpdate).
  */
 function validateChannelModelPin(
@@ -91,7 +90,7 @@ function validateChannelModelPin(
  *      path.
  *   4. Validates the model pin and the WhatsApp BYO app_ref rules.
  *   5. Loads the referenced agent — a nonexistent agent is refused with
- *      the same NOT_FOUND a direct agent lookup would produce (T09).
+ *      the same NOT_FOUND a direct agent lookup would produce.
  *
  * Deliberately NO slug default from the agent (unlike the share's
  * canonical-slug rule): channels are N-per-agent across providers, so no
@@ -159,7 +158,7 @@ export function newResolveChannelDefaultsStep(
         throw internalError(error, "failed to list agent resources");
       }
       if (agent === undefined) {
-        // Byte-identical with the direct agent lookup's refusal (T09).
+        // Byte-identical with the direct agent lookup's refusal.
         throw notFoundError("Agent", agentRef!.slug);
       }
 
@@ -220,7 +219,7 @@ export function resolveChannelCreateTargets(
  * InitInstallState — Go initInstallStateStep: writes
  * status.install_state = pending_install; the channel exists but serves
  * no traffic until the provider install completes — which in this edition
- * never happens (the §0-b refusal is the only install surface).
+ * never happens (the install lane's refusal is the only install surface).
  *
  * Runs AFTER BuildNewState, which clears client-provided status — the
  * install state is system-managed and must survive that wipe, exactly
@@ -336,8 +335,8 @@ export function newValidateChannelUpdateStep(
  * (channel-runtime.ts: credentials environment, OAuth grant, pending
  * deliveries). Spliced into the delete chain ONLY when a runtime is
  * composed, after LoadExistingForDelete and before DeleteResource —
- * dependent runtime state dies before the row (the cloud#425 ordering
- * family), and a thrown teardown error leaves the row for an idempotent
+ * dependent runtime state dies before the row, and a thrown teardown
+ * error leaves the row for an idempotent
  * retry. The storing edition's delete chain is byte-identical to before
  * this seam existed.
  *
@@ -366,7 +365,7 @@ export function newTeardownChannelRuntimeStep<Desc extends DescMessage>(
 }
 
 /**
- * The app_ref rules on update (T04 item 2) — Go validateAppRefUpdate,
+ * The app_ref rules on update — Go validateAppRefUpdate,
  * byte-identical with the cloud edition's ValidateChannelUpdate:
  *   - required for whatsapp (repeated here because update does not run
  *     the defaults resolver; provider immutability above guarantees the

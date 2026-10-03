@@ -1,6 +1,5 @@
 /**
- * Pins the open-source membership rules (T01_0_plan.md §3a
- * "membership.ts"; T01_1_review.md Q-OR-6b and Q-OR-6c) over a seeded
+ * Pins the open-source membership rules (membership.ts) over a seeded
  * generic store, a fake account port and the real grant path:
  *
  *   onAccountCreated(account, caller), per organization the account holds
@@ -8,11 +7,11 @@
  *   - `owner` when the account's subject (its idp_id) or its id is the
  *     organization's own creator;
  *   - `admin` when it created any BLUEPRINT in that organization (and only
- *     a blueprint: a session's creator stays a member — DD-002 rule 2
- *     keeps personal things by created_by with no role);
+ *     a blueprint: a session's creator stays a member — personal things
+ *     stay with their creator by created_by, with no role);
  *   - `admin` when the organization has ZERO role rows and no PERSON other
  *     than this account created the organization or any blueprint in it
- *     (slice 4 ruling Q-S4-7: the founder's stamp counts) — the
+ *     (the founder's stamp counts) — the
  *     fresh-install and the trusted-local-turned-OIDC first caller. "Zero
  *     rows", never "no admin now": revoking every admin of a bootstrapped
  *     organization must not hand it to the next stranger;
@@ -28,7 +27,7 @@
  *     nor `admin`, nor `member` anywhere.
  *
  *   ensureOperatorOwnership(operator): `owner` on every organization that
- *   has NO owner row (Q-S4-3: a boot-time write never overrides a recorded
+ *   has NO owner row (a boot-time write never overrides a recorded
  *   human grant); a second boot writes nothing; the row's audit actor is
  *   the operator's account — id, email and display name — like every
  *   other trusted-local write.
@@ -49,7 +48,7 @@
  *
  * The creator stamps the rules read are `status.audit.spec_audit.created_by
  * .id`, which for a legacy self-host is the raw issuer subject and for a
- * provisioned caller is the account id (P1 gate Q2c; 2a handoff 2), so
+ * provisioned caller is the account id, so
  * both spellings are seeded and both must match. A stamp is a PERSON when
  * it is non-empty and not the unconfigured laptop's "system" placeholder;
  * the rules classify stamps by shape and consult no account store.
@@ -351,7 +350,7 @@ describe("membership rules", () => {
       expect(rolesOf(mallory.metadata!.id)).toEqual(["member@acme"]);
     });
 
-    it("the founder's own stamp counts as another person — a revoked founder's empty organization is NOT handed to the next stranger (Q-S4-7)", async () => {
+    it("the founder's own stamp counts as another person — a revoked founder's empty organization is NOT handed to the next stranger", async () => {
       await seedOrg("acme", "auth0|alice");
       const alice = account("auth0|alice", "alice@example.com");
       await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));

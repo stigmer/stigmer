@@ -61,10 +61,10 @@ message OrganizationSpec {
 // Mutable through the existing update/apply RPCs under can_edit (admin) —
 // the same trust tier as agent instructions, so injecting the content into
 // member executions introduces no new trust boundary. Grows along the org
-// scope's taxonomy path (Phase 2: memory-policy flag). Org-side BOUNDS on
+// scope's taxonomy path (memory_enabled is one such field). Org-side BOUNDS on
 // members (ceilings, clamps, allowlists) are policies, not preferences —
-// if they ever accumulate they get a sibling `policies` message (DD-003
-// refinement 2), never a stretched `preferences`.
+// if they ever accumulate they get a sibling `policies` message, never a
+// stretched `preferences`.
 message OrganizationPreferences {
   // Free-text standing context injected into eligible agent executions in
   // this organization. Example: "We deploy to us-east-1."
@@ -84,16 +84,16 @@ message OrganizationPreferences {
   // offered and nothing is recalled, regardless of member opt-in.
   //
   // @internal
-  // The org half of memory's double opt-in (DD-006 D1): effective
+  // The org half of memory's double opt-in: effective
   // enablement = org memory_enabled AND the member's own memory_enabled
   // AND first-party human operator. An enablement gate, not a bound —
   // it does not parameterize member behavior, so it lives in
-  // preferences legitimately (DD-003 refinement 2); real bounds
+  // preferences legitimately; real bounds
   // (retention ceilings) would go to a sibling policies message.
   // Deliberately a bool, not an enum: a genuine on/off switch — finer
   // policy becomes new fields when evidence demands them. Enforced
-  // fail-closed at memory create (DD-005 D2) and read at recall compose
-  // (DD-006 D3). OSS local mode: this flag alone governs (single user,
+  // fail-closed at memory create and read at recall compose.
+  // OSS local mode: this flag alone governs (single user,
   // no account scope).
   bool memory_enabled = 2;
 }

@@ -382,7 +382,7 @@ describe("callAgentAction", () => {
     });
   });
 
-  describe("workspace entries and workflow provenance (#358 Phase 2)", () => {
+  describe("workspace entries and workflow provenance (#358)", () => {
     it("maps git workspace entries onto the created session's spec", async () => {
       await expect(
         callAgentAction(

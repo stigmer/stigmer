@@ -9,7 +9,7 @@
  * failures are plain errors for the chassis's INTERNAL arm — never
  * credential rejections).
  *
- * Since 20260911.11 (Q-IA-2, A1) the verifier also resolves the subject to
+ * The verifier also resolves the subject to
  * an identity ACCOUNT id when one exists — the cloud's direct-login
  * posture — through the store port it is composed with: a hit stamps the
  * account id, a miss admits the caller idp-shaped (identityId = sub) so
@@ -24,8 +24,8 @@
  * fill only what the row leaves empty, so a token minted with no profile
  * claims (Auth0's default) still stamps the person's email and name.
  *
- * Issuer discovery is a REQUIRED dependency too (T01_1_review.md A8; the
- * S2 slice-2 refinement): the verifier reads the JWKS location through
+ * Issuer discovery is a REQUIRED dependency too: the verifier reads the JWKS
+ * location through
  * the shared oidc-discovery module the composition root builds once for
  * every lane. Two arms make the memo visible — N sequential verifies
  * fetch the well-known document once and the JWKS once — and one pins
@@ -186,7 +186,7 @@ describe("claim-or-pass", () => {
 });
 
 describe("identity mapping", () => {
-  it("maps sub/iss and the email/name claims (the DD-007 Q5 fields)", async () => {
+  it("maps sub/iss and the email/name claims onto the identity", async () => {
     const token = await mintToken({
       sub: "auth0|user123",
       email: "person@example.com",
@@ -265,7 +265,7 @@ describe("the byte-pinned classifyAuthError arms", () => {
   });
 });
 
-describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
+describe("subject → account resolution", () => {
   function seeded(
     sub: string,
     email: string,
@@ -407,7 +407,7 @@ describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
   });
 });
 
-describe("discovery and keys are fetched once per verifier (A8; the shared oidc-discovery module)", () => {
+describe("discovery and keys are fetched once per verifier (the shared oidc-discovery module)", () => {
   it("N sequential verifies fetch the well-known document once and the JWKS once", async () => {
     const one = verifier();
     const before = { ...hits };

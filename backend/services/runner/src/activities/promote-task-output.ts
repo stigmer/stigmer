@@ -1,5 +1,5 @@
 /**
- * Activity: Promote large task outputs to the Artifact store (T07).
+ * Activity: Promote large task outputs to the Artifact store.
  *
  * When a task's serialized output exceeds the promotion threshold (256KB),
  * this activity calls ArtifactCommandController.create() to persist the

@@ -56,7 +56,7 @@ import type { ExecutionContextLookupStore } from "./contexts-for-execution.js";
  * RejectCiphertextShapedValues — Go rejectCiphertextShapedStep: refuses
  * client-supplied values that look like stored ciphertext (the enc:v<N>:
  * prefix family, ANY version — an unknown future version fails closed) —
- * the EC flavor of the oss#395 / cloud#229 write-boundary guard. Without
+ * the EC flavor of the oss#395 write-boundary guard. Without
  * it, the encrypt step's idempotent pass-through would let a caller
  * smuggle a forged or replayed ciphertext blob into the store, where the
  * runner lane would later try to decrypt it.
@@ -102,14 +102,14 @@ export function newRejectCiphertextShapedStep(): PipelineStep<
  * would strand it as unreadable ciphertext.
  *
  * Seals as ONE batch through the v2-capped verb — the Java service's
- * encryptAllV2 lane (vault project DD-005): EC values are ephemeral, on
+ * encryptAllV2 lane: EC values are ephemeral, on
  * the runner's latency-budgeted read path, so a vault-backed write codec
  * must spend one batched KEK round trip here, never one per value, and a
  * future v3 write flip must not drag these unlocatable rows with it.
  * Under the v1-only OSS default the batch is behaviorally identical to
  * the per-value loop it replaced, except that an encrypt failure (never
  * observed for local AES-GCM) reports without the failing key name —
- * disclosed with the codec seam (20260830.04 Stage 1).
+ * disclosed with the codec seam.
  */
 export function newEncryptSecretValuesStep(
   secretService: SecretService,
@@ -277,7 +277,7 @@ export function newGuardExecutionBindingStep(): PipelineStep<
 
 /**
  * AuthorizeCreate — the Java ExecutionContextCreateHandler.AuthorizeCreate
- * port (stigmer-cloud#297; C2 Stage 3D): the create RPC skips the
+ * port: the create RPC skips the
  * declarative position-1 check (in-process creators — the agent/workflow
  * execution machinery — already authorized the run against its
  * session-or-org and act as the machine account), so EXTERNAL callers are

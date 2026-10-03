@@ -186,8 +186,7 @@ export type McpServerEngineState =
 /**
  * The disconnected state: no Temporal behind this server (never
  * connected since boot). Connect/startConnect refuse with Go's
- * byte-pinned FailedPrecondition; the OAuth RPCs work fully — the
- * ratified DB-1 split (sub-project 20260825.02).
+ * byte-pinned FailedPrecondition; the OAuth RPCs work fully.
  */
 export const MCP_SERVER_ENGINE_DISCONNECTED: McpServerEngineState =
   Object.freeze({ connected: false });
@@ -195,6 +194,6 @@ export const MCP_SERVER_ENGINE_DISCONNECTED: McpServerEngineState =
 /**
  * A provider rather than a value: consumers observe the CURRENT state at
  * request time, never a boot-time snapshot — reconnects propagate
- * automatically (the #18 engine-state idiom).
+ * automatically (the agent-execution engine-state idiom).
  */
 export type McpServerEngineStateProvider = () => McpServerEngineState;

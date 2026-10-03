@@ -15,8 +15,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * enforcement boundary — the backend gate always re-derives the keep-all
  * condition from the per-file changes so a stale or mislabeled rollup can never
  * widen what may be approved.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.DiffCompleteness}

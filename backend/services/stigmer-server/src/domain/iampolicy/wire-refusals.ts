@@ -1,6 +1,5 @@
 /**
- * The IamPolicy domain's wire refusals (20260913.01; slice 2 ruling
- * Q-S2-1, slice 5 ruling Q-S5-2): the ONE place a kind string that came
+ * The IamPolicy domain's wire refusals: the ONE place a kind string that came
  * off the wire, or a whole policy triple, is turned into INVALID_ARGUMENT
  * with the domain's byte-pinned copy (constants.ts). Three callers share
  * it so the rule cannot drift between them — the grant path (before any
@@ -12,9 +11,9 @@
  *
  * Why the match is exact (the `kindByEnumName` doctrine,
  * pipeline/apiresource-meta.ts): an `ApiResourceRef.kind` is the enum
- * MEMBER name and the derived policy id hashes the spec's text (Q-OR-9), so
+ * MEMBER name and the derived policy id hashes the spec's text, so
  * a lenient match would let "Organization" and "organization" mint two
- * rows for one grant. Where the refusal runs (Q-S6-1, 2026-09-14): the
+ * rows for one grant. Where the refusal runs (since 2026-09-14): the
  * controller calls it BEFORE position 1 on every lane, so no Authorizer in
  * any edition is ever asked about a kind that is not a kind — a kind
  * string that names no kind names no authorization target (the cloud's
@@ -78,7 +77,7 @@ export function requireKnownPrincipalKind(kind: string): ApiResourceKind {
 
 /**
  * The whole triple, in the order the cloud refused it: no delimiter in any
- * field (the canonical text would be ambiguous, Q-S2-1), then the resource
+ * field (the canonical text would be ambiguous), then the resource
  * kind, then the principal kind.
  */
 export function requireWellFormedTriple(spec: IamPolicySpec): AdmittedTriple {

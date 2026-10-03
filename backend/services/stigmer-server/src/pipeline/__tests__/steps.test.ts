@@ -207,7 +207,7 @@ describe("BuildNewState", () => {
     expect(state.metadata?.id).toMatch(/^org_[0-9a-hjkmnp-tv-z]{26}$/);
     expect(state.status?.audit?.specAudit?.event).toBe("created");
     expect(state.status?.audit?.statusAudit?.event).toBe("created");
-    // O2 ruling Q5: the audit actor derives from the REQUEST's caller
+    // The audit actor derives from the REQUEST's caller
     // identity — here the explicit test identity (production wire
     // requests derive the same bytes as the retired process-global seam).
     expect(state.status?.audit?.specAudit?.createdBy?.id).toBe("test-caller");
@@ -260,8 +260,8 @@ describe("generateId", () => {
   });
 });
 
-describe("operator identity (#400) → audit-actor derivation (O2 ruling Q5)", () => {
-  it("derives the system placeholder when unconfigured and the operator when configured — the pre-O2 bytes", () => {
+describe("operator identity (#400) → audit-actor derivation", () => {
+  it("derives the system placeholder when unconfigured and the operator when configured — the audit bytes from before the chassis", () => {
     expect(auditActorFor(trustedLocalIdentity()).id).toBe("system");
 
     setOperatorIdentity("op@example.test", "Op");

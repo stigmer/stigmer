@@ -146,8 +146,6 @@ export type ListWorkflowExecutionsRequest = Message<"ai.stigmer.agentic.workflow
    * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
    * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
    *
-   * @since T13 (Execution History)
-   *
    * @generated from field: ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5;
    */
   filter?: ExecutionFilterCriteria;
@@ -157,8 +155,6 @@ export type ListWorkflowExecutionsRequest = Message<"ai.stigmer.agentic.workflow
    * page_token, any other sorts the whole matching set and returns its
    * first page_size entries with no token.
    *
-   * @since T13 (Execution History)
-   *
    * @generated from field: ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6;
    */
   sortField: ExecutionSortField;
@@ -166,8 +162,6 @@ export type ListWorkflowExecutionsRequest = Message<"ai.stigmer.agentic.workflow
   /**
    * When true, sorts in ascending order. Default (false) is descending.
    * Read only with a sort field other than the default.
-   *
-   * @since T13 (Execution History)
    *
    * @generated from field: bool sort_ascending = 7;
    */
@@ -224,8 +218,6 @@ export type ListWorkflowExecutionsByWorkflowRequest = Message<"ai.stigmer.agenti
   /**
    * Structured filter criteria for advanced filtering.
    *
-   * @since T13 (Execution History)
-   *
    * @generated from field: ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 4;
    */
   filter?: ExecutionFilterCriteria;
@@ -235,8 +227,6 @@ export type ListWorkflowExecutionsByWorkflowRequest = Message<"ai.stigmer.agenti
    * page_token, any other sorts the whole matching set and returns its
    * first page_size entries with no token.
    *
-   * @since T13 (Execution History)
-   *
    * @generated from field: ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 5;
    */
   sortField: ExecutionSortField;
@@ -244,8 +234,6 @@ export type ListWorkflowExecutionsByWorkflowRequest = Message<"ai.stigmer.agenti
   /**
    * When true, sorts in ascending order. Default (false) is descending.
    * Read only with a sort field other than the default.
-   *
-   * @since T13 (Execution History)
    *
    * @generated from field: bool sort_ascending = 6;
    */
@@ -836,8 +824,6 @@ export const SubscribeEventsRequestSchema: GenMessage<SubscribeEventsRequest> = 
  * ExecutionFilterCriteria defines structured filter conditions for listing
  * workflow executions. All specified conditions are combined with AND logic.
  *
- * @since T13 (Execution History)
- *
  * @generated from message ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria
  */
 export type ExecutionFilterCriteria = Message<"ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria"> & {
@@ -927,8 +913,6 @@ export const ExecutionFilterCriteriaSchema: GenMessage<ExecutionFilterCriteria> 
  * GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,
  * optionally scoped to a single workflow.
  *
- * @since T14 (Dashboard Integration)
- *
  * @generated from message ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest
  */
 export type GetExecutionSummaryRequest = Message<"ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest"> & {
@@ -952,8 +936,6 @@ export type GetExecutionSummaryRequest = Message<"ai.stigmer.agentic.workflowexe
    * When set, scopes the summary to executions of this workflow only.
    * When empty, aggregates across all workflows in the organization.
    *
-   * @since T12 (Overview Page Redesign)
-   *
    * @generated from field: string workflow_id = 3;
    */
   workflowId: string;
@@ -970,8 +952,6 @@ export const GetExecutionSummaryRequestSchema: GenMessage<GetExecutionSummaryReq
  * ExecutionSummary contains aggregated statistics for workflow executions.
  *
  * All counts, costs, and durations are scoped to the requested time window.
- *
- * @since T14 (Dashboard Integration)
  *
  * @generated from message ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary
  */
@@ -1030,8 +1010,6 @@ export type ExecutionSummary = Message<"ai.stigmer.agentic.workflowexecution.v1.
   /**
    * Total number of executions in the time window (sum of all phase_counts values).
    *
-   * @since T12 (Overview Page Redesign)
-   *
    * @generated from field: int32 total_count = 7;
    */
   totalCount: number;
@@ -1040,8 +1018,6 @@ export type ExecutionSummary = Message<"ai.stigmer.agentic.workflowexecution.v1.
    * Success rate as a ratio (0.0 to 1.0).
    * Computed as completed / (completed + failed). Returns -1.0 when no
    * completed or failed executions exist in the time window.
-   *
-   * @since T12 (Overview Page Redesign)
    *
    * @generated from field: double success_rate = 8;
    */
@@ -1057,8 +1033,6 @@ export const ExecutionSummarySchema: GenMessage<ExecutionSummary> = /*@__PURE__*
 
 /**
  * WorkflowCostSummary aggregates token and dollar costs.
- *
- * @since T14 (Dashboard Integration)
  *
  * @generated from message ai.stigmer.agentic.workflowexecution.v1.WorkflowCostSummary
  */
@@ -1089,8 +1063,6 @@ export const WorkflowCostSummarySchema: GenMessage<WorkflowCostSummary> = /*@__P
 /**
  * WorkflowFailureRank represents a workflow and its failure count within a time window.
  *
- * @since T14 (Dashboard Integration)
- *
  * @generated from message ai.stigmer.agentic.workflowexecution.v1.WorkflowFailureRank
  */
 export type WorkflowFailureRank = Message<"ai.stigmer.agentic.workflowexecution.v1.WorkflowFailureRank"> & {
@@ -1119,8 +1091,6 @@ export const WorkflowFailureRankSchema: GenMessage<WorkflowFailureRank> = /*@__P
 
 /**
  * WorkflowCostBreakdown represents per-workflow cost aggregation.
- *
- * @since T14 (Dashboard Integration)
  *
  * @generated from message ai.stigmer.agentic.workflowexecution.v1.WorkflowCostBreakdown
  */
@@ -1156,8 +1126,6 @@ export const WorkflowCostBreakdownSchema: GenMessage<WorkflowCostBreakdown> = /*
 /**
  * ListPendingApprovalsRequest fetches workflow executions that have active
  * human_input tasks awaiting reviewer decisions.
- *
- * @since T14 (Dashboard Integration)
  *
  * @generated from message ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest
  */
@@ -1196,8 +1164,6 @@ export const ListPendingApprovalsRequestSchema: GenMessage<ListPendingApprovalsR
 
 /**
  * PendingApproval represents a single human_input task awaiting a reviewer decision.
- *
- * @since T14 (Dashboard Integration)
  *
  * @generated from message ai.stigmer.agentic.workflowexecution.v1.PendingApproval
  */
@@ -1266,8 +1232,6 @@ export type PendingApproval = Message<"ai.stigmer.agentic.workflowexecution.v1.P
    * Empty when the task declares no hint or the execution predates the
    * field — consumers treat empty as a generic review.
    *
-   * @since Review Payloads (stigmer/stigmer#234)
-   *
    * @generated from field: string ui_hint = 8;
    */
   uiHint: string;
@@ -1282,8 +1246,6 @@ export const PendingApprovalSchema: GenMessage<PendingApproval> = /*@__PURE__*/
 
 /**
  * PendingApprovalsList contains one page of pending approvals.
- *
- * @since T14 (Dashboard Integration)
  *
  * @generated from message ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList
  */
@@ -1321,8 +1283,6 @@ export const PendingApprovalsListSchema: GenMessage<PendingApprovalsList> = /*@_
 
 /**
  * ExecutionSortField defines the column to sort execution lists by.
- *
- * @since T13 (Execution History)
  *
  * @generated from enum ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField
  */
@@ -1373,8 +1333,6 @@ export const ExecutionSortFieldSchema: GenEnum<ExecutionSortField> = /*@__PURE__
 
 /**
  * SummaryTimeWindow controls the time range for aggregated dashboard queries.
- *
- * @since T14 (Dashboard Integration)
  *
  * @generated from enum ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow
  */

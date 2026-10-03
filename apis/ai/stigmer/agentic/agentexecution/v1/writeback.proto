@@ -28,8 +28,6 @@ package ai.stigmer.agentic.agentexecution.v1;
 // pr_created. If any step fails, the phase is set to FAILED with the
 // error message, and processing continues to the next workspace entry.
 // One failed write-back does not block others.
-//
-// @since Platform-Owned Git Write-Back
 message WorkspaceWriteBack {
   // Name of the workspace entry this write-back corresponds to.
   // Links to SessionSpec.workspace_entries[].name.

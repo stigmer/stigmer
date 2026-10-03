@@ -9,7 +9,7 @@
  *
  * No worker: the connect workflow is the RUNNER's; this module only
  * starts, attaches to, describes, and awaits runs. The engine-state
- * provider follows #18's idiom exactly (engine-client.ts precedent): it
+ * provider follows the agent-execution engine client's idiom exactly: it
  * reads the manager's CURRENT client at request time and memoizes the
  * engine per client instance, so reconnects propagate automatically.
  *

@@ -199,7 +199,7 @@ export interface TurnWorkspace {
 export interface TurnMcp {
   /** Every resolved server, synthesized attachments included; the harness projects its SDK config from this list. */
   readonly servers: readonly ResolvedMcpServer[];
-  /** Serving proactive channels and their templates (the DD-006 D2 discovery read). */
+  /** Serving proactive channels and their templates (the discovery read). */
   readonly channelMessaging: readonly ChannelMessagingInfo[];
   readonly leases: ActiveLeases;
   readonly policies: ReadonlyMap<string, MergedToolPolicy>;

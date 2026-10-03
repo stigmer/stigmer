@@ -1,7 +1,7 @@
 /**
  * Searchable-extractor contract — ports the query side of
  * pkg/query/search/extractor/extractor.go (the index side,
- * SearchIndexExtractor, shipped with #4 in pipeline/steps/index-search.ts;
+ * SearchIndexExtractor, in pipeline/steps/index-search.ts;
  * this module extends it, mirroring Go's single interface).
  *
  * Go duplicates the ToSearchResult body 13× (protobuf structs cannot share
@@ -10,7 +10,7 @@
  * ONCE as buildSearchResult, parameterized by what actually varies (kind,
  * summary, icon). Byte-visible output is identical; the per-kind summary
  * sources are pinned in each domain's search-extractor.ts and in the
- * conformance suite (D4 #14 DD-C, owner-ratified).
+ * conformance suite.
  *
  * Proven by search.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * the registry/extractor unit tests.
@@ -28,8 +28,8 @@ import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import type { SearchIndexExtractor } from "../../pipeline/steps/index-search.js";
 
 /**
- * The full extractor contract (Go SearchableExtractor): the #4 index side
- * plus the query side this sub-project adds. One extractor per searchable
+ * The full extractor contract (Go SearchableExtractor): the index side
+ * plus the query side. One extractor per searchable
  * kind, registered in registry.ts.
  */
 export interface SearchableExtractor extends SearchIndexExtractor {

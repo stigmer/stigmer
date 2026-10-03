@@ -1,7 +1,6 @@
 /**
  * The workflow-execution engine seam — the ONE place this controller
- * touches Temporal-shaped behavior before sub-project #21 lands the
- * workflow-execution orchestrator on #18's shared worker infrastructure.
+ * touches Temporal-shaped behavior.
  *
  * Go models engine availability as two separately-injected nilable fields
  * on the controller (workflowCreator for create/sendSignal/taskApproval/
@@ -9,12 +8,12 @@
  * steps), re-injected by TemporalManager on every reconnect. The TS
  * guidelines forbid nullable modeling of optional infrastructure, so
  * availability is an explicit two-variant state instead (the shape the
- * sibling agentexecution domain ratified); #21's TemporalManager flips the
- * provider between the variants exactly where Go calls
- * SetWorkflowCreator/SetTemporalClient.
+ * sibling agentexecution domain uses); the TemporalManager-backed provider
+ * (temporal/workflowexecution/engine-client.ts) flips between the variants
+ * exactly where Go calls SetWorkflowCreator/SetTemporalClient.
  *
- * Until #21, the composition root wires ENGINE_DISCONNECTED permanently —
- * byte-identical behavior to the Go server running without Temporal, with
+ * While disconnected (until the first successful connect) the behavior is
+ * byte-identical to the Go server running without Temporal, with
  * each call site's own pinned posture (constants.ts): create refuses
  * Unavailable at the gate; the four lifecycle signal steps and recover's
  * terminate-existing refuse FailedPrecondition "Temporal is not
@@ -28,8 +27,8 @@
  * them in the controller steps — they are ported byte-pinned constants,
  * see constants.ts); dispatch-queue resolution (Go
  * wftemporal.ResolveWorkflowTaskQueue over spec.execution_target) is
- * temporal-slice code and lands inside #21's implementations, the same
- * absorption the agentexecution seam ratified.
+ * temporal-slice code and lives in the engine implementation
+ * (temporal/workflowexecution/dispatch.ts), as in the agentexecution seam.
  */
 import type { JsonValue } from "@bufbuild/protobuf";
 import type { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -46,7 +45,7 @@ import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
  * InvokeWorkflowExecutionWorkflowInput): only orchestration coordinates —
  * the slim-input doctrine keeps secrets out of Temporal history (they were
  * already consumed into the ExecutionContext). executionTarget feeds
- * #21's dispatch resolution ("global" → stigmer_runner, "execution" →
+ * the engine's dispatch resolution ("global" → stigmer_runner, "execution" →
  * wfexec:{id}); the cloud-only CallbackToken/InvokerIdentityAccountID
  * fields have no OSS producer and are not modeled.
  */
@@ -62,7 +61,7 @@ export interface StartWorkflowExecutionInput {
 
 /**
  * The engine operations this controller consumes once Temporal is wired.
- * Implemented by #21; empty by design until then — see the module header.
+ * Implemented by temporal/workflowexecution/engine-client.ts.
  */
 export interface ConnectedWorkflowExecutionEngine {
   /**
@@ -113,7 +112,7 @@ export interface ConnectedWorkflowExecutionEngine {
 
 /**
  * The engine's "workflow not found" sentinel (Go *serviceerror.NotFound
- * from the Temporal client). #21's implementation maps Temporal's
+ * from the Temporal client). The engine client maps Temporal's
  * not-found onto it; tests construct it directly.
  */
 export class EngineWorkflowNotFoundError extends Error {
@@ -132,14 +131,14 @@ export type WorkflowExecutionEngineState =
   | { readonly connected: false };
 
 /**
- * The permanent pre-#21 state: no Temporal behind this server. A frozen
+ * The disconnected state: no Temporal behind this server. A frozen
  * singleton so identity comparisons in tests stay meaningful.
  */
 export const ENGINE_DISCONNECTED: WorkflowExecutionEngineState =
   Object.freeze({ connected: false });
 
 /**
- * A provider rather than a value: #21's TemporalManager re-injects on
+ * A provider rather than a value: the TemporalManager re-injects on
  * every reconnect (Go's SetWorkflowCreator/SetTemporalClient), so
  * consumers must observe the CURRENT state at request time, never a
  * boot-time snapshot.

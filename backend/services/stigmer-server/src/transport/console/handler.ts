@@ -1,13 +1,13 @@
 /**
- * The console lane — lane 4 of the unified port (DD-005; DD-012 in the
- * parent program's records): serves the web console's static export and
+ * The console lane — lane 4 of the unified port: serves the web
+ * console's static export and
  * synthesizes its runtime /config.json, restoring the local console the
  * June CLI migration lost. Routing decisions live in resolver.ts (pure,
  * nginx-equivalence-gated); this module owns the HTTP half: the lane
  * guard, header policy, config synthesis, and file streaming.
  *
  * /config.json is also how the served console learns to sign in
- * (20260913.02 sp.console-login; stigmer#924): the composition root hands
+ * (stigmer#924): the composition root hands
  * the lane the server's authentication posture (ConsoleSignInPosture) and
  * the lane publishes it in the console's own vocabulary — the OIDC
  * issuer, audience and the console's PKCE client id under the posture,
@@ -83,14 +83,14 @@ function isServiceShapedPath(pathname: string): boolean {
 
 /**
  * How the console this lane serves signs in — the server's authentication
- * posture as the console needs to hear it (20260913.02 sp.console-login).
+ * posture as the console needs to hear it.
  * A modeled state, never a nullable: "no issuer configured" and "forgot to
  * wire the posture" must stay distinguishable at the call site.
  *
  * Under `oidc`, `consoleClientId` is the PUBLIC client the operator
- * registered for the browser's PKCE flow, or "" when they have not
- * (Q-CL-1): the lane publishes that truth as-is and the console refuses
- * with copy that names the knob (Q-CL-2), while the composition root has
+ * registered for the browser's PKCE flow, or "" when they have not:
+ * the lane publishes that truth as-is and the console refuses
+ * with copy that names the knob, while the composition root has
  * already WARNed at wiring time. Emitting `disabled` instead would send
  * the console into every RPC tokenless, to fail with a worse message.
  */
@@ -162,12 +162,12 @@ export function createConsoleLane(options: ConsoleLaneOptions): LaneHandler {
 
 /**
  * The runtime config the cloud container's entrypoint.sh generates from
- * env, synthesized here from the server's own knowledge instead (DD-012:
- * the nginx entrypoint script is not ported). The field names are the
+ * env, synthesized here from the server's own knowledge instead (the
+ * nginx entrypoint script is not ported). The field names are the
  * console's loader's (client-apps/web/src/config/runtime-config.ts).
  *
  * `apiUrl` is the empty string, which the console reads as "my own
- * origin" — the rule its `appUrl` already follows (20260913.02 Q-CL-3).
+ * origin" — the rule its `appUrl` already follows.
  * This lane and the RPC lane share one port, so the console can never
  * need a different origin, and it makes the answer right behind a
  * TLS-terminating proxy without trusting x-forwarded-proto: the earlier

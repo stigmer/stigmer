@@ -4,8 +4,8 @@
  * resource controllers, kept off the resource CRUD surface. Stateless on
  * the storing edition — no store.
  *
- * The whole surface is posture-split at REGISTRATION (channel-runtime.ts,
- * C3 ruling Q1): with no ChannelRuntime composed the storing bodies below
+ * The whole surface is posture-split at REGISTRATION (channel-runtime.ts):
+ * with no ChannelRuntime composed the storing bodies below
  * serve byte-identically to before the seam existed; with one composed,
  * EVERY method delegates — the driver owns runtime state and its own
  * error semantics, including the fail-closed arms this module's storing
@@ -17,11 +17,11 @@
  * refuse with FailedPrecondition. Unlike the install refusal
  * (controller.ts), there is deliberately NO load-then-NOT_FOUND here: the
  * serving send handler fails closed with PERMISSION_DENIED for an unknown
- * channel (DD-002 D4's error table, no existence leak), so probing the
+ * channel (no existence leak), so probing the
  * store first would CREATE an edition divergence rather than prevent one.
  *
  * listMessagingChannels answers an EMPTY list — a deliberate divergence
- * from its refusing siblings (proactive-messaging DD-006 D3): it is a
+ * from its refusing siblings: it is a
  * capability-DISCOVERY read the runner issues on every agent execution to
  * decide whether to attach the send_channel_message tool. The truthful
  * storing answer is "none", and an expected-error path in that hot loop

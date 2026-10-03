@@ -1,6 +1,6 @@
 /**
  * Pins the one statement of "what identityId does this subject get
- * stamped with" (resolve.ts; 20260911.11 Q-IA-2, A1, A6), the rule both
+ * stamped with" (resolve.ts), the rule both
  * verifiers call after their credential checks pass:
  *
  *   - a subject with a DIRECT account resolves to that account's id (the
@@ -27,8 +27,8 @@
  *   - a miss is the subject with its claims, an empty claim left out;
  *   - the same single read, the same faults.
  *
- * And the read in the other direction, `accountForCaller` (20260913.01
- * slice 4, Q-S4-1): the account a CallerIdentity stands for, the two
+ * And the read in the other direction, `accountForCaller`: the account
+ * a CallerIdentity stands for, the two
  * primary-key reads whoAmI has always made, stated once so the built-in
  * role lifecycle and whoAmI cannot disagree:
  *

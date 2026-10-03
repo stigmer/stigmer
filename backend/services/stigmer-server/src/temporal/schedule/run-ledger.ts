@@ -1,6 +1,6 @@
 /**
- * The fire ledger — ports pkg/domain/schedule/temporal/runledger.go
- * (DD-017 D-7): every fire leaves a row — including fires that created no
+ * The fire ledger — ports pkg/domain/schedule/temporal/runledger.go:
+ * every fire leaves a row — including fires that created no
  * execution, which are the only durable trace of a refused launch gate
  * below the auto-pause threshold.
  *

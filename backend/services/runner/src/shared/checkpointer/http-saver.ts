@@ -20,8 +20,8 @@
  * retry layer between an agent execution and its checkpoints — the deep
  * agent activity is deliberately non-retryable at the Temporal level
  * (maximumAttempts: 1; replaying a whole agent run is not safe), so before
- * this existed a single dropped request killed the execution
- * (stigmer/stigmer-cloud#188). Retrying puts is safe by server contract:
+ * this existed a single dropped request killed the execution. Retrying puts
+ * is safe by server contract:
  * CheckpointStore documents putCheckpoint/putWrite as keyed save-or-replace
  * upserts. Budget exhaustion still fails loudly — checkpoints are not
  * lossy-tolerable (unlike status updates, see status.ts), and silently

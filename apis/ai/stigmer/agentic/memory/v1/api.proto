@@ -16,14 +16,14 @@ import "buf/validate/validate.proto";
 // deletable — the record is the trust surface over the recall seam.
 //
 // @internal
-// DD-004: system-generated kind (no apply RPC — nobody authors a memory
+// System-generated kind (no apply RPC — nobody authors a memory
 // manifest), org-scoped with a subject identity-account tuple, so
 // cross-org recall is structurally impossible and content visibility is
 // subject-only. The lifecycle (proposed → confirmed/rejected) lives in
-// status with confirm/reject as its sole writers (DD-005 D3); the fact
+// status with confirm/reject as its sole writers; the fact
 // text lives in spec and is the subject's to edit after capture. Kind
-// number 57, id prefix "mem". Recall (DD-006) reads confirmed records
-// only; capture (DD-005) is the create RPC behind the remember tool.
+// number 57, id prefix "mem". Recall reads confirmed records
+// only; capture is the create RPC behind the remember tool.
 message Memory {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];

@@ -17,7 +17,7 @@
  * `scenar shoot` sees in the running bundle.
  *
  * The packed bundle's scenario.json does NOT carry this information — it
- * records the viewport (scenar DD-004) but not the shots, so every consumer
+ * records the viewport but not the shots, so every consumer
  * must come back to the TypeScript source. Recording shots in the bundle
  * descriptor (and letting `scenar shoot` skip the browser launch for
  * shot-less bundles) is engine work tracked on stigmer/scenar: `scenar pack`

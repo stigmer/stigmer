@@ -3,8 +3,8 @@
  * pkg/query/search/store/sqlite_search_query_store.go: the CQRS read path
  * over the search index. The SQL, engine query syntax, and score
  * normalization all live in the storage driver (Store.querySearchIndex /
- * clearSearchIndex — OD-3: no DB() escape hatch; DD-009: engine
- * specifics inside each driver); this module owns query SHAPING — the
+ * clearSearchIndex — no DB() escape hatch, engine specifics inside each
+ * driver); this module owns query SHAPING — the
  * engine-neutral tokenization of the user's query — plus per-hit
  * load-and-convert through the extractor registry, and RebuildIndex.
  *
@@ -35,8 +35,8 @@ import type { SearchableResourceRegistry } from "./registry.js";
 /** Go SearchQueryStore, the handler's read seam. */
 export interface SearchQueryStore {
   /**
-   * `authorizedIdsByKind` (kind NAME → ids) is the 20260830.01 scoping
-   * arm — the Java PostgresSearchQueryStore's authorizedByKind hard
+   * `authorizedIdsByKind` (kind NAME → ids) is the scoping arm — the Java
+   * PostgresSearchQueryStore's authorizedByKind hard
    * filter, pushed into the engine query so pagination stays correct.
    * Undefined = the unscoped read, byte-identical to the pre-seam query.
    */
@@ -77,7 +77,7 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
         authorizedIdsByKind,
         // Engine-neutral tokenization: whitespace terms via the gocompat
         // twin of Go's strings.Fields (JS \s+ disagrees with Go on
-        // U+FEFF/U+0085 — the #8 BOM divergence class; criteria.query()
+        // U+FEFF/U+0085 — the BOM divergence class; criteria.query()
         // is already goTrimSpace'd). Engine syntax is the driver's job.
         terms: criteria.hasQuery() ? goFields(criteria.query()) : undefined,
         orgFilter: criteria.orgFilter(),

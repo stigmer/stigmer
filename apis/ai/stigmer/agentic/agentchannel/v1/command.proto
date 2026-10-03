@@ -81,8 +81,7 @@ service AgentChannelCommandController {
   // against the provider, persists the status, and maps the
   // duplicate-number refusal (the completeInstall duplicate-workspace
   // mechanism). Cloud-first runtime: the OSS edition stores channel
-  // resources but returns FAILED_PRECONDITION here (documented posture,
-  // decision 001 D-g / T02 §0-b).
+  // resources but returns FAILED_PRECONDITION here (documented posture).
   rpc initiateInstall(InitiateChannelInstallInput) returns (InitiateChannelInstallOutput) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -119,7 +118,7 @@ service AgentChannelCommandController {
   // the state atomically, exchanges the code, stores credentials in the
   // system-managed Environment, records the grant, and writes the status
   // facts (sole writer). The OSS edition returns FAILED_PRECONDITION
-  // (documented posture, decision 001 D-g / T02 §0-b).
+  // (documented posture).
   rpc completeInstall(CompleteChannelInstallInput) returns (AgentChannel) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;

@@ -8,7 +8,7 @@
  *
  * The documents come from the workflow domain's registry module — the
  * domain owns the registry, the transport serves FROM it (Go's ownership,
- * restored by the workflow-family port's DD-A; the model-registry store's
+ * restored; the model-registry store's
  * refresh lifecycle is the composition root's concern now, not a lane
  * concern).
  *
@@ -34,7 +34,7 @@ export interface RegistryLanes {
 export interface RegistryLanesOptions {
   /** The task-kind registry document (static per release). */
   taskKindRegistryDocument: string;
-  /** The composed model-catalog provider the lane serves from (DD-008). */
+  /** The composed model-catalog provider the lane serves from. */
   modelRegistryStore: ModelCatalogProvider;
 }
 

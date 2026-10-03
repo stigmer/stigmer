@@ -11,7 +11,7 @@
  *   - apply is create-or-FAIL: applying over an existing slug returns a
  *     real AlreadyExists, not an update.
  *
- * Secret handling (oss#535, the stigmer-cloud#152 contract ported):
+ * Secret handling (oss#535):
  * is_secret values rest encrypted (enc:v1:), leave the server as
  * ***REDACTED*** markers on EVERY user-shaped boundary — get,
  * getByReference, the create/apply and delete echoes — and are revealed
@@ -120,9 +120,9 @@ import {
 export interface ExecutionContextControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * Shared with the Environment/OAuthApp controllers so the
@@ -165,8 +165,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * redacted AFTER the pipeline: the persisted resource is echoed back, and
  * without redaction the echo would leak either the plaintext the caller
  * just sent or the stored ciphertext. The internal builders (agent
- * execution, workflow execution, MCP connect — they arrive with #17/#19/
- * #20) only read metadata.id from the echo, so they are unaffected.
+ * execution, workflow execution, MCP connect) only read metadata.id from
+ * the echo, so they are unaffected.
  */
 async function createExecutionContext(
   deps: ExecutionContextControllerDeps,

@@ -1,5 +1,5 @@
 /**
- * Pins the Authorize step's wire contract (O2, DD-007 §3): the three
+ * Pins the Authorize step's wire contract: the three
  * decision arms (allow proceeds; deny → PERMISSION_DENIED carrying the
  * annotation's byte-pinned error_msg; unavailable → INTERNAL, never a
  * softened denial), the skip arms (internal caller class, is_public,
@@ -137,7 +137,7 @@ describe("decision arms (wire contract, both pinned)", () => {
     await expect(step.execute(agentCreateCtx())).resolves.toBeUndefined();
   });
 
-  it("not-found → NOT_FOUND with the load-first chain's copy (the C2 ruling-Q1 arm)", async () => {
+  it("not-found → NOT_FOUND with the load-first chain's copy", async () => {
     const { authorizer } = fakeAuthorizer({ kind: "not-found" });
     const step = newAuthorizeStep<typeof AgentSchema>(
       AgentCommandController.method.create,
@@ -179,7 +179,7 @@ describe("skip arms (the authorizer is never consulted)", () => {
     return fakeAuthorizer({ kind: "deny", reason: "must not be called" });
   }
 
-  it("internal caller class = the in-process authorization skip (ruling Q4)", async () => {
+  it("internal caller class = the in-process authorization skip", async () => {
     const { authorizer, checks } = denyAll();
     const step = newAuthorizeStep<typeof AgentSchema>(
       AgentCommandController.method.create,
@@ -292,7 +292,7 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
     ]);
   });
 
-  // 20260913.01 (Q-OR-2): the IamPolicy RPCs name their target inside the
+  // The IamPolicy RPCs name their target inside the
   // request as a STRING kind (`ApiResourceRef.kind`, "organization"), so
   // `resource_kind_path` resolves a string through the kind enum's names.
   // The option had no user before this entry; a numeric field still works.
@@ -362,7 +362,7 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
   });
 });
 
-describe("authorizeDirect (the direct-handler arm, C2 Stage 4)", () => {
+describe("authorizeDirect (the direct-handler arm)", () => {
   // The step delegates to authorizeDirect, so the arms above already pin
   // the shared evaluation; these pin what is SPECIFIC to the direct
   // entry: no RequestContext, and the target override.
@@ -418,7 +418,7 @@ describe("authorizeDirect (the direct-handler arm, C2 Stage 4)", () => {
     ]);
   });
 
-  // 20260913.01 (Q-OR-2): the IamPolicy `get(IamPolicyId)` lane. Its
+  // The IamPolicy `get(IamPolicyId)` lane. Its
   // annotation names a permission and NO kind, because the target is the
   // loaded row's resource — kind AND id are server-side state. The
   // override carries both; the annotation still owns the permission and
@@ -461,7 +461,7 @@ describe("authorizeDirect (the direct-handler arm, C2 Stage 4)", () => {
     expect(checks[0]?.resourceId).toBe("acme");
   });
 
-  it("the ruling-Q1 not-found arm maps identically from the direct entry", async () => {
+  it("the not-found arm maps identically from the direct entry", async () => {
     const { authorizer } = fakeAuthorizer({ kind: "not-found" });
     const error = await authorizeDirect(
       AgentCommandController.method.create,
@@ -481,7 +481,7 @@ describe("mid-chain resolved-id checks (the ListVersions pattern)", () => {
     // The pattern: position 1 authorized the request-shaped check; a
     // mid-chain step re-checks against the RESOLVED resource once loading
     // established what is actually being read. The two traced
-    // ListVersions handlers port onto exactly this shape (blueprint §5b).
+    // ListVersions handlers port onto exactly this shape.
     const { authorizer, checks } = fakeAuthorizer({
       kind: "deny",
       reason: "caller cannot read the resolved skill",
@@ -511,7 +511,7 @@ describe("mid-chain resolved-id checks (the ListVersions pattern)", () => {
   });
 });
 
-describe("authorizeResolvedResource (the mid-chain resolved-id pattern, 20260830.01 Q8)", () => {
+describe("authorizeResolvedResource (the mid-chain resolved-id pattern)", () => {
   const check: AuthzCheck = {
     permission: IamPermission.can_view,
     resourceKind: ApiResourceKind.workflow,

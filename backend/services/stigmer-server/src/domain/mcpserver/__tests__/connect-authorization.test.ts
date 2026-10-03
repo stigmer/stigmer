@@ -1,5 +1,5 @@
 /**
- * Pins the C2 Stage-4 enforcement on the six config-annotated connect
+ * Pins the annotation enforcement on the six config-annotated connect
  * lanes (connect, startConnect, initiateOAuthConnect,
  * completeOAuthConnect, disconnectOAuth, getOAuthGrantStatus): each
  * evaluates its OWN annotation through authorizeDirect, and a denying
@@ -132,7 +132,7 @@ async function expectDenied(run: () => Promise<unknown>, copy: string) {
   expect((error as ConnectError).rawMessage).toBe(copy);
 }
 
-describe("connect-lane authorization (C2 Stage 4)", () => {
+describe("connect-lane authorization", () => {
   it("connect: a missing server answers NOT_FOUND even under denial (load-first, #224); an existing one denies with the annotation copy", async () => {
     const { authorizer } = denyingAuthorizer();
     const missing = await connect(

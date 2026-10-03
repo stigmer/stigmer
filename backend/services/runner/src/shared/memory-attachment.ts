@@ -1,5 +1,5 @@
 /**
- * The runner-synthesized memory capture attachment (DD-005 D1).
+ * The runner-synthesized memory capture attachment.
  *
  * When the execution's recall snapshot says memory is on
  * (`spec.recalled_memories.enabled` — the ONE server-owned field that
@@ -27,19 +27,18 @@
  *     from the credential and nothing the child says.
  *
  * The capture context (org + agent/session/execution ids) is
- * attribution, never authorization (the Stage 3 provenance decision,
- * owner-ratified 2026-08-22): the cloud create handler accepts it only
+ * attribution, never authorization (since 2026-08-22): the cloud create
+ * handler accepts it only
  * from a session-sandbox credential and overrides session/org with the
  * token's own claims; the OSS server under sign-in admits it from the
  * run's credential and proves the session off the run's row, and stores
  * it as given under the local single-user trust model. The subject is
- * never threaded — the server derives it from the credential (DD-005
- * D2).
+ * never threaded — the server derives it from the credential.
  *
  * Approval-free by construction (the synthesized-attachment contract):
  * the tool only ever creates a PROPOSAL the user must confirm through
  * the control plane, so gating the propose call would stack a second
- * consent gate in front of the real one (DD-005 D3: consent is the
+ * consent gate in front of the real one (consent is the
  * confirm RPC, not tool approval). Callers inject AFTER resolve +
  * backfill.
  *
@@ -101,7 +100,7 @@ export interface MemoryCaptureContext {
 
 /**
  * Reports whether the execution's recall snapshot offers the remember
- * tool (DD-005 D1: the snapshot's enabled bit IS the runner's injection
+ * tool (the snapshot's enabled bit IS the runner's injection
  * signal — one server-owned field, no parallel flag, no discovery
  * round-trip). Exposed for the harnesses' MCP gates, which must open
  * MCP resolution for a memory-only agent.

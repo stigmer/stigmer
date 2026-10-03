@@ -347,7 +347,7 @@ private static final long serialVersionUID = 0L;
    * own provider app instead: the bot carries the app's name and icon,
    * and each app is its own bot identity, so multiple agents can serve
    * one workspace. For WhatsApp the reference is required — every
-   * WhatsApp channel installs through your own Meta app (DD-WA-2).
+   * WhatsApp channel installs through your own Meta app.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -366,7 +366,7 @@ private static final long serialVersionUID = 0L;
    * own provider app instead: the bot carries the app's name and icon,
    * and each app is its own bot identity, so multiple agents can serve
    * one workspace. For WhatsApp the reference is required — every
-   * WhatsApp channel installs through your own Meta app (DD-WA-2).
+   * WhatsApp channel installs through your own Meta app.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -385,7 +385,7 @@ private static final long serialVersionUID = 0L;
    * own provider app instead: the bot carries the app's name and icon,
    * and each app is its own bot identity, so multiple agents can serve
    * one workspace. For WhatsApp the reference is required — every
-   * WhatsApp channel installs through your own Meta app (DD-WA-2).
+   * WhatsApp channel installs through your own Meta app.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -2099,7 +2099,7 @@ private static final long serialVersionUID = 0L;
      * own provider app instead: the bot carries the app's name and icon,
      * and each app is its own bot identity, so multiple agents can serve
      * one workspace. For WhatsApp the reference is required — every
-     * WhatsApp channel installs through your own Meta app (DD-WA-2).
+     * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -2117,7 +2117,7 @@ private static final long serialVersionUID = 0L;
      * own provider app instead: the bot carries the app's name and icon,
      * and each app is its own bot identity, so multiple agents can serve
      * one workspace. For WhatsApp the reference is required — every
-     * WhatsApp channel installs through your own Meta app (DD-WA-2).
+     * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -2139,7 +2139,7 @@ private static final long serialVersionUID = 0L;
      * own provider app instead: the bot carries the app's name and icon,
      * and each app is its own bot identity, so multiple agents can serve
      * one workspace. For WhatsApp the reference is required — every
-     * WhatsApp channel installs through your own Meta app (DD-WA-2).
+     * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -2166,7 +2166,7 @@ private static final long serialVersionUID = 0L;
      * own provider app instead: the bot carries the app's name and icon,
      * and each app is its own bot identity, so multiple agents can serve
      * one workspace. For WhatsApp the reference is required — every
-     * WhatsApp channel installs through your own Meta app (DD-WA-2).
+     * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -2191,7 +2191,7 @@ private static final long serialVersionUID = 0L;
      * own provider app instead: the bot carries the app's name and icon,
      * and each app is its own bot identity, so multiple agents can serve
      * one workspace. For WhatsApp the reference is required — every
-     * WhatsApp channel installs through your own Meta app (DD-WA-2).
+     * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -2223,7 +2223,7 @@ private static final long serialVersionUID = 0L;
      * own provider app instead: the bot carries the app's name and icon,
      * and each app is its own bot identity, so multiple agents can serve
      * one workspace. For WhatsApp the reference is required — every
-     * WhatsApp channel installs through your own Meta app (DD-WA-2).
+     * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -2247,7 +2247,7 @@ private static final long serialVersionUID = 0L;
      * own provider app instead: the bot carries the app's name and icon,
      * and each app is its own bot identity, so multiple agents can serve
      * one workspace. For WhatsApp the reference is required — every
-     * WhatsApp channel installs through your own Meta app (DD-WA-2).
+     * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -2266,7 +2266,7 @@ private static final long serialVersionUID = 0L;
      * own provider app instead: the bot carries the app's name and icon,
      * and each app is its own bot identity, so multiple agents can serve
      * one workspace. For WhatsApp the reference is required — every
-     * WhatsApp channel installs through your own Meta app (DD-WA-2).
+     * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
@@ -2288,7 +2288,7 @@ private static final long serialVersionUID = 0L;
      * own provider app instead: the bot carries the app's name and icon,
      * and each app is its own bot identity, so multiple agents can serve
      * one workspace. For WhatsApp the reference is required — every
-     * WhatsApp channel installs through your own Meta app (DD-WA-2).
+     * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>

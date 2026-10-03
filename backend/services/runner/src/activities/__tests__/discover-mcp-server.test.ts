@@ -781,7 +781,7 @@ describe("DiscoverMcpServer activity", () => {
     it("fails closed when a delivered credential is the redaction sentinel", async () => {
       // A redacted value means the server-side decrypt gate refused this
       // runner's credential class/scope — dialing with the literal sentinel
-      // can only produce a misleading 401 (the issue-#239 M2 mechanism).
+      // can only produce a misleading 401 (the mechanism behind #239).
       const { discoverMcpServer, CredentialResolutionError } = await import("../discover-mcp-server.js");
 
       const spec = makeHttpSpec("https://mcp.monday.com/mcp");

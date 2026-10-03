@@ -37,8 +37,6 @@ const (
 // The registry is a static catalog derived from proto definitions at build time.
 // It does not require authentication — task metadata is public knowledge about
 // the platform's capabilities, not user-specific data.
-//
-// @since T04 (Task Schema Registry)
 type TaskKindRegistryQueryControllerClient interface {
 	// Retrieve the complete task kind registry.
 	//
@@ -83,8 +81,6 @@ func (c *taskKindRegistryQueryControllerClient) GetTaskKindRegistry(ctx context.
 // The registry is a static catalog derived from proto definitions at build time.
 // It does not require authentication — task metadata is public knowledge about
 // the platform's capabilities, not user-specific data.
-//
-// @since T04 (Task Schema Registry)
 type TaskKindRegistryQueryControllerServer interface {
 	// Retrieve the complete task kind registry.
 	//

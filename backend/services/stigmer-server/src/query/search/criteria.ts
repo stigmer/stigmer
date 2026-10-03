@@ -14,8 +14,8 @@
  * derivation (the #439 invariant's TS home).
  *
  * The tier clause admits open_source alone, not "anything but cloud_only":
- * the index is the core's, and a kind tiered enterprise (editions program,
- * DD-001) must not enter it by accident. This derivation is edition-blind
+ * the index is the core's, and a kind tiered enterprise must not enter it
+ * by accident. This derivation is edition-blind
  * by design (the same code runs in every composition); an edition-aware
  * derivation is a design act with a named trigger — the first searchable
  * kind above open_source.
@@ -112,8 +112,8 @@ export class SearchCriteria {
    * Trimming is goTrimSpace, NOT String.trim: hasQuery() decides
    * list-vs-search mode from the trimmed query, and the two trim sets
    * disagree on U+FEFF/U+0085 — a BOM-only query would read as list mode
-   * (return everything) where Go runs an empty-match search (the #8 BOM
-   * divergence class, caught again by this sub-project's parity panel).
+   * (return everything) where Go runs an empty-match search (the BOM
+   * divergence class).
    */
   static create(
     kinds: readonly ApiResourceKind[],

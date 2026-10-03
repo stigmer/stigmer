@@ -59,7 +59,7 @@ describe("stampFileEditRow", () => {
     expect(tc.fileChangeSetId).toBe("exec-1:0");
   });
 
-  it("withholds content for a secret-like TRACKED path but keeps the path visible (DD-12 D4)", () => {
+  it("withholds content for a secret-like TRACKED path but keeps the path visible", () => {
     // The hook denies secret-like gitignored writes before they flow, but a
     // committed credentials file is outside its scope — the stamp is the last
     // line of defense against persisting its bytes in the transcript.
@@ -253,7 +253,7 @@ describe("hideToolCallRow", () => {
     expect(tc.name).toBe("write");
   });
 
-  it("scrubs args so a hidden row carries no content (design doc 12, D4)", () => {
+  it("scrubs args so a hidden row carries no content", () => {
     // A file-mutating tool's args hold the full write body. For a secret-like
     // path this content would otherwise persist into the transcript / Temporal
     // history, defeating the never-persist-secret-contents contract. The hidden

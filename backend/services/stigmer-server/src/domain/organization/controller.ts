@@ -3,13 +3,12 @@
  * query sides). Organization is the top-level tenancy container; all
  * resources scope under it.
  *
- * Pipeline per RPC mirrors the Go step chains character-for-character;
- * see the domain row in blueprint/01-domain-inventory.md. Proven by
- * organization.conformance.test.ts (CONFORMANCE_TARGET=local) and
+ * Pipeline per RPC mirrors the Go step chains character-for-character.
+ * Proven by organization.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/organization.test.ts.
  *
  * getByExternalOrgId is implemented ONLY when the composed
- * OrganizationDirectory provides the lookup (C2, ruling Q7). It answers
+ * OrganizationDirectory provides the lookup. It answers
  * only a caller who may view the identity provider the request names,
  * and resolves the external id within that provider alone (see the
  * handler); with no
@@ -123,15 +122,15 @@ import {
 export interface OrganizationControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed slot registrations — this domain's create and delete slots (O4). */
+  /** The composed slot registrations — this domain's create and delete slots. */
   readonly gateSteps: ResolvedGateSteps;
   /** The one grant path: the delete revokes the organization's rows through it before its row goes. */
   readonly grantPath: IamPolicyGrantPath;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed query directory — undefined = OSS single-tenant behavior (C2). */
+  /** The composed query directory — undefined = OSS single-tenant behavior. */
   readonly organizationDirectory: OrganizationDirectory | undefined;
 }
 
@@ -147,7 +146,7 @@ export function registerOrganizationServices(
     delete: (orgId, ctx) => deleteOrganization(deps, orgId, ctx),
   });
   // getByExternalOrgId registers ONLY when the composed directory carries
-  // the lookup (ruling Q7); otherwise the method stays absent from the
+  // the lookup; otherwise the method stays absent from the
   // partial implementation and ConnectRPC answers Unimplemented (the
   // capability-probed pin; see the module header).
   const externalLookup =
@@ -195,7 +194,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * seeding, billing account getOrCreate: synchronous, a failure fails the
  * request). Java runs these with NO transactional envelope: a slot-step
  * failure leaves the org row persisted while the request fails, healed by
- * idempotent retry — inherited semantics (O4 verification V1).
+ * idempotent retry — inherited semantics.
  */
 async function createOrganization(
   deps: OrganizationControllerDeps,
@@ -235,7 +234,7 @@ async function createOrganization(
   builder
     .addStep(newClaimOrganizationSlugStep(deps.store))
     .addStep(newPersistStep(deps.store))
-    // The C2 tuple step runs BEFORE the post-persist slot — the verified
+    // The tuple step runs BEFORE the post-persist slot — the verified
     // Java order (createAuthorizationTuples → linkManagedOrgToIdentityProvider
     // → provisionBillingAccount). No-op with no driver composed.
     .addStep(
@@ -244,8 +243,8 @@ async function createOrganization(
         deps.logger,
       ),
     );
-  // The ratified post-persist gate slot (blueprint 03 §3a; O4 — see the
-  // doc comment above for the inherited failure semantics). Empty in OSS.
+  // The post-persist gate slot (see the doc comment above for the
+  // inherited failure semantics). Empty in OSS.
   for (const step of stepsForSlot<typeof OrganizationSchema>(
     deps.gateSteps,
     "org-create:post-persist",
@@ -559,7 +558,7 @@ function newListAllOrganizationsStep(
  * Empty, there is nothing to validate, and single-user OSS applies no IAM
  * filtering — ALL organizations are "mine". A composed directory filters
  * to the caller's authorized set instead (the multiTenant capability
- * fork, ruling Q7): the directory answers ids, the controller loads
+ * fork): the directory answers ids, the controller loads
  * them, and ids whose rows are gone are skipped (grants can outlive
  * rows).
  */
@@ -611,8 +610,8 @@ async function findMyOrganizations(
 }
 
 /**
- * GetByExternalOrgId — registered only with a directory lookup composed
- * (ruling Q7). The chain stays controller-owned: Authorize (a no-op for
+ * GetByExternalOrgId — registered only with a directory lookup composed.
+ * The chain stays controller-owned: Authorize (a no-op for
  * this skip-annotated method) → validate → the directory resolves the
  * named identity provider and the external id within it → `can_view` on
  * that provider → LoadTarget-shaped store read.

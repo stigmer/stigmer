@@ -35,8 +35,6 @@ export const file_ai_stigmer_agentic_agentexecution_v1_context: GenFile = /*@__P
  * - Duration in milliseconds (to track performance)
  * - Model used (to understand cost implications)
  *
- * @since Phase 3 (Context Summarization Architecture)
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
  */
 export type SummarizationEvent = Message<"ai.stigmer.agentic.agentexecution.v1.SummarizationEvent"> & {
@@ -188,8 +186,6 @@ export const SummarizationEventSchema: GenMessage<SummarizationEvent> = /*@__PUR
  * - **Alerts**: Notify when utilization consistently exceeds thresholds
  * - **Analytics**: Track summarization frequency across agent fleet
  * - **Debugging**: Understand context-related failures
- *
- * @since Phase 3 (Context Summarization Architecture)
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ContextInfo
  */

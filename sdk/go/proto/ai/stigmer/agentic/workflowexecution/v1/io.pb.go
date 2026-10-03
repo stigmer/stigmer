@@ -27,8 +27,6 @@ const (
 )
 
 // ExecutionSortField defines the column to sort execution lists by.
-//
-// @since T13 (Execution History)
 type ExecutionSortField int32
 
 const (
@@ -92,8 +90,6 @@ func (ExecutionSortField) EnumDescriptor() ([]byte, []int) {
 }
 
 // SummaryTimeWindow controls the time range for aggregated dashboard queries.
-//
-// @since T14 (Dashboard Integration)
 type SummaryTimeWindow int32
 
 const (
@@ -326,19 +322,13 @@ type ListWorkflowExecutionsRequest struct {
 	//
 	// When set, applies AND-conjunction with the existing `phase` and `tags` fields.
 	// If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-	//
-	// @since T13 (Execution History)
 	Filter *ExecutionFilterCriteria `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Sort field: unspecified is newest created first and pages by
 	// page_token, any other sorts the whole matching set and returns its
 	// first page_size entries with no token.
-	//
-	// @since T13 (Execution History)
 	SortField ExecutionSortField `protobuf:"varint,6,opt,name=sort_field,json=sortField,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField" json:"sort_field,omitempty"`
 	// When true, sorts in ascending order. Default (false) is descending.
 	// Read only with a sort field other than the default.
-	//
-	// @since T13 (Execution History)
 	SortAscending bool `protobuf:"varint,7,opt,name=sort_ascending,json=sortAscending,proto3" json:"sort_ascending,omitempty"`
 	// Organization slug to scope the results to.
 	//
@@ -448,19 +438,13 @@ type ListWorkflowExecutionsByWorkflowRequest struct {
 	// other field must equal that request's, or the call is refused.
 	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Structured filter criteria for advanced filtering.
-	//
-	// @since T13 (Execution History)
 	Filter *ExecutionFilterCriteria `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Sort field: unspecified is newest created first and pages by
 	// page_token, any other sorts the whole matching set and returns its
 	// first page_size entries with no token.
-	//
-	// @since T13 (Execution History)
 	SortField ExecutionSortField `protobuf:"varint,5,opt,name=sort_field,json=sortField,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField" json:"sort_field,omitempty"`
 	// When true, sorts in ascending order. Default (false) is descending.
 	// Read only with a sort field other than the default.
-	//
-	// @since T13 (Execution History)
 	SortAscending bool `protobuf:"varint,6,opt,name=sort_ascending,json=sortAscending,proto3" json:"sort_ascending,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1535,8 +1519,6 @@ func (x *SubscribeEventsRequest) GetEventTypes() []WorkflowEventType {
 
 // ExecutionFilterCriteria defines structured filter conditions for listing
 // workflow executions. All specified conditions are combined with AND logic.
-//
-// @since T13 (Execution History)
 type ExecutionFilterCriteria struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Filter by execution phases. Empty means all phases.
@@ -1667,8 +1649,6 @@ func (x *ExecutionFilterCriteria) GetHasRetries() bool {
 
 // GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,
 // optionally scoped to a single workflow.
-//
-// @since T14 (Dashboard Integration)
 type GetExecutionSummaryRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization slug to scope the summary.
@@ -1679,8 +1659,6 @@ type GetExecutionSummaryRequest struct {
 	TimeWindow SummaryTimeWindow `protobuf:"varint,2,opt,name=time_window,json=timeWindow,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow" json:"time_window,omitempty"`
 	// When set, scopes the summary to executions of this workflow only.
 	// When empty, aggregates across all workflows in the organization.
-	//
-	// @since T12 (Overview Page Redesign)
 	WorkflowId    string `protobuf:"bytes,3,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1740,8 +1718,6 @@ func (x *GetExecutionSummaryRequest) GetWorkflowId() string {
 // ExecutionSummary contains aggregated statistics for workflow executions.
 //
 // All counts, costs, and durations are scoped to the requested time window.
-//
-// @since T14 (Dashboard Integration)
 type ExecutionSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
@@ -1766,14 +1742,10 @@ type ExecutionSummary struct {
 	// Capped at 10 entries.
 	CostByWorkflow []*WorkflowCostBreakdown `protobuf:"bytes,6,rep,name=cost_by_workflow,json=costByWorkflow,proto3" json:"cost_by_workflow,omitempty"`
 	// Total number of executions in the time window (sum of all phase_counts values).
-	//
-	// @since T12 (Overview Page Redesign)
 	TotalCount int32 `protobuf:"varint,7,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	// Success rate as a ratio (0.0 to 1.0).
 	// Computed as completed / (completed + failed). Returns -1.0 when no
 	// completed or failed executions exist in the time window.
-	//
-	// @since T12 (Overview Page Redesign)
 	SuccessRate   float64 `protobuf:"fixed64,8,opt,name=success_rate,json=successRate,proto3" json:"success_rate,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1866,8 +1838,6 @@ func (x *ExecutionSummary) GetSuccessRate() float64 {
 }
 
 // WorkflowCostSummary aggregates token and dollar costs.
-//
-// @since T14 (Dashboard Integration)
 type WorkflowCostSummary struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	TotalCostUsd      float64                `protobuf:"fixed64,1,opt,name=total_cost_usd,json=totalCostUsd,proto3" json:"total_cost_usd,omitempty"`
@@ -1929,8 +1899,6 @@ func (x *WorkflowCostSummary) GetTotalOutputTokens() int64 {
 }
 
 // WorkflowFailureRank represents a workflow and its failure count within a time window.
-//
-// @since T14 (Dashboard Integration)
 type WorkflowFailureRank struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WorkflowSlug  string                 `protobuf:"bytes,1,opt,name=workflow_slug,json=workflowSlug,proto3" json:"workflow_slug,omitempty"`
@@ -1992,8 +1960,6 @@ func (x *WorkflowFailureRank) GetFailureCount() int32 {
 }
 
 // WorkflowCostBreakdown represents per-workflow cost aggregation.
-//
-// @since T14 (Dashboard Integration)
 type WorkflowCostBreakdown struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	WorkflowSlug   string                 `protobuf:"bytes,1,opt,name=workflow_slug,json=workflowSlug,proto3" json:"workflow_slug,omitempty"`
@@ -2064,8 +2030,6 @@ func (x *WorkflowCostBreakdown) GetExecutionCount() int32 {
 
 // ListPendingApprovalsRequest fetches workflow executions that have active
 // human_input tasks awaiting reviewer decisions.
-//
-// @since T14 (Dashboard Integration)
 type ListPendingApprovalsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization slug to scope the query.
@@ -2133,8 +2097,6 @@ func (x *ListPendingApprovalsRequest) GetPageToken() string {
 }
 
 // PendingApproval represents a single human_input task awaiting a reviewer decision.
-//
-// @since T14 (Dashboard Integration)
 type PendingApproval struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Workflow execution containing the pending task.
@@ -2164,8 +2126,6 @@ type PendingApproval struct {
 	// (approval_requested event), read when the reviewer opens the gate.
 	// Empty when the task declares no hint or the execution predates the
 	// field — consumers treat empty as a generic review.
-	//
-	// @since Review Payloads (stigmer/stigmer#234)
 	UiHint        string `protobuf:"bytes,8,opt,name=ui_hint,json=uiHint,proto3" json:"ui_hint,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2258,8 +2218,6 @@ func (x *PendingApproval) GetUiHint() string {
 }
 
 // PendingApprovalsList contains one page of pending approvals.
-//
-// @since T14 (Dashboard Integration)
 type PendingApprovalsList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Pending approvals in this page: the newest execution's first, and an

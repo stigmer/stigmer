@@ -43,7 +43,7 @@ secrets:
   # STIGMER_ENCRYPTION_KEY and STIGMER_RUNNER_TOKEN_KEY (base64-encoded 32
   # bytes each), plus POSTGRES_PASSWORD when Postgres is bundled. The chart
   # refuses to render without it, as `docker compose up` refuses without
-  # .env (DD-013: explicit keys, loud fail — the server would otherwise
+  # .env (explicit keys, loud fail: the server would otherwise
   # auto-generate keys into its volume, making the backup and rotation story
   # invisible exactly where a self-hoster needs it explicit). Never inline:
   # a values file gets committed; a key in it is .env in git.
@@ -201,7 +201,7 @@ waitForDependencies:
 
 postgres:
   # Bundled Postgres: one instance, one claim, the compose stack's posture
-  # ("one Postgres instance, one backup story", DD-013). Temporal's
+  # (one Postgres instance, one backup story). Temporal's
   # auto-setup creates its two databases on it. Right for one team; for HA
   # or managed backups set enabled: false and fill externalDatabase.
   enabled: true
@@ -303,9 +303,8 @@ ingress:
     annotations: {}
     tlsSecretName: ""
 
-# Reserved for Stigmer Enterprise (the editions program's P4, sp.helm-ee):
-# the same chart serves the server-ee image with these filled. Turning any
-# of them on in this version is refused.
+# Reserved for Stigmer Enterprise. This version of the chart serves the
+# open-source server image, and turning any of them on is refused.
 openfga:
   enabled: false
 redis:

@@ -1,7 +1,7 @@
 /**
  * Pins the agentinstance domain against Go's pkg/domain/agentinstance
  * tests — through the REAL stack: a composed server on an ephemeral port,
- * a native gRPC client, the full interceptor chain, and the DD-002
+ * a native gRPC client, the full interceptor chain, and the
  * in-process parent-agent edge (instance create loads its agent through
  * the router transport).
  *
@@ -15,7 +15,9 @@
  *   - the default-instance visibility guard (stigmer/stigmer#556) rejects
  *     on the LABEL branch and on the parent-POINTER branch (no label
  *     needed), while an orphan instance and an ordinary personal instance
- *     pass through.
+ *     pass through;
+ *   - list answers only the organization's instances that carry every
+ *     requested label, newest first.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -82,7 +84,7 @@ beforeAll(async () => {
       // a live local Temporal (the conformance CRUD harness does the same).
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
       DB_PATH: path.join(dir, "stigmer.db"),
-      // The skill artifact store + staging wipe (#8) must stay inside the
+      // The skill artifact store + staging wipe must stay inside the
       // test dir — the default resolves to ~/.stigmer/storage.
       STORAGE_PATH: path.join(dir, "storage"),
       // Keep the artifact store inside the test dir — the default
@@ -342,5 +344,40 @@ describe("default-instance visibility guard (stigmer/stigmer#556)", () => {
     expect(fetched.metadata?.visibility).toBe(
       ApiResourceVisibility.visibility_org,
     );
+  });
+});
+
+describe("agent instance list (org and label filters)", () => {
+  it("answers only the org's instances carrying every requested label, newest first", async () => {
+    const agentId = (await createAgent("list-parent")).metadata?.id ?? "";
+    const labelled = (name: string, labels: Record<string, string>, org: string = ORG) => ({
+      ...instanceInput(name, agentId, org),
+      metadata: { name, org, labels },
+    });
+    await command.create(labelled("list-older", { team: "blue", tier: "gold" }));
+    // The order is by createdAt, stamped to the millisecond: space the two
+    // creates so they can never tie.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await command.create(labelled("list-newer", { team: "blue", tier: "gold" }));
+    await command.create(labelled("list-one-label", { team: "blue" }));
+    await seedOrganizations(transport, ["list-other-org"]);
+    const otherAgentId =
+      (
+        await agentCommand.create({
+          apiVersion: API_VERSION,
+          kind: "Agent",
+          metadata: { name: "list-other-parent", org: "list-other-org" },
+          spec: { instructions: "A parent in another organization." },
+        })
+      ).metadata?.id ?? "";
+    await command.create({
+      ...instanceInput("list-other-org-instance", otherAgentId, "list-other-org"),
+      metadata: { name: "list-other-org-instance", org: "list-other-org", labels: { team: "blue", tier: "gold" } },
+    });
+
+    const listed = await query.list({ org: ORG, labels: { team: "blue", tier: "gold" } });
+
+    expect(listed.items.map((i) => i.metadata?.name)).toEqual(["list-newer", "list-older"]);
+    expect(listed.totalCount).toBe(2);
   });
 });

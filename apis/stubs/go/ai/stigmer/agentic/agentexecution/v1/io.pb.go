@@ -521,7 +521,7 @@ func (x *UpdateStatusResponse) GetSignalReason() string {
 	return ""
 }
 
-// Input for submitting an approval decision (HITL Phase 1).
+// Input for submitting an approval decision.
 //
 // All required fields must be provided. The handler validates:
 // 1. The execution exists and is in EXECUTION_WAITING_FOR_APPROVAL phase
@@ -674,7 +674,7 @@ func (x *ApprovalDecisionList) GetDecisions() []*SubmitApprovalInput {
 //
 // The decision is recorded in the append-only file_review event stream as a
 // FILE_DECIDED event; FileChangeSet.decisions is the derived projection. The
-// runner reconciles approved bytes (Phase 2); this RPC only records the
+// runner reconciles approved bytes; this RPC only records the
 // decision and enforces that expected_digest still matches what the user saw.
 //
 // Example:
@@ -1160,8 +1160,6 @@ func (x *RecoverAgentExecutionInput) GetId() string {
 //	  "id": "aex_abc123xyz456",
 //	  "reason": "Pausing to review progress before continuing"
 //	}
-//
-// @since Agent Execution Lifecycle
 type PauseAgentExecutionInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent execution ID to pause.
@@ -1263,8 +1261,6 @@ func (x *PauseAgentExecutionInput) GetReason() string {
 //	{
 //	  "id": "aex_abc123xyz456"
 //	}
-//
-// @since Agent Execution Lifecycle
 type ResumeAgentExecutionInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent execution ID to resume.
@@ -1357,8 +1353,6 @@ func (x *ResumeAgentExecutionInput) GetId() string {
 //	{
 //	  "storage_key": "attachments/01HGXXX.../dataset.csv"
 //	}
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 type UploadAttachmentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Original filename of the attachment.
@@ -1447,8 +1441,6 @@ func (x *UploadAttachmentRequest) GetContentType() string {
 // The storage_key should be used in the Attachment message when creating
 // an agent execution. The key is opaque to clients - do not parse or
 // construct keys manually.
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 type UploadAttachmentResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Storage key for the uploaded attachment.
@@ -1539,8 +1531,6 @@ func (x *UploadAttachmentResponse) GetStorageKey() string {
 //	  "download_url": "https://r2.example.com/...",
 //	  "expires_at": "2026-02-20T10:30:00Z"
 //	}
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 type GetArtifactDownloadUrlRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the agent execution that produced the artifact.
@@ -1641,8 +1631,6 @@ func (x *GetArtifactDownloadUrlRequest) GetAsAttachment() bool {
 // The download_url can be used with a simple HTTP GET request to download
 // the artifact. No authentication headers are required - the URL contains
 // embedded authorization.
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 type GetArtifactDownloadUrlResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Presigned URL for downloading the artifact.
@@ -1759,8 +1747,6 @@ func (x *GetArtifactDownloadUrlResponse) GetExpiresAt() string {
 //	  "total_size_bytes": 1842,
 //	  "truncated": false
 //	}
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 type GetArtifactContentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the agent execution that produced the artifact.
@@ -1873,8 +1859,6 @@ func (x *GetArtifactContentRequest) GetEntryPath() string {
 // The content field contains the artifact bytes (up to max_bytes). For text
 // artifacts, clients decode via TextDecoder or equivalent. The content_type
 // field provides a hint for rendering (detected by file extension).
-//
-// @since Artifact Lifecycle (Attachments & Artifacts)
 type GetArtifactContentResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Raw artifact content (up to max_bytes).
@@ -3096,8 +3080,6 @@ func (x *HarnessCostSummary) GetExecutionCount() int32 {
 
 // GetAgentExecutionSummaryRequest fetches aggregated execution statistics
 // for an organization's agent executions.
-//
-// @since Unified Platform Dashboard
 type GetAgentExecutionSummaryRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization slug to scope the summary.
@@ -3160,8 +3142,6 @@ func (x *GetAgentExecutionSummaryRequest) GetTimeWindow() AgentExecutionSummaryT
 // Cost is intentionally omitted. The dashboard sources cost from
 // getOrgUsageReport (billing source of truth) to prevent double-counting
 // when workflows delegate to agents. See AD-DASH-005.
-//
-// @since Unified Platform Dashboard
 type AgentExecutionSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Number of executions currently in a non-terminal phase
@@ -3245,8 +3225,6 @@ func (x *AgentExecutionSummary) GetTopFailingAgents() []*AgentFailureRank {
 
 // AgentFailureRank represents an agent and its failure count within
 // a time window.
-//
-// @since Unified Platform Dashboard
 type AgentFailureRank struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent slug (org/name format).

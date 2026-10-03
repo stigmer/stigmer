@@ -5,7 +5,7 @@
  * client_secret_post, neither for public clients), the Slack V2
  * authed_user promotion, the 256-byte error truncation, and the
  * missing-access_token refusal. The refresh half is pinned by
- * token-refresh.test.ts (#17).
+ * token-refresh.test.ts.
  */
 import { describe, expect, it } from "vitest";
 

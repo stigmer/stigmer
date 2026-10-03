@@ -119,7 +119,7 @@ enum ApiResourceKind {
     not_search_indexed: true
     // The ROW half of the IamPolicy contract — the recorded grants, all
     // fourteen RPCs — is served by every edition since the organization
-    // roles moved into open source (20260913.01): who holds which role on
+    // roles moved into open source: who holds which role on
     // an organization is a fact every edition records and shows. What
     // differs per edition is not the kind but the GRANT SCOPE a
     // composition registers: open source grants roles on organizations
@@ -147,8 +147,7 @@ enum ApiResourceKind {
     // join by tier (stigmer/stigmer#439 derives the searchable set).
     not_search_indexed: true
     // The open-source server serves this kind: the identity-account domain
-    // lives once in @stigmer/server (project 20260911.04, entry
-    // sp.oss-identity-accounts), and the cloud composition serves the same
+    // lives once in @stigmer/server, and the cloud composition serves the same
     // domain over its own store driver. The four federation RPCs are a
     // driver capability the Enterprise and Cloud units provide; open source
     // answers them UNIMPLEMENTED by probe, not by this tier.
@@ -568,8 +567,8 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      // participant is the conversation-participation role
-      // (channel-conversations DD-010): reply/takeover on the channel's
+      // participant is the conversation-participation role:
+      // reply/takeover on the channel's
       // conversations without config authority. Grantable here only.
       grantable_roles: [
         owner,
@@ -826,7 +825,7 @@ enum ApiResourceKind {
     id_prefix: "mem"
     is_versioned: false
     // Not searchable by design (privacy): memory content is subject-only
-    // (DD-004 as ratified) and must never surface through the global
+    // and must never surface through the global
     // search index, whose results are org-visible. Also skips the Go
     // search-extractor boot contract, like agent_share/schedule.
     not_search_indexed: true
@@ -835,11 +834,11 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       // No owner tuple: the subject relation below is the ONLY principal
       // on a memory. An agent authored the record and the subject decides
-      // on it — owner/creator vocabulary would misname both (DD-004).
+      // on it — owner/creator vocabulary would misname both.
       owner_type: OWNER_ATTRIBUTION_TYPE_NONE
       // The permanent subject tuple: memory#subject@identity_account:<id>,
       // extracted from spec.subject_identity_account_id (itself
-      // server-derived from the calling credential — DD-005 D2). Content
+      // server-derived from the calling credential). Content
       // visibility is subject-only: org admins govern the org's
       // memory_enabled switch but never read members' memories.
       additional_parents: [

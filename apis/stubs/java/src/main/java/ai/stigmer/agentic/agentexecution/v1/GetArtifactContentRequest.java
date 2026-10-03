@@ -55,8 +55,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * "total_size_bytes": 1842,
  * "truncated": false
  * }
- *
- * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest}
@@ -560,8 +558,6 @@ private static final long serialVersionUID = 0L;
    * "total_size_bytes": 1842,
    * "truncated": false
    * }
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest}

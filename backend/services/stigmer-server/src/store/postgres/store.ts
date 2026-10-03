@@ -1,18 +1,18 @@
 /**
- * Postgres driver — implements the Store contract over node-postgres
- * (DD-010), method-for-method against sqlite/store.ts so the two drivers
+ * Postgres driver — implements the Store contract over node-postgres,
+ * method-for-method against sqlite/store.ts so the two drivers
  * stay contract-twins: same typed errors, same full-scan find* semantics
  * (shared scanners in ../proto-fields.ts), same ledger string formats.
  * Selected at boot when DATABASE_URL is set (boot/config.ts precedence).
  *
- * Concurrency model (DD-010, the recorded semantic widening): atomicity is
+ * Concurrency model (a deliberate semantic widening): atomicity is
  * per-resource, not global. updateResource runs
  * BEGIN → SELECT ... FOR UPDATE → modify() → UPDATE → COMMIT on one pooled
  * connection — the synchronous `modify` contract (interface.ts) means no
  * caller I/O can ever hold the row lock open. Concurrent writes to
  * DIFFERENT resources may interleave; sqlite's incidental global write
- * serialization is deliberately NOT emulated (rejected alternative in
- * DD-010 — an advisory lock around every write would discard the
+ * serialization is deliberately NOT emulated (an advisory lock around
+ * every write would discard the
  * concurrency a team-scale database exists to provide).
  *
  * Other write contracts and their mechanisms here:
@@ -31,7 +31,7 @@
  * Proven by the shared store contract suite (../__tests__/store-contract.ts)
  * under TEST_DATABASE_URL, __tests__/ (migrations, tsquery, driver
  * physicals), and end-to-end by the conformance suites on local-postgres /
- * local-postgres-execution (DD-011).
+ * local-postgres-execution.
  */
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
@@ -289,7 +289,7 @@ export class PostgresStore implements Store {
   ): Promise<MessageShape<Desc>> {
     const kindName = apiResourceKindName(kind);
 
-    // FOR UPDATE locks exactly this row for the transaction — the DD-010
+    // FOR UPDATE locks exactly this row for the transaction — the
     // per-resource atomicity contract. `modify` is synchronous by contract
     // (interface.ts), so no caller I/O can extend the lock's hold time.
     return this.withTransaction(async (client) => {
@@ -831,7 +831,7 @@ export class PostgresStore implements Store {
     versionHash: string,
   ): Promise<AuditRecord> {
     const kindName = apiResourceKindName(kind);
-    // Duplicates for one hash are legal — newest wins (stigmer-cloud#191).
+    // Duplicates for one hash are legal — newest wins.
     const result = await this.open().query(
       `SELECT data, tag FROM resource_audit
        WHERE kind = $1 AND resource_id = $2 AND version_hash = $3
@@ -1085,7 +1085,7 @@ export class PostgresStore implements Store {
   }
 
   // ---------------------------------------------------------------------------
-  // Search index (tsvector/tsquery — DD-009's Postgres rendering)
+  // Search index (tsvector/tsquery — the search contract's Postgres rendering)
   // ---------------------------------------------------------------------------
 
   async upsertSearchIndex(
@@ -1167,7 +1167,7 @@ export class PostgresStore implements Store {
       scopeClauses.push(`AND org = ${orgParam}`);
     }
     if (query.authorizedIdsByKind !== undefined) {
-      // The 20260830.01 scoping arm: per-kind resource_id allowlists.
+      // The scoping arm: per-kind resource_id allowlists.
       // An empty set contributes NO clause — that kind matches nothing —
       // and all-kinds-empty renders a constant-false predicate (never an
       // `IN ()` accident, per the interface contract).
@@ -1221,8 +1221,8 @@ export class PostgresStore implements Store {
 
     // Statement 2 — the ranked page. Search mode: ts_rank over the
     // weighted document, higher = better, with explicit (kind,
-    // resource_id) tie-breaks for the within-driver determinism DD-009
-    // requires. List mode: score pinned exactly 1.0, newest first with the
+    // resource_id) tie-breaks for the within-driver determinism the search
+    // contract requires. List mode: score pinned exactly 1.0, newest first with the
     // seq tie-break (created_at is whole seconds — see migrations.ts).
     const limitParam = push(query.limit);
     const offsetParam = push(query.offset);
@@ -1243,8 +1243,8 @@ export class PostgresStore implements Store {
     const pageResult = await this.open().query(pageSql, args);
 
     // The interface promises wire-ready scores: normalize ts_rank here;
-    // list mode's score is pinned exactly 1.0 (P1 DD-001 — the driver
-    // returns the wire score).
+    // list mode's score is pinned exactly 1.0 (the driver returns the
+    // wire score).
     const hits: SearchIndexHit[] = (
       pageResult.rows as Array<{
         kind: string;

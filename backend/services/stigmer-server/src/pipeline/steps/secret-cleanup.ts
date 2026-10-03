@@ -1,7 +1,6 @@
 /**
  * Secret backing-state cleanup — the OSS half of the Java
- * SecretValueCleanup contract (secrets-vault migration; wired here by
- * convergence 20260830.04 Stage 3, gate ruling Q7). When a resource
+ * SecretValueCleanup contract. When a resource
  * carrying sealed secrets is deleted — or a secret-bearing key is
  * dropped by an update — the stored ciphertext's EXTERNAL backing state
  * must be destroyed: for enc:v3 values that is a KV entry in the vault;
@@ -17,7 +16,7 @@
  * failure logs ERROR with the resource identity and the pass continues.
  * The cloud edition additionally counts sweep-side destroy failures
  * (stigmer.encryption.cleanup.failures); the OSS delete sites log only
- * (Stage-3 gate ruling G4 — an accepted, disclosed divergence that is
+ * (an accepted, disclosed divergence that is
  * moot until a composition writes enc:v3).
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";

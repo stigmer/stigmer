@@ -10,11 +10,9 @@ package ai.stigmer.agentic.workflow.v1;
  * BudgetExceededPolicy defines the runtime behavior when a workflow or per-task
  * budget limit is exceeded.
  *
- * The runtime (T13) evaluates this policy at task boundaries: after each task
+ * The runtime evaluates this policy at task boundaries: after each task
  * completes, accumulated costs and tokens are compared against the declared
  * budget. If a limit is breached, the policy determines what happens next.
- *
- * &#64;since T05 (Workflow-Level Budget Primitives)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy}
@@ -45,7 +43,7 @@ public enum BudgetExceededPolicy
    * Pause the workflow and request human review via a system-generated
    * approval gate. The reviewer can approve continued execution (with
    * an increased budget) or confirm termination.
-   * Depends on the human_input runtime (T13). If human_input runtime
+   * Depends on the human_input runtime. If human_input runtime
    * is not available, falls back to terminate with a descriptive error.
    * </pre>
    *
@@ -96,7 +94,7 @@ public enum BudgetExceededPolicy
    * Pause the workflow and request human review via a system-generated
    * approval gate. The reviewer can approve continued execution (with
    * an increased budget) or confirm termination.
-   * Depends on the human_input runtime (T13). If human_input runtime
+   * Depends on the human_input runtime. If human_input runtime
    * is not available, falls back to terminate with a descriptive error.
    * </pre>
    *

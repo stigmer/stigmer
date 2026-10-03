@@ -13,8 +13,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * ToolCallOutputRef envelope; small bodies stay inline. capture_level tells
  * clients how complete the content is so they render whole-file vs hunk-only
  * diffs honestly per harness.
- *
- * &#64;since First-Class Diff Review (#186)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileChange}
@@ -702,8 +700,6 @@ private static final long serialVersionUID = 0L;
    * ToolCallOutputRef envelope; small bodies stay inline. capture_level tells
    * clients how complete the content is so they render whole-file vs hunk-only
    * diffs honestly per harness.
-   *
-   * &#64;since First-Class Diff Review (#186)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileChange}

@@ -3,11 +3,11 @@
  * the Go server and the cloud edition. The three cloud-only refusal
  * strings ARE the OSS contract (engineered refusals, not gaps — asserted
  * by the conformance suite where channelMessaging is false); none is
- * editable without an owner-ratified wire change.
+ * editable without an deliberate wire change.
  */
 
 /**
- * FailedPrecondition copy for the install lane (T02 §0-b, the documented
+ * FailedPrecondition copy for the install lane (the documented
  * OSS posture) — Go install.go installUnavailableMessage: this edition
  * has no webhook receiver and no delivery runtime, so an installed
  * channel could never serve traffic; an honest refusal beats a
@@ -16,15 +16,15 @@
 export const INSTALL_UNAVAILABLE_MESSAGE = "channel installs require Stigmer Cloud";
 
 /**
- * FailedPrecondition copy for the messaging surface (proactive-messaging
- * DD-002/DD-003) — Go message.go proactiveMessagingUnavailableMessage.
+ * FailedPrecondition copy for the messaging surface — Go message.go
+ * proactiveMessagingUnavailableMessage.
  */
 export const PROACTIVE_MESSAGING_UNAVAILABLE_MESSAGE =
   "proactive channel messaging requires Stigmer Cloud";
 
 /**
- * FailedPrecondition copy for the conversation participation surface
- * (channel-conversations DD-003 D-f) — Go conversation.go
+ * FailedPrecondition copy for the conversation participation surface —
+ * Go conversation.go
  * conversationParticipationUnavailableMessage.
  */
 export const CONVERSATION_PARTICIPATION_UNAVAILABLE_MESSAGE =
@@ -46,9 +46,9 @@ export const AGENT_REF_SLUG_REQUIRED_MESSAGE = "spec.agent_ref.slug is required"
 
 /**
  * FailedPrecondition copy for the same-org invariant — Go
- * resolveChannelDefaultsStep, byte-pinned. Unlike shares (decision 013),
+ * resolveChannelDefaultsStep, byte-pinned. Unlike shares,
  * channels have NO cross-org arm: the channel's org is the billing org
- * and the credentials org, and both must be the agent's (decision 004).
+ * and the credentials org, and both must be the agent's.
  */
 export function sameOrgInvariantMessage(refOrg: string): string {
   return (
@@ -59,7 +59,7 @@ export function sameOrgInvariantMessage(refOrg: string): string {
 
 /**
  * InvalidArgument copy for a WhatsApp channel without an app binding
- * (DD-WA-2: WhatsApp is BYO-only) — Go, byte-pinned; enforced in the
+ * (WhatsApp is BYO-only) — Go, byte-pinned; enforced in the
  * defaults resolver, not a field-level CEL, because the rule conditions
  * on the oneof case.
  */
@@ -69,7 +69,7 @@ export const APP_REF_REQUIRED_FOR_WHATSAPP_MESSAGE =
 
 /**
  * FailedPrecondition copy for a cross-org app_ref (secrets never cross
- * orgs — the T06 invariant applied to app credentials) — Go, byte-pinned.
+ * orgs, applied to app credentials) — Go, byte-pinned.
  */
 export const APP_REF_SAME_ORG_MESSAGE =
   "spec.app_ref.org must match metadata.org — a channel can only install " +

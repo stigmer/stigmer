@@ -138,12 +138,12 @@ import {
 export interface EnvironmentControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly secretService: SecretService;
-  /** The composed list read scope — list narrows through it; undefined = the OSS full scan (20260830.01). */
+  /** The composed list read scope — list narrows through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 
@@ -810,7 +810,7 @@ async function list(
  * rows skipped, org equality + AND-label filtering, per-item redaction,
  * sorted by spec-audit created_at descending (seconds then nanos;
  * timestamped entries before untimestamped ones). With a composed
- * ListReadScope (20260830.01, census lane 10) the decoded scan narrows
+ * ListReadScope the decoded scan narrows
  * to the caller's authorized environments first — the existing org
  * filter here already serves the Java handler's org arm, so the helper's
  * org argument stays blank.
@@ -842,7 +842,7 @@ function newListByOrgAndLabelsStep(
         }
       }
       // The request's org and labels first (this lane's contract in both
-      // editions), the read scope last (census lane 10; the scope is the
+      // editions), the read scope last (the scope is the
       // last per-row predicate): a composed driver is asked about the
       // org's environments, never every tenant's.
       const requested = decoded.filter(

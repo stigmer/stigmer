@@ -1,6 +1,6 @@
 /**
  * Temporal PayloadCodec that encrypts payloads at rest in workflow
- * history (stigmer-cloud#227).
+ * history.
  *
  * Why: the workflow engine runs inside the Temporal deterministic
  * sandbox, so decrypted execution-context values cross the history
@@ -29,8 +29,8 @@
  * all throw rather than surfacing bogus payloads.
  *
  * Key ids outside the static primary/secondary pair may be resolved
- * through the config's optional resolveKey seam (C4: the cloud server
- * decodes desktop-runner histories under database-resident `rpk_` keys).
+ * through the config's optional resolveKey seam (a hosting server may
+ * decode desktop-runner histories under database-resident `rpk_` keys).
  * Resolution is decode-only, resolved keys are cached for the process
  * lifetime (an id's material is immutable — rotation mints a new id),
  * misses are never cached, and an unresolvable id keeps the pinned

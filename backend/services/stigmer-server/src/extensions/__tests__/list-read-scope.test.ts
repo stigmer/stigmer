@@ -1,6 +1,6 @@
 /**
  * Pins the ListReadScope shared consumption helper
- * (restrictListByReadScope — 20260830.01.sp.list-read-scoping), the ONE
+ * (restrictListByReadScope), the ONE
  * idiom every post-scan list lane rides:
  *
  *   - no scope composed = the input unchanged, org NOT consulted (the
@@ -8,8 +8,8 @@
  *   - a composed scope narrows to the kept ids — and can only narrow:
  *     ids the scope answers that were never offered add nothing;
  *   - the org argument narrows BEFORE the scope, only when non-blank
- *     (the Java repos' uniform blank-org posture; since stigmer-cloud
- *     20260913.04 T02 the scope is the last per-row predicate, so it is
+ *     (the Java repos' uniform blank-org posture; the scope is the last
+ *     per-row predicate, so it is
  *     offered the org's rows and never the kind's — the same result set,
  *     a fraction of the candidates);
  *   - the `internal` class — the server acting as itself — gets the
@@ -28,7 +28,7 @@
  *     `authorizationParent` on every candidate whose spec names it, the
  *     same ResolvedParentLink the tuple lifecycle wrote and one of the
  *     candidate's own parent links; every other kind and every parentless
- *     row carries none (stigmer-cloud 20260913.04 T04);
+ *     row carries none;
  *   - a scope failure PROPAGATES — never an empty result (the outage
  *     contract: empty means "authorized to see nothing", outage means
  *     INTERNAL through the caller's sanitized arm).
@@ -331,7 +331,7 @@ describe("restrictListByReadScope", () => {
     ]);
   });
 
-  describe("authorizationParent — the parent a kind's authorization is (20260913.04 T04)", () => {
+  describe("authorizationParent — the parent a kind's authorization is", () => {
     function recordingScope(keep: ReadonlyArray<string>) {
       const seen: ReadonlyArray<ListEntryMeta>[] = [];
       const scope: ListReadScope = {

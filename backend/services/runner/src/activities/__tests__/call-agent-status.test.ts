@@ -106,7 +106,7 @@ describe("call-agent-status file-review activities", () => {
 
   describe("approval activities are scoped per-child (unify)", () => {
     it("updateWorkflowTaskApprovalStatus derives the gate from the child record and scopes the write to it", async () => {
-      // Identity-only contract (DD-012, stigmer-cloud#509): the activity
+      // Identity-only contract: the activity
       // receives just the child id and reads the gate from the child's
       // persisted status — the signal never carries approval details.
       mockGetExecutionResult = {

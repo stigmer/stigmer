@@ -1,5 +1,5 @@
 /**
- * Pins the C2 Stage-4 enforcement on this domain's three config-annotated
+ * Pins the annotation enforcement on this domain's three config-annotated
  * direct read surfaces (subscribe, subscribeEvents, getEventLog): each
  * evaluates its OWN annotation through authorizeDirect BEFORE any store
  * or broker touch, and a denying authorizer answers PERMISSION_DENIED
@@ -66,7 +66,7 @@ async function expectDenied(run: () => Promise<unknown>, copy: string) {
   expect((error as ConnectError).rawMessage).toBe(copy);
 }
 
-describe("read-surface authorization (C2 Stage 4)", () => {
+describe("read-surface authorization", () => {
   it("subscribe denies with its annotation copy before touching store or broker", async () => {
     await expectDenied(
       () =>

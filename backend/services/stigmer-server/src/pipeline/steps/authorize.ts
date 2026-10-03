@@ -1,7 +1,7 @@
 /**
- * Authorize — the ONE shared authorization step (O2, 20260827.01; DD-007
- * §3), added explicitly as the FIRST .addStep of every pipeline chain
- * (ruling Q1: visible and greppable — step order is OSS-owned contract,
+ * Authorize — the ONE shared authorization step, added explicitly as the
+ * FIRST .addStep of every pipeline chain (visible and greppable — step order
+ * is OSS-owned contract,
  * never hidden behind a chain-builder wrapper).
  *
  * The step reads the same declarative proto method options the Java
@@ -13,27 +13,27 @@
  *   allow       → the chain proceeds;
  *   deny        → PERMISSION_DENIED, carrying the annotation's byte-pinned
  *                 `error_msg` (the reason arm is the fallback copy);
- *   not-found   → NOT_FOUND with the load-first chain's copy (the C2
- *                 ruling-Q1 refinement: a resource-scoped check on a
+ *   not-found   → NOT_FOUND with the load-first chain's copy (a
+ *                 resource-scoped check on a
  *                 nonexistent id answers what Java's load-before-authorize
  *                 order answers, stigmer#224);
  *   unavailable → INTERNAL — an authorization-backend outage is NEVER
  *                 softened into a denial (the verified Java StepResult
- *                 lesson, DD-007's wire-visible contract).
+ *                 lesson, a wire-visible contract).
  *
  * Skip arms, in order: the `internal` caller class (the in-process chain's
- * own calls — the TS rendering of the Java in-process authorization skip,
- * ruling Q4), `is_public`, `is_skip_authorization`, and methods carrying
- * no config at all (no authorization requirement is declared; the O2
- * coverage inventory records every such method, so C1/C2 inherit the map
- * instead of discovering it).
+ * own calls — the TS rendering of the Java in-process authorization skip),
+ * `is_public`, `is_skip_authorization`, and methods carrying
+ * no config at all (no authorization requirement is declared; the
+ * coverage inventory, docs/authorization-coverage.md, records every such
+ * method).
  *
  * Resolution never throws: an unresolvable `field_path` yields an empty
  * resource id and an unresolvable `resource_kind_path` yields the unknown
  * kind — the check still reaches the Authorizer, which owns the decision.
  * A `resource_kind_path` may point at an `ApiResourceKind` field or at a
  * string carrying a kind's enum member name (an `ApiResourceRef.kind`, the
- * IamPolicy RPCs' spec-named target; 20260913.01 Q-OR-2); a string that is
+ * IamPolicy RPCs' spec-named target); a string that is
  * not exactly a member name is the unknown kind, which an enforcing
  * authorizer denies. A thrown resolution would be a NEW wire behavior on
  * requests that are legal today (byte-identity forbids it); an
@@ -45,8 +45,8 @@
  * ported direct forms, docs/authorization-coverage.md). One evaluation,
  * two entry shapes; a direct handler calls it after its own input
  * validation and before any load or side effect, mirroring the Java
- * edition's validate → authorize handler order (C2 Stage 4 ruling,
- * 20260827.10). The optional target override serves the lanes whose true
+ * edition's validate → authorize handler order. The optional target override
+ * serves the lanes whose true
  * target is server-side state rather than caller input, in two shapes:
  * a server-side ID under the annotation's static kind (completeOAuthConnect
  * authorizes the PENDING RECORD's server id — a caller-supplied id would
@@ -100,8 +100,9 @@ export const AUTHORIZATION_UNAVAILABLE_MESSAGE =
 export const AUTHORIZATION_DENIED_FALLBACK_MESSAGE = "permission denied";
 
 /**
- * The permissive single-team Authorizer (DD-007 §3): one trust domain,
- * every check allowed, exactly the pre-O2 behavior. Kept for the suites
+ * The permissive single-team Authorizer: one trust domain,
+ * every check allowed, the behavior before authorization existed. Kept
+ * for the suites
  * that need an Authorizer with no opinion at all; no posture composes it.
  * A server without sign-in composes the trusted-local driver
  * (authorization/trusted-local-authorizer.ts), which is this plus the
@@ -237,9 +238,8 @@ export function authorizeTarget(
 
 /**
  * The SAME evaluation for a check whose target the HANDLER resolved —
- * the mid-chain resolved-id pattern DD-007 names ("the pattern the two
- * traced ListVersions handlers port onto", shipped by
- * 20260830.01.sp.list-read-scoping ruling Q8). It serves the
+ * the mid-chain resolved-id pattern (the pattern the two ListVersions
+ * handlers port onto). It serves the
  * `is_skip_authorization` lanes whose Java baseline runs a hand-rolled
  * check the declarative annotation cannot express (a mid-chain resolved
  * id, a two-field target dispatch): the skip annotation makes the
@@ -275,7 +275,7 @@ export async function authorizeResolvedResource(
         Code.PermissionDenied,
       );
     case "not-found": {
-      // The ruling-Q1 arm: the exact copy the load-first chain would
+      // The not-found arm: the exact copy the load-first chain would
       // answer for the missing id (LoadTarget's notFoundError), so
       // the wire cannot distinguish which step spoke.
       if (
@@ -309,8 +309,7 @@ export async function authorizeResolvedResource(
  * soften an outage into a denial by accident. Exported for the one lane
  * that needs the DECISION rather than the wire mapping: `checkMyPermission`
  * answers a boolean (allow → true, deny and not-found → false) and maps
- * only `unavailable` to the wire, through the same INTERNAL copy
- * (20260913.01, Q-S5-3).
+ * only `unavailable` to the wire, through the same INTERNAL copy.
  */
 export async function evaluateAuthorizer(
   authorizer: Authorizer,

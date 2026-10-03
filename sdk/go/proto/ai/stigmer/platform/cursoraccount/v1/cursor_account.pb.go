@@ -30,8 +30,7 @@ const (
 // historical single STIGMER_PROXY_CURSOR_API_KEY env var, which is gone.)
 //
 // One document = one Cursor team. It carries two credential classes with
-// strictly different capabilities (verified empirically 2026-07-22, see the
-// harness-cost-parity T04 probe note):
+// strictly different capabilities (verified empirically 2026-07-22):
 //
 //   - the team ADMIN key ("Team API Keys" dashboard tab) — works ONLY
 //     against the Cursor Admin API (roster, spend, usage events). It can
@@ -49,7 +48,7 @@ const (
 //     exactly those organizations. Their sessions are served only by this
 //     account's keys; when it has no usable keys, sessions fail with an
 //     explicit operator-actionable error rather than silently spending
-//     another team's quota (DD-008).
+//     another team's quota.
 //   - SHARED POOL (orgs empty + enabled): the account is part of the
 //     platform-operated pool serving every org with no dedicated account.
 //     Pool sessions may move across pool accounts when their current
@@ -90,7 +89,7 @@ type CursorAccount struct {
 	// one of its keys keep working (the hard kill switch is revoking the
 	// key in the Cursor dashboard).
 	Enabled bool `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	// Deprecated: superseded by the derived shared pool (DD-008). Every
+	// Deprecated: superseded by the derived shared pool. Every
 	// enabled account with empty orgs now serves unassigned orgs; a
 	// single "default" marker is meaningless under that rule, so selection
 	// and the console ignore this field. Kept on the wire for old clients;
@@ -120,7 +119,7 @@ type CursorAccount struct {
 	// When true, member keys whose included API-pool usage crosses the
 	// platform soft limit are excluded from NEW-session selection — with
 	// on-demand off, an exhausted key can no longer serve third-party
-	// models (T06 probe: runs error, no silent degrade).
+	// models (observed: runs error, no silent degrade).
 	//
 	// Deliberately the negative of Cursor's "on-demand enabled" wording:
 	// proto3 bool absence must mean "assume Cursor's team default
@@ -490,8 +489,8 @@ type CursorMemberSpend struct {
 	// On-demand overage spend this cycle, micro-USD (Cursor "spendCents").
 	OverageSpendUsdMicros int64 `protobuf:"varint,4,opt,name=overage_spend_usd_micros,json=overageSpendUsdMicros,proto3" json:"overage_spend_usd_micros,omitempty"`
 	// Percent (0–100) of the member's blended usage allowance consumed
-	// (Cursor's totalPercentUsed, live-verified 2026-07-22 — the T06
-	// probe observed 22.35 for a member at 22%). 0 when Cursor omits it
+	// (Cursor's totalPercentUsed, live-verified 2026-07-22 — a probe
+	// observed 22.35 for a member at 22%). 0 when Cursor omits it
 	// (non-tiered/Enterprise teams). Caution: removed members report a
 	// flat 100 here regardless of real usage — roster state, not this
 	// field, decides "removed".
@@ -501,7 +500,7 @@ type CursorMemberSpend struct {
 	AutoPercentUsed float64 `protobuf:"fixed64,6,opt,name=auto_percent_used,json=autoPercentUsed,proto3" json:"auto_percent_used,omitempty"`
 	// Percent (0–100) of the THIRD-PARTY API model pool (Claude/GPT/…)
 	// consumed — Cursor's apiPercentUsed. 0 when unreported. This is the
-	// usage-guard metric: the pools diverge hard in practice (T06
+	// usage-guard metric: the pools diverge hard in practice (a probe
 	// observed api=100 while total=22.35), so the blended figure must
 	// never gate selection.
 	ApiPercentUsed float64 `protobuf:"fixed64,7,opt,name=api_percent_used,json=apiPercentUsed,proto3" json:"api_percent_used,omitempty"`

@@ -7,7 +7,7 @@
  * Nine invariants, each of which has already produced (or nearly produced)
  * a shipped defect:
  *
- * 1. DETERMINISM (scenar-cloud DD-006). A packed tour must render identical
+ * 1. DETERMINISM. A packed tour must render identical
  *    pixels on every replay and every video-export frame, so tour fixtures
  *    must never read the live clock. `Date.now()`, `Math.random()`, bare
  *    `new Date()`, and `new Date(...)` with non-literal arguments are
@@ -55,7 +55,7 @@
  *    construction — a different instant in every zone) and `new Date(0)`
  *    (an epoch whose rendered date drifts inside the window).
  *
- * 6. SCALE FACTORS (scenar-cloud DD-008). One scale factor per rendered
+ * 6. SCALE FACTORS. One scale factor per rendered
  *    frame, owned by the viewport boundary: tours author content at real
  *    application metrics and never apply their own `zoom` (props, style
  *    objects, or CSS) or `transform: scale()`. Composed factors are what
@@ -70,10 +70,10 @@
  *    itself is exempt by construction: the shells render the SDK's own
  *    sidebar components (stigmer/stigmer#317).
  *
- * 8. STILL REFERENCES (docs-revamp DD-02). Every `<Still id="<scenario>/
+ * 8. STILL REFERENCES. Every `<Still id="<scenario>/
  *    <shot>">` in `docs/**` must name a real `demos/tours/<scenario>/`
  *    whose steps.ts declares that `shot`, and must carry non-empty alt
- *    text (DD-01's text-fallback bar — MDX is never typechecked, so the
+ *    text (docs/STYLE.md requires it — MDX is never typechecked, so the
  *    component's required prop cannot enforce it). This check runs from
  *    both sides: ci.docs covers docs-only changes, ci.ts-workspace runs it
  *    whenever @stigmer/demos is affected — so removing a shot a page
@@ -165,15 +165,14 @@ export function findClockReads(sourceText, fileName = "module.ts") {
           line: lineOf(node),
           reason:
             "Date.now() reads the live clock — derive from the tour world's " +
-            "anchor instead: sampleInstant(deltaMs) from @stigmer/react/test " +
-            "(DD-006)",
+            "anchor instead: sampleInstant(deltaMs) from @stigmer/react/test",
         });
       } else if (obj === "Math" && method === "random") {
         violations.push({
           line: lineOf(node),
           reason:
             "Math.random() makes the tour render differently per replay — " +
-            "use a fixed value (DD-006)",
+            "use a fixed value",
         });
       }
     }
@@ -191,7 +190,7 @@ export function findClockReads(sourceText, fileName = "module.ts") {
           reason:
             "new Date(...) without literal arguments reads the live clock — " +
             "derive from the tour world's anchor instead: sampleDate(deltaMs) " +
-            "from @stigmer/react/test (DD-006)",
+            "from @stigmer/react/test",
         });
       }
     }
@@ -382,7 +381,7 @@ export function findScaleFactors(sourceText, fileName = "module.ts") {
         line: lineOf(node),
         reason:
           "zoom prop authored in a tour — one scale factor per frame: author " +
-          "at real metrics and let the viewport boundary scale (DD-008)",
+          "at real metrics and let the viewport boundary scale",
       });
     }
     if (
@@ -394,8 +393,7 @@ export function findScaleFactors(sourceText, fileName = "module.ts") {
         line: lineOf(node),
         reason:
           "zoom style property authored in a tour — one scale factor per " +
-          "frame: author at real metrics and let the viewport boundary scale " +
-          "(DD-008)",
+          "frame: author at real metrics and let the viewport boundary scale",
       });
     }
     ts.forEachChild(node, visit);
@@ -422,14 +420,14 @@ export function findCssScaleFactors(cssText) {
       violations.push({
         line: i + 1,
         reason:
-          "zoom declaration authored in tour CSS — one scale factor per frame (DD-008)",
+          "zoom declaration authored in tour CSS — one scale factor per frame",
       });
     }
     if (/(^|[^-\w])transform\s*:[^;}]*\bscale\(/.test(line)) {
       violations.push({
         line: i + 1,
         reason:
-          "transform: scale() authored in tour CSS — one scale factor per frame (DD-008)",
+          "transform: scale() authored in tour CSS — one scale factor per frame",
       });
     }
   }
@@ -468,8 +466,8 @@ export const REPLICA_METRIC_PAIRS = [
     real: "client-apps/web/src/domain/_shared/layout/AppShell.tsx",
     realNeedle: '"w-60"',
   },
-  // SessionView renders the SDK's own SessionViewerLayout (scenar-cloud
-  // DD-010), so the split and chip geometry need no pairs — there is no
+  // SessionView renders the SDK's own SessionViewerLayout, so the split
+  // and chip geometry need no pairs — there is no
   // replica. These two pin the geometry the demo still owns around it.
   {
     fact: "launcher column width (NewSessionViewer `max-w-2xl` = 42rem)",
@@ -880,7 +878,7 @@ async function main() {
       if (still.alt === null || still.alt.trim() === "") {
         stillViolations.push(
           `${rel}: ${label} has no alt text — a still must describe its screen ` +
-            `for readers of the markdown exports (docs/STYLE.md; DD-01's ` +
+            `for readers of the markdown exports (docs/STYLE.md's ` +
             `text-fallback requirement)`,
         );
       }

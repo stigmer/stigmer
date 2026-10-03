@@ -14,7 +14,7 @@ import "buf/validate/validate.proto";
 // tool credentials — all independent of the agent blueprint it references.
 //
 // @internal
-// Sharing is channel configuration, not agent behavior (decision 011):
+// Sharing is channel configuration, not agent behavior:
 // applying an agent manifest never touches a share, and the share has its
 // own writer, lifecycle, and change cadence. Guest admission is enforced
 // app-level in the shared-profile/mint/create-time gates — a share writes
@@ -46,7 +46,7 @@ message AgentShareSpec {
   // agent_ref.org must equal metadata.org, enforced app-level in both
   // editions (spec-level CEL cannot see metadata.org), the same rule the
   // schedule and channel kinds apply to their agent reference. The sharing
-  // org is the billing org (decision 001) and guest tool credentials
+  // org is the billing org and guest tool credentials
   // resolve in the share's org (secrets never cross orgs — org A's
   // environments are structurally unreachable from org B's executions via
   // OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
@@ -93,13 +93,13 @@ message AgentShareSpec {
   // first-party hosted chat page is always exempt.
   //
   // @internal
-  // Enforced since T04 against the embed_origin the widget reports at
+  // Enforced against the embed_origin the widget reports at
   // mintGuestToken time (stamped into the guest JWT as a claim) and
   // re-validated against this live list by the guest create-time gate
   // (SharedSessionBlueprintAccess) on every session/execution create — the
   // same gate that re-checks enabled, so revocation latency is identical
   // (immediate). Unframed hosted-page visitors report no origin and are
-  // exempt by construction. Since stigmer-cloud#341 both gates cross-check
+  // exempt by construction. Both gates also cross-check
   // the self-report against the request's browser-enforced Origin header
   // (SharingRequestOriginPolicy): for direct SDK embeds the header is the
   // authoritative origin — a lying or omitted embed_origin no longer
@@ -138,14 +138,14 @@ message AgentShareSpec {
   // @internal
   // Resolved in the share's org through the org-shared environment
   // resolution seam (EnvironmentRuntimeResolutionService /
-  // OrgSharedEnvironmentPolicy — decision 006): each referenced environment
+  // OrgSharedEnvironmentPolicy): each referenced environment
   // must be visibility_org in the share's org, or the merge skips it with
   // a diagnostic. Merged at guest execution-context build time only —
   // never bound to the agent's system-managed default instance, which is
   // recreated empty on lifecycle events and shared by every org member's
-  // casual chat (decision 011). Org-audience shares reject this field via
-  // the message-level CEL rule: member sessions carry no share linkage in
-  // Phase A, so bound credentials would silently never apply.
+  // casual chat. Org-audience shares reject this field via
+  // the message-level CEL rule: member sessions carry no share linkage,
+  // so bound credentials would silently never apply.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [
     (ai.stigmer.commons.apiresource.reference_kind) = environment,
     (buf.validate.field).repeated.items.cel = {
@@ -165,7 +165,7 @@ message AgentShareSpec {
   // Valid on public-audience shares only.
   //
   // @internal
-  // DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+  // The shared run shape's second embedder (stigmer/stigmer#360). This is the
   // OWNER's stored config, not the guest's: the guest scope step still
   // discards caller-supplied execution_config unconditionally, then
   // merges this field — loaded server-side from the share — over the

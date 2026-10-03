@@ -98,8 +98,6 @@ export const AgentVersionEntrySchema: GenMessage<AgentVersionEntry> = /*@__PURE_
 /**
  * GitProvenance tracks the git origin of an agent version.
  *
- * @since Agent Versioning (future)
- *
  * @generated from message ai.stigmer.agentic.agent.v1.GitProvenance
  */
 export type GitProvenance = Message<"ai.stigmer.agentic.agent.v1.GitProvenance"> & {
@@ -133,8 +131,6 @@ export const GitProvenanceSchema: GenMessage<GitProvenance> = /*@__PURE__*/
 
 /**
  * ListAgentVersionsInput requests the version history for an agent.
- *
- * @since Agent Versioning (future)
  *
  * @generated from message ai.stigmer.agentic.agent.v1.ListAgentVersionsInput
  */
@@ -170,8 +166,6 @@ export const ListAgentVersionsInputSchema: GenMessage<ListAgentVersionsInput> = 
 /**
  * ListAgentVersionsResponse contains a page of agent version history.
  *
- * @since Agent Versioning (future)
- *
  * @generated from message ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse
  */
 export type ListAgentVersionsResponse = Message<"ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse"> & {
@@ -201,8 +195,6 @@ export const ListAgentVersionsResponseSchema: GenMessage<ListAgentVersionsRespon
 /**
  * GetAgentVersionInput requests a specific historical version.
  *
- * @since Agent Versioning (future)
- *
  * @generated from message ai.stigmer.agentic.agent.v1.GetAgentVersionInput
  */
 export type GetAgentVersionInput = Message<"ai.stigmer.agentic.agent.v1.GetAgentVersionInput"> & {
@@ -226,8 +218,6 @@ export const GetAgentVersionInputSchema: GenMessage<GetAgentVersionInput> = /*@_
 
 /**
  * TagAgentVersionInput assigns or moves a tag to a specific agent version.
- *
- * @since Agent Versioning (future)
  *
  * @generated from message ai.stigmer.agentic.agent.v1.TagAgentVersionInput
  */

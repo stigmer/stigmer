@@ -85,9 +85,8 @@ export const CREATED_SESSION_ID_KEY = "created_session_id";
 export const AUTO_CREATED_SESSION_SUBJECT = "Auto-created session";
 
 // ---------------------------------------------------------------------------
-// The in-process edges the create pipeline consumes (lazy providers per
-// the ratified DI story — the routes↔clients cycle resolves at request
-// time, DD-002).
+// The in-process edges the create pipeline consumes (lazy providers: the
+// routes↔clients cycle resolves at request time).
 // ---------------------------------------------------------------------------
 
 export interface AgentLoader {
@@ -96,13 +95,13 @@ export interface AgentLoader {
 export type AgentLoaderProvider = () => AgentLoader;
 
 export interface SessionCreator {
-  /** As the ORIGINAL caller (ruling R5): the session's owner is its user. */
+  /** As the ORIGINAL caller: the session's owner is its user. */
   createAsCaller(session: Session, caller: CallerIdentity): Promise<Session>;
 }
 export type SessionCreatorProvider = () => SessionCreator;
 
 // ---------------------------------------------------------------------------
-// EnsureEngineAvailable lives in engine.ts (Phase 1); re-exported by the
+// EnsureEngineAvailable lives in engine.ts; re-exported by the
 // controller for chain assembly.
 // ---------------------------------------------------------------------------
 
@@ -111,8 +110,7 @@ export type SessionCreatorProvider = () => SessionCreator;
 // ---------------------------------------------------------------------------
 
 /**
- * The narrow agentinstance CREATE edge — as the ORIGINAL caller since C2
- * Stage 3 (ruling R5, the Java createAsCaller posture): real owner
+ * The narrow agentinstance CREATE edge — as the ORIGINAL caller: real owner
  * attribution for the created instance under an enforcing Authorizer.
  */
 export interface ExecutionAgentInstanceCreator {
@@ -260,7 +258,7 @@ export function newCreateDefaultInstanceIfNeededStep(deps: {
         );
       }
 
-      // The default_of invariant rides the pointer persist (C2 Stage 3).
+      // The default_of invariant rides the pointer persist.
       await notifyDefaultInstanceLinked(deps.authorizationLifecycle, {
         instanceKind: ApiResourceKind.agent_instance,
         instanceId: createdId,
@@ -422,7 +420,7 @@ export function newCreateSessionIfNeededStep(deps: {
 
 /**
  * Snapshots the declared standing context onto the execution spec
- * (DD-002, stigmer/stigmer#293). SERVER-OWNED: stamped unconditionally,
+ * (stigmer/stigmer#293). SERVER-OWNED: stamped unconditionally,
  * overwriting anything the caller supplied. Two independent halves:
  *
  *   - org_context, the organization's, for every run but a VISITOR's
@@ -465,7 +463,7 @@ export function newComposeDeclaredPreferencesStep(
       // Claim the server-owned field first, before any load can fail.
       execution.spec.declaredPreferences = create(DeclaredPreferencesSchema);
 
-      // Verbatim per DD-002 D2: the server stamps content only;
+      // Verbatim: the server stamps content only;
       // blank-is-absent is the runner's read-side convention.
       if (isVisitor(visitorClassifier, ctx.callerIdentity, logger)) {
         logger.debug(
@@ -601,7 +599,7 @@ async function runPersonOf(
 
 /**
  * Snapshots the subject's CONFIRMED memories onto the execution spec
- * (DD-006, stigmer/stigmer#293 Phase 2 Stage 2) — the recall half of the
+ * (stigmer/stigmer#293) — the recall half of the
  * memory loop, sibling of ComposeDeclaredPreferences in every invariant:
  * server-owned (enabled=false stamped on every ineligible/degraded path),
  * best-effort (degrading to DISABLED, never enabled-with-zero-facts, so a
@@ -845,7 +843,7 @@ export function newStartWorkflowStep(deps: {
   store: Store;
   logger: Logger;
   engineState: ExecutionEngineStateProvider;
-  /** O4: the failure arm's PENDING→FAILED stamp is a notified transition. */
+  /** The failure arm's PENDING→FAILED stamp is a notified transition. */
   statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
 }): PipelineStep<CreateDesc> {
   return {
@@ -862,8 +860,8 @@ export function newStartWorkflowStep(deps: {
         throw unavailableError(ENGINE_UNAVAILABLE_MESSAGE);
       }
 
-      // Log callback token presence (async activity completion pattern —
-      // the token handshake ADR); Base64 preview only, never the bytes.
+      // Log callback token presence (Temporal's asynchronous activity
+      // completion); Base64 preview only, never the bytes.
       const callbackToken = execution.spec?.callbackToken ?? new Uint8Array();
       if (callbackToken.length > 0) {
         const tokenBase64 = Buffer.from(callbackToken).toString("base64");
@@ -924,7 +922,7 @@ export function newStartWorkflowStep(deps: {
             "failed to start workflow and failed to update status",
           );
         }
-        // O4 site 3 of 5 (status-observers.ts): the PENDING→FAILED stamp
+        // Notify site 3 of 5 (status-observers.ts): the PENDING→FAILED stamp
         // is a persisted terminal transition — notified before the
         // refusal surfaces.
         await notifyStatusObservers(

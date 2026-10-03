@@ -13,8 +13,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * Cost is intentionally omitted. The dashboard sources cost from
  * getOrgUsageReport (billing source of truth) to prevent double-counting
  * when workflows delegate to agents. See AD-DASH-005.
- *
- * &#64;since Unified Platform Dashboard
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary}
@@ -533,8 +531,6 @@ private static final long serialVersionUID = 0L;
    * Cost is intentionally omitted. The dashboard sources cost from
    * getOrgUsageReport (billing source of truth) to prevent double-counting
    * when workflows delegate to agents. See AD-DASH-005.
-   *
-   * &#64;since Unified Platform Dashboard
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary}

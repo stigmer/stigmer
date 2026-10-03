@@ -31,7 +31,7 @@ export const TICK_ID_PREFIX = `${TICK_WORKFLOW_TYPE}/`;
 
 /**
  * The cloud write-path's throwaway fire-time probes (Go probeIDPrefix).
- * OSS never creates probes (no pre-persist probe — DD-015 D-A), but the
+ * OSS never creates probes (it has no pre-persist probe), but the
  * reconciler skips the prefix defensively so a shared/dev namespace never
  * gets its probes treated as tick orphans.
  */

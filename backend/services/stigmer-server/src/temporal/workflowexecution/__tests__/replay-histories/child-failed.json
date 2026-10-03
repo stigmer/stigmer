@@ -253,7 +253,7 @@
         "failure": {
           "message": "child engine boom",
           "source": "TypeScriptSDK",
-          "stackTrace": "ApplicationFailure: child engine boom\n    at Function.create (/Users/suresh/scm/github.com/stigmer/.worktrees/stigmer/feat-20260825.04.sp.workflowexecution-orchestration/backend/services/stigmer-server-ts/node_modules/@temporalio/common/src/failure.ts:227:11)\n    at create (/Users/suresh/scm/github.com/stigmer/.worktrees/stigmer/feat-20260825.04.sp.workflowexecution-orchestration/backend/services/stigmer-server-ts/src/temporal/workflowexecution/__tests__/test-workflows.ts:57:29)",
+          "stackTrace": "ApplicationFailure: child engine boom\n    at Function.create (/repo/backend/services/stigmer-server-ts/node_modules/@temporalio/common/src/failure.ts:227:11)\n    at create (/repo/backend/services/stigmer-server-ts/src/temporal/workflowexecution/__tests__/test-workflows.ts:57:29)",
           "applicationFailureInfo": {}
         },
         "namespace": "default",
@@ -645,13 +645,13 @@
         "failure": {
           "message": "Workflow execution failed",
           "source": "TypeScriptSDK",
-          "stackTrace": "ApplicationFailure: Workflow execution failed\n    at Function.create (/Users/suresh/scm/github.com/stigmer/.worktrees/stigmer/feat-20260825.04.sp.workflowexecution-orchestration/backend/services/stigmer-server-ts/node_modules/@temporalio/common/src/failure.ts:227:11)\n    at create (/Users/suresh/scm/github.com/stigmer/.worktrees/stigmer/feat-20260825.04.sp.workflowexecution-orchestration/backend/services/stigmer-server-ts/src/temporal/workflowexecution/workflows/invoke-workflow-execution.ts:205:29)",
+          "stackTrace": "ApplicationFailure: Workflow execution failed\n    at Function.create (/repo/backend/services/stigmer-server-ts/node_modules/@temporalio/common/src/failure.ts:227:11)\n    at create (/repo/backend/services/stigmer-server-ts/src/temporal/workflowexecution/workflows/invoke-workflow-execution.ts:205:29)",
           "cause": {
             "message": "Child Workflow execution failed",
             "cause": {
               "message": "child engine boom",
               "source": "TypeScriptSDK",
-              "stackTrace": "ApplicationFailure: child engine boom\n    at Function.create (/Users/suresh/scm/github.com/stigmer/.worktrees/stigmer/feat-20260825.04.sp.workflowexecution-orchestration/backend/services/stigmer-server-ts/node_modules/@temporalio/common/src/failure.ts:227:11)\n    at create (/Users/suresh/scm/github.com/stigmer/.worktrees/stigmer/feat-20260825.04.sp.workflowexecution-orchestration/backend/services/stigmer-server-ts/src/temporal/workflowexecution/__tests__/test-workflows.ts:57:29)",
+              "stackTrace": "ApplicationFailure: child engine boom\n    at Function.create (/repo/backend/services/stigmer-server-ts/node_modules/@temporalio/common/src/failure.ts:227:11)\n    at create (/repo/backend/services/stigmer-server-ts/src/temporal/workflowexecution/__tests__/test-workflows.ts:57:29)",
               "applicationFailureInfo": {}
             },
             "childWorkflowExecutionFailureInfo": {

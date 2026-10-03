@@ -189,8 +189,6 @@ export const GetArtifactContentRequestSchema: GenMessage<GetArtifactContentReque
  * artifacts, clients decode as UTF-8. The content_type field is the type
  * recorded at creation (ArtifactSpec.content_type).
  *
- * @since Review Payloads (stigmer/stigmer#234)
- *
  * @generated from message ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse
  */
 export type GetArtifactContentResponse = Message<"ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse"> & {

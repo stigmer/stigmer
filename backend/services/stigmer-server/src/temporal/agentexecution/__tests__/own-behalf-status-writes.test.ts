@@ -1,6 +1,6 @@
 /**
- * The agent-execution worker's own-behalf status writes (stigmer#979,
- * stigmer-cloud#610) — pins that the invoke workflow's fallback and
+ * The agent-execution worker's own-behalf status writes (stigmer#979) —
+ * pins that the invoke workflow's fallback and
  * re-assertion persists land under an ENFORCING Authorizer because they
  * ride the in-process transport: position 1 mints the internal caller
  * class the Authorize step honors as the server acting as itself, so the
@@ -234,7 +234,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     expect(completed).toHaveLength(1);
   });
 
-  it("fires the composed status observers on the terminal transition (the O4 promise)", async () => {
+  it("fires the composed status observers on the terminal transition, as for any status write", async () => {
     await seedExecution("aex_ownbehalf_observed");
 
     await updateStatus(

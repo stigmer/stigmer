@@ -1,7 +1,7 @@
 /**
  * McpServer controller — ports pkg/domain/mcpserver/controller whole:
- * the CRUD slice (D4 entry #9) and the connect/OAuth slice (D4 entry
- * #19). Registered methods: apply/create/update/delete/updateVisibility +
+ * the CRUD slice and the connect/OAuth slice. Registered methods:
+ * apply/create/update/delete/updateVisibility +
  * connect/startConnect/initiateOAuthConnect/completeOAuthConnect/
  * disconnectOAuth on the command side; get/getByReference/
  * getOAuthGrantStatus on the query side; plus the three org-OAuth RPCs as
@@ -15,9 +15,8 @@
  * this slice — over the McpServerConnectDeps the composition root wires.
  * Engine availability is the modeled state: connect/startConnect refuse
  * FailedPrecondition while disconnected; the OAuth RPCs serve
- * unconditionally (DB-1, sub-project 20260825.02 — Go's Temporal-gated
- * managed-env wiring is a disclosed, deliberately unpinned composition
- * artifact).
+ * unconditionally (Go's Temporal-gated managed-env wiring is a
+ * deliberately unpinned composition artifact).
  *
  * Every chain opens with Authorize; create, delete and updateVisibility run
  * the shared tuple-lifecycle steps against the composed lifecycle;
@@ -131,11 +130,11 @@ import {
 export interface McpServerControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The connect/OAuth slice's dependencies (D4 #19). */
+  /** The connect/OAuth slice's dependencies. */
   readonly connect: McpServerConnectDeps;
 }
 
@@ -180,8 +179,8 @@ export function registerMcpServerServices(
 
 /**
  * The org-OAuth-app (BYOA override) surface answers UNIMPLEMENTED on OSS —
- * deliberately, not as coexistence lag (stigmer/stigmer#558, DD-019 in the
- * triage project). An OAuthAppOverride binds an org's own OAuthApp OVER a
+ * deliberately, not as coexistence lag (stigmer/stigmer#558). An
+ * OAuthAppOverride binds an org's own OAuthApp OVER a
  * platform-managed default; OSS has no platform operator distinct from the
  * user — the flat oauthapp domain gives the user full CRUD over the very
  * apps a hosted org could only override — and the OSS OAuth resolution

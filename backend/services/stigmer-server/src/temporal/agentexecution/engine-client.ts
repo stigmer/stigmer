@@ -5,10 +5,10 @@
  * lifecycle operations (lifecycle_steps.go: pause/resume signals, cancel,
  * terminate).
  *
- * #17 modeled the engine as the ConnectedExecutionEngine seam
+ * The domain models the engine as the ConnectedExecutionEngine seam
  * (src/domain/agentexecution/engine.ts); this module fills it. Dispatch
- * resolution lives INSIDE startInvokeWorkflow (the seam's ratified
- * boundary): dispatch failures throw EngineDispatchError — the create
+ * resolution lives INSIDE startInvokeWorkflow (the seam's boundary): dispatch
+ * failures throw EngineDispatchError — the create
  * step maps them to FailedPrecondition verbatim, Go's
  * ResolveActivityTaskQueue boundary — while workflow-start failures throw
  * plain errors the create step turns into FAILED + Internal.
@@ -219,7 +219,7 @@ export interface EngineStateProviderDeps {
 
 /**
  * Builds the provider compose hands the agentexecution registration —
- * replacing the pre-#18 `() => ENGINE_DISCONNECTED` lambda.
+ * in place of a fixed `() => ENGINE_DISCONNECTED`.
  *
  * Availability parity with Go (manager.ts module header): disconnected
  * ONLY until the first successful connect; afterwards the engine wraps

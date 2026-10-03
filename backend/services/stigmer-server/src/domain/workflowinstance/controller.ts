@@ -10,8 +10,8 @@
  * that changes the run-observability axis after create (Update and Apply
  * keep the stored level) and tells a composed tuple driver the audience it
  * names, as create does — open source derives `execution_viewer` from the
- * row at check time, an edition that stores tuples writes it
- * (stigmer-cloud#720); Delete deliberately does NOT
+ * row at check time, an edition that stores tuples writes it; Delete
+ * deliberately does NOT
  * cascade executions (oss#582 — run history survives its instance).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
@@ -125,16 +125,16 @@ import type { ParentWorkflowLoaderProvider } from "./steps.js";
 export interface WorkflowInstanceControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * The workflow in-process edge — a lazy provider because
-   * workflow↔workflowinstance is a true dependency cycle (DD-002).
+   * workflow↔workflowinstance is a true dependency cycle.
    */
   readonly parentWorkflowLoader: ParentWorkflowLoaderProvider;
-  /** The composed list read scope — getByWorkflow narrows through it; undefined = the OSS full scan (20260830.01). */
+  /** The composed list read scope — getByWorkflow narrows through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 
@@ -482,8 +482,8 @@ function newSetInstanceVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
 // that changes it after create. Open source authorizes run reads from the
 // row itself (authorization/model/execution-viewer.ts), so the persisted
 // level is the grant; a composed tuple driver hears the audience the new
-// level names after the persist (UpdateExecutionVisibilityTuples,
-// stigmer-cloud#720) and makes its stored tuples match. Deliberately NOT
+// level names after the persist (UpdateExecutionVisibilityTuples) and makes
+// its stored tuples match. Deliberately NOT
 // guarded for default instances — cloud allows it on them too; do not
 // "fix" that.
 // ---------------------------------------------------------------------------
@@ -828,10 +828,9 @@ function newLoadByWorkflowStep(
           continue;
         }
       }
-      // 20260830.01 census lane 20: the org/workflow filters are contract
-      // parity in both editions and run FIRST; the scope narrows the
-      // workflow's instances last (the scope is the last per-row
-      // predicate, stigmer-cloud 20260913.04 T02).
+      // The org/workflow filters are contract parity in both editions and
+      // run FIRST; the scope narrows the workflow's instances last (the
+      // scope is the last per-row predicate).
       const filtered = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,

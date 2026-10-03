@@ -1,6 +1,6 @@
 /**
- * Pins the ChannelRuntime driver seam's SERVING posture (channel-runtime.ts,
- * C3 ruling Q1) — the complement of agentchannel.test.ts, which pins the
+ * Pins the ChannelRuntime driver seam's SERVING posture (channel-runtime.ts)
+ * — the complement of agentchannel.test.ts, which pins the
  * storing posture this seam must leave byte-identical. Same real stack:
  * a composed server on an ephemeral port with ONE extension unit carrying
  * a recording fake runtime, native gRPC clients, the full interceptor
@@ -18,7 +18,7 @@
  *     is the request's refusal;
  *   - teardownOnDelete runs between the load and the row delete: a
  *     throwing teardown fails the delete AND leaves the row (idempotent
- *     retry heals — the cloud#425 ordering).
+ *     retry heals).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

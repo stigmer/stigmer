@@ -479,7 +479,7 @@ describe("newComposeDeclaredPreferencesStep", () => {
       const execution = newExecution("ses_1", "agt_1");
       execution.metadata!.org = tt.orgId;
       // The injection attempt: a caller-supplied value must never survive
-      // — the field is server-owned (DD-002 D2).
+      // — the field is server-owned.
       execution.spec!.declaredPreferences = create(DeclaredPreferencesSchema, {
         orgContext: "injected org context",
         userContext: "injected user context",
@@ -865,7 +865,7 @@ describe("newComposeRecalledMemoriesStep", () => {
       const execution = newExecution("ses_1", "agt_1");
       execution.metadata!.org = tt.orgId;
       // The injection attempt: caller-supplied recalled_memories never
-      // survive — the field is server-owned (DD-006 D2).
+      // survive — the field is server-owned.
       execution.spec!.recalledMemories = create(RecalledMemoriesSchema, {
         enabled: true,
         facts: [{ memoryId: "mem_injected", content: "injected fact" }],
@@ -875,7 +875,7 @@ describe("newComposeRecalledMemoriesStep", () => {
       await step.execute(ctx);
 
       // The step's contract is SPEC-ONLY: status.recalled_memories_report
-      // is runner-owned with a single writer (DD-008 D5).
+      // is runner-owned with a single writer.
       expect(
         ctx.newState.status?.recalledMemoriesReport,
         "the compose step must never write status.recalled_memories_report",
@@ -1248,10 +1248,11 @@ describe("agentCallTaskEnvironmentRefs", () => {
   });
 });
 
-// O4 (20260827.07, ruling Q3): the StartWorkflow failure arm's
+// The StartWorkflow failure arm's
 // PENDING→FAILED stamp is notify site 3 of 5 — an execution that consumed
 // its create-gate side effects and then never started still reaches the
-// composed observers (the cloud settles its reservation on exactly this).
+// composed observers (a billing composition settles its reservation on
+// exactly this).
 describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
   it("persists FAILED and notifies the observers before surfacing Internal", async () => {
     const observed: AgentExecutionStatusTransition[] = [];

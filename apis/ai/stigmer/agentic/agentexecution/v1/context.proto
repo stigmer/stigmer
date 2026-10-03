@@ -5,13 +5,13 @@ package ai.stigmer.agentic.agentexecution.v1;
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 
 // NOTE: This file previously also defined `ResolvedExecutionContext` and
-// `McpServerResolutionStatus` (Phase 2.5). That contract was retired
+// `McpServerResolutionStatus`. That contract was retired
 // (2026-08, issue #600): nothing ever produced it after the Python runner
 // was deleted, so `AgentExecutionStatus.resolved_context` (field 12, now
 // reserved in api.proto) never carried data in any deployment.
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Context Management Types (Phase 3)
+// Context Management Types
 //
 // These types provide visibility into context window utilization and
 // automatic summarization for long-running agent conversations.
@@ -36,8 +36,6 @@ import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 // - Message counts before and after (to understand conversation reduction)
 // - Duration in milliseconds (to track performance)
 // - Model used (to understand cost implications)
-//
-// @since Phase 3 (Context Summarization Architecture)
 message SummarizationEvent {
   // ISO 8601 timestamp when summarization occurred.
   // Example: "2026-01-31T14:30:00.123Z"
@@ -139,8 +137,6 @@ message SummarizationEvent {
 // - **Alerts**: Notify when utilization consistently exceeds thresholds
 // - **Analytics**: Track summarization frequency across agent fleet
 // - **Debugging**: Understand context-related failures
-//
-// @since Phase 3 (Context Summarization Architecture)
 message ContextInfo {
   // Current token count in the context window.
   //

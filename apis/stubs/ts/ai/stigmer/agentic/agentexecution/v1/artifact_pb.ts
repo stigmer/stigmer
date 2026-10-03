@@ -32,8 +32,6 @@ export const file_ai_stigmer_agentic_agentexecution_v1_artifact: GenFile = /*@__
  * Directories are automatically archived as ZIP files before storage.
  * The kind field indicates DIRECTORY so clients know to extract after download.
  *
- * @since Artifact Lifecycle (Attachments & Artifacts)
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
  */
 export type ExecutionArtifact = Message<"ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact"> & {

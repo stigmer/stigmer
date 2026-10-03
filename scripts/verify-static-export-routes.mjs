@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Static-export routing gate for the web console (channel-conversations F-12).
+ * Static-export routing gate for the web console.
  *
  * The web console ships as a Next.js static export served by nginx
  * (client-apps/web/nginx.conf). Every dynamic route exports one HTML file
@@ -38,8 +38,8 @@
  *     itself is validated whenever the artifact is available.
  *
  * The model was validated against real nginx (the production image over a
- * synthesized export tree; T06 Sitting 2b task record in stigmer-cloud,
- * re-validated in Sitting 2c when redirects and the error page landed).
+ * synthesized export tree, and again when redirects and the error page
+ * landed).
  * Its semantics: exact locations, then ^~ prefix locations, then regex
  * locations in declaration order, then the longest plain prefix;
  * try_files checks all-but-last args as files (trailing `/` means
@@ -528,7 +528,7 @@ export function verifyRoutes(routes, model) {
         `${route.url}: request "${url}" serves ${served ?? "nothing (404)"} ` +
           `instead of ${expected}` +
           (served === "/index.html"
-            ? " — the blank-page failure (channel-conversations F-12). "
+            ? " — the blank-page failure: the app shell with an empty main area. "
             : ". ") +
           `Fix the dynamic-route fallback in client-apps/web/nginx.conf.`,
       );

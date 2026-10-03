@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { validateAction } from "../call-validate.js";
 import { transformAction } from "../call-transform.js";
 
-// Regression coverage for the `expr.includes is not a function` crash
-// (workflow-execution-ux-parity upstream #7): rule expressions are
+// Regression coverage for the `expr.includes is not a function` crash:
+// rule expressions are
 // deferred code that must reach this activity as jq strings — in either
 // the strict `${ ... }` wrapper or the bare form — and be evaluated here
 // against the validated data, never pre-resolved by the config resolver.

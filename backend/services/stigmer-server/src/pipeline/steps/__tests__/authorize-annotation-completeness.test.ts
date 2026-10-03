@@ -1,10 +1,10 @@
 /**
  * The annotation-completeness invariant for the Authorize step (stigmer#1073;
- * found on the 20260911.11 cloud readout, 2026-09-13): an `rpc.config`
+ * found on a cloud readout, 2026-09-13): an `rpc.config`
  * annotation that names a resource KIND must also name where the resource
  * ID comes from (`field_path` or `resource_id`). A kind without an id is a
  * check against `<kind>:` with an empty id — the step resolves it to "" by
- * doctrine (resolution never throws, see authorize.ts) and an enforcing
+ * design (resolution never throws, see authorize.ts) and an enforcing
  * authorizer refuses it for EVERY caller, while the open-source permissive
  * default allows it, so no `local*` conformance target can see the gap.
  * `getActorInfo` shipped that way: green on every OSS gate, denied on the
@@ -24,8 +24,8 @@
  *
  * The IamPolicy contract is the one place that shape exists, and it is
  * pinned here by descriptor, not by served route, so the arm turns green
- * when the ANNOTATIONS land (sp.oss-organization-roles slice 1) and not
- * when the service is first served (slice 5). Of its nine `rpc.config`
+ * when the ANNOTATIONS land and not when the service is first served.
+ * Of its nine `rpc.config`
  * methods: six name their target — `create`, `delete`,
  * `listResourceAccessByPrincipal`, `getPrincipalResourceRoles` by
  * `resource_kind_path` (the spec's `resource.kind`, a STRING the resolver
@@ -34,12 +34,12 @@
  * DESIGN: its target is inside the row it loads, so it is the one
  * load-then-authorize lane (`authorizeDirect` with the override's
  * resourceKind + resourceId, the getByEmail precedent). The two
- * `listAuthorized*Ids` were the open question of S1 (finding 7): an
+ * `listAuthorized*Ids` were an open question: an
  * annotation with a permission and no kind resolves to an EMPTY target,
  * which the open-source permissive Authorizer allows and the cloud's
  * OpenFGA Authorizer denies for every caller — the #1073 class this
- * invariant cannot see. Ruled at slice 1 (2026-09-13, T01_1_review.md
- * Q-OR-2): `listAuthorizedPrincipalIds` HAS a resource and names it (the
+ * invariant cannot see. Settled on 2026-09-13: `listAuthorizedPrincipalIds`
+ * HAS a resource and names it (the
  * same `can_view_access` target `listResourceAccessByPrincipal` enforces
  * for the same question); `listAuthorizedResourceIds` has a principal and
  * no resource, so it is an `is_skip_authorization` lane whose handler
@@ -157,7 +157,7 @@ describe("authorization annotations name where the resource id comes from", () =
   });
 });
 
-describe("the IamPolicy contract names its targets (sp.oss-organization-roles slice 1, read by descriptor)", () => {
+describe("the IamPolicy contract names its targets (read by descriptor)", () => {
   const targets = annotationTargets([
     IamPolicyCommandController,
     IamPolicyQueryController,
@@ -188,7 +188,7 @@ describe("the IamPolicy contract names its targets (sp.oss-organization-roles sl
     expect(get?.skipsResolution).toBe(false);
   });
 
-  it("listAuthorizedResourceIds carries NO rpc.config and skips — its trust rule is the handler's (finding 7)", () => {
+  it("listAuthorizedResourceIds carries NO rpc.config and skips — its trust rule is the handler's", () => {
     // Read the descriptor directly: `annotationTargets` lists only
     // config-carrying methods, and this one must have left that set.
     const method = IamPolicyQueryController.method.listAuthorizedResourceIds;
@@ -197,7 +197,7 @@ describe("the IamPolicy contract names its targets (sp.oss-organization-roles sl
     expect(getOption(method, is_skip_authorization)).toBe(true);
   });
 
-  it("the invariant reports none of them once slice 1 lands", () => {
+  it("the invariant reports none of them", () => {
     expect(unresolvableTargets(targets)).toEqual([]);
   });
 });

@@ -146,8 +146,6 @@ type AgentExecutionSpec struct {
 	// Example CLI usage:
 	//
 	//	stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-	//
-	// @since Artifact Lifecycle (Attachments & Outputs)
 	Attachments []*Attachment `protobuf:"bytes,9,rep,name=attachments,proto3" json:"attachments,omitempty"`
 	// Workspace-relative file paths the user wants the agent to focus on.
 	//
@@ -172,8 +170,6 @@ type AgentExecutionSpec struct {
 	//	stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m "Review"
 	//	# CLI detects src/config.yaml is inside workspace -> workspace_file_ref
 	//	# No upload, no injection; agent reads directly from src/config.yaml
-	//
-	// @since Workspace-Aware File Referencing
 	WorkspaceFileRefs []string `protobuf:"bytes,10,rep,name=workspace_file_refs,json=workspaceFileRefs,proto3" json:"workspace_file_refs,omitempty"`
 	// Explicit Temporal task queue override for activity routing.
 	ActivityTaskQueue string `protobuf:"bytes,11,opt,name=activity_task_queue,json=activityTaskQueue,proto3" json:"activity_task_queue,omitempty"`
@@ -621,8 +617,6 @@ func (x *ExecutionConfig) GetThinkingMode() ThinkingMode {
 //	  context_management:
 //	    custom_trigger_threshold: 100000
 //	    custom_target_tokens: 80000
-//
-// @since Phase 3 (Context Summarization Architecture)
 type ContextManagementConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Disable automatic context summarization for this execution.
@@ -739,8 +733,6 @@ func (x *ContextManagementConfig) GetCustomTargetTokens() int32 {
 // Examples:
 //   - mount_path: "/inputs/config.yaml" -> file at /inputs/config.yaml
 //   - mount_path: "/workspace/data/" -> directory extracted at /workspace/data/
-//
-// @since Artifact Lifecycle (Attachments & Outputs)
 type Attachment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Original filename for display and default mount path derivation.

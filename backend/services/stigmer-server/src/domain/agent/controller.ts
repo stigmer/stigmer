@@ -3,7 +3,7 @@
  * sides): the agent BLUEPRINT surface. Create provisions the agent's
  * default instance through the in-process agentinstance client (the
  * agent↔agentinstance mutual edge, wired as a lazy provider in the
- * composition root — sub-project DD-002); delete cascades ALL instances
+ * composition root); delete cascades ALL instances
  * (oss#611) and same-org shares before the agent row. There is no default
  * agent to serve: a session with no agent runs the built-in assistant.
  *
@@ -110,14 +110,14 @@ import type { AgentInstanceApplierProvider } from "./steps.js";
 export interface AgentControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * The agentinstance in-process edge — a lazy provider because
-   * agent↔agentinstance is a true dependency cycle (DD-002; the ratified
-   * DI story breaks cycles with `() => client` closures resolved at call
+   * agent↔agentinstance is a true dependency cycle (the server's DI
+   * breaks cycles with `() => client` closures resolved at call
    * time, never at construction).
    */
   readonly agentInstanceApplier: AgentInstanceApplierProvider;

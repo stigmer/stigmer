@@ -1,5 +1,5 @@
 /**
- * The EC builder ASSEMBLY test — panel finding (Reviewer B #3): the
+ * The EC builder ASSEMBLY test: the
  * pieces (envmerge, refresh, filter) are unit-tested standalone, but the
  * composition — resolve refs → merge layers → least-privilege filter →
  * OAuth injection with inline pre-flight refresh → EC persist — needs one

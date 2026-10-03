@@ -58,7 +58,7 @@ type AgentChannelSpec struct {
 	// own provider app instead: the bot carries the app's name and icon,
 	// and each app is its own bot identity, so multiple agents can serve
 	// one workspace. For WhatsApp the reference is required — every
-	// WhatsApp channel installs through your own Meta app (DD-WA-2).
+	// WhatsApp channel installs through your own Meta app.
 	AppRef *apiresource.ApiResourceReference `protobuf:"bytes,5,opt,name=app_ref,json=appRef,proto3" json:"app_ref,omitempty"`
 	// Whether the serving agent may send business-initiated (proactive)
 	// messages on this channel. Off by default: a channel is reply-only

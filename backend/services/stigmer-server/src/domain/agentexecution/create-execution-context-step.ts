@@ -114,7 +114,7 @@ export { SCHEDULE_ID_LABEL_KEY };
  * activity on every execution it creates. Consumed as the
  * environment-resolution key — OSS has no caller tokens to carry a claim,
  * and this single-user edition has no trust boundary the labels could
- * widen (the DD-015 divergence posture).
+ * widen.
  */
 export const WORKFLOW_EXECUTION_ID_LABEL_KEY =
   "stigmer.ai/workflow-execution-id";
@@ -129,7 +129,7 @@ export const WORKFLOW_TASK_LABEL_KEY = "stigmer.ai/workflow-task";
 export const WORKSPACE_PROVISIONING_KEYS = ["GITHUB_TOKEN"];
 
 // ---------------------------------------------------------------------------
-// The narrow in-process edges the builder consumes (DD-002 lazy providers).
+// The narrow in-process edges the builder consumes (lazy providers).
 // ---------------------------------------------------------------------------
 
 export interface AgentInstanceLoader {
@@ -308,7 +308,7 @@ export async function buildAndPersistExecutionContext(
 
   // 4.5 Schedule-created executions: the schedule's own environment_refs
   // merge BELOW instance refs (lowest priority — the AgentShare/
-  // AgentChannel layering, DD-017). This is how a tool-using agent
+  // AgentChannel layering). This is how a tool-using agent
   // becomes schedulable: the schedule binds the credentials its
   // unattended runs need without touching the agent or its instance.
   const scheduleEnvironments = await resolveScheduleEnvironments(
@@ -321,7 +321,7 @@ export async function buildAndPersistExecutionContext(
 
   // 4.6 Workflow-created executions (agent_call): the task's own
   // environment_refs, same lowest-priority layering — fourth in the
-  // share/channel/schedule lineage (issue #358 Phase 2). At most one of
+  // share/channel/schedule lineage (issue #358). At most one of
   // 4.5/4.6 applies: an execution is created by a schedule fire or by a
   // workflow task, never both.
   const workflowEnvironments = await resolveWorkflowTaskEnvironments(
@@ -1321,7 +1321,7 @@ async function injectMcpOAuthFromManagedEnvironment(
  * the access token is expired; undefined when the refresh token is
  * unavailable (Go inlineRefreshIfExpired). No client_secret resolution on
  * this path — DCR/public clients work without it, and vendor OAuth's
- * connect pre-flight (#19) owns the OAuthApp lookup; no secret means no
+ * connect pre-flight owns the OAuthApp lookup; no secret means no
  * token-endpoint auth method either.
  */
 async function inlineRefreshIfExpired(

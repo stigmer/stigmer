@@ -1,7 +1,7 @@
 /**
  * SubmitApproval — ports submit_approval.go: forwards a tool-call
- * approval decision to the child AgentExecution holding the gate (HITL
- * Phase 5.3). The child is identified by the child_agent_execution_id on
+ * approval decision to the child AgentExecution holding the gate. The
+ * child is identified by the child_agent_execution_id on
  * the pending_approvals entry matched by tool_call_id; the parent's own
  * state is returned unchanged (the gate clears later through the runner's
  * call-agent-status updateStatus).
@@ -62,7 +62,7 @@ export type AgentExecutionApprovalForwarderProvider =
 export interface SubmitApprovalDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   readonly approvalForwarder: AgentExecutionApprovalForwarderProvider;
 }

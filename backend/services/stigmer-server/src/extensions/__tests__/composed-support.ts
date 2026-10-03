@@ -11,8 +11,8 @@
  * account, exactly like a composition verifier that runs before any row
  * exists, so a first provisioning runs for real with no network. It passes
  * on every other token, so the OSS lanes composed ahead of it keep their
- * claims. Lifted from identity-account-composed.test.ts (20260911.11 slice
- * 3) when a second composed proof needed the same shape (20260913.01 S1).
+ * claims. Lifted from identity-account-composed.test.ts when a second
+ * composed proof needed the same shape.
  *
  * `servedServices` reads what a composed server ROUTES without binding a
  * port: compose.ts hands one `routes` closure to both transports, and

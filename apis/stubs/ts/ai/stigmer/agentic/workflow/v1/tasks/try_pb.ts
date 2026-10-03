@@ -79,9 +79,7 @@ export type CatchBlock = Message<"ai.stigmer.agentic.workflow.v1.tasks.CatchBloc
    * Compensation failures do not prevent the catch block from running.
    * They are logged and included in the task output for diagnostics.
    *
-   * Default: false (no compensation — preserves pre-T17 behavior).
-   *
-   * @since T17 (Advanced Agentic Orchestration)
+   * Default: false (no compensation).
    *
    * @generated from field: bool compensate = 3;
    */

@@ -93,7 +93,7 @@ describe("buildPrompt", () => {
     expect(prompt).toContain(USER_MESSAGE);
   });
 
-  it("carries the rollover context bridge on the first execution (DD-013)", () => {
+  it("carries the rollover context bridge on the first execution", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "created_first_execution"),
@@ -226,7 +226,7 @@ describe("buildPrompt", () => {
       .toBeLessThan(prompt.indexOf("<tool_approval_protocol>"));
   });
 
-  it("orders platform-declared preferences before the embedder's session context (DD-002 D3)", () => {
+  it("orders platform-declared preferences before the embedder's session context", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "created_first_execution"),
@@ -240,7 +240,7 @@ describe("buildPrompt", () => {
     expect(context).toBeGreaterThan(preferences);
   });
 
-  it("never re-sends the preferences to a successfully resumed agent — frozen per session by design (DD-002 D3)", () => {
+  it("never re-sends the preferences to a successfully resumed agent — frozen per session by design", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "resumed_successfully"),
@@ -275,7 +275,7 @@ describe("buildPrompt", () => {
       .toBeLessThan(prompt.indexOf("<tool_approval_protocol>"));
   });
 
-  it("orders remembered facts after declared preferences, before the embedder's session context (DD-006 D4)", () => {
+  it("orders remembered facts after declared preferences, before the embedder's session context", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "created_first_execution"),
@@ -292,7 +292,7 @@ describe("buildPrompt", () => {
     expect(context).toBeGreaterThan(memories);
   });
 
-  it("never re-sends the memories to a successfully resumed agent — frozen per session by design (DD-002 D3, inherited by DD-006 D4)", () => {
+  it("never re-sends the memories to a successfully resumed agent — frozen per session by design", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "resumed_successfully"),
@@ -336,7 +336,7 @@ describe("buildPrompt", () => {
     expect(prompt).toContain("APPROVED");
   });
 
-  it("agrees with promptCarriesStandingContext on every resolution shape — the memory-selection gate can never drift from the routing (DD-008)", () => {
+  it("agrees with promptCarriesStandingContext on every resolution shape — the memory-selection gate can never drift from the routing", () => {
     // The activity gates the (potentially embedding-backed) memory
     // selection on this predicate; buildPrompt routes on the same one.
     // Pin their agreement across the full reason × HITL matrix: memories
@@ -521,7 +521,7 @@ describe("HITL recovery — fresh agent mid-HITL (issue #366)", () => {
   });
 });
 
-describe("attachments on a resumed turn (T04 — the mid-session WhatsApp case)", () => {
+describe("attachments on a resumed turn (the mid-session WhatsApp case)", () => {
   const RESUMED = { resolution: resolution("local", "resumed_successfully") };
 
   it("announces this turn's attachments to a resumed agent (per-execution value, never inherited)", () => {
@@ -962,7 +962,7 @@ describe("formatImplementPlanSection", () => {
   });
 
   it("announces attachments on a resumed non-build follow-up without the implement-plan directive", () => {
-    // Until T04, a resumed non-build turn was the raw user message even when
+    // A resumed non-build turn used to be the raw user message even when
     // it carried attachments — which left mid-session attachments completely
     // unannounced (materialized on disk, never mentioned to the agent). The
     // per-execution doctrine now applies: THIS turn's files are announced;
@@ -982,7 +982,7 @@ describe("formatImplementPlanSection", () => {
   });
 });
 
-describe("conversation catchup (cloud DD-006, T03 Sitting 3)", () => {
+describe("conversation catchup", () => {
   const DIGEST =
     "Customer: where is my order?\nTeammate: I've refunded you in full.";
 
@@ -1014,7 +1014,7 @@ describe("conversation catchup (cloud DD-006, T03 Sitting 3)", () => {
       .toBeLessThan(prompt.indexOf(USER_MESSAGE));
   });
 
-  it("carries the catchup on the first execution too, AFTER the bridge (DD-007 D-d: bridge first, catchup second)", () => {
+  it("carries the catchup on the first execution too, AFTER the bridge (bridge first, catchup second)", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "created_first_execution"),

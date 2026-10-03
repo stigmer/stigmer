@@ -104,7 +104,7 @@ export function createScheduleTickActivities(
 /**
  * Re-reads the schedule row and either records the fire or explains why
  * this tick is a no-op — the revalidation that makes every orphaned
- * artifact harmless by construction (DD-008 D2): deleted, owner-disabled,
+ * artifact harmless by construction: deleted, owner-disabled,
  * and platform-paused rows all decline the fire (Go RecordTick).
  */
 async function recordTick(
@@ -305,7 +305,7 @@ async function startScheduledRun(
       throw new Error(`unknown run outcome ${String(exhaustive)}`);
     }
   }
-  // The fire ledger (DD-017 D-7): start failures are terminal at insert —
+  // The fire ledger: start failures are terminal at insert —
   // the refusal reason must survive NOW, not at the pause threshold.
   await recordRunLedgerStart(
     deps.store,
@@ -325,7 +325,7 @@ async function startScheduledRun(
  * brick its schedule, so it yields no verdict.
  *
  * The read unmarshals the whole execution row — SQLite stores one protobuf
- * blob with no projection (DD-015 D-E). At one poll per 5-60s per active
+ * blob with no projection. At one poll per 5-60s per active
  * run on a single-user daemon that is noise; a projected phase column is
  * the named follow-up if it ever isn't (Go PollExecutionPhase).
  */
@@ -411,7 +411,7 @@ async function recordSuccessfulRun(
  * Increments the failure streak and, exactly at the threshold crossing,
  * latches the platform pause. The whole verdict is ONE updateResource
  * closure on the freshly-read row — the OSS shape of the cloud's single
- * guarded SQL statement (DD-015 D-C): the increment reads the live value
+ * guarded SQL statement: the increment reads the live value
  * inside the lock, the pause is written only at the crossing and only when
  * no reason is already latched (the first pause's copy is never
  * rewritten), and next_fire_at clears so the schedule advertises no fire

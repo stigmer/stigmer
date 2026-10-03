@@ -1,5 +1,5 @@
 /**
- * The authorization-query capability (20260913.01, T01_1_review.md Q-OR-8):
+ * The authorization-query capability:
  * the TUPLE half of the IamPolicy query surface — the questions only an
  * authorization engine can answer over its own graph, as opposed to the
  * ROW half (who holds which role on what) that every edition answers from
@@ -20,8 +20,8 @@
  * `checkMyPermission` that rides the composed Authorizer instead. The
  * engine receives boundary-validated refs and never asks who is calling.
  *
- * The engine speaks the CONTRACT's vocabulary, not a backend's (Q-S3-1,
- * 2026-09-13): `ApiResourceRef` for a principal or resource (kind = the
+ * The engine speaks the CONTRACT's vocabulary, not a backend's
+ * (2026-09-13): `ApiResourceRef` for a principal or resource (kind = the
  * enum member name, id, and for a principal an optional relation — the
  * userset form `organization:X#viewer`), `IamPolicySpec` for a policy and
  * for the what-if policies every query may carry, and the relation and
@@ -40,7 +40,7 @@
  *     was named, never a resolution of who could reach.
  *   - contextual policies are evaluated as if held, and nothing is written.
  *
- * Error doctrine (the ListReadScope rule, verbatim in spirit: a seam that
+ * Error rule (the ListReadScope rule, verbatim in spirit: a seam that
  * cannot answer THROWS — never an empty set, never false): `false` and
  * `[]` are REAL answers. A backend outage surfaces as a throw; a
  * ConnectError keeps its code (the cloud maps its three OpenFGA wire arms —
@@ -52,7 +52,7 @@
  * Why this is not `ListReadScope`: the read scope narrows the server's OWN
  * list lanes for the calling identity with no what-if input; this engine
  * answers the wire's explicit queries about an ARBITRARY principal with
- * contextual policies. Both are ratified seams with distinct consumers;
+ * contextual policies. Both are seams with distinct consumers;
  * a cloud driver may wrap one client for both, and that is its business.
  */
 import type {

@@ -8,7 +8,7 @@ package ai.stigmer.billing.v1;
 /**
  * <pre>
  * ModelPricingGovernanceResponse is the operator's view of the pricing
- * feedback loop (DD-003): what the platform charges with today, where each
+ * feedback loop: what the platform charges with today, where each
  * rate came from, and what awaits a decision.
  * </pre>
  *
@@ -363,7 +363,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ModelPricingGovernanceResponse is the operator's view of the pricing
-   * feedback loop (DD-003): what the platform charges with today, where each
+   * feedback loop: what the platform charges with today, where each
    * rate came from, and what awaits a decision.
    * </pre>
    *

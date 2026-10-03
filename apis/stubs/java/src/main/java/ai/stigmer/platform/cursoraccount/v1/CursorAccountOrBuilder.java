@@ -99,7 +99,7 @@ public interface CursorAccountOrBuilder extends
 
   /**
    * <pre>
-   * Deprecated: superseded by the derived shared pool (DD-008). Every
+   * Deprecated: superseded by the derived shared pool. Every
    * enabled account with empty orgs now serves unassigned orgs; a
    * single "default" marker is meaningless under that rule, so selection
    * and the console ignore this field. Kept on the wire for old clients;
@@ -108,7 +108,7 @@ public interface CursorAccountOrBuilder extends
    *
    * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
    * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=85
+   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=84
    * @return The isPlatformDefault.
    */
   @java.lang.Deprecated boolean getIsPlatformDefault();
@@ -295,7 +295,7 @@ public interface CursorAccountOrBuilder extends
    * When true, member keys whose included API-pool usage crosses the
    * platform soft limit are excluded from NEW-session selection — with
    * on-demand off, an exhausted key can no longer serve third-party
-   * models (T06 probe: runs error, no silent degrade).
+   * models (observed: runs error, no silent degrade).
    *
    * Deliberately the negative of Cursor's "on-demand enabled" wording:
    * proto3 bool absence must mean "assume Cursor's team default

@@ -63,7 +63,7 @@ message PricingBlock {
   // read or derived from, confirmation dates, caveats.
   string source_note = 7 [(buf.validate.field).string.max_len = 2048];
 
-  // When these rates took effect. DD-003 Decision 6 reads this field:
+  // When these rates took effect. The override staleness check reads this field:
   // an ACTIVE override whose derivation window ended before this instant
   // is stale and gets superseded — baseline edits always stamp it fresh.
   google.protobuf.Timestamp effective_at = 8;
@@ -124,9 +124,8 @@ message ModelCapabilities {
   //
   // @internal
   // Cursor-path values are established empirically — a nonce-bearing image
-  // probe per model (production executions, 2026-08-10; evidence table on
-  // stigmer-cloud#281, methodology from the whatsapp-media project's T06
-  // probe) — because Cursor's own docs under-report: the server-side
+  // probe per model (production executions, 2026-08-10) — because Cursor's
+  // own docs under-report: the server-side
   // vision hand-off is undocumented behavior. If Cursor changes that
   // behavior, re-probe; do not re-read the docs. The OSS runner's vision
   // gate (attachment-vision.ts, stigmer#370) fails open — it degrades
@@ -159,7 +158,7 @@ message ModelCapabilities {
 
 // ModelPricingBaseline is one versioned catalog-and-list-price entry of the
 // model registry — the human-governed half of the effective registry
-// (baseline ⊕ ACTIVE overrides, DD-003/DD-004).
+// (baseline ⊕ ACTIVE overrides).
 //
 // Documents are append-only: operator edits supersede the previous ACTIVE
 // document for the same (model_id, provider, harness) key. The composition

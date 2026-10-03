@@ -210,8 +210,6 @@ private static final long serialVersionUID = 0L;
    *
    * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
    * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -227,8 +225,6 @@ private static final long serialVersionUID = 0L;
    *
    * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
    * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -244,8 +240,6 @@ private static final long serialVersionUID = 0L;
    *
    * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
    * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -262,8 +256,6 @@ private static final long serialVersionUID = 0L;
    * Sort field: unspecified is newest created first and pages by
    * page_token, any other sorts the whole matching set and returns its
    * first page_size entries with no token.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
@@ -277,8 +269,6 @@ private static final long serialVersionUID = 0L;
    * Sort field: unspecified is newest created first and pages by
    * page_token, any other sorts the whole matching set and returns its
    * first page_size entries with no token.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
@@ -295,8 +285,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * When true, sorts in ascending order. Default (false) is descending.
    * Read only with a sort field other than the default.
-   *
-   * &#64;since T13 (Execution History)
    * </pre>
    *
    * <code>bool sort_ascending = 7 [json_name = "sortAscending"];</code>
@@ -1229,8 +1217,6 @@ private static final long serialVersionUID = 0L;
      *
      * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
      * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -1245,8 +1231,6 @@ private static final long serialVersionUID = 0L;
      *
      * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
      * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -1265,8 +1249,6 @@ private static final long serialVersionUID = 0L;
      *
      * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
      * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -1290,8 +1272,6 @@ private static final long serialVersionUID = 0L;
      *
      * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
      * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -1313,8 +1293,6 @@ private static final long serialVersionUID = 0L;
      *
      * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
      * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -1343,8 +1321,6 @@ private static final long serialVersionUID = 0L;
      *
      * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
      * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -1365,8 +1341,6 @@ private static final long serialVersionUID = 0L;
      *
      * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
      * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -1382,8 +1356,6 @@ private static final long serialVersionUID = 0L;
      *
      * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
      * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -1402,8 +1374,6 @@ private static final long serialVersionUID = 0L;
      *
      * When set, applies AND-conjunction with the existing `phase` and `tags` fields.
      * If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionFilterCriteria filter = 5 [json_name = "filter"];</code>
@@ -1428,8 +1398,6 @@ private static final long serialVersionUID = 0L;
      * Sort field: unspecified is newest created first and pages by
      * page_token, any other sorts the whole matching set and returns its
      * first page_size entries with no token.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
@@ -1443,8 +1411,6 @@ private static final long serialVersionUID = 0L;
      * Sort field: unspecified is newest created first and pages by
      * page_token, any other sorts the whole matching set and returns its
      * first page_size entries with no token.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
@@ -1463,8 +1429,6 @@ private static final long serialVersionUID = 0L;
      * Sort field: unspecified is newest created first and pages by
      * page_token, any other sorts the whole matching set and returns its
      * first page_size entries with no token.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
@@ -1480,8 +1444,6 @@ private static final long serialVersionUID = 0L;
      * Sort field: unspecified is newest created first and pages by
      * page_token, any other sorts the whole matching set and returns its
      * first page_size entries with no token.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
@@ -1500,8 +1462,6 @@ private static final long serialVersionUID = 0L;
      * Sort field: unspecified is newest created first and pages by
      * page_token, any other sorts the whole matching set and returns its
      * first page_size entries with no token.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField sort_field = 6 [json_name = "sortField"];</code>
@@ -1519,8 +1479,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * When true, sorts in ascending order. Default (false) is descending.
      * Read only with a sort field other than the default.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>bool sort_ascending = 7 [json_name = "sortAscending"];</code>
@@ -1534,8 +1492,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * When true, sorts in ascending order. Default (false) is descending.
      * Read only with a sort field other than the default.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>bool sort_ascending = 7 [json_name = "sortAscending"];</code>
@@ -1553,8 +1509,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * When true, sorts in ascending order. Default (false) is descending.
      * Read only with a sort field other than the default.
-     *
-     * &#64;since T13 (Execution History)
      * </pre>
      *
      * <code>bool sort_ascending = 7 [json_name = "sortAscending"];</code>

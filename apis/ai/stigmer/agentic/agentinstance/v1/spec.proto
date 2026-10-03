@@ -33,7 +33,7 @@ message AgentInstanceSpec {
     }
   ];
 
-  // Field 4 held datastore_partition (the DD-010 record-partition label)
+  // Field 4 held datastore_partition (a record-partition label)
   // until the Datastore domain was removed platform-wide.
   reserved 4;
   reserved "datastore_partition";

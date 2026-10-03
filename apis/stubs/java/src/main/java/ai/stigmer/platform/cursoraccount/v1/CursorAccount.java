@@ -14,8 +14,7 @@ package ai.stigmer.platform.cursoraccount.v1;
  * historical single STIGMER_PROXY_CURSOR_API_KEY env var, which is gone.)
  *
  * One document = one Cursor team. It carries two credential classes with
- * strictly different capabilities (verified empirically 2026-07-22, see the
- * harness-cost-parity T04 probe note):
+ * strictly different capabilities (verified empirically 2026-07-22):
  *
  * - the team ADMIN key ("Team API Keys" dashboard tab) — works ONLY
  * against the Cursor Admin API (roster, spend, usage events). It can
@@ -33,7 +32,7 @@ package ai.stigmer.platform.cursoraccount.v1;
  * exactly those organizations. Their sessions are served only by this
  * account's keys; when it has no usable keys, sessions fail with an
  * explicit operator-actionable error rather than silently spending
- * another team's quota (DD-008).
+ * another team's quota.
  * - SHARED POOL (orgs empty + enabled): the account is part of the
  * platform-operated pool serving every org with no dedicated account.
  * Pool sessions may move across pool accounts when their current
@@ -285,7 +284,7 @@ private static final long serialVersionUID = 0L;
   private boolean isPlatformDefault_ = false;
   /**
    * <pre>
-   * Deprecated: superseded by the derived shared pool (DD-008). Every
+   * Deprecated: superseded by the derived shared pool. Every
    * enabled account with empty orgs now serves unassigned orgs; a
    * single "default" marker is meaningless under that rule, so selection
    * and the console ignore this field. Kept on the wire for old clients;
@@ -294,7 +293,7 @@ private static final long serialVersionUID = 0L;
    *
    * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
    * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=85
+   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=84
    * @return The isPlatformDefault.
    */
   @java.lang.Override
@@ -591,7 +590,7 @@ private static final long serialVersionUID = 0L;
    * When true, member keys whose included API-pool usage crosses the
    * platform soft limit are excluded from NEW-session selection — with
    * on-demand off, an exhausted key can no longer serve third-party
-   * models (T06 probe: runs error, no silent degrade).
+   * models (observed: runs error, no silent degrade).
    *
    * Deliberately the negative of Cursor's "on-demand enabled" wording:
    * proto3 bool absence must mean "assume Cursor's team default
@@ -994,8 +993,7 @@ private static final long serialVersionUID = 0L;
    * historical single STIGMER_PROXY_CURSOR_API_KEY env var, which is gone.)
    *
    * One document = one Cursor team. It carries two credential classes with
-   * strictly different capabilities (verified empirically 2026-07-22, see the
-   * harness-cost-parity T04 probe note):
+   * strictly different capabilities (verified empirically 2026-07-22):
    *
    * - the team ADMIN key ("Team API Keys" dashboard tab) — works ONLY
    * against the Cursor Admin API (roster, spend, usage events). It can
@@ -1013,7 +1011,7 @@ private static final long serialVersionUID = 0L;
    * exactly those organizations. Their sessions are served only by this
    * account's keys; when it has no usable keys, sessions fail with an
    * explicit operator-actionable error rather than silently spending
-   * another team's quota (DD-008).
+   * another team's quota.
    * - SHARED POOL (orgs empty + enabled): the account is part of the
    * platform-operated pool serving every org with no dedicated account.
    * Pool sessions may move across pool accounts when their current
@@ -1778,7 +1776,7 @@ private static final long serialVersionUID = 0L;
     private boolean isPlatformDefault_ ;
     /**
      * <pre>
-     * Deprecated: superseded by the derived shared pool (DD-008). Every
+     * Deprecated: superseded by the derived shared pool. Every
      * enabled account with empty orgs now serves unassigned orgs; a
      * single "default" marker is meaningless under that rule, so selection
      * and the console ignore this field. Kept on the wire for old clients;
@@ -1787,7 +1785,7 @@ private static final long serialVersionUID = 0L;
      *
      * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
      * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=85
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=84
      * @return The isPlatformDefault.
      */
     @java.lang.Override
@@ -1796,7 +1794,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Deprecated: superseded by the derived shared pool (DD-008). Every
+     * Deprecated: superseded by the derived shared pool. Every
      * enabled account with empty orgs now serves unassigned orgs; a
      * single "default" marker is meaningless under that rule, so selection
      * and the console ignore this field. Kept on the wire for old clients;
@@ -1805,7 +1803,7 @@ private static final long serialVersionUID = 0L;
      *
      * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
      * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=85
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=84
      * @param value The isPlatformDefault to set.
      * @return This builder for chaining.
      */
@@ -1818,7 +1816,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Deprecated: superseded by the derived shared pool (DD-008). Every
+     * Deprecated: superseded by the derived shared pool. Every
      * enabled account with empty orgs now serves unassigned orgs; a
      * single "default" marker is meaningless under that rule, so selection
      * and the console ignore this field. Kept on the wire for old clients;
@@ -1827,7 +1825,7 @@ private static final long serialVersionUID = 0L;
      *
      * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
      * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=85
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=84
      * @return This builder for chaining.
      */
     @java.lang.Deprecated public Builder clearIsPlatformDefault() {
@@ -2778,7 +2776,7 @@ private static final long serialVersionUID = 0L;
      * When true, member keys whose included API-pool usage crosses the
      * platform soft limit are excluded from NEW-session selection — with
      * on-demand off, an exhausted key can no longer serve third-party
-     * models (T06 probe: runs error, no silent degrade).
+     * models (observed: runs error, no silent degrade).
      *
      * Deliberately the negative of Cursor's "on-demand enabled" wording:
      * proto3 bool absence must mean "assume Cursor's team default
@@ -2805,7 +2803,7 @@ private static final long serialVersionUID = 0L;
      * When true, member keys whose included API-pool usage crosses the
      * platform soft limit are excluded from NEW-session selection — with
      * on-demand off, an exhausted key can no longer serve third-party
-     * models (T06 probe: runs error, no silent degrade).
+     * models (observed: runs error, no silent degrade).
      *
      * Deliberately the negative of Cursor's "on-demand enabled" wording:
      * proto3 bool absence must mean "assume Cursor's team default
@@ -2836,7 +2834,7 @@ private static final long serialVersionUID = 0L;
      * When true, member keys whose included API-pool usage crosses the
      * platform soft limit are excluded from NEW-session selection — with
      * on-demand off, an exhausted key can no longer serve third-party
-     * models (T06 probe: runs error, no silent degrade).
+     * models (observed: runs error, no silent degrade).
      *
      * Deliberately the negative of Cursor's "on-demand enabled" wording:
      * proto3 bool absence must mean "assume Cursor's team default

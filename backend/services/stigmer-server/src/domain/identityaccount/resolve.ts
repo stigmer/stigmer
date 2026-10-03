@@ -18,7 +18,7 @@
  * miss returns the subject unchanged, so an unprovisioned caller is
  * admitted idp-shaped and exactly two RPCs mean anything to them —
  * whoAmI (NOT_FOUND) and provisionMyAccount. No cache between the two
- * (Q5's liveness posture): a row that appears is seen by the very next
+ * (the liveness posture): a row that appears is seen by the very next
  * request, a row that is deleted stops resolving on the next.
  *
  * It lives in the domain, not in a verifier, because it is the domain's
@@ -36,9 +36,9 @@
  * `metadata?.id ?? ""`: a `""` principal is the silent-junk failure the
  * oss#405 doctrine forbids, so it is a loud fault naming the subject.
  *
- * The same knowledge read in the caller's direction is `accountForCaller`
- * (20260913.01 slice 4, Q-S4-1): the account a stamped CallerIdentity
- * stands for. Two primary-key reads, the cloud's whoAmI order — the
+ * The same knowledge read in the caller's direction is `accountForCaller`:
+ * the account a stamped CallerIdentity stands for. Two primary-key
+ * reads, the cloud's whoAmI order — the
  * identityId AS an account id (a verifier that resolved), then the
  * caller's subject through the direct lookup (a verifier that did not:
  * the trusted-local interceptor, which stamps the operator's email and

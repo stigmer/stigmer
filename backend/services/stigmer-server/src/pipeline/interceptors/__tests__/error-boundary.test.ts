@@ -1,6 +1,6 @@
 /**
- * Pins the error boundary (20260830.03, all gate rulings as recommended):
- * the structural raw-error conversion (Q2 — a non-ConnectError from any
+ * Pins the error boundary:
+ * the structural raw-error conversion (a non-ConnectError from any
  * handler becomes the pipeline's sanitized Internal, never
  * Unknown-with-raw-message), the policy-driven visitor rewrite (the six
  * leak-prone codes, code ALWAYS preserved, ref format byte-pinned,
@@ -131,7 +131,7 @@ async function runFailingStream(
 /** The byte-pinned ref shape: " (ref: <8 hex chars>)" at the end. */
 const REF_PATTERN = /^(.*) \(ref: [0-9a-f]{8}\)$/;
 
-describe("arm 1: structural raw-error conversion (ruling Q2)", () => {
+describe("arm 1: structural raw-error conversion", () => {
   it("converts a raw Error to the pipeline's sanitized Internal", async () => {
     const error = await runFailing(
       createErrorBoundaryInterceptor(silentLogger),

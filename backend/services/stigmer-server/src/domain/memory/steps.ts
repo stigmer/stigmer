@@ -3,7 +3,7 @@
  * update.go's graft persist, transition.go's atomic decided-state write,
  * and list.go's org filter.
  *
- * The consent doctrine these steps embody (DD-004/DD-005/DD-006): a
+ * The consent doctrine these steps embody: a
  * memory is agent-proposed and user-confirmed; the server claims every
  * field it owns at create (subject sentinel, provenance tool_call_id);
  * updates graft only what the request path owns onto the LIVE row so a
@@ -82,7 +82,7 @@ export const LIST_RESULT_KEY = "listResult";
  * for creation — the server claiming every field it owns, before anything
  * persists:
  *
- *  1. Requires metadata.org — memory records are org-scoped (DD-004), so
+ *  1. Requires metadata.org — memory records are org-scoped, so
  *     the org can never be inferred.
  *  2. Mints metadata.id here (not in BuildNewState), always, so an
  *     unnamed record can default its name/slug from its own identity:
@@ -93,7 +93,7 @@ export const LIST_RESULT_KEY = "listResult";
  *     it; an id the request carried is replaced, as every create's is
  *     (stigmer/stigmer#1266).
  *  3. Overwrites spec.subject_identity_account_id, server-derived and
- *     never client-supplied (DD-005 D2), by posture. Under the
+ *     never client-supplied, by posture. Under the
  *     single-operator posture (no `personAccounts` composed) it is the
  *     empty-string sentinel — the laptop's one subject (the OAuth grant
  *     store convention). Where callers are persons it is the id of the
@@ -108,8 +108,8 @@ export const LIST_RESULT_KEY = "listResult";
  *     once. A caller no account stands for is stamped "" and NOT refused
  *     here: the refusal belongs behind AuthorizeResolvedTarget, which
  *     runs between the two steps so a refused caller learns nothing.
- *  4. Stores spec.provenance as supplied (Stage 3 provenance decision,
- *     owner-ratified 2026-08-22): the capture path — the remember tool
+ *  4. Stores spec.provenance as supplied (since 2026-08-22): the capture
+ *     path — the remember tool
  *     via the runner-synthesized attachment — threads the agent/session/
  *     execution triple, and in OSS single-user local mode every caller
  *     IS the trusted local operator, so supplied attribution is stored
@@ -123,7 +123,7 @@ export const LIST_RESULT_KEY = "listResult";
  *     be edited is not attribution.
  *  5. When GuardMemoryCapture admitted a session-scoped capture
  *     credential (the composed provider's authorizeMemoryCapture
- *     capability — parity entry 20260830.05), the token's PROVED claims
+ *     capability), the token's PROVED claims
  *     replace both edition defaults: the subject is the credential's
  *     human ("the sub IS the human subject the session belongs to",
  *     Java MemoryCreateHandler) and provenance.session_id is overridden
@@ -163,7 +163,7 @@ export function newResolveMemoryDefaultsStep(
         );
       }
 
-      // The subject stays server-owned (DD-005 D2), by posture (step doc
+      // The subject stays server-owned, by posture (step doc
       // points 3 and 5).
       const captureCredential = memoryCaptureCredentialOf(ctx);
       if (personAccounts === undefined) {
@@ -287,7 +287,7 @@ export function resolveMemoryCreateTargets(
 
 /**
  * CheckMemoryEnablement — Go checkMemoryEnablementStep: enforces the
- * org's memory_enabled switch at write time, FAIL-CLOSED (DD-005 D2): a
+ * org's memory_enabled switch at write time, FAIL-CLOSED: a
  * write that cannot verify enablement refuses. This deliberately inverts
  * the recall compose step's best-effort posture — an execution must start
  * without its optional preferences, but a memory must never be stored
@@ -297,7 +297,7 @@ export function resolveMemoryCreateTargets(
  * authorization: "the label is not authorization; the server refuses"
  * (the conversation-attachment doctrine, applied verbatim).
  *
- * The double opt-in (DD-006 D1), in the Java handler's order: the
+ * The double opt-in, in the Java handler's order: the
  * organization's switch first (the gate an admin controls), then — where
  * callers are persons (`personAccounts` composed) — the switch of the
  * person the memory is about, read from the account ResolveMemoryDefaults
@@ -353,7 +353,7 @@ export function newCheckMemoryEnablementStep(
 
 /**
  * CheckMemoryCap — Go checkMemoryCapStep: enforces the
- * per-subject-per-org record ceiling at create (DD-006 D5). Counted
+ * per-subject-per-org record ceiling at create. Counted
  * across all lifecycle states, from the subject's own rows in the org
  * through the memory list index (queries.ts), so a capture never reads
  * another person's or another organization's memories.
@@ -385,7 +385,7 @@ export function newCheckMemoryCapStep(
 /**
  * InitializeMemoryLifecycle — Go initializeMemoryLifecycleStep: stamps
  * the initial consent state after BuildNewState wiped client-provided
- * status: every memory starts proposed (DD-005 D2) — nothing is
+ * status: every memory starts proposed — nothing is
  * recallable until the subject confirms. Runs after BuildNewState so the
  * wipe cannot undo it and the audit block it set is preserved.
  */
@@ -415,7 +415,7 @@ export function newInitializeMemoryLifecycleStep(): PipelineStep<
  *     defeating the subject-only visibility model.
  *   - spec.provenance must not change, byte for byte: provenance is
  *     attribution, displayed beside the fact everywhere — attribution
- *     that can be edited is not attribution (DD-004).
+ *     that can be edited is not attribution.
  *
  * Update replaces the spec wholesale (declarative semantics), so callers
  * carry the loaded values — the generated toMemoryUpdateInput mapper does
@@ -473,7 +473,7 @@ export function newValidateMemoryUpdateStep(): PipelineStep<
  * (confirm/reject), and a full-row save of the load-time snapshot could
  * silently revert a consent decision made between this pipeline's load
  * and its persist. The schedule domain's persistScheduleUpdateStep is the
- * direct template (DD-015 D-C shape).
+ * direct template.
  *
  * The graft never resurrects a concurrently deleted row: updateResource
  * answers not-found, relayed as NOT_FOUND — the delete won, honestly.
@@ -528,7 +528,7 @@ export function newPersistMemoryUpdateStep(
  * memory's consent lifecycle to a target decided state in ONE
  * store.updateResource closure on the freshly-read row — confirm and
  * reject share this step because they are one contract with opposite
- * verdicts (DD-005 D3).
+ * verdicts.
  *
  * Transition matrix (see MemoryLifecycleState's doc):
  *   - proposed (or unspecified, defensively) → target: written, with
@@ -543,8 +543,8 @@ export function newPersistMemoryUpdateStep(
  *     fresh proposal).
  *
  * The atomic closure is adopted from schedule's clearSchedulePauseStep:
- * memory has no concurrent status writer yet in Stage 1, but Stage 2's
- * recall reads and any future writer get the discipline for free, and a
+ * memory has no other concurrent status writer, but recall's reads and
+ * any future writer get the discipline for free, and a
  * concurrent delete is already answered honestly (NOT_FOUND — the delete
  * won).
  *
@@ -636,7 +636,7 @@ export function newTransitionMemoryLifecycleStep(
  * org's memories through the memory list index (queries.ts), created_at
  * descending (newest first) — the index order, which the read scope
  * keeps. Ordering is chronological only; grouping pending proposals first
- * is the console's presentation concern (DD-005 D4), deliberately not an
+ * is the console's presentation concern, deliberately not an
  * RPC parameter at the kind's dozens-of-records scale.
  */
 export function newListMemoriesByOrgStep(
@@ -657,10 +657,8 @@ export function newListMemoriesByOrgStep(
         throw internalError(error, "failed to list memories");
       }
 
-      // 20260830.01 census lane 11: the org equality serves the Java
-      // handler's org arm in both editions and runs FIRST; the scope
-      // narrows the org's rows last (the scope is the last per-row
-      // predicate, stigmer-cloud 20260913.04 T02).
+      // The org equality runs FIRST, in both editions; the scope narrows
+      // the org's rows last (the scope is the last per-row predicate).
       const memories = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,

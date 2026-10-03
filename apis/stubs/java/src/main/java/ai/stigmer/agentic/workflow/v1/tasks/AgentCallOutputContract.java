@@ -49,8 +49,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * on_invalid: ON_INVALID_RETRY
  * max_retries: 2
  * fallback_task: human_review
- *
- * &#64;since T02 (Structured Agent Output Model)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract}
@@ -513,8 +511,6 @@ private static final long serialVersionUID = 0L;
    * on_invalid: ON_INVALID_RETRY
    * max_retries: 2
    * fallback_task: human_review
-   *
-   * &#64;since T02 (Structured Agent Output Model)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract}

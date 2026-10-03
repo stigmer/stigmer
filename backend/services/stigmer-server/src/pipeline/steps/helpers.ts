@@ -1,7 +1,7 @@
 /**
  * Shared lookup helpers — port steps/helpers.go. Full-scan slug and label
  * lookups, exactly Go's semantics (indexability is guaranteed at the store
- * interface, not here — D2 §3).
+ * interface, not here).
  */
 import { fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";

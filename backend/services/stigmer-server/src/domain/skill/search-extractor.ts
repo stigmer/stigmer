@@ -1,6 +1,6 @@
 /**
  * Skill search extractor — ports pkg/query/search/extractor/
- * skill_extractor.go (both sides: the #4 index side, the #14 query side).
+ * skill_extractor.go (both sides: the index side, the query side).
  * Skills are knowledge documents (SKILL.md files); the search summary is
  * spec.description, extracted from the SKILL.md YAML frontmatter at push
  * time.

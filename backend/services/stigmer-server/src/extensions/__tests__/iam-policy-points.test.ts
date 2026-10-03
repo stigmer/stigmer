@@ -1,6 +1,6 @@
 /**
  * Pins the three registry points the IamPolicy domain adds and the one
- * contract it widens (20260913.01, T01_1_review.md Q-OR-10), in the O5
+ * contract it widens, in the
  * driver-point shape the registry already enforces for
  * identityAccountStore and identityFederation:
  *
@@ -8,10 +8,10 @@
  *     domain over cloud.iam_policy through it); single instance; absent =
  *     the OSS adapter over the generic Store;
  *   - `drivers.policyGrantScope` — which kinds a user may grant on and
- *     with which roles (P1 gate Q7 iii; Q-OR-3); single instance; absent =
+ *     with which roles; single instance; absent =
  *     open source's default, the organization and nothing else;
- *   - `drivers.authorizationQueries` — the tuple-half query engine
- *     (Q-OR-8); single instance; absent = the three tuple-half RPCs and a
+ *   - `drivers.authorizationQueries` — the tuple-half query engine;
+ *     single instance; absent = the three tuple-half RPCs and a
  *     contextual checkMyPermission refuse UNIMPLEMENTED with the edition
  *     reason (the domain suite pins the refusal; this file pins the
  *     registry);
@@ -19,7 +19,7 @@
  *     that is not a person (a team); single instance; absent = the id
  *     fallback shape;
  *   - `ResourceAuthorizationLifecycle` gains the OPTIONAL `onPolicyGranted`
- *     and `onPolicyRevoked` (Q7 i): a unit's lifecycle that carries them
+ *     and `onPolicyRevoked`: a unit's lifecycle that carries them
  *     resolves through the existing single-instance point with both hooks
  *     intact, and one that implements only the three required methods
  *     still resolves — the widening is additive.

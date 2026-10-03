@@ -40,8 +40,6 @@
  *  - `secret`    — a secret-like gitignored path the hook hard-blocked (denied,
  *    nothing written): `{path, kind}` only. The boundary authors it as a
  *    content-less `DIFF_UNREVIEWABLE` change; its bytes never reach storage.
- *
- * @since File-Change HITL Redesign (Cursor CAS parity — DD-18)
  */
 
 import { readFile, readdir, rm, mkdir } from "node:fs/promises";
@@ -191,7 +189,7 @@ function secretClassifierFragment(): string[] {
  * argv escaping). Prints `secret` for a secret-like path, `ok` otherwise. Empty
  * input classifies as `secret` (fail-closed, matching {@link isSecretLikePath}).
  * The Cursor hook uses this to hard-block a secret write on the deny-gate so its
- * content never reaches an approval (DD-26 follow-up #2); it shares the classifier
+ * content never reaches an approval; it shares the classifier
  * fragment above, so its verdict equals the runner's {@link isSecretLikePath}.
  */
 export function buildSecretClassifyScript(): string {
@@ -205,7 +203,8 @@ export function buildSecretClassifyScript(): string {
 /**
  * Build the standalone Node.js script the hook runs to observe a single
  * CAS-owned mutation — the disk-backed mirror of `CasCaptureFilesystemBackend`'s
- * `recordBefore` plus the DD-E secret gate. Staging is mutation-agnostic: it
+ * `recordBefore` plus the secret gate (secret-paths.ts). Staging is
+ * mutation-agnostic: it
  * records the PRE-mutation bytes, so the hook runs it for a write/edit and —
  * issue #303 — for a delete (whose before-bytes exist only until the tool runs;
  * the boundary later reads after=null and authors the DELETE). The hook's

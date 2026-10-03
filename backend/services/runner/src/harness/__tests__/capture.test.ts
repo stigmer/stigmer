@@ -249,7 +249,7 @@ describe("deriveCommandProvenance — one rule for both engines", () => {
     ).toBeUndefined();
   });
 
-  it("any sub-agent activity this turn fails closed (DD-28 D1)", () => {
+  it("any sub-agent activity this turn fails closed", () => {
     const status = create(AgentExecutionStatusSchema, {
       messages: [messageWith(seededShell(ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE))],
       subAgentExecutions: [create(SubAgentExecutionSchema, { id: "sa", messages: [messageWith(row("sa-tc", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED))] })],

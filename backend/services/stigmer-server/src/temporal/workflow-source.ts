@@ -7,12 +7,11 @@
  * Workflow code runs inside Temporal's deterministic sandbox and must be
  * bundled separately from host code. Two production modes:
  *
- * 1. **Runtime** (this sub-project's operative mode, ratified brief #7 of
- *    sub-project 20260824.03): the worker bundles the compiled dist entry
+ * 1. **Runtime** (the operative mode): the worker bundles the compiled dist entry
  *    on boot via the SDK's built-in webpack. This is how conformance and
  *    the CLI-launched dev server boot — node_modules present, no native
  *    packaging needed.
- * 2. **Prebuilt** (the hook #24 cli-cutover fills): the slim artifact
+ * 2. **Prebuilt** (slim artifacts): the slim artifact
  *    cannot bundle at runtime (no webpack/@swc shipped), so the build
  *    emits the bundle next to main.js and this resolver finds it as a
  *    sibling — exactly the runner's discovery rule.
@@ -20,14 +19,14 @@
  * Callers pass URLs relative to their own module (import.meta.url): in the
  * tsc dist the sibling bundle never exists so dev builds always take the
  * runtime path; in a slim artifact every module collapses into main.js and
- * the sibling resolves next to it, where #24's build will emit it.
+ * the sibling resolves next to it, where scripts/bundle-slim.mjs emits it.
  */
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 export type WorkflowSource =
   | {
-      /** Pre-built bundle on disk (slim artifacts; #24). */
+      /** Pre-built bundle on disk (slim artifacts). */
       readonly kind: "prebuilt";
       readonly codePath: string;
     }

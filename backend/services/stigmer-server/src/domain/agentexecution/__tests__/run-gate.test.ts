@@ -1,6 +1,6 @@
 /**
- * Pins the run gate's SPLICE in agent-execution-create over the real router
- * (P1 sp.run-gate): AuthorizeRunTarget sits after EnsureSessionOrAgentResolved
+ * Pins the run gate's SPLICE in agent-execution-create over the real router:
+ * AuthorizeRunTarget sits after EnsureSessionOrAgentResolved
  * and BEFORE EnsureEngineAvailable, the pre-side-effect slot and
  * CreateDefaultInstanceIfNeeded. Pinned here: (1) each request shape is
  * checked against its own target with its own byte-pinned copy; (2) a

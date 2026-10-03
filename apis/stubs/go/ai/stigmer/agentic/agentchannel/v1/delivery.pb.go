@@ -173,7 +173,7 @@ type ChannelDelivery struct {
 	ExecutionId string `protobuf:"bytes,4,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	// Session the execution belongs to (conversation continuity + audit).
 	SessionId string `protobuf:"bytes,5,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// Provider-neutral conversation key (decision 005: the DM thread
+	// Provider-neutral conversation key (the DM thread
 	// timestamp or the mention thread_ts, per mapping).
 	ConversationKey string `protobuf:"bytes,6,opt,name=conversation_key,json=conversationKey,proto3" json:"conversation_key,omitempty"`
 	// External user key (e.g. Slack user id) the reply is for.

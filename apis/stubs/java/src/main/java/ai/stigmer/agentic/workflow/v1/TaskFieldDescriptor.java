@@ -12,8 +12,6 @@ package ai.stigmer.agentic.workflow.v1;
  * Provides enough metadata for UI form renderers to generate appropriate
  * input controls, validation messages, and documentation without needing
  * access to the raw proto descriptor.
- *
- * &#64;since T04 (Task Schema Registry)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.TaskFieldDescriptor}
@@ -893,8 +891,6 @@ private static final long serialVersionUID = 0L;
    * Provides enough metadata for UI form renderers to generate appropriate
    * input controls, validation messages, and documentation without needing
    * access to the raw proto descriptor.
-   *
-   * &#64;since T04 (Task Schema Registry)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.TaskFieldDescriptor}

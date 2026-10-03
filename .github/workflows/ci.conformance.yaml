@@ -52,7 +52,7 @@ jobs:
       - name: Build proto stubs
         run: npm run build -w @stigmer/protos
 
-      # The behavior inventory gate (E1): fails in seconds, before any boot,
+      # The behavior inventory gate: fails in seconds, before any boot,
       # when a conformance row lacks a test or a tag names no row.
       - name: Check the cloud-capability inventory
         run: npm run inventory:check -w @stigmer/conformance
@@ -93,10 +93,10 @@ jobs:
           CONFORMANCE_TARGET: local
         run: npm run test -w @stigmer/conformance
 
-  # The same full roster on the Postgres Store driver (Phase-2 P2, DD-011:
-  # the gate requires the Postgres targets at byte-identical capability
+  # The same full roster on the Postgres Store driver (the gate requires the
+  # Postgres targets at byte-identical capability
   # matrices — the driver must be wire-invisible). The database is a
-  # service container pinned to the major the compose stack ships (DD-013).
+  # service container pinned to the major the compose stack ships.
   conformance-local-postgres:
     name: Conformance (local-postgres)
     runs-on: ubuntu-latest

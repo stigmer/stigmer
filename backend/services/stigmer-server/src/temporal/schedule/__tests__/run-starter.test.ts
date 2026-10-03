@@ -272,12 +272,12 @@ describe("RunStarter.startRun — against a real store", () => {
     await store.deleteResource(ApiResourceKind.agent_execution, "aex_01prior");
   });
 
-  // The scheduleFireCaller seam (stigmer-cloud#572): composed → every
+  // The scheduleFireCaller seam: composed → every
   // create carries the per-fire minted caller; absent → the create
   // carries none (the internal lane, byte-identical); mint failure → an
   // infrastructure throw the tick retries; the idempotent path never
   // mints (a found winner needs no credential).
-  describe("fire-caller mint (stigmer-cloud#572)", () => {
+  describe("fire-caller mint", () => {
     const mintedCaller = {
       identityId: "ida_schedule_acct",
       callerClass: "schedule",

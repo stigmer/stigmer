@@ -18,8 +18,6 @@ import "google/protobuf/struct.proto";
 //         activity: "ProcessDataActivity"
 //         input:
 //           data: ${ .data }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
 message CallActivityTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "activity_call";
 

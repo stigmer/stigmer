@@ -1,16 +1,16 @@
-// The task graph for the npm workspace (stigmer-cloud project 20260904.04,
-// Stage B). Turborepo derives the package graph from each member's
-// dependencies, devDependencies and optionalDependencies (never from
-// peerDependencies, vercel/turborepo#13025; the three packages whose only
-// link to @stigmer/protos was a peer mirror it into devDependencies for that
-// reason). This file adds the task edges and the cache contract on top.
+// The task graph for the npm workspace. Turborepo derives the package
+// graph from each member's dependencies, devDependencies and
+// optionalDependencies (never from peerDependencies, vercel/turborepo#13025;
+// the three packages whose only link to @stigmer/protos was a peer mirror it
+// into devDependencies for that reason). This file adds the task edges and
+// the cache contract on top.
 //
-// Scope (B3, recorded here, not re-decided): the workspace members listed in
+// Scope (recorded here, not re-decided): the workspace members listed in
 // the root package.json are Turborepo's world. backend/services/runner,
 // backend/services/stigmer-server, site/, test/extension-consumer and the
-// examples/* packages stay standalone with their own lockfiles, per D2 §5 of
-// the OSS TS server blueprint, DD-005 (the exports-map contract
-// extension-consumer compile-proves from exactly that posture) and the
+// examples/* packages stay standalone with their own lockfiles, per the
+// standalone-package model (the exports-map contract extension-consumer
+// compile-proves from exactly that posture) and the
 // stigmer-cloud composition Dockerfile. Their Makefile targets and CI lanes
 // call the root `build:runner-deps` script for the libs they link and see no
 // difference.
@@ -18,7 +18,7 @@
 // How the root scripts reach this graph: scripts/turbo-set.mjs resolves a
 // named package set (the publishable libs, the runner-linked libs) and runs
 // one `turbo run <task>` over it. Direct `turbo run <task> --filter=<pkg>`
-// works too and is what the S6 CI lanes will use.
+// works too.
 //
 // Environment: strict mode (the default). A task sees only the variables
 // Turborepo passes through by default (HOME, PATH, CI, TERM, NODE_OPTIONS,

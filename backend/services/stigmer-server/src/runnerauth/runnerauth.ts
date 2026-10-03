@@ -59,10 +59,9 @@
  * Consumers arrive with their own domains, through the provider seam
  * (runner-credential-provider.ts): the platform exchange RPC and the two
  * engine clients (mint), the executioncontext resolve step and the
- * runner-subject verifier (verify). This module lands with the
- * encryption sub-project because its signing key rides the shared key
- * ladder and its boot posture is a ratified cross-domain invariant
- * (fatal — see compose.ts).
+ * runner-subject verifier (verify). This module sits beside encryption
+ * because its signing key rides the shared key ladder and its boot
+ * posture is a cross-domain invariant (fatal — see compose.ts).
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 

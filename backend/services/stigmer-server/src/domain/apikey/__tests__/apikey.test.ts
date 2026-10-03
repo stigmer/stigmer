@@ -7,7 +7,8 @@
  *     the create response; the store and every later read hold the hash;
  *   - the client can never choose key material (request-carried
  *     key_hash/fingerprint are overwritten on create);
- *   - update immutability (ruling Q9 — the security divergence): a
+ *   - update immutability (the Java handler documented it and did not
+ *     enforce it): a
  *     request that rewrites key_hash/fingerprint persists the STORED
  *     values; only the expiry fields move;
  *   - getByKeyHash resolves by the stored hash and answers the
@@ -180,7 +181,7 @@ describe("apikey domain (composed server)", () => {
     });
   });
 
-  it("update moves expiry fields only — key material is immutable (Q9)", async () => {
+  it("update moves expiry fields only — key material is immutable", async () => {
     const created = await command.create(keyInput());
     const plaintext = created.spec?.keyHash ?? "";
     const storedHash = hashApiKey(plaintext);
@@ -196,7 +197,7 @@ describe("apikey domain (composed server)", () => {
       },
       spec: {
         // A hash the caller knows the plaintext of — the impersonation
-        // attempt Q9 closes. Must be ignored.
+        // attempt the preservation step closes. Must be ignored.
         keyHash: hashApiKey("stk_attacker-known-plaintext"),
         fingerprint: "forged",
         expiresAt: timestampFromDate(expiry),

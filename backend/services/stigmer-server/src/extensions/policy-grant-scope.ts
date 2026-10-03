@@ -1,12 +1,12 @@
 /**
- * The policy-grant-scope driver point (20260913.01; the P1 gate's Q7 iii,
- * T01_1_review.md Q-OR-3): WHICH kinds a user may grant a role on in this
+ * The policy-grant-scope driver point: WHICH kinds a user may grant a role
+ * on in this
  * edition, and with which roles. Single instance, registered as
  * `drivers.policyGrantScope` (the identityFederation shape: a driver point
  * whose absence is open source's own behaviour). Absent, the composition
  * root installs `newOrganizationOnlyGrantScope()`
  * (domain/iampolicy/grant-scope.ts): the organization grants the roles its
- * `kind_meta` lists — owner, admin, member, viewer (Q-OR-4) — and no other
+ * `kind_meta` lists — owner, admin, member, viewer — and no other
  * kind grants anything. Per-resource grants (a viewer on one agent) are
  * what the Enterprise and Cloud editions add by registering a wider scope;
  * the cloud registers every kind's `kind_meta` roles.
@@ -18,10 +18,9 @@
  * refused before the scope is asked) and never on `bootstrapPolicy`, the
  * structural lane — and `checkMyPermission`'s second arm, which answers
  * `can_grant_access` false for a kind outside the scope so the console's
- * existing PermissionGate hides grant controls without a new SDK surface
- * (Q-OR-5).
+ * existing PermissionGate hides grant controls without a new SDK surface.
  *
- * The contract every scope is held to (Q-S3-3, 2026-09-13):
+ * The contract every scope is held to (2026-09-13):
  *
  *   - It NARROWS the proto, never widens it. A scope's answer for a kind is
  *     read as a subset of `kind_meta.authorization.grantable_roles`;

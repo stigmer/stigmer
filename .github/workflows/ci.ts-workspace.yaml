@@ -4,8 +4,8 @@
 # =============================================================================
 # One lane for the npm workspace (the TS counterpart of ci.go-sdk and
 # ci.java-sdk: one lane per language, where that language compiles). It
-# replaced three lanes on 2026-09-11 (stigmer-cloud project 20260904.04,
-# Stage B): ci.ts-libs (backend/libs/ts), ci.ts-sdk (the SDK typecheck gate)
+# replaced three lanes on 2026-09-11: ci.ts-libs (backend/libs/ts), ci.ts-sdk
+# (the SDK typecheck gate)
 # and ci.frontend (SDK and client-app tests). Each of those carried a
 # hand-written `paths:` list that approximated the package graph and said so
 # in its comments ("sdk/react consumes @stigmer/theme workspace source, so a
@@ -99,7 +99,7 @@ env:
   npm_config_fetch_retry_mintimeout: "20000"
   npm_config_fetch_retry_maxtimeout: "120000"
   # Turborepo reports anonymous usage to Vercel by default; off everywhere
-  # this lane runs turbo (owner ruling D3, 2026-09-10; the wrapper sets it
+  # this lane runs turbo (since 2026-09-10; the wrapper sets it
   # too, this covers any direct call).
   TURBO_TELEMETRY_DISABLED: "1"
   # Inside the gate a missing test dependency fails instead of skipping
@@ -227,7 +227,7 @@ jobs:
   # tsdoc:check where a package defines it (a broken {@link} fails the pull
   # request that introduces it), then the gates that
   # are not turbo tasks: the web routing gate (client-apps/web/nginx.conf
-  # against the static export), the Scenar tours (determinism, DD-006;
+  # against the static export), the Scenar tours (determinism;
   # timeline shape; docs embed-id resolution — also wired in ci.docs for the
   # docs half of that contract). The desktop shell's Rust crate has its own
   # job, `desktop-rust`, below.
@@ -279,7 +279,7 @@ jobs:
   # regressions (e.g. the provider container's sizing contract, #260) — both need a
   # real Chromium for layout/paint that happy-dom cannot evaluate. The task
   # waits on react's own build: the suites render against dist/styles.css,
-  # the SHIPPED stylesheet (DD-21).
+  # the SHIPPED stylesheet.
   a11y-audit:
     name: Browser Suite (A11y Audit + Layout Contracts)
     runs-on: ubuntu-latest

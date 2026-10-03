@@ -82,8 +82,6 @@ public enum SubAgentStatus
    * When this status is reached:
    * - completed_at timestamp is set
    * - error field contains: "Cancelled: parent execution was cancelled"
-   *
-   * &#64;since Sub-Agent Execution Streamline
    * </pre>
    *
    * <code>SUB_AGENT_CANCELLED = 5;</code>
@@ -152,8 +150,6 @@ public enum SubAgentStatus
    * When this status is reached:
    * - completed_at timestamp is set
    * - error field contains: "Cancelled: parent execution was cancelled"
-   *
-   * &#64;since Sub-Agent Execution Streamline
    * </pre>
    *
    * <code>SUB_AGENT_CANCELLED = 5;</code>

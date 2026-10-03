@@ -64,7 +64,7 @@ identical in both editions by construction.
 | `zip-structure` | Policy-free structural ZIP parsing (skill artifacts), shared by the server and the runner |
 | `plugin-package` | Reads an Agent Plugins package (open format plus the Cursor, Claude Code and Codex dialects) into what Stigmer would install; shared by the CLI's offline validation and the server's plugin install |
 
-(The Go library tree, `backend/libs/go/`, retired with the Go server — go-server-retirement, D4 #25.)
+(The Go library tree, `backend/libs/go/`, retired with the Go server.)
 
 ## Architecture
 
@@ -154,8 +154,6 @@ workflow execution events, bootstrap state) — see
 **Trade-offs**: no type safety at the DB level (validation lives at the
 proto layer); queries by anything other than `(kind, id)` scan — fine for
 local datasets.
-
-**See**: [ADR-007: Generic Resource Storage Strategy](../docs/adr/2026-01/2026-01-19-170000-sqllite-with-json-data.md)
 
 ## Design Principles
 

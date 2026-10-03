@@ -1,8 +1,8 @@
 # =============================================================================
-# The official stigmer-server image (DD-014, Phase-2 P4)
+# The official stigmer-server image
 # =============================================================================
 # Packages the SAME @stigmer/server-slim artifact the CLI acquires at
-# `stigmer up` — one artifact, every channel (console included, DD-012).
+# `stigmer up` — one artifact, every channel (console included).
 # The image executes NO build steps: the per-arch dist-slim tree is built
 # and verified OUTSIDE docker (scripts/bundle-slim.mjs --platform=...,
 # release-stamped in the release lane), then copied in. That keeps the
@@ -20,8 +20,7 @@
 #     ghcr.io/stigmer/stigmer-server:latest
 #
 # node:22-slim, not alpine/distroless: the Temporal core-bridge prebuilds
-# are gnu-triple (glibc) binaries, and 22 is the engines floor (DD-014;
-# the #24 Ruling-3 amendment).
+# are gnu-triple (glibc) binaries, and 22 is the engines floor.
 FROM node:22-slim
 
 # TARGETARCH (amd64|arm64) is populated by BuildKit per platform leg; the
@@ -53,7 +52,7 @@ LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer" \
 # keys — under one mount, with the exact on-disk layout of a bare-metal
 # ~/.stigmer: /data/.stigmer is byte-portable to and from `stigmer up`.
 #
-# ARTIFACT_HTTP_HOST=0.0.0.0 (DD-013): the artifact file server defaults
+# ARTIFACT_HTTP_HOST=0.0.0.0: the artifact file server defaults
 # to loopback, which is unreachable through the container boundary even
 # with -p; the container network namespace is the isolation here.
 ENV HOME=/data \
@@ -63,7 +62,7 @@ ENV HOME=/data \
 # named volumes initialize from the image and inherit this ownership.
 # (Bind mounts keep host ownership — the docker run docs cover chown.)
 #
-# The artifact path is pre-created for the compose stack (DD-013): compose
+# The artifact path is pre-created for the compose stack: compose
 # mounts a SHARED named volume at this exact path (the runner reads what
 # the server writes). A nested mountpoint that does not pre-exist would be
 # created root-owned by the docker daemon INSIDE the outer /data volume —

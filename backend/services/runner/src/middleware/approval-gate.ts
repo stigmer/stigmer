@@ -30,7 +30,7 @@
  * `tool_started`, so the transcript row and this gate can never disagree
  * about whether a call waits. This module is where the decision is ACTED on.
  *
- * Gateway invariant (Phase 2): this middleware IS the in-process execution
+ * Gateway invariant: this middleware IS the in-process execution
  * gateway for the deep-agent harness — `handler(request)` is the side effect. A
  * side effect runs only with a backing authorization: either (a) the tool was
  * auto-approved (policy/classifier cleared it, or auto-approve-all disabled the
@@ -42,8 +42,9 @@
  * Shadow ExecutionReceipt: when the gateway lets a side effect through it emits a
  * structured, non-persisted receipt (a `[hitl-gateway] receipt …` log carrying
  * the action's HMAC fingerprint and the authorization source). This is an audit
- * + uniformity signal only — no proto, no storage — mirroring the Phase-1 shadow
- * discipline. On the deep-agent normal path the fingerprint match is guaranteed
+ * + uniformity signal only — no proto, no storage — in the same shadow
+ * discipline as the server's approval-stream cross-check. On the deep-agent
+ * normal path the fingerprint match is guaranteed
  * by LangGraph checkpoint replay (the resumed action equals the approved one), so
  * the receipt is defense-in-depth here; the fingerprint earns real enforcement
  * teeth in the out-of-process Cursor substrate.
@@ -111,11 +112,11 @@ export interface ApprovalGateConfig {
   readonly isCapturablePath?: (rawPath: string) => Promise<boolean>;
   /**
    * Route gitignored `write`/`edit` edits into CAS capture (apply-then-review)
-   * instead of the interrupt gate, applying the DD-E secret gate. When off, a
+   * instead of the interrupt gate, applying the secret gate. When off, a
    * gitignored path stays on the interrupt gate exactly as before.
    *
    * True only for gates whose backend a CAS observer wraps: the parent gate
-   * always (turn-setup.ts), and — since DD-19 — sub-agent gates too, because
+   * always (turn-setup.ts), and sub-agent gates too, because
    * `compileSubagents` gives every sub-agent a CAS-observing backend wired to
    * the SAME shared observer and `buildSubAgentMiddleware` then inherits this
    * config verbatim. A gate over an UNOBSERVED backend must keep this false:
@@ -123,7 +124,7 @@ export interface ApprovalGateConfig {
    */
   readonly captureIgnored?: boolean;
   /**
-   * Sink for a gitignored path hard-blocked as secret-like (DD-E): the write is
+   * Sink for a gitignored path hard-blocked as secret-like: the write is
    * never applied and never captured, and the turn boundary reads these paths to
    * author a `DIFF_UNREVIEWABLE` change entry (path only — the name is not the
    * secret; the CONTENT never leaves the workspace). Absent ⇒ nothing recorded.
@@ -171,8 +172,8 @@ interface ApprovalDecision {
 }
 
 /**
- * The ToolMessage returned when a secret-like write is hard-blocked (DD-E /
- * DD-26 #2): the write is NEVER applied and the graph continues (this replaces
+ * The ToolMessage returned when a secret-like write is hard-blocked: the
+ * write is NEVER applied and the graph continues (this replaces
  * the tool call's side effect, so the model moves on rather than waiting). The
  * path is named (a filename is not itself the secret); the CONTENT is not echoed.
  * Shared by the capture-mode secret block and the deny-gate secret block so both
@@ -226,12 +227,12 @@ export function createApprovalGateMiddleware(
           }
           // Gitignored / non-git path: a gate whose backend the shared CAS
           // observer wraps (captureIgnored — the parent gate, and sub-agent
-          // gates since DD-19) routes it into CAS capture; any other gate falls
+          // gates) routes it into CAS capture; any other gate falls
           // through to the interrupt gate below.
           if (config.captureIgnored) {
             if (category === "write") {
               if (isSecretLikePath(path)) {
-                // DD-E fail-closed: a secret-like gitignored WRITE is NEVER
+                // Fail-closed: a secret-like gitignored WRITE is NEVER
                 // applied and NEVER captured — its content must not surface
                 // anywhere, approval prompt included. Record it so the turn
                 // boundary authors a DIFF_UNREVIEWABLE entry (blocking
@@ -264,7 +265,7 @@ export function createApprovalGateMiddleware(
         }
       }
 
-      // Deny-gate secret hard-block (DD-26 #2): a built-in file WRITE to a
+      // Deny-gate secret hard-block: a built-in file WRITE to a
       // secret-like path that reaches here has no capture substrate for it — the
       // classic no-storage deny-gate, or a git workspace with no artifact storage
       // whose gitignored write skipped the captureIgnored arm above. It must NOT

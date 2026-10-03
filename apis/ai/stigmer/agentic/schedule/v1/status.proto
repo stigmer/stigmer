@@ -9,13 +9,12 @@ import "google/protobuf/timestamp.proto";
 //
 // @internal
 // Platform-owned; written only by the scheduling runtime (tick +
-// lifecycle sync) and by the explicit resume command (DD-013 D-D).
+// lifecycle sync) and by the explicit resume command.
 // Preserved VERBATIM across apply and update (the AgentChannel
-// decision-004 posture) — load-bearing for DD-008 D7's auto-pause,
+// posture) — load-bearing for the failure-streak auto-pause,
 // which records on status precisely so the platform never writes spec.
 // A routine manifest apply must never reset the failure streak or
-// un-pause a schedule; both editions carry a regression test for this
-// (DD-009 pinned behaviors).
+// un-pause a schedule; both editions carry a regression test for this.
 message ScheduleStatus {
   // When the schedule next fires, in UTC. Absent while the schedule is
   // disabled, auto-paused, or not yet synchronized with the clock.
@@ -28,14 +27,14 @@ message ScheduleStatus {
   //
   // @internal
   // The reverse pointer of the stigmer.ai/schedule-id label stamped on
-  // every schedule-created execution (DD-008 D4) — the audit link is
+  // every schedule-created execution — the audit link is
   // queryable from either end.
   string last_execution_id = 3;
 
   // Number of consecutive failed runs. A successful run resets it.
   //
   // @internal
-  // Feeds the failure-streak auto-pause (DD-008 D7; platform default 5).
+  // Feeds the failure-streak auto-pause (platform default 5).
   int32 consecutive_failures = 4;
 
   // Why the platform paused this schedule; empty when not paused.
@@ -43,12 +42,12 @@ message ScheduleStatus {
   //
   // @internal
   // "Paused" is the platform's latch, distinct from the owner's switch
-  // (spec.enabled = false is "disabled" — project DD-013 D-E). Written
-  // ONLY by the platform auto-pause (DD-008 D7) — never an echo of
-  // spec.enabled (DD-009 pinned behaviors: one writer per field;
+  // (spec.enabled = false is "disabled"). Written
+  // ONLY by the platform auto-pause — never an echo of
+  // spec.enabled (one writer per field;
   // consoles derive owner-disabled state from spec on read). Updates
   // and applies preserve it verbatim; resume is deliberately the ONE
-  // clearing path (DD-013 D-D).
+  // clearing path.
   string paused_reason = 5;
 
   // Standard audit information (created_at, updated_at, created_by, etc.)

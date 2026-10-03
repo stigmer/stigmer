@@ -1,7 +1,7 @@
 /**
  * Shared mechanics of runner-synthesized MCP attachments — the pieces
- * the channel messaging attachment (proactive-messaging DD-006 D8) and
- * the conversation participation attachment (DD-008 D-c) have in
+ * the channel messaging attachment and the conversation participation
+ * attachment have in
  * common, extracted when the second attachment arrived.
  *
  * A synthesized attachment is a first-party MCP server entry the runner

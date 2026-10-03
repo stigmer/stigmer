@@ -11,14 +11,14 @@
  * declarative apply preserves status verbatim, so a routine manifest apply
  * can never reset a failure streak or un-pause a platform-paused schedule.
  *
- * Vocabulary (DD-013 D-E): "disabled" is the owner's switch (spec.enabled
+ * Vocabulary: "disabled" is the owner's switch (spec.enabled
  * = false); "paused" is the platform's failure-streak latch
  * (status.paused_reason). Two words, two levers, two writers.
  *
  * The clock (per-resource Temporal Schedules) and the run starter arrive
  * through PROVIDERS wired by the compose root after the Temporal stage;
  * both may stay undefined forever when Temporal was never configured —
- * every consumer degrades instead of refusing (DD-015 D-A), because a
+ * every consumer degrades instead of refusing, because a
  * declarative resource must be writable offline.
  *
  * Authorization posture (OSS): single-user and local, so handlers perform
@@ -135,9 +135,9 @@ import {
 export interface ScheduleControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly modelRegistry: ModelCatalogProvider;
   /**
@@ -149,11 +149,11 @@ export interface ScheduleControllerDeps {
   /**
    * The run starter (trigger.ts), resolved at call time — Go's SetRunner.
    * The trigger command is its one consumer: a manual fire needs no
-   * Temporal artifact (DD-017 D-5), so it works even while Temporal is
+   * Temporal artifact, so it works even while Temporal is
    * away.
    */
   readonly runner: RunnerProvider;
-  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan (20260830.01). */
+  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 
@@ -600,10 +600,9 @@ function newLoadSchedulesByAgentStep(
           continue;
         }
       }
-      // 20260830.01 census lane 13: the org/agent filters are contract
-      // parity in both editions and run FIRST; the scope narrows the
-      // agent's schedules last (the scope is the last per-row predicate,
-      // stigmer-cloud 20260913.04 T02).
+      // The org/agent filters are contract parity in both editions and run
+      // FIRST; the scope narrows the agent's schedules last (the scope is
+      // the last per-row predicate).
       const ofAgent = decoded.filter((schedule) => {
         const ref =
           schedule.spec?.target.case === "agent"
@@ -699,10 +698,9 @@ function newListByOrgAndLabelsStep(
           continue;
         }
       }
-      // 20260830.01 census lane 12: the org and label filters serve the
-      // Java handler's arms in both editions and run FIRST; the scope
+      // The org and label filters run FIRST, in both editions; the scope
       // narrows the org's rows last (the scope is the last per-row
-      // predicate, stigmer-cloud 20260913.04 T02).
+      // predicate).
       const schedules = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,

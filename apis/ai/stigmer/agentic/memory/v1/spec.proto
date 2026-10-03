@@ -8,8 +8,8 @@ import "buf/validate/validate.proto";
 // came from.
 //
 // @internal
-// Field ownership (DD-004; provenance revised by the Stage 3 decision,
-// owner-ratified 2026-08-22): content is the subject's after capture
+// Field ownership (provenance revised 2026-08-22): content is the
+// subject's after capture
 // (editable via the update RPC); subject_identity_account_id is
 // server-derived at create; provenance is capture-path-supplied at
 // create (see its field doc). Both are immutable forever after — the
@@ -21,15 +21,15 @@ message MemorySpec {
   // subject after confirmation.
   //
   // @internal
-  // max_len 500 (DD-006 D5): readable-at-a-glance is both a UX and a
+  // max_len 500: readable-at-a-glance is both a UX and a
   // security property — the confirmation UI shows this exact text, byte
   // for byte, and what the user confirms is what future prompts inject
-  // (DD-005 D6). Enforced by protovalidate at every write; recall never
+  // Enforced by protovalidate at every write; recall never
   // truncates a fact's content (write-time caps, never compose-time —
   // the audit property outweighs pathological-case tokens). The semantic
   // retriever may inject a SELECTED SUBSET of whole facts, recorded on
   // the execution's status.recalled_memories_report — never silent,
-  // never a content truncation (DD-008 D3/D5).
+  // never a content truncation.
   string content = 1 [(buf.validate.field).string = {
     min_len: 1
     max_len: 500
@@ -40,20 +40,20 @@ message MemorySpec {
   // @internal
   // Server-derived from the calling credential at create — never
   // client-supplied, so a forged subject is structurally impossible
-  // (DD-005 D2). The single-operator posture (trusted-local) stores the
+  // The single-operator posture (trusted-local) stores the
   // empty string (the single-user sentinel, matching the OAuth grant
   // store); where callers are persons it is always an identity account
   // id (stigmer#1387). Named
   // "subject" because the memory is ABOUT them — an agent authored it,
-  // so creator/owner vocabulary would misname the relationship (DD-004).
+  // so creator/owner vocabulary would misname the relationship.
   string subject_identity_account_id = 2;
 
   // Where this fact came from — displayed beside the fact everywhere it
   // appears.
   //
   // @internal
-  // Capture-path-supplied at create (the Stage 3 provenance decision,
-  // owner-ratified 2026-08-22): the remember tool threads the
+  // Capture-path-supplied at create (since 2026-08-22): the remember
+  // tool threads the
   // agent/session/execution triple from the runner-synthesized
   // attachment's capture context; a direct API create supplies none and
   // the field stays empty. tool_call_id is force-cleared in v1 — MCP
@@ -64,8 +64,8 @@ message MemorySpec {
   // supplied (every caller is the trusted local operator). Immutable
   // after create: provenance is attribution, and attribution that can
   // be edited is not attribution. Trust requires "where did this come
-  // from" beside every fact (DD-004); out-of-character proposals carry
-  // their origin (DD-005 D6).
+  // from" beside every fact; out-of-character proposals carry
+  // their origin.
   MemoryProvenance provenance = 3;
 }
 
@@ -74,7 +74,7 @@ message MemorySpec {
 //
 // @internal
 // The tool_call_id joins back to the ToolCall on the session's message
-// thread — the capture act itself stays auditable (DD-004). All fields
+// thread — the capture act itself stays auditable. All fields
 // are optional-empty: a memory created directly via the API (rather
 // than by the remember tool) has no session context to record.
 message MemoryProvenance {

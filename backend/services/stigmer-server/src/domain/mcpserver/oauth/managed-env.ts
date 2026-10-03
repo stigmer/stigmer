@@ -1,10 +1,10 @@
 /**
  * Managed-environment access — ports pkg/domain/mcpserver/oauth/
- * managed_env.go whole: reading and rewriting OAuth token secrets (#17's
- * EC-builder slice) plus creating and deleting the managed environments
- * themselves (#19's connect/OAuth slice). Every operation rides the
+ * managed_env.go whole: reading and rewriting OAuth token secrets (for the
+ * EC builder) plus creating and deleting the managed environments
+ * themselves (for the connect/OAuth lane). Every operation rides the
  * environment domain's in-process client, so encryption, validation, and
- * audit come from the environment pipeline automatically (DD-002: full
+ * audit come from the environment pipeline automatically (full
  * interceptor traversal on every internal call).
  */
 import { create } from "@bufbuild/protobuf";
@@ -28,7 +28,7 @@ export const MANAGED_ENV_LABEL = "stigmer.ai/managed";
 
 /**
  * The narrow in-process environment surface this service consumes —
- * satisfied by the composition root's in-process clients (DD-002: full
+ * satisfied by the composition root's in-process clients (full
  * interceptor traversal on every internal call).
  */
 export interface ManagedEnvironmentClient {
@@ -40,11 +40,11 @@ export interface ManagedEnvironmentClient {
   ): Promise<Environment>;
   /**
    * `caller` propagates the ORIGINAL caller through the in-process hop
-   * (ruling R5; Java createAsCaller — parity entry 20260830.05): the
+   * (Java createAsCaller): the
    * created environment's owner attribution lands on the connecting
    * user, so it stays visible and manageable under an enforcing
-   * Authorizer. Absent = the minted internal class (the pre-R5 shape,
-   * kept for hops with no request caller).
+   * Authorizer. Absent = the minted internal class (for hops with no
+   * request caller).
    */
   create(
     environment: MessageInitShape<typeof EnvironmentSchema>,
@@ -67,7 +67,7 @@ export class ManagedEnvironmentService {
    * CreateManagedEnvironment). The environment goes through the standard
    * create pipeline, which handles id generation, slug resolution,
    * timestamps, and search indexing. `caller` propagates the connecting
-   * user through the hop (ruling R5, parity entry 20260830.05) so a
+   * user through the hop so a
    * composed tuple-lifecycle driver attributes ownership to them — the
    * Java createAsCaller posture ("org link + owner = caller"); the
    * reserved-label guard keys its trust arm on the in-process ORIGIN,

@@ -35,7 +35,7 @@ import { DEFAULT_EVENT_PAGE_SIZE, MAX_EVENT_PAGE_SIZE } from "./constants.js";
 export interface EventLogDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the annotation check below (C2 Stage 4). */
+  /** The composed authorization seam — the annotation check below. */
   readonly authorizer: Authorizer;
 }
 
@@ -53,7 +53,7 @@ export async function getEventLog(
     throw invalidArgumentError("execution_id is required");
   }
   // The annotation's can_view check (validate → authorize, the Java
-  // WorkflowExecutionGetEventLogHandler order; C2 Stage 4). The
+  // WorkflowExecutionGetEventLogHandler order). The
   // no-existence-check empty-page contract below is unchanged for
   // authorized callers.
   await authorizeDirect(

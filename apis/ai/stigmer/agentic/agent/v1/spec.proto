@@ -51,7 +51,7 @@ message AgentSpec {
 
   // Field 8 held the embedded sharing configuration (AgentSharing) until
   // sharing was promoted to the first-class AgentShare resource
-  // (ai.stigmer.agentic.agentshare.v1 — decision 011): sharing is channel
+  // (ai.stigmer.agentic.agentshare.v1): sharing is channel
   // configuration with its own writer and lifecycle, so applying an agent
   // manifest can never touch a share again.
   reserved 8;

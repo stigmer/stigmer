@@ -7,9 +7,9 @@
  * The marker/ciphertext-guard logic is DELIBERATELY domain-local (not
  * shared with environment or oauthapp): Go keeps each domain's steps in its
  * own package, and the three shapes genuinely differ (environment: a
- * variable map; here: provider-oneof fields; oauthapp: one field). The
- * ratified promotion rule requires an identical second consumer — recorded
- * in the sub-project plan so review does not re-litigate.
+ * variable map; here: provider-oneof fields; oauthapp: one field). Shared
+ * steps are promoted only on an identical second consumer, so these stay
+ * local; this note is here so review does not re-litigate it.
  *
  * Proven by channelapp.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/channelapp.test.ts.

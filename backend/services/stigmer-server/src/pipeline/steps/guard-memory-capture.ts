@@ -1,10 +1,9 @@
 /**
  * GuardMemoryCapture — the memory create chain's capture-eligibility gate
- * (C2 Stage 3D; the Java MemoryCreateHandler's first gate, DD-002 D4 as
- * amended): memory may only be captured for a FIRST-PARTY HUMAN OPERATOR
+ * (the Java MemoryCreateHandler's first gate): memory may only be captured
+ * for a FIRST-PARTY HUMAN OPERATOR
  * — or the remember tool's SESSION-SCOPED sandbox credential acting as
- * its human subject (the Stage 3 decision, restored for compositions by
- * parity entry 20260830.05 / stigmer-cloud#564). Machine accounts and
+ * its human subject. Machine accounts and
  * every minted-credential lane — PlatformClient user tokens, guest
  * embeds, channel senders, schedule runs — stay refused; "the label is
  * not authorization; the server refuses."

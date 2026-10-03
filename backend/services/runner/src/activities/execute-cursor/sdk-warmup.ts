@@ -19,8 +19,8 @@
  *
  * Pool members idle between boot and claim, so constructing one throwaway
  * platform there moves that per-process cost off the user-visible path.
- * This respects the pool's pre-warm boundary (warm-agent-surfaces DD-C:
- * image caches only, nothing per-agent): the throwaway store is
+ * This respects the pool's pre-warm boundary (image caches only, nothing
+ * per-agent): the throwaway store is
  * org-agnostic, credential-free, and keyed to a synthetic workspace ref.
  *
  * Deliberately NOT run on session-mode boots: those pods receive their

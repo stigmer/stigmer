@@ -31,7 +31,7 @@
  */
 
 // ---------------------------------------------------------------------------
-// Budget constants (owner decision, 2026-08-09; project T04)
+// Budget constants (decided 2026-08-09)
 //
 // ADVERTISED == ENFORCED (stigmer/stigmer#365): the model registry document
 // advertises these values in its `limits.vision` block (rendered by the
@@ -45,14 +45,14 @@
 
 /**
  * Per-image cap on RAW decoded bytes. Grounded in two hard bounds: the Cursor
- * local transport passed a 3.47 MB image and failed a 4.85 MB one (T01 probe
+ * local transport passed a 3.47 MB image and failed a 4.85 MB one (probe
  * evidence), and Anthropic caps images at 5 MB *base64* (~3.75 MB raw).
  * 3.0 MiB sits under both with headroom.
  */
 export const MAX_VISION_IMAGE_BYTES = 3 * 1024 * 1024;
 
 /**
- * Per-turn cap on the SUM of raw image bytes sent inline. Kept at DD-001 D6's
+ * Per-turn cap on the SUM of raw image bytes sent inline. Kept at
  * 4 MB deliberately: on the deep-agent's durable checkpointers the full
  * message history — image base64 included — is re-persisted every superstep,
  * so a turn's total image payload is written roughly once per tool call. The
@@ -368,7 +368,7 @@ export type LangChainContentBlock =
  * - the v1 block (`{ type: "image", mimeType, data }`) passes through the
  *   OpenAI Chat Completions converter UNCONVERTED and is rejected by the API.
  * `image_url` with a data URL is the one shape converted correctly by both
- * installed providers (verified by executing the converters, T04 planning).
+ * installed providers (verified by executing the converters).
  */
 export function toLangChainImageBlocks(
   images: readonly VisionImage[],

@@ -44,8 +44,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * "download_url": "https://r2.example.com/...",
  * "expires_at": "2026-02-20T10:30:00Z"
  * }
- *
- * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest}
@@ -468,8 +466,6 @@ private static final long serialVersionUID = 0L;
    * "download_url": "https://r2.example.com/...",
    * "expires_at": "2026-02-20T10:30:00Z"
    * }
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest}

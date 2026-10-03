@@ -2,8 +2,8 @@
  * Local filesystem workspace backend.
  *
  * Executes commands via child_process and reads/writes files directly.
- * Used in local mode and as the default for Phase 2. The remote (Daytona
- * sandbox) backend will be added in Phase 3.
+ * Used in local mode and as the default; there is no remote (sandbox-hosted)
+ * backend.
  *
  * When `platformDir` is provided, paths under `.stigmer/` are
  * transparently routed to the platform directory, keeping platform files

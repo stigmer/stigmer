@@ -1,6 +1,6 @@
 # query/ — the CQRS read-side services
 
-The two cross-aggregate query services (D4 #14; Go `pkg/query/`):
+The two cross-aggregate query services (Go `pkg/query/`):
 
 - `search/` — the SearchService over the store's search index: criteria value object, the
   searchable-extractor registry (14 kinds, `kind_meta`-derived set), the

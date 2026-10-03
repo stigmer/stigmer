@@ -13,7 +13,7 @@
  * wakes the drain loop. Node's single-threaded event loop replaces the
  * mutex; the bounded queue replaces the channel buffer.
  *
- * ONE instance serves both routers (serving + in-process): #18's Temporal
+ * ONE instance serves both routers (serving + in-process): the Temporal
  * activities update status through the in-process client, and those
  * broadcasts must reach externally-connected subscribers — the same
  * reason Go exposes GetStreamBroker to its activities. The composition

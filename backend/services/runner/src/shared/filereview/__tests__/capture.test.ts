@@ -419,7 +419,7 @@ describe("capture reconcile — the decision rules the resume enforces (moved fr
   });
 });
 
-describe("capture orchestration — hybrid git + CAS (Phase 3)", () => {
+describe("capture orchestration — hybrid git + CAS", () => {
   it("composes git-tracked and CAS captures into one HYBRID change set", async () => {
     const status = newStatus();
     const storage = makeStorage();
@@ -641,7 +641,7 @@ describe("capture orchestration — hybrid git + CAS (Phase 3)", () => {
   });
 });
 
-describe("capture orchestration — secret-blocked DIFF_UNREVIEWABLE (DD-E)", () => {
+describe("capture orchestration — secret-blocked DIFF_UNREVIEWABLE", () => {
   it("authors a content-less DIFF_UNREVIEWABLE entry that blocks approval and persists nothing", async () => {
     const status = newStatus();
     const storage = makeStorage();
@@ -705,8 +705,7 @@ describe("capture orchestration — secret-blocked DIFF_UNREVIEWABLE (DD-E)", ()
 // (SECRET_WITHHELD / GIT_TRACKED), discard-only, and the git substrate reverts
 // it byte-exact on reject. This is the one place that can withhold a DELETE's
 // baseline (before) secret too — the gate never sees a delete's content.
-// (DD-26 follow-up #3.)
-describe("capture orchestration — git-tracked secret withheld (DD-26 follow-up #3)", () => {
+describe("capture orchestration — git-tracked secret withheld", () => {
   const SECRET_PATH = "config/credentials.json";
   const BASELINE_SECRET = "OLD_API_KEY=sk-live-OLDSECRET-do-not-persist-111\n";
   const NEW_SECRET = "NEW_API_KEY=sk-live-NEWSECRET-do-not-persist-222\n";
@@ -876,11 +875,12 @@ describe("partitionGitChangesBySecret (pure)", () => {
   });
 });
 
-// Slice 2a (DD-21 D2): the shared orchestration must capture and reconcile a
+// The shared orchestration must capture and reconcile a
 // NON-GIT workspace entirely from the CAS manifest — no git refs, no whole-tree
 // snapshot, bounded to the paths the observer actually touched. These exercise
 // capture.ts directly against a plain (non-git) temp dir; the harness wirings
-// that flip `gitWorkspace=false` and observe all touched paths are slices 2b/2c.
+// that flip `gitWorkspace=false` and observe all touched paths are tested
+// with each harness.
 function reconcilerReadBlob(storage: { blobs: Map<string, Buffer> }): (key: string) => Promise<Buffer> {
   return async (key: string): Promise<Buffer> => {
     const b = storage.blobs.get(key);
@@ -889,7 +889,7 @@ function reconcilerReadBlob(storage: { blobs: Map<string, Buffer> }): (key: stri
   };
 }
 
-describe("capture orchestration — CAS-only non-git workspace (Slice 2a)", () => {
+describe("capture orchestration — CAS-only non-git workspace", () => {
   let ws: string;
   beforeEach(async () => {
     ws = await mkdtemp(join(tmpdir(), "stigmer-nongit-"));
@@ -1095,7 +1095,7 @@ describe("capture orchestration — CAS-only non-git workspace (Slice 2a)", () =
     expect(eventsOfType(status, FileReviewEventType.RECONCILED)).toHaveLength(0);
   });
 
-  // Slice 2d: durable across a sandbox recycle — the reconcile sources approved
+  // Durable across a sandbox recycle — the reconcile sources approved
   // bytes ENTIRELY from the CAS manifest + blobs (a different durability domain
   // than the workspace), so it converges even after the whole tree is wiped.
   it("is durable across a sandbox recycle: reconciles from the manifest after the tree is wiped", async () => {
@@ -1134,9 +1134,9 @@ describe("capture orchestration — CAS-only non-git workspace (Slice 2a)", () =
     expect(await readFile(join(ws, "keep.txt"), "utf-8")).toBe("NEW");
   });
 
-  // Slice 2b: a non-git secret-blocked path must be labeled NON_GIT_CAS (not
+  // A non-git secret-blocked path must be labeled NON_GIT_CAS (not
   // "gitignored"), so the review UI reports its true provenance while its content
-  // is still withheld (DD-E).
+  // is still withheld.
   it("labels a non-git secret-blocked path NON_GIT_CAS and blocks approval", async () => {
     const status = newStatus();
     const storage = makeStorage();

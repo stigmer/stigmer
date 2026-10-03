@@ -3,7 +3,7 @@
  * natural key instead of minting (metadata.proto's `id` comment: a direct
  * IdentityAccount from its subject, an IamPolicy from its triple; the
  * Organization's slug needs no encoding). Lifted from the identity-account
- * domain in 20260913.01 slice 2 so the second derived id did not carry a
+ * domain so the second derived id did not carry a
  * second copy of the grammar.
  *
  * The vectors here are the two domains' golden vectors restated through

@@ -3,7 +3,7 @@ bump ?= patch
 # The Go module set has one home: go.work. Every Go target below loops over
 # this list, so it is derived from go.work at use time rather than kept by
 # hand — the hand-kept list drifted before (four entries while go.work held
-# eight; 20260904.04's survey, fact 4), and a module missing here is a module
+# eight), and a module missing here is a module
 # no gate compiles. `go list -m` in workspace mode prints exactly the `use`
 # modules; the result is made repo-relative so the per-module echo lines read
 # `apis/stubs/go`, not an absolute path. Recursively expanded (`=`) on purpose:
@@ -132,8 +132,7 @@ build-runner-slim: build-runner ## Build the slim embedding artifact (dist-slim/
 	@cd $(RUNNER_DIR) && node scripts/bundle-slim.mjs
 
 # The TS server follows the runner's standalone-package model: own lockfile,
-# file:-linked @stigmer/protos, NOT an npm workspace (D2 §5 of the OSS TS
-# server blueprint).
+# file:-linked @stigmer/protos, NOT an npm workspace.
 $(SERVER_DIR)/node_modules: $(SERVER_DIR)/package.json
 	@echo "npm install  $(SERVER_DIR)"
 	@cd $(SERVER_DIR) && npm install
@@ -180,7 +179,7 @@ gen-task-docs: ## Generate per-task reference docs from schemas
 
 # The JSON Schemas live at their generator home (tools/codegen/output only):
 # the server bundles just the registry JSON (registry/bundled.ts), so the
-# per-schema copy the Go embed carried retired with the Go server (D4 #25).
+# per-schema copy the Go embed carried retired with the Go server.
 gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync the registry into the server bundle
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
 	@# The generator validates sidecar YAML examples against the typed proto
@@ -193,7 +192,7 @@ gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync t
 		$(SERVER_DIR)/src/domain/workflow/registry/data/task-kind-registry.json
 
 # Source of truth for the model registry is the cloud platform's database
-# (DD-004: baseline + ledger-derived overrides, served publicly). The bundled
+# (a baseline plus ledger-derived overrides, served publicly). The bundled
 # copy here is a build-time snapshot: the server prefers a live refresh from
 # the same endpoint at runtime (see registry.ModelRegistryStore), so this
 # target is a convenience that keeps the offline fallback reasonably fresh —
@@ -467,7 +466,7 @@ test-authorization-model: build-ts-stubs $(SERVER_DIR)/node_modules ## Regenerat
 	@cd $(SERVER_DIR) && npx vitest run $(AUTHZ_MODEL_EVALUATOR_SUITES)
 
 # The consumer compiles a fake extension against the @stigmer/server
-# exports map ALONE (DD-005): a missing export is a tsc failure here, not
+# exports map ALONE: a missing export is a tsc failure here, not
 # a review miss. Standalone package with a file: link for the fast PR-time
 # proof; `npm run verify:consumer` in the server re-runs the same typecheck
 # against the PACKED tarball, the shape the published consumer (the cloud
@@ -484,7 +483,7 @@ test-extension-consumer: build-server ## Compile-proof the @stigmer/server libra
 # shared contract that turns OSS<->cloud behavioral drift into a failing
 # test, and (since stigmer#1022) the home of the runner-behavior arms the Go
 # test/integration* suites used to hold before they retired with the Java
-# service. The two slices are deliberately separate (DD-002): the
+# service. The two slices are deliberately separate: the
 # dependency-light CRUD signal stays fast, while execution additionally needs
 # the `temporal` and `stigmer` CLIs, git, and a runner build. See
 # test/conformance/README.md.
@@ -531,7 +530,7 @@ benchmark-harnesses: build-runner ## Measure the native and Cursor harnesses on 
 
 .PHONY: postgres-dev
 postgres-dev: ## Start a throwaway Postgres 16 for the postgres targets (docker; port 55432)
-	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the postgres targets need a real Postgres (DD-011)"; exit 1; }
+	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the postgres targets need a real Postgres"; exit 1; }
 	@docker rm -f stigmer-postgres-dev >/dev/null 2>&1 || true
 	docker run -d --name stigmer-postgres-dev -e POSTGRES_PASSWORD=postgres -p 55432:5432 postgres:16-alpine
 	@until docker exec stigmer-postgres-dev pg_isready -U postgres >/dev/null 2>&1; do sleep 0.5; done
@@ -571,7 +570,7 @@ test-conformance-postgres-execution: build-runner ## Run gRPC conformance execut
 	CONFORMANCE_TARGET=local-postgres-execution npm run test:execution -w @stigmer/conformance
 
 # build-web rides the dependency list because bundle-slim stages the web
-# console's static export into the artifact (DD-012) and loud-fails
+# console's static export into the artifact and loud-fails
 # without a built client-apps/web/out.
 .PHONY: smoke-cli-cutover
 smoke-cli-cutover: build-runner build-server build-web ## Run the CLI E2E smoke: `stigmer up` against the packaged slim server artifact (needs `temporal` on PATH for speed)
@@ -582,12 +581,12 @@ smoke-cli-cutover: build-runner build-server build-web ## Run the CLI E2E smoke:
 # The bundle targets linux for THIS machine's arch (the docker daemon's
 # native platform), not the host OS — the smoke builds a linux container.
 .PHONY: smoke-docker-image
-smoke-docker-image: build-server build-web ## Build the server Docker image from a fresh slim bundle and boot-smoke it (DD-014; needs Docker)
+smoke-docker-image: build-server build-web ## Build the server Docker image from a fresh slim bundle and boot-smoke it (needs Docker)
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the image smoke needs a Docker daemon"; exit 1; }
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	@cd $(SERVER_DIR) && node scripts/smoke-docker-image.mjs
 
-# The all-in-one evaluation image (P3 entry 2): stage every package the image
+# The all-in-one evaluation image: stage every package the image
 # bakes from THIS checkout (scripts/stage-all-in-one.mjs — the workspace
 # tarballs, the slim server and runner packages for this arch, the verified
 # Temporal binary), build deploy/all-in-one natively, and run the one smoke
@@ -620,18 +619,18 @@ stage-compose-runner-cli: build-libs ## Stage the CLI tarballs the compose-runne
 stage-server-library: node_modules ## Stage @stigmer/server and its @stigmer/* libs as tarballs from this checkout, no registry (out=<dir>)
 	node scripts/stage-server-library.mjs $(if $(out),--out=$(out))
 
-# The compose gate (DD-013, Phase-2 P5): build both images from source and
+# The compose gate: build both images from source and
 # prove the full self-host stack — server + Postgres + Temporal + runner —
 # up to one end-to-end workflow run. The same script the PR gate
 # (ci.compose-stack.yaml) and the release lane run. Fixed ports 7234/7235:
 # stop any running `stigmer up` first.
 .PHONY: smoke-compose
-smoke-compose: build-server build-web stage-compose-runner-cli ## Build the compose stack from source and run the clean-clone gate smoke (DD-013; needs Docker)
+smoke-compose: build-server build-web stage-compose-runner-cli ## Build the compose stack from source and run the clean-clone gate smoke (needs Docker)
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the compose smoke needs a Docker daemon"; exit 1; }
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	node test/install/smoke-compose.mjs --build
 
-# The Helm chart (deploy/helm/stigmer; stigmer-cloud project 20260914.02):
+# The Helm chart (deploy/helm/stigmer):
 # docker-compose.yml translated for Kubernetes. Three gates, the compose
 # stack's shape: lint-helm is the static pass (helm lint --strict and
 # kubeconform on every CI values profile), test-helm the render tests
@@ -1093,7 +1092,7 @@ check-prep: ## Sequential prep for check: tidy, fix, build + test shared libs, b
 # 2.10.12: same inode and mtime; only a missing output is restored), so the
 # site bucket reading those dists through its file: links sees no rewrite.
 # The Go compile gate. `go build ./...` per module is what `bazelw build //...`
-# used to be before Bazel's retirement (oss#616's graph arm, 20260904.04): it
+# used to be before Bazel's retirement (oss#616's graph arm): it
 # compiles and links every package, so a committed stub that no other module
 # imports (apis/stubs/go has no tests and sdk/go reaches none of it) still
 # fails here and in ci.go-sdk instead of on a consumer's machine. vet then
@@ -1123,7 +1122,7 @@ check-node: $(SERVER_DIR)/node_modules ## check bucket: the TS workspace lane (t
 	node scripts/turbo-set.mjs workspace typecheck
 	node scripts/turbo-set.mjs workspace lint
 	node scripts/turbo-set.mjs workspace tsdoc:check
-	# The cloud-capability behavior inventory (DD-012 §5): every conformance
+	# The cloud-capability behavior inventory: every conformance
 	# row has a test, every test tag names a row. Static — no target boots.
 	$(MAKE) check-conformance-inventory
 	node scripts/verify-scenar-tours.mjs

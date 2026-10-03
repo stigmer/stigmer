@@ -23,8 +23,6 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // 4. Runner receives Artifact with ID and status
 // 5. Runner replaces inline task output with artifact reference
 // 6. Runner includes artifact_created event in next updateStatus call
-//
-// @since T07 (Artifact Store)
 service ArtifactCommandController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = artifact;
 

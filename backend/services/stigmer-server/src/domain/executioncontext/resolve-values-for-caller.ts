@@ -4,9 +4,8 @@
  * decides, by presented credential, whether a getByExecutionId response
  * carries decrypted or redacted secret values, and applies the transform
  * in place. The OSS mirror of the cloud edition's
- * ResolveExecutionContextValuesForCaller (oss#535, porting the
- * stigmer-cloud#152 contract: no read RPC hands plaintext secrets to a
- * caller outside the runner lane).
+ * ResolveExecutionContextValuesForCaller (oss#535: no read RPC hands
+ * plaintext secrets to a caller outside the runner lane).
  *
  * # The lane
  *
@@ -101,8 +100,8 @@ export interface ResolveValuesDeps {
  * scope-bound runner token, redact for everyone else. Both transforms
  * mutate the fresh store unmarshal, never the stored row.
  *
- * With the authorizeExecutionContextRead capability composed (C4, gate
- * ruling Q1), the provider owns the ENTIRE trust decision — its lane set
+ * With the authorizeExecutionContextRead capability composed, the provider owns
+ * the ENTIRE trust decision — its lane set
  * and scope bindings (the cloud's session/workflow/connect rules) replace
  * the OSS execution-scoped check below. Redaction-as-success stays the
  * contract on every arm.
@@ -248,7 +247,7 @@ async function runIsLive(
  * when absent or differently shaped. The parsing shape (Go's exact
  * bearerToken semantics, including the repeated-header first-segment
  * rule) is the ONE shared definition in the identity chassis — promoted
- * there when the verifier chain became its second consumer (O2).
+ * there when the verifier chain became its second consumer.
  */
 function bearerToken(ctx: HandlerContext): string {
   return parseBearerToken(ctx.requestHeader.get("authorization") ?? "");

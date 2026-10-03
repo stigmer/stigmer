@@ -13,8 +13,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * storage and referenced via the existing tool-output offload envelope. Exactly
  * one of inline or ref is set; when offloaded, the head preview lives in
  * ref.truncated_preview and the full size in ref.size_bytes.
- *
- * &#64;since First-Class Diff Review (#186)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileContent}
@@ -427,8 +425,6 @@ private static final long serialVersionUID = 0L;
    * storage and referenced via the existing tool-output offload envelope. Exactly
    * one of inline or ref is set; when offloaded, the head preview lives in
    * ref.truncated_preview and the full size in ref.size_bytes.
-   *
-   * &#64;since First-Class Diff Review (#186)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileContent}

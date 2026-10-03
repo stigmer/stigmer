@@ -7,11 +7,10 @@
  * environment ID), the existing managed environment is reused — only its
  * secrets are updated with the fresh tokens.
  *
- * DB-1 (owner-ratified, sub-project 20260825.02): the managed-env service
- * is wired unconditionally here, so this RPC serves on a Temporal-less
- * server where Go's composition gate refuses ("managed environment
- * service not initialized" — a wiring artifact CW-1 deliberately did NOT
- * pin). Disclosed divergence; the Go-side issue files at wrap-up.
+ * The managed-env service is wired unconditionally here, so this RPC
+ * serves on a Temporal-less server where Go's composition gate refuses
+ * ("managed environment service not initialized" — a wiring artifact
+ * this port deliberately does not pin). A deliberate divergence from Go.
  *
  * Proven by mcpserver-connect.conformance.test.ts
  * (CONFORMANCE_TARGET=local-execution), __tests__/oauth-handshake.test.ts
@@ -90,7 +89,7 @@ export async function completeOAuthConnect(
   // (the server-side state is the truth; a caller-supplied id would be a
   // confused-deputy target). As in Java, the single-use state is already
   // burned when a denial lands — the denied caller costs the user one
-  // re-initiate. C2 Stage 4.
+  // re-initiate.
   await authorizeDirect(
     McpServerCommandController.method.completeOAuthConnect,
     deps.authorizer,
@@ -166,8 +165,8 @@ export async function completeOAuthConnect(
   }
 
   // Resolve the managed environment: reuse from an existing grant or
-  // create new — the create AS THE COMPLETING CALLER (ruling R5, parity
-  // entry 20260830.05): ownership tuples land on the connecting user
+  // create new — the create AS THE COMPLETING CALLER: ownership tuples
+  // land on the connecting user
   // under a composed tuple-lifecycle driver, so the environment stays
   // visible in their scoped lists (the Java createAsCaller posture).
   const managedEnvId = await resolveOrCreateManagedEnvironment(

@@ -1,36 +1,26 @@
 /**
- * The drivers extension point — infrastructure substitution seams of the
- * convergence blueprint (20260826.02 blueprint/03 §6, DD-006 §2a). The
- * point exists from O1 (20260826.09); the registrable KINDS join with
- * their extraction entries, each adding a field here as an owner-visible
- * surface change:
+ * The drivers extension point — infrastructure substitution seams. The
+ * registrable KINDS joined one at a time, each adding a field here as an
+ * owner-visible surface change:
  *
- *   - model-catalog provider (§6a) and artifact-storage driver
- *     registration + runner-credential provider (§6b/§6c) — landed, O5
- *     (20260827.02)
- *   - sandbox provisioners (§6d) — landed, O6 (20260827.05)
- *   - resource-authorization lifecycle + organization directory —
- *     landed with C2 (20260827.10, rulings Q2/Q7)
- *   - channel runtime (DD-004's serving seam) — landed with C3
- *     (20260827.11, plan-gate ruling Q1)
- *   - list read scope (the list-shaped tenant-isolation fork) — landed
- *     with 20260830.01.sp.list-read-scoping, generalizing C2 Stage 4's
- *     ExecutionReadScope (absorbed, gate ruling Q2)
+ *   - model-catalog provider and artifact-storage driver
+ *     registration + runner-credential provider
+ *   - sandbox provisioners
+ *   - resource-authorization lifecycle + organization directory
+ *   - channel runtime (the channel delivery serving seam)
+ *   - list read scope (the list-shaped tenant-isolation fork, which
+ *     generalized the earlier execution-only read scope)
  *   - visitor error policy (the transport-boundary sanitizer's
- *     edition semantics) — landed with 20260830.03, gate ruling Q1
- *   - secret codecs (the versioned secret-value wire formats) — landed
- *     with 20260830.04 Stage 1, gate ruling Q2
- *   - schedule-fire caller (who a schedule fire acts as) — landed with
- *     the stigmer-cloud#572 fix (the Java schedule-token mechanism's
- *     seam; ruled 2026-09-01)
+ *     edition semantics)
+ *   - secret codecs (the versioned secret-value wire formats)
+ *   - schedule-fire caller (who a schedule fire acts as)
  *   - identity-account store + identity federation (the first domain
  *     whose persistence is a PORT, and the four federated RPC arms only
- *     one edition serves) — landed with 20260911.11, gate ruling Q-IA-9
+ *     one edition serves)
  *   - IamPolicy store + policy grant scope + authorization queries (the
  *     IamPolicy domain's row half served in every edition; the store
  *     port, which kinds an edition grants on, and the tuple-half query
- *     engine only an authorization backend can answer) — landed with
- *     20260913.01, gate ruling Q-OR-10
+ *     engine only an authorization backend can answer)
  *   - principal display (how an access list names a grantee that is not
  *     a person: a team, in the editions that serve teams) — landed with
  *     the Team kind
@@ -50,7 +40,7 @@
  *     of a kind a unit keeps in a store of its own, so an edition above
  *     open source can keep open source's authorizer) — landed 2026-09-29
  *
- * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
+ * Merge rules (enforced by resolveExtensions): the two
  * provider kinds are single-instance points — a second declaring unit is
  * a boot throw naming both units (the authorizer rule); artifact-storage
  * and sandbox-provisioner drivers merge as name-keyed maps — a
@@ -59,8 +49,7 @@
  * loudly, not sit dark); resource row readers merge as a kind-keyed map
  * under the same rule, with open-source kinds and the identity account
  * reserved (extensions/resource-row-reader.ts). OSS defaults install at the boot/compose.ts
- * consumption sites, never here (the default-lives-with-the-consumer
- * doctrine).
+ * consumption sites, never here (a default lives with its consumer).
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -92,20 +81,20 @@ import type { VisitorClassifier } from "./visitor-classifier.js";
 /** The driver contributions of one extension unit. */
 export interface ExtensionDrivers {
   /**
-   * The model-catalog data source (DD-008; single-instance point). When
+   * The model-catalog data source (single-instance point). When
    * composed, it replaces the OSS ModelRegistryStore everywhere — the
    * OSS store and its upstream refresh are then never constructed.
    */
   readonly modelCatalogProvider?: ModelCatalogProvider;
   /**
-   * The runner-credential mint/verify seam (§6c; single-instance point).
+   * The runner-credential mint/verify seam (single-instance point).
    * When composed, it replaces the OSS execution-scoped HS256 default at
    * every consumer (platform exchange, mcpserver connect, the
    * executioncontext decrypt lane).
    */
   readonly runnerCredentialProvider?: RunnerCredentialProvider;
   /**
-   * Blob-storage backends registrable by name (§6b), selectable through
+   * Blob-storage backends registrable by name, selectable through
    * the ARTIFACT_STORAGE_TYPE / SKILL_ARTIFACT_STORAGE_TYPE config knobs.
    * Factories, not instances — an unselected driver constructs nothing.
    */
@@ -114,7 +103,7 @@ export interface ExtensionDrivers {
     ArtifactStorageDriverFactory
   >;
   /**
-   * Sandbox provisioners registrable by name (§6d), selectable through
+   * Sandbox provisioners registrable by name, selectable through
    * the SANDBOX_PROVISIONER_TYPE config knob. Factories, not instances —
    * an unselected driver constructs nothing. The built-in names
    * (local-process, docker, kubernetes — src/sandbox/provisioner.ts) are
@@ -125,36 +114,36 @@ export interface ExtensionDrivers {
     SandboxProvisionerFactory
   >;
   /**
-   * The resource-authorization lifecycle seam (C2, ruling Q2;
-   * single-instance point). When composed, the three shared tuple steps
+   * The resource-authorization lifecycle seam (single-instance point). When
+   * composed, the three shared tuple steps
    * (CreateAuthorizationTuples / CleanupIamPolicies /
    * UpdateVisibilityTuples) deliver resolved events to it, and the
    * IamPolicy grant path delivers the two policy hooks. Corrected
-   * 2026-09-13 (20260913.01 Q-OR-6): when absent, the steps no-op, but
+   * 2026-09-13: when absent, the steps no-op, but
    * open source is no longer record-less — the composition root installs
-   * the built-in role lifecycle (domain/iampolicy/role-lifecycle.ts, the
-   * entry's slice 4), which writes IamPolicy rows, whenever no extension
+   * the built-in role lifecycle (domain/iampolicy/role-lifecycle.ts),
+   * which writes IamPolicy rows, whenever no extension
    * registers an Authorizer (resource-authorization.ts header).
    */
   readonly resourceAuthorizationLifecycle?: ResourceAuthorizationLifecycle;
   /**
-   * The organization query directory (C2, ruling Q7; single-instance
-   * point). When composed, the organization controller consults it for
+   * The organization query directory (single-instance point). When composed,
+   * the organization controller consults it for
    * the three edition forks (enumeration posture, my-orgs filtering,
    * external-org lookup); when absent, OSS behavior byte-identical.
    */
   readonly organizationDirectory?: OrganizationDirectory;
   /**
-   * The channel delivery runtime (DD-004's serving seam; single-instance
-   * point). When composed, the agentchannel install arms, the whole
+   * The channel delivery runtime (single-instance point). When composed, the
+   * agentchannel install arms, the whole
    * messaging and conversation surfaces, and the two write/delete hooks
    * delegate to it; with none, the byte-pinned refusal posture serves
    * (src/domain/agentchannel/channel-runtime.ts carries the contract).
    */
   readonly channelRuntime?: ChannelRuntime;
   /**
-   * The list read scope (20260830.01; single-instance point; absorbs C2
-   * Stage 4's ExecutionReadScope). When composed, every ruled list-shaped
+   * The list read scope (single-instance point; it absorbed the earlier
+   * execution-only read scope). When composed, every listed list-shaped
    * read — the census of docs/authorization-coverage.md — narrows to the
    * caller's authorized rows: post-scan lanes through
    * restrictListByReadScope, the search/activity/summary lanes through
@@ -165,7 +154,7 @@ export interface ExtensionDrivers {
    */
   readonly listReadScope?: ListReadScope;
   /**
-   * The visitor error policy (20260830.03; single-instance point) — the
+   * The visitor error policy (single-instance point) — the
    * edition semantics of the serving chain's error boundary: WHO is on
    * the anonymous surface and WHAT copy replaces a leak-prone
    * description. When absent, the boundary runs only its structural
@@ -173,8 +162,8 @@ export interface ExtensionDrivers {
    */
   readonly visitorErrorPolicy?: VisitorErrorPolicy;
   /**
-   * Secret codecs registrable by wire-format version token (20260830.04
-   * Stage 1, gate ruling Q2) — one entry per enc:v<N>: format the
+   * Secret codecs registrable by wire-format version token — one entry
+   * per enc:v<N>: format the
    * composition can read and (when selected by
    * STIGMER_ENCRYPTION_WRITE_VERSION) write. Instances, not factories:
    * the Java posture is "registration IS the ability to encrypt" — a
@@ -186,17 +175,17 @@ export interface ExtensionDrivers {
    */
   readonly secretCodecs?: ReadonlyMap<string, SecretCodec>;
   /**
-   * The schedule-fire caller mint (stigmer-cloud#572; single-instance
-   * point) — the identity a schedule fire acts as when it re-enters the
+   * The schedule-fire caller mint (single-instance point) — the identity a
+   * schedule fire acts as when it re-enters the
    * execution create pipeline. When composed, the RunStarter propagates
-   * the minted caller through the R5 in-process header on every fire
+   * the minted caller through the in-process caller header on every fire
    * (cron tick and manual trigger alike); when absent, fires enter as
    * the `internal` class — OSS behavior byte-identical.
    */
   readonly scheduleFireCaller?: ScheduleFireCallerMint;
   /**
-   * The identity-account store driver (20260911.11, Q-IA-9;
-   * single-instance point). The identity-account domain is the first
+   * The identity-account store driver (single-instance point). The
+   * identity-account domain is the first
    * whose persistence is a PORT rather than the generic Store: when
    * composed, the domain's every read and write — the create path, the
    * provisioner, the boot-time operator ensure and BOTH OSS verifiers'
@@ -207,8 +196,8 @@ export interface ExtensionDrivers {
    */
   readonly identityAccountStore?: IdentityAccountStore;
   /**
-   * The identity-federation capability (20260911.11, Q-IA-9;
-   * single-instance point): the four federated-account RPC arms plus the
+   * The identity-federation capability (single-instance point): the four
+   * federated-account RPC arms plus the
    * IdP-exists probe their shared precondition rides. When composed, the
    * identity-account controller dispatches to it after its own shared
    * checks; when absent, the four RPCs refuse UNIMPLEMENTED with the
@@ -216,8 +205,8 @@ export interface ExtensionDrivers {
    */
   readonly identityFederation?: IdentityFederation;
   /**
-   * The IamPolicy store driver (20260913.01, Q-OR-10; single-instance
-   * point). The IamPolicy domain's persistence is a PORT like the
+   * The IamPolicy store driver (single-instance point). The IamPolicy
+   * domain's persistence is a PORT like the
    * identity-account domain's: when composed, every row the one grant
    * path writes, deletes or reads — user grants, the structural
    * bootstrap lanes, the access lists and counts — goes through this
@@ -228,7 +217,7 @@ export interface ExtensionDrivers {
    */
   readonly iamPolicyStore?: IamPolicyStore;
   /**
-   * The policy grant scope (20260913.01, Q-OR-3; single-instance point):
+   * The policy grant scope (single-instance point):
    * which kinds a user may grant a role on in this edition, with which
    * roles. Narrows the proto's `grantable_roles`, total over the enum,
    * synchronous (policy-grant-scope.ts carries the reasons). When
@@ -240,8 +229,8 @@ export interface ExtensionDrivers {
    */
   readonly policyGrantScope?: PolicyGrantScope;
   /**
-   * The authorization-query engine (20260913.01, Q-OR-8; single-instance
-   * point): the tuple-half questions — checkAuthorization, the two
+   * The authorization-query engine (single-instance point): the tuple-half
+   * questions — checkAuthorization, the two
    * listAuthorized*Ids, a checkMyPermission with contextual policies —
    * only an authorization backend can answer over its own graph. When
    * composed, the IamPolicy query controller dispatches to it after its

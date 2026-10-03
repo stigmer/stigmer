@@ -6,7 +6,7 @@
  * resolved per mint once the file server binds — stigmer#1089), and the
  * Content-Disposition builder. Adds the factory's r2/unknown refusals
  * (Go's are boot asserted; here they're the disclosed deferral), and the
- * O5 widened surface: size, the typed not-found, presigned-PUT over the
+ * widened surface: size, the typed not-found, presigned-PUT over the
  * skill-transfer-lane mechanism, and registered-driver factory selection.
  */
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -182,7 +182,7 @@ describe("LocalArtifactStorage", () => {
     expect(existsSync(path.join(base, ".health_check"))).toBe(false);
   });
 
-  describe("O5 widened surface", () => {
+  describe("the widened surface", () => {
     it("size stats the stored byte count without loading", async () => {
       await storage.upload("attachments/01S/f.bin", Buffer.from("12345"), "");
       expect(await storage.size("attachments/01S/f.bin")).toBe(5);
@@ -210,7 +210,7 @@ describe("LocalArtifactStorage", () => {
 });
 
 // The local presigned-PUT arm over the REAL skill-transfer-lane slot
-// mechanism (§6b, the Q1 ruling: one upload surface, no new lane) — the
+// mechanism (one upload surface, no new lane) — the
 // adapter below mirrors boot/compose.ts's wiring exactly. The caller names
 // the key; the lane stages under it inside this driver's root.
 describe("LocalArtifactStorage presignPut over the transfer-lane slots", () => {
@@ -306,7 +306,7 @@ describe("newArtifactStorage factory", () => {
     ).toThrow("unknown storage type: s3 (must be 'local' or 'r2')");
   });
 
-  it("selects a registered driver by name — and only constructs the selected one (O5)", () => {
+  it("selects a registered driver by name — and only constructs the selected one", () => {
     let constructed = 0;
     let neverConstructed = 0;
     const fake = { health: () => Promise.resolve() } as unknown as ReturnType<
@@ -337,7 +337,7 @@ describe("newArtifactStorage factory", () => {
     expect(neverConstructed, "unselected drivers must construct nothing").toBe(0);
   });
 
-  it("unknown type names the registered drivers in its refusal (O5)", () => {
+  it("unknown type names the registered drivers in its refusal", () => {
     expect(() =>
       newArtifactStorage(
         { type: "s3", localBasePath: "", localServeUrl: "", ...NO_R2 },

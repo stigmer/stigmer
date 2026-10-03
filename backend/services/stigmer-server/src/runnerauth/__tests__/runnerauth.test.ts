@@ -5,7 +5,7 @@
  * reason leakage), alg-confusion refusal via the encoded-header pin,
  * constant-time signature comparison including the Node length-mismatch
  * guard, and the `now >= exp` expiry boundary. Ports
- * pkg/runnerauth/runnerauth_test.go plus the T01 plan's adversarial arms.
+ * pkg/runnerauth/runnerauth_test.go plus adversarial arms.
  */
 import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";

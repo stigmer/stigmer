@@ -239,7 +239,7 @@ public enum IamPermission
    * account): reserved labels carry platform semantics the server acts
    * on (the personal-environment marker, the default-instance marker,
    * plugin membership and lineage) — so ordinary requests may echo or
-   * remove them but never write them (cloud#320).
+   * remove them but never write them.
    * </pre>
    *
    * <code>can_write_reserved_labels = 37;</code>
@@ -252,7 +252,7 @@ public enum IamPermission
    * the platform's own LLM provider accounts. Read-only and gated to
    * platform operators — provider account health is platform-internal,
    * never org-visible. Deliberately distinct from the manage-class
-   * platform permissions: the standing console only observes (cloud#447).
+   * platform permissions: the standing console only observes.
    * </pre>
    *
    * <code>can_view_provider_standing = 38;</code>
@@ -558,7 +558,7 @@ public enum IamPermission
    * account): reserved labels carry platform semantics the server acts
    * on (the personal-environment marker, the default-instance marker,
    * plugin membership and lineage) — so ordinary requests may echo or
-   * remove them but never write them (cloud#320).
+   * remove them but never write them.
    * </pre>
    *
    * <code>can_write_reserved_labels = 37;</code>
@@ -571,7 +571,7 @@ public enum IamPermission
    * the platform's own LLM provider accounts. Read-only and gated to
    * platform operators — provider account health is platform-internal,
    * never org-visible. Deliberately distinct from the manage-class
-   * platform permissions: the standing console only observes (cloud#447).
+   * platform permissions: the standing console only observes.
    * </pre>
    *
    * <code>can_view_provider_standing = 38;</code>

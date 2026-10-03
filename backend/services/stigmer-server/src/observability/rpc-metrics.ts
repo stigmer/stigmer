@@ -11,7 +11,7 @@
  * of the count series for ten minutes), `grpc-error-rate-spike` (the
  * share of `status_code != OK`) and `grpc-latency-regression-p95` (the
  * duration histogram's buckets), plus the `gRPC RED` dashboard grouped by
- * every label. Convergence entry 20260909.02.
+ * every label.
  *
  * This module is library instrumentation, on `@opentelemetry/api` alone:
  * instruments are created lazily on first use against the GLOBAL meter
@@ -23,7 +23,7 @@
  * no-op forever. Two facts a host must know:
  *
  *   - The counter is BORN AT ZERO by `initRpcMetrics` (Java's constructor
- *     `add(0)`, the heartbeat's premise, cloud#255): an attribute-less
+ *     `add(0)`, the heartbeat's premise): an attribute-less
  *     series exists from the first post-boot export, so the absence rule's
  *     ten-minute window measures the export pipeline, not an RPC-free lull
  *     after a restart. The histogram is deliberately NOT pre-registered —

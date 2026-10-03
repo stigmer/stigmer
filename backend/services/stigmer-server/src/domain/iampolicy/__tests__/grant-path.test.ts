@@ -1,7 +1,6 @@
 /**
- * Pins the ONE grant and revoke path of the IamPolicy domain
- * (T01_0_plan.md §3a "grant-path.ts"; T01_1_review.md Q-OR-1): the two
- * cloud#425 ordering invariants, now living in open source, recorded
+ * Pins the ONE grant and revoke path of the IamPolicy domain: the two
+ * ordering invariants, recorded
  * event by event through a fake store and a recording lifecycle:
  *
  *   - CREATE: the row persists, THEN onPolicyGranted fires. On the
@@ -20,8 +19,7 @@
  *     still holding, since an organization's delete runs it before the
  *     organization's row goes and its owner is the one who retries.
  *   - revokeOrgAccess revokes the account's direct rows on the
- *     organization; the inert org-column arm the cloud carried is gone
- *     (Q-OR-9).
+ *     organization; the inert org-column arm the cloud carried is gone.
  *   - Leaving an organization: once an account holds no row on an
  *     organization, the rows it holds on that organization's resources
  *     go too (shares, team memberships, an owner someone else granted),
@@ -38,8 +36,7 @@
  *     2): the cloud's legacy rows carry random `iamp_<ulid>` ids and must
  *     revoke and deduplicate through this path, so a legacy row makes a
  *     re-grant the duplicate arm and is what `revokeBySpec` deletes.
- *   - The path is the one writer, so it is the one gate (slice 2 ruling
- *     Q-S2-1; T01_3_execution.md S2 slice 1, ruling 2): an unknown
+ *   - The path is the one writer, so it is the one gate: an unknown
  *     resource or principal kind, or a triple holding a delimiter, is
  *     INVALID_ARGUMENT before any read, write or hook — on grant AND on
  *     revoke, so a composition never receives a garbage spec to delete a

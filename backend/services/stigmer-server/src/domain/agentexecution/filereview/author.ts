@@ -31,7 +31,7 @@ import {
 export const ACTOR_USER = "user";
 
 /**
- * Stamps events authored by a platform policy (the DD-28 approved-command
+ * Stamps events authored by a platform policy (the approved-command
  * auto-keep) — never attributed to the user, so the audit trail always
  * shows WHO decided.
  */
@@ -256,7 +256,7 @@ export function targetDigest(
  * its own. Fail-closed: an UNSPECIFIED completeness, an absent change, or
  * an absent set are all not approvable.
  *
- * The binary-acknowledgment carve-out (DD-16 / DD-17): a BINARY file has
+ * The binary-acknowledgment carve-out: a BINARY file has
  * no text diff but its exact bytes are captured and byte-true
  * reconcilable, so acknowledged==true relaxes the completeness gate for
  * binaries — the ONLY relaxation: binary only (never a secret-withheld /
@@ -295,7 +295,7 @@ export function approveBlockedReason(
   // CHANGE_SET scope: a COMPLETE set is approvable as-is. Otherwise the
   // only one-shot keep allowed is a set whose every incompleteness is
   // binary, and only when the user consciously acknowledged it ("Keep
-  // all", DD-17). Re-derived from the actual changes, never the rollup,
+  // all"). Re-derived from the actual changes, never the rollup,
   // so a stale label cannot let a non-binary file ride along.
   if (cs.diffCompleteness === DiffCompleteness.COMPLETE) {
     return "";
@@ -317,7 +317,7 @@ export function isBinaryChange(c: CapturedFileChange): boolean {
 
 /**
  * Whether the set has at least one incomplete change and every incomplete
- * change is binary — the "keep-all is safe" condition (DD-17). The
+ * change is binary — the "keep-all is safe" condition. The
  * enforcement boundary for a CHANGE_SET-scoped acknowledged approve:
  * re-deriving from the changes means a secret-withheld / size-elided file
  * (absent content → not binary) always blocks the bulk keep, whatever the

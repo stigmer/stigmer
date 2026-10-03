@@ -23,8 +23,7 @@ export const file_ai_stigmer_platform_cursoraccount_v1_cursor_account: GenFile =
  * historical single STIGMER_PROXY_CURSOR_API_KEY env var, which is gone.)
  *
  * One document = one Cursor team. It carries two credential classes with
- * strictly different capabilities (verified empirically 2026-07-22, see the
- * harness-cost-parity T04 probe note):
+ * strictly different capabilities (verified empirically 2026-07-22):
  *
  *   - the team ADMIN key ("Team API Keys" dashboard tab) — works ONLY
  *     against the Cursor Admin API (roster, spend, usage events). It can
@@ -42,7 +41,7 @@ export const file_ai_stigmer_platform_cursoraccount_v1_cursor_account: GenFile =
  *     exactly those organizations. Their sessions are served only by this
  *     account's keys; when it has no usable keys, sessions fail with an
  *     explicit operator-actionable error rather than silently spending
- *     another team's quota (DD-008).
+ *     another team's quota.
  *   - SHARED POOL (orgs empty + enabled): the account is part of the
  *     platform-operated pool serving every org with no dedicated account.
  *     Pool sessions may move across pool accounts when their current
@@ -106,7 +105,7 @@ export type CursorAccount = Message<"ai.stigmer.platform.cursoraccount.v1.Cursor
   enabled: boolean;
 
   /**
-   * Deprecated: superseded by the derived shared pool (DD-008). Every
+   * Deprecated: superseded by the derived shared pool. Every
    * enabled account with empty orgs now serves unassigned orgs; a
    * single "default" marker is meaningless under that rule, so selection
    * and the console ignore this field. Kept on the wire for old clients;
@@ -168,7 +167,7 @@ export type CursorAccount = Message<"ai.stigmer.platform.cursoraccount.v1.Cursor
    * When true, member keys whose included API-pool usage crosses the
    * platform soft limit are excluded from NEW-session selection — with
    * on-demand off, an exhausted key can no longer serve third-party
-   * models (T06 probe: runs error, no silent degrade).
+   * models (observed: runs error, no silent degrade).
    *
    * Deliberately the negative of Cursor's "on-demand enabled" wording:
    * proto3 bool absence must mean "assume Cursor's team default
@@ -376,8 +375,8 @@ export type CursorMemberSpend = Message<"ai.stigmer.platform.cursoraccount.v1.Cu
 
   /**
    * Percent (0–100) of the member's blended usage allowance consumed
-   * (Cursor's totalPercentUsed, live-verified 2026-07-22 — the T06
-   * probe observed 22.35 for a member at 22%). 0 when Cursor omits it
+   * (Cursor's totalPercentUsed, live-verified 2026-07-22 — a probe
+   * observed 22.35 for a member at 22%). 0 when Cursor omits it
    * (non-tiered/Enterprise teams). Caution: removed members report a
    * flat 100 here regardless of real usage — roster state, not this
    * field, decides "removed".
@@ -397,7 +396,7 @@ export type CursorMemberSpend = Message<"ai.stigmer.platform.cursoraccount.v1.Cu
   /**
    * Percent (0–100) of the THIRD-PARTY API model pool (Claude/GPT/…)
    * consumed — Cursor's apiPercentUsed. 0 when unreported. This is the
-   * usage-guard metric: the pools diverge hard in practice (T06
+   * usage-guard metric: the pools diverge hard in practice (a probe
    * observed api=100 while total=22.35), so the blended figure must
    * never gate selection.
    *

@@ -1,21 +1,20 @@
 // The escalate_to_human tool — the ONE tool of the conversation roster
-// (channel-conversations DD-008 D-b). A14 named the roster
-// stigmer-conversation, axis-named like stigmer-channels: the
-// conditioning axis is "this session IS a live channel conversation",
-// and the notes/loop-in tools DD-008 anticipates join this roster
-// instead of earning new routes.
+// The roster is named stigmer-conversation, axis-named like
+// stigmer-channels: the conditioning axis is "this session IS a live
+// channel conversation", and later conversation tools (notes, loop-in)
+// join this roster instead of earning new routes.
 //
 // Agent audience only, by construction: escalate derives the
 // conversation identity server-side from the session-scoped credential
-// (the DD-003 identity doctrine), so a direct principal is always
+// (identity is never caller-supplied), so a direct principal is always
 // refused PERMISSION_DENIED — which is why no variant exists on the
 // full roster and why the input surface is a single `reason`.
 //
 // The tool's answer is FIXED COPY, never the RPC's ChannelConversation
 // row — a deliberate divergence from the channels roster's
-// verbatim-proto-JSON convention. A15 rules the result states only what
-// the platform can keep at 3am (attention is a stored flag; no one is
-// paged; no console surface renders it yet) and instructs the agent
+// verbatim-proto-JSON convention. The result states only what the
+// platform can keep at 3am (attention is a stored flag; no one is
+// paged) and instructs the agent
 // never to promise a human or a response time.
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -39,11 +38,12 @@ const ESCALATE_DESCRIPTION = [
 ].join("\n\n");
 
 /**
- * The success answer (A15): states only recorded fact and repeats the
+ * The success answer: states only recorded fact and repeats the
  * no-promise instruction at the moment of temptation — the model's next
- * message to the customer. Deliberately does NOT claim the flag "shows
- * in the team's console": no console surface renders needs_attention
- * yet (the Conversations surface is T04+); add the claim when it ships.
+ * message to the customer. It does NOT claim the flag "shows in the
+ * team's console", although the console now renders needs_attention
+ * (sdk/react ConversationAttentionBanner); adding that claim is a copy
+ * change of its own.
  */
 export const ESCALATION_RECORDED_COPY =
   "Flagged for human attention. Your reason was recorded on this " +

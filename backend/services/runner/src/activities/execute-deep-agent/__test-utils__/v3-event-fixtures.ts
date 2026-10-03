@@ -2,7 +2,7 @@
  * V3 protocol event factories for the translator's and the builder's arms.
  *
  * Shapes are derived from real recordings in /tmp/stigmer-v3-provider/
- * captured during Phase 1 validation with Claude claude-sonnet-4-6.
+ * captured from live runs with Claude claude-sonnet-4-6.
  *
  * Namespaces default to LangGraph 1.3.2's REAL shape (since #1097): a model
  * event arrives under `["model_request:<uuid>"]` and a tool

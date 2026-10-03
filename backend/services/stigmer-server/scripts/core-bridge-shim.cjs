@@ -12,7 +12,7 @@
  *
  * The server deliberately does NOT reuse `@stigmer/runner-slim-<platform>`:
  * sharing native packages would couple the two artifacts' @temporalio
- * version bumps forever (owner ruling, sub-project 20260825.07 T01).
+ * version bumps forever.
  *
  * The dynamic require is intentional: esbuild leaves it as a runtime lookup,
  * which is exactly what platform dispatch needs.

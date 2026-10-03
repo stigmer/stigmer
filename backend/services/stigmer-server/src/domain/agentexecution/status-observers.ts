@@ -1,13 +1,12 @@
 /**
  * Status-observer notification — the domain-owned consumer of the
- * extension registry's status-transition hooks (blueprint 03 §7, DD-006
- * §3; O4 plan-gate ruling Q3, 20260827.07).
+ * extension registry's status-transition hooks.
  *
- * The blueprint drafted the hook "at the updateStatus chokepoint", but
- * the verified reality is FIVE phase-transition persist sites, and a
+ * The hook is not one "updateStatus chokepoint": there are FIVE
+ * phase-transition persist sites, and a
  * finalize observer that misses any of them misses exactly what it
  * exists to settle (user cancels/terminations, start-failure FAILED,
- * workflow-gone FAILED). The ruled design: this ONE notifier is invoked
+ * workflow-gone FAILED). So this ONE notifier is invoked
  * from every site — the site list below is the exhaustive contract,
  * re-verified whenever a new phase write appears:
  *   1. update-status.ts       — the runner's merge chokepoint;
@@ -19,8 +18,8 @@
  * Initial-phase stamping at creation (SetInitialPhase → PENDING) is by
  * definition not a transition and does not notify.
  *
- * Contract rendered here (status-hooks.ts carries the ratified text):
- *   - fires only when the phase actually changed (ruling Q4 — runner
+ * Contract rendered here (status-hooks.ts carries the full text):
+ *   - fires only when the phase actually changed (runner
  *     progress reports repeat the phase many times per execution; the
  *     terminal-vs-not filter stays with the observer);
  *   - observers run in registration order and are awaited, so every
@@ -79,8 +78,8 @@ export async function notifyStatusObservers(
 
 /**
  * Applies the composed response decorators to the UpdateStatus reply
- * (blueprint 03 §7 — the querySignal seam: after the merge, before the
- * reply). Each decorator works on a clone and commits only on success, so
+ * (the querySignal seam: after the merge, before the reply). Each decorator
+ * works on a clone and commits only on success, so
  * a throwing decorator degrades exactly ITS contribution to the defaults
  * (the verified non-fatal posture) — never a partial write, never the
  * RPC. Returns the decorated reply.

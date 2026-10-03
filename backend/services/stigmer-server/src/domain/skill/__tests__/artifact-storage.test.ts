@@ -2,7 +2,7 @@
  * Pins the skill artifact store against Go's artifact_storage_test.go:
  * path layout ({root}/skills/{hash}.zip — cutover inherits Go-written
  * directories), permissions, traversal-guarded reads, and the dedupe
- * surface (exists/getStorageKey). Since O5 the store is the domain port
+ * surface (exists/getStorageKey). The store is the domain port
  * over the local blob driver — the assertions are UNCHANGED from the
  * pre-reconciliation class on purpose: they are the byte-identity proof.
  */

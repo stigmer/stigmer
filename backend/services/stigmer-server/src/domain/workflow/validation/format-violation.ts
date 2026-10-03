@@ -11,7 +11,7 @@
  * configs); the conformance suite pins the exact string (#805). Keep the
  * formatters in lockstep.
  *
- * WATCH ITEM (carried from sub-project #4): the <message> half is
+ * WATCH ITEM: the <message> half is
  * protovalidate's text. Authored CEL messages (what the suite pins) are
  * identical across editions by construction; protovalidate-es's
  * library-generated messages for STANDARD rules could drift from

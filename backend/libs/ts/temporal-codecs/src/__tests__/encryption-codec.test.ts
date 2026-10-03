@@ -1,5 +1,5 @@
 /**
- * Unit tests for the payload-encryption codec (stigmer-cloud#227).
+ * Unit tests for the payload-encryption codec.
  *
  * Covers the codec in isolation, its composition with the claim-check
  * codec (order is load-bearing: encrypt before relocate, so object
@@ -128,7 +128,7 @@ describe("EncryptionPayloadCodec", () => {
     });
   });
 
-  // The resolveKey seam (C4 Stage 2): decrypt-only fallback for key ids
+  // The resolveKey seam: decrypt-only fallback for key ids
   // outside the static pair — the cloud server's database-resident rpk_
   // keys. Pinned properties: resolved keys decode, resolved material is
   // cached (one lookup per id per process), misses are NOT cached, an

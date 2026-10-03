@@ -1770,7 +1770,7 @@ ToolKind is the harness-agnostic category of a tool call.
 | `TOOL_KIND_TODO` | Manage the agent's todo list. |
 | `TOOL_KIND_SUBAGENT` | Delegate work to a sub-agent. |
 | `TOOL_KIND_MCP` | A tool provided by an MCP server. |
-| `TOOL_KIND_MEMORY` | Propose a durable fact about the user for the platform to remember (the first-party remember tool, injected via the synthesized memory attachment when the execution's recall snapshot is enabled — DD-005). |
+| `TOOL_KIND_MEMORY` | Propose a durable fact about the user for the platform to remember (the first-party remember tool, injected via the synthesized memory attachment when the execution's recall snapshot is enabled). |
 
 ### ApprovalPolicySource
 
@@ -1862,7 +1862,7 @@ ExecutionPhase defines the lifecycle phase of an agent execution.
 | `EXECUTION_FAILED` | Execution encountered an unexpected error and could not finish. |
 | `EXECUTION_CANCELLED` | Execution was gracefully stopped by the user before it finished. |
 | `EXECUTION_TERMINATED` | Execution was stopped by the platform. |
-| `EXECUTION_WAITING_FOR_APPROVAL` | Blocked on tool approval (HITL Phase 1). |
+| `EXECUTION_WAITING_FOR_APPROVAL` | Blocked on tool approval. |
 | `EXECUTION_PAUSED` | Execution was paused by user and can be resumed. |
 
 ### BudgetExceededPolicy

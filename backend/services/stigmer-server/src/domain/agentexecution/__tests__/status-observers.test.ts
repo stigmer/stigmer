@@ -1,6 +1,6 @@
 /**
- * Pins the status-hook consumption contract (O4, 20260827.07; DD-006 §3):
- * the Q4 firing rule (phase change only), observer ordering and isolation
+ * Pins the status-hook consumption contract:
+ * the firing rule (phase change only), observer ordering and isolation
  * (a throwing/rejecting observer is logged and never fails the caller),
  * and the decorator clone-commit posture (a throwing decorator degrades
  * exactly ITS contribution — earlier contributions survive, the RPC never
@@ -42,7 +42,7 @@ function execution(id: string) {
 }
 
 describe("notifyStatusObservers", () => {
-  it("fires only when the phase actually changed (ruling Q4)", async () => {
+  it("fires only when the phase actually changed", async () => {
     const seen: AgentExecutionStatusTransition[] = [];
     const { logger } = silentLoggerWithCapture();
     const deps = {

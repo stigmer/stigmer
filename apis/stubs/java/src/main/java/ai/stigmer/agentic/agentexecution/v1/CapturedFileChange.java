@@ -14,8 +14,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * the apply-then-review successor to the tool-call-coupled FileChange in
  * message.proto; the two coexist until the legacy file-change coupling is
  * deleted, at which point this message takes the canonical FileChange name.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.CapturedFileChange}
@@ -949,8 +947,6 @@ private static final long serialVersionUID = 0L;
    * the apply-then-review successor to the tool-call-coupled FileChange in
    * message.proto; the two coexist until the legacy file-change coupling is
    * deleted, at which point this message takes the canonical FileChange name.
-   *
-   * &#64;since File-Change HITL Redesign (Phase 1)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.CapturedFileChange}

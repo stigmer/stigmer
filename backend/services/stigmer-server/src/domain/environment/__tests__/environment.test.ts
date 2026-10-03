@@ -14,7 +14,7 @@
  *     ciphertext row fails LOUD (Internal), never returns junk.
  *
  * Keys are injected via env (vi.stubEnv) so the ladder short-circuits
- * before its file steps — the real ~/.stigmer is never touched (DD-002).
+ * before its file steps — the real ~/.stigmer is never touched.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -70,7 +70,7 @@ async function startServer(env: Record<string, string>): Promise<TestServer> {
       // a live local Temporal (the conformance CRUD harness does the same).
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
       DB_PATH: path.join(dir, "stigmer.db"),
-      // The skill artifact store + staging wipe (#8) must stay inside the
+      // The skill artifact store + staging wipe must stay inside the
       // test dir — the default resolves to ~/.stigmer/storage.
       STORAGE_PATH: path.join(dir, "storage"),
       // Keep the artifact store inside the test dir — the default

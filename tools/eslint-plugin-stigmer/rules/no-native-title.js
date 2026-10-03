@@ -5,7 +5,7 @@
 // invisible on touch. On disabled controls they are unreachable by EVERY
 // input method (`disabled` removes the control from the tab order and the
 // house button styles add `pointer-events-none`), so the user who most needs
-// the explanation can never see it (stigmer/stigmer-cloud#268).
+// the explanation can never see it.
 //
 // The rule flags `title` on anything that renders it into the DOM:
 //   - lowercase JSX elements (`<button title=…>`), and

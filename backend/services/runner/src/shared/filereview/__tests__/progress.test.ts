@@ -1,5 +1,5 @@
 /**
- * Unit tests for mid-run live capture (DD-32):
+ * Unit tests for mid-run live capture:
  *  - `captureProgressDelta` (git-substrate) against a REAL temp git repo — the
  *    only faithful test for git plumbing (kinds, counts, binary, rename→add+del,
  *    tree-unchanged short-circuit, excludePaths).

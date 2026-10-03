@@ -1,18 +1,18 @@
 /**
  * node:sqlite driver — ports backend/libs/go/store/sqlite/store.go
- * method-for-method (D2 §3): same database file, same pragmas, same
+ * method-for-method: same database file, same pragmas, same
  * physical layout (kind = the enum's proto name, data = the marshaled
  * protobuf bytes), same full-scan semantics. Physical indexing is
- * deliberately NOT added in phase 1 (D2 §3, rejected: couples behavior-port
- * risk to storage-redesign risk); the interface's named methods guarantee
- * indexability for the phase-2 Postgres driver.
+ * deliberately NOT added here (it would couple behavior-port risk to
+ * storage-redesign risk); the interface's named methods guarantee
+ * indexability, which the Postgres driver uses.
  *
  * Write serialization: Go used a process-wide mutex around a pooled
  * connection. node:sqlite is synchronous on a single connection, which
- * gives the same serialization for free (D2 §3) — the accepted trade-off
+ * gives the same serialization for free — the accepted trade-off
  * is that a large full-scan read blocks the event loop momentarily, fine
  * at laptop scale where Go ships the same scans. updateResource
- * additionally wraps its read-modify-write in BEGIN IMMEDIATE (D2 §2):
+ * additionally wraps its read-modify-write in BEGIN IMMEDIATE:
  * unlike the in-process mutex, the transaction also excludes OTHER
  * processes sharing the database file.
  *
@@ -22,8 +22,8 @@
  * and COMMIT is synchronous — nothing can interleave into an open
  * transaction on the sole connection.
  *
- * Proven by __tests__/ (migrations incl. the DD-002 Go-database fixture,
- * per-method contracts, the permanent SP-C FTS5 probe) and end-to-end by
+ * Proven by __tests__/ (migrations incl. the Go-database fixture,
+ * per-method contracts, the permanent FTS5 probe) and end-to-end by
  * the conformance suites on local.
  */
 import { mkdirSync } from "node:fs";
@@ -91,7 +91,7 @@ import { rfc3339Seconds } from "../rfc3339.js";
 import { normalizeBm25Score, renderFts5MatchExpression } from "./fts5.js";
 import { runMigrations } from "./migrations.js";
 
-// The logging seam lived here through Phase 1; re-exported after its
+// The logging seam lived here first; re-exported after its
 // promotion to ../logger.ts (second consumer: the Postgres driver) so the
 // import path stays stable for existing consumers.
 export type { StoreLogger } from "../logger.js";
@@ -297,7 +297,7 @@ export class SqliteStore implements Store {
     const db = this.open();
     const kindName = apiResourceKindName(kind);
 
-    // BEGIN IMMEDIATE takes the write lock up front (D2 §2), so the
+    // BEGIN IMMEDIATE takes the write lock up front, so the
     // read-modify-write also excludes other PROCESSES on the same file —
     // strictly stronger than Go's in-process mutex. `modify` is synchronous
     // by contract (interface.ts): nothing can interleave into the open
@@ -871,7 +871,7 @@ export class SqliteStore implements Store {
   ): Promise<AuditRecord> {
     const db = this.open();
     const kindName = apiResourceKindName(kind);
-    // Duplicates for one hash are legal — newest wins (stigmer-cloud#191).
+    // Duplicates for one hash are legal — newest wins.
     const row = db
       .prepare(
         `SELECT data, tag FROM resource_audit
@@ -1191,7 +1191,7 @@ export class SqliteStore implements Store {
       scopeArgs.push(query.orgFilter);
     }
     if (query.authorizedIdsByKind !== undefined) {
-      // The 20260830.01 scoping arm: per-kind resource_id allowlists.
+      // The scoping arm: per-kind resource_id allowlists.
       // An empty set contributes NO clause — that kind matches nothing —
       // and all-kinds-empty renders a constant-false predicate (never an
       // `IN ()` accident, per the interface contract).
@@ -1278,7 +1278,7 @@ export class SqliteStore implements Store {
         query.offset,
       ) as Array<{ kind: string; resource_id: string; rank: number }>;
 
-    // The interface promises wire-ready scores (DD-001): normalize bm25
+    // The interface promises wire-ready scores: normalize bm25
     // here; list mode's pinned 1.0 maps to exactly 1.0 through the same
     // function.
     const hits: SearchIndexHit[] = pageRows.map((row) => ({
@@ -1357,7 +1357,7 @@ class SqliteBootstrapStateStore implements BootstrapStateStore {
 }
 
 // =============================================================================
-// Signal dedupe (Go pkg/domain/workflowexecution/dedupe, Gap B2 / oss#442)
+// Signal dedupe (Go pkg/domain/workflowexecution/dedupe, oss#442)
 // =============================================================================
 
 class SqliteSignalDedupeStore implements SignalDedupeStore {

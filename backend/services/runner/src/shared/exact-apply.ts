@@ -31,8 +31,8 @@
  * stamped from the hook input; see execute-cursor/boundary-rows.ts
  * `applyGateInput`). This is the single copy — there is no separate captured
  * `file_changes` mirror — so "what was shown == what is applied" holds by
- * construction. (Phase 5 Slice 4 removed the redundant `ToolCall.file_changes`
- * copy; `args` was always its source.)
+ * construction. (The redundant `ToolCall.file_changes` copy was removed;
+ * `args` was always its source.)
  *
  * SAFETY — exact-apply writes ONLY a fully-resolved body. It never writes a
  * truncated preview or the elision marker (which would silently corrupt the
@@ -44,7 +44,7 @@
  * end-to-end (real workspace backend + the real deny-oracle hook) in
  * `__tests__/deny-gate-exact-apply.test.ts`. That deterministic runner test is
  * the achievable substitute for a pure-Go offline e2e, which is structurally
- * infeasible (there is no offline Cursor agent driver — see DD-23).
+ * infeasible (there is no offline Cursor agent driver).
  */
 
 import { isAbsolute, relative, resolve } from "node:path";

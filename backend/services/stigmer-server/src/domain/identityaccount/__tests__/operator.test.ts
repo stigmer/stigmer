@@ -1,6 +1,6 @@
 /**
- * Pins the trusted-local operator account (operator.ts; T01_1_review.md
- * A2): the server knows its one principal from config, so the server
+ * Pins the trusted-local operator account (operator.ts): the server knows
+ * its one principal from config, so the server
  * states the fact at boot instead of asking three clients to provision
  * it. `ensureOperatorAccount` is create-if-absent under the derived id of
  * `local|<operator email, or "system">`:

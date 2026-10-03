@@ -1288,7 +1288,7 @@ function emitFromProtoField(buf: string[], f: FieldSchema): void {
 }
 
 // Each set oneof member converts through the member type's own generated
-// converter — one converter, two callers (project DD-017).
+// converter — one converter, two callers.
 function emitFromProtoOneof(buf: string[], fields: FieldSchema[], typeMap: Map<string, TypeSchema>): void {
   for (const f of fields) {
     const protoField = goProtoFieldName(f.protoField);

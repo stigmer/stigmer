@@ -1,9 +1,9 @@
 /**
- * IdentityAccount controller (20260911.11) — the identity-account domain
- * served ONCE by @stigmer/server in every edition (the editions program's
- * tier truth: `identity_account` is open-source tier). The behavioural
- * reference is the cloud's iam/account/handlers.ts, whose twelve direct
- * handlers retire against this module; the byte-pinned copy moved with it
+ * IdentityAccount controller — the identity-account domain
+ * served ONCE by @stigmer/server in every edition (`identity_account` is
+ * open-source tier). The behavioural reference was the cloud's former
+ * iam/account/handlers.ts, whose twelve direct handlers this module
+ * replaced; the byte-pinned copy moved with it
  * (constants.ts). The cloud keeps only what differs per edition — its row
  * store as `drivers.identityAccountStore`, the federated arms as
  * `drivers.identityFederation`, the personal organization as a gate on
@@ -19,7 +19,7 @@
  * AssignBackendFields, Persist through the port, CreateAuthorizationTuples
  * (the lifecycle driver's SELF arm gives the account its self-owner grant
  * in the cloud) — so no account exists that skipped a step. The create
- * RPC is the cloud#393 gate in front of that path (T01_1_review.md A7):
+ * RPC's create gate stands in front of that path:
  * machine / internal / in-process callers only, in every edition. The
  * gate is the RPC's admission rule and deliberately NOT a step in the
  * path, because the provisioner runs the path as the idp-shaped wire user
@@ -35,7 +35,7 @@
  * first for a caller the platform's own sign-in did not vouch for,
  * resolve.ts `mayProvisionDirectAccount`; then the provisioner,
  * then — on the call that CREATED the row — the core AccountCreatedHook
- * (open source's membership rules, 20260913.01 slice 4), then the composed
+ * (open source's membership rules), then the composed
  * post-persist gates; UNAUTHENTICATED with the cloud's copy for a
  * credential naming no subject; UNAVAILABLE with the cloud's copy when
  * userinfo fails).
@@ -139,7 +139,7 @@ import type { IdentityAccountStore } from "./store.js";
 export interface CreateAccountPathDeps {
   readonly accounts: IdentityAccountStore;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
@@ -149,13 +149,12 @@ export interface IdentityAccountControllerDeps extends CreateAccountPathDeps {
   readonly provisioner: DirectAccountProvisioner;
   /** The composed federation capability — undefined = the four RPCs refuse UNIMPLEMENTED. */
   readonly federation: IdentityFederation | undefined;
-  /** The composed slot registrations — this domain's provision slot (Q-IA-9, A10). */
+  /** The composed slot registrations — this domain's provision slot. */
   readonly gateSteps: ResolvedGateSteps;
   /**
    * The core first-provisioning rule — open source's membership rules
    * under the built-in authorization posture; undefined when a
-   * composition brings its own Authorizer and so its own onboarding
-   * (20260913.01, Q-OR-6).
+   * composition brings its own Authorizer and so its own onboarding.
    */
   readonly membership: AccountCreatedHook | undefined;
 }
@@ -305,7 +304,7 @@ export function newCreateAccountPath(
 }
 
 /**
- * The create RPC: the cloud#393 gate, then the path AS the caller. FGA
+ * The create RPC: the create gate, then the path AS the caller. FGA
  * cannot gate this RPC (the account being created IS the principal — the
  * bootstrap problem), so the gate is caller class: the platform's own
  * pipelines only.
@@ -336,7 +335,7 @@ function guardInternalRpc(caller: CallerIdentity): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Update: full-envelope replace with the cloud's writable surface (A9) —
+ * Update: full-envelope replace with the cloud's writable surface —
  * BuildUpdateState preserves id/slug/org/visibility, GuardImmutableSubject
  * refuses a changed subject, AssignBackendFields preserves the rest of
  * what the backend owns from the existing row.
@@ -568,16 +567,16 @@ async function lookupThenAuthorize(
  *      the call that CREATED the row only (`created`): the slot below
  *      fires on the idempotent path by design, and a rule keyed on "holds
  *      no row" there would re-admit a member an administrator had just
- *      revoked (20260913.01 plan finding 2). A throw fails the request
- *      INTERNAL with the row in place and the rule does not run again for
- *      that account — the ratified store-fault mapping, and the one loud
- *      record of the window slice 4's Q-S4-4 accepted: the rule's writes
+ *      revoked. A throw fails the request INTERNAL with the row in place
+ *      and the rule does not run again for that account — the store-fault
+ *      mapping, and the one loud record of the window this design accepts:
+ *      the rule's writes
  *      are idempotent, so a partial run is harmless, and the recovery is
  *      an administrator's grant.
  *   2. The composed post-persist gates (the cloud's personal
  *      organization), on EVERY call — the cloud's step backfills accounts
- *      that predate personal organizations there, which is why Q-IA-9
- *      chose a slot over onResourceCreated. Non-transactional in the
+ *      that predate personal organizations there, which is why this is a
+ *      slot rather than onResourceCreated. Non-transactional in the
  *      `org-create:post-persist` sense: a gate failure fails the request,
  *      the row survives, the next call heals it.
  */
@@ -628,8 +627,8 @@ async function provisionMyAccount(
       throw internalError(error, "failed to record organization membership");
     }
   }
-  // The ratified provision slot (Q-IA-9; the gate-slots.ts header carries
-  // its semantics). Empty in OSS — no pipeline is built for zero steps.
+  // The provision slot (the gate-slots.ts header carries its semantics). Empty
+  // in OSS — no pipeline is built for zero steps.
   const gates = stepsForSlot<typeof IdentityAccountSchema>(
     deps.gateSteps,
     "identity-account-provision:post-persist",

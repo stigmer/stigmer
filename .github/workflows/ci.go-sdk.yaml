@@ -9,7 +9,7 @@
 # workflow built sdk/go, so `make check-go` was red on every developer
 # machine while CI stayed green.
 #
-# Since Bazel's retirement (20260904.04, 2026-09-10) this lane is also the
+# Since Bazel's retirement (2026-09-10) this lane is also the
 # compile gate for the committed Go proto stubs in apis/stubs/go, the same
 # way ci.java-sdk installs apis/stubs/java before building the Java SDK. The
 # stubs need their own step: sdk/go imports none of the stub packages, the

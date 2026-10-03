@@ -45,10 +45,6 @@
  * looked inside the workspace and found nothing). Read-side, the same legacy
  * pass-through was why plan mode needed rule-based read fencing at all. Do not
  * remove this flag: workspace confinement is structural, not policy.
- *
- * @since File-Change HITL Redesign (Phase 3 — CAS deep-agent wiring); sub-agent
- * gitignored capture parity (Session 26, DD-19); shell restore (issue #248);
- * virtual-root confinement (issue #754)
  */
 
 import { FilesystemBackend, LocalShellBackend } from "deepagents";

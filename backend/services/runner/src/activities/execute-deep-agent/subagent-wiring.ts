@@ -70,7 +70,7 @@ export interface SubAgentMiddlewareOptions {
   /**
    * Route the sub-agent's gitignored writes into CAS capture (apply-then-review)
    * instead of the interrupt gate. TRUE iff a CAS observer backs the sub-agent's
-   * filesystem backend (DD-19) — `compileSubagents` derives it from
+   * filesystem backend — `compileSubagents` derives it from
    * `!!casObserver`, keeping the gate and the backend coupled. Default false =
    * the classic gitignored deny-gate, because flowing a gitignored edit on an
    * unobserved backend would apply unreviewable bytes.
@@ -121,7 +121,7 @@ export function buildSubAgentMiddleware(
   stack.push(createToolTruncationMiddleware(options.toolTruncation));
 
   if (options.approvalGate) {
-    // captureIgnored (DD-19): a sub-agent flows gitignored writes — and, since
+    // captureIgnored: a sub-agent flows gitignored writes — and, since
     // issue #303, non-secret CAS-owned deletes — into CAS iff a CAS observer
     // backs its filesystem backend (compileSubagents passes this as
     // `!!casObserver`). When true, inherit the parent gate verbatim so its

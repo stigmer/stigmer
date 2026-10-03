@@ -1,6 +1,6 @@
 /**
  * The listRuns query steps — port pkg/domain/schedule/controller/list_runs.go:
- * the fire-ledger surface (DD-017 D-7). Every fire leaves a row, INCLUDING
+ * the fire-ledger surface. Every fire leaves a row, INCLUDING
  * fires that created no execution (a refused launch gate, a missing target
  * agent), with the refusing gate's copy verbatim: this is the RPC that
  * explains status.consecutive_failures.

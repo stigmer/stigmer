@@ -190,7 +190,7 @@ public interface NotificationTaskConfigOrBuilder extends
    * cannot be resolved.
    *
    * Examples: "incident-alert", "order-confirmation", "approval-request"
-   * Template resolution and rendering is a runtime concern (T13).
+   * Template resolution and rendering is a runtime concern.
    * </pre>
    *
    * <code>string template = 5 [json_name = "template"];</code>
@@ -206,7 +206,7 @@ public interface NotificationTaskConfigOrBuilder extends
    * cannot be resolved.
    *
    * Examples: "incident-alert", "order-confirmation", "approval-request"
-   * Template resolution and rendering is a runtime concern (T13).
+   * Template resolution and rendering is a runtime concern.
    * </pre>
    *
    * <code>string template = 5 [json_name = "template"];</code>

@@ -149,7 +149,7 @@ describe("buildSubAgentMiddleware", () => {
   });
 
   // captureIgnored is the structural coupling that makes sub-agent gitignored
-  // capture safe (DD-19): the gate flows gitignored writes into CAS iff a CAS
+  // capture safe: the gate flows gitignored writes into CAS iff a CAS
   // observer backs the sub-agent's backend (compileSubagents passes !!casObserver).
   describe("captureIgnored (sub-agent CAS routing)", () => {
     it("captureIgnored:true inherits the parent gate verbatim (CAS routing + secret sink preserved)", () => {

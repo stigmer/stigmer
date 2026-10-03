@@ -1,9 +1,9 @@
 // The channels-domain error mapper — the records-domain sibling
-// (DD-004 S-7's recorded posture: siblings share the idiom, never an
+// (siblings share the idiom, never an
 // abstraction over it; each domain documents its own contract).
 //
 // Channel-messaging domain errors carry agent-relayable messages that
-// are contract bytes (proactive-messaging DD-002 D4's error table):
+// are contract bytes (the messaging surface's error table):
 // "this agent has no proactive-messaging channel it can use", "channel
 // is required: this agent serves multiple proactive-enabled channels:
 // …", the OSS "proactive channel messaging requires Stigmer Cloud".
@@ -15,8 +15,8 @@
 // to the shared helper, whose advice is right for them.
 //
 // Typed send outcomes (accepted/queued/refused) never reach this file:
-// they are successful responses by design (DD-002 D4 — policy refusals
-// are answers, not errors).
+// they are successful responses by design (policy refusals are
+// answers, not errors).
 
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -79,7 +79,7 @@ export function domainError(ce: ConnectError): ChannelToolError {
     code: grpcStatusName(ce.code),
   };
   // The messaging RPCs attach google.rpc.ErrorInfo to operator-actionable
-  // preconditions (DD-005 D8); absence means the message alone carries
+  // preconditions; absence means the message alone carries
   // the contract.
   const info = ce.findDetails(ErrorInfoSchema)[0];
   if (info && info.reason !== "") {

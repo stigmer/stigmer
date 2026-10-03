@@ -1,18 +1,17 @@
 /**
- * The Authorizer extension point — the one authorization decision seam of
- * the convergence blueprint (20260826.02 blueprint/03 §5, DD-007), carried
- * by the extension registry from O1 (20260826.09) and CONSUMED by O2,
+ * The Authorizer extension point — the one authorization decision seam,
+ * carried by the extension registry and CONSUMED by the composition,
  * which splices the shared Authorize step at position 1 of every chain and
- * installs the OSS permissive single-team default.
+ * installs open source's Authorizer when no extension registers one.
  *
- * The interface is transcribed verbatim from the ratified design. The
+ * The interface follows the Java edition's design. The
  * `unavailable` arm is deliberate: the Java StepResult distinguishes
  * denial from evaluation error so an authorization-backend outage surfaces
  * as an INTERNAL fault, never a silent lockout dressed as
  * PERMISSION_DENIED. An interface without that distinction would be wrong
  * on day one — the deny/unavailable mapping is wire contract (deny →
- * PERMISSION_DENIED; unavailable → INTERNAL), unit-tested both arms when
- * O2 lands the step.
+ * PERMISSION_DENIED; unavailable → INTERNAL), unit-tested on both arms
+ * (pipeline/steps/__tests__/authorize.test.ts).
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -31,10 +30,9 @@ export interface AuthzCheck {
 }
 
 /**
- * The decision arms (blueprint §5a — deny and unavailable are distinct).
+ * The decision arms (deny and unavailable are distinct).
  *
- * `not-found` is the C2 ruling-Q1 refinement (DD-007 addendum,
- * 20260827.10): for RESOURCE-SCOPED checks, an authorizer that has
+ * `not-found` refines deny: for RESOURCE-SCOPED checks, an authorizer that has
  * verified the target does not exist answers not-found instead of deny —
  * the Authorize step maps it to NOT_FOUND with the domain copy, matching
  * the Java edition's deliberate load-before-authorize order
@@ -60,9 +58,9 @@ export type AuthzDecision =
  * (authorization/posture.ts): an extension's (the cloud registers OpenFGA);
  * open source's built-in authorizer under an authentication posture (the
  * cloud's model evaluated over tuples derived from the row); or the
- * permissive single-team default on the trusted-local laptop (O2). Write
+ * permissive default on the trusted-local laptop. Write
  * concerns — tuple seeding on create — are NOT authorization checks; they
- * ride the post-persist gate slots (blueprint §5b item 4).
+ * ride the post-persist gate slots.
  */
 export interface Authorizer {
   authorize(caller: CallerIdentity, check: AuthzCheck): Promise<AuthzDecision>;

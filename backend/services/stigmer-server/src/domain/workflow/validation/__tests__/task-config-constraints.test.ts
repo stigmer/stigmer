@@ -4,7 +4,7 @@
  * every edition ("the exact-string assertion IS the lockstep
  * verification"). If protovalidate-es renders a different message than
  * protovalidate-go for these arms, THIS file fails before the conformance
- * gate does, and the divergence goes to the owner (the #4 watch item).
+ * gate does, and the divergence goes to the maintainers to decide.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";

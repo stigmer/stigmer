@@ -8,8 +8,8 @@
  * DNS-1123-safe regardless of the id's alphabet or length (resource ids
  * carry prefixes like ses_ that DNS labels reject; hashing sidesteps
  * every alphabet/length edge). The full id travels in a label so the
- * mapping is recoverable from the runtime object alone (gate ruling Q4:
- * runtime-derived state, no store tables).
+ * mapping is recoverable from the runtime object alone (runtime-derived
+ * state, no store tables).
  */
 import { createHash } from "node:crypto";
 
@@ -26,7 +26,7 @@ const SCOPE_CODES: Record<SandboxScope, string> = {
 export const SANDBOX_MANAGED_BY_LABEL = "stigmer.ai/managed-by";
 /** Label carrying the scope ("session" | "workflow" | "connect"). */
 export const SANDBOX_SCOPE_LABEL = "stigmer.ai/scope";
-/** Label carrying the full owning resource id (the Q4 runtime-derived link). */
+/** Label carrying the full owning resource id (the runtime-derived link). */
 export const SANDBOX_ID_LABEL = "stigmer.ai/sandbox-id";
 
 export const SANDBOX_MANAGED_BY_VALUE = "stigmer-server";

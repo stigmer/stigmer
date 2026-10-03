@@ -1,5 +1,5 @@
 /**
- * Unit tests for the rollover context bridge (cloud DD-013): the pinned
+ * Unit tests for the rollover context bridge: the pinned
  * cross-repo metadata key, the read semantics, and the shared framing.
  */
 

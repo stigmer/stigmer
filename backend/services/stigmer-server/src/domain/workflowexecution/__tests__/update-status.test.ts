@@ -6,7 +6,7 @@
  * phase-transition-only statusAudit bump (the recents-ordering contract
  * shared with the cloud handler).
  *
- * Plus the DD-001 mechanism pins Go cannot have (its updateStatus is
+ * Plus the mechanism pins Go cannot have (its updateStatus is
  * load-then-save): updateStatus persists through the store's atomic
  * updateResource — proven by a counting store (a saveResource write here
  * would be the lost-update regression) and by a concurrent
@@ -401,7 +401,7 @@ describe("presence-guarded field merges (BuildNewStateWithStatus)", () => {
   });
 });
 
-describe("updateStatus persistence mechanism (DD-001)", () => {
+describe("updateStatus persistence mechanism", () => {
   let dir: string;
   let store: SqliteStore;
   let broker: StreamBroker;
@@ -492,7 +492,7 @@ describe("updateStatus persistence mechanism (DD-001)", () => {
     ).toBe(0);
   });
 
-  it("concurrent different-children updates both survive (the DD-001 race)", async () => {
+  it("concurrent different-children updates both survive (the lost-update race)", async () => {
     const id = "wfx_race";
     await seed(id);
 

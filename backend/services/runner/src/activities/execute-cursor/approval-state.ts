@@ -71,7 +71,7 @@
  *   secret hard-block or a fail-closed deny must never surface an approval the
  *   user cannot meaningfully grant.
  * - The FULL ledger (all kinds) means "these actions did NOT execute": it feeds
- *   capture stamping and DD-28 provenance, and it is the ATTRIBUTION set for
+ *   capture stamping and approved-command provenance, and it is the ATTRIBUTION set for
  *   issue #205 — a hook-blocked tool call with NO ledger entry of any kind was
  *   blocked by a FOREIGN hook (or a failed ledger append), an invariant
  *   violation the turn boundary surfaces instead of completing silently.
@@ -161,7 +161,7 @@ export interface ApprovalGrant {
   /**
    * Id of the adjudicated tool call this grant was minted from — the transcript
    * row carrying the SERVER-authored approval_action. The approved-command
-   * auto-keep provenance (DD-28) cites this row as the consent the backend can
+   * auto-keep provenance cites this row as the consent the backend can
    * verify; the hook itself never reads it.
    */
   sourceToolCallId: string;
@@ -226,7 +226,7 @@ export interface ApprovalStateFile {
    */
   captureIgnored: boolean;
   /**
-   * Whether the primary workspace is a git work tree (Slice 2c). Selects the
+   * Whether the primary workspace is a git work tree. Selects the
    * hook's capture substrate:
    *  - `true` (default): git tree — git-tracked write/edit/delete flow freely
    *    (the runner captures them from the git diff at the turn boundary); only a
@@ -239,8 +239,8 @@ export interface ApprovalStateFile {
    */
   gitWorkspace: boolean;
   /**
-   * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED,
-   * DD-014): the creating surface — a messaging channel, a guest share — has
+   * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED):
+   * the creating surface — a messaging channel, a guest share — has
    * no approver. What is gated is UNCHANGED; only the resolution differs: a
    * deny that would be recorded kind "approval" (pausing) is recorded kind
    * "unattended" (non-pausing) with an adapt-and-explain agent message, so
@@ -361,7 +361,7 @@ export function toolCallArgs(tc: ToolCall): Record<string, unknown> {
  * can recompute base64 but not a keyed HMAC over a workspace-root-normalized
  * salient). This fingerprint is the cross-substrate, anti-forgery identity used
  * for the runner-side shadow receipt today and as the successor wire token once a
- * lease becomes a server-issued bearer token (Phase 7). Because it shares the
+ * lease becomes a server-issued bearer token. Because it shares the
  * exact category + salient the token uses, the hook-side and stream-side
  * fingerprints of one action are equal by construction (see the parity tests).
  */
@@ -375,7 +375,7 @@ export function grantFingerprint(key: FingerprintKey, grant: ApprovalGrant): str
 
 /**
  * Emit a best-effort shadow ExecutionReceipt for each grant the runner issues
- * this turn (Phase 2, mirror of the deep-agent gateway's receipt).
+ * this turn (the mirror of the deep-agent gateway's receipt).
  *
  * Cursor executes tools out-of-process, so unlike the in-process deep-agent
  * gateway the runner cannot observe the actual side effect — the receipt is
@@ -552,11 +552,11 @@ const DENIAL_LEDGER_FILE = "denials.jsonl";
  * - `approval`      — the normal gate: the runner surfaces it as a
  *                     WAITING_APPROVAL pause. The ONLY kind that pauses.
  * - `unattended`    — the same gate resolved under UNATTENDED approval mode
- *                     (DD-014): the surface has no approver, so the deny is
+ *                     — the surface has no approver, so the deny is
  *                     final for this turn — non-pausing, the agent was told
  *                     to adapt, and the turn boundary stamps the call
  *                     TOOL_CALL_SKIPPED with UNATTENDED_SKIP provenance.
- * - `secret`        — DD-26 secret hard-block: intentional, non-pausing (the
+ * - `secret`        — secret hard-block: intentional, non-pausing (the
  *                     agent was told to move on), recorded content-free.
  * - `capture-error` — CAS staging failed; the write stayed on the deny-gate.
  *                     Content-free (the staging error means secret
@@ -604,7 +604,7 @@ export const DISABLED_DENIAL_KIND: DenialKind = "disabled";
  * the gated tool call so the approval card can show the proposed content/diff
  * before the user approves. Absent when the hook ran its grep fallback (the Node
  * binary was unavailable) — the gate then degrades to stream-recovered args —
- * and ALWAYS absent for non-approval kinds (DD-26: only an approval-kind entry
+ * and ALWAYS absent for non-approval kinds (only an approval-kind entry
  * may carry proposed content).
  */
 export interface DeniedLedgerEntry {
@@ -623,7 +623,8 @@ export function denialKindOf(entry: DeniedLedgerEntry): string {
  * The entries that pause the run for user approval — the ONLY kind
  * reconcileDeniedToolCalls may turn into WAITING_APPROVAL gates and the only
  * kind the first-denial stop may cancel the run for. Every other consumer
- * (capture stamping, DD-28 provenance, foreign-hook attribution) wants the FULL
+ * (capture stamping, approved-command provenance, foreign-hook attribution)
+ * wants the FULL
  * ledger: all kinds mean "this action did not execute".
  */
 export function approvalDenials(entries: readonly DeniedLedgerEntry[]): DeniedLedgerEntry[] {
@@ -631,7 +632,7 @@ export function approvalDenials(entries: readonly DeniedLedgerEntry[]): DeniedLe
 }
 
 /**
- * The entries the UNATTENDED approval mode resolved (DD-014) — never pausing,
+ * The entries the UNATTENDED approval mode resolved — never pausing,
  * consumed by the turn boundary's `stampUnattendedSkippedToolCalls` to
  * terminalize the corresponding streamed tool calls as TOOL_CALL_SKIPPED with
  * UNATTENDED_SKIP provenance, so both harnesses persist the same honest shape.

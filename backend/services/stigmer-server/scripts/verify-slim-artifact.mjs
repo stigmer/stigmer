@@ -15,8 +15,7 @@
  *   1. the "stigmer-server listening" transport log,
  *   2. "All Temporal workers started" — all three workers created from the
  *      pre-built bundles through the native bridge,
- *   3. the console lane answers over live HTTP (DD-012; the #24 lesson —
- *      packaging gaps are invisible at PR time unless a gate exercises
+ *   3. the console lane answers over live HTTP (packaging gaps are invisible at PR time unless a gate exercises
  *      the artifact): /config.json is the trusted-local document (the
  *      shared probe in test/install/lib/stigmer-smoke.mjs; #1087), the root
  *      and a dynamic deep link serve documents, an unknown URL serves the
@@ -68,7 +67,7 @@ if (!existsSync(join(slimDir, "main.js"))) {
 const isolated = mkdtempSync(join(tmpdir(), "verify-slim-artifact-"));
 cpSync(slimDir, isolated, { recursive: true });
 
-// Console assets must ride the artifact (DD-012): assert the lane's two
+// Console assets must ride the artifact: assert the lane's two
 // load-bearing documents before boot so a staging regression names itself.
 for (const consoleFile of ["console/index.html", "console/404.html"]) {
   if (!existsSync(join(isolated, consoleFile))) {

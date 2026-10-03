@@ -12,18 +12,17 @@
  * unrepresentable here.
  *
  * Status writes go through store.updateResource — the OSS equivalent of
- * the cloud's targeted leaf patches (DD-015 D-C): SQLite stores one
+ * the cloud's targeted leaf patches: SQLite stores one
  * protobuf blob, so the atomic read-modify-write under the store's write
  * lock is what keeps a concurrent `stigmer apply` from clobbering the
  * stamp (and vice versa). status.next_fire_at is the contract's arming
  * witness: stamped from Temporal's own answer when armed, cleared when the
  * artifact is paused, absent while nothing has converged.
  *
- * Go's Clock/Syncer also carries a Trigger method (the DD-014
- * artifact-trigger lane); DD-017 D-5 rewired the trigger RPC to the
- * direct-run path and left it with zero production callers, so this port
- * deliberately omits it (sub-project decision 2, owner-ratified at the
- * plan gate; disclosed in the PR register).
+ * Go's Clock/Syncer also carries a Trigger method (the artifact-trigger
+ * lane); the trigger RPC runs through the direct-run path instead, which
+ * left it with zero production callers, so this port deliberately omits
+ * it.
  */
 import type { Client, ScheduleDescription } from "@temporalio/client";
 import { ScheduleAlreadyRunning, ScheduleNotFoundError } from "@temporalio/client";
@@ -45,7 +44,7 @@ import { ensureStatus } from "./status-writes.js";
 /**
  * The syncer's answer when no Temporal client exists right now (Go
  * ErrTemporalUnavailable). Callers on the write path treat it as "converge
- * later" (arming is best-effort — DD-015 D-A).
+ * later" (arming is best-effort).
  */
 export class TemporalUnavailableError extends Error {
   constructor() {

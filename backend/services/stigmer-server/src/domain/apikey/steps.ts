@@ -1,5 +1,5 @@
 /**
- * ApiKey domain steps (O3, 20260827.06) — the three steps the canonical
+ * ApiKey domain steps — the three steps the canonical
  * chains do not provide, mirroring the cloud Java handlers' domain steps:
  *
  *   - GenerateApiKey (Java ApiKeyCreateHandler.GenerateApiKey): mints the
@@ -12,15 +12,13 @@
  *     is the ONLY time the plaintext ever leaves the server; the store
  *     and audit rows hold the hash. The INTERNAL copy is byte-pinned to
  *     the Java step's.
- *   - PreserveKeyMaterial (O3 gate ruling Q9): update keeps spec.key_hash
- *     and spec.fingerprint from the STORED resource, so only the expiry
- *     fields are client-mutable. Ruling Q9's original impersonation
- *     rationale was corrected by stigmer-cloud#544's execution: the Java
- *     pipeline's computed-field clearing already strips both fields from
- *     every update request (forgery never persisted) — but nothing
- *     restored them, so every Java update persisted EMPTY key material
- *     and bricked the key. Both editions now strip-and-restore: this
- *     step here, ApiKeyUpdateHandler.PreserveKeyMaterial there. The
+ *   - PreserveKeyMaterial: update keeps spec.key_hash and
+ *     spec.fingerprint from the STORED resource, so only the expiry
+ *     fields are client-mutable. The point is not forgery: the Java
+ *     pipeline's computed-field clearing already stripped both fields
+ *     from every update request — but nothing restored them, so every
+ *     Java update persisted EMPTY key material and bricked the key. This
+ *     step strips and restores, in every edition. The
  *     shared contract is pinned by the apikey conformance suite's
  *     update-immutability arm.
  */
@@ -103,8 +101,7 @@ export function newReplaceHashWithPlainTextStep(): PipelineStep<ApiKeyDesc> {
 /**
  * Restores key material from the stored resource after BuildUpdateState —
  * expiry fields (expires_at, never_expires) remain the only client-mutable
- * spec surface (ruling Q9; the module header carries the security
- * rationale).
+ * spec surface (the module header carries the reason).
  */
 export function newPreserveKeyMaterialStep(): PipelineStep<ApiKeyDesc> {
   return {

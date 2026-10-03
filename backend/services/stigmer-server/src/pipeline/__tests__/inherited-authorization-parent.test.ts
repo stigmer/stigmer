@@ -2,7 +2,7 @@
  * Pins `inheritedAuthorizationParentOf` (pipeline/apiresource-meta.ts):
  * the kind_meta question "is this kind's authorization its parent's
  * whole?", answered by the PARENT-scope + INHERITED-owner pair and by
- * nothing else (stigmer-cloud 20260913.04 T04, Q-LB-34).
+ * nothing else.
  *
  * The table below is the WHOLE kind enum, on purpose. The list read scope
  * carries `authorizationParent` for exactly the kinds this function names,

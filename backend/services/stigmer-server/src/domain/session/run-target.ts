@@ -1,5 +1,5 @@
 /**
- * The session run-target resolver (P1 sp.run-gate): a session bound to an
+ * The session run-target resolver: a session bound to an
  * agent instance has that instance as its run target —
  * agent_instance#can_execute on spec.agent_instance_id.
  *

@@ -6,13 +6,13 @@
  * (satisfied by the clock's ScheduleSyncer). Undefined until the server
  * wires it — and possibly forever, when Temporal was never configured:
  * every consumer below degrades instead of refusing, because "no Temporal
- * right now" is a supported OSS state (DD-015 D-A) and a declarative
+ * right now" is a supported OSS state and a declarative
  * resource must be writable offline. The reconciliation pass converges
  * whatever was written while the clock was away.
  *
- * Go's Clock also declares Trigger (the DD-014 artifact-trigger lane);
- * DD-017 D-5 left it with zero production callers, so this seam
- * deliberately omits it (sub-project decision 2, owner-ratified).
+ * Go's Clock also declares Trigger (the artifact-trigger lane); manual
+ * fires stopped using it, leaving it with zero production callers, so
+ * this seam deliberately omits it.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -51,7 +51,7 @@ export type ClockProvider = () => ScheduleClock | undefined;
  * Non-critical in every outcome: a failed arm logs and succeeds, because
  * the write already happened and the reconciliation pass is the
  * correctness path. Refusing here would tear declarative writes away from
- * offline use for no gain (DD-015 D-A).
+ * offline use for no gain.
  */
 export function newArmScheduleStep(
   clock: ClockProvider,
@@ -122,7 +122,7 @@ async function armAndMirror(
 }
 
 /**
- * Deletes the artifact AFTER the row delete (DD-008 D9: the row is the
+ * Deletes the artifact AFTER the row delete (the row is the
  * source of truth — a failed row delete must never tear down a live
  * schedule's clock, so this step only ever runs once the delete
  * succeeded). Non-critical: an orphaned artifact cannot fire past

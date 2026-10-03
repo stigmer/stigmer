@@ -17,9 +17,8 @@
  * collision-free in both namespaces at once.
  *
  * Located scopes (v3 writes): the vault-backed enc:v3: codec derives a KV
- * path `{tenant}/{kind}/{id}/{key}` (enc-v3-wire-format.md in the vault
- * migration project docs), so v3 writes need a scope carrying kind and id
- * — built with forOrganizationResource / forPlatformResource. The v1/v2
+ * path `{tenant}/{kind}/{id}/{key}`, so v3 writes need a scope carrying kind
+ * and id — built with forOrganizationResource / forPlatformResource. The v1/v2
  * codecs ignore location entirely, so their call sites use
  * forOrganization unchanged (the pre-v3 posture, kept deliberately —
  * write paths adopt located scopes only when a v3 write flip demands

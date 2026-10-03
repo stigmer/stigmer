@@ -76,7 +76,7 @@ describe("parseFrontmatter", () => {
     );
   });
 
-  it("rejects a BOM'd first line — Go's TrimSpace does not strip U+FEFF (#8 parity review)", () => {
+  it("rejects a BOM'd first line — Go's TrimSpace does not strip U+FEFF", () => {
     expect(() => parseFrontmatter(`\uFEFF${skillMd("name: bom-skill")}`)).toThrow(
       "SKILL.md must start with YAML frontmatter (---)",
     );

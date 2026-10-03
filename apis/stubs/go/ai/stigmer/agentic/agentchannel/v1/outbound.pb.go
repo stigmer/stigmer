@@ -165,7 +165,7 @@ type ChannelOutboundMessage struct {
 	// Session of the originating agent run; empty for direct operator
 	// sends, which have no session.
 	SessionId string `protobuf:"bytes,4,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// How the send was authorized (DD-002 D9's surface-aware policy).
+	// How the send was authorized (the surface-aware recipient policy).
 	Origin ChannelOutboundOrigin `protobuf:"varint,5,opt,name=origin,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin" json:"origin,omitempty"`
 	// External recipient key on the channel's provider (WhatsApp: wa_id).
 	Recipient string `protobuf:"bytes,6,opt,name=recipient,proto3" json:"recipient,omitempty"`

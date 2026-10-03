@@ -5,7 +5,7 @@
  * without rows get deleted.
  *
  * In cloud this pass is belt-and-braces behind a non-critical arming step.
- * In OSS it is LOAD-BEARING (DD-015 D-B): `stigmer up` runs a managed
+ * In OSS it is LOAD-BEARING: `stigmer up` runs a managed
  * Temporal DEV SERVER whose state is a local SQLite file — a restart,
  * crash, or reset destroys every artifact, and without this pass every
  * schedule would silently never fire again. That is also why
@@ -13,11 +13,11 @@
  * a reconnect is precisely the moment the artifacts are most likely to be
  * gone.
  *
- * Lifecycle in TS idiom (sub-project decision 4, owner-ratified): Go's
+ * Lifecycle in TS idiom: Go's
  * goroutine+channel loop becomes an unref'd interval plus a kick queue
  * with an explicit stop() called from the compose shutdown — nothing may
- * fire after shutdown (the #18 manager-close panel lesson). Semantics are
- * preserved exactly: an immediate boot pass, periodic passes gated by the
+ * fire after shutdown. Semantics are preserved exactly: an immediate
+ * boot pass, periodic passes gated by the
  * env kill-switch, and kicked passes that ALWAYS run (reconnect
  * convergence is correctness, not hygiene).
  */
@@ -210,7 +210,7 @@ export class ScheduleReconciler {
       });
     }
 
-    // Phase 4: fire-ledger retention (DD-017 D-7) — the clock's one
+    // Phase 4: fire-ledger retention — the clock's one
     // periodic hook, so the ledger's bound needs no machinery of its own.
     await pruneRunLedger(
       this.store,
@@ -278,7 +278,7 @@ export class ScheduleReconciler {
    * bricked), stop() would rethrow into the compose shutdown, and an
    * unawaited rejection kills the process under Node's default policy.
    * runPass already catches per-phase errors; this is the backstop for
-   * the invariant no type can enforce (panel finding).
+   * the invariant no type can enforce.
    */
   private enqueuePass(): Promise<void> {
     if (this.stopped) {

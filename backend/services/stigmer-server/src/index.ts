@@ -1,5 +1,5 @@
 /**
- * The @stigmer/server library contract (DD-005, sub-project 20260826.09).
+ * The @stigmer/server library contract.
  *
  * This file IS the blessed surface: the package.json exports map resolves
  * the bare package name here and nowhere else, so everything a consumer
@@ -8,7 +8,7 @@
  * into dist/ internals are unsupported; anything a consumer needs that is
  * not exported is a seam request to OSS, never a reach-around. Additions
  * to this file are owner-visible surface changes, extended only through
- * gates (the DD-005 review property: a surface change is a one-file diff).
+ * gates (a surface change is a one-file diff, which keeps it reviewable).
  *
  * One data file is published beside it, through its own exports entry:
  * `@stigmer/server/authorization-model.json`, the compiled authorization
@@ -16,29 +16,27 @@
  * file's contract). Every edition reads those bytes: this server
  * evaluates them, and an edition that runs OpenFGA applies them.
  *
- * The surface is exactly what the ratified architecture names (blueprint
- * 20260826.02/03 §1) and the parameter types those entries force:
+ * The surface is exactly the entries below and the parameter types those
+ * entries force:
  *   - the compose entry and config loading (composeServer + its options'
  *     required types: ServerConfig via loadConfig, Logger via createLogger)
- *   - the extension-point types (§2 — the whole src/extensions contract)
+ *   - the extension-point types (the whole src/extensions contract)
  *   - the pipeline primitives extensions build gates AND extension-
  *     registered services from (PipelineStep, RequestContext, the semantic
- *     error helpers, and the typed store not-found errors the ratified
- *     store-fault mapping keys on; C4 Stage 3 added the dispatch-policy
- *     configs and the loaded-execution context key its capacity gates
- *     consume; C4 Stage 4 added the executor, the identity read idiom,
- *     and the two chain-front steps so extension services run the SAME
- *     request idiom OSS controllers run)
- *   - the driver interfaces (Store, ArtifactStorage; O5 added §6a/§6b/§6c —
- *     ModelCatalogProvider, the widened storage surface, and
- *     RunnerCredentialProvider; O6 added §6d — SandboxProvisioner and its
+ *     error helpers, and the typed store not-found errors the store-fault
+ *     mapping keys on; the dispatch-policy configs and the
+ *     loaded-execution context key capacity gates consume; the executor,
+ *     the identity read idiom, and the two chain-front steps so extension
+ *     services run the SAME request idiom OSS controllers run)
+ *   - the driver interfaces (Store, ArtifactStorage, ModelCatalogProvider,
+ *     RunnerCredentialProvider, SandboxProvisioner and its
  *     factory/registration types)
- *   - the worker factory types extension workers implement (§8)
- *   - the Postgres driver constructor (20260910.04 ruling 4), for a
- *     composition that shares ONE database with this chain
+ *   - the worker factory types extension workers implement
+ *   - the Postgres driver constructor, for a composition that shares ONE
+ *     database with this chain
  *
  * The package publishes to npm in lockstep with every other @stigmer/*
- * package (stigmer-cloud project 20260910.04, amending DD-005): this file
+ * package: this file
  * is the versioned contract a consumer pins by exact version. Everything
  * below the barrel is internal and may change between releases without
  * notice; everything on it changes only through a gate. The same server
@@ -65,7 +63,7 @@ export type {
   LogSink,
 } from "./boot/logger.js";
 
-// The extension-point types (DD-006 — the seven-point registry).
+// The extension-point types (the seven-point registry).
 export type {
   ExtensionServiceRegistration,
   ResolvedExtensions,
@@ -82,7 +80,7 @@ export type {
   CallerIdentity,
   IdentityVerifier,
 } from "./extensions/identity.js";
-// The 20260902.02 seam: post-authentication caller guards
+// Post-authentication caller guards
 // (ServerExtension.callerGuards) — enforcement of the MINTING CLIENT's
 // contract, run by the serving chassis after the position-1 identity
 // stamp and never by the in-process chain (the structural exemption).
@@ -91,11 +89,11 @@ export type {
 // mapping (ConnectError = the guard's wire shape; any other throw =
 // INTERNAL), and the ordering.
 export type { CallerGuard } from "./extensions/caller-guards.js";
-// The caller-identity read idiom for extension-registered services (C2
-// Stage 3, 20260827.10): extension RPC handlers traverse the same
+// The caller-identity read idiom for extension-registered services:
+// extension RPC handlers traverse the same
 // interceptor chain as OSS controllers, so the identity stamped at chain
 // position 1 is already on the HandlerContext — the exported accessor
-// below (with the R5 propagation surface) is the ONE sanctioned way to
+// below (with the in-process propagation surface) is the ONE sanctioned way to
 // read it.
 export type {
   Authorizer,
@@ -111,7 +109,7 @@ export type {
 } from "./extensions/status-hooks.js";
 export type { ExtensionDrivers } from "./extensions/drivers.js";
 export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
-// The C2 seams (20260827.10): the tuple-lifecycle driver point and the
+// The authorization seams: the tuple-lifecycle driver point and the
 // organization query directory, plus the shape-policy helpers a driver's
 // tests pin against.
 export type {
@@ -152,7 +150,7 @@ export {
   relaxedEgressPolicy,
   strictEgressPolicy,
 } from "./extensions/outbound-egress.js";
-// The 20260911.11 identity-account seams (Q-IA-9): the store PORT a
+// The identity-account seams: the store PORT a
 // composition drives the domain through (drivers.identityAccountStore;
 // a driver throws DuplicateAccountError for a held id), the federation
 // capability (drivers.identityFederation), and the ONE subject →
@@ -178,7 +176,7 @@ export type {
   PortContractFixture,
 } from "./store/port-contract.js";
 export { portContractCases } from "./store/port-contract.js";
-// The 20260913.01 IamPolicy seams (Q-OR-1, Q-OR-10): the store PORT a
+// The IamPolicy seams: the store PORT a
 // composition drives the domain's grant path through (drivers.iamPolicyStore;
 // a driver throws DuplicatePolicyError for a held id) and its vitest-free
 // contract kit; the grant scope (drivers.policyGrantScope — which kinds an
@@ -307,14 +305,14 @@ export { restrictListByReadScope } from "./extensions/list-read-scope.js";
 // which that idiom answers before any driver is asked: exported so a
 // composition's driver refuses the class exactly as the built-in one does.
 export { InternalCallerOfferedError } from "./extensions/list-read-scope.js";
-// The stigmer-cloud#572 seam: the identity a schedule fire acts as
+// The identity a schedule fire acts as
 // (drivers.scheduleFireCaller) — the composition mints it per fire; the
-// RunStarter propagates it through the R5 in-process header. A mint that
+// RunStarter propagates it through the in-process caller header. A mint that
 // can act as nobody throws the seam's typed refusal, which the RunStarter
 // counts against the schedule instead of retrying.
 export type { ScheduleFireCallerMint } from "./extensions/schedule-fire-caller.js";
 export { ScheduleFireCallerRefusedError } from "./extensions/schedule-fire-caller.js";
-// The 20260830.03 seam: the visitor-sanitization policy the serving
+// The visitor-sanitization policy the serving
 // chain's error boundary consumes (drivers.visitorErrorPolicy) — the
 // composition supplies WHO is on the anonymous surface and WHAT copy
 // replaces a leak-prone description; the boundary owns the mechanism
@@ -356,12 +354,12 @@ export {
   unavailableError,
 } from "./pipeline/errors.js";
 export type { RefusalReason } from "./pipeline/errors.js";
-// The shared slug derivation (C2 Stage 3): extension-registered resource
+// The shared slug derivation: extension-registered resource
 // kinds derive slugs with the SAME generator both editions pin
 // (ApiRequestResourceSlugGenerator parity) — the semantics live exactly
 // once.
 export { generateSlug } from "./pipeline/steps/slug.js";
-// The in-process caller-propagation surface (ruling R5): extension code
+// The in-process caller-propagation surface: extension code
 // composing requests through the in-process transport AS a caller rides
 // the same header the OSS asCaller adapters use. (callerIdentityOf and
 // callerIdentityKey ride the request-idiom export block below.)
@@ -375,16 +373,16 @@ export {
   serverActingFor,
 } from "./pipeline/interceptors/auth.js";
 
-// The request idiom for extension-REGISTERED services (C4 Stage 4): a
+// The request idiom for extension-REGISTERED services: a
 // service contributed through ServerExtension.services runs the same
 // chain shape every OSS controller runs — identity read once
 // (callerIdentityOf), then Authorize (descriptor-driven from the
-// `(ai.stigmer.commons.rpc.config)` method options, owning the ratified
+// `(ai.stigmer.commons.rpc.config)` method options, owning the
 // three-arm decision mapping and the `internal`-caller skip) and
 // ValidateProto at the chain front, executed by the pipeline (which owns
 // the sanitized-Internal error contract). Blessing these keeps
 // authorization and validation semantics single-definition: an extension
-// hand-rolling either would re-derive ratified wire behavior.
+// hand-rolling either would re-derive pinned wire behavior.
 // callerIdentityKey is the stamp side of the same contract — production
 // stamping stays the interceptors' job, but an extension's OWN service
 // tests must stamp what the serving chain stamps (the auth.test.ts
@@ -393,8 +391,8 @@ export {
   callerIdentityKey,
   callerIdentityOf,
 } from "./pipeline/interceptors/auth.js";
-// The serving chassis factory (20260902.02, the error-boundary
-// precedent): a composition's OWN tests must drive its caller guards
+// The serving chassis factory (on the error boundary's precedent): a
+// composition's OWN tests must drive its caller guards
 // through the REAL stamp→guard mechanism — the walk order, the fault
 // mapping, the refusal pass-through — never a re-derivation. Production
 // wiring stays compose.ts's job.
@@ -457,7 +455,7 @@ export {
 } from "./pipeline/steps/authorize-resolved-target.js";
 export { TARGET_RESOURCE_KEY } from "./pipeline/steps/load-target.js";
 
-// The driver interfaces and the store-fault classes the ratified mapping
+// The driver interfaces and the store-fault classes the store-fault mapping
 // keys on (typed not-found → NotFound; anything else rethrows as an
 // infrastructure fault — the guidelines' instanceof idiom).
 export type { Store, StoreOpenOptions } from "./store/interface.js";
@@ -488,13 +486,13 @@ export type {
   ListIndexQuery,
   ListIndexRow,
 } from "./store/list-index.js";
-// The maintenance-surface row shape (20260830.04 Stage 1, ruling Q3):
+// The maintenance-surface row shape:
 // what findResourcesRawOrderedAfter pages and what
 // replaceResourceDataIfUnchanged guards on — the secret-convergence
 // sweep's storage contract.
 export type { RawResourceDocument } from "./store/interface.js";
-// The Postgres driver constructor (stigmer-cloud 20260910.04 ruling 4;
-// the newR2ArtifactStorage precedent for blessing a driver constructor).
+// The Postgres driver constructor (blessed on the newR2ArtifactStorage
+// precedent for exporting a driver constructor).
 // A composition that runs its own schema chain in the SAME database as
 // this chain needs the OSS tables provisioned in its DB-backed tests
 // exactly as production provisions them: PostgresStore.open runs the
@@ -502,7 +500,7 @@ export type { RawResourceDocument } from "./store/interface.js";
 // internal — a consumer gets the driver, never the DDL — so the chain's
 // shape is not a contract and nothing outside this package can replay it
 // piecemeal. Not for production wiring: compose.ts selects the driver from
-// config (DD-010), and a composition never opens a second store.
+// config, and a composition never opens a second store.
 export { PostgresStore } from "./store/postgres/store.js";
 export type {
   ArtifactStorage,
@@ -511,25 +509,25 @@ export type {
   StagedUploadLane,
 } from "./artifactstorage/artifact-storage.js";
 export { ArtifactStorageNotFoundError } from "./artifactstorage/artifact-storage.js";
-// The R2 driver constructor (C1 seam, 20260827.04): compositions register
-// per-domain R2 drivers with their own bucket/credential config while the
-// S3 plumbing lives exactly once in OSS (the §6b registration shape).
+// The R2 driver constructor: compositions register per-domain R2 drivers
+// with their own bucket/credential config while the S3 plumbing lives
+// exactly once in OSS.
 export { newR2ArtifactStorage } from "./artifactstorage/r2-storage.js";
 export type { R2StorageConfig } from "./artifactstorage/r2-storage.js";
 
-// The O5 driver seams (§6a/§6c): the model-catalog read surface with the
-// DD-008 disciplines in its contract, and the per-lane runner-credential
+// The model-catalog and runner-credential driver seams: the model-catalog
+// read surface, and the per-lane runner-credential
 // seam with its OSS lane constant (an extension's verify callers name the
 // lane they accept).
 export type { ModelCatalogProvider } from "./domain/workflow/registry/model-catalog-provider.js";
-// The document-driven provider constructor (C1 seam, 20260827.04): a
+// The document-driven provider constructor: a
 // composition whose catalog source is its own (the cloud's DB-resident
 // baseline) builds providers from documents with the SAME interpretation
 // ModelRegistryStore uses — the semantics live exactly once in OSS.
 export { newModelCatalogProviderFromDocument } from "./domain/workflow/registry/document-catalog.js";
 export type {
   RunnerCredentialProvider,
-  // The C4 capability shapes (gate ruling Q1): the optional methods'
+  // The runner-credential capability shapes: the optional methods'
   // domain-shaped request/result types — a composition implementing the
   // exchange, bootstrap, sandbox-mint, or EC-read capabilities types
   // against these, never against wire messages.
@@ -537,10 +535,9 @@ export type {
   RunnerScopedTokenExchange,
   RunnerScopedTokenRequest,
   SandboxCredentialRequest,
-  // The parity-entry-20260830.05 capability shape: the memory
-  // capture-eligibility verdict (admit carries the token's proved
-  // subject + session claims for the defaults step's Java-parity
-  // derivation).
+  // The memory capability shape: the capture-eligibility verdict
+  // (admit carries the token's proved subject + session claims for the
+  // defaults step's derivation).
   MemoryCaptureDecision,
 } from "./runnerauth/runner-credential-provider.js";
 export type { MintedToken } from "./runnerauth/runnerauth.js";
@@ -550,8 +547,8 @@ export {
   TOKEN_TYPE_EXECUTION_SCOPED,
 } from "./runnerauth/runnerauth.js";
 
-// The secret-sealing seam (20260830.04 Stage 1, gate rulings Q2/Q3 —
-// widening the C4-era enc:v1 block): the SecretService facade over the
+// The secret-sealing seam (widening the original enc:v1 block): the
+// SecretService facade over the
 // versioned-codec registry (async, scoped, batched, with reencrypt as the
 // sweep's one upgrade door), the SecretCodec contract an extension's
 // vault-backed formats implement (drivers.secretCodecs), the
@@ -572,7 +569,7 @@ export {
 } from "./encryption/encryption.js";
 export type { SecretCodec } from "./encryption/codec.js";
 
-// The O6 driver seam (§6d): the sandbox-provisioner contract an extension
+// The sandbox driver seam: the sandbox-provisioner contract an extension
 // implements to register its own isolation driver (selected through the
 // SANDBOX_PROVISIONER_TYPE knob), plus the reserved built-in names its
 // registrations may never shadow.
@@ -609,7 +606,7 @@ export type { PushResult as SubstrateAttachPushResult } from "./sandbox/substrat
 export type { SubstrateSandboxDriverHandle } from "./sandbox/substrate/builtin.js";
 export { newSubstrateSandboxDriver } from "./sandbox/substrate/builtin.js";
 
-// The C4 Stage 3 gate seams: the dispatch-policy configs a capacity gate
+// The capacity-gate seams: the dispatch-policy configs a capacity gate
 // reads — the UNSPECIFIED-resolution rules and routing modes are single
 // definitions by doctrine (oss#397), and their own headers name "a future
 // policy consumer" as the reason they must be consumed, never re-derived.
@@ -628,7 +625,7 @@ export {
 } from "./domain/workflowexecution/temporal/config.js";
 export { LOADED_EXECUTION_KEY } from "./pipeline/request-context.js";
 
-// The C3 driver seam (DD-004's serving half, ruling Q1): the channel
+// The channel driver seam: the channel
 // delivery runtime a composition registers to SERVE the install,
 // messaging, and conversation arms the storing posture refuses — plus
 // the write-constraints and delete-teardown hooks that carry the two
@@ -641,10 +638,10 @@ export type {
   ChannelRuntimeMessaging,
 } from "./domain/agentchannel/channel-runtime.js";
 
-// The worker factory seam extension workers implement (§8). Factories
+// The worker factory seam extension workers implement. Factories
 // construct workers ONLY through deps.createWorker — this package's
 // @temporalio/worker instance — so a composition never loads a second
-// native bridge for its extension workers (the finding-16 fix; see
+// native bridge for its extension workers (see
 // WorkerFactoryDeps.createWorker in temporal/manager.ts).
 export type {
   CreateWorkerOptions,

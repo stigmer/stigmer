@@ -23,7 +23,7 @@
  * `modifyById` has no such window: it IS Store.updateResource, the generic
  * store's own atomic read-modify-write, its not-found read as `undefined`.
  *
- * Store faults follow the ratified mapping: a typed ResourceNotFoundError
+ * Store faults follow the store-fault mapping: a typed ResourceNotFoundError
  * reads as `undefined`; anything else propagates — an outage must never
  * read as "no client", which on the verifier's path would revoke every
  * live token.

@@ -8,8 +8,6 @@ package ai.stigmer.agentic.workflow.v1;
 /**
  * <pre>
  * ListWorkflowVersionsResponse contains a page of workflow version history.
- *
- * &#64;since Workflow Versioning
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse}
@@ -367,8 +365,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ListWorkflowVersionsResponse contains a page of workflow version history.
-   *
-   * &#64;since Workflow Versioning
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse}

@@ -1,6 +1,6 @@
 /**
- * GetExecutionSummary — ports get_execution_summary.go (T14 dashboard,
- * T12 overview): a full scan aggregated into phase counts, cost totals,
+ * GetExecutionSummary — ports get_execution_summary.go (the dashboard and
+ * overview): a full scan aggregated into phase counts, cost totals,
  * average completed duration, top failure ranks, and per-workflow cost
  * breakdown, optionally scoped by time window and workflow.
  *
@@ -22,7 +22,7 @@
  *
  * Tie order in the two ranked lists is not wire-stable in Go (map
  * iteration feeds a stable sort), so ties here — deterministic first-seen
- * order — are not a wire divergence (the #6 sort-stability precedent).
+ * order — are not a wire divergence.
  */
 import { create } from "@bufbuild/protobuf";
 import { DurationSchema } from "@bufbuild/protobuf/wkt";
@@ -62,7 +62,7 @@ const RANK_LIMIT = 10;
 export interface SummaryDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
+  /** The composed summary read scope — undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 

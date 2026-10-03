@@ -1,7 +1,7 @@
 /**
  * AgentShare controller — ports pkg/domain/agentshare/controller (command +
  * query sides): the first-class sharing channel promoted out of
- * Agent.spec.sharing (decision 011). A share carries everything a hosted
+ * Agent.spec.sharing. A share carries everything a hosted
  * chat link needs — audience, embed origins, visitor-facing messages,
  * guest tool credentials (environment_refs), and the rotatable link token.
  * Share operations never modify the referenced agent.
@@ -10,7 +10,7 @@
  * search-indexed by design (the kind declares not_search_indexed — a share
  * is channel configuration reached through its agent, not a library
  * artifact), so no index steps appear in any chain. The agent-delete
- * cascade of same-org shares lives in the AGENT domain (ported with #6);
+ * cascade of same-org shares lives in the AGENT domain;
  * share delete itself cascades nothing.
  *
  * Every chain opens with Authorize. create asks can_edit on the referenced
@@ -129,11 +129,11 @@ import {
 export interface AgentShareControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan (20260830.01). */
+  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 
@@ -534,7 +534,7 @@ const SHARE_LIST_KEY = "agentShareList";
 /**
  * GetByAgent — all shares of one agent, optionally org-scoped. This is how
  * the Share dialog and CLI resolve an agent's existing share regardless of
- * its slug (rename-by-recreate, decision 011 D2). A nonexistent agent
+ * its slug (rename-by-recreate). A nonexistent agent
  * yields an EMPTY list, not an error — "no shares" is the useful answer
  * either way. The org filter is contract parity, not authorization: a
  * multi-org caller asking for one org's channels must not see another
@@ -629,10 +629,9 @@ function newLoadSharesByAgentStep(
           continue;
         }
       }
-      // 20260830.01 census lane 17: the org/agent filters are contract
-      // parity in both editions and run FIRST; the scope narrows the
-      // agent's shares last (the scope is the last per-row predicate,
-      // stigmer-cloud 20260913.04 T02).
+      // The org/agent filters are contract parity in both editions and run
+      // FIRST; the scope narrows the agent's shares last (the scope is
+      // the last per-row predicate).
       const shares = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
@@ -730,10 +729,9 @@ function newListByOrgAndLabelsStep(
           continue;
         }
       }
-      // 20260830.01 census lane 16: the org and label filters serve the
-      // Java handler's arms in both editions and run FIRST; the scope
+      // The org and label filters run FIRST, in both editions; the scope
       // narrows the org's rows last (the scope is the last per-row
-      // predicate, stigmer-cloud 20260913.04 T02).
+      // predicate).
       const shares = await restrictListByReadScope(
         listReadScope,
         ctx.callerIdentity,
@@ -904,9 +902,9 @@ function newProjectSharedProfileStep(store: Store): PipelineStep<ProfileDesc> {
       // The audience arm (SharingAudiencePolicy.admitsGuests): only an
       // EXPLICIT org audience refuses — unspecified means public by
       // contract (shares created before the audience field existed are
-      // anyone-with-link shares). Closes the recorded C2 close-out gap:
-      // this anonymous lane resolved org-audience shares the proto
-      // contract says must collapse.
+      // anyone-with-link shares). Without this arm the anonymous lane
+      // would resolve org-audience shares the proto contract says must
+      // collapse.
       if (share.spec.audience === AgentShareAudience.org) {
         throw sharedNotFound(req.slug);
       }

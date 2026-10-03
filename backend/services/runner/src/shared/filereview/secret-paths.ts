@@ -1,5 +1,5 @@
 /**
- * The secret-safety gate for CAS capture (design doc 12).
+ * The secret-safety gate for CAS capture.
  *
  * The git substrate never captures gitignored paths, which was an accidental
  * safety property: `.gitignore` is where projects keep secrets (`.env`, private
@@ -9,15 +9,13 @@
  * that: a path classified secret-like is BLOCKED from capture (authored as
  * DIFF_UNREVIEWABLE instead) and its bytes never leave the workspace.
  *
- * Scope discipline (design doc 12 D2): this is deliberately a small, explicit,
- * deterministic matcher — NOT the Phase-4 `sensitivity` taxonomy, NOT ML. It is
+ * Scope discipline: this is deliberately a small, explicit,
+ * deterministic matcher — NOT a broader `sensitivity` taxonomy, NOT ML. It is
  * a pure function over the path, so the cross-edition corpus can lock it (a path
  * either blocks or captures, identically everywhere). The matcher errs toward
  * blocking: a path only needs to LOOK secret-like to be withheld, because the
  * cost of withholding a non-secret (it stays on the deny-gate, as today) is far
  * lower than the cost of persisting a real secret.
- *
- * @since File-Change HITL Redesign (Phase 3 — CAS / DD-E)
  */
 
 /**

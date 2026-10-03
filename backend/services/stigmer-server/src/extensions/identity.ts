@@ -1,16 +1,15 @@
 /**
- * Identity extension-point types — the verifier-chain contract of the
- * convergence blueprint (20260826.02 blueprint/03 §4, DD-007), carried by
- * the extension registry from O1 (20260826.09) and consumed by the
- * verifier-chain chassis (O2, 20260827.01 — pipeline/interceptors/auth.ts).
+ * Identity extension-point types — the verifier-chain contract, carried by
+ * the extension registry and consumed by the verifier-chain chassis
+ * (pipeline/interceptors/auth.ts).
  *
- * The shapes are transcribed from the ratified design, not invented here:
+ * The shapes follow the Java edition's design:
  * a verifier either CLAIMS a token (verifying it fully, throwing on
  * signature/expiry/audience failure) or PASSES (returns null → next
  * verifier) — the TS rendering of the Java ProviderManager chain. The
  * product is one typed value, CallerIdentity, threaded explicitly through
- * HandlerContext.values (never ambient state — the every-dependency-
- * explicit doctrine).
+ * HandlerContext.values (never ambient state — every dependency is
+ * explicit).
  */
 import { USER_TOKEN_CLAIMS } from "../domain/platformclient/constants.js";
 import {
@@ -20,14 +19,14 @@ import {
 
 /**
  * The caller-class discriminant. OSS knows user / machine / runner plus
- * the in-process `internal` class (O2 ruling Q4: the TS rendering of the
+ * the in-process `internal` class (the TS rendering of the
  * Java in-process authorization skip); the cloud composition extends the
  * vocabulary (guest / channel / schedule) without an OSS enum change —
  * hence the open string arm. `string & {}` keeps literal autocomplete
  * while admitting extension values (a plain `string` would erase the
  * known classes from the type surface).
  *
- * `internal` is ratified contract with a structural guarantee: it is
+ * `internal` is a contract with a structural guarantee: it is
  * minted ONLY by server code, in pipeline/interceptors/auth.ts — the
  * in-process chain's identity interceptor (boot/inprocess.ts) and
  * `serverActingFor`, the server acting for a principal it authenticated
@@ -44,8 +43,8 @@ export type CallerClass =
 
 /**
  * How the request reached the chain — the transport-trust discriminant
- * the reserved-label guard keys on (C2 Stage 3, ruling R5; the TS
- * rendering of the Java isInProcessCall arm, cloud#386). `in-process` is
+ * the reserved-label guard keys on (the TS
+ * rendering of the Java isInProcessCall arm). `in-process` is
  * stamped ONLY by the in-process chain's identity interceptor — only
  * server code can reach that transport, so the marker is unspoofable —
  * and it survives caller PROPAGATION: a request-origin in-process call
@@ -59,7 +58,7 @@ export type CallOrigin = "wire" | "in-process";
 /**
  * The authenticated caller, produced by the verifier chain and read by the
  * Authorizer and the audit-actor seam. Org membership is DELIBERATELY not
- * carried (blueprint §4b): it is authorization data, resolved by the
+ * carried: it is authorization data, resolved by the
  * Authorizer per check, never cached on the identity.
  */
 export interface CallerIdentity {
@@ -97,7 +96,7 @@ export interface CallerIdentity {
    */
   readonly platformClientId?: string;
   /**
-   * The transport the request entered through (C2 Stage 3, ruling R5).
+   * The transport the request entered through.
    * Absent = the wire; the in-process interceptor stamps `in-process` on
    * every identity it forwards — minted internal AND propagated caller
    * alike.
@@ -106,8 +105,8 @@ export interface CallerIdentity {
 }
 
 /**
- * One entry in the ordered token-verifier chain (claim-or-pass semantics,
- * blueprint §4a). Order is composition order: OSS entries first, extension
+ * One entry in the ordered token-verifier chain (claim-or-pass
+ * semantics). Order is composition order: OSS entries first, extension
  * entries after, in extension-unit order.
  */
 export interface IdentityVerifier {
@@ -125,8 +124,8 @@ export interface IdentityVerifier {
 /**
  * Whether `caller` is one of the platform's own pipelines — the admission
  * rule of the RPCs a person must never reach directly, stated ONCE
- * (20260911.11 A7 for the identity-account `create` RPC; 20260913.01
- * Q-OR-7 and Q-S5-10 for the three IamPolicy system RPCs): a `machine`
+ * (for the identity-account `create` RPC and the three IamPolicy system
+ * RPCs): a `machine`
  * account (the platform's service accounts), the `internal` class (the
  * server acting as itself over the in-process transport) or ANY identity
  * that entered through that transport (a propagated user the server is
@@ -181,7 +180,7 @@ export function isServerComposedRequest(caller: CallerIdentity): boolean {
  * schedule fire acts as its creator with class `user` but rides the
  * in-process transport, which is exactly what `isServerComposedRequest`
  * reads), and the bearer must not be a PlatformClient user token (a
- * person, but spoken for by a third-party client — DD-002 D4 as amended).
+ * person, but spoken for by a third-party client).
  */
 export function isFirstPartyHumanOperator(caller: CallerIdentity): boolean {
   return (

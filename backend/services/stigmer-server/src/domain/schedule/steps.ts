@@ -46,9 +46,9 @@ export interface ScheduleValidationDeps {
  * byte-identically (Go resolveScheduleDefaultsStep):
  *
  *  1. Requires metadata.org — the schedule-owning org is the billing org
- *     for every fire (DD-008 D4), so it can never be inferred.
- *  2. Validates the cron grammar and the time zone (cron.ts — the DD-009
- *     C-4 lexical rules; no cron parsing in either edition).
+ *     for every fire, so it can never be inferred.
+ *  2. Validates the cron grammar and the time zone (cron.ts — lexical
+ *     rules; no cron parsing in either edition).
  *  3. Requires spec.agent.agent_ref.slug and normalizes its org (empty
  *     means same-org, the platform-wide relative-reference convention).
  *  4. Enforces the same-org invariant: agent_ref.org must equal
@@ -123,7 +123,7 @@ export function newResolveScheduleDefaultsStep(
         throw internalError(error, "failed to list agent resources");
       }
       if (found === undefined) {
-        // Byte-identical with the direct agent lookup's refusal (the T09
+        // Byte-identical with the direct agent lookup's refusal (the
         // indistinguishability contract).
         throw notFoundError("Agent", agentRef?.slug ?? "");
       }
@@ -176,7 +176,7 @@ export function resolveScheduleCreateTargets(
 
 /**
  * Enforces the schedule-specific workspace constraint on the shared
- * AgentInvocation (DD-018 D-3): every workspace entry must be a git_repo
+ * AgentInvocation: every workspace entry must be a git_repo
  * source. A local_path needs a connected client to serve the directory,
  * and a schedule fire has none — refusing at write time beats a
  * deterministic provisioning failure at 3 AM. Copy is cross-edition
@@ -264,7 +264,7 @@ export function targetFieldName(spec: ScheduleSpec | undefined): string {
  * Runs after LoadExisting. metadata.slug/org immutability needs no step
  * here: the generic BuildUpdateState preserves both from the existing
  * resource. Status (firing observations, auto-pause) is likewise preserved
- * wholesale — the invariant that keeps DD-008 D7's auto-pause immune to
+ * wholesale — the invariant that keeps the failure-streak auto-pause immune to
  * declarative clobber.
  */
 export function newValidateScheduleUpdateStep(

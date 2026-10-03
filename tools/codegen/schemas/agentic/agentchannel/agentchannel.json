@@ -77,7 +77,7 @@
         "kind": "message",
         "messageType": "ApiResourceReference"
       },
-      "description": "Reference to the ChannelApp this channel installs through.\n\n For Slack, absent means the channel uses the platform's shared\n Stigmer app — the zero-setup default. Set it to install through your\n own provider app instead: the bot carries the app's name and icon,\n and each app is its own bot identity, so multiple agents can serve\n one workspace. For WhatsApp the reference is required — every\n WhatsApp channel installs through your own Meta app (DD-WA-2).",
+      "description": "Reference to the ChannelApp this channel installs through.\n\n For Slack, absent means the channel uses the platform's shared\n Stigmer app — the zero-setup default. Set it to install through your\n own provider app instead: the bot carries the app's name and icon,\n and each app is its own bot identity, so multiple agents can serve\n one workspace. For WhatsApp the reference is required — every\n WhatsApp channel installs through your own Meta app.",
       "required": false,
       "referenceKind": 48
     },

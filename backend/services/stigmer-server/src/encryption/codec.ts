@@ -11,13 +11,13 @@
  * Registration flows through exactly one door: the built-in v1 codec is
  * installed at the boot/compose.ts consumption site, extension codecs
  * through the `secretCodecs` ExtensionDrivers field (never a module-level
- * side registry — the DD-006 one-registry doctrine).
+ * side registry: one registry, one door).
  *
  * In the Java original a codec was pure crypto over the stored string
  * alone until v3; the v3 codec stores the secret's value in the vault KV
  * store and keeps only an authenticated pointer in the string, so
- * encrypt/decrypt there include store I/O (the vault project's DD-005
- * widening). That is why every verb here is async even though the
+ * encrypt/decrypt there include store I/O. That is why every verb here
+ * is async even though the
  * built-in v1 codec never awaits anything.
  *
  * TS shape note: Java's interface carries default methods; here the
@@ -92,7 +92,7 @@ export interface SecretCodec {
    * stored string IS the (encrypted) value, so deleting the resource row
    * deletes everything. Idempotent by contract. Call sites are delete
    * paths whose database write already succeeded, so the facade's
-   * callers treat failures as best-effort (Stage 3 wires them).
+   * callers treat failures as best-effort.
    *
    * @throws InvalidCiphertextError when the value is bad (nothing
    *   derivable to clean up)

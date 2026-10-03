@@ -1,5 +1,5 @@
 /**
- * Pins the reserved-label write guard (C2 Stage 3, the Java
+ * Pins the reserved-label write guard (the Java
  * GuardReservedLabelsStep matrix): echoes and removals pass without any
  * authorization round-trip, introductions and changes reject with the
  * byte-pinned INVALID_ARGUMENT copy when the Authorizer denies, the
@@ -232,7 +232,7 @@ describe("GuardReservedLabels", () => {
   });
 
   it("server-stamped keys pass while an unstamped sibling still refuses", async () => {
-    // The parity-entry-20260830.05 arm (Java ServerStampedReservedLabels):
+    // The server-stamped arm (Java ServerStampedReservedLabels):
     // a step's per-request record exempts exactly the recorded keys — a
     // smuggled sibling in the same request is still rejected.
     const step = newGuardReservedLabelsStep<typeof AgentSchema>(denying());

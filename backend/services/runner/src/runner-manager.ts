@@ -253,7 +253,7 @@ export async function createStigmerRunnerManager(
   // the minted runner token (token_type=embedded_runner) once adopted, tracking
   // the control-plane token in lockstep before that. StigmerClient authenticates
   // ExecutionContext reads with it so cloud's runner-class decrypt gate
-  // (stigmer-cloud#152) recognizes the desktop runner — its control-plane token
+  // recognizes the desktop runner — its control-plane token
   // is the user's own Auth0 token, which the server treats as a browsing user
   // and answers with redacted secrets. Pre-mint the ref equals the control-plane
   // token, which is exactly what the client would fall back to anyway.

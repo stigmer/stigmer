@@ -2,10 +2,9 @@
  * Model-pin existence validation and did-you-mean machinery — ports
  * pkg/domain/workflow/registry/pin_validation.go. Lives beside the store it
  * queries (the registry is the shared validation authority): workflow model
- * validation consumes it now; the schedule (#22) and agentchannel (#12)
- * pin-existence checks and agentexecution's tier/thinking validators (#17)
- * consume the same functions later, so every pin error suggests
- * identically.
+ * validation, the schedule and agentchannel pin-existence checks, and
+ * agentexecution's thinking-mode validator consume the same functions, so
+ * every pin error suggests identically.
  *
  * One deliberate signature delta from Go: Go's UnknownModelPinRefusal reads
  * the process-global registry.Store(); this edition has no singletons (the
@@ -28,7 +27,7 @@ const MAX_MODEL_EDIT_DISTANCE = 5;
 
 /**
  * Maps the session harness enum to its registry section name. Unset
- * resolves to native — this edition's platform default harness (the DD-015
+ * resolves to native — this edition's platform default harness (the
  * edition-honest posture: each edition judges pins against the harness ITS
  * runs would actually use; the cloud edition resolves its own configured
  * default).

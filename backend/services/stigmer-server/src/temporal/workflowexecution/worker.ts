@@ -18,9 +18,9 @@
  * workflow types from export names, so no explicit registration option
  * exists or is needed.
  *
- * Workflow source: runtime bundling from the compiled entry (ratified
- * brief #7 of sub-project 20260824.03 — the operative mode until #24
- * ships prebuilt bundles; the prebuilt sibling is the hook it fills).
+ * Workflow source: runtime bundling from the compiled entry in a tsc
+ * build, and the prebuilt sibling bundle in a slim artifact (see
+ * workflow-source.ts).
  */
 import type { Logger } from "../../boot/logger.js";
 import type { ExecutionContextDeleter } from "../../domain/executioncontext/internal-delete.js";
@@ -37,7 +37,7 @@ export interface WorkflowExecutionWorkerDeps {
   readonly logger: Logger;
   readonly broker: StreamBroker;
   readonly temporalConfig: WorkflowExecutionTemporalConfig;
-  /** The activity persist site's sandbox teardown observer (§6d, O6). */
+  /** The activity persist site's sandbox teardown observer. */
   readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
   /**
    * The server's own delete of a run's ExecutionContext (the run-end

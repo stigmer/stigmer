@@ -37,8 +37,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * {
  * "id": "aex_abc123xyz456"
  * }
- *
- * &#64;since Agent Execution Lifecycle
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput}
@@ -335,8 +333,6 @@ private static final long serialVersionUID = 0L;
    * {
    * "id": "aex_abc123xyz456"
    * }
-   *
-   * &#64;since Agent Execution Lifecycle
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput}

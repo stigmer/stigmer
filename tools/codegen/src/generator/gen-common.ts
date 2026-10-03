@@ -433,7 +433,7 @@ export class TsImportSet {
 }
 
 // Relative specifiers get an explicit ".js" extension so the generated ESM
-// resolves under plain Node (DD-018); package specifiers pass through.
+// resolves under plain Node; package specifiers pass through.
 export function tsModuleSpecifier(from: string): string {
   if (from.startsWith("./") || from.startsWith("../")) {
     if (!from.endsWith(".js")) return from + ".js";

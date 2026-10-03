@@ -96,7 +96,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("deny");
     // The broken-gate deny is ATTRIBUTABLE (issue #205): recorded under the
     // primary token with kind "fail-closed" and — like every non-approval
-    // kind — content-free (no input field, DD-26).
+    // kind — content-free (no input field: secret content is never persisted).
     const ledger = h.ledger();
     expect(ledger).toHaveLength(1);
     expect(ledger[0].kind).toBe("fail-closed");
@@ -104,11 +104,11 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     expect(ledger[0]).not.toHaveProperty("input");
   });
 
-  // Unattended approval mode (DD-014): same gate, different RESOLUTION — the
+  // Unattended approval mode: same gate, different RESOLUTION — the
   // approval-deny arms record the non-pausing "unattended" kind with an
   // adapt-and-explain message. What is gated must be byte-identical to
   // interactive mode; only the kind and the agent message differ.
-  describe("unattended approval mode (DD-014)", () => {
+  describe("unattended approval mode", () => {
     it("denies a gated built-in with kind 'unattended' and the adapt message (no resume promise)", () => {
       const h = setup({ unattendedSkip: true });
       const res = h.decide(hookShell("rm -rf build"));
@@ -585,16 +585,16 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
-  // Deny-gate secret hard-block (DD-26 #2): with no capture substrate for a write
+  // Deny-gate secret hard-block: with no capture substrate for a write
   // (capture off — the classic deny-gate — or captureIgnored off in a git-no-
   // storage workspace) a secret-like WRITE must NOT surface its content for
   // approval. The hook hard-blocks it with the security message and records a
   // kind:"secret" ledger entry — ATTRIBUTABLE (issue #205: the runner must know
   // this block was ours) but non-pausing (approvalDenials filters it out, so it
-  // never becomes an approvable WAITING row) and content-free (DD-26: only the
+  // never becomes an approvable WAITING row) and content-free (only the
   // identity token, never the proposed bytes). A non-secret write still
   // deny-gates as kind:"approval", and a delete (content-less) stays gated.
-  describe("deny-gate secret hard-block (DD-26 #2)", () => {
+  describe("deny-gate secret hard-block", () => {
     it("hard-blocks a secret-like write; records an attributable, content-free secret entry", () => {
       const h = setup({}); // captureMode off — the classic deny-gate
       const dec = h.decide(hookWrite(".env", "API_KEY=abc"));
@@ -606,7 +606,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       const ledger = h.ledger();
       expect(ledger).toHaveLength(1);
       expect(ledger[0].kind).toBe("secret");
-      // DD-26 on the raw ledger bytes: no input field, no trace of the content.
+      // Content-free on the raw ledger bytes: no input field, no trace of the content.
       expect(ledger[0]).not.toHaveProperty("input");
       expect(JSON.stringify(ledger[0])).not.toContain("API_KEY");
     });
@@ -653,7 +653,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
-  // CAS parity (DD-18): with captureIgnored on, a non-secret gitignored write no
+  // CAS parity: with captureIgnored on, a non-secret gitignored write no
   // longer stays on the deny-gate — the hook stages its pre-turn bytes into the
   // cas-observations sidecar and ALLOWS it (apply-then-review), while a secret-
   // like gitignored write is hard-blocked and recorded as unreviewable. The
@@ -700,7 +700,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(d.raw).toContain("blocked for security");
       // A secret is NOT approvable: its kind:"secret" entry attributes the block
       // to our own gate (issue #205) but is filtered out of the pause path — it
-      // surfaces as DIFF_UNREVIEWABLE instead, and carries no content (DD-26).
+      // surfaces as DIFF_UNREVIEWABLE instead, and carries no content.
       const ledger = h.ledger();
       expect(ledger.map((e) => e.kind)).toEqual(["secret"]);
       expect(ledger[0]).not.toHaveProperty("input");
@@ -805,11 +805,11 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
-  // Slice 2c: a NON-git workspace has no git snapshot, so EVERY file write and
+  // A NON-git workspace has no git snapshot, so EVERY file write and
   // (issue #303) every non-secret delete is CAS-staged and flowed for review —
   // not only gitignored ones — while shell/MCP gate as always. The workspace is
   // deliberately NOT git-initialized.
-  describe("non-git workspace CAS capture (Slice 2c)", () => {
+  describe("non-git workspace CAS capture", () => {
     it("stages EVERY write (not just gitignored) and allows it, no denial", async () => {
       const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
       writeFileSync(join(h.root, "notes.md"), "ORIGINAL", "utf-8");

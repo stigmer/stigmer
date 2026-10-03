@@ -1,5 +1,5 @@
 /**
- * Unit tests for the CAS snapshot/restore substrate (Phase 3).
+ * Unit tests for the CAS snapshot/restore substrate.
  *
  * The substrate is exercised in isolation with an in-memory {@link ArtifactStorage}
  * fake and a map-backed {@link BlobReader}; workspace writes go to a real temp

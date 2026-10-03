@@ -1,6 +1,5 @@
 /**
- * Pins the built-in role lifecycle in isolation (T01_0_plan.md §3a
- * "role-lifecycle.ts"; T01_1_review.md Q-OR-6a): the
+ * Pins the built-in role lifecycle in isolation (role-lifecycle.ts): the
  * ResourceAuthorizationLifecycle open source installs when no unit
  * registers one, over the real grant path, a fake policy store and a fake
  * account port. It is the ROW writer of the built-in authorization posture
@@ -15,14 +14,14 @@
  *   - a caller whose identityId is no account — an idp-shaped subject the
  *     verifier admitted before any row existed, the in-process `internal`
  *     class, a runner — writes nothing: the membership rules heal the
- *     creator's ownership at first provisioning through the creator stamp
- *     (Q-OR-6b), so the guard loses nobody;
+ *     creator's ownership at first provisioning through the creator stamp,
+ *     so the guard loses nobody;
  *   - an organization whose event carries any other attribution writes
  *     nothing (the proto's owner_type is the truth; the driver follows it
  *     exactly as the cloud's tuple driver does);
  *   - every other kind writes nothing, DIRECT attribution or not: a
  *     per-resource owner row would be the per-resource grant the scope
- *     keeps Enterprise (Q-OR-3).
+ *     keeps Enterprise.
  *
  *   onResourceDeleted
  *   - `organization` and `identity_account`: every row naming the deleted

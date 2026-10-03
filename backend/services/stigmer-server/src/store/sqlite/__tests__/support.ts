@@ -1,8 +1,8 @@
 /**
  * Shared helpers for the sqlite driver tests: temp-dir stores and the
- * DD-002 Go-database fixture loader. The organization factory moved to
- * ../../__tests__/support.ts with the contract-suite extraction (T01
- * D-4); re-exported here so existing driver tests keep their import path.
+ * Go-database fixture loader. The organization factory moved to
+ * ../../__tests__/support.ts with the contract-suite extraction;
+ * re-exported here so existing driver tests keep their import path.
  */
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

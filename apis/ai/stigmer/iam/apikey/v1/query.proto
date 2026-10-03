@@ -23,8 +23,9 @@ service ApiKeyQueryController {
   // Get an API key by its hashed key value.
   //
   // @internal
-  // Authorization is handled in the handler after loading the resource
-  // (input doesn't contain API key ID, so proto-level auth cannot work).
+  // A skip-authorization lane: the input names no key id, so no annotation
+  // can target the row, and the lane is served to any authenticated caller
+  // in every edition with no further gate.
   rpc getByKeyHash(ApiKeyHash) returns (ApiKey) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

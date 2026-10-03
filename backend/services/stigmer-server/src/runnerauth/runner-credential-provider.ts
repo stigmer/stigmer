@@ -1,15 +1,14 @@
 /**
- * The runner-credential provider seam — convergence program 20260826.02,
- * blueprint/03 §6c, extracted with O5 (20260827.02). Lives in
- * src/runnerauth beside the OSS implementation it fronts.
+ * The runner-credential provider seam. Lives in src/runnerauth beside the
+ * OSS implementation it fronts.
  *
  * Mint and verify PER CREDENTIAL LANE, where a lane is an implementation's
  * own token_type vocabulary: OSS defines exactly one
  * (TOKEN_TYPE_EXECUTION_SCOPED, runnerauth.ts); the cloud edition's
  * session/workflow/connect/pool lanes stay entirely on its side of the
- * seam (C4). The lane parameter is an open string DELIBERATELY — this
+ * seam. The lane parameter is an open string DELIBERATELY — this
  * contract must neither import cloud vocabulary into OSS nor pretend OSS
- * has lanes it does not (the Q4 gate ruling).
+ * has lanes it does not.
  *
  * Per-arm fail posture, pinned precisely because the approved docs
  * abbreviate it two different ways ("fail-closed" / "fail-soft") and the
@@ -33,7 +32,7 @@
  * (extensions/drivers.ts); with none composed, behavior is byte-identical
  * to the direct-service wiring this seam replaced.
  *
- * # The optional capability methods (C4, 20260827.09 — gate ruling Q1)
+ * # The optional capability methods
  *
  * Beyond the mint/verify primitives, an edition's runner credentials
  * surface at four OSS-owned touchpoints whose POLICY is edition-specific:
@@ -154,8 +153,7 @@ export interface SandboxCredentialRequest {
 
 /**
  * The memory-capture eligibility answer for one caller (the sixth
- * capability, parity entry 20260830.05 — the Java
- * MemoryCreateHandler.ResolveMemoryDefaults runner arm):
+ * capability):
  *
  *   - `no-opinion`: the caller's credential is not one this
  *     implementation classifies — the gate's own eligibility logic
@@ -274,8 +272,8 @@ export interface RunnerCredentialProvider {
 
   /**
    * Decrypt-key material for a Temporal payload-encryption key id the
-   * server's env-configured codec does not hold (C4 Stage 2: the
-   * server-managed per-identity `rpk_` keys bootstrapCredentials hands
+   * server's env-configured codec does not hold (the server-managed
+   * per-identity `rpk_` keys bootstrapCredentials hands
    * out — resolution belongs on the same object that distributes them).
    * Threaded into the server's decode-only payload codec at compose;
    * consulted only when that codec is installed at all (env-keyed — the
@@ -287,10 +285,8 @@ export interface RunnerCredentialProvider {
 
   /**
    * The workflow-lineage vouching decision for an agent-execution create
-   * that carries the runner-stamped lineage labels (parity entry
-   * 20260830.05; the Java RecordRunnerLineageLabelsStep, cloud#386,
-   * consumed by the agentexecution chain's RecordRunnerLineageLabels
-   * step). The implementation owns
+   * that carries the runner-stamped lineage labels (consumed by the
+   * agentexecution chain's RecordRunnerLineageLabels step). The implementation owns
    * BOTH halves of the decision: whether the caller's credential is a
    * runner credential at all (its own token-type vocabulary — no caller
    * class expresses this, and OSS must not learn another edition's
@@ -317,10 +313,9 @@ export interface RunnerCredentialProvider {
   ): boolean;
 
   /**
-   * The memory capture-eligibility decision for one caller (parity entry
-   * 20260830.05, stigmer-cloud#564; the Java MemoryCreateHandler runner
-   * arm: admit `isSessionSandbox()`, refuse every other runner
-   * credential). Consulted by GuardMemoryCapture
+   * The memory capture-eligibility decision for one caller (an edition
+   * may admit its session-sandbox credential and refuse every other
+   * runner credential). Consulted by GuardMemoryCapture
    * BEFORE its own eligibility logic; `no-opinion` falls through to
    * that logic unchanged. REFUSES the org-mismatch arm by throwing a
    * ConnectError with the implementation's byte-pinned copy (Java:
@@ -349,8 +344,7 @@ export interface RunnerCredentialProvider {
  * is open source's own — the run credential a dispatch carries (module
  * header). A separate adapter rather than the service implementing the
  * interface: the service's concrete lane-free signatures are a stable
- * test surface (and the O2 sub-project edits runnerauth.ts in parallel —
- * this file keeps O5 out of it).
+ * test surface.
  */
 export function newExecutionScopedRunnerCredentialProvider(
   service: RunnerAuthService,

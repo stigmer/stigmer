@@ -189,8 +189,6 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * Example CLI usage:
    *   stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
    *
-   * @since Artifact Lifecycle (Attachments & Outputs)
-   *
    * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.Attachment attachments = 9;
    */
   attachments: Attachment[];
@@ -218,8 +216,6 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    *   stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m "Review"
    *   # CLI detects src/config.yaml is inside workspace -> workspace_file_ref
    *   # No upload, no injection; agent reads directly from src/config.yaml
-   *
-   * @since Workspace-Aware File Referencing
    *
    * @generated from field: repeated string workspace_file_refs = 10;
    */
@@ -512,8 +508,6 @@ export const ExecutionConfigSchema: GenMessage<ExecutionConfig> = /*@__PURE__*/
  *       custom_trigger_threshold: 100000
  *       custom_target_tokens: 80000
  *
- * @since Phase 3 (Context Summarization Architecture)
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
  */
 export type ContextManagementConfig = Message<"ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig"> & {
@@ -600,8 +594,6 @@ export const ContextManagementConfigSchema: GenMessage<ContextManagementConfig> 
  * Examples:
  *   - mount_path: "/inputs/config.yaml" -> file at /inputs/config.yaml
  *   - mount_path: "/workspace/data/" -> directory extracted at /workspace/data/
- *
- * @since Artifact Lifecycle (Attachments & Outputs)
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.Attachment
  */

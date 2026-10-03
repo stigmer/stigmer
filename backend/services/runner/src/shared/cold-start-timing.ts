@@ -2,7 +2,7 @@
  * Cold-start timing instrumentation.
  *
  * Measures the two previously unmeasured segments of the user-perceived cold
- * start (warm-agent-surfaces Phase 0): the runner PROCESS BOOT (Node start →
+ * start: the runner PROCESS BOOT (Node start →
  * worker polling its Temporal queue) and PER-EXECUTION SETUP (activity start →
  * agent ready to stream), broken down by named phase.
  *

@@ -137,7 +137,7 @@ export function newBuildNewStateStep<
       }
 
       // 3. Stamp both audit slots identically with event "created",
-      // attributed to the request's caller (O2 ruling Q5).
+      // attributed to the request's caller.
       if (hasStatusField(ctx.schema)) {
         setAuditFieldsForCreate(ctx.schema, resource, ctx.callerIdentity);
       }
@@ -168,8 +168,8 @@ export function clearStatusField(schema: DescMessage, msg: Message): void {
 /**
  * Go SetAuditFieldsForCreate: both slots identical, event "created". A
  * resource without a status (or audit) field is a no-op. The actor is
- * derived from the REQUEST's caller identity (O2 ruling Q5 — the
- * DD-007 amendment): every call site holds a RequestContext, so audit
+ * derived from the REQUEST's caller identity: every call site holds a
+ * RequestContext, so audit
  * attribution follows the caller, not a process-global.
  */
 export function setAuditFieldsForCreate(
@@ -249,7 +249,7 @@ export function bumpStatusAudit(status: { audit?: ApiResourceAudit }): void {
 
 // Operator identity (stigmer/stigmer#400): installed once at boot — before
 // any request — and read by the identity chassis when it mints the
-// trusted-local CallerIdentity (O2; audit stamping now derives its actor
+// trusted-local CallerIdentity (audit stamping derives its actor
 // from that identity rather than reading this seam directly). The
 // module-level seam is Go's, kept deliberately: threading a boot-time
 // constant through every step constructor would be machinery without a
@@ -283,10 +283,10 @@ export function resetOperatorIdentityForTests(): void {
 
 /**
  * The installed operator identity, read by the verifier-chain chassis to
- * mint the trusted-local CallerIdentity (O2): the single-operator trust
+ * mint the trusted-local CallerIdentity: the single-operator trust
  * domain's one principal. Empty email = unconfigured, the "system"
  * placeholder posture. Audit stamping no longer reads this seam directly —
- * it derives the actor from the request's CallerIdentity (ruling Q5),
+ * it derives the actor from the request's CallerIdentity,
  * which for local postures carries exactly these values, so the stamped
  * bytes are unchanged.
  */
@@ -298,8 +298,8 @@ export function operatorIdentitySnapshot(): {
 }
 
 /**
- * The audit actor derived from a caller identity (O2 ruling Q5 — replaces
- * the retired process-global currentAuditActor). A FRESH message per call
+ * The audit actor derived from a caller identity (it replaced the
+ * retired process-global currentAuditActor). A FRESH message per call
  * (audit stamping shares the returned reference across created_by/
  * updated_by; a singleton would alias unrelated resources' audit state).
  *
@@ -308,7 +308,7 @@ export function operatorIdentitySnapshot(): {
  * seam stamped: configured operator → email-first id with display fields;
  * unconfigured → the "system" placeholder, which the runner deliberately
  * demotes to anonymous (SYSTEM_CREATOR_SENTINEL). Verifier-produced
- * identities (O3's OIDC claims onward) stamp their own email/displayName
+ * identities (OIDC claims and the like) stamp their own email/displayName
  * when present, identityId alone otherwise. A PlatformClient-minted
  * caller also stamps the client it came through (platform_client_id):
  * the account alone cannot say, and the execution-context builder keys

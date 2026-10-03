@@ -246,7 +246,7 @@ export class StigmerClient {
         // 3. The runner credential (runnerTokenRef) authenticates the services
         //    that require a runner-class token_type claim: ExecutionContext
         //    reads carry decrypted secrets on cloud, and the server gates that
-        //    decrypt on runner class + scope (stigmer-cloud#152/#155); the
+        //    decrypt on runner class + scope; the
         //    scoped-token exchange itself requires the embedded_runner
         //    bootstrap credential (a desktop runner's control-plane token is
         //    the user's own Auth0 token, which the server correctly treats as
@@ -434,9 +434,8 @@ export class StigmerClient {
    * Otherwise the gate is the credential itself, three ways:
    *
    * 1. An unscoped embedded_runner bootstrap token MUST be exchanged, and a
-   *    failed exchange is a hard error, not a fallback: since the #156
-   *    item-3 flip (stigmer-cloud#218) the bootstrap credential no longer
-   *    decrypts, so a read that "fell back" would silently receive redacted
+   *    failed exchange is a hard error, not a fallback: the bootstrap
+   *    credential does not decrypt, so a read that "fell back" would silently receive redacted
    *    placeholders and the execution would run against junk secret values —
    *    strictly worse than failing here with the real reason. The
    *    secret-delivery call sites let this error fail the activity;
@@ -493,8 +492,8 @@ export class StigmerClient {
       throw new Error(
         `Scoped runner token exchange failed for ${scopeDescription}: ` +
         `${err instanceof Error ? err.message : String(err)}. ` +
-        "The bootstrap credential cannot read ExecutionContext secrets " +
-        "(stigmer-cloud#218), so this runner cannot serve the execution " +
+        "The bootstrap credential cannot read ExecutionContext secrets, " +
+        "so this runner cannot serve the execution " +
         "until the exchange succeeds.",
       );
     }
@@ -506,8 +505,8 @@ export class StigmerClient {
       }
       throw new Error(
         `Server minted no scoped runner token for ${scopeDescription}. ` +
-        "The bootstrap credential cannot read ExecutionContext secrets " +
-        "(stigmer-cloud#218), so this runner cannot serve the execution " +
+        "The bootstrap credential cannot read ExecutionContext secrets, " +
+        "so this runner cannot serve the execution " +
         "until the control plane mints scoped tokens.",
       );
     }
@@ -515,8 +514,8 @@ export class StigmerClient {
   }
 
   /**
-   * The agent's serving proactive-messaging channels, as data
-   * (proactive-messaging DD-006 D2) — the runner's tool-attachment
+   * The agent's serving proactive-messaging channels, as data — the
+   * runner's tool-attachment
    * decision. An empty list is the everyday answer (most agents have no
    * proactive channel).
    *
@@ -540,9 +539,9 @@ export class StigmerClient {
 
   /**
    * The channel's provider template registry, approved entries only —
-   * the `<available_channel_templates>` prompt section's source
-   * (proactive-messaging DD-003 D5). Entries carry the DD-006 D1
-   * sendability verdict (`unsupportedReason`, empty means sendable);
+   * the `<available_channel_templates>` prompt section's source.
+   * Entries carry the sendability verdict (`unsupportedReason`, empty
+   * means sendable);
    * the section formatter filters on it. Credential rules as
    * {@link listMessagingChannels}.
    */

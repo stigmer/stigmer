@@ -1,8 +1,8 @@
 /**
  * Runs the driver-agnostic Store contract suite (../../__tests__/
- * store-contract.ts) against the Postgres driver — the D-4 proof that the
+ * store-contract.ts) against the Postgres driver — the proof that the
  * two drivers are contract-twins — plus the driver-relative ranking pin
- * DD-009 keeps OUT of the shared suite (search-result order within one
+ * the shared suite deliberately leaves out (search-result order within one
  * driver is contract; order across drivers is not).
  *
  * Gated on TEST_DATABASE_URL (see support.ts): visible skips without a
@@ -131,7 +131,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       };
     });
 
-    describe("driver-relative search ranking (DD-009)", () => {
+    describe("driver-relative search ranking", () => {
       it("a name hit outranks a description hit (name carries setweight A)", async () => {
         await hooks.query(
           `TRUNCATE ${ALL_TABLES.join(", ")} RESTART IDENTITY CASCADE`,

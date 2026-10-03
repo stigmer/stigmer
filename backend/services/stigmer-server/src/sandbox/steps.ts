@@ -1,9 +1,8 @@
 /**
  * The sandbox invocation surface — the per-lane postures the cloud
- * edition proved in production (T01 gate ruling Q2: ONE shared
- * implementation, per-lane postures — the blueprint §6d "one shared step"
- * names the session-lane shape, the Java workflow lane is deliberately
- * its opposite):
+ * edition proved in production (ONE shared implementation, per-lane
+ * postures — the session lane is the shared step's shape, the workflow
+ * lane is deliberately its opposite):
  *
  *   - EnsureSessionSandbox (agent executions): AFTER StartWorkflow,
  *     NON-critical. A provisioning failure never fails the launch, but it
@@ -12,16 +11,15 @@
  *     at its ScheduleToStartTimeout minutes later the user sees the root
  *     cause instead of a generic timeout. The 2026-07 cloud quota outage
  *     hid for two days behind this step's former WARN-and-swallow — the
- *     pre-stamp posture is contract (DD-002).
+ *     pre-stamp posture is contract.
  *   - EnsureWorkflowSandbox (workflow executions): BEFORE Persist,
  *     CRITICAL and synchronous — a refusal orphans nothing (no row, no
  *     Temporal workflow), the verified Java ordering.
  *   - Workflow-sandbox terminal deprovision: server-side at the three
- *     status write sites (gate ruling Q3b — the invoke workflow's history
- *     shape is pinned contract, so no new workflow activity). KNOWN
- *     WINDOW, ruled acceptable: the orchestrator's terminal persists are
+ *     status write sites (the invoke workflow's history shape is pinned
+ *     contract, so no new workflow activity). KNOWN WINDOW, accepted: the orchestrator's terminal persists are
  *     best-effort, so a persist that never lands leaks the sandbox — OSS
- *     has no orphan reaper (the cloud's rides its C4 extension workers).
+ *     has no orphan reaper (the cloud's rides its extension workers).
  *     Deprovision is idempotent, so multiple sites firing is harmless.
  *   - DeprovisionSessionSandbox (session delete): best-effort teardown,
  *     ERROR-logged on failure, never fails the delete (the Java
@@ -251,7 +249,7 @@ export interface EnsureWorkflowSandboxDeps {
  * placed before Persist in the workflow-execution create chain — a
  * provisioning failure answers Unavailable with zero orphaned state.
  * Only reachable with a provisioner composed AND per-execution routing
- * resolved to CLOUD, so the copy is new O6 surface, not ported wire
+ * resolved to CLOUD, so the copy is new surface, not ported wire
  * contract.
  */
 export function newEnsureWorkflowSandboxStep(

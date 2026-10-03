@@ -79,8 +79,6 @@ public interface ApiResourceMetadataVersionOrBuilder extends
    * Optional tag to assign to this version at creation time.
    * Only applicable to versioned resources (Skills, Workflows).
    * Examples: "stable", "v1.0", "production"
-   *
-   * &#64;since Workflow Versioning
    * </pre>
    *
    * <code>string tag = 4 [json_name = "tag"];</code>
@@ -92,8 +90,6 @@ public interface ApiResourceMetadataVersionOrBuilder extends
    * Optional tag to assign to this version at creation time.
    * Only applicable to versioned resources (Skills, Workflows).
    * Examples: "stable", "v1.0", "production"
-   *
-   * &#64;since Workflow Versioning
    * </pre>
    *
    * <code>string tag = 4 [json_name = "tag"];</code>

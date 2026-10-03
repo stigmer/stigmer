@@ -6,8 +6,6 @@
  * computation, no proto knowledge. `resolveWorkspacePath` normalizes a touched
  * path to (display path, absolute path); `looksBinary`/`bytesLookBinary` are the
  * single definition of "binary" across every capture substrate.
- *
- * @since First-Class Diff Review (#186)
  */
 
 import { isAbsolute, join, relative } from "node:path";

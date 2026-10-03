@@ -68,7 +68,7 @@ message ToolCall {
   string error = 9;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Approval Fields (HITL Phase 1)
+  // Approval Fields
   //
   // These fields track the approval state for tools that require user consent
   // before execution. Populated only for tools where approval is configured.
@@ -225,10 +225,10 @@ message ToolCall {
   // Field 21: appended after tool_kind (20), the prior maximum.
   ToolCallOutputRef output_ref = 21;
 
-  // Field 22 (file_changes) was removed in Phase 5 Slice 4: file review moved to
+  // Field 22 (file_changes) was removed: file review moved to
   // the apply-then-review FileChangeSet ledger (AgentExecutionStatus.
   // file_change_sets + file_review_event_stream), so the tool-call-coupled
-  // FileChange copy is obsolete. See design-decisions 21 & 22.
+  // FileChange copy is obsolete.
   reserved 22;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -327,8 +327,6 @@ message ToolCall {
 // internal spillover of a tool's result, not a user-facing deliverable. The
 // bytes live in artifact storage (R2 in the cloud, locally served in dev);
 // only this reference is persisted in the execution status.
-//
-// @since Durable Executions (tool-output offload)
 message ToolCallOutputRef {
   // Storage location of the full output bytes.
   // Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
@@ -366,8 +364,6 @@ message ToolCallOutputRef {
 // ToolCallOutputRef envelope; small bodies stay inline. capture_level tells
 // clients how complete the content is so they render whole-file vs hunk-only
 // diffs honestly per harness.
-//
-// @since First-Class Diff Review (#186)
 message FileChange {
   // Workspace-root-relative path for display, e.g. "src/app/main.ts".
   // Falls back to absolute_path when the workspace root is unknown.
@@ -417,8 +413,6 @@ message FileChange {
 // storage and referenced via the existing tool-output offload envelope. Exactly
 // one of inline or ref is set; when offloaded, the head preview lives in
 // ref.truncated_preview and the full size in ref.size_bytes.
-//
-// @since First-Class Diff Review (#186)
 message FileContent {
   // The body of this side — inline when small, an offload pointer when large.
   oneof body {

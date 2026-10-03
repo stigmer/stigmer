@@ -1,19 +1,18 @@
 /**
- * The resource-authorization lifecycle extension point (convergence
- * program C2, 20260827.10; plan-gate ruling Q2). The cloud edition writes
+ * The resource-authorization lifecycle extension point. The cloud edition writes
  * relationship tuples (OpenFGA) at three verified points of every
  * resource's life — creation, deletion, and visibility change — through
  * ONE driver seam, mirroring the Java service's config-driven
  * architecture (CreateAuthorizationTuplesStepV2 + cleanupIamPolicies +
  * VisibilityTupleReconciler, the shapes production trusts today).
  *
- * Division of labor (the ratified design): the OSS steps
+ * Division of labor: the OSS steps
  * (src/pipeline/steps/authorization-tuples.ts) resolve EVERYTHING
  * edition-neutral — the kind's AuthorizationConfig from proto metadata,
  * parent ids from spec fields, the visibility shape set-diff — and hand
  * the driver fully-resolved events. The driver owns only the tuple
  * writes. No driver composed = the steps no-op = OSS behavior is
- * byte-identical (the empty-default doctrine, DD-006 §2a).
+ * byte-identical (an absent point resolves to an explicit empty default).
  *
  * Failure semantics are part of the contract (Java parity, verified
  * against the cloud handlers 2026-08-27):
@@ -37,18 +36,18 @@
  *     request (metadata may be persisted with tuples lagging — retrying
  *     the same transition converges, the set-diff is idempotent).
  *
- * Corrected 2026-09-13 (20260913.01, T01_1_review.md Q-OR-6, Q-OR-10):
+ * Corrected 2026-09-13:
  * "no driver composed = OSS behavior byte-identical" described the seam
  * while the only writer of authorization records was the cloud's tuple
  * driver. The seam now records authorization at lifecycle points in EVERY
  * edition: open source's built-in role lifecycle
- * (domain/iampolicy/role-lifecycle.ts, the entry's slice 4) writes
+ * (domain/iampolicy/role-lifecycle.ts) writes
  * IamPolicy rows (the organization creator's `owner` row; cleanup on
  * delete), and a composed driver writes tuples too. The two POLICY hooks below are the
  * other direction of the same seam — the IamPolicy domain's one grant and
  * revoke path (domain/iampolicy/grant-path.ts) telling the driver that a
  * row was written or is about to be deleted, so a composition can mirror
- * the row as a tuple. Their order is the cloud#425 invariant, fixed by the
+ * the row as a tuple. Their order is an invariant, fixed by the
  * path and stated on each event:
  *   - onPolicyGranted: SYNCHRONOUS, AFTER the row is persisted; fires on
  *     the duplicate arm too (the inline heal for a row whose tuple never
@@ -201,8 +200,8 @@ export interface VisibilityChangedEvent {
 
 /**
  * Fired synchronously after a blueprint's `status.defaultInstanceId`
- * pointer is persisted (C2 Stage 3 — the default_of structural-
- * inheritance arm of the Java model). The invariant the driver upholds:
+ * pointer is persisted (the default_of structural-inheritance arm of
+ * the Java model). The invariant the driver upholds:
  * the `<instanceKind>:<instanceId>#default_of@<blueprintKind>:<blueprintId>`
  * tuple exists iff the pointer names the instance — written by the SAME
  * flows that persist the pointer, never derived from the client-
@@ -238,7 +237,7 @@ export interface ExecutionVisibilityChangedEvent {
  * Fired synchronously AFTER an IamPolicy row is persisted by the domain's
  * grant path — and on the duplicate arm, when the triple was already held
  * and no row was written, so a composition heals a row whose tuple never
- * landed (cloud#425's inline heal). `policy` is the row as stored: on the
+ * landed (the inline heal). `policy` is the row as stored: on the
  * duplicate arm the FIRST writer's row, whose id may be a legacy random
  * one on a composition that predates derived ids.
  */
@@ -286,14 +285,14 @@ export interface ResourceAuthorizationLifecycle {
   onResourceDeleted(event: ResourceDeletedEvent): Promise<void>;
   onVisibilityChanged(event: VisibilityChangedEvent): Promise<void>;
   /**
-   * OPTIONAL (added C2 Stage 3): synchronous, post-pointer-persist; a
+   * OPTIONAL: synchronous, post-pointer-persist; a
    * throw fails the request (the pointer survives — retry converges, the
    * write is idempotent). Absent method = no structural link is written
    * (the OSS posture: local access control needs none).
    */
   onDefaultInstanceLinked?(event: DefaultInstanceLinkedEvent): Promise<void>;
   /**
-   * OPTIONAL (stigmer-cloud#720): synchronous, post-persist; a throw fails
+   * OPTIONAL: synchronous, post-persist; a throw fails
    * the request (the level survives — retry converges, the event is the
    * target state). Absent method = no run-audience tuple is written (the
    * OSS posture: the relation is derived from the row at check time).
@@ -302,13 +301,13 @@ export interface ResourceAuthorizationLifecycle {
     event: ExecutionVisibilityChangedEvent,
   ): Promise<void>;
   /**
-   * OPTIONAL (added 20260913.01 slice 2): synchronous, AFTER the row
+   * OPTIONAL: synchronous, AFTER the row
    * persist, on the duplicate arm too; a throw fails the grant with the
    * row in place. Absent method = rows are the record (the OSS posture).
    */
   onPolicyGranted?(event: PolicyGrantedEvent): Promise<void>;
   /**
-   * OPTIONAL (added 20260913.01 slice 2): synchronous, BEFORE the row
+   * OPTIONAL: synchronous, BEFORE the row
    * delete; a throw leaves row and tuple for the retry. Absent method =
    * rows are the record (the OSS posture).
    */

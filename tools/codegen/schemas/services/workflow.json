@@ -244,7 +244,7 @@
     },
     {
       "name": "TagWorkflowVersionInput",
-      "description": "TagWorkflowVersionInput assigns or moves a tag to a specific workflow version.\n\n Tags are mutable pointers — calling tagVersion with an existing tag name\n moves it from the previous version to the specified version. A version can\n have at most one tag (set at apply time or via this RPC).\n\n @since Workflow Versioning",
+      "description": "TagWorkflowVersionInput assigns or moves a tag to a specific workflow version.\n\n Tags are mutable pointers — calling tagVersion with an existing tag name\n moves it from the previous version to the specified version. A version can\n have at most one tag (set at apply time or via this RPC).",
       "protoType": "ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput",
       "protoFile": "apis/ai/stigmer/agentic/workflow/v1/version.proto",
       "fields": [
@@ -388,7 +388,7 @@
     },
     {
       "name": "ListWorkflowVersionsInput",
-      "description": "ListWorkflowVersionsInput requests the version history for a workflow.\n\n Returns all historical versions ordered by applied_at (newest first).\n Used by the Console, SDK, and CLI to render version timelines and\n enable version comparison.\n\n @since Workflow Versioning",
+      "description": "ListWorkflowVersionsInput requests the version history for a workflow.\n\n Returns all historical versions ordered by applied_at (newest first).\n Used by the Console, SDK, and CLI to render version timelines and\n enable version comparison.",
       "protoType": "ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput",
       "protoFile": "apis/ai/stigmer/agentic/workflow/v1/version.proto",
       "fields": [
@@ -442,7 +442,7 @@
     },
     {
       "name": "ListWorkflowVersionsResponse",
-      "description": "ListWorkflowVersionsResponse contains a page of workflow version history.\n\n @since Workflow Versioning",
+      "description": "ListWorkflowVersionsResponse contains a page of workflow version history.",
       "protoType": "ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse",
       "protoFile": "apis/ai/stigmer/agentic/workflow/v1/version.proto",
       "fields": [
@@ -484,7 +484,7 @@
     },
     {
       "name": "GetWorkflowVersionInput",
-      "description": "GetWorkflowVersionInput requests a specific historical version of a workflow.\n\n Used by the runner (to hydrate execution from a pinned version) and the\n execution viewer (to render the graph for historical executions).\n\n @since Workflow Versioning",
+      "description": "GetWorkflowVersionInput requests a specific historical version of a workflow.\n\n Used by the runner (to hydrate execution from a pinned version) and the\n execution viewer (to render the graph for historical executions).",
       "protoType": "ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput",
       "protoFile": "apis/ai/stigmer/agentic/workflow/v1/version.proto",
       "fields": [
@@ -655,7 +655,7 @@
         {
           "name": "visibility_org",
           "number": 3,
-          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (Before cloud#257 the tuple targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: everyone in the org sees all executions via inheritance\n once the instance opts in."
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: everyone in the org sees all executions via inheritance\n once the instance opts in."
         },
         {
           "name": "visibility_platform",
@@ -967,7 +967,7 @@
     },
     {
       "name": "BudgetExceededPolicy",
-      "description": "BudgetExceededPolicy defines the runtime behavior when a workflow or per-task\n budget limit is exceeded.\n\n The runtime (T13) evaluates this policy at task boundaries: after each task\n completes, accumulated costs and tokens are compared against the declared\n budget. If a limit is breached, the policy determines what happens next.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "description": "BudgetExceededPolicy defines the runtime behavior when a workflow or per-task\n budget limit is exceeded.\n\n The runtime evaluates this policy at task boundaries: after each task\n completes, accumulated costs and tokens are compared against the declared\n budget. If a limit is breached, the policy determines what happens next.",
       "protoType": "ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy",
       "values": [
         {
@@ -978,7 +978,7 @@
         {
           "name": "budget_exceeded_human_review",
           "number": 2,
-          "description": "Pause the workflow and request human review via a system-generated\n approval gate. The reviewer can approve continued execution (with\n an increased budget) or confirm termination.\n Depends on the human_input runtime (T13). If human_input runtime\n is not available, falls back to terminate with a descriptive error."
+          "description": "Pause the workflow and request human review via a system-generated\n approval gate. The reviewer can approve continued execution (with\n an increased budget) or confirm termination.\n Depends on the human_input runtime. If human_input runtime\n is not available, falls back to terminate with a descriptive error."
         },
         {
           "name": "budget_exceeded_warn",
@@ -989,7 +989,7 @@
     },
     {
       "name": "TaskKindCategory",
-      "description": "TaskKindCategory classifies task kinds by their functional role in a workflow.\n\n Used by the UI to render task palettes with grouped categories, and by\n documentation generators to organize task reference pages.\n\n @since T04 (Task Schema Registry)",
+      "description": "TaskKindCategory classifies task kinds by their functional role in a workflow.\n\n Used by the UI to render task palettes with grouped categories, and by\n documentation generators to organize task reference pages.",
       "protoType": "ai.stigmer.agentic.workflow.v1.TaskKindCategory",
       "values": [
         {
@@ -1026,7 +1026,7 @@
     },
     {
       "name": "TaskFieldType",
-      "description": "TaskFieldType represents the data type of a task configuration field\n as understood by UI form renderers and schema validators.\n\n @since T04 (Task Schema Registry)",
+      "description": "TaskFieldType represents the data type of a task configuration field\n as understood by UI form renderers and schema validators.",
       "protoType": "ai.stigmer.agentic.workflow.v1.TaskFieldType",
       "values": [
         {

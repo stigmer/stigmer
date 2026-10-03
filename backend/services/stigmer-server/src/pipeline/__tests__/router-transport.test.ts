@@ -1,5 +1,5 @@
 /**
- * Spike SP-B (D2 spike register): `createRouterTransport` traverses the
+ * The router-transport spike: `createRouterTransport` traverses the
  * FULL interceptor chain on in-process calls.
  *
  * Why this matters: Go serves internal calls (plugin member deletes,
@@ -39,7 +39,7 @@ function recordingInterceptor(name: string, log: string[]): Interceptor {
   };
 }
 
-describe("SP-B: interceptors traverse createRouterTransport in-process calls", () => {
+describe("interceptors traverse createRouterTransport in-process calls", () => {
   it("runs every interceptor, in registration order, around the handler", async () => {
     const log: string[] = [];
     const transport = createRouterTransport(
@@ -108,7 +108,7 @@ describe("SP-B: interceptors traverse createRouterTransport in-process calls", (
 });
 
 // ---------------------------------------------------------------------------
-// C2 Stage 3 (ruling R5): the caller-propagation header traverses the
+// The caller-propagation header traverses the
 // router transport — the mechanism boot/inprocess.ts rides. (Per-call
 // contextValues deliberately NOT used: they are a server-side construct
 // and do not cross the client boundary — verified here first.)
@@ -121,7 +121,7 @@ import {
   IN_PROCESS_CALLER_HEADER,
 } from "../interceptors/auth.js";
 
-describe("R5: caller propagation through the in-process transport", () => {
+describe("caller propagation through the in-process transport", () => {
   function transportSeeing(seen: CallerIdentity[]) {
     return createRouterTransport(
       (router) => {

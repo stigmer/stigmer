@@ -44,8 +44,6 @@ service WorkflowQueryController {
   // @internal
   // Authorization is handled in the handler after resolving the workflow.
   // (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
-  //
-  // @since Workflow Versioning
   rpc listVersions(ListWorkflowVersionsInput) returns (ListWorkflowVersionsResponse) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
@@ -57,8 +55,6 @@ service WorkflowQueryController {
   //
   // @internal
   // Authorization uses can_view on the workflow resource.
-  //
-  // @since Workflow Versioning
   rpc getVersion(GetWorkflowVersionInput) returns (WorkflowVersionEntry) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow;
     option (ai.stigmer.commons.rpc.config).permission = can_view;

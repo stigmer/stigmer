@@ -2,7 +2,7 @@
  * AgentInstance controller — ports pkg/domain/agentinstance/controller
  * (command + query sides): configured materializations of an agent
  * blueprint. Create validates the parent agent through the in-process
- * agent client (the agent↔agentinstance mutual edge — sub-project DD-002);
+ * agent client (the agent↔agentinstance mutual edge);
  * update enforces the immutable spec.agent_id (oss#646); updateVisibility
  * refuses default instances outright (stigmer/stigmer#556).
  *
@@ -123,18 +123,18 @@ import type { ParentAgentLoaderProvider } from "./steps.js";
 export interface AgentInstanceControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * The agent in-process edge — a lazy provider because
-   * agent↔agentinstance is a true dependency cycle (DD-002; the ratified
-   * DI story breaks cycles with `() => client` closures resolved at call
+   * agent↔agentinstance is a true dependency cycle (the server's DI
+   * breaks cycles with `() => client` closures resolved at call
    * time, never at construction).
    */
   readonly parentAgentLoader: ParentAgentLoaderProvider;
-  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan (20260830.01). */
+  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 

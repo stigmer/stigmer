@@ -8,9 +8,9 @@
  * authorize pre-flight + token endpoint), and the real environment
  * domain behind the managed-env lifecycle.
  *
- * DB-1 (sub-project 20260825.02): this composed server has NO Temporal
- * behind it, and completeOAuthConnect works anyway — the ratified,
- * disclosed divergence from Go's composition gate. connect/startConnect
+ * This composed server has NO Temporal behind it, and completeOAuthConnect
+ * works anyway — a deliberate divergence from Go's composition gate.
+ * connect/startConnect
  * refuse with the byte-pinned engine-unavailable copy on the same boot.
  */
 import { createServer } from "node:http";
@@ -163,7 +163,8 @@ beforeAll(async () => {
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
       // No engine: 127.0.0.1:1 is deterministically closed (the composed
-      // CRUD harness idiom) — which is exactly the DB-1 arm under test.
+      // CRUD harness idiom) — which is exactly the Temporal-less arm under
+      // test.
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
       DB_PATH: path.join(dir, "stigmer.db"),
       ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
@@ -271,7 +272,7 @@ async function expectCode(
   throw new Error("expected the RPC to fail");
 }
 
-describe("engine-unavailable connect refusals (the DB-1 counterpart)", () => {
+describe("engine-unavailable connect refusals (the Temporal-less counterpart)", () => {
   it("connect refuses FailedPrecondition on a Temporal-less server (byte-pinned copy)", async () => {
     const id = await applyServer({ noAuth: true });
     await expectCode(

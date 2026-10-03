@@ -91,7 +91,7 @@ spec:
                 secretKeyRef:
                   name: {{ $pgSecret }}
                   key: {{ $pgKey }}
-            # Non-empty DATABASE_URL selects the Postgres driver (DD-010).
+            # Non-empty DATABASE_URL selects the Postgres driver.
             - name: DATABASE_URL
               value: "postgres://{{ include "stigmer.postgresUser" . }}:$(POSTGRES_PASSWORD)@{{ include "stigmer.postgresHost" . }}:{{ include "stigmer.postgresPort" . }}/{{ include "stigmer.postgresDatabase" . }}"
             - name: TEMPORAL_HOST_PORT
@@ -114,7 +114,7 @@ spec:
               value: {{ include "stigmer.artifactPublicUrl" . | quote }}
             - name: SKILL_TRANSFER_BASE_URL
               value: {{ include "stigmer.publicUrl" . | quote }}
-            # Explicit keys, loud fail (DD-013): from the operator's Secret.
+            # Explicit keys, loud fail: from the operator's Secret.
             - name: STIGMER_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:

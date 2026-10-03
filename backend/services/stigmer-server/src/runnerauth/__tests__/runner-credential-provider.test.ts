@@ -1,5 +1,5 @@
 /**
- * Pins the OSS RunnerCredentialProvider default (O5, §6c) as behaviorally
+ * Pins the OSS RunnerCredentialProvider default as behaviorally
  * identical to direct RunnerAuthService use on the execution_scoped lane,
  * and pins the per-arm posture for lanes OSS does not provide: verify
  * fails CLOSED (InvalidTokenError — callers fall back to redaction), mint

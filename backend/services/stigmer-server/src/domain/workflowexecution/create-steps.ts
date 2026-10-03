@@ -47,8 +47,8 @@ import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
 type ExecutionDesc = typeof WorkflowExecutionSchema;
 
 /**
- * The narrow workflowinstance CREATE edge — as the ORIGINAL caller since
- * C2 Stage 3 (ruling R5, the Java createAsCaller posture): real owner
+ * The narrow workflowinstance CREATE edge — as the ORIGINAL caller (the
+ * Java createAsCaller posture): real owner
  * attribution for the created instance under an enforcing Authorizer.
  */
 export interface ExecutionWorkflowInstanceCreator {
@@ -240,7 +240,7 @@ async function backfillDefaultInstanceId(
   } catch (error) {
     throw internalError(error, failureMessage);
   }
-  // The default_of invariant rides the pointer persist (C2 Stage 3).
+  // The default_of invariant rides the pointer persist.
   await notifyDefaultInstanceLinked(deps.authorizationLifecycle, {
     instanceKind: ApiResourceKind.workflow_instance,
     instanceId,
@@ -306,7 +306,7 @@ export interface StartWorkflowDeps {
  * live/transient Temporal error: the execution is marked FAILED with the
  * error text and persisted (recoverable via Recover), then the RPC
  * answers Internal. Dispatch-queue resolution lives inside the engine
- * (#21), fed by spec.execution_target.
+ * client, fed by spec.execution_target.
  */
 export function newStartWorkflowStep(
   deps: StartWorkflowDeps,
@@ -318,9 +318,9 @@ export function newStartWorkflowStep(
       const executionId = execution.metadata?.id ?? "";
 
       const engineState = deps.engineState();
-      // Unreachable while the gate holds (the engine cannot flip between
-      // step 4 and here pre-#21); modeled the same way Go's non-nil
-      // assumption is — a loud failure, not a silent skip.
+      // Reached only if the engine disconnects between the gate (step 4)
+      // and here; modeled the same way Go's non-nil assumption is — a
+      // loud failure, not a silent skip.
       let startError: Error | undefined;
       if (!engineState.connected) {
         startError = new Error(

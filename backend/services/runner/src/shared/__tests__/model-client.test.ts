@@ -186,8 +186,8 @@ describe("buildChatModel", () => {
   // The timeout lives in a different slot per wrapper: ChatOpenAI reads it
   // as a constructor field; ChatAnthropic only honors clientOptions.timeout.
   // Putting it in the shared constructor spread was the regression that made
-  // the env var inert on every Anthropic path (T02 finding 2, repaired in
-  // T06). The backend factories' half of the chain is pinned in the
+  // the env var inert on every Anthropic path. The backend factories' half
+  // of the chain is pinned in the
   // vertex/bedrock/foundry adapter tests.
 
   describe("request timeout", () => {

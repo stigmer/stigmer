@@ -135,7 +135,7 @@ describe("RequestContext", () => {
     expect(ctx.get("shouldCreate")).toBe(true);
   });
 
-  it("pins the loaded-execution context key (C4 Stage 3): both lifecycle chains stamp it and extension gate steps read it", () => {
+  it("pins the loaded-execution context key: both lifecycle chains stamp it and extension gate steps read it", () => {
     expect(LOADED_EXECUTION_KEY).toBe("loadedExecution");
   });
 });

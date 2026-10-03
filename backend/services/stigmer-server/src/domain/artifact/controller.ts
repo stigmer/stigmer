@@ -1,6 +1,6 @@
 /**
  * Artifact controller — ports pkg/domain/artifact (command + query sides).
- * Artifact is the execution-output store (T07): a metadata resource in the
+ * Artifact is the execution-output store: a metadata resource in the
  * generic resources table plus a blob in ArtifactStorage, keyed by the
  * content's SHA-256 (content-addressable).
  *
@@ -21,7 +21,7 @@
  * Versus Stigmer Cloud, OSS derives the artifact's org from its source
  * execution BEST-EFFORT (fabricated ids fall back to an empty org — what
  * makes the domain standalone-testable), where the multi-tenant edition
- * requires a real org-carrying source (the wave-2 disclosed edition split).
+ * requires a real org-carrying source (a deliberate edition split).
  */
 import { createHash } from "node:crypto";
 
@@ -99,7 +99,7 @@ export interface ArtifactControllerDeps {
   readonly store: Store;
   readonly artifactStorage: ArtifactStorage;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
 }
 
@@ -132,8 +132,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * content-addressed status, persist. The audit-field failure is LOG-ONLY
  * (Go behavior); the empty-content arm is normally answered by
  * protovalidate before this code runs, and the 50MB cap sits behind the
- * transport's 10MB message cap — both arms stay unit-level (the wave-2 S1
- * amendment names this port as their carrier).
+ * transport's 10MB message cap — both arms stay unit-level.
  */
 async function createArtifact(
   deps: ArtifactControllerDeps,
@@ -313,7 +312,6 @@ async function deleteArtifact(
 
   // The annotation's can_edit check AFTER the load — the Java
   // ArtifactDeleteHandler order (load-before-authorize, stigmer#224).
-  // C2 Stage 4.
   await authorizeDirect(
     ArtifactCommandController.method.delete,
     deps.authorizer,
@@ -523,9 +521,9 @@ async function listByExecution(
 
 /**
  * GetDownloadUrl — Go's direct handler: load, refuse deleted blobs, mint
- * the storage URL. ttl_seconds reports the 7-day constant UNCONDITIONALLY
- * (ratified P3): local URLs never actually expire — pinned as the wire
- * contract, the semantic mismatch disclosed in the wave-2 PR. The empty
+ * the storage URL. ttl_seconds reports the 7-day constant UNCONDITIONALLY:
+ * local URLs never actually expire, and this is pinned as the wire
+ * contract despite the semantic mismatch. The empty
  * download filename keeps the URL inline; attachment disposition is
  * opt-in only on the AgentExecution artifact download path.
  */
@@ -543,7 +541,7 @@ async function getDownloadUrl(
 
   // The annotation's can_view check AFTER the load — the Java
   // ArtifactGetDownloadUrlHandler order (load-before-authorize,
-  // stigmer#224). C2 Stage 4.
+  // stigmer#224).
   await authorizeDirect(
     ArtifactQueryController.method.getDownloadUrl,
     deps.authorizer,
@@ -603,7 +601,6 @@ async function getContent(
 
   // The annotation's can_view check AFTER the load — the Java
   // ArtifactGetContentHandler order (load-before-authorize, stigmer#224).
-  // C2 Stage 4.
   await authorizeDirect(
     ArtifactQueryController.method.getContent,
     deps.authorizer,

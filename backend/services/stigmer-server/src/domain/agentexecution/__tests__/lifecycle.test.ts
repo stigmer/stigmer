@@ -472,7 +472,7 @@ function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
     executionContextBuilder: stubBuilderDeps(),
     gateSteps: new Map(),
     statusObservers: [],
-    // The OSS default sandbox posture (§6d, O6): lane disabled — the
+    // The OSS default sandbox posture: lane disabled — the
     // recover chain's EnsureSessionSandbox step short-circuits.
     sandboxLane: { enabled: false },
     temporalConfig: newConfigFromEnv(),
@@ -680,10 +680,10 @@ describe("lifecycle pipelines", () => {
     expect(result.status?.error).toBe("Terminated: disk full");
   });
 
-  // O4 (20260827.07, ruling Q3): the lifecycle persist step is notify
+  // The lifecycle persist step is notify
   // site 2 of 5 — the user-initiated terminal transitions the update-status
-  // chokepoint never sees MUST reach the composed observers (the cloud's
-  // billing finalize settles on exactly these).
+  // chokepoint never sees MUST reach the composed observers (a billing
+  // composition's finalize settles on exactly these).
   it("cancel notifies the composed status observers with the persisted transition", async () => {
     const observed: AgentExecutionStatusTransition[] = [];
     const deps: LifecycleDeps = {
@@ -733,9 +733,8 @@ describe("lifecycle pipelines", () => {
     expect(observed).toHaveLength(0);
   });
 
-  // O4: the recover chain's ratified slot position — after workflow
-  // termination, before re-launch side effects (the RearmBillingStep
-  // ordering, blueprint 03 §3a).
+  // The recover chain's slot position — after workflow termination,
+  // before re-launch side effects (where a billing composition re-arms).
   it("a recover slot gate refuses after termination and before any re-launch side effect", async () => {
     const terminations: string[] = [];
     const starts: string[] = [];

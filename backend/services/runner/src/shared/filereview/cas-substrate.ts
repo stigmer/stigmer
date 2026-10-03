@@ -28,8 +28,8 @@
  *     "after" bytes; rejected/undecided files are snapped back to their "before"
  *     bytes (or removed, for a rejected create). Symmetric and idempotent.
  *
- * DURABILITY DOMAIN (design doc 11 D3)
- * -----------------------------------
+ * DURABILITY DOMAIN
+ * -----------------
  * Unlike git refs, which live inside the repo, CAS blobs + manifests live in
  * artifact storage (a fixed host path in OSS, R2 via the proxy in Cloud) — a
  * DIFFERENT durability domain that must outlive the multi-day approval wait and
@@ -42,10 +42,8 @@
  * It is harness-agnostic and wiring-agnostic: it takes explicit before/after
  * bytes, never reads gitignore, never talks to a hook. WHICH paths flow here (vs
  * stay on the deny-gate or block as DIFF_UNREVIEWABLE), and the secret-safety
- * gate (design doc 12), are the harness adapter's concern, applied BEFORE bytes
+ * gate, are the harness adapter's concern, applied BEFORE bytes
  * reach this module. This module never persists a path it is not given.
- *
- * @since File-Change HITL Redesign (Phase 3 — CAS)
  */
 
 import { mkdir, rm, writeFile } from "node:fs/promises";
@@ -129,7 +127,7 @@ export interface CasPathCapture {
 }
 
 // ---------------------------------------------------------------------------
-// Key namespace (design doc 08: execution-scoped, reuse existing authz)
+// Key namespace (execution-scoped, reusing the existing authorization)
 // ---------------------------------------------------------------------------
 
 /** The CAS blob key for a content hash, under the execution's artifact prefix. */
@@ -175,7 +173,7 @@ export async function snapshotCasChangeSet(opts: {
   }
   // Deterministic order (by after path, then before path) so the manifest digest
   // is stable and, later, composes with the git manifest into one aggregate
-  // digest that is byte-identical across editions (design doc 08 D3).
+  // digest that is byte-identical across editions.
   files.sort(compareByPath);
 
   const manifest: CasManifest = { changeSetId, files };
@@ -425,7 +423,7 @@ async function writeVerifiedBlob(
   await writeFile(abs, bytes);
 }
 
-/** Stable order: by after path, then before path (substrate-agnostic, doc 08 D3). */
+/** Stable order: by after path, then before path (substrate-agnostic). */
 function compareByPath(a: CasCapturedFile, b: CasCapturedFile): number {
   const ka = a.pathAfter || a.pathBefore;
   const kb = b.pathAfter || b.pathBefore;

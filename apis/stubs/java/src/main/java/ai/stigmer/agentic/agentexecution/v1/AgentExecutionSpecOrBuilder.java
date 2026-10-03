@@ -423,8 +423,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    *
    * Example CLI usage:
    * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Outputs)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
@@ -445,8 +443,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    *
    * Example CLI usage:
    * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Outputs)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
@@ -466,8 +462,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    *
    * Example CLI usage:
    * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Outputs)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
@@ -487,8 +481,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    *
    * Example CLI usage:
    * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Outputs)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
@@ -509,8 +501,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    *
    * Example CLI usage:
    * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Outputs)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
@@ -542,8 +532,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m "Review"
    * # CLI detects src/config.yaml is inside workspace -&gt; workspace_file_ref
    * # No upload, no injection; agent reads directly from src/config.yaml
-   *
-   * &#64;since Workspace-Aware File Referencing
    * </pre>
    *
    * <code>repeated string workspace_file_refs = 10 [json_name = "workspaceFileRefs"];</code>
@@ -575,8 +563,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m "Review"
    * # CLI detects src/config.yaml is inside workspace -&gt; workspace_file_ref
    * # No upload, no injection; agent reads directly from src/config.yaml
-   *
-   * &#64;since Workspace-Aware File Referencing
    * </pre>
    *
    * <code>repeated string workspace_file_refs = 10 [json_name = "workspaceFileRefs"];</code>
@@ -607,8 +593,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m "Review"
    * # CLI detects src/config.yaml is inside workspace -&gt; workspace_file_ref
    * # No upload, no injection; agent reads directly from src/config.yaml
-   *
-   * &#64;since Workspace-Aware File Referencing
    * </pre>
    *
    * <code>repeated string workspace_file_refs = 10 [json_name = "workspaceFileRefs"];</code>
@@ -640,8 +624,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m "Review"
    * # CLI detects src/config.yaml is inside workspace -&gt; workspace_file_ref
    * # No upload, no injection; agent reads directly from src/config.yaml
-   *
-   * &#64;since Workspace-Aware File Referencing
    * </pre>
    *
    * <code>repeated string workspace_file_refs = 10 [json_name = "workspaceFileRefs"];</code>

@@ -10,8 +10,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * FileReviewFailureKind is the precise cause carried by a FAILED file-review
  * event (FileReviewFailure.kind). Audit/control metadata for the failure
  * lifecycle.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind}

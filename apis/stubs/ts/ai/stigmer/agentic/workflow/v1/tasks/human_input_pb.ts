@@ -121,7 +121,7 @@ export type HumanInputTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks
    *   - "role:content-admin" — any user with the role
    *
    * When empty, any authenticated user can respond.
-   * Resolution of these identifiers is a runtime concern (T13).
+   * Resolution of these identifiers is a runtime concern.
    *
    * @generated from field: repeated string approvers = 4;
    */
@@ -158,7 +158,7 @@ export type HumanInputTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks
    *   - "email:ops@acme.com" — email address
    *   - "teams:#incident-response" — Microsoft Teams channel
    *
-   * The format and routing of notifications is a runtime concern (T13).
+   * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
    * actual notification providers configured in the workflow instance's
    * environment.

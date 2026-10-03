@@ -14,8 +14,6 @@ import "buf/validate/validate.proto";
 // did not pass a quality gate. The only difference is that eval uses an
 // LLM judge to assess semantic quality rather than deterministic schema
 // checks.
-//
-// @since T17 (Advanced Agentic Orchestration)
 enum EvalFailPolicy {
   // Unspecified: defaults to EVAL_FAIL_RAISE behavior.
   EVAL_FAIL_POLICY_UNSPECIFIED = 0;
@@ -46,8 +44,6 @@ enum EvalFailPolicy {
 // @internal
 // The scoring mode determines the response schema enforced on the judge
 // LLM and how the threshold is applied.
-//
-// @since T17 (Advanced Agentic Orchestration)
 enum EvalScoringMode {
   // Unspecified: defaults to EVAL_PASS_FAIL.
   EVAL_SCORING_MODE_UNSPECIFIED = 0;
@@ -76,8 +72,6 @@ enum EvalScoringMode {
 // When scoring_mode is EVAL_MULTI_CRITERIA, these criteria are included
 // in the judge prompt as distinct evaluation axes. Each criterion gets
 // its own score and reasoning in the output.
-//
-// @since T17 (Advanced Agentic Orchestration)
 message EvalCriterion {
   // Name of this evaluation dimension.
   // Used in the judge prompt and appears in the output.
@@ -261,7 +255,5 @@ message EvalTaskConfig {
   // When set, the runtime terminates this eval call if its cost exceeds
   // this limit, independent of the workflow-level budget.
   // Optional — when 0, no per-task cost limit is enforced.
-  //
-  // @since T05 (Workflow-Level Budget Primitives)
   int64 max_cost_micros = 10;
 }

@@ -25,8 +25,6 @@ const (
 //
 // Used by the UI to render task palettes with grouped categories, and by
 // documentation generators to organize task reference pages.
-//
-// @since T04 (Task Schema Registry)
 type TaskKindCategory int32
 
 const (
@@ -102,8 +100,6 @@ func (TaskKindCategory) EnumDescriptor() ([]byte, []int) {
 
 // TaskFieldType represents the data type of a task configuration field
 // as understood by UI form renderers and schema validators.
-//
-// @since T04 (Task Schema Registry)
 type TaskFieldType int32
 
 const (
@@ -188,8 +184,6 @@ func (TaskFieldType) EnumDescriptor() ([]byte, []int) {
 //
 // Fields within the same group are rendered together in a collapsible section.
 // Groups are ordered by their position in the TaskKindDescriptor.field_groups list.
-//
-// @since T04 (Task Schema Registry)
 type TaskFieldGroup struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Group identifier matching TaskFieldDescriptor.group_id.
@@ -258,8 +252,6 @@ func (x *TaskFieldGroup) GetDescription() string {
 // Provides enough metadata for UI form renderers to generate appropriate
 // input controls, validation messages, and documentation without needing
 // access to the raw proto descriptor.
-//
-// @since T04 (Task Schema Registry)
 type TaskFieldDescriptor struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Proto field name (snake_case, matching the proto definition).
@@ -430,8 +422,6 @@ func (x *TaskFieldDescriptor) GetValidationHints() []string {
 // - Validate task configs client-side (config_json_schema)
 // - Display task output shapes in the execution viewer (output_json_schema)
 // - Generate documentation (description, yaml_examples, documentation_url)
-//
-// @since T04 (Task Schema Registry)
 type TaskKindDescriptor struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The task kind this descriptor describes.

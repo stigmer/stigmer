@@ -1,9 +1,9 @@
 /**
- * The channel messaging attachment (proactive-messaging DD-006 D7/D8):
+ * The channel messaging attachment:
  * discovery with the never-throw failure posture, both connection
  * shapes, the structural approval-freedom of synthesized attachments,
- * and the prompt section's filter/order/cap rules
- * (DD-006 D6). The route is the cross-repo string, guarded here and in
+ * and the prompt section's filter/order/cap rules. The route is the
+ * cross-repo string, guarded here and in
  * the mcp-server integration test (the TOOL_CALL_LIMIT precedent); the
  * slug and roster are runner-internal and guarded here alone.
  */
@@ -60,7 +60,7 @@ const noLeases: ActiveLeases = {
   servers: new Set(),
 };
 
-describe("discoverChannelMessaging (the DD-006 D4 failure posture)", () => {
+describe("discoverChannelMessaging (the never-throw failure posture)", () => {
   it("returns channels with their templates, threading the scoped credential", async () => {
     const client = mockStigmerClient({
       listMessagingChannels: vi.fn().mockResolvedValue([channel("isc-whatsapp")]),
@@ -177,7 +177,7 @@ describe("synthesizeChannelAttachment", () => {
 
   it("is approval-free by construction: zero entries in the merged approval map", () => {
     const attachment = synthesizeChannelAttachment([info("isc-whatsapp", [])], options)!;
-    // Forced, not convenient (DD-002 D6): both calling surfaces run
+    // Forced, not convenient: both calling surfaces run
     // UNATTENDED mode, where a gated tool resolves as skip-and-adapt —
     // a gated send tool means reminders never send.
     const merged = mergeApprovalPolicies(
@@ -193,7 +193,7 @@ describe("synthesizeChannelAttachment", () => {
   });
 });
 
-describe("formatChannelTemplatesSection (DD-006 D6)", () => {
+describe("formatChannelTemplatesSection", () => {
   it("renders sendable templates with body text, parameters, and the image-header requirement", () => {
     const section = formatChannelTemplatesSection([
       info("isc-whatsapp", [

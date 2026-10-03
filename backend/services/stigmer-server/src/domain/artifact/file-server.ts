@@ -7,8 +7,8 @@
  * serving GET /<key> as the exact bytes LocalArtifactStorage wrote. Unlike
  * Go, a bind failure fails the boot: the composition binds the lane before
  * SERVING and lets listen()'s rejection stand (stigmer#1089). The lane
- * dissolved into its owning domain per the ratified D4 decision — it is
- * NOT a unified-port lane (Go runs it as a separate listener, and so does
+ * lives in its owning domain — it is NOT a unified-port lane (Go runs it
+ * as a separate listener, and so does
  * this port).
  *
  * Disposition contract (proven by the artifact suite's file-server block):
@@ -45,10 +45,10 @@ export interface ArtifactFileServer {
    * Binds <host>:<port> (port 0 picks ephemeral) and resolves the port it
    * bound; a bind failure rejects, and the composition fails the boot on it.
    * The host is the composition root's call: 127.0.0.1 everywhere by
-   * default (ARTIFACT_HTTP_HOST, DD-013) — download URLs are minted for
+   * default (ARTIFACT_HTTP_HOST) — download URLs are minted for
    * the local machine — and 0.0.0.0 only inside the official container
    * image, where the loopback bind would strand the lane behind the
-   * container boundary (Phase-2 P4).
+   * container boundary.
    */
   listen(port: number, host: string): Promise<number>;
   shutdown(): Promise<void>;
@@ -69,8 +69,8 @@ export function createArtifactFileServer(
         server.once("error", reject);
         // Loopback by DEFAULT, as Go bound "127.0.0.1:<port>": download
         // URLs are minted for the local machine, never a network
-        // interface. The host became configurable (ARTIFACT_HTTP_HOST,
-        // DD-013) for containers, where 127.0.0.1 is unreachable from
+        // interface. The host became configurable (ARTIFACT_HTTP_HOST)
+        // for containers, where 127.0.0.1 is unreachable from
         // outside; the default preserves Go's posture byte-for-byte.
         server.listen(port, host, () => {
           server.removeListener("error", reject);

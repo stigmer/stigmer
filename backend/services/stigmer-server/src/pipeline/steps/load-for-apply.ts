@@ -63,7 +63,7 @@ export function newLoadForApplyStep<Desc extends DescMessage>(
  * this the delegated update chain's Authorize step checks an EMPTY
  * resource id — the permissive OSS default never noticed, but a real
  * Authorizer (the cloud edition) must check the true target, exactly as
- * the Java edition's post-load authorize order does (C2, 20260827.10).
+ * the Java edition's post-load authorize order does.
  * OSS wire behavior is unchanged: the update chain re-resolves and
  * loads by slug regardless, and the rosters pin the byte-identity.
  */

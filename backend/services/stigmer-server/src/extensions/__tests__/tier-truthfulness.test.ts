@@ -1,7 +1,6 @@
 /**
- * The tier-truthfulness invariant (editions program 20260911.03 DD-001;
- * P0 review finding 4; landed with the first tier flip, 20260911.11
- * Q-IA-6): a kind's `kind_meta.tier` states what the edition's server
+ * The tier-truthfulness invariant: a kind's `kind_meta.tier` states what the
+ * edition's server
  * SERVES, not a plan. The SDK reads a tier as "available now"
  * (sdk/typescript/src/resource-availability.ts), so a tier that runs ahead
  * of the server turns hidden hooks into UNIMPLEMENTED errors, and a tier
@@ -14,11 +13,10 @@
  * router (compose.ts hands the same closure to both transports); a service
  * maps to its kind by the package's kind segment, which equals
  * `kind_meta.name` lowercased for every kind in the registry (checked at
- * the gate against all 28 entries).
+ * against all 28 entries).
  *
- * Two exceptions were ruled at the P1 gate (20260911.04 T01_1_review.md,
- * "Placements taken at the gate"). Under this check they take two shapes:
- *   - platform is a lie the ruling exempts by name: served by every
+ * Two exceptions are recorded. Under this check they take two shapes:
+ *   - platform is a lie exempted by name: served by every
  *     edition (getServerInfo is is_public and every console reads it)
  *     while the tier names the platform#operator seat an Enterprise
  *     deployment sells. Its service lives at `ai.stigmer.platform.v1`, the
@@ -26,7 +24,7 @@
  *   - api_resource_version is a record kind with no service in any
  *     edition; tiered cloud_only and unserved it tells no lie, so it needs
  *     no exemption — its own arm pins that it stays unserved.
- * A third exemption can only join by the same recorded act.
+ * A third exemption joins only as a reviewed entry in RULED_EXCEPTIONS.
  *
  * The mutation arms prove the check bites: the same function over a
  * registry with one tier flipped reports the lie.
@@ -57,11 +55,11 @@ interface KindEntry {
   readonly tier: ResourceTier;
 }
 
-/** The pre-ruled exemption, by name, with the ruling that exempts it. */
+/** The recorded exemption, by name, with the reason it holds. */
 const RULED_EXCEPTIONS: ReadonlyMap<ApiResourceKind, string> = new Map([
   [
     ApiResourceKind.platform,
-    "served by every edition; the tier names the platform#operator seat (P1 gate, placements)",
+    "served by every edition; the tier names the platform#operator seat",
   ],
 ]);
 
@@ -171,7 +169,7 @@ describe("tier truthfulness against the empty composition", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("every kind's tier states what the open-source server serves (two ruled exceptions)", () => {
+  it("every kind's tier states what the open-source server serves (two recorded exceptions)", () => {
     const served = servedKindSegments(server.routes);
     expect(served.size).toBeGreaterThan(10);
     expect(tierViolations(registryEntries(), served, RULED_EXCEPTIONS)).toEqual(
@@ -179,7 +177,7 @@ describe("tier truthfulness against the empty composition", () => {
     );
   });
 
-  it("the ruled exemption is exactly the lie the registry tells today, no fewer", () => {
+  it("the recorded exemption is exactly the lie the registry tells today, no fewer", () => {
     // If platform stops being a lie (its tier becomes open_source), it must
     // leave the exemption by a recorded act rather than linger as dead
     // vocabulary.
@@ -198,12 +196,12 @@ describe("tier truthfulness against the empty composition", () => {
     expect(lyingNames).toEqual(exceptionNames);
   });
 
-  it("api_resource_version stays a record kind with no service (the P1 gate's second placement)", () => {
+  it("api_resource_version stays a record kind with no service", () => {
     const served = servedKindSegments(server.routes);
     expect(served.has("apiresourceversion")).toBe(false);
   });
 
-  it("identity_account is open_source and served — the flip and the serving PR are one change (Q-EC-2b)", () => {
+  it("identity_account is open_source and served — the flip and the serving PR are one change", () => {
     const served = servedKindSegments(server.routes);
     expect(getKindMeta(ApiResourceKind.identity_account).tier).toBe(
       ResourceTier.open_source,
@@ -211,7 +209,7 @@ describe("tier truthfulness against the empty composition", () => {
     expect(served.has("identityaccount")).toBe(true);
   });
 
-  it("iam_policy is open_source and served — the row half lives in open source (20260913.01, Q-EC-2b again)", () => {
+  it("iam_policy is open_source and served — the row half lives in open source", () => {
     const served = servedKindSegments(server.routes);
     expect(getKindMeta(ApiResourceKind.iam_policy).tier).toBe(
       ResourceTier.open_source,

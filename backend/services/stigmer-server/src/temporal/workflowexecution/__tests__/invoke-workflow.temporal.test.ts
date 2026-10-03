@@ -18,9 +18,10 @@
  *     task-specific channel with its payload; a malformed envelope is
  *     ignored without burning a relay.
  *
- * Follows #18's discipline: TestWorkflowEnvironment.createLocal (needs
- * the `temporal` CLI); every test skips VISIBLY when the local test
- * server cannot start — never a vacuous green (panel finding B3).
+ * Follows the other Temporal suites' discipline:
+ * TestWorkflowEnvironment.createLocal (needs the `temporal` CLI); every
+ * test skips VISIBLY when the local test server cannot start — never a
+ * vacuous green.
  * Delete-recorder pins are at-least-once-honest (oss#892): Temporal
  * activities re-execute when a completion fails to commit, so the pin is
  * identity + at-least-once, never an exact count.
@@ -171,7 +172,7 @@ function expectExecutionContextDeleted(executionId: string): void {
  * Releases a holding stub child THROUGH the orchestrator's relay lane —
  * the orchestrator has no test-release handler of its own; the envelope
  * is exactly how any task-specific signal reaches the child in
- * production (June DD-013).
+ * production.
  */
 async function releaseChild(
   handle: import("@temporalio/client").WorkflowHandle,

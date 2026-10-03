@@ -6,11 +6,11 @@
  * context through the context's delete chain
  * (domain/executioncontext/internal-delete.ts, stigmer#1647).
  *
- * Payload boundary (sub-project 20260824.03 design rule): statuses and
+ * Payload boundary: statuses and
  * executions cross as proto-JSON — the TS default payload converter
  * cannot serialize the bigint int64 fields of typed messages. These
  * payloads are SERVER-INTERNAL (this worker's workflow is the only
- * caller; histories never cross editions per OD-6), so only the activity
+ * caller; histories never cross editions), so only the activity
  * NAMES are byte-pinned.
  *
  * UpdateExecutionStatus is the worker acting on the server's own behalf:
@@ -21,7 +21,7 @@
  * — the schedule clock's fires, the reconciler's deletes, the HITL
  * forwarders — it rides the in-process transport (boot/inprocess.ts),
  * whose position-1 interceptor mints the `internal` caller class the
- * Authorize step honors (O2 ruling Q4) and whose chain runs the runner's
+ * Authorize step honors and whose chain runs the runner's
  * exact updateStatus handler: the domain's single atomic merge
  * chokepoint plus the composed status hooks and the StreamBroker
  * broadcast, so the activity and the runner's gRPC path can never
@@ -30,8 +30,7 @@
  * own. Its predecessor called the domain function directly with the
  * chassis's trusted-local WIRE identity (`user`-class), which an
  * enforcing Authorizer has no grant for — every runner failure on the
- * cloud composition left a hung, never-FAILED execution
- * (stigmer-cloud#610, stigmer#979).
+ * cloud composition left a hung, never-FAILED execution (stigmer#979).
  *
  * The reads (LoadAgentExecution, ReadHarnessStateId) stay store-direct:
  * pure reads with Java `findById` parity — no chain to bypass. The
@@ -42,8 +41,8 @@
  *
  * CompleteExternalActivity receives a live client PROVIDER instead of
  * Go's package-global (re-set on every reconnect); the input carries the
- * error as a serializable message string — sub-project DD-001 (Option A,
- * owner-ratified): Go's `Error error` field cannot survive its own JSON
+ * error as a serializable message string: Go's `Error error` field
+ * cannot survive its own JSON
  * round-trip, so its error-completion lane never delivers (oss#861). The
  * TS lane works; the divergence is disclosed.
  */
@@ -110,7 +109,7 @@ export interface AgentExecutionActivityDeps {
   readonly client: () => Client;
 }
 
-/** The input for stigmer/system/complete-external-activity (DD-001 shape). */
+/** The input for stigmer/system/complete-external-activity (the error as a message string). */
 export interface CompleteExternalActivityInput {
   /** Base64-encoded Temporal task token from the external activity. */
   readonly callbackToken: string;
@@ -226,8 +225,8 @@ export function createAgentExecutionActivities(
     },
 
     /**
-     * Completes an external Temporal activity via its task token (the
-     * async activity completion pattern — token handshake ADR). Empty
+     * Completes an external Temporal activity via its task token
+     * (Temporal's asynchronous activity completion). Empty
      * token is a warn-and-skip (backward compatibility, Go parity).
      */
     [COMPLETE_EXTERNAL_ACTIVITY_NAME]: async (

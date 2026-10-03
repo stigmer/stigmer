@@ -100,9 +100,7 @@ type CatchBlock struct {
 	// Compensation failures do not prevent the catch block from running.
 	// They are logged and included in the task output for diagnostics.
 	//
-	// Default: false (no compensation — preserves pre-T17 behavior).
-	//
-	// @since T17 (Advanced Agentic Orchestration)
+	// Default: false (no compensation).
 	Compensate    bool `protobuf:"varint,3,opt,name=compensate,proto3" json:"compensate,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

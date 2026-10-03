@@ -72,7 +72,7 @@ export async function getInstruments(): Promise<RunnerInstruments> {
       unit: "{token}",
       description: "Total output tokens produced across LLM calls",
     }),
-    // Cold-start timelines as dashboard aggregates (warm-agent-surfaces).
+    // Cold-start timelines as dashboard aggregates.
     // Attribute cardinality is bounded by the emitter's whitelist in
     // cold-start-timing.ts: `mode` / `harness` only, never per-pod values.
     runnerBootDuration: meter.createHistogram("stigmer.runner.boot.duration", {

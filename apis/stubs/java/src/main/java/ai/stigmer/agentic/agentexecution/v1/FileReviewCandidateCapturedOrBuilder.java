@@ -146,7 +146,7 @@ public interface FileReviewCandidateCapturedOrBuilder extends
 
   /**
    * <pre>
-   * The runner's approved-command turn facts (DD-28). When present AND the
+   * The runner's approved-command turn facts. When present AND the
    * backend's verification passes, the set is auto-kept by a policy-origin
    * FILE_DECIDED instead of arming the review gate. Absent → manual review.
    * See TurnCommandProvenance.
@@ -158,7 +158,7 @@ public interface FileReviewCandidateCapturedOrBuilder extends
   boolean hasCommandProvenance();
   /**
    * <pre>
-   * The runner's approved-command turn facts (DD-28). When present AND the
+   * The runner's approved-command turn facts. When present AND the
    * backend's verification passes, the set is auto-kept by a policy-origin
    * FILE_DECIDED instead of arming the review gate. Absent → manual review.
    * See TurnCommandProvenance.
@@ -170,7 +170,7 @@ public interface FileReviewCandidateCapturedOrBuilder extends
   ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance getCommandProvenance();
   /**
    * <pre>
-   * The runner's approved-command turn facts (DD-28). When present AND the
+   * The runner's approved-command turn facts. When present AND the
    * backend's verification passes, the set is auto-kept by a policy-origin
    * FILE_DECIDED instead of arming the review gate. Absent → manual review.
    * See TurnCommandProvenance.

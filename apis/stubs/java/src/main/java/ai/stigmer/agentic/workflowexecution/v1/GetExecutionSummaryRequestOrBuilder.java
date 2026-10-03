@@ -57,8 +57,6 @@ public interface GetExecutionSummaryRequestOrBuilder extends
    * <pre>
    * When set, scopes the summary to executions of this workflow only.
    * When empty, aggregates across all workflows in the organization.
-   *
-   * &#64;since T12 (Overview Page Redesign)
    * </pre>
    *
    * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
@@ -69,8 +67,6 @@ public interface GetExecutionSummaryRequestOrBuilder extends
    * <pre>
    * When set, scopes the summary to executions of this workflow only.
    * When empty, aggregates across all workflows in the organization.
-   *
-   * &#64;since T12 (Overview Page Redesign)
    * </pre>
    *
    * <code>string workflow_id = 3 [json_name = "workflowId"];</code>

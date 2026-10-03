@@ -14,8 +14,6 @@ import "buf/validate/validate.proto";
 //         variable1: value
 //         variable2: ${ expression }
 //         computed: ${ .a + .b }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 1
 message SetTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "set_vars";
 

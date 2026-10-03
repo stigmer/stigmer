@@ -1,7 +1,7 @@
 // The capture context a remember call attaches to the Memory it creates —
 // org addressing plus provenance (agent, session, execution), threaded from
-// the runner that synthesized the memory attachment (DD-005 D2; Stage 3
-// provenance decision, owner-ratified 2026-08-22).
+// the runner that synthesized the memory attachment (provenance as
+// supplied by the capture path, since 2026-08-22).
 //
 // Resolution mirrors the credential exactly (client.ts resolveToken): the
 // per-request HTTP headers when the bridge transport carries them, falling

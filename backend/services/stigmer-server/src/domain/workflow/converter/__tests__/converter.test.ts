@@ -1,11 +1,11 @@
 /**
  * Converter tests — port the Go golden coverage (converter_test.go) as
  * semantic-equivalence assertions: the emitted YAML is parsed back and
- * deep-compared, never byte-compared (sub-project DD-B: canonical
- * determinism is the contract, Go-emitter byte-parity deliberately is
+ * deep-compared, never byte-compared (canonical determinism is the
+ * contract, Go-emitter byte-parity deliberately is
  * not). Also pinned here: the #341 canonicalization rule — permuted
  * task-config key order must render identical bytes and therefore an
- * identical version hash — and the DD-001 nil-deref arms (Go panics;
+ * identical version hash — and the nil-deref arms (Go panics;
  * this edition throws).
  */
 import { createHash } from "node:crypto";
@@ -117,7 +117,7 @@ describe("protoToYaml — document assembly", () => {
   });
 });
 
-describe("protoToYaml — canonical determinism (the #341 rule, DD-B)", () => {
+describe("protoToYaml — canonical determinism (the #341 rule)", () => {
   it("permuted task-config key order renders identical bytes and hash", () => {
     const a = makeSpec([
       {
@@ -441,7 +441,7 @@ describe("per-kind emission", () => {
     expect(all["listen"]).toEqual({ to: { all: [{ with: { id: "s1", type: "t1" } }] } });
   });
 
-  it("listen/emit_event with the missing required block throw (DD-001: Go panics)", () => {
+  it("listen/emit_event with the missing required block throw (where Go panics)", () => {
     expect(() =>
       emit(makeSpec([{ name: "l", kind: WorkflowTaskKind.listen, taskConfig: {} }])),
     ).toThrow(/listen task config carries no 'to' block/);
@@ -539,7 +539,7 @@ describe("per-kind emission", () => {
     });
 
     // Prototype-chain probe: "Constructor" must take the runtime fallback,
-    // never resolve Object.prototype.constructor (panel finding).
+    // never resolve Object.prototype.constructor.
     const proto = taskDef(
       makeSpec([
         {

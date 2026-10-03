@@ -1,6 +1,6 @@
 /**
  * Versioned schema migrations for the Postgres driver — an INDEPENDENT
- * chain starting at its own v1 (DD-010 §3). It deliberately does NOT
+ * chain starting at its own v1. It deliberately does NOT
  * mirror sqlite's chain: that chain's value is Go-DDL fidelity for adopted
  * laptop databases, a concern Postgres cannot have (no Postgres database
  * predates this driver). Same runner discipline as sqlite/migrations.ts —
@@ -12,8 +12,7 @@
  * - Resource/audit/event payloads are BYTEA holding the marshaled proto
  *   bytes — NEVER JSONB. Audit hashes are content-addressed over these
  *   exact bytes and proto→JSON→proto round-trips drop unknown fields, so a
- *   JSON-shaped source of truth would corrupt the audit hash chain
- *   (sub-project T01 gate decision D-1, refining DD-010's sketch).
+ *   JSON-shaped source of truth would corrupt the audit hash chain.
  * - Ledger time columns that cross the Store interface (recorded_at,
  *   completed_at, expires_at, …) are TEXT holding the exact strings the
  *   contracts carry: markLatestScheduleRunTerminal picks "newest" by
@@ -21,10 +20,10 @@
  *   reformat values. Driver-internal bookkeeping columns (updated_at,
  *   archived_at ordering) use native types freely.
  * - Real indexes from day one — every named query method has a supporting
- *   index (DD-003 "every query pattern has an index"; the sqlite driver
+ *   index (every query pattern has an index; the sqlite driver
  *   deliberately deferred physical indexing, this driver does not).
  * - search_index is an ordinary table with a STORED generated tsvector
- *   (DD-009: engine syntax and ranking live inside the driver). Weight
+ *   (engine syntax and ranking live inside the driver). Weight
  *   classes: name=A, tags=B, description=C — see tsquery.ts for why the
  *   sqlite bm25 vector cannot map one-to-one.
  *
@@ -179,8 +178,9 @@ async function migrateToV1(client: PoolClient): Promise<void> {
       visibility TEXT NOT NULL DEFAULT '',
       created_at BIGINT NOT NULL DEFAULT 0,
       -- Monotonic per-write sequence: the deterministic within-driver
-      -- tie-break DD-009 requires (list mode orders by created_at, which
-      -- is whole seconds — same-second writes need a stable second key).
+      -- tie-break the search contract requires (list mode orders by
+      -- created_at, which is whole seconds — same-second writes need a
+      -- stable second key).
       seq BIGINT GENERATED ALWAYS AS IDENTITY,
       -- The searchable document. to_tsvector with an explicit config is
       -- immutable, so it can be STORED; weights per tsquery.ts (name=A
@@ -289,16 +289,16 @@ async function migrateToV1(client: PoolClient): Promise<void> {
 /**
  * v2: the retention sweep's scan on workflow_execution_events.
  *
- * The cloud composition's retention sweep (the C4 port of the Java
+ * The cloud composition's retention sweep (a port of the Java
  * platform.retention engine) deletes events older than the policy window
  * with `created_at < cutoff` range scans; without this index every hourly
  * pass would seq-scan the largest table in the schema. The Java edition
  * built the identical index for the identical reason (V7's
  * idx_wfee_occurred_at — "The retention sweep's scan"), and schedule_runs
  * shipped v1 with idx_schedule_runs_prune under the same doctrine: a table
- * whose rows expire carries the index its reaper needs (DD-003 "every
- * query pattern has an index" — the pattern's owner being a cloud
- * extension does not exempt it). The OSS server itself runs no sweep;
+ * whose rows expire carries the index its reaper needs (every query
+ * pattern has an index — the pattern's owner being a cloud extension does
+ * not exempt it). The OSS server itself runs no sweep;
  * the index is inert weight locally and load-bearing for the composition.
  */
 async function migrateToV2(client: PoolClient): Promise<void> {
@@ -313,8 +313,8 @@ async function migrateToV2(client: PoolClient): Promise<void> {
  * OAuthGrantStore.deleteByResourceId (the cloud channel teardown's arm)
  * deletes every oauth_grant row for a resource regardless of granting
  * identity; the primary key leads with identity_account_id, so the sweep
- * would otherwise seq-scan a table M1 later fills with the Java edition's
- * accumulated grants. The Java edition carries the identical index
+ * would otherwise seq-scan a table that holds every accumulated grant.
+ * The Java edition carries the identical index
  * (idx_oauth_grant_resource) for the identical delete cascade — the same
  * v2 doctrine: a query pattern owned by a cloud extension does not exempt
  * the index.

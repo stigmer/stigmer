@@ -58,7 +58,7 @@ export type ChannelDelivery = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
   sessionId: string;
 
   /**
-   * Provider-neutral conversation key (decision 005: the DM thread
+   * Provider-neutral conversation key (the DM thread
    * timestamp or the mention thread_ts, per mapping).
    *
    * @generated from field: string conversation_key = 6;

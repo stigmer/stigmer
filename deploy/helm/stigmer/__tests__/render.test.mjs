@@ -3,17 +3,17 @@
  * and the goldens that pin each profile's full render.
  *
  * What these pin, and why each is a rule rather than a snapshot:
- *   - one pod carries the server and the runner (Q-HC-2); `Recreate`, one
- *     replica, `fsGroup` 1000, a numeric `runAsUser` on the server (F13);
- *   - no mount path is a prefix of another in the same container (F11: a
+ *   - one pod carries the server and the runner; `Recreate`, one
+ *     replica, `fsGroup` 1000, a numeric `runAsUser` on the server;
+ *   - no mount path is a prefix of another in the same container (a
  *     nested mount inside a claim is root-owned, and the server cannot write);
  *   - every claim the chart creates carries `helm.sh/resource-policy: keep`
- *     (Q-HC-16: `helm uninstall` leaves the data);
+ *     (`helm uninstall` leaves the data);
  *   - every container has resources; no image tag is `latest`;
- *   - the server has three native gRPC probes and the runner has none (F4);
+ *   - the server has three native gRPC probes and the runner has none;
  *   - both Service ports carry `appProtocol`;
  *   - the init container waits for the dependencies compose orders with
- *     `depends_on` (F12, F14);
+ *     `depends_on`;
  *   - every top-level values key is documented in the README;
  *   - the bundled Temporal's NetworkPolicy admits the stigmer pod on the
  *     frontend port and Temporal itself, and nothing else; it is absent
@@ -75,7 +75,7 @@ for (const profile of PROFILES) {
     );
   });
 
-  test(`[${profile}] the server runs as uid 1000 by number (F13); the runner drops every capability`, () => {
+  test(`[${profile}] the server runs as uid 1000 by number; the runner drops every capability`, () => {
     const pod = findOne(renderProfile(profile), "Deployment", RELEASE).spec
       .template.spec;
     const server = containerNamed(pod, "server").securityContext;
@@ -89,7 +89,7 @@ for (const profile of PROFILES) {
     assert.deepEqual(runner.capabilities?.drop, ["ALL"]);
   });
 
-  test(`[${profile}] no mount path is a prefix of another in the same container (F11)`, () => {
+  test(`[${profile}] no mount path is a prefix of another in the same container`, () => {
     for (const { name, spec } of podTemplates(renderProfile(profile))) {
       for (const container of [
         ...(spec.initContainers ?? []),
@@ -145,7 +145,7 @@ for (const profile of PROFILES) {
     }
   });
 
-  test(`[${profile}] the server has three native gRPC probes on 7234; the runner has none (F4)`, () => {
+  test(`[${profile}] the server has three native gRPC probes on 7234; the runner has none`, () => {
     const pod = findOne(renderProfile(profile), "Deployment", RELEASE).spec
       .template.spec;
     const server = containerNamed(pod, "server");
@@ -173,7 +173,7 @@ for (const profile of PROFILES) {
     assert.equal(ports.get(7235)?.appProtocol, "http");
   });
 
-  test(`[${profile}] the stigmer pod waits for its dependencies before either container starts (F12, F14)`, () => {
+  test(`[${profile}] the stigmer pod waits for its dependencies before either container starts`, () => {
     const pod = findOne(renderProfile(profile), "Deployment", RELEASE).spec
       .template.spec;
     const wait = containerNamed(pod, "wait-for-dependencies", { init: true });

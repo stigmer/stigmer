@@ -68,7 +68,7 @@ type NotificationTaskConfig struct {
 	// cannot be resolved.
 	//
 	// Examples: "incident-alert", "order-confirmation", "approval-request"
-	// Template resolution and rendering is a runtime concern (T13).
+	// Template resolution and rendering is a runtime concern.
 	Template string `protobuf:"bytes,5,opt,name=template,proto3" json:"template,omitempty"`
 	// Channel-specific metadata as key-value pairs.
 	// Provides additional configuration that varies by notification channel:

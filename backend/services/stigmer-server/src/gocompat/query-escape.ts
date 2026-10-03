@@ -1,7 +1,7 @@
 /**
  * Byte-exact ports of Go's net/url query encoding — shared by the artifact
- * storage's signed URLs (#17) and the github broker's authorize-URL/token
- * exchange (#13). Promoted out of src/artifactstorage/ on its second
+ * storage's signed URLs and the github broker's authorize-URL/token
+ * exchange. Promoted out of src/artifactstorage/ on its second
  * consumer per the shared-steps guideline.
  *
  * WHY not URLSearchParams: it differs from Go's url.QueryEscape on two

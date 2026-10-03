@@ -1,10 +1,10 @@
 /**
- * Unit tests for the memory-retrieval module (stigmer/stigmer#293 Phase 3a,
- * DD-008). What is pinned here, path by path:
+ * Unit tests for the memory-retrieval module (stigmer/stigmer#293). What
+ * is pinned here, path by path:
  *
  *  - The activation threshold: selection runs ONLY above RETRIEVAL_K
  *    candidates; at or below it there is NO embeddings call (most users
- *    never touch the embeddings API — the DD-008 D3 activation contract).
+ *    never touch the embeddings API — the activation contract).
  *  - Top-k correctness and the presentation contract: selection is by
  *    relevance, presentation is snapshot order, ties break toward the
  *    lower snapshot index (deterministic across invocations).
@@ -81,7 +81,7 @@ afterEach(() => {
 });
 
 describe("selectRecalledFacts — no injection, no report", () => {
-  it("answers nothing for an absent snapshot (pre-Phase-2 executions)", async () => {
+  it("answers nothing for an absent snapshot (executions from before the recall snapshot)", async () => {
     const embed = angularEmbedder();
     const result = await selectRecalledFacts(undefined, QUERY, baseOptions(embed));
     expect(result.content).toBeUndefined();
@@ -106,7 +106,7 @@ describe("selectRecalledFacts — no injection, no report", () => {
   });
 });
 
-describe("selectRecalledFacts — activation threshold (DD-008 D3)", () => {
+describe("selectRecalledFacts — activation threshold", () => {
   it("injects wholesale with NO embeddings call at exactly k candidates", async () => {
     const embed = angularEmbedder();
     const result = await selectRecalledFacts(
@@ -214,7 +214,7 @@ describe("selectRecalledFacts — ranking and presentation", () => {
   });
 });
 
-describe("selectRecalledFacts — failure posture (never worse than Phase 2)", () => {
+describe("selectRecalledFacts — failure posture (never worse than wholesale injection)", () => {
   it("degrades to wholesale with an honest report when the embedder throws", async () => {
     const embed: EmbedFn = async () => {
       throw new Error("connect ETIMEDOUT");

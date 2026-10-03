@@ -1,5 +1,5 @@
 /**
- * Pins access-lists.ts (20260913.01 slice 5): the row-driven answer to
+ * Pins access-lists.ts: the row-driven answer to
  * "who has access, with which roles" — the hierarchy walk over scope
  * tuples (child → parent through the resource's one structural link, at
  * most five steps, `platform` terminal) and the grouping of assignable-

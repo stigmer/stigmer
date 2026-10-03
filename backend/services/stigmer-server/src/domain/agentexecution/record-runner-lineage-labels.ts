@@ -1,8 +1,7 @@
 /**
  * RecordRunnerLineageLabels — the agent-execution create chain's
  * lineage-label vouching step (the Java
- * AgentExecutionCreateHandler.RecordRunnerLineageLabelsStep port,
- * cloud#386; parity entry 20260830.05, C5 readout finding F3).
+ * AgentExecutionCreateHandler.RecordRunnerLineageLabelsStep port).
  *
  * The workflow runner's CallAgent activity
  * (backend/services/runner/src/activities/call-agent.ts) stamps

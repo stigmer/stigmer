@@ -1,14 +1,14 @@
 /**
- * Pins the identity chassis (O2, DD-007 §1): the claim-or-pass verifier
- * walk, the Q6 conditional-strictness contract (zero verifiers = silent
+ * Pins the identity chassis: the claim-or-pass verifier
+ * walk, the conditional-strictness contract (zero verifiers = silent
  * fall-through for unclaimed tokens; any verifier configured = unclaimed
- * is UNAUTHENTICATED), the O3 require-authentication posture (rulings
- * Q1+Q2 — tokenless is UNAUTHENTICATED with the Java byte-pinned copy,
- * except is_public methods and the gRPC health service by name — the
- * 20260904.02 exemption predicate), the trusted-local modeled state in both
+ * is UNAUTHENTICATED), the require-authentication posture (tokenless is
+ * UNAUTHENTICATED with the Java byte-pinned copy, except is_public
+ * methods and the gRPC health service by name — the exemption
+ * predicate), the trusted-local modeled state in both
  * operator postures, the internal caller class's structural minting
- * invariant (ruling Q4 — a wire request can never carry it), the
- * caller-guard walk (20260902.02 ruling Q1 — guards run over the FINAL
+ * invariant (a wire request can never carry it), the
+ * caller-guard walk (guards run over the FINAL
  * stamped identity, first throw wins, ConnectError is the guard's own
  * wire mapping, any other throw is INTERNAL), and the shared bearer
  * parser's shape.
@@ -181,7 +181,7 @@ describe("verifier chain walk", () => {
  * separately so an edge that consumes it can rely on the contract without
  * a Connect request in hand: first claim wins, pass moves on, ConnectError
  * propagates, plain throw is INTERNAL, and no claim is `undefined` — the
- * strictness decision (Q6) is the caller's, never the walk's.
+ * strictness decision is the caller's, never the walk's.
  */
 describe("authenticateBearerToken (the exported walk)", () => {
   it("first claim wins; later verifiers never run", async () => {
@@ -257,7 +257,7 @@ describe("authenticateBearerToken (the exported walk)", () => {
   });
 });
 
-describe("conditional strictness (ruling Q6 — both postures)", () => {
+describe("conditional strictness (both postures)", () => {
   it("zero verifiers: a presented-but-unclaimed token falls through SILENTLY to trusted-local", async () => {
     const identity = await runInterceptor(
       createVerifierChainInterceptor([], [], silentLogger),
@@ -300,7 +300,7 @@ describe("conditional strictness (ruling Q6 — both postures)", () => {
   });
 });
 
-describe("require-authentication posture (O3 rulings Q1+Q2)", () => {
+describe("require-authentication posture", () => {
   const requiringChassis = createVerifierChainInterceptor(
     [
       verifier("oidc", (token) =>
@@ -349,7 +349,7 @@ describe("require-authentication posture (O3 rulings Q1+Q2)", () => {
     expect(identity).toEqual(CLAIMED);
   });
 
-  it("a presented-but-unclaimed token keeps the Q6 rejection (not the missing-token copy)", async () => {
+  it("a presented-but-unclaimed token keeps the conditional-strictness rejection (not the missing-token copy)", async () => {
     const error = await runInterceptor(
       requiringChassis,
       "Bearer garbage",
@@ -360,7 +360,7 @@ describe("require-authentication posture (O3 rulings Q1+Q2)", () => {
   });
 });
 
-describe("isAuthenticationExempt (the one exemption predicate, 20260904.02)", () => {
+describe("isAuthenticationExempt (the one exemption predicate)", () => {
   it("is_public methods are exempt (our protos carry the option)", () => {
     expect(
       isAuthenticationExempt(PlatformQueryController.method.getServerInfo),
@@ -390,7 +390,7 @@ describe("isAuthenticationExempt (the one exemption predicate, 20260904.02)", ()
 });
 
 describe("trusted-local identity (the explicit modeled state)", () => {
-  it("unconfigured operator = the 'system' principal (pre-O2 audit bytes)", () => {
+  it("unconfigured operator = the 'system' principal (the audit bytes from before the chassis)", () => {
     expect(trustedLocalIdentity()).toEqual({
       identityId: "system",
       callerClass: "user",
@@ -412,7 +412,7 @@ describe("trusted-local identity (the explicit modeled state)", () => {
   });
 });
 
-describe("internal caller class (ruling Q4 — structurally unmintable from the wire)", () => {
+describe("internal caller class (structurally unmintable from the wire)", () => {
   it("the in-process interceptor stamps the internal class", async () => {
     const identity = await runInterceptor(createInProcessCallerInterceptor());
     expect(identity?.callerClass).toBe("internal");
@@ -430,7 +430,7 @@ describe("internal caller class (ruling Q4 — structurally unmintable from the 
   });
 });
 
-describe("caller-guard walk (20260902.02 ruling Q1)", () => {
+describe("caller-guard walk", () => {
   function guard(
     name: string,
     body: (caller: CallerIdentity) => Promise<void>,

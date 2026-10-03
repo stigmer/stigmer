@@ -1,7 +1,7 @@
 /**
- * Pins steps.ts (20260913.01 slice 5): the IamPolicy chains' domain-local
- * steps. The one with branching logic is ValidateGrantableRole (Q-OR-3 as
- * refined; Q-S3-3; Q-S5-1): the wire refusal first (an unknown kind is
+ * Pins steps.ts: the IamPolicy chains' domain-local
+ * steps. The one with branching logic is ValidateGrantableRole: the wire
+ * refusal first (an unknown kind is
  * `Unknown resource kind`, never a role sentence), then the three arms in
  * order — the PROTO lists no role for the kind → the cloud's
  * system-managed copy, byte-identical in every edition; the composed
@@ -191,7 +191,7 @@ describe("ValidateGrantableRole", () => {
     );
   });
 
-  it("arm 4: a principal that is not a person is refused — a role names an account; a structural link is bootstrapPolicy's (Q-S9-2)", async () => {
+  it("arm 4: a principal that is not a person is refused — a role names an account; a structural link is bootstrapPolicy's", async () => {
     const error = await refusal(() =>
       organizationOnly.execute(
         contextOf(
@@ -421,7 +421,7 @@ describe("ValidateGrantableRole", () => {
     ).toBeUndefined();
   });
 
-  it("the unknown kind is total for the scope, never a throw from it (Q-S3-3)", async () => {
+  it("the unknown kind is total for the scope, never a throw from it", async () => {
     const throwing: PolicyGrantScope = {
       grantableRoles: () => {
         throw new Error("a scope must never be asked about an unknown kind");

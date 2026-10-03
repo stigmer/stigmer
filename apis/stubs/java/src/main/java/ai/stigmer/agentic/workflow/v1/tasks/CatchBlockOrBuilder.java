@@ -89,9 +89,7 @@ public interface CatchBlockOrBuilder extends
    * Compensation failures do not prevent the catch block from running.
    * They are logged and included in the task output for diagnostics.
    *
-   * Default: false (no compensation — preserves pre-T17 behavior).
-   *
-   * &#64;since T17 (Advanced Agentic Orchestration)
+   * Default: false (no compensation).
    * </pre>
    *
    * <code>bool compensate = 3 [json_name = "compensate"];</code>

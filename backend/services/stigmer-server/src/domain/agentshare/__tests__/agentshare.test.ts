@@ -6,11 +6,11 @@
  *
  * The load-bearing pins beyond the conformance suite's black-box view:
  *   - the client-provided agent-id pin is discarded and re-stamped;
- *   - the T09 indistinguishability contract compared ERROR-TO-ERROR (a
+ *   - the indistinguishability contract compared ERROR-TO-ERROR (a
  *     private cross-org agent vs a genuinely missing one; disabled vs
  *     deleted vs locked-link vs no-share);
  *   - the pin keeps a recreated same-slug agent from reviving a dangling
- *     share (decision 013's rebind guard);
+ *     share (the rebind guard);
  *   - the #478 store-failure sanitization, pinned at the seam
  *     (findShareByOrgAndSlug) with an injected failing store — the
  *     composed server cannot fault-inject storage.
@@ -143,7 +143,7 @@ async function createTestAgent(name: string, org: string): Promise<Agent> {
   });
 }
 
-/** Flips the agent marketplace-public through the real pipeline (D1). */
+/** Flips the agent marketplace-public through the real pipeline. */
 /**
  * Writes a skill fixture directly to the store — the established
  * cross-domain fixture pattern (the skill domain is not ported yet, and
@@ -467,7 +467,7 @@ describe("agentshare update", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Cross-org contract (Go TestAgentShareController_CrossOrg, decision 013).
+// Cross-org contract (Go TestAgentShareController_CrossOrg).
 // ---------------------------------------------------------------------------
 
 describe("the same-organization invariant", () => {
@@ -659,7 +659,7 @@ describe("audience and the member resolution lane", () => {
     expect(profile.slug).toBe(agent.metadata!.slug);
   });
 
-  it("the ANONYMOUS path collapses an org-audience share to the uniform NotFound (C2 close-out — the proto's audience contract)", async () => {
+  it("the ANONYMOUS path collapses an org-audience share to the uniform NotFound (the proto's audience contract)", async () => {
     const agent = await createTestAgent(
       uniqueName("Org Audience Anon Agent"),
       ORG,
@@ -695,7 +695,7 @@ describe("audience and the member resolution lane", () => {
 // Agent-apply isolation (Go TestAgentShareController_AgentApplyNeverTouchesShare).
 // ---------------------------------------------------------------------------
 
-describe("agent apply never touches the share (decision 011)", () => {
+describe("agent apply never touches the share", () => {
   it("a full agent update leaves the share resolving, with fresh display fields", async () => {
     const agent = await createTestAgent(
       uniqueName("Apply Isolation Agent"),

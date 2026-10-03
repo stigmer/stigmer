@@ -7,8 +7,7 @@
  * audience's lifecycle: `spec.execution_visibility` is set at create and
  * changed only by updateExecutionVisibility (Update and Apply keep the
  * stored level, the oss#573 rule for metadata.visibility), and both doors
- * tell a composed tuple driver the audience the level names
- * (stigmer-cloud#720). Proven by
+ * tell a composed tuple driver the audience the level names. Proven by
  * workflowinstance.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * the family test ../workflow/__tests__/workflow.test.ts (the mutual edge
  * makes the two domains one testable unit).
@@ -55,7 +54,7 @@ type InstanceDesc = typeof WorkflowInstanceSchema;
 export const PARENT_WORKFLOW_KEY = "parent_workflow";
 
 // ---------------------------------------------------------------------------
-// The workflow in-process edge (DD-002): instance create verifies its
+// The workflow in-process edge: instance create verifies its
 // parent through the workflow query service so the full interceptor chain
 // runs — the other direction of the workflow↔workflowinstance mutual edge.
 // ---------------------------------------------------------------------------
@@ -64,7 +63,7 @@ export interface ParentWorkflowLoader {
   get(workflowId: string): Promise<Workflow>;
 }
 
-/** Lazy provider — the cycle-break closure (DD-002). */
+/** Lazy provider — the cycle-break closure. */
 export type ParentWorkflowLoaderProvider = () => ParentWorkflowLoader;
 
 /**

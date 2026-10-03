@@ -1,5 +1,5 @@
 /**
- * Unit tests for the shared DD-28 qualification rule
+ * Unit tests for the shared approved-command qualification rule
  * ({@link qualifyTurnCommandProvenance}) — the harness-agnostic core both the
  * Cursor and deep-agent adapters delegate to.
  *

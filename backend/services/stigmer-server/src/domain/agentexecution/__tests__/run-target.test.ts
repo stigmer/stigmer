@@ -1,6 +1,6 @@
 /**
- * Pins the agent-execution run-target resolver (P1 sp.run-gate, ruling
- * Q-RG-2): the target is dispatched on the request shape in the CHAIN's
+ * Pins the agent-execution run-target resolver: the target is dispatched
+ * on the request shape in the CHAIN's
  * own precedence — session_id, then session_spec.agent_instance_id, then
  * agent_id (CreateDefaultInstanceIfNeeded / CreateSessionIfNeeded read
  * them in exactly that order) — so the gate authorizes the target the

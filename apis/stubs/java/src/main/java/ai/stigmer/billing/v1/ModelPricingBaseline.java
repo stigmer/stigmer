@@ -9,7 +9,7 @@ package ai.stigmer.billing.v1;
  * <pre>
  * ModelPricingBaseline is one versioned catalog-and-list-price entry of the
  * model registry — the human-governed half of the effective registry
- * (baseline ⊕ ACTIVE overrides, DD-003/DD-004).
+ * (baseline ⊕ ACTIVE overrides).
  *
  * Documents are append-only: operator edits supersede the previous ACTIVE
  * document for the same (model_id, provider, harness) key. The composition
@@ -1552,7 +1552,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
    * <pre>
    * ModelPricingBaseline is one versioned catalog-and-list-price entry of the
    * model registry — the human-governed half of the effective registry
-   * (baseline ⊕ ACTIVE overrides, DD-003/DD-004).
+   * (baseline ⊕ ACTIVE overrides).
    *
    * Documents are append-only: operator edits supersede the previous ACTIVE
    * document for the same (model_id, provider, harness) key. The composition

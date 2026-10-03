@@ -61,7 +61,7 @@ describe("determineCursorMode", () => {
   it("returns LOCAL for multiple git-repo entries with the cloud flag enabled", () => {
     const entries = [
       gitRepoEntry("https://github.com/stigmer/stigmer"),
-      gitRepoEntry("https://github.com/stigmer/stigmer-cloud"),
+      gitRepoEntry("https://github.com/example/second-repo"),
     ];
     expect(determineCursorMode(entries, true)).toBe(CursorMode.LOCAL);
   });

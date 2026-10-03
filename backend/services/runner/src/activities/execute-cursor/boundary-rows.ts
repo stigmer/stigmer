@@ -474,7 +474,7 @@ function isAlreadyCollapsed(tc: ToolCall): boolean {
  *    `FileChangeSet` ledger (capture mode), and under the no-storage deny-gate it
  *    is the WAITING_APPROVAL gate itself (kept explicitly by the caller). So a
  *    file row is authoritative only as that gate, never on its own — hence
- *    `false` here. (Before Phase 5 Slice 4 this read `file_changes.length > 0`;
+ *    `false` here. (This once read `file_changes.length > 0`;
  *    that field is gone, and the row was never the review surface.)
  *  - Every other gated tool (shell, MCP) has no ledger; its "change" is its
  *    execution output, so a genuine run carries a non-empty `result` while a
@@ -660,7 +660,7 @@ function collapseDenialTwin(tc: ToolCall): void {
  * no separate captured `file_changes` mirror; `args` is the single source for
  * both the preview and the applied bytes.
  *
- * Defense-in-depth (DD-26 #2): a secret-like write's content never reaches the
+ * Defense-in-depth: a secret-like write's content never reaches the
  * persisted approval preview. Normally unreachable — the hook hard-blocks a
  * secret write and records no ledger input — but if a hook classify failure
  * fell one through, its content must still never reach args/args_preview; the
@@ -724,7 +724,7 @@ function findUnmatchedStreamCallByNormalizedSalient(
  * Cursor harness can only gate via the file-based `beforeMCPExecution`/
  * `preToolUse` hook returning `deny`. Cursor surfaces that deny to the model as
  * a tool *failure* (often its own generic "blocked by a hook" text; see the
- * Phase 0 ground-truth capture in cursor_hitl_test.go), and there is no
+ * ground-truth capture in cursor_hitl_test.go), and there is no
  * non-leaky SDK approval primitive to use instead (the `request` event is
  * opaque and carries no responder). So a well-behaved model frequently reacts by
  * narrating defeat — "I couldn't do this; enable the hook in your Cursor
@@ -822,7 +822,7 @@ export function clearProvisionalPostDenialNarration(
 /**
  * Substrings of the error text Cursor stamps onto a tool call blocked by a
  * `preToolUse`/`beforeMCPExecution` hook (its generic replacement for the
- * hook's own agent_message — confirmed by the Phase 0 ground-truth capture in
+ * hook's own agent_message — confirmed by the ground-truth capture in
  * cursor_hitl_test.go). The SDK has NO structured "denied by hook" signal, so
  * this marker family is the only stream-side trace of a hook block and is
  * single-sourced here for every consumer (the issue #205 attribution detector
@@ -1032,7 +1032,7 @@ export function settleUnresolvedToolCalls(
 
 /**
  * Stamp the tool calls the hook denied under UNATTENDED approval mode
- * (DD-014) as terminal TOOL_CALL_SKIPPED rows with UNATTENDED_SKIP
+ * as terminal TOOL_CALL_SKIPPED rows with UNATTENDED_SKIP
  * provenance — the Cursor twin of the native harness's
  * `reconcileUnattendedSkips`, so both harnesses persist the same honest
  * shape for a platform-resolved skip.
@@ -1049,7 +1049,7 @@ export function settleUnresolvedToolCalls(
  * Scope: hook-blocked FAILED rows and still-non-terminal (PENDING/RUNNING)
  * rows only — a COMPLETED row is a real execution and is never rewritten
  * (an unattended deny cannot produce one). `approval_action`/`approved_by`
- * stay untouched: server-owned, human-decision-only fields (DD-014 D-e).
+ * stay untouched: server-owned, human-decision-only fields.
  * Unmatched ledger entries need no synthesis — there is no pause to
  * surface; the model already saw the deny and adapted in-turn.
  *

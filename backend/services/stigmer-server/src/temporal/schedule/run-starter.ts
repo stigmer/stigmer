@@ -4,14 +4,14 @@
  * client, so the FULL create pipeline runs (session auto-create, execution
  * context, persist, workflow start). Where the cloud starter mints a
  * schedule token and re-enters the pipeline behind FGA gates, OSS has no
- * caller identity by design (DD-015 D-G): the org is stamped from the
- * schedule's own metadata. A composition restores the Java posture through
- * the scheduleFireCaller driver point (stigmer-cloud#572): when composed,
- * every fire mints its caller and the create propagates it via the R5
- * in-process header; a mint failure propagates like any infrastructure
+ * caller identity by design: the org is stamped from the schedule's own
+ * metadata. A composition gives fires an identity through the
+ * scheduleFireCaller driver point: when composed, every fire mints its
+ * caller and the create propagates it via the in-process caller header; a mint
+ * failure propagates like any infrastructure
  * fault (the tick activity retries, the trigger surfaces it).
  *
- * Idempotency is the CLOCK's job here (DD-015 D-F): the OSS create
+ * Idempotency is the CLOCK's job here: the OSS create
  * pipeline deliberately has no duplicate check (it would tax every
  * execution create in the product), so the starter looks up its own
  * deterministic execution name before creating. Within one tick activity
@@ -19,7 +19,7 @@
  * one reminder per fire, by construction.
  *
  * Serves BOTH fire paths: the tick's start-run activity (origin=cron) and
- * the trigger RPC's direct-run step (origin=manual, DD-017 D-5).
+ * the trigger RPC's direct-run step (origin=manual).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
@@ -69,11 +69,11 @@ export const SESSION_SUBJECT_PREFIX = "Scheduled run: ";
  * key the cloud edition's scope step writes (Go ScheduleIDLabelKey).
  *
  * In OSS the label is also the environment-resolution key: the execution
- * context step reads it to merge the schedule's environment_refs (DD-017
- * D-4). Cloud deliberately resolves through the validated token claim
+ * context step reads it to merge the schedule's environment_refs. Cloud
+ * deliberately resolves through the validated token claim
  * instead — a client-suppliable label must not widen what a cloud sandbox
  * reads — but OSS is single-user with no trust boundary, and it has no
- * tokens to carry a claim (the DD-015 divergence posture).
+ * tokens to carry a claim.
  */
 export const SCHEDULE_ID_LABEL_KEY = "stigmer.ai/schedule-id";
 
@@ -91,7 +91,7 @@ export type RunOutcomeResult =
  * starter needs (Go ExecutionCreator; satisfied through
  * src/boot/inprocess.ts). `fireCaller`, when present, is the composed
  * edition identity the fire acts as — the implementation propagates it
- * through the R5 in-process header; absent, the create enters as the
+ * through the in-process caller header; absent, the create enters as the
  * `internal` class (the OSS default, byte-identical).
  */
 export interface ScheduleExecutionCreator {
@@ -295,7 +295,7 @@ export class RunStarter {
       return { kind: "started", executionId, alreadyExisted: true };
     }
 
-    // The composed fire-caller mint (stigmer-cloud#572): minted per fire,
+    // The composed fire-caller mint: minted per fire,
     // after the idempotency lookup (a found winner needs no credential)
     // and before the create it authenticates. Failure is an
     // infrastructure fault — thrown, so the tick activity retries under
@@ -457,7 +457,7 @@ export class RunStarter {
     const executionConfig = create(ExecutionConfigSchema, {
       approvalMode: ApprovalMode.UNATTENDED,
       // The platform profile, then the schedule's own run_config CLAMPED
-      // by it (DD-017 D-3): per field, min(owner, platform) when the
+      // by it: per field, min(owner, platform) when the
       // platform cap is set; the owner value stands when the platform cap
       // is unset. The owner can lower spend, never raise it past the
       // platform.
@@ -494,12 +494,12 @@ export class RunStarter {
       executionConfig.thinkingMode = runConfig.thinkingMode;
     }
 
-    // The fresh per-fire session speaks the invocation's session half
-    // (DD-018 D-3): harness and workspace come from the owner's spec. An
+    // The fresh per-fire session speaks the invocation's session half:
+    // harness and workspace come from the owner's spec. An
     // unspecified harness stays unset — the platform default applies (OSS:
     // native). Workspace entries are git-only by write-time validation;
     // credentials, when a repo is private, ride an org-shared environment
-    // holding GITHUB_TOKEN (DD-018 D-4).
+    // holding GITHUB_TOKEN.
     const sessionSpec = create(SessionSpecSchema, {
       subject: SESSION_SUBJECT_PREFIX + (schedule.metadata?.slug ?? ""),
       workspaceEntries: invocation?.workspaceEntries ?? [],
@@ -521,7 +521,7 @@ export class RunStarter {
         // own org is stamped directly — it is load-bearing for the session
         // and execution context.
         org: schedule.metadata?.org ?? "",
-        // The audit link (DD-008 D4) AND this edition's
+        // The audit link AND this edition's
         // environment-resolution key — see SCHEDULE_ID_LABEL_KEY.
         labels: { [SCHEDULE_ID_LABEL_KEY]: schedule.metadata?.id ?? "" },
       }),

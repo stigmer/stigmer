@@ -182,19 +182,15 @@ enum WorkflowTaskKind {
   // structural validation (validate task) and human review (human_input).
   // Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
   // Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
-  //
-  // @since T17 (Advanced Agentic Orchestration)
   eval = 20;
 }
 
 // BudgetExceededPolicy defines the runtime behavior when a workflow or per-task
 // budget limit is exceeded.
 //
-// The runtime (T13) evaluates this policy at task boundaries: after each task
+// The runtime evaluates this policy at task boundaries: after each task
 // completes, accumulated costs and tokens are compared against the declared
 // budget. If a limit is breached, the policy determines what happens next.
-//
-// @since T05 (Workflow-Level Budget Primitives)
 enum BudgetExceededPolicy {
   // Default: no specific policy set. The runtime treats this as
   // budget_exceeded_terminate (fail-safe behavior).
@@ -207,7 +203,7 @@ enum BudgetExceededPolicy {
   // Pause the workflow and request human review via a system-generated
   // approval gate. The reviewer can approve continued execution (with
   // an increased budget) or confirm termination.
-  // Depends on the human_input runtime (T13). If human_input runtime
+  // Depends on the human_input runtime. If human_input runtime
   // is not available, falls back to terminate with a descriptive error.
   budget_exceeded_human_review = 2;
 

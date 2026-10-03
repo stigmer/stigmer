@@ -1,12 +1,12 @@
 /**
- * Pins the schema-continuity contract (D2 §3): a fresh database replays
- * v1–v7; a REAL Go-created v6 database (the DD-002 fixture) adopts to v7
+ * Pins the schema-continuity contract: a fresh database replays
+ * v1–v7; a REAL Go-created v6 database (the Go fixture) adopts to v7
  * with every row preserved — including the three out-of-chain tables Go's
  * consumer stores created lazily; a pending_oauth_state table that
  * predates Go's idempotent ALTERs gains its columns; a legacy pre-v2
- * database gets its prefix-based audit rows migrated. Rollback safety
- * (DD-006): a v7 database re-opened by Go-shaped version checks
- * (< 6) runs nothing. v10, the chain's first row-decoding step, moves
+ * database gets its prefix-based audit rows migrated. Rollback safety: a
+ * v7 database re-opened by Go-shaped version checks (< 6) runs nothing.
+ * v10, the chain's first row-decoding step, moves
  * every row of the seven kinds that held the retired public level to org
  * and leaves every other row's bytes as they were; a row it cannot decode
  * fails the step and leaves the database at v9. v11 adds the list index's
@@ -127,7 +127,7 @@ describe("fresh database", () => {
   });
 });
 
-describe("Go-created v6 database adoption (DD-002 fixture)", () => {
+describe("Go-created v6 database adoption (the Go fixture)", () => {
   it("migrates 6 → current preserving every row, including the out-of-chain tables", async () => {
     const fixture = materializeGoFixture();
     cleanups.push(() => fixture.cleanup());
@@ -223,7 +223,7 @@ describe("Go-created v6 database adoption (DD-002 fixture)", () => {
     expect(pending.org).toBe("acme");
 
     // The Go-written FTS5 index stays queryable through the TS driver's
-    // connection — SP-C on real Go-built index data.
+    // connection — the FTS5 probe on real Go-built index data.
     const hits = db
       .prepare(
         `SELECT resource_id FROM search_index WHERE search_index MATCH 'fixture'`,
@@ -384,7 +384,7 @@ describe("legacy pre-v2 database", () => {
   });
 });
 
-describe("rollback safety (DD-006)", () => {
+describe("rollback safety", () => {
   it("a v7 database passes Go-shaped 'currentVersion < 6' checks untouched", () => {
     const dbPath = tempDbPath();
     const migrating = new DatabaseSync(dbPath);

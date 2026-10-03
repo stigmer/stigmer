@@ -45,8 +45,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * context_management:
  * custom_trigger_threshold: 100000
  * custom_target_tokens: 80000
- *
- * &#64;since Phase 3 (Context Summarization Architecture)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig}
@@ -389,8 +387,6 @@ private static final long serialVersionUID = 0L;
    * context_management:
    * custom_trigger_threshold: 100000
    * custom_target_tokens: 80000
-   *
-   * &#64;since Phase 3 (Context Summarization Architecture)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig}

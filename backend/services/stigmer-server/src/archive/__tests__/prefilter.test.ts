@@ -1,5 +1,5 @@
 /**
- * Pins the safearchive-parity pre-filter (DD-001) against the behaviors
+ * Pins the safearchive-parity pre-filter against the behaviors
  * read from safearchive's source at the go.mod-pinned version: sanitizer
  * tests (sanitizer_nix_test.go), applyMagic's skip/shadow order, and the
  * archive/zip mode-decode rules. Fixtures are byte-crafted with the shared

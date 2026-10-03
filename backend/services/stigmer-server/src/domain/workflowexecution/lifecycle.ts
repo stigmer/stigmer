@@ -5,20 +5,20 @@
  * over one shared step vocabulary.
  *
  * Every Temporal touchpoint rides the engine seam. With the engine
- * disconnected (pre-#21) the signal/cancel/terminate steps refuse
+ * disconnected the signal/cancel/terminate steps refuse
  * FailedPrecondition("Temporal is not available") and recover's
  * fresh-start refuses the creator-specific variant — Go's nil-client
- * arms, asserted by the Class B conformance suites once #21 wires the
- * engine. With a connected engine, workflow-not-found is warn-and-proceed
+ * arms, asserted by the Class B conformance suites. With a connected
+ * engine, workflow-not-found is warn-and-proceed
  * (the local state update still applies; the workflow may simply have
  * completed).
  *
  * The phase transition + persist is ONE atomic read-modify-write under
  * the store's per-resource write lock — the lifecycle counterpart of the
- * DD-001 updateStatus decision and the shape the sibling agentexecution
- * domain ratified: Go's separate load → mutate → SaveResource can clobber
+ * updateStatus decision and the shape the sibling agentexecution domain
+ * uses: Go's separate load → mutate → SaveResource can clobber
  * a runner updateStatus merge that lands between them. Wire-identical in
- * sequential flows; disclosed with DD-001.
+ * sequential flows.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage, DescMethod, MessageShape } from "@bufbuild/protobuf";
@@ -98,7 +98,7 @@ const ALREADY_IN_TARGET_STATE_KEY = "alreadyInTargetState";
 export interface LifecycleDeps {
   readonly store: WorkflowExecutionContextBuilderDeps["store"];
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /**
    * Recover's per-execution turn (pipeline/keyed-serializer.ts). One
@@ -110,17 +110,17 @@ export interface LifecycleDeps {
   readonly engineState: WorkflowExecutionEngineStateProvider;
   /** Recover's RecreateExecutionContext consumes the same builder deps. */
   readonly executionContextBuilder: WorkflowExecutionContextBuilderDeps;
-  /** The sandbox lane (§6d, O6) — recover re-ensures the workflow sandbox. */
+  /** The sandbox lane — recover re-ensures the workflow sandbox. */
   readonly sandboxLane: SandboxLane;
   /** Dispatch config for the sandbox ensure's target/queue resolution. */
   readonly temporalConfig: WorkflowExecutionTemporalConfig;
-  /** Fires the workflow-sandbox teardown on terminal transitions (§6d, O6). */
+  /** Fires the workflow-sandbox teardown on terminal transitions. */
   readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
   /**
-   * The merged slot registrations (O1/O4; DD-006 §2) — recover carries
-   * `sandbox-acquisition:gate` at the Java-verified position (C4):
+   * The merged slot registrations — recover carries
+   * `sandbox-acquisition:gate` at the Java-verified position:
    * recover re-provisions a deprovisioned sandbox, which is capacity
-   * growth (cloud#355's recover-parity shape). Empty in OSS.
+   * growth. Empty in OSS.
    */
   readonly gateSteps: ResolvedGateSteps;
 }
@@ -291,8 +291,8 @@ export function applyLifecyclePhaseTransition(
 
 /**
  * The atomic phase-transition persist: one read-modify-write under the
- * per-resource write lock (see the module header for the DD-001-adjacent
- * rationale). updateResource requires existence: a lifecycle op racing a
+ * per-resource write lock (see the module header for the rationale).
+ * updateResource requires existence: a lifecycle op racing a
  * delete answers NotFound rather than resurrecting the row.
  */
 function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
@@ -313,7 +313,7 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
 
       let updated: WorkflowExecution;
       // The phase BEFORE this transition, read under the write lock —
-      // the sandbox observer below keys on the transition (§6d, O6).
+      // the sandbox observer below keys on the transition.
       let previousPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
       try {
         updated = await deps.store.updateResource(
@@ -907,15 +907,15 @@ function runRecoverPipeline(
         (phase) =>
           `cannot recover execution in phase ${phase}; only FAILED executions can be recovered`,
       ),
-      // The ratified sandbox-acquisition gate slot (blueprint 03 §3a;
-      // C4): after load/authorize/phase validation, before the first
+      // The sandbox-acquisition gate slot: after load/authorize/phase
+      // validation, before the first
       // side effect (the terminate) — recover re-provisions a
       // deprovisioned sandbox, which is capacity growth (the Java
-      // recover chain's verified 3b position, cloud#355). Empty in OSS.
+      // recover chain's verified position). Empty in OSS.
       ...stepsForSlot<Desc>(deps.gateSteps, "sandbox-acquisition:gate"),
       newTerminateExistingWorkflowStep(deps),
       newRecreateExecutionContextStep(deps),
-      // The workflow-lane sandbox re-ensure (§6d, O6): the terminal
+      // The workflow-lane sandbox re-ensure: the terminal
       // FAILED deprovisioned the previous sandbox, so a recovered
       // execution needs a fresh one BEFORE its fresh workflow starts —
       // the same critical posture as the create chain (a provisioning

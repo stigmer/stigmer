@@ -98,14 +98,14 @@ export interface CursorHookHarnessOptions {
    */
   captureIgnored?: boolean;
   /**
-   * Whether the workspace is a git tree (Slice 2c). Default true. When false the
+   * Whether the workspace is a git tree. Default true. When false the
    * throwaway workspace is NOT git-initialized and the state's `gitWorkspace` flag
    * is false, so the hook CAS-stages EVERY write (not only gitignored ones) and
    * skips the git-tracked flow arm.
    */
   gitWorkspace?: boolean;
   /**
-   * Unattended approval mode (DD-014): approval denies are recorded with the
+   * Unattended approval mode: approval denies are recorded with the
    * non-pausing "unattended" kind and the adapt-and-explain agent message.
    */
   unattendedSkip?: boolean;

@@ -10,7 +10,7 @@
  * (capabilities only exist post-connect, which needs store seeding here),
  * the #523 oauth_status enrichment matrix (needs seeded OAuthApps), the
  * updateVisibility ordering (no conformance coverage for this domain —
- * the D4-disclosed gap), and the #558 UNIMPLEMENTED guard (unit-level in
+ * a known gap), and the #558 UNIMPLEMENTED guard (unit-level in
  * Go too).
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -154,8 +154,8 @@ async function expectCode(
 
 /**
  * Grafts discovered capabilities onto a stored server, modeling the state
- * a connect leaves behind — the only way to reach the #402 arms before
- * #19 ports the connect slice.
+ * a connect leaves behind — the direct way to reach the #402 arms without
+ * running a connect.
  */
 async function seedCapabilities(
   serverId: string,
@@ -271,7 +271,7 @@ describe("CRUD", () => {
   });
 });
 
-describe("updateVisibility (no conformance coverage for this domain — the D4-disclosed gap)", () => {
+describe("updateVisibility (no conformance coverage for this domain, a known gap)", () => {
   it("flips only metadata.visibility, stamps status_audit, and leaves spec_audit alone (#540)", async () => {
     const created = await command.create(serverInput());
     const updated = await command.updateVisibility({
@@ -498,7 +498,7 @@ describe("EnrichOAuthStatus (#523) — response-only oauth_status", () => {
   });
 });
 
-describe("org-OAuth-app surface — UNIMPLEMENTED by design (#558, DD-019)", () => {
+describe("org-OAuth-app surface — UNIMPLEMENTED by design (#558)", () => {
   // The three RPCs are ONE capability; the SDK probes getOrgOAuthApp and
   // hides every BYOA affordance on UNIMPLEMENTED. Codes AND grpc-go's
   // generated texts are pinned — implementing any one RPC without the

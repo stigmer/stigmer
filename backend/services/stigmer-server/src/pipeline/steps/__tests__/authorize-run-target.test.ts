@@ -1,5 +1,5 @@
 /**
- * Pins the AuthorizeRunTarget step's contract (P1 sp.run-gate, 2026-09-11):
+ * Pins the AuthorizeRunTarget step's contract (2026-09-11):
  * the step is a thin shell around authorizeResolvedResource — a resolver
  * that answers no target makes NO check (the chain's own invariant guards
  * own the shape-less arm); a resolved target reaches the Authorizer

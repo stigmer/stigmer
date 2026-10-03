@@ -1,5 +1,5 @@
 /**
- * Payload-encryption configuration (stigmer-cloud#227, stigmer#398).
+ * Payload-encryption configuration (stigmer#398).
  *
  * Two key sources, strict precedence:
  *
@@ -44,9 +44,9 @@ export interface EncryptionKey {
 
 /**
  * Resolves decrypt-key material for a key id absent from the static
- * config (C4, stigmer-cloud 20260827.09: the cloud server decodes
- * desktop-runner histories written under server-managed per-identity
- * `rpk_` keys, whose material lives in a database, not the environment).
+ * config (a hosting server may decode desktop-runner histories written
+ * under server-managed per-identity `rpk_` keys, whose material lives in
+ * a database, not the environment).
  * Returns undefined when the id is unknown — the codec then fails closed
  * with its pinned unknown-key-id error. Implementations own their lookup
  * and unsealing; the codec caches every RESOLVED key for the process

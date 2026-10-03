@@ -1,6 +1,6 @@
 /**
  * tsquery rendering and score normalization — the Postgres driver's
- * engine-specific half of the search read contract (DD-009: the Store
+ * engine-specific half of the search read contract (the Store
  * interface carries engine-neutral terms and wire-ready 0–1 scores; each
  * driver renders its own engine's syntax and normalizes its own engine's
  * ranking). The sqlite counterpart is sqlite/fts5.ts.
@@ -15,7 +15,7 @@
  * Weighting: the sqlite driver's bm25 vector spans FIVE columns (kind=1,
  * resource_id=0, name=10, description=5, tags=5); Postgres setweight has
  * exactly FOUR classes (A–D), so a one-to-one mapping is impossible.
- * DD-009 makes ranking driver-relative — the only cross-driver requirement
+ * Ranking is driver-relative — the only cross-driver requirement
  * (interface.ts SearchIndexEntry) is that name weighs highest. This driver
  * maps name=A, tags=B, description=C; kind and resource_id are not part of
  * the searchable document at all (their FTS5 weights, 1 and 0, made them
@@ -65,7 +65,7 @@ export function renderTsQueryExpression(terms: readonly string[]): string {
  * normalization is already higher-is-better and effectively small-positive
  * (typically well under 1; unbounded above only in pathological
  * documents), so the mapping is a clamp — absolute values and cross-driver
- * ordering are explicitly NOT contract (DD-009), only deterministic
+ * ordering are explicitly NOT contract, only deterministic
  * ordering within this driver is. List mode never reaches this function
  * (its score is pinned exactly 1.0 by the driver).
  */

@@ -8,7 +8,7 @@ package ai.stigmer.billing.v1;
 /**
  * <pre>
  * ModelPricingOverride is one ledger-derived correction to a single
- * model-registry rate (DD-003, harness-cost-parity project).
+ * model-registry rate.
  *
  * Overrides are the mutable half of the effective registry:
  * model-registry.json stays the human-owned baseline; ACTIVE overrides are
@@ -936,7 +936,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ModelPricingOverride is one ledger-derived correction to a single
-   * model-registry rate (DD-003, harness-cost-parity project).
+   * model-registry rate.
    *
    * Overrides are the mutable half of the effective registry:
    * model-registry.json stays the human-owned baseline; ACTIVE overrides are

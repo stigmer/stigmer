@@ -1,6 +1,6 @@
 /**
- * Document-catalog unit tests, pinning the exported seam the C1 cloud
- * composition builds its DB-resident provider on (20260827.04): the
+ * Document-catalog unit tests, pinning the exported seam a composition
+ * builds its own DB-resident provider on: the
  * loud-fail constructor contract, and — through the constructor, the way a
  * composition consumes it — the interpretation rules the extraction moved
  * out of ModelRegistryStore (sanity gate, api-id acceptance, tri-state

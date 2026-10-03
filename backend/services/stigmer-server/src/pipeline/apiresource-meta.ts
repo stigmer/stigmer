@@ -18,13 +18,13 @@
  *   - An `ApiResourceRef.kind` — the IamPolicy spec's principal and
  *     resource, the FGA object type — is the enum MEMBER name
  *     ("mcp_server"). `kindByEnumName` reads it by the descriptor's exact
- *     proto name and never throws (20260913.01, Q-OR-2). Exact, because the
- *     IamPolicy id is derived from the spec's text (Q-OR-9): a lenient
+ *     proto name and never throws. Exact, because the
+ *     IamPolicy id is derived from the spec's text: a lenient
  *     match would let "Organization" and "organization" mint two rows for
  *     one grant. Reading the descriptor's name is not deriving a spelling;
  *     the #545 rule is about recovering kind_meta.name from an enum, which
  *     neither lookup does. A reader asked about a kind that arrived
- *     through this vocabulary follows its doctrine: `grantableRolesFor`
+ *     through this vocabulary follows its rule: `grantableRolesFor`
  *     answers the empty list for the unknown kind instead of throwing,
  *     because the kind it is asked about may have come off the wire.
  *     `kindEnumName` is the inverse — how server code SPELLS a kind when
@@ -33,8 +33,8 @@
  *     for the enum's reverse index by hand.
  *
  * A kind's TIER meets the served EDITION in exactly one place on the
- * server, `tierServedByEdition` / `kindServedByEdition` (20260913.01
- * Q-OR-8; claim check C5) — the twin of the SDK's rank functions
+ * server, `tierServedByEdition` / `kindServedByEdition` — the twin of the
+ * SDK's rank functions
  * (sdk/typescript/src/resource-availability.ts), pinned equal on the whole
  * matrix by __tests__/kind-served-by-edition.test.ts. The console reads
  * the SDK's answer to decide what to SHOW; `checkMyPermission` reads the
@@ -82,7 +82,7 @@ export function getKindMeta(kind: ApiResourceKind): ApiResourceKindMeta {
  * Today exactly one kind answers: agent_execution → session (its
  * `can_view` is `viewer or can_view from session`, and `viewer` is the
  * session's). The list read scope reads this to carry the parent on every
- * candidate (`ListEntryMeta.authorizationParent`, 20260913.04 T04), so a
+ * candidate (`ListEntryMeta.authorizationParent`), so a
  * composed driver may ask its authorization backend about the parent —
  * direct tuples — instead of the child, whose resolution walks the
  * parent's whole set. A second kind declaring the pair gets the behavior
@@ -180,7 +180,7 @@ export function defaultVisibilityFor(
  * CONTRACT — `kind_meta.authorization.grantable_roles`, the one source of
  * "what can be granted at all" (Java AuthorizationConfigResolver
  * .getGrantableRoles; the cloud's iam/policy/roles.ts grantableRolesFor,
- * which this replaces at the 20260913.01 re-point). A kind that lists none
+ * which this replaced). A kind that lists none
  * is system-managed in every edition (identity_account, api_key,
  * iam_policy, invitation, agent_execution); an edition's PolicyGrantScope
  * (extensions/policy-grant-scope.ts) only narrows this list.
