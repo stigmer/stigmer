@@ -93,7 +93,8 @@ jobs:
           CONFORMANCE_TARGET: local
         run: npm run test -w @stigmer/conformance
 
-  # The same full roster on the Postgres Store driver (the gate requires the Postgres targets at byte-identical capability
+  # The same full roster on the Postgres Store driver (the gate requires the
+  # Postgres targets at byte-identical capability
   # matrices — the driver must be wire-invisible). The database is a
   # service container pinned to the major the compose stack ships.
   conformance-local-postgres:

@@ -114,7 +114,7 @@ describe("conversation roster", () => {
   });
 });
 
-describe("the success answer is the A15 copy, not the row", () => {
+describe("the success answer is the fixed copy, not the row", () => {
   it("sends the reason verbatim and answers with fixed copy", async () => {
     escalateResponse = () =>
       create(ChannelConversationSchema, {

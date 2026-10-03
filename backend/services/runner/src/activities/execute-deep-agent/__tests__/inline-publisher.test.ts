@@ -246,7 +246,7 @@ describe("InlinePublisher", () => {
     expect(status.artifacts[0].contentHash).toBe(expected);
   });
 
-  it("never publishes a secret-like file to artifact storage (design doc 12, D4)", async () => {
+  it("never publishes a secret-like file to artifact storage", async () => {
     // Under the global bypass a secret write is not blocked up front, so it would
     // otherwise be uploaded here. The publisher must withhold it: no read, no
     // upload, no registered artifact — the secret's bytes never reach storage.

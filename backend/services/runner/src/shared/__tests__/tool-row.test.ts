@@ -253,7 +253,7 @@ describe("hideToolCallRow", () => {
     expect(tc.name).toBe("write");
   });
 
-  it("scrubs args so a hidden row carries no content (design doc 12, D4)", () => {
+  it("scrubs args so a hidden row carries no content", () => {
     // A file-mutating tool's args hold the full write body. For a secret-like
     // path this content would otherwise persist into the transcript / Temporal
     // history, defeating the never-persist-secret-contents contract. The hidden

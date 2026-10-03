@@ -78,7 +78,8 @@ export async function notifyStatusObservers(
 
 /**
  * Applies the composed response decorators to the UpdateStatus reply
- * (the querySignal seam: after the merge, before the reply). Each decorator works on a clone and commits only on success, so
+ * (the querySignal seam: after the merge, before the reply). Each decorator
+ * works on a clone and commits only on success, so
  * a throwing decorator degrades exactly ITS contribution to the defaults
  * (the verified non-fatal posture) — never a partial write, never the
  * RPC. Returns the decorated reply.

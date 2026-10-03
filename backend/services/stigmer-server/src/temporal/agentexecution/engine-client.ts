@@ -7,7 +7,8 @@
  *
  * The domain models the engine as the ConnectedExecutionEngine seam
  * (src/domain/agentexecution/engine.ts); this module fills it. Dispatch
- * resolution lives INSIDE startInvokeWorkflow (the seam's boundary): dispatch failures throw EngineDispatchError — the create
+ * resolution lives INSIDE startInvokeWorkflow (the seam's boundary): dispatch
+ * failures throw EngineDispatchError — the create
  * step maps them to FailedPrecondition verbatim, Go's
  * ResolveActivityTaskQueue boundary — while workflow-start failures throw
  * plain errors the create step turns into FAILED + Internal.

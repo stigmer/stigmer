@@ -172,7 +172,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     throw new Error("expected the call to fail");
   }
 
-  describe("the operator account (A2)", () => {
+  describe("the operator account", () => {
     it("a fresh server answers whoAmI with the operator before any client called anything", async () => {
       const me = await query.whoAmI({});
       expect(me.metadata?.id).toBe(accountIdFor(`local|${OPERATOR_EMAIL}`));
@@ -219,7 +219,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
   });
 
-  describe("create (A1)", () => {
+  describe("create", () => {
     it("derives the id from the subject and replaces a caller-supplied id", async () => {
       const created = await platform.create(
         accountInput({
@@ -292,7 +292,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     });
   });
 
-  describe("update (A1)", () => {
+  describe("update", () => {
     it("refuses a changed subject with FAILED_PRECONDITION and the fixed copy", async () => {
       const created = await platform.create(
         accountInput({ idpId: "auth0|immutable" }),

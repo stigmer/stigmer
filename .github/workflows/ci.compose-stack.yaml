@@ -5,7 +5,8 @@
 # real Temporal + containerized runner, up to ONE END-TO-END workflow run
 # through the runner (LLM-free, so no provider secrets are needed).
 #
-# Both images build FROM SOURCE via docker-compose.dev.yml: the committed docker-compose.yml pins published version tags for
+# Both images build FROM SOURCE via docker-compose.dev.yml: the committed
+# docker-compose.yml pins published version tags for
 # users, but a PR must prove the real topology without waiting for a
 # release. The published-tag path is re-proven by the release lane
 # (release.npm-libs.yaml), which runs the SAME test/install/smoke-compose.mjs

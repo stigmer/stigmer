@@ -355,6 +355,9 @@ describe("agent instance list (org and label filters)", () => {
       metadata: { name, org, labels },
     });
     await command.create(labelled("list-older", { team: "blue", tier: "gold" }));
+    // The order is by createdAt, stamped to the millisecond: space the two
+    // creates so they can never tie.
+    await new Promise((resolve) => setTimeout(resolve, 10));
     await command.create(labelled("list-newer", { team: "blue", tier: "gold" }));
     await command.create(labelled("list-one-label", { team: "blue" }));
     await seedOrganizations(transport, ["list-other-org"]);

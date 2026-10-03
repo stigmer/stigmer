@@ -35,7 +35,8 @@ import type { SearchableResourceRegistry } from "./registry.js";
 /** Go SearchQueryStore, the handler's read seam. */
 export interface SearchQueryStore {
   /**
-   * `authorizedIdsByKind` (kind NAME → ids) is the scoping arm — the Java PostgresSearchQueryStore's authorizedByKind hard
+   * `authorizedIdsByKind` (kind NAME → ids) is the scoping arm — the Java
+   * PostgresSearchQueryStore's authorizedByKind hard
    * filter, pushed into the engine query so pagination stays correct.
    * Undefined = the unscoped read, byte-identical to the pre-seam query.
    */

@@ -100,7 +100,8 @@ export interface ResolveValuesDeps {
  * scope-bound runner token, redact for everyone else. Both transforms
  * mutate the fresh store unmarshal, never the stored row.
  *
- * With the authorizeExecutionContextRead capability composed, the provider owns the ENTIRE trust decision — its lane set
+ * With the authorizeExecutionContextRead capability composed, the provider owns
+ * the ENTIRE trust decision — its lane set
  * and scope bindings (the cloud's session/workflow/connect rules) replace
  * the OSS execution-scoped check below. Redaction-as-success stays the
  * contract on every arm.

@@ -171,7 +171,8 @@ export interface ConnectEnvironmentReader {
  * Go's downstream executioncontext client (create + delete).
  *
  * `create` takes the connecting caller and the composition creates the
- * row AS THAT PERSON (boot/inprocess.ts, the `asCaller` lane), never under the internal class: the row's creator stamp is what
+ * row AS THAT PERSON (boot/inprocess.ts, the `asCaller` lane), never under the
+ * internal class: the row's creator stamp is what
  * the runner-subject verifier resolves the connect's person from when
  * the runner presents the connect token under the built-in posture
  * (runnerauth/bound-execution.ts, the `mcp-connect` binding). A row

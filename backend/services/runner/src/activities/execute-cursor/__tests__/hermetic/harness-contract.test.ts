@@ -104,7 +104,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — the harness contract kit a
       await subject.adapter.boot(subject.config);
     });
 
-    it("closes the agent the SDK minted when the session write behind bindHarnessState rejects (F5)", async () => {
+    it("closes the agent the SDK minted when the session write behind bindHarnessState rejects", async () => {
       const driver = new ExecutionDriver(subject, "obs-bind-rejects");
       const rejecting = new RecordingTurnSink({ bindRejectsWith: new Error("session write refused") });
 
@@ -146,7 +146,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — the harness contract kit a
       expect(reissued.outcome.kind, "a fresh gated act pauses the turn again").toBe("awaiting_approval");
     });
 
-    it("gates a later proposal of an already-approved-and-run identity on its own row; the executed row and its decision stand (F9)", async () => {
+    it("gates a later proposal of an already-approved-and-run identity on its own row; the executed row and its decision stand", async () => {
       const driver = new ExecutionDriver(subject, "obs-reproposal");
       const first = "obs-reproposal-first";
       const later = "obs-reproposal-later";

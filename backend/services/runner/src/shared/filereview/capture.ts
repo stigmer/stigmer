@@ -734,7 +734,8 @@ function unreviewableChangeInput(
 }
 
 /**
- * Map a secret-like GIT-TRACKED change to a content-less entry. Unlike a gitignored secret, a tracked secret write actually FLOWED (the
+ * Map a secret-like GIT-TRACKED change to a content-less entry. Unlike a
+ * gitignored secret, a tracked secret write actually FLOWED (the
  * capture-mode gate allows tracked mutations), so it is present in the git diff
  * with real bytes — which must never be persisted into the ledger. We author it
  * content-less here so its CONTENT never reaches the ledger / Temporal history /

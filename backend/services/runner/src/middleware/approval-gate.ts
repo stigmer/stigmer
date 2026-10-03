@@ -43,7 +43,8 @@
  * structured, non-persisted receipt (a `[hitl-gateway] receipt …` log carrying
  * the action's HMAC fingerprint and the authorization source). This is an audit
  * + uniformity signal only — no proto, no storage — in the same shadow
- * discipline as the server's approval-stream cross-check. On the deep-agent normal path the fingerprint match is guaranteed
+ * discipline as the server's approval-stream cross-check. On the deep-agent
+ * normal path the fingerprint match is guaranteed
  * by LangGraph checkpoint replay (the resumed action equals the approved one), so
  * the receipt is defense-in-depth here; the fingerprint earns real enforcement
  * teeth in the out-of-process Cursor substrate.

@@ -78,7 +78,7 @@ describe("formatConversationCatchupText", () => {
     expect(framed).toContain("never resend the failed text word-for-word");
   });
 
-  it("asserts no takeover — a digest can exist with no human handoff at all (the A15/A20 honesty bar)", () => {
+  it("asserts no takeover — a digest can exist with no human handoff at all", () => {
     // The preamble may DESCRIBE what the digest can contain ("may include"),
     // but must never state that a handoff happened on THIS conversation: a
     // failed turn's re-composed window has no teammate in it anywhere.

@@ -627,7 +627,8 @@ async function provisionMyAccount(
       throw internalError(error, "failed to record organization membership");
     }
   }
-  // The provision slot (the gate-slots.ts header carries its semantics). Empty in OSS — no pipeline is built for zero steps.
+  // The provision slot (the gate-slots.ts header carries its semantics). Empty
+  // in OSS — no pipeline is built for zero steps.
   const gates = stepsForSlot<typeof IdentityAccountSchema>(
     deps.gateSteps,
     "identity-account-provision:post-persist",

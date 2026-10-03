@@ -530,7 +530,8 @@ const consumerIamPolicyStore: IamPolicyStore = {
 };
 
 /**
- * The IamPolicy port-contract kit over the consumer's driver: a composition's driver test iterates these cases with its own
+ * The IamPolicy port-contract kit over the consumer's driver: a composition's
+ * driver test iterates these cases with its own
  * framework so the same contract the OSS adapter passes is what the driver
  * is held to. Compile-only here: this package proves the exported shape,
  * not a fake's behavior.

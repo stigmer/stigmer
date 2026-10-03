@@ -174,7 +174,8 @@ const NON_PATH_PREFIXES = ["http://", "https://", "mailto:", "#", "@", "~", "$",
  * private repository may cite (`privateOk`), because a record path carries its
  * id and the cited-path check then proves the record exists. The record-internal
  * ids follow (task files `T01_` and bare tasks `T07` or `T13b`, decisions
- * `DD-012`, `DD-12` or `DD-AB-1`, though never a `DD-MM` date format, rulings `Q-AB-1` or `Q-AB`, findings `F-CD-2` or `F-12`,
+ * `DD-012`, `DD-12` or `DD-AB-1`, though never a `DD-MM` date format, rulings
+ * `Q-AB-1` or `Q-AB`, findings `F-CD-2` or `F-12`,
  * and a short code's stage `C2 Stage 4`): only a holder of the records can
  * resolve them, and they stay findings everywhere. A bare `Stage 3` is not one
  * of them, because a build's own steps are named that way. Last, a private

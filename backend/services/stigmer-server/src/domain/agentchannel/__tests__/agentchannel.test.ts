@@ -328,7 +328,7 @@ describe("agentchannel create", () => {
     );
   });
 
-  it("no slug default from the agent — name derives the slug (P7)", async () => {
+  it("no slug default from the agent — name derives the slug", async () => {
     const agent = await createTestAgent(uniqueName("Slug Discipline Agent"));
     const name = uniqueName("Team Slack");
     const channel = await channels.create(channelFor(agent, name, true));

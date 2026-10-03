@@ -291,7 +291,8 @@ export function applyLifecyclePhaseTransition(
 
 /**
  * The atomic phase-transition persist: one read-modify-write under the
- * per-resource write lock (see the module header for the rationale). updateResource requires existence: a lifecycle op racing a
+ * per-resource write lock (see the module header for the rationale).
+ * updateResource requires existence: a lifecycle op racing a
  * delete answers NotFound rather than resurrecting the row.
  */
 function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(

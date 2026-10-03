@@ -94,7 +94,7 @@ function decisionsTheRuntimeWouldRead(messages: AgentMessage[]): ReadonlyMap<str
   return approvalDecisionsOf(create(AgentExecutionStatusSchema, { messages }));
 }
 
-describe("a later same-identity proposal never lands on a decided row (F9)", () => {
+describe("a later same-identity proposal never lands on a decided row", () => {
   it("after APPROVE and execution: the completed row keeps its result and decision; the new call gets its own gate; nothing bleeds", async () => {
     const seeded = decidedFirstGate(ApprovalAction.APPROVE).map((m) => clone(AgentMessageSchema, m));
 

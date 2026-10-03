@@ -17,7 +17,8 @@
  * requests diverge at byte 0 ("GET", "POST", "OPTI"…), so the common browser
  * path decides on the first chunk.
  *
- * The two handoffs are deliberately different (measured 2026-08-23): Node's HTTP/1.1 parser reads the socket as a JS stream, so
+ * The two handoffs are deliberately different (measured 2026-08-23): Node's
+ * HTTP/1.1 parser reads the socket as a JS stream, so
  * `unshift` replays the peeked bytes for it. Node's HTTP/2 core instead
  * consumes the socket's NATIVE handle — bytes unshifted into the JS stream
  * buffer never reach it, and the session fails with "bad client magic". The

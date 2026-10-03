@@ -7,7 +7,8 @@
  * caller identity by design: the org is stamped from the schedule's own
  * metadata. A composition gives fires an identity through the
  * scheduleFireCaller driver point: when composed, every fire mints its
- * caller and the create propagates it via the in-process caller header; a mint failure propagates like any infrastructure
+ * caller and the create propagates it via the in-process caller header; a mint
+ * failure propagates like any infrastructure
  * fault (the tick activity retries, the trigger surfaces it).
  *
  * Idempotency is the CLOCK's job here: the OSS create
