@@ -16,6 +16,7 @@ function server(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
     pinnedToolApprovals: [],
     discoveredCapabilitiesEmpty: false,
     toolApprovalOverrides: [],
+    declaredEnvKeys: [],
     ...overrides,
   };
 }

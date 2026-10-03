@@ -408,6 +408,7 @@ export async function buildEngine(
         shellRunValues(
           input.environment.envVars,
           blueprint.agent?.spec?.env,
+          input.mcp.servers,
           input.workspace.provision.provisionResults,
         ),
       );

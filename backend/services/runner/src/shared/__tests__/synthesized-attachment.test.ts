@@ -34,6 +34,7 @@ const userServer: ResolvedMcpServer = {
   toolApprovals: [],
   pinnedToolApprovals: [],
   toolApprovalOverrides: [],
+  declaredEnvKeys: [],
   discoveredCapabilitiesEmpty: false,
 };
 

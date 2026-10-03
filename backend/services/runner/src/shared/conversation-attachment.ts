@@ -105,6 +105,7 @@ export function synthesizeConversationAttachment(
     toolApprovals: [],
     pinnedToolApprovals: [],
     toolApprovalOverrides: [],
+    declaredEnvKeys: [],
     discoveredCapabilitiesEmpty: false,
     connectionType: "http",
     url: options.bridgeEndpoint.replace(/\/+$/, "") + CONVERSATION_ROUTE,

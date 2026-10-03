@@ -161,7 +161,10 @@ describe("envmerge conformance — Agent instance layer", () => {
 // next model request. Values are plain (not secret) so no redaction stands
 // between the shell's output and the assertion.
 describe("envmerge conformance — the agent's shell", () => {
-  it("the shell holds the keys the agent declares and never a key only a session's MCP server declares", async () => {
+  // Where the MCP server rides: the session adds it, or the agent lists it
+  // (agent save then copies the server's declared key into the agent's own
+  // env, so the key reaches the run as the agent's).
+  async function shellOfRun(serverOn: "session" | "agent"): Promise<string> {
     const { org } = await target.provisionTenancy();
     const mcp = requireMcpFixture(target);
 
@@ -180,20 +183,19 @@ describe("envmerge conformance — the agent's shell", () => {
         org,
         name: uniqueName("shell-agent"),
         env: { SHELL_AGENT_KEY: { description: "the agent's own key", isSecret: false } },
+        ...(serverOn === "agent" ? { mcpServerRefs: [server.metadata!.slug] } : {}),
       }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
     const agentInstanceId = agent.status?.defaultInstanceId ?? "";
     expect(agentInstanceId, "the agent's default instance").not.toBe("");
 
-    // The session adds the server itself, so the run's declared set is the
-    // agent's key united with the server's: both values reach the run.
     const session = await clients.sessionCommand.create(
       makeSession({
         org,
         name: uniqueName("shell-session"),
         agentInstanceId,
-        mcpServerRefs: [server.metadata!.slug],
+        ...(serverOn === "session" ? { mcpServerRefs: [server.metadata!.slug] } : {}),
       }),
     );
     fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
@@ -238,9 +240,21 @@ describe("envmerge conformance — the agent's shell", () => {
 
     const scripted = mock.scriptedRequests();
     expect(scripted.length, "the tool round and the answer").toBeGreaterThanOrEqual(2);
-    const afterShell = JSON.stringify(scripted[1]?.body);
+    return JSON.stringify(scripted[1]?.body);
+  }
+
+  it("the shell holds the keys the agent declares and never a key only a session's MCP server declares", async () => {
+    const afterShell = await shellOfRun("session");
     expect(afterShell, "the agent's declared key reaches its shell").toContain("agent-visible-value");
     expect(afterShell, "a key only the session's MCP server declares never reaches the shell").not.toContain(
+      "mcp-only-value",
+    );
+  });
+
+  it("the shell never holds a key the agent's own MCP server declares, though agent save copied it into the agent's env", async () => {
+    const afterShell = await shellOfRun("agent");
+    expect(afterShell, "the agent's declared key reaches its shell").toContain("agent-visible-value");
+    expect(afterShell, "a key the agent's MCP server declares never reaches the shell").not.toContain(
       "mcp-only-value",
     );
   });
