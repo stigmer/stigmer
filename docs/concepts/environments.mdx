@@ -164,8 +164,11 @@ key an MCP server declares reaches that server and never the shell, so a shell
 command that needs a key (a cloud CLI, `stigmer`, `gh` with its own token) works
 only when the Agent declares it. The one exception is the `GITHUB_TOKEN` a git
 Workspace was cloned with: the clone already stores it where the shell can read
-it, so the shell receives it as well. Secrets marked `is_secret: true` are still
-redacted in logs and the UI regardless of which surface consumes them.
+it, so the shell receives it as well. The built-in assistant has no Agent and so
+declares nothing: its shell receives no ExecutionContext values beyond that
+token, so a task whose shell needs a key runs on an Agent that declares it.
+Secrets marked `is_secret: true` are still redacted in logs and the UI
+regardless of which surface consumes them.
 
 ## What's next
 

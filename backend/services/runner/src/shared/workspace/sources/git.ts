@@ -120,19 +120,27 @@ async function reuseExistingRepo(
 ): Promise<ProvisionResult> {
   let metadata = await extractGitMetadata(cloneDir, url, backend, targetSubdir);
 
+  // The token counts as consumed only where the clone holds it, as on the
+  // cloning turn: the credential store configured here (cloud), or the
+  // origin remote the clone wrote with this very token (local). A clone
+  // made without a token, or a store that failed to configure, holds none.
   const githubToken = envVars[GITHUB_TOKEN_KEY];
-  const tokenServesClone = Boolean(githubToken) && isGitHubHttpsUrl(url);
-  if (configureCredentials && githubToken && tokenServesClone) {
-    const configured = await configureGitCredentialStore(backend, cloneDir, url, githubToken);
-    if (configured) {
-      metadata = { ...metadata, gitCredentialsConfigured: true };
+  let tokenInClone = false;
+  if (githubToken && isGitHubHttpsUrl(url)) {
+    if (configureCredentials) {
+      tokenInClone = await configureGitCredentialStore(backend, cloneDir, url, githubToken);
+      if (tokenInClone) {
+        metadata = { ...metadata, gitCredentialsConfigured: true };
+      }
+    } else {
+      tokenInClone = await originCarries(backend, cloneDir, injectToken(url, githubToken));
     }
   }
 
   return {
     rootDir: cloneDir,
     sourceType: "git_repo",
-    consumedKeys: tokenServesClone ? [GITHUB_TOKEN_KEY] : [],
+    consumedKeys: tokenInClone ? [GITHUB_TOKEN_KEY] : [],
     workspaceDescription: describeClone(url, metadata.branch),
     gitMetadata: metadata,
     entryName: "",
@@ -216,6 +224,19 @@ async function extractGitMetadata(
     baseCommit: headSha,
     gitCredentialsConfigured: false,
   };
+}
+
+/** Whether the clone's origin remote is exactly `remoteUrl`; a failed read is "no". */
+async function originCarries(
+  backend: WorkspaceBackend,
+  cloneDir: string,
+  remoteUrl: string,
+): Promise<boolean> {
+  try {
+    return (await backend.execute("git remote get-url origin", { cwd: cloneDir })).trim() === remoteUrl;
+  } catch {
+    return false;
+  }
 }
 
 /**

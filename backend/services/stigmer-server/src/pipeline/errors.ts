@@ -70,11 +70,6 @@ export function alreadyExistsWithReasonError(
 }
 
 /**
- * Go FailedPreconditionError — the system is not in a state required for
- * the operation (vs AlreadyExists, which tells the caller to stop). With a
- * reason, the refusal also carries it as an ErrorInfo detail.
- */
-/**
  * Message-only PermissionDenied, for a refusal a step decides after its
  * own Authorizer question (the reference rule's writer clause); the
  * Authorize step and authorizeResolvedResource build theirs from the
@@ -84,6 +79,11 @@ export function permissionDeniedError(message: string): ConnectError {
   return new ConnectError(message, Code.PermissionDenied);
 }
 
+/**
+ * Go FailedPreconditionError — the system is not in a state required for
+ * the operation (vs AlreadyExists, which tells the caller to stop). With a
+ * reason, the refusal also carries it as an ErrorInfo detail.
+ */
 export function failedPreconditionError(
   message: string,
   reason?: RefusalReason,
