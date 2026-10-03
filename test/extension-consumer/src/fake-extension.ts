@@ -77,6 +77,7 @@ import {
   EncryptionUnavailableError,
   iamPolicyStoreContract,
   identityAccountStoreContract,
+  identityIdForSubject,
   InvalidTokenError,
   isRunGateCheck,
   loadConfig,
@@ -661,6 +662,16 @@ const verifier: IdentityVerifier = {
     };
   },
 };
+
+/**
+ * The id-only reading a composition written before principalForSubject
+ * still calls. It is deprecated and kept until compositions adopt the
+ * principal (stigmer/stigmer#1769), so it is typechecked here: removing it
+ * is a deliberate surface change, never an accident.
+ */
+export function legacySubjectResolution(subject: string): Promise<string> {
+  return identityIdForSubject(consumerIdentityAccountStore, subject);
+}
 
 /**
  * A consumer-shaped identity-federation capability (the 20260911.11 seam,
