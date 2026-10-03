@@ -98,7 +98,6 @@ type IdentityProviderInput struct {
 	JwksUri               string
 	AllowedIssuers        []string
 	ExpectedAudience      string
-	RateLimitBudget       int32
 	UserinfoEndpoint      string
 	IsSsoProvider         bool
 	OidcClientId          string
@@ -126,7 +125,6 @@ func (i *IdentityProviderInput) toProto() (*identityproviderv1.IdentityProvider,
 	resource.Spec.JwksUri = i.JwksUri
 	resource.Spec.AllowedIssuers = i.AllowedIssuers
 	resource.Spec.ExpectedAudience = i.ExpectedAudience
-	resource.Spec.RateLimitBudget = i.RateLimitBudget
 	resource.Spec.UserinfoEndpoint = i.UserinfoEndpoint
 	resource.Spec.IsSsoProvider = i.IsSsoProvider
 	resource.Spec.OidcClientId = i.OidcClientId
@@ -156,7 +154,6 @@ func IdentityProviderInputFromProto(p *identityproviderv1.IdentityProvider) *Ide
 		input.JwksUri = s.GetJwksUri()
 		input.AllowedIssuers = s.GetAllowedIssuers()
 		input.ExpectedAudience = s.GetExpectedAudience()
-		input.RateLimitBudget = s.GetRateLimitBudget()
 		input.UserinfoEndpoint = s.GetUserinfoEndpoint()
 		input.IsSsoProvider = s.GetIsSsoProvider()
 		input.OidcClientId = s.GetOidcClientId()

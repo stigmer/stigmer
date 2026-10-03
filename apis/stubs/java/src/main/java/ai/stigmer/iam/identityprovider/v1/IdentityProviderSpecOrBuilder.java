@@ -209,18 +209,6 @@ public interface IdentityProviderSpecOrBuilder extends
 
   /**
    * <pre>
-   * A requests-per-minute budget that no server enforces.
-   * The value is accepted and stored, and it has no effect on sign-in or on
-   * request rates.
-   * </pre>
-   *
-   * <code>int32 rate_limit_budget = 5 [json_name = "rateLimitBudget"];</code>
-   * @return The rateLimitBudget.
-   */
-  int getRateLimitBudget();
-
-  /**
-   * <pre>
    * OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
    * When Stigmer auto-provisions a federated account from a token that carries
    * no email claim, it calls this endpoint with that token (as a Bearer token)

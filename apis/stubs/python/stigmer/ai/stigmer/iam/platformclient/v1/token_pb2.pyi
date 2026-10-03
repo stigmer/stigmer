@@ -7,20 +7,20 @@ from typing import ClassVar as _ClassVar, Optional as _Optional
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class MintUserTokenRequest(_message.Message):
-    __slots__ = ("client_id", "client_secret", "user_id", "user_email", "user_name", "org_id")
+    __slots__ = ("client_id", "client_secret", "user_id", "user_email", "user_name", "org")
     CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
     CLIENT_SECRET_FIELD_NUMBER: _ClassVar[int]
     USER_ID_FIELD_NUMBER: _ClassVar[int]
     USER_EMAIL_FIELD_NUMBER: _ClassVar[int]
     USER_NAME_FIELD_NUMBER: _ClassVar[int]
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     client_id: str
     client_secret: str
     user_id: str
     user_email: str
     user_name: str
-    org_id: str
-    def __init__(self, client_id: _Optional[str] = ..., client_secret: _Optional[str] = ..., user_id: _Optional[str] = ..., user_email: _Optional[str] = ..., user_name: _Optional[str] = ..., org_id: _Optional[str] = ...) -> None: ...
+    org: str
+    def __init__(self, client_id: _Optional[str] = ..., client_secret: _Optional[str] = ..., user_id: _Optional[str] = ..., user_email: _Optional[str] = ..., user_name: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
 
 class MintUserTokenResponse(_message.Message):
     __slots__ = ("access_token", "token_type", "expires_in")

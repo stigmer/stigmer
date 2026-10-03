@@ -80,7 +80,7 @@ export interface EntitlementsInput {
 
 /** SDK input type for EntitlementLimits. */
 export interface EntitlementLimitsInput {
-  maxOrganizations?: number;
+  maxOrgs?: number;
   maxUsers?: number;
   includedManagedOrganizations?: number;
 }
@@ -89,13 +89,13 @@ export interface EntitlementLimitsInput {
 export interface PlanTermsInput {
   monthlyMinimumMicros?: bigint;
   usageShareBasisPoints?: number;
-  perExtraOrganizationMicros?: bigint;
+  perExtraOrgMicros?: bigint;
   annualPriceMicros?: bigint;
 }
 
 function buildEntitlementLimitsProto(input: EntitlementLimitsInput) {
   return Object.assign(create(EntitlementLimitsSchema), stripUndefined({
-    maxOrganizations: input.maxOrganizations,
+    maxOrgs: input.maxOrgs,
     maxUsers: input.maxUsers,
     includedManagedOrganizations: input.includedManagedOrganizations,
   }));
@@ -112,7 +112,7 @@ function buildPlanTermsProto(input: PlanTermsInput) {
   return Object.assign(create(PlanTermsSchema), stripUndefined({
     monthlyMinimumMicros: input.monthlyMinimumMicros,
     usageShareBasisPoints: input.usageShareBasisPoints,
-    perExtraOrganizationMicros: input.perExtraOrganizationMicros,
+    perExtraOrgMicros: input.perExtraOrgMicros,
     annualPriceMicros: input.annualPriceMicros,
   }));
 }

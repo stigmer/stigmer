@@ -74,13 +74,13 @@ without a purchase (`adjustCredits`, `grantCredits`) requires
 funding identities Stigmer makes credit issuers:
 
 ```typescript
-const balance = await stigmer.billing.getCreditBalance(orgId);
+const balance = await stigmer.billing.getCreditBalance(org);
 
 const entry = await stigmer.billing.adjustCredits({
-  orgId,
+  org,
   amountMicros: 25_000_000n, // +$25.00
   reason: "support credit for an outage",
-  idempotencyKey: `support-${orgId}-2026-09`,
+  idempotencyKey: `support-${org}-2026-09`,
 });
 ```
 

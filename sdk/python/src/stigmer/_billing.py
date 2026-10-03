@@ -24,7 +24,7 @@ from ._gen._types import Page
 class AdjustCreditsParams:
     """Parameters for a manual credit adjustment."""
 
-    org_id: str
+    org: str
     amount_micros: int
     """Positive to add credits, negative to remove."""
     reason: str
@@ -37,7 +37,7 @@ class AdjustCreditsParams:
 class GrantCreditsParams:
     """Parameters for a promotional credit grant."""
 
-    org_id: str
+    org: str
     amount_micros: int
     """Amount to grant. Must be positive; grants never remove credits."""
     reason: str
@@ -54,7 +54,7 @@ class GrantCreditsParams:
 class GetCreditLedgerParams:
     """Parameters for querying the credit ledger."""
 
-    org_id: str
+    org: str
     page: Page | None = None
     type_filter: list[int] = field(default_factory=list)
     """Filter to specific ``LedgerEntryType`` values. Empty means all types."""
@@ -74,7 +74,7 @@ class GetCreditLedgerParams:
 class GetBillingUsageReportParams:
     """Parameters for querying the billing usage report."""
 
-    org_id: str
+    org: str
     start_time: datetime
     end_time: datetime
 
@@ -83,7 +83,7 @@ class GetBillingUsageReportParams:
 class CreateCheckoutSessionParams:
     """Parameters for creating a Stripe Checkout Session."""
 
-    org_id: str
+    org: str
     pack_id: str
     success_url: str
     cancel_url: str
@@ -93,7 +93,7 @@ class CreateCheckoutSessionParams:
 class CreateBillingPortalSessionParams:
     """Parameters for creating a Stripe Billing Portal session."""
 
-    org_id: str
+    org: str
     return_url: str
 
 
@@ -101,7 +101,7 @@ class CreateBillingPortalSessionParams:
 class CreatePaymentMethodSetupSessionParams:
     """Parameters for creating a Stripe Checkout Session that saves a card."""
 
-    org_id: str
+    org: str
     success_url: str
     cancel_url: str
 
@@ -110,7 +110,7 @@ class CreatePaymentMethodSetupSessionParams:
 class SetAutoRechargeConfigParams:
     """Parameters for configuring auto-recharge."""
 
-    org_id: str
+    org: str
     enabled: bool
     threshold_micros: int
     recharge_amount_micros: int
@@ -173,30 +173,30 @@ class BillingClient:
     # ── Account & balance ────────────────────────────────────────────────
 
     def get_or_create_billing_account(
-        self, org_id: str
+        self, org: str
     ) -> billing_account_pb2.BillingAccount:
         """Provision or retrieve the billing account for an organization.
 
         Idempotent: creates the account on first call, returns the existing
         account on subsequent calls.
         """
-        req = billing_io_pb2.GetOrCreateBillingAccountInput(org_id=org_id)
+        req = billing_io_pb2.GetOrCreateBillingAccountInput(org=org)
         try:
             return self._command.getOrCreateBillingAccount(req)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_billing_account(self, org_id: str) -> billing_account_pb2.BillingAccount:
+    def get_billing_account(self, org: str) -> billing_account_pb2.BillingAccount:
         """Retrieve the billing account for an organization."""
-        req = billing_io_pb2.GetBillingAccountInput(org_id=org_id)
+        req = billing_io_pb2.GetBillingAccountInput(org=org)
         try:
             return self._query.getBillingAccount(req)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_credit_balance(self, org_id: str) -> billing_account_pb2.CreditBalance:
+    def get_credit_balance(self, org: str) -> billing_account_pb2.CreditBalance:
         """Retrieve the credit balance breakdown for an organization."""
-        req = billing_io_pb2.GetCreditBalanceInput(org_id=org_id)
+        req = billing_io_pb2.GetCreditBalanceInput(org=org)
         try:
             return self._query.getCreditBalance(req)
         except grpc.RpcError as e:
@@ -214,7 +214,7 @@ class BillingClient:
         a credit issuer.  Owning the organization is not enough.
         """
         req = billing_io_pb2.AdjustCreditsInput(
-            org_id=params.org_id,
+            org=params.org,
             amount_micros=params.amount_micros,
             reason=params.reason,
             idempotency_key=params.idempotency_key,
@@ -238,7 +238,7 @@ class BillingClient:
         ``adjust_credits`` does.
         """
         req = billing_io_pb2.GrantCreditsInput(
-            org_id=params.org_id,
+            org=params.org,
             amount_micros=params.amount_micros,
             reason=params.reason,
             idempotency_key=params.idempotency_key,
@@ -255,7 +255,7 @@ class BillingClient:
     ) -> billing_io_pb2.CreditLedgerResponse:
         """Retrieve paginated credit ledger entries with optional filters."""
         req = billing_io_pb2.GetCreditLedgerInput(
-            org_id=params.org_id,
+            org=params.org,
             type_filter=params.type_filter,
             view=params.view,
         )
@@ -280,7 +280,7 @@ class BillingClient:
         Returns total provider cost, total billable amount, execution and
         LLM call counts, and a per-model breakdown with cost tier attribution.
         """
-        req = billing_io_pb2.GetBillingUsageReportInput(org_id=params.org_id)
+        req = billing_io_pb2.GetBillingUsageReportInput(org=params.org)
         req.start_time.FromDatetime(params.start_time)
         req.end_time.FromDatetime(params.end_time)
         try:
@@ -300,7 +300,7 @@ class BillingClient:
         provisioned asynchronously via webhook after payment succeeds.
         """
         req = billing_io_pb2.CreateCreditCheckoutSessionInput(
-            org_id=params.org_id,
+            org=params.org,
             pack_id=params.pack_id,
             success_url=params.success_url,
             cancel_url=params.cancel_url,
@@ -319,7 +319,7 @@ class BillingClient:
         user to ``portal_url``; changes are synced back via webhooks.
         """
         req = billing_io_pb2.CreateBillingPortalSessionInput(
-            org_id=params.org_id,
+            org=params.org,
             return_url=params.return_url,
         )
         try:
@@ -337,7 +337,7 @@ class BillingClient:
         bought credit puts a card on file; nothing is charged.
         """
         req = billing_io_pb2.CreatePaymentMethodSetupSessionInput(
-            org_id=params.org_id,
+            org=params.org,
             success_url=params.success_url,
             cancel_url=params.cancel_url,
         )
@@ -356,7 +356,7 @@ class BillingClient:
         threshold.  Returns the updated ``BillingAccount``.
         """
         req = billing_io_pb2.SetAutoRechargeConfigInput(
-            org_id=params.org_id,
+            org=params.org,
             enabled=params.enabled,
             threshold_micros=params.threshold_micros,
             recharge_amount_micros=params.recharge_amount_micros,
@@ -370,15 +370,15 @@ class BillingClient:
     # ── Pricing ──────────────────────────────────────────────────────────
 
     def get_customer_model_pricing(
-        self, org_id: str = ""
+        self, org: str = ""
     ) -> billing_io_pb2.CustomerModelPricingResponse:
         """Retrieve the customer-facing model price list with markup applied.
 
         These are the prices the customer pays, organized by harness and
-        cost tier.  Pass ``org_id`` to resolve org-specific policy overrides;
+        cost tier.  Pass ``org`` to resolve org-specific policy overrides;
         omit for default pricing.
         """
-        req = billing_io_pb2.GetCustomerModelPricingInput(org_id=org_id)
+        req = billing_io_pb2.GetCustomerModelPricingInput(org=org)
         try:
             return self._query.getCustomerModelPricing(req)
         except grpc.RpcError as e:

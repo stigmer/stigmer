@@ -42,9 +42,9 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private InvitationPreview() {
-    organizationName_ = "";
-    organizationSlug_ = "";
-    organizationLogoUrl_ = "";
+    orgName_ = "";
+    orgSlug_ = "";
+    orgLogoUrl_ = "";
     role_ = 0;
     label_ = "";
     invalidReason_ = "";
@@ -69,27 +69,27 @@ private static final long serialVersionUID = 0L;
   }
 
   private int bitField0_;
-  public static final int ORGANIZATION_NAME_FIELD_NUMBER = 1;
+  public static final int ORG_NAME_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object organizationName_ = "";
+  private volatile java.lang.Object orgName_ = "";
   /**
    * <pre>
    * Display name of the organization.
    * </pre>
    *
-   * <code>string organization_name = 1 [json_name = "organizationName"];</code>
-   * @return The organizationName.
+   * <code>string org_name = 1 [json_name = "orgName"];</code>
+   * @return The orgName.
    */
   @java.lang.Override
-  public java.lang.String getOrganizationName() {
-    java.lang.Object ref = organizationName_;
+  public java.lang.String getOrgName() {
+    java.lang.Object ref = orgName_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      organizationName_ = s;
+      orgName_ = s;
       return s;
     }
   }
@@ -98,45 +98,45 @@ private static final long serialVersionUID = 0L;
    * Display name of the organization.
    * </pre>
    *
-   * <code>string organization_name = 1 [json_name = "organizationName"];</code>
-   * @return The bytes for organizationName.
+   * <code>string org_name = 1 [json_name = "orgName"];</code>
+   * @return The bytes for orgName.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrganizationNameBytes() {
-    java.lang.Object ref = organizationName_;
+      getOrgNameBytes() {
+    java.lang.Object ref = orgName_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      organizationName_ = b;
+      orgName_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
   }
 
-  public static final int ORGANIZATION_SLUG_FIELD_NUMBER = 2;
+  public static final int ORG_SLUG_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object organizationSlug_ = "";
+  private volatile java.lang.Object orgSlug_ = "";
   /**
    * <pre>
    * URL-friendly identifier of the organization.
    * </pre>
    *
-   * <code>string organization_slug = 2 [json_name = "organizationSlug"];</code>
-   * @return The organizationSlug.
+   * <code>string org_slug = 2 [json_name = "orgSlug"];</code>
+   * @return The orgSlug.
    */
   @java.lang.Override
-  public java.lang.String getOrganizationSlug() {
-    java.lang.Object ref = organizationSlug_;
+  public java.lang.String getOrgSlug() {
+    java.lang.Object ref = orgSlug_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      organizationSlug_ = s;
+      orgSlug_ = s;
       return s;
     }
   }
@@ -145,45 +145,45 @@ private static final long serialVersionUID = 0L;
    * URL-friendly identifier of the organization.
    * </pre>
    *
-   * <code>string organization_slug = 2 [json_name = "organizationSlug"];</code>
-   * @return The bytes for organizationSlug.
+   * <code>string org_slug = 2 [json_name = "orgSlug"];</code>
+   * @return The bytes for orgSlug.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrganizationSlugBytes() {
-    java.lang.Object ref = organizationSlug_;
+      getOrgSlugBytes() {
+    java.lang.Object ref = orgSlug_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      organizationSlug_ = b;
+      orgSlug_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
   }
 
-  public static final int ORGANIZATION_LOGO_URL_FIELD_NUMBER = 3;
+  public static final int ORG_LOGO_URL_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object organizationLogoUrl_ = "";
+  private volatile java.lang.Object orgLogoUrl_ = "";
   /**
    * <pre>
    * URL to the organization's logo image.
    * </pre>
    *
-   * <code>string organization_logo_url = 3 [json_name = "organizationLogoUrl"];</code>
-   * @return The organizationLogoUrl.
+   * <code>string org_logo_url = 3 [json_name = "orgLogoUrl"];</code>
+   * @return The orgLogoUrl.
    */
   @java.lang.Override
-  public java.lang.String getOrganizationLogoUrl() {
-    java.lang.Object ref = organizationLogoUrl_;
+  public java.lang.String getOrgLogoUrl() {
+    java.lang.Object ref = orgLogoUrl_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      organizationLogoUrl_ = s;
+      orgLogoUrl_ = s;
       return s;
     }
   }
@@ -192,18 +192,18 @@ private static final long serialVersionUID = 0L;
    * URL to the organization's logo image.
    * </pre>
    *
-   * <code>string organization_logo_url = 3 [json_name = "organizationLogoUrl"];</code>
-   * @return The bytes for organizationLogoUrl.
+   * <code>string org_logo_url = 3 [json_name = "orgLogoUrl"];</code>
+   * @return The bytes for orgLogoUrl.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrganizationLogoUrlBytes() {
-    java.lang.Object ref = organizationLogoUrl_;
+      getOrgLogoUrlBytes() {
+    java.lang.Object ref = orgLogoUrl_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      organizationLogoUrl_ = b;
+      orgLogoUrl_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -400,14 +400,14 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(organizationName_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, organizationName_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgName_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, orgName_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(organizationSlug_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, organizationSlug_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgSlug_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, orgSlug_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(organizationLogoUrl_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, organizationLogoUrl_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgLogoUrl_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, orgLogoUrl_);
     }
     if (role_ != ai.stigmer.iam.v1.IamRole.iam_role_unspecified.getNumber()) {
       output.writeEnum(4, role_);
@@ -433,14 +433,14 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(organizationName_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, organizationName_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgName_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, orgName_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(organizationSlug_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, organizationSlug_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgSlug_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, orgSlug_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(organizationLogoUrl_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, organizationLogoUrl_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgLogoUrl_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, orgLogoUrl_);
     }
     if (role_ != ai.stigmer.iam.v1.IamRole.iam_role_unspecified.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
@@ -475,12 +475,12 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.iam.invitation.v1.InvitationPreview other = (ai.stigmer.iam.invitation.v1.InvitationPreview) obj;
 
-    if (!getOrganizationName()
-        .equals(other.getOrganizationName())) return false;
-    if (!getOrganizationSlug()
-        .equals(other.getOrganizationSlug())) return false;
-    if (!getOrganizationLogoUrl()
-        .equals(other.getOrganizationLogoUrl())) return false;
+    if (!getOrgName()
+        .equals(other.getOrgName())) return false;
+    if (!getOrgSlug()
+        .equals(other.getOrgSlug())) return false;
+    if (!getOrgLogoUrl()
+        .equals(other.getOrgLogoUrl())) return false;
     if (role_ != other.role_) return false;
     if (hasExpiresAt() != other.hasExpiresAt()) return false;
     if (hasExpiresAt()) {
@@ -504,12 +504,12 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + ORGANIZATION_NAME_FIELD_NUMBER;
-    hash = (53 * hash) + getOrganizationName().hashCode();
-    hash = (37 * hash) + ORGANIZATION_SLUG_FIELD_NUMBER;
-    hash = (53 * hash) + getOrganizationSlug().hashCode();
-    hash = (37 * hash) + ORGANIZATION_LOGO_URL_FIELD_NUMBER;
-    hash = (53 * hash) + getOrganizationLogoUrl().hashCode();
+    hash = (37 * hash) + ORG_NAME_FIELD_NUMBER;
+    hash = (53 * hash) + getOrgName().hashCode();
+    hash = (37 * hash) + ORG_SLUG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrgSlug().hashCode();
+    hash = (37 * hash) + ORG_LOGO_URL_FIELD_NUMBER;
+    hash = (53 * hash) + getOrgLogoUrl().hashCode();
     hash = (37 * hash) + ROLE_FIELD_NUMBER;
     hash = (53 * hash) + role_;
     if (hasExpiresAt()) {
@@ -674,9 +674,9 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      organizationName_ = "";
-      organizationSlug_ = "";
-      organizationLogoUrl_ = "";
+      orgName_ = "";
+      orgSlug_ = "";
+      orgLogoUrl_ = "";
       role_ = 0;
       expiresAt_ = null;
       if (expiresAtBuilder_ != null) {
@@ -720,13 +720,13 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.iam.invitation.v1.InvitationPreview result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.organizationName_ = organizationName_;
+        result.orgName_ = orgName_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.organizationSlug_ = organizationSlug_;
+        result.orgSlug_ = orgSlug_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.organizationLogoUrl_ = organizationLogoUrl_;
+        result.orgLogoUrl_ = orgLogoUrl_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.role_ = role_;
@@ -762,18 +762,18 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.iam.invitation.v1.InvitationPreview other) {
       if (other == ai.stigmer.iam.invitation.v1.InvitationPreview.getDefaultInstance()) return this;
-      if (!other.getOrganizationName().isEmpty()) {
-        organizationName_ = other.organizationName_;
+      if (!other.getOrgName().isEmpty()) {
+        orgName_ = other.orgName_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      if (!other.getOrganizationSlug().isEmpty()) {
-        organizationSlug_ = other.organizationSlug_;
+      if (!other.getOrgSlug().isEmpty()) {
+        orgSlug_ = other.orgSlug_;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (!other.getOrganizationLogoUrl().isEmpty()) {
-        organizationLogoUrl_ = other.organizationLogoUrl_;
+      if (!other.getOrgLogoUrl().isEmpty()) {
+        orgLogoUrl_ = other.orgLogoUrl_;
         bitField0_ |= 0x00000004;
         onChanged();
       }
@@ -823,17 +823,17 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              organizationName_ = input.readStringRequireUtf8();
+              orgName_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
             case 18: {
-              organizationSlug_ = input.readStringRequireUtf8();
+              orgSlug_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000002;
               break;
             } // case 18
             case 26: {
-              organizationLogoUrl_ = input.readStringRequireUtf8();
+              orgLogoUrl_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
             } // case 26
@@ -881,22 +881,22 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object organizationName_ = "";
+    private java.lang.Object orgName_ = "";
     /**
      * <pre>
      * Display name of the organization.
      * </pre>
      *
-     * <code>string organization_name = 1 [json_name = "organizationName"];</code>
-     * @return The organizationName.
+     * <code>string org_name = 1 [json_name = "orgName"];</code>
+     * @return The orgName.
      */
-    public java.lang.String getOrganizationName() {
-      java.lang.Object ref = organizationName_;
+    public java.lang.String getOrgName() {
+      java.lang.Object ref = orgName_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        organizationName_ = s;
+        orgName_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -907,17 +907,17 @@ private static final long serialVersionUID = 0L;
      * Display name of the organization.
      * </pre>
      *
-     * <code>string organization_name = 1 [json_name = "organizationName"];</code>
-     * @return The bytes for organizationName.
+     * <code>string org_name = 1 [json_name = "orgName"];</code>
+     * @return The bytes for orgName.
      */
     public com.google.protobuf.ByteString
-        getOrganizationNameBytes() {
-      java.lang.Object ref = organizationName_;
+        getOrgNameBytes() {
+      java.lang.Object ref = orgName_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        organizationName_ = b;
+        orgName_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -928,14 +928,14 @@ private static final long serialVersionUID = 0L;
      * Display name of the organization.
      * </pre>
      *
-     * <code>string organization_name = 1 [json_name = "organizationName"];</code>
-     * @param value The organizationName to set.
+     * <code>string org_name = 1 [json_name = "orgName"];</code>
+     * @param value The orgName to set.
      * @return This builder for chaining.
      */
-    public Builder setOrganizationName(
+    public Builder setOrgName(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      organizationName_ = value;
+      orgName_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
@@ -945,11 +945,11 @@ private static final long serialVersionUID = 0L;
      * Display name of the organization.
      * </pre>
      *
-     * <code>string organization_name = 1 [json_name = "organizationName"];</code>
+     * <code>string org_name = 1 [json_name = "orgName"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrganizationName() {
-      organizationName_ = getDefaultInstance().getOrganizationName();
+    public Builder clearOrgName() {
+      orgName_ = getDefaultInstance().getOrgName();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
@@ -959,36 +959,36 @@ private static final long serialVersionUID = 0L;
      * Display name of the organization.
      * </pre>
      *
-     * <code>string organization_name = 1 [json_name = "organizationName"];</code>
-     * @param value The bytes for organizationName to set.
+     * <code>string org_name = 1 [json_name = "orgName"];</code>
+     * @param value The bytes for orgName to set.
      * @return This builder for chaining.
      */
-    public Builder setOrganizationNameBytes(
+    public Builder setOrgNameBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      organizationName_ = value;
+      orgName_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
 
-    private java.lang.Object organizationSlug_ = "";
+    private java.lang.Object orgSlug_ = "";
     /**
      * <pre>
      * URL-friendly identifier of the organization.
      * </pre>
      *
-     * <code>string organization_slug = 2 [json_name = "organizationSlug"];</code>
-     * @return The organizationSlug.
+     * <code>string org_slug = 2 [json_name = "orgSlug"];</code>
+     * @return The orgSlug.
      */
-    public java.lang.String getOrganizationSlug() {
-      java.lang.Object ref = organizationSlug_;
+    public java.lang.String getOrgSlug() {
+      java.lang.Object ref = orgSlug_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        organizationSlug_ = s;
+        orgSlug_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -999,17 +999,17 @@ private static final long serialVersionUID = 0L;
      * URL-friendly identifier of the organization.
      * </pre>
      *
-     * <code>string organization_slug = 2 [json_name = "organizationSlug"];</code>
-     * @return The bytes for organizationSlug.
+     * <code>string org_slug = 2 [json_name = "orgSlug"];</code>
+     * @return The bytes for orgSlug.
      */
     public com.google.protobuf.ByteString
-        getOrganizationSlugBytes() {
-      java.lang.Object ref = organizationSlug_;
+        getOrgSlugBytes() {
+      java.lang.Object ref = orgSlug_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        organizationSlug_ = b;
+        orgSlug_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1020,14 +1020,14 @@ private static final long serialVersionUID = 0L;
      * URL-friendly identifier of the organization.
      * </pre>
      *
-     * <code>string organization_slug = 2 [json_name = "organizationSlug"];</code>
-     * @param value The organizationSlug to set.
+     * <code>string org_slug = 2 [json_name = "orgSlug"];</code>
+     * @param value The orgSlug to set.
      * @return This builder for chaining.
      */
-    public Builder setOrganizationSlug(
+    public Builder setOrgSlug(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      organizationSlug_ = value;
+      orgSlug_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
@@ -1037,11 +1037,11 @@ private static final long serialVersionUID = 0L;
      * URL-friendly identifier of the organization.
      * </pre>
      *
-     * <code>string organization_slug = 2 [json_name = "organizationSlug"];</code>
+     * <code>string org_slug = 2 [json_name = "orgSlug"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrganizationSlug() {
-      organizationSlug_ = getDefaultInstance().getOrganizationSlug();
+    public Builder clearOrgSlug() {
+      orgSlug_ = getDefaultInstance().getOrgSlug();
       bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
@@ -1051,36 +1051,36 @@ private static final long serialVersionUID = 0L;
      * URL-friendly identifier of the organization.
      * </pre>
      *
-     * <code>string organization_slug = 2 [json_name = "organizationSlug"];</code>
-     * @param value The bytes for organizationSlug to set.
+     * <code>string org_slug = 2 [json_name = "orgSlug"];</code>
+     * @param value The bytes for orgSlug to set.
      * @return This builder for chaining.
      */
-    public Builder setOrganizationSlugBytes(
+    public Builder setOrgSlugBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      organizationSlug_ = value;
+      orgSlug_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
 
-    private java.lang.Object organizationLogoUrl_ = "";
+    private java.lang.Object orgLogoUrl_ = "";
     /**
      * <pre>
      * URL to the organization's logo image.
      * </pre>
      *
-     * <code>string organization_logo_url = 3 [json_name = "organizationLogoUrl"];</code>
-     * @return The organizationLogoUrl.
+     * <code>string org_logo_url = 3 [json_name = "orgLogoUrl"];</code>
+     * @return The orgLogoUrl.
      */
-    public java.lang.String getOrganizationLogoUrl() {
-      java.lang.Object ref = organizationLogoUrl_;
+    public java.lang.String getOrgLogoUrl() {
+      java.lang.Object ref = orgLogoUrl_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        organizationLogoUrl_ = s;
+        orgLogoUrl_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1091,17 +1091,17 @@ private static final long serialVersionUID = 0L;
      * URL to the organization's logo image.
      * </pre>
      *
-     * <code>string organization_logo_url = 3 [json_name = "organizationLogoUrl"];</code>
-     * @return The bytes for organizationLogoUrl.
+     * <code>string org_logo_url = 3 [json_name = "orgLogoUrl"];</code>
+     * @return The bytes for orgLogoUrl.
      */
     public com.google.protobuf.ByteString
-        getOrganizationLogoUrlBytes() {
-      java.lang.Object ref = organizationLogoUrl_;
+        getOrgLogoUrlBytes() {
+      java.lang.Object ref = orgLogoUrl_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        organizationLogoUrl_ = b;
+        orgLogoUrl_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1112,14 +1112,14 @@ private static final long serialVersionUID = 0L;
      * URL to the organization's logo image.
      * </pre>
      *
-     * <code>string organization_logo_url = 3 [json_name = "organizationLogoUrl"];</code>
-     * @param value The organizationLogoUrl to set.
+     * <code>string org_logo_url = 3 [json_name = "orgLogoUrl"];</code>
+     * @param value The orgLogoUrl to set.
      * @return This builder for chaining.
      */
-    public Builder setOrganizationLogoUrl(
+    public Builder setOrgLogoUrl(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      organizationLogoUrl_ = value;
+      orgLogoUrl_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
@@ -1129,11 +1129,11 @@ private static final long serialVersionUID = 0L;
      * URL to the organization's logo image.
      * </pre>
      *
-     * <code>string organization_logo_url = 3 [json_name = "organizationLogoUrl"];</code>
+     * <code>string org_logo_url = 3 [json_name = "orgLogoUrl"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrganizationLogoUrl() {
-      organizationLogoUrl_ = getDefaultInstance().getOrganizationLogoUrl();
+    public Builder clearOrgLogoUrl() {
+      orgLogoUrl_ = getDefaultInstance().getOrgLogoUrl();
       bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
@@ -1143,15 +1143,15 @@ private static final long serialVersionUID = 0L;
      * URL to the organization's logo image.
      * </pre>
      *
-     * <code>string organization_logo_url = 3 [json_name = "organizationLogoUrl"];</code>
-     * @param value The bytes for organizationLogoUrl to set.
+     * <code>string org_logo_url = 3 [json_name = "orgLogoUrl"];</code>
+     * @param value The bytes for orgLogoUrl to set.
      * @return This builder for chaining.
      */
-    public Builder setOrganizationLogoUrlBytes(
+    public Builder setOrgLogoUrlBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      organizationLogoUrl_ = value;
+      orgLogoUrl_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;

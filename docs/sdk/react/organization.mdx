@@ -311,12 +311,12 @@ builders can embed it directly:
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     onUpdated: { type: "(org: Organization) => void", description: "Fired with the updated resource after a successful save." },
-    orgId: { type: "string", description: "The ID of the organization whose preferences to display and edit.", required: true },
+    org: { type: "string", description: "The ID of the organization whose preferences to display and edit.", required: true },
   }}
 />
 
 ```tsx
-<OrgPreferencesPanel orgId="org-id-123" />
+<OrgPreferencesPanel org="org-id-123" />
 ```
 
 
@@ -338,13 +338,13 @@ or layout — platform builders can embed it directly:
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     onUpdated: { type: "(org: Organization) => void", description: "Fired with the updated resource after a successful save." },
-    orgId: { type: "string", description: "The ID of the organization to display and edit.", required: true },
+    org: { type: "string", description: "The ID of the organization to display and edit.", required: true },
   }}
 />
 
 ```tsx
 <OrgProfilePanel
-  orgId="org-id-123"
+  org="org-id-123"
   onUpdated={(org) => console.log("Saved:", org.metadata?.name)}
 />
 ```

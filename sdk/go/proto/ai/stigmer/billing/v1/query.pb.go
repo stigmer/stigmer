@@ -25,13 +25,13 @@ var File_ai_stigmer_billing_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"!ai/stigmer/billing/v1/query.proto\x12\x15ai.stigmer.billing.v1\x1a+ai/stigmer/billing/v1/billing_account.proto\x1a\x1eai/stigmer/billing/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x94\x0e\n" +
-	"\x16BillingQueryController\x12\xaf\x01\n" +
-	"\x11getBillingAccount\x12-.ai.stigmer.billing.v1.GetBillingAccountInput\x1a%.ai.stigmer.billing.v1.BillingAccount\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xac\x01\n" +
-	"\x10getCreditBalance\x12,.ai.stigmer.billing.v1.GetCreditBalanceInput\x1a$.ai.stigmer.billing.v1.CreditBalance\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xb1\x01\n" +
-	"\x0fgetCreditLedger\x12+.ai.stigmer.billing.v1.GetCreditLedgerInput\x1a+.ai.stigmer.billing.v1.CreditLedgerResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xc3\x01\n" +
-	"\x15getBillingUsageReport\x121.ai.stigmer.billing.v1.GetBillingUsageReportInput\x1a1.ai.stigmer.billing.v1.BillingUsageReportResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xc9\x01\n" +
-	"\x17getCustomerModelPricing\x123.ai.stigmer.billing.v1.GetCustomerModelPricingInput\x1a3.ai.stigmer.billing.v1.CustomerModelPricingResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xd1\x01\n" +
+	"!ai/stigmer/billing/v1/query.proto\x12\x15ai.stigmer.billing.v1\x1a+ai/stigmer/billing/v1/billing_account.proto\x1a\x1eai/stigmer/billing/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x85\x0e\n" +
+	"\x16BillingQueryController\x12\xac\x01\n" +
+	"\x11getBillingAccount\x12-.ai.stigmer.billing.v1.GetBillingAccountInput\x1a%.ai.stigmer.billing.v1.BillingAccount\"A¸\x18=\b\x1b\x10\x1e\"\x03org*2unauthorized to view billing for this organization\x12\xa9\x01\n" +
+	"\x10getCreditBalance\x12,.ai.stigmer.billing.v1.GetCreditBalanceInput\x1a$.ai.stigmer.billing.v1.CreditBalance\"A¸\x18=\b\x1b\x10\x1e\"\x03org*2unauthorized to view billing for this organization\x12\xae\x01\n" +
+	"\x0fgetCreditLedger\x12+.ai.stigmer.billing.v1.GetCreditLedgerInput\x1a+.ai.stigmer.billing.v1.CreditLedgerResponse\"A¸\x18=\b\x1b\x10\x1e\"\x03org*2unauthorized to view billing for this organization\x12\xc0\x01\n" +
+	"\x15getBillingUsageReport\x121.ai.stigmer.billing.v1.GetBillingUsageReportInput\x1a1.ai.stigmer.billing.v1.BillingUsageReportResponse\"A¸\x18=\b\x1b\x10\x1e\"\x03org*2unauthorized to view billing for this organization\x12\xc6\x01\n" +
+	"\x17getCustomerModelPricing\x123.ai.stigmer.billing.v1.GetCustomerModelPricingInput\x1a3.ai.stigmer.billing.v1.CustomerModelPricingResponse\"A¸\x18=\b\x1b\x10\x1e\"\x03org*2unauthorized to view billing for this organization\x12\xd1\x01\n" +
 	"\x19getModelPricingGovernance\x125.ai.stigmer.billing.v1.GetModelPricingGovernanceInput\x1a5.ai.stigmer.billing.v1.ModelPricingGovernanceResponse\"F¸\x18B\b \x10\x1f*3only platform operators can view pricing governance2\astigmer\x12\xd9\x01\n" +
 	"\x19listModelPricingBaselines\x125.ai.stigmer.billing.v1.ListModelPricingBaselinesInput\x1a4.ai.stigmer.billing.v1.ModelPricingBaselinesResponse\"O¸\x18K\b \x10\x1f*<only platform operators can view the model registry baseline2\astigmer\x12\xc8\x01\n" +
 	"\x14previewAuthorization\x120.ai.stigmer.billing.v1.PreviewAuthorizationInput\x1a3.ai.stigmer.billing.v1.PreviewAuthorizationResponse\"I¸\x18E\b\x1d\x10\x1f*6only platform operators can execute billing operations2\astigmer\x12\xd7\x01\n" +

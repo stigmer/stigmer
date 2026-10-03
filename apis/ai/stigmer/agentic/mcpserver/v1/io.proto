@@ -267,7 +267,7 @@ message DisconnectOAuthOutput {
 // 2. Creates a new OAuthApp with the org-provided client_id + client_secret
 //    and the template's endpoint URLs and scopes
 // 3. Creates or updates an OAuthAppOverride binding
-//    (resource_id, resource_kind, org_id) → new OAuthApp ID
+//    (resource_id, resource_kind, org) → new OAuthApp ID
 //
 // If an override already exists for this resource + org, the handler
 // updates the existing OAuthApp's credentials and returns the same ID.

@@ -210,7 +210,6 @@ not from summing agent + workflow costs. See AD-DASH-005.
 ```tsx
 <OperationalDashboard
   org="acme"
-  orgId={activeOrg?.metadata?.id}
   onApprovalClick={(id) => navigate(`/executions/${id}`)}
   onFailedRunClick={(id, type) => navigate(`/executions/${id}`)}
 />
@@ -224,8 +223,7 @@ not from summing agent + workflow costs. See AD-DASH-005.
     className: { type: "string", description: "" },
     onApprovalClick: { type: "(executionId: string) => void", description: "Called when the user clicks \"Review\" on a pending approval." },
     onFailedRunClick: { type: "(id: string, type: \"workflow_execution\" | \"agent_execution\") => void", description: "Called when the user clicks \"View\" on a failed execution." },
-    org: { type: "string | null | undefined", description: "Organization slug for execution summaries and pending approvals.", required: true },
-    orgId: { type: "string | null | undefined", description: "Organization ID (metadata.id) for the usage report.", required: true },
+    org: { type: "string | null | undefined", description: "The organization whose executions, approvals and usage the dashboard shows.", required: true },
   }}
 />
 
@@ -249,8 +247,7 @@ Options for [`useDashboardSummary`](#usedashboardsummary).
 
 <TypeTable
   type={{
-    org: { type: "string | null | undefined", description: "Organization slug for execution summaries.", required: true },
-    orgId: { type: "string | null | undefined", description: "Organization ID (metadata.id) for the usage report.", required: true },
+    org: { type: "string | null | undefined", description: "The organization whose execution summaries and usage report to read.", required: true },
     refetchInterval: { type: "number", description: "Refetch interval in milliseconds." },
   }}
 />

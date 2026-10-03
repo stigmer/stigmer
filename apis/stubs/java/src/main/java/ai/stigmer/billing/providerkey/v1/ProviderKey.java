@@ -42,11 +42,11 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ProviderKey() {
-    orgId_ = "";
+    org_ = "";
     provider_ = "";
     keyHint_ = "";
     createdBy_ = "";
-    inheritedFromOrgId_ = "";
+    inheritedFromOrg_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -68,27 +68,27 @@ private static final long serialVersionUID = 0L;
   }
 
   private int bitField0_;
-  public static final int ORG_ID_FIELD_NUMBER = 1;
+  public static final int ORG_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object orgId_ = "";
+  private volatile java.lang.Object org_ = "";
   /**
    * <pre>
    * The organization the key serves.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 1 [json_name = "org"];</code>
+   * @return The org.
    */
   @java.lang.Override
-  public java.lang.String getOrgId() {
-    java.lang.Object ref = orgId_;
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      orgId_ = s;
+      org_ = s;
       return s;
     }
   }
@@ -97,18 +97,18 @@ private static final long serialVersionUID = 0L;
    * The organization the key serves.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 1 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrgIdBytes() {
-    java.lang.Object ref = orgId_;
+      getOrgBytes() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      orgId_ = b;
+      org_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -380,9 +380,9 @@ private static final long serialVersionUID = 0L;
     return inUse_;
   }
 
-  public static final int INHERITED_FROM_ORG_ID_FIELD_NUMBER = 9;
+  public static final int INHERITED_FROM_ORG_FIELD_NUMBER = 9;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object inheritedFromOrgId_ = "";
+  private volatile java.lang.Object inheritedFromOrg_ = "";
   /**
    * <pre>
    * Set when the row is the integrator organization's key, serving this
@@ -390,19 +390,19 @@ private static final long serialVersionUID = 0L;
    * Such a row is read-only here; it is managed on the integrator.
    * </pre>
    *
-   * <code>string inherited_from_org_id = 9 [json_name = "inheritedFromOrgId"];</code>
-   * @return The inheritedFromOrgId.
+   * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
+   * @return The inheritedFromOrg.
    */
   @java.lang.Override
-  public java.lang.String getInheritedFromOrgId() {
-    java.lang.Object ref = inheritedFromOrgId_;
+  public java.lang.String getInheritedFromOrg() {
+    java.lang.Object ref = inheritedFromOrg_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      inheritedFromOrgId_ = s;
+      inheritedFromOrg_ = s;
       return s;
     }
   }
@@ -413,18 +413,18 @@ private static final long serialVersionUID = 0L;
    * Such a row is read-only here; it is managed on the integrator.
    * </pre>
    *
-   * <code>string inherited_from_org_id = 9 [json_name = "inheritedFromOrgId"];</code>
-   * @return The bytes for inheritedFromOrgId.
+   * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
+   * @return The bytes for inheritedFromOrg.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getInheritedFromOrgIdBytes() {
-    java.lang.Object ref = inheritedFromOrgId_;
+      getInheritedFromOrgBytes() {
+    java.lang.Object ref = inheritedFromOrg_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      inheritedFromOrgId_ = b;
+      inheritedFromOrg_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -445,8 +445,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, org_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(provider_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, provider_);
@@ -469,8 +469,8 @@ private static final long serialVersionUID = 0L;
     if (inUse_ != false) {
       output.writeBool(8, inUse_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(inheritedFromOrgId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 9, inheritedFromOrgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(inheritedFromOrg_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 9, inheritedFromOrg_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -481,8 +481,8 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, org_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(provider_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, provider_);
@@ -509,8 +509,8 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(8, inUse_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(inheritedFromOrgId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(9, inheritedFromOrgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(inheritedFromOrg_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(9, inheritedFromOrg_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -527,8 +527,8 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.billing.providerkey.v1.ProviderKey other = (ai.stigmer.billing.providerkey.v1.ProviderKey) obj;
 
-    if (!getOrgId()
-        .equals(other.getOrgId())) return false;
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getProvider()
         .equals(other.getProvider())) return false;
     if (!getKeyHint()
@@ -552,8 +552,8 @@ private static final long serialVersionUID = 0L;
     }
     if (getInUse()
         != other.getInUse()) return false;
-    if (!getInheritedFromOrgId()
-        .equals(other.getInheritedFromOrgId())) return false;
+    if (!getInheritedFromOrg()
+        .equals(other.getInheritedFromOrg())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -565,8 +565,8 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + ORG_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getOrgId().hashCode();
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (37 * hash) + PROVIDER_FIELD_NUMBER;
     hash = (53 * hash) + getProvider().hashCode();
     hash = (37 * hash) + KEY_HINT_FIELD_NUMBER;
@@ -588,8 +588,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + IN_USE_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getInUse());
-    hash = (37 * hash) + INHERITED_FROM_ORG_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getInheritedFromOrgId().hashCode();
+    hash = (37 * hash) + INHERITED_FROM_ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getInheritedFromOrg().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -743,7 +743,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      orgId_ = "";
+      org_ = "";
       provider_ = "";
       keyHint_ = "";
       createdBy_ = "";
@@ -763,7 +763,7 @@ private static final long serialVersionUID = 0L;
         lastUsedAtBuilder_ = null;
       }
       inUse_ = false;
-      inheritedFromOrgId_ = "";
+      inheritedFromOrg_ = "";
       return this;
     }
 
@@ -798,7 +798,7 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.billing.providerkey.v1.ProviderKey result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.orgId_ = orgId_;
+        result.org_ = org_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.provider_ = provider_;
@@ -832,7 +832,7 @@ private static final long serialVersionUID = 0L;
         result.inUse_ = inUse_;
       }
       if (((from_bitField0_ & 0x00000100) != 0)) {
-        result.inheritedFromOrgId_ = inheritedFromOrgId_;
+        result.inheritedFromOrg_ = inheritedFromOrg_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -849,8 +849,8 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.billing.providerkey.v1.ProviderKey other) {
       if (other == ai.stigmer.billing.providerkey.v1.ProviderKey.getDefaultInstance()) return this;
-      if (!other.getOrgId().isEmpty()) {
-        orgId_ = other.orgId_;
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
@@ -881,8 +881,8 @@ private static final long serialVersionUID = 0L;
       if (other.getInUse() != false) {
         setInUse(other.getInUse());
       }
-      if (!other.getInheritedFromOrgId().isEmpty()) {
-        inheritedFromOrgId_ = other.inheritedFromOrgId_;
+      if (!other.getInheritedFromOrg().isEmpty()) {
+        inheritedFromOrg_ = other.inheritedFromOrg_;
         bitField0_ |= 0x00000100;
         onChanged();
       }
@@ -913,7 +913,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              orgId_ = input.readStringRequireUtf8();
+              org_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
@@ -959,7 +959,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 64
             case 74: {
-              inheritedFromOrgId_ = input.readStringRequireUtf8();
+              inheritedFromOrg_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000100;
               break;
             } // case 74
@@ -980,22 +980,22 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object orgId_ = "";
+    private java.lang.Object org_ = "";
     /**
      * <pre>
      * The organization the key serves.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId"];</code>
-     * @return The orgId.
+     * <code>string org = 1 [json_name = "org"];</code>
+     * @return The org.
      */
-    public java.lang.String getOrgId() {
-      java.lang.Object ref = orgId_;
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        orgId_ = s;
+        org_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1006,17 +1006,17 @@ private static final long serialVersionUID = 0L;
      * The organization the key serves.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId"];</code>
-     * @return The bytes for orgId.
+     * <code>string org = 1 [json_name = "org"];</code>
+     * @return The bytes for org.
      */
     public com.google.protobuf.ByteString
-        getOrgIdBytes() {
-      java.lang.Object ref = orgId_;
+        getOrgBytes() {
+      java.lang.Object ref = org_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        orgId_ = b;
+        org_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1027,14 +1027,14 @@ private static final long serialVersionUID = 0L;
      * The organization the key serves.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId"];</code>
-     * @param value The orgId to set.
+     * <code>string org = 1 [json_name = "org"];</code>
+     * @param value The org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgId(
+    public Builder setOrg(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
@@ -1044,11 +1044,11 @@ private static final long serialVersionUID = 0L;
      * The organization the key serves.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId"];</code>
+     * <code>string org = 1 [json_name = "org"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrgId() {
-      orgId_ = getDefaultInstance().getOrgId();
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
@@ -1058,15 +1058,15 @@ private static final long serialVersionUID = 0L;
      * The organization the key serves.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId"];</code>
-     * @param value The bytes for orgId to set.
+     * <code>string org = 1 [json_name = "org"];</code>
+     * @param value The bytes for org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgIdBytes(
+    public Builder setOrgBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
@@ -1847,7 +1847,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object inheritedFromOrgId_ = "";
+    private java.lang.Object inheritedFromOrg_ = "";
     /**
      * <pre>
      * Set when the row is the integrator organization's key, serving this
@@ -1855,16 +1855,16 @@ private static final long serialVersionUID = 0L;
      * Such a row is read-only here; it is managed on the integrator.
      * </pre>
      *
-     * <code>string inherited_from_org_id = 9 [json_name = "inheritedFromOrgId"];</code>
-     * @return The inheritedFromOrgId.
+     * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
+     * @return The inheritedFromOrg.
      */
-    public java.lang.String getInheritedFromOrgId() {
-      java.lang.Object ref = inheritedFromOrgId_;
+    public java.lang.String getInheritedFromOrg() {
+      java.lang.Object ref = inheritedFromOrg_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        inheritedFromOrgId_ = s;
+        inheritedFromOrg_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1877,17 +1877,17 @@ private static final long serialVersionUID = 0L;
      * Such a row is read-only here; it is managed on the integrator.
      * </pre>
      *
-     * <code>string inherited_from_org_id = 9 [json_name = "inheritedFromOrgId"];</code>
-     * @return The bytes for inheritedFromOrgId.
+     * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
+     * @return The bytes for inheritedFromOrg.
      */
     public com.google.protobuf.ByteString
-        getInheritedFromOrgIdBytes() {
-      java.lang.Object ref = inheritedFromOrgId_;
+        getInheritedFromOrgBytes() {
+      java.lang.Object ref = inheritedFromOrg_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        inheritedFromOrgId_ = b;
+        inheritedFromOrg_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1900,14 +1900,14 @@ private static final long serialVersionUID = 0L;
      * Such a row is read-only here; it is managed on the integrator.
      * </pre>
      *
-     * <code>string inherited_from_org_id = 9 [json_name = "inheritedFromOrgId"];</code>
-     * @param value The inheritedFromOrgId to set.
+     * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
+     * @param value The inheritedFromOrg to set.
      * @return This builder for chaining.
      */
-    public Builder setInheritedFromOrgId(
+    public Builder setInheritedFromOrg(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      inheritedFromOrgId_ = value;
+      inheritedFromOrg_ = value;
       bitField0_ |= 0x00000100;
       onChanged();
       return this;
@@ -1919,11 +1919,11 @@ private static final long serialVersionUID = 0L;
      * Such a row is read-only here; it is managed on the integrator.
      * </pre>
      *
-     * <code>string inherited_from_org_id = 9 [json_name = "inheritedFromOrgId"];</code>
+     * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearInheritedFromOrgId() {
-      inheritedFromOrgId_ = getDefaultInstance().getInheritedFromOrgId();
+    public Builder clearInheritedFromOrg() {
+      inheritedFromOrg_ = getDefaultInstance().getInheritedFromOrg();
       bitField0_ = (bitField0_ & ~0x00000100);
       onChanged();
       return this;
@@ -1935,15 +1935,15 @@ private static final long serialVersionUID = 0L;
      * Such a row is read-only here; it is managed on the integrator.
      * </pre>
      *
-     * <code>string inherited_from_org_id = 9 [json_name = "inheritedFromOrgId"];</code>
-     * @param value The bytes for inheritedFromOrgId to set.
+     * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
+     * @param value The bytes for inheritedFromOrg to set.
      * @return This builder for chaining.
      */
-    public Builder setInheritedFromOrgIdBytes(
+    public Builder setInheritedFromOrgBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      inheritedFromOrgId_ = value;
+      inheritedFromOrg_ = value;
       bitField0_ |= 0x00000100;
       onChanged();
       return this;

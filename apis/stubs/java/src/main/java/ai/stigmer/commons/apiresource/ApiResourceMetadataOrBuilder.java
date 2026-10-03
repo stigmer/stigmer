@@ -107,7 +107,7 @@ public interface ApiResourceMetadataOrBuilder extends
   /**
    * <pre>
    * Organization that owns this resource.
-   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
    * then the configured context, then the "stigmer" organization, which the
    * CLI's bootstrap creates).
    * In Cloud Mode: Required and enforced by the Authorization Service.
@@ -121,7 +121,7 @@ public interface ApiResourceMetadataOrBuilder extends
   /**
    * <pre>
    * Organization that owns this resource.
-   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
    * then the configured context, then the "stigmer" organization, which the
    * CLI's bootstrap creates).
    * In Cloud Mode: Required and enforced by the Authorization Service.

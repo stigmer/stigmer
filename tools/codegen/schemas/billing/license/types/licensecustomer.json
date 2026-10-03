@@ -44,9 +44,9 @@
       }
     },
     {
-      "name": "Organization",
-      "jsonName": "organization",
-      "protoField": "organization",
+      "name": "Org",
+      "jsonName": "org",
+      "protoField": "org",
       "type": {
         "kind": "string"
       },

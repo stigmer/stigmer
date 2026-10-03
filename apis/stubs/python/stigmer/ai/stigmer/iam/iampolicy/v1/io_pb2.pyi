@@ -65,12 +65,12 @@ class ResourcePrincipalsInput(_message.Message):
     def __init__(self, resource: _Optional[_Union[_spec_pb2.ApiResourceRef, _Mapping]] = ..., principals: _Optional[_Iterable[_Union[_spec_pb2.ApiResourceRef, _Mapping]]] = ...) -> None: ...
 
 class RevokeOrgAccessInput(_message.Message):
-    __slots__ = ("identity_account_id", "organization_id")
+    __slots__ = ("identity_account_id", "org")
     IDENTITY_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
-    ORGANIZATION_ID_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     identity_account_id: str
-    organization_id: str
-    def __init__(self, identity_account_id: _Optional[str] = ..., organization_id: _Optional[str] = ...) -> None: ...
+    org: str
+    def __init__(self, identity_account_id: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
 
 class IamPoliciesList(_message.Message):
     __slots__ = ("entries",)
@@ -203,12 +203,12 @@ class AuthorizedPrincipalIdsList(_message.Message):
     def __init__(self, principal_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class GetPrincipalsCountInput(_message.Message):
-    __slots__ = ("org_id", "principal_kind")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "principal_kind")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     PRINCIPAL_KIND_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     principal_kind: str
-    def __init__(self, org_id: _Optional[str] = ..., principal_kind: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., principal_kind: _Optional[str] = ...) -> None: ...
 
 class PrincipalsCount(_message.Message):
     __slots__ = ("count",)

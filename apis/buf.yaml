@@ -29,3 +29,57 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request renames every field that names an organization to one
+  # spelling (`org`, `orgs`, `<role>_org`, `org_<attribute>`), renames
+  # getForOrganization to getForOrg with its input message, and deletes
+  # IdentityProviderSpec.rate_limit_budget, which no server ever enforced
+  # (its number and name are reserved). Field numbers are unchanged, so
+  # binary payloads read the same; the JSON names change. It is made before
+  # launch: no outside consumer uses these names, the hosted service moves its
+  # own stored proto JSON in a migration, no license ticket was issued outside
+  # Stigmer, and the release notes name every change under Upgrading. This
+  # block exists for that one pull request. While it stays, buf breaking does
+  # not report these rules on the listed files, so the pull request that
+  # removes it lands straight after the merge
+  # (https://github.com/stigmer/stigmer/issues/1791).
+  ignore_only:
+    FIELD_SAME_NAME:
+      - ai/stigmer/agentic/agentexecution/v1/io.proto
+      - ai/stigmer/agentic/agentexecution/v1/usage.proto
+      - ai/stigmer/agentic/mcpserver/v1/oauth.proto
+      - ai/stigmer/billing/plan/v1/spec.proto
+      - ai/stigmer/billing/providerkey/v1/api.proto
+      - ai/stigmer/billing/providerkey/v1/io.proto
+      - ai/stigmer/billing/subscription/v1/io.proto
+      - ai/stigmer/billing/v1/billing_account.proto
+      - ai/stigmer/billing/v1/credit.proto
+      - ai/stigmer/billing/v1/io.proto
+      - ai/stigmer/iam/iampolicy/v1/io.proto
+      - ai/stigmer/iam/invitation/v1/io.proto
+      - ai/stigmer/iam/platformclient/v1/token.proto
+      - ai/stigmer/platform/cursoraccount/v1/cursor_account.proto
+      - ai/stigmer/platform/v1/entitlement.proto
+      - ai/stigmer/platform/v1/license.proto
+    FIELD_SAME_JSON_NAME:
+      - ai/stigmer/agentic/agentexecution/v1/io.proto
+      - ai/stigmer/agentic/agentexecution/v1/usage.proto
+      - ai/stigmer/agentic/mcpserver/v1/oauth.proto
+      - ai/stigmer/billing/plan/v1/spec.proto
+      - ai/stigmer/billing/providerkey/v1/api.proto
+      - ai/stigmer/billing/providerkey/v1/io.proto
+      - ai/stigmer/billing/subscription/v1/io.proto
+      - ai/stigmer/billing/v1/billing_account.proto
+      - ai/stigmer/billing/v1/credit.proto
+      - ai/stigmer/billing/v1/io.proto
+      - ai/stigmer/iam/iampolicy/v1/io.proto
+      - ai/stigmer/iam/invitation/v1/io.proto
+      - ai/stigmer/iam/platformclient/v1/token.proto
+      - ai/stigmer/platform/cursoraccount/v1/cursor_account.proto
+      - ai/stigmer/platform/v1/entitlement.proto
+      - ai/stigmer/platform/v1/license.proto
+    FIELD_NO_DELETE:
+      - ai/stigmer/iam/identityprovider/v1/spec.proto
+    RPC_NO_DELETE:
+      - ai/stigmer/billing/subscription/v1/query.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/billing/subscription/v1/io.proto

@@ -19,7 +19,7 @@
  * usage report) are answered the same way, as they are under sign-in.
  *
  * Why the Organization alone. Every org-scoped lane authorizes on it (a
- * create by `metadata.org`, a list or report by `org`/`org_id`), and its
+ * create by `metadata.org`, a list or report by `org`), and its
  * absence is the one no later step catches. The other kinds' update, get
  * and delete chains load their target first and answer NOT_FOUND
  * themselves, and a general existence read would refuse the rowless

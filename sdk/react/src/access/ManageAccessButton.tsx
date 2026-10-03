@@ -48,7 +48,7 @@ export interface ManageAccessButtonProps {
  *         kind: ApiResourceKind.session,
  *         kindString: "session",
  *         id,
- *         org: orgId,
+ *         org,
  *       }}
  *     />
  *   }

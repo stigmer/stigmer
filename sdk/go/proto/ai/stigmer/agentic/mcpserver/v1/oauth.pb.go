@@ -29,7 +29,7 @@ type OAuthGrant struct {
 	IdentityAccountId string `protobuf:"bytes,1,opt,name=identity_account_id,json=identityAccountId,proto3" json:"identity_account_id,omitempty"`
 	// System-generated ID (metadata.id) of the API resource this grant
 	// provides OAuth tokens for. Part of the composite key:
-	// (identity_account_id, resource_id, org_id).
+	// (identity_account_id, resource_id, org).
 	ResourceId string `protobuf:"bytes,2,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	// When the current access token expires (Unix timestamp seconds).
 	// 0 means the token does not expire (e.g., long-lived tokens from
@@ -61,9 +61,9 @@ type OAuthGrant struct {
 	// "workflow"). Used for query filtering and handler routing.
 	ResourceKind string `protobuf:"bytes,10,opt,name=resource_kind,json=resourceKind,proto3" json:"resource_kind,omitempty"`
 	// Organization context for this grant. Part of the composite key:
-	// (identity_account_id, resource_id, org_id). Enables the same user to
+	// (identity_account_id, resource_id, org). Enables the same user to
 	// maintain separate OAuth connections for a shared resource across orgs.
-	OrgId         string `protobuf:"bytes,11,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org           string `protobuf:"bytes,11,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -168,9 +168,9 @@ func (x *OAuthGrant) GetResourceKind() string {
 	return ""
 }
 
-func (x *OAuthGrant) GetOrgId() string {
+func (x *OAuthGrant) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -180,7 +180,7 @@ func (x *OAuthGrant) GetOrgId() string {
 type OAuthAppOverride struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID (metadata.id) of the API resource this override
-	// applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+	// applies to. Part of the composite key: (resource_id, resource_kind, org).
 	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	// Kind of the API resource identified by resource_id (e.g., "mcp_server").
 	// Part of the composite key. Enables the same table to serve overrides
@@ -189,7 +189,7 @@ type OAuthAppOverride struct {
 	// Organization that owns this override. Part of the composite key.
 	// Different orgs can maintain independent BYOA overrides for the same
 	// shared (platform-scoped) resource.
-	OrgId string `protobuf:"bytes,3,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	// ID of the OAuthApp resource that holds the org's client credentials.
 	// Created by the setOrgOAuthApp handler, which clones the platform
 	// OAuthApp template and applies the org-provided client_id + client_secret.
@@ -242,9 +242,9 @@ func (x *OAuthAppOverride) GetResourceKind() string {
 	return ""
 }
 
-func (x *OAuthAppOverride) GetOrgId() string {
+func (x *OAuthAppOverride) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -260,7 +260,7 @@ var File_ai_stigmer_agentic_mcpserver_v1_oauth_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/mcpserver/v1/oauth.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\"\xc0\x03\n" +
+	"+ai/stigmer/agentic/mcpserver/v1/oauth.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\"\xbb\x03\n" +
 	"\n" +
 	"OAuthGrant\x12.\n" +
 	"\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\x1f\n" +
@@ -275,13 +275,13 @@ const file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc = "" +
 	"\x15refresh_token_env_var\x18\b \x01(\tR\x12refreshTokenEnvVar\x12%\n" +
 	"\x0eenvironment_id\x18\t \x01(\tR\renvironmentId\x12#\n" +
 	"\rresource_kind\x18\n" +
-	" \x01(\tR\fresourceKind\x12\x15\n" +
-	"\x06org_id\x18\v \x01(\tR\x05orgId\"\x91\x01\n" +
+	" \x01(\tR\fresourceKind\x12\x10\n" +
+	"\x03org\x18\v \x01(\tR\x03org\"\x8c\x01\n" +
 	"\x10OAuthAppOverride\x12\x1f\n" +
 	"\vresource_id\x18\x01 \x01(\tR\n" +
 	"resourceId\x12#\n" +
-	"\rresource_kind\x18\x02 \x01(\tR\fresourceKind\x12\x15\n" +
-	"\x06org_id\x18\x03 \x01(\tR\x05orgId\x12 \n" +
+	"\rresource_kind\x18\x02 \x01(\tR\fresourceKind\x12\x10\n" +
+	"\x03org\x18\x03 \x01(\tR\x03org\x12 \n" +
 	"\foauth_app_id\x18\x04 \x01(\tR\n" +
 	"oauthAppIdB\xaa\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\n" +

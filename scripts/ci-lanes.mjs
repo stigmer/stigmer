@@ -441,6 +441,11 @@ export const LANES = {
       // (source-map-pragma.mjs, the slim packages' source-map rule), so a
       // change there must run this gate in its own PR (#1087).
       "scripts/lib/**",
+      // The server's sandbox-name derivation: the runner's attach waiter
+      // derives the same name, and src/attach/__tests__/push.test.ts loads
+      // this file and compares the two, so a server-only change to it must
+      // run this lane too.
+      "backend/services/stigmer-server/src/sandbox/naming.ts",
       "Makefile",
       // The Node version the lane sets up (ci.all-in-one says why).
       ".nvmrc",

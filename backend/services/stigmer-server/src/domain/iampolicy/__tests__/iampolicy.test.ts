@@ -176,7 +176,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
         }),
       });
       const count = await query.getPrincipalsCount({
-        orgId: org,
+        org: org,
         principalKind: "identity_account",
       });
 
@@ -198,7 +198,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
       // in-process caller skips authorization.
       const wire = await grpcError(() =>
         query.getPrincipalsCount({
-          orgId: org,
+          org: org,
           principalKind: "identity_account",
         }),
       );
@@ -208,7 +208,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
         IamPolicyQueryController,
         server.inProcessTransport,
       ).getPrincipalsCount({
-        orgId: org,
+        org: org,
         principalKind: "identity_account",
       });
       expect(count.count).toBe(0);
@@ -230,7 +230,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
       expect(
         (
           await query.getPrincipalsCount({
-            orgId: org,
+            org: org,
             principalKind: "identity_account",
           })
         ).count,
@@ -291,7 +291,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
 
       await command.revokeOrgAccess({
         identityAccountId: bob,
-        organizationId: org,
+        org: org,
       });
 
       const onOrg = await query.getPrincipalResourceRoles({
@@ -404,7 +404,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
           await grpcError(() =>
             command.bootstrapRevokeOrgAccess({
               identityAccountId: operatorId,
-              organizationId: org,
+              org: org,
             }),
           )
         ).code,

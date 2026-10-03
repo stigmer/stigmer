@@ -256,7 +256,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Organization that owns this resource.
-   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
    * then the configured context, then the "stigmer" organization, which the
    * CLI's bootstrap creates).
    * In Cloud Mode: Required and enforced by the Authorization Service.
@@ -282,7 +282,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Organization that owns this resource.
-   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
    * then the configured context, then the "stigmer" organization, which the
    * CLI's bootstrap creates).
    * In Cloud Mode: Required and enforced by the Authorization Service.
@@ -1589,7 +1589,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
      * then the configured context, then the "stigmer" organization, which the
      * CLI's bootstrap creates).
      * In Cloud Mode: Required and enforced by the Authorization Service.
@@ -1614,7 +1614,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
      * then the configured context, then the "stigmer" organization, which the
      * CLI's bootstrap creates).
      * In Cloud Mode: Required and enforced by the Authorization Service.
@@ -1640,7 +1640,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
      * then the configured context, then the "stigmer" organization, which the
      * CLI's bootstrap creates).
      * In Cloud Mode: Required and enforced by the Authorization Service.
@@ -1662,7 +1662,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
      * then the configured context, then the "stigmer" organization, which the
      * CLI's bootstrap creates).
      * In Cloud Mode: Required and enforced by the Authorization Service.
@@ -1681,7 +1681,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG_ID,
+     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
      * then the configured context, then the "stigmer" organization, which the
      * CLI's bootstrap creates).
      * In Cloud Mode: Required and enforced by the Authorization Service.

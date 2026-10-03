@@ -7,7 +7,7 @@ subscription.
 Subscriptions are system-created: the payment system opens and moves them,
 and an organization's billing administrators change or cancel the plan through
 the command RPCs. You never author one as a manifest; the shape below is what
-`getForOrganization` returns.
+`getForOrg` returns.
 
 ```yaml
 apiVersion: billing.stigmer.ai/v1

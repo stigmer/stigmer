@@ -259,18 +259,18 @@ describe("execution tools integration", () => {
     expect(createdWorkflowExecution?.spec?.workflowId).toBe("wkf_1");
     expect(createdWorkflowExecution?.spec?.triggerMessage).toBe("execute");
     // The CLI-parity org injection.
-    expect(createdWorkflowExecution?.spec?.runtimeEnv?.STIGMER_ORG_ID?.value).toBe("acme");
+    expect(createdWorkflowExecution?.spec?.runtimeEnv?.STIGMER_ORG?.value).toBe("acme");
   });
 
-  it("run_workflow lets a caller-supplied STIGMER_ORG_ID win", async () => {
+  it("run_workflow lets a caller-supplied STIGMER_ORG win", async () => {
     await callTool("run_workflow", {
       org: "acme",
       workflow: "release",
       message: "ship it",
-      runtime_env: { STIGMER_ORG_ID: "other-org" },
+      runtime_env: { STIGMER_ORG: "other-org" },
     });
     expect(createdWorkflowExecution?.spec?.triggerMessage).toBe("ship it");
-    expect(createdWorkflowExecution?.spec?.runtimeEnv?.STIGMER_ORG_ID?.value).toBe("other-org");
+    expect(createdWorkflowExecution?.spec?.runtimeEnv?.STIGMER_ORG?.value).toBe("other-org");
   });
 
   it("get_agent_execution defaults to the compact view", async () => {

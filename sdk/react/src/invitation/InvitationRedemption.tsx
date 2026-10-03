@@ -174,7 +174,7 @@ export function InvitationRedemption({
 
   // Redemption success
   if (accepted) {
-    const orgName = preview.organizationName || "the organization";
+    const orgName = preview.orgName || "the organization";
     const roleName = iamRoleDisplayName(preview.role);
     return (
       <div className={cn("stg:mx-auto stg:max-w-sm", className)}>
@@ -191,8 +191,8 @@ export function InvitationRedemption({
     );
   }
 
-  const orgName = preview.organizationName || "Unknown organization";
-  const orgLogo = preview.organizationLogoUrl;
+  const orgName = preview.orgName || "Unknown organization";
+  const orgLogo = preview.orgLogoUrl;
   const orgInitial = orgName.charAt(0).toUpperCase();
   const roleName = iamRoleDisplayName(preview.role);
   const expiresAt = preview.expiresAt ? timestampDate(preview.expiresAt) : null;

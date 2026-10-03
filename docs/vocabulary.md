@@ -551,21 +551,70 @@ clear definitions.
 
 #### Organization
 
-A Workspace that groups people, Agents, Workflows, and settings together.
+The boundary that holds people, Agents, Workflows, Sessions and secrets
+together; nothing outside it sees them.
 
 - **Capitalize**: Yes, when referring to the Stigmer concept.
 - **API surface**: `kind: organization`, prefix `org`. proto:
-  `tenancy/organization/v1/spec.proto`. CLI: `--org` flag.
-- **Key fields**: `management_mode`, `identity_provider_ref`, `external_org_id`,
-  `is_personal`.
+  `tenancy/organization/v1/spec.proto`. CLI: `--org` flag, the `STIGMER_ORG`
+  environment variable and the `context.org` config key. In every field name an
+  Organization is `org`: `org` for the one a message is about (`metadata.org`,
+  `GetCreditBalanceInput.org`), `<role>_org` for a second one in the same
+  message (`ProviderKey.inherited_from_org`), `orgs` for a list
+  (`CursorAccount.orgs`), `org_<attribute>` for something that describes one
+  (`InvitationPreview.org_name`), `orgs` in a count (`max_orgs`), and `org` in a
+  per-organization amount (`per_extra_org_micros`). RPCs and requests that
+  filter by one say `Org` (`listByOrg`, `getForOrg`). The kind itself, and the
+  messages and RPCs that return it, keep the full word (`Organization`,
+  `findMyOrganizations`), as `Agent` does.
+- **Key fields**: `description`, `logo_url`, `preferences`, `is_personal`, and
+  the child-organization fields `management_mode`, `identity_provider_ref` and
+  `external_org_id`.
 - **Note**: Every edition has Organizations. On a laptop or a self-hosted
   server, the CLI uses the `stigmer` Organization when a command names none;
   `stigmer up` creates it on a laptop and `stigmer bootstrap` on a raw server,
   and `stigmer config context set --org` points the CLI at another. The
   `stigmer` Organization has no role beyond that: on a laptop it is the user's
   own, and on Stigmer Cloud it is Stigmer's own.
-- **Context rule**: Call it the `stigmer` Organization. "System Organization" is
-  a retired phrase from when default content was installed into it.
+- **Context rule**: `org` in identifiers, "Organization" in prose. Never call it
+  a tenant, and never a Workspace, which is a Session's files. Call the default
+  one the `stigmer` Organization. "System Organization" is a retired phrase from
+  when default content was installed into it.
+
+---
+
+#### "Platform" (the word)
+
+"Platform" has meant several things in the API and docs. Use it for one of them
+only.
+
+- **Use it for**: the Stigmer platform as a whole ("the Stigmer platform"), and
+  inside names that already carry it: `PlatformClient`, the `platform/v1`
+  package, the `platform` authorization scope.
+- **Say instead**:
+  - a company that builds its product on Stigmer: an **integrator**;
+  - Stigmer's own staff who run Stigmer Cloud: **Stigmer operators**;
+  - the holder of a subscription or a license: the **customer**;
+  - a messaging service such as Slack or WhatsApp: a **messaging service**, or
+    its name.
+- **Context rule**: If a sentence would still be true with "Stigmer" in place of
+  "the platform", write "Stigmer".
+
+---
+
+#### "Tenant" (the word)
+
+Stigmer has no concept called a tenant.
+
+- **Say instead**:
+  - one customer's isolated space inside Stigmer: an **Organization**;
+  - the holder of a subscription or a license: the **customer**.
+- **Keep it** only where an outside system names it: an Auth0 tenant, a
+  Microsoft Entra tenant id, and the established terms single-tenant and
+  multi-tenant for how a server is deployed.
+- **Note**: The child-organization words "platform-managed", "managed
+  organization", "tenant organization" and "external org" are on their way out;
+  see the Inconsistency register.
 
 ---
 
@@ -1251,3 +1300,22 @@ both creates ambiguity in documentation.
 Both are approval flows, but they should be documented as distinct topics with
 clear names. The sales site can use the umbrella term "approval flows" since the
 distinction doesn't matter at that level.
+
+---
+
+### 7. Child-organization words
+
+**What**: An Organization that belongs to another Organization, one per customer
+of an integrator, is called platform-managed, managed, tenant and external in
+different places. Its fields carry the same mix: `management_mode`,
+`identity_provider_ref`, `external_org_id`, `tenant_org_claim` and the
+`visibility_platform` share level.
+
+**Where**: `tenancy/organization/v1/spec.proto`,
+`iam/identityprovider/v1/spec.proto`, `commons/apiresource/enum.proto`, and the
+federation guides under `docs/guides/authentication/federation/`.
+
+**Recommendation**: These are being replaced together with the mechanism they
+describe: a child Organization names its parent Organization, and its customer's
+key is its external id. Until then, describe the mechanism as it works today,
+and do not introduce new uses of these words.

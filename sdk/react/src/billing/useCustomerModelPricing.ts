@@ -27,15 +27,15 @@ export interface UseCustomerModelPricingReturn {
  * billing policy markup already applied, organized by harness
  * and cost tier.
  *
- * Pass `null` as `orgId` to skip fetching (stable no-op).
+ * Pass `null` as `org` to skip fetching (stable no-op).
  * Pass `undefined` to fetch default pricing (no org override).
  *
- * @param orgId - Organization ID for org-specific overrides,
+ * @param org - Organization ID for org-specific overrides,
  *   `undefined` for default pricing, or `null` to skip.
  *
  * @example
  * ```tsx
- * const { pricing, isLoading } = useCustomerModelPricing(orgId);
+ * const { pricing, isLoading } = useCustomerModelPricing(org);
  *
  * if (isLoading) return <Skeleton />;
  * if (!pricing) return null;
@@ -46,20 +46,20 @@ export interface UseCustomerModelPricingReturn {
  * ```
  */
 export function useCustomerModelPricing(
-  orgId: string | undefined | null,
+  org: string | undefined | null,
 ): UseCustomerModelPricingReturn {
   const stigmer = useStigmer();
 
-  const skip = orgId === null;
+  const skip = org === null;
 
   const { data: pricing, isLoading, isRefetching, error, refetch } = useFetch(
     skip
       ? null
       : () =>
           stigmer.billing.getCustomerModelPricing(
-            orgId ? { orgId } : undefined,
+            org ? { org } : undefined,
           ),
-    [orgId, stigmer],
+    [org, stigmer],
     null as CustomerModelPricingResponse | null,
   );
 

@@ -33,7 +33,7 @@ private static final long serialVersionUID = 0L;
   }
   private RevokeOrgAccessInput() {
     identityAccountId_ = "";
-    organizationId_ = "";
+    org_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -101,27 +101,27 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int ORGANIZATION_ID_FIELD_NUMBER = 2;
+  public static final int ORG_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object organizationId_ = "";
+  private volatile java.lang.Object org_ = "";
   /**
    * <pre>
    * The organization from which access is being revoked
    * </pre>
    *
-   * <code>string organization_id = 2 [json_name = "organizationId", (.buf.validate.field) = { ... }</code>
-   * @return The organizationId.
+   * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
    */
   @java.lang.Override
-  public java.lang.String getOrganizationId() {
-    java.lang.Object ref = organizationId_;
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      organizationId_ = s;
+      org_ = s;
       return s;
     }
   }
@@ -130,18 +130,18 @@ private static final long serialVersionUID = 0L;
    * The organization from which access is being revoked
    * </pre>
    *
-   * <code>string organization_id = 2 [json_name = "organizationId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for organizationId.
+   * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrganizationIdBytes() {
-    java.lang.Object ref = organizationId_;
+      getOrgBytes() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      organizationId_ = b;
+      org_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -165,8 +165,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(identityAccountId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, identityAccountId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(organizationId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, organizationId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, org_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -180,8 +180,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(identityAccountId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, identityAccountId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(organizationId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, organizationId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, org_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -200,8 +200,8 @@ private static final long serialVersionUID = 0L;
 
     if (!getIdentityAccountId()
         .equals(other.getIdentityAccountId())) return false;
-    if (!getOrganizationId()
-        .equals(other.getOrganizationId())) return false;
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -215,8 +215,8 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + IDENTITY_ACCOUNT_ID_FIELD_NUMBER;
     hash = (53 * hash) + getIdentityAccountId().hashCode();
-    hash = (37 * hash) + ORGANIZATION_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getOrganizationId().hashCode();
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -353,7 +353,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       identityAccountId_ = "";
-      organizationId_ = "";
+      org_ = "";
       return this;
     }
 
@@ -391,7 +391,7 @@ private static final long serialVersionUID = 0L;
         result.identityAccountId_ = identityAccountId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.organizationId_ = organizationId_;
+        result.org_ = org_;
       }
     }
 
@@ -412,8 +412,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      if (!other.getOrganizationId().isEmpty()) {
-        organizationId_ = other.organizationId_;
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
         bitField0_ |= 0x00000002;
         onChanged();
       }
@@ -449,7 +449,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 10
             case 18: {
-              organizationId_ = input.readStringRequireUtf8();
+              org_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000002;
               break;
             } // case 18
@@ -562,22 +562,22 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object organizationId_ = "";
+    private java.lang.Object org_ = "";
     /**
      * <pre>
      * The organization from which access is being revoked
      * </pre>
      *
-     * <code>string organization_id = 2 [json_name = "organizationId", (.buf.validate.field) = { ... }</code>
-     * @return The organizationId.
+     * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @return The org.
      */
-    public java.lang.String getOrganizationId() {
-      java.lang.Object ref = organizationId_;
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        organizationId_ = s;
+        org_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -588,17 +588,17 @@ private static final long serialVersionUID = 0L;
      * The organization from which access is being revoked
      * </pre>
      *
-     * <code>string organization_id = 2 [json_name = "organizationId", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for organizationId.
+     * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for org.
      */
     public com.google.protobuf.ByteString
-        getOrganizationIdBytes() {
-      java.lang.Object ref = organizationId_;
+        getOrgBytes() {
+      java.lang.Object ref = org_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        organizationId_ = b;
+        org_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -609,14 +609,14 @@ private static final long serialVersionUID = 0L;
      * The organization from which access is being revoked
      * </pre>
      *
-     * <code>string organization_id = 2 [json_name = "organizationId", (.buf.validate.field) = { ... }</code>
-     * @param value The organizationId to set.
+     * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @param value The org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrganizationId(
+    public Builder setOrg(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      organizationId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
@@ -626,11 +626,11 @@ private static final long serialVersionUID = 0L;
      * The organization from which access is being revoked
      * </pre>
      *
-     * <code>string organization_id = 2 [json_name = "organizationId", (.buf.validate.field) = { ... }</code>
+     * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrganizationId() {
-      organizationId_ = getDefaultInstance().getOrganizationId();
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
       bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
@@ -640,15 +640,15 @@ private static final long serialVersionUID = 0L;
      * The organization from which access is being revoked
      * </pre>
      *
-     * <code>string organization_id = 2 [json_name = "organizationId", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for organizationId to set.
+     * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrganizationIdBytes(
+    public Builder setOrgBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      organizationId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;

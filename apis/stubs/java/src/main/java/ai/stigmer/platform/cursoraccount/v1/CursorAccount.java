@@ -26,14 +26,14 @@ package ai.stigmer.platform.cursoraccount.v1;
  * Consequently an account with no enabled member keys is visible but NOT
  * routable — no execution traffic can be sent under it.
  *
- * Org assignment — two account classes, derived from org_ids alone:
+ * Org assignment — two account classes, derived from orgs alone:
  *
- * - DEDICATED (org_ids non-empty): the account is a cost boundary for
+ * - DEDICATED (orgs non-empty): the account is a cost boundary for
  * exactly those organizations. Their sessions are served only by this
  * account's keys; when it has no usable keys, sessions fail with an
  * explicit operator-actionable error rather than silently spending
  * another team's quota.
- * - SHARED POOL (org_ids empty + enabled): the account is part of the
+ * - SHARED POOL (orgs empty + enabled): the account is part of the
  * platform-operated pool serving every org with no dedicated account.
  * Pool sessions may move across pool accounts when their current
  * account is depleted — all pool teams bill to the platform operator,
@@ -80,7 +80,7 @@ private static final long serialVersionUID = 0L;
     accountId_ = "";
     displayName_ = "";
     adminApiKey_ = "";
-    orgIds_ =
+    orgs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     memberKeys_ = java.util.Collections.emptyList();
     createdBy_ = "";
@@ -285,7 +285,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Deprecated: superseded by the derived shared pool. Every
-   * enabled account with empty org_ids now serves unassigned orgs; a
+   * enabled account with empty orgs now serves unassigned orgs; a
    * single "default" marker is meaningless under that rule, so selection
    * and the console ignore this field. Kept on the wire for old clients;
    * never written by current ones.
@@ -301,9 +301,9 @@ private static final long serialVersionUID = 0L;
     return isPlatformDefault_;
   }
 
-  public static final int ORG_IDS_FIELD_NUMBER = 6;
+  public static final int ORGS_FIELD_NUMBER = 6;
   @SuppressWarnings("serial")
-  private com.google.protobuf.LazyStringArrayList orgIds_ =
+  private com.google.protobuf.LazyStringArrayList orgs_ =
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
@@ -313,12 +313,12 @@ private static final long serialVersionUID = 0L;
    * the message doc for the two account classes).
    * </pre>
    *
-   * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
-   * @return A list containing the orgIds.
+   * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the orgs.
    */
   public com.google.protobuf.ProtocolStringList
-      getOrgIdsList() {
-    return orgIds_;
+      getOrgsList() {
+    return orgs_;
   }
   /**
    * <pre>
@@ -328,11 +328,11 @@ private static final long serialVersionUID = 0L;
    * the message doc for the two account classes).
    * </pre>
    *
-   * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
-   * @return The count of orgIds.
+   * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
+   * @return The count of orgs.
    */
-  public int getOrgIdsCount() {
-    return orgIds_.size();
+  public int getOrgsCount() {
+    return orgs_.size();
   }
   /**
    * <pre>
@@ -342,12 +342,12 @@ private static final long serialVersionUID = 0L;
    * the message doc for the two account classes).
    * </pre>
    *
-   * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
+   * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
    * @param index The index of the element to return.
-   * @return The orgIds at the given index.
+   * @return The orgs at the given index.
    */
-  public java.lang.String getOrgIds(int index) {
-    return orgIds_.get(index);
+  public java.lang.String getOrgs(int index) {
+    return orgs_.get(index);
   }
   /**
    * <pre>
@@ -357,13 +357,13 @@ private static final long serialVersionUID = 0L;
    * the message doc for the two account classes).
    * </pre>
    *
-   * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
+   * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
    * @param index The index of the value to return.
-   * @return The bytes of the orgIds at the given index.
+   * @return The bytes of the orgs at the given index.
    */
   public com.google.protobuf.ByteString
-      getOrgIdsBytes(int index) {
-    return orgIds_.getByteString(index);
+      getOrgsBytes(int index) {
+    return orgs_.getByteString(index);
   }
 
   public static final int MEMBER_KEYS_FIELD_NUMBER = 7;
@@ -704,8 +704,8 @@ private static final long serialVersionUID = 0L;
     if (isPlatformDefault_ != false) {
       output.writeBool(5, isPlatformDefault_);
     }
-    for (int i = 0; i < orgIds_.size(); i++) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 6, orgIds_.getRaw(i));
+    for (int i = 0; i < orgs_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 6, orgs_.getRaw(i));
     }
     for (int i = 0; i < memberKeys_.size(); i++) {
       output.writeMessage(7, memberKeys_.get(i));
@@ -756,11 +756,11 @@ private static final long serialVersionUID = 0L;
     }
     {
       int dataSize = 0;
-      for (int i = 0; i < orgIds_.size(); i++) {
-        dataSize += computeStringSizeNoTag(orgIds_.getRaw(i));
+      for (int i = 0; i < orgs_.size(); i++) {
+        dataSize += computeStringSizeNoTag(orgs_.getRaw(i));
       }
       size += dataSize;
-      size += 1 * getOrgIdsList().size();
+      size += 1 * getOrgsList().size();
     }
 
         {
@@ -817,8 +817,8 @@ private static final long serialVersionUID = 0L;
         != other.getEnabled()) return false;
     if (getIsPlatformDefault()
         != other.getIsPlatformDefault()) return false;
-    if (!getOrgIdsList()
-        .equals(other.getOrgIdsList())) return false;
+    if (!getOrgsList()
+        .equals(other.getOrgsList())) return false;
     if (!getMemberKeysList()
         .equals(other.getMemberKeysList())) return false;
     if (!getCreatedBy()
@@ -862,9 +862,9 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + IS_PLATFORM_DEFAULT_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getIsPlatformDefault());
-    if (getOrgIdsCount() > 0) {
-      hash = (37 * hash) + ORG_IDS_FIELD_NUMBER;
-      hash = (53 * hash) + getOrgIdsList().hashCode();
+    if (getOrgsCount() > 0) {
+      hash = (37 * hash) + ORGS_FIELD_NUMBER;
+      hash = (53 * hash) + getOrgsList().hashCode();
     }
     if (getMemberKeysCount() > 0) {
       hash = (37 * hash) + MEMBER_KEYS_FIELD_NUMBER;
@@ -1005,14 +1005,14 @@ private static final long serialVersionUID = 0L;
    * Consequently an account with no enabled member keys is visible but NOT
    * routable — no execution traffic can be sent under it.
    *
-   * Org assignment — two account classes, derived from org_ids alone:
+   * Org assignment — two account classes, derived from orgs alone:
    *
-   * - DEDICATED (org_ids non-empty): the account is a cost boundary for
+   * - DEDICATED (orgs non-empty): the account is a cost boundary for
    * exactly those organizations. Their sessions are served only by this
    * account's keys; when it has no usable keys, sessions fail with an
    * explicit operator-actionable error rather than silently spending
    * another team's quota.
-   * - SHARED POOL (org_ids empty + enabled): the account is part of the
+   * - SHARED POOL (orgs empty + enabled): the account is part of the
    * platform-operated pool serving every org with no dedicated account.
    * Pool sessions may move across pool accounts when their current
    * account is depleted — all pool teams bill to the platform operator,
@@ -1080,7 +1080,7 @@ private static final long serialVersionUID = 0L;
       adminApiKey_ = "";
       enabled_ = false;
       isPlatformDefault_ = false;
-      orgIds_ =
+      orgs_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       if (memberKeysBuilder_ == null) {
         memberKeys_ = java.util.Collections.emptyList();
@@ -1165,8 +1165,8 @@ private static final long serialVersionUID = 0L;
         result.isPlatformDefault_ = isPlatformDefault_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        orgIds_.makeImmutable();
-        result.orgIds_ = orgIds_;
+        orgs_.makeImmutable();
+        result.orgs_ = orgs_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.createdBy_ = createdBy_;
@@ -1229,13 +1229,13 @@ private static final long serialVersionUID = 0L;
       if (other.getIsPlatformDefault() != false) {
         setIsPlatformDefault(other.getIsPlatformDefault());
       }
-      if (!other.orgIds_.isEmpty()) {
-        if (orgIds_.isEmpty()) {
-          orgIds_ = other.orgIds_;
+      if (!other.orgs_.isEmpty()) {
+        if (orgs_.isEmpty()) {
+          orgs_ = other.orgs_;
           bitField0_ |= 0x00000020;
         } else {
-          ensureOrgIdsIsMutable();
-          orgIds_.addAll(other.orgIds_);
+          ensureOrgsIsMutable();
+          orgs_.addAll(other.orgs_);
         }
         onChanged();
       }
@@ -1341,8 +1341,8 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 40
             case 50: {
-              ensureOrgIdsIsMutable();
-              orgIds_.add(input.readStringRequireUtf8());
+              ensureOrgsIsMutable();
+              orgs_.add(input.readStringRequireUtf8());
               break;
             } // case 50
             case 58: {
@@ -1777,7 +1777,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Deprecated: superseded by the derived shared pool. Every
-     * enabled account with empty org_ids now serves unassigned orgs; a
+     * enabled account with empty orgs now serves unassigned orgs; a
      * single "default" marker is meaningless under that rule, so selection
      * and the console ignore this field. Kept on the wire for old clients;
      * never written by current ones.
@@ -1795,7 +1795,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Deprecated: superseded by the derived shared pool. Every
-     * enabled account with empty org_ids now serves unassigned orgs; a
+     * enabled account with empty orgs now serves unassigned orgs; a
      * single "default" marker is meaningless under that rule, so selection
      * and the console ignore this field. Kept on the wire for old clients;
      * never written by current ones.
@@ -1817,7 +1817,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Deprecated: superseded by the derived shared pool. Every
-     * enabled account with empty org_ids now serves unassigned orgs; a
+     * enabled account with empty orgs now serves unassigned orgs; a
      * single "default" marker is meaningless under that rule, so selection
      * and the console ignore this field. Kept on the wire for old clients;
      * never written by current ones.
@@ -1835,11 +1835,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private com.google.protobuf.LazyStringArrayList orgIds_ =
+    private com.google.protobuf.LazyStringArrayList orgs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-    private void ensureOrgIdsIsMutable() {
-      if (!orgIds_.isModifiable()) {
-        orgIds_ = new com.google.protobuf.LazyStringArrayList(orgIds_);
+    private void ensureOrgsIsMutable() {
+      if (!orgs_.isModifiable()) {
+        orgs_ = new com.google.protobuf.LazyStringArrayList(orgs_);
       }
       bitField0_ |= 0x00000020;
     }
@@ -1851,13 +1851,13 @@ private static final long serialVersionUID = 0L;
      * the message doc for the two account classes).
      * </pre>
      *
-     * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
-     * @return A list containing the orgIds.
+     * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the orgs.
      */
     public com.google.protobuf.ProtocolStringList
-        getOrgIdsList() {
-      orgIds_.makeImmutable();
-      return orgIds_;
+        getOrgsList() {
+      orgs_.makeImmutable();
+      return orgs_;
     }
     /**
      * <pre>
@@ -1867,11 +1867,11 @@ private static final long serialVersionUID = 0L;
      * the message doc for the two account classes).
      * </pre>
      *
-     * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
-     * @return The count of orgIds.
+     * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
+     * @return The count of orgs.
      */
-    public int getOrgIdsCount() {
-      return orgIds_.size();
+    public int getOrgsCount() {
+      return orgs_.size();
     }
     /**
      * <pre>
@@ -1881,12 +1881,12 @@ private static final long serialVersionUID = 0L;
      * the message doc for the two account classes).
      * </pre>
      *
-     * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
+     * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
      * @param index The index of the element to return.
-     * @return The orgIds at the given index.
+     * @return The orgs at the given index.
      */
-    public java.lang.String getOrgIds(int index) {
-      return orgIds_.get(index);
+    public java.lang.String getOrgs(int index) {
+      return orgs_.get(index);
     }
     /**
      * <pre>
@@ -1896,13 +1896,13 @@ private static final long serialVersionUID = 0L;
      * the message doc for the two account classes).
      * </pre>
      *
-     * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
+     * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
      * @param index The index of the value to return.
-     * @return The bytes of the orgIds at the given index.
+     * @return The bytes of the orgs at the given index.
      */
     public com.google.protobuf.ByteString
-        getOrgIdsBytes(int index) {
-      return orgIds_.getByteString(index);
+        getOrgsBytes(int index) {
+      return orgs_.getByteString(index);
     }
     /**
      * <pre>
@@ -1912,16 +1912,16 @@ private static final long serialVersionUID = 0L;
      * the message doc for the two account classes).
      * </pre>
      *
-     * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
+     * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
      * @param index The index to set the value at.
-     * @param value The orgIds to set.
+     * @param value The orgs to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgIds(
+    public Builder setOrgs(
         int index, java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      ensureOrgIdsIsMutable();
-      orgIds_.set(index, value);
+      ensureOrgsIsMutable();
+      orgs_.set(index, value);
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
@@ -1934,15 +1934,15 @@ private static final long serialVersionUID = 0L;
      * the message doc for the two account classes).
      * </pre>
      *
-     * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
-     * @param value The orgIds to add.
+     * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
+     * @param value The orgs to add.
      * @return This builder for chaining.
      */
-    public Builder addOrgIds(
+    public Builder addOrgs(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      ensureOrgIdsIsMutable();
-      orgIds_.add(value);
+      ensureOrgsIsMutable();
+      orgs_.add(value);
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
@@ -1955,15 +1955,15 @@ private static final long serialVersionUID = 0L;
      * the message doc for the two account classes).
      * </pre>
      *
-     * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
-     * @param values The orgIds to add.
+     * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
+     * @param values The orgs to add.
      * @return This builder for chaining.
      */
-    public Builder addAllOrgIds(
+    public Builder addAllOrgs(
         java.lang.Iterable<java.lang.String> values) {
-      ensureOrgIdsIsMutable();
+      ensureOrgsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
-          values, orgIds_);
+          values, orgs_);
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
@@ -1976,11 +1976,11 @@ private static final long serialVersionUID = 0L;
      * the message doc for the two account classes).
      * </pre>
      *
-     * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
+     * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrgIds() {
-      orgIds_ =
+    public Builder clearOrgs() {
+      orgs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
       bitField0_ = (bitField0_ & ~0x00000020);;
       onChanged();
@@ -1994,16 +1994,16 @@ private static final long serialVersionUID = 0L;
      * the message doc for the two account classes).
      * </pre>
      *
-     * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes of the orgIds to add.
+     * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the orgs to add.
      * @return This builder for chaining.
      */
-    public Builder addOrgIdsBytes(
+    public Builder addOrgsBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      ensureOrgIdsIsMutable();
-      orgIds_.add(value);
+      ensureOrgsIsMutable();
+      orgs_.add(value);
       bitField0_ |= 0x00000020;
       onChanged();
       return this;

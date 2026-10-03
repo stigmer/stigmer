@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.billing.subscription.v1.ChangePlanInput",
           "outputType": "Subscription",
           "outputFullType": "ai.stigmer.billing.subscription.v1.Subscription",
-          "description": "Move the organization onto a plan.\n\n Subscribes an organization that has no subscription, or changes the plan\n of one that does. The plan must be active and bought through a\n subscription. Returns the subscription as it stands after the change.\n\n Refusals a client should branch on carry a google.rpc.ErrorInfo\n detail (domain \"stigmer.ai\") on the standard grpc-status-details-bin\n trailer, alongside the human-readable FAILED_PRECONDITION message:\n\n   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds\n     no saved payment method, which every period is collected from;\n     BillingCommandController.createPaymentMethodSetupSession saves one.\n     Metadata: org_id."
+          "description": "Move the organization onto a plan.\n\n Subscribes an organization that has no subscription, or changes the plan\n of one that does. The plan must be active and bought through a\n subscription. Returns the subscription as it stands after the change.\n\n Refusals a client should branch on carry a google.rpc.ErrorInfo\n detail (domain \"stigmer.ai\") on the standard grpc-status-details-bin\n trailer, alongside the human-readable FAILED_PRECONDITION message:\n\n   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds\n     no saved payment method, which every period is collected from;\n     BillingCommandController.createPaymentMethodSetupSession saves one.\n     Metadata: org."
         },
         {
           "name": "Cancel",
@@ -32,9 +32,9 @@
       "protoFile": "ai/stigmer/billing/subscription/v1/query.proto",
       "methods": [
         {
-          "name": "GetForOrganization",
-          "inputType": "GetSubscriptionForOrganizationInput",
-          "inputFullType": "ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput",
+          "name": "GetForOrg",
+          "inputType": "GetSubscriptionForOrgInput",
+          "inputFullType": "ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput",
           "outputType": "Subscription",
           "outputFullType": "ai.stigmer.billing.subscription.v1.Subscription",
           "description": "Get the organization's subscription.\n\n NOT_FOUND when the organization has none: it is on the Free plan, which\n is not a row. Callers that only need what the organization may do\n should call getEntitlements, which answers for every organization."
@@ -66,9 +66,9 @@
       "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
       "fields": [
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
@@ -100,9 +100,9 @@
       "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
       "fields": [
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
@@ -115,15 +115,15 @@
       ]
     },
     {
-      "name": "GetSubscriptionForOrganizationInput",
-      "description": "GetSubscriptionForOrganizationInput names the organization whose\n subscription is read.",
-      "protoType": "ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput",
+      "name": "GetSubscriptionForOrgInput",
+      "description": "GetSubscriptionForOrgInput names the organization whose\n subscription is read.",
+      "protoType": "ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput",
       "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
       "fields": [
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
@@ -142,9 +142,9 @@
       "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
       "fields": [
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
@@ -192,9 +192,9 @@
       "protoFile": "apis/ai/stigmer/billing/subscription/v1/io.proto",
       "fields": [
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
@@ -362,12 +362,12 @@
         {
           "name": "platform_client",
           "number": 2,
-          "description": "Gates nothing: every edition serves PlatformClient credentials to every\n tenant, so a plan or license that lists it grants nothing more.\n It is the one value named before its gate was ruled out, and it stays\n because licenses already issued carry it and an enum value is a wire\n identifier. A new plan or license does not list it."
+          "description": "Gates nothing: every edition serves PlatformClient credentials to every\n customer, so a plan or license that lists it grants nothing more.\n It is the one value named before its gate was ruled out, and it stays\n because licenses already issued carry it and an enum value is a wire\n identifier. A new plan or license does not list it."
         },
         {
           "name": "byo_provider_keys",
           "number": 3,
-          "description": "Bringing the tenant's own LLM provider keys instead of the platform's\n metered proxy credentials."
+          "description": "Bringing the customer's own LLM provider keys instead of the platform's\n metered proxy credentials."
         },
         {
           "name": "channels",

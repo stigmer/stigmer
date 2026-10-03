@@ -17,7 +17,7 @@ message CreditLedgerEntry {
   string entry_id = 1;
 
   // Organization that owns this entry.
-  string org_id = 2;
+  string org = 2;
 
   // Classification of the balance change.
   LedgerEntryType type = 3;
@@ -98,7 +98,7 @@ message CreditGrant {
   string grant_id = 1;
 
   // Organization that owns this grant.
-  string org_id = 2;
+  string org = 2;
 
   // How these credits were acquired.
   CreditGrantKind kind = 3;
@@ -151,7 +151,7 @@ message ExecutionReservation {
   string reservation_id = 1;
 
   // Organization that owns this reservation.
-  string org_id = 2;
+  string org = 2;
 
   // Agent execution this reservation is for.
   string execution_id = 3;
@@ -184,7 +184,7 @@ message CreditPurchase {
   string purchase_id = 1;
 
   // Organization purchasing credits.
-  string org_id = 2;
+  string org = 2;
 
   // Credit pack being purchased (e.g., "starter", "growth", "team").
   string pack_id = 3;
@@ -228,7 +228,7 @@ message AutoRechargeEvent {
   string event_id = 1;
 
   // Organization being recharged.
-  string org_id = 2;
+  string org = 2;
 
   // Amount charged to the payment method in micro-USD.
   int64 amount_micros = 3;

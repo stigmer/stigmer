@@ -1,13 +1,13 @@
 // `stigmer config context show|set` — the active CLI context: the
 // organization every command targets when neither `--org` nor
-// STIGMER_ORG_ID names one.
+// STIGMER_ORG names one.
 //
 // `set --org <slug>` checks the slug against the active backend before it
 // persists: the organization must be one the caller belongs to there
 // (findMyOrganizations), so a typo or a stranger's slug is refused at the
 // moment it is typed, not on the next command. An empty slug clears the
 // context without asking the backend, and the resolver falls back to its
-// default again. The raw `config set context.organization` stays the
+// default again. The raw `config set context.org` stays the
 // unchecked escape hatch.
 
 import type { Command } from "commander";
@@ -51,7 +51,7 @@ async function runSet(flags: OutputFlags & { org?: string }): Promise<void> {
   const config = load();
   if (org !== "") await assertMembership(config, org);
 
-  (config.context ??= {}).organization = org;
+  (config.context ??= {}).org = org;
   save(config);
   const message = org === "" ? "Context organization cleared" : `Context organization set to '${org}'`;
   renderResult(CommandResult.success(message), resultFormat(flags));

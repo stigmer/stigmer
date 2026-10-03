@@ -77,20 +77,19 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"5\n\024Invitation" +
       "TokenInput\022\035\n\005token\030\001 \001(\tB\007\272H\004r\002\020\001R\005toke" +
       "n\"6\n\025RedeemInvitationInput\022\035\n\005token\030\001 \001(" +
-      "\tB\007\272H\004r\002\020\001R\005token\"\344\002\n\021InvitationPreview\022" +
-      "+\n\021organization_name\030\001 \001(\tR\020organization" +
-      "Name\022+\n\021organization_slug\030\002 \001(\tR\020organiz" +
-      "ationSlug\0222\n\025organization_logo_url\030\003 \001(\t" +
-      "R\023organizationLogoUrl\022.\n\004role\030\004 \001(\0162\032.ai" +
-      ".stigmer.iam.v1.IamRoleR\004role\0229\n\nexpires" +
-      "_at\030\005 \001(\0132\032.google.protobuf.TimestampR\te" +
-      "xpiresAt\022\024\n\005label\030\006 \001(\tR\005label\022\031\n\010is_val" +
-      "id\030\007 \001(\010R\007isValid\022%\n\016invalid_reason\030\010 \001(" +
-      "\tR\rinvalidReasonB\236\001B\007IoProtoP\001\242\002\004ASII\252\002\034" +
-      "Ai.Stigmer.Iam.Invitation.V1\312\002\034Ai\\Stigme" +
-      "r\\Iam\\Invitation\\V1\342\002(Ai\\Stigmer\\Iam\\Inv" +
-      "itation\\V1\\GPBMetadata\352\002 Ai::Stigmer::Ia" +
-      "m::Invitation::V1b\006proto3"
+      "\tB\007\272H\004r\002\020\001R\005token\"\256\002\n\021InvitationPreview\022" +
+      "\031\n\010org_name\030\001 \001(\tR\007orgName\022\031\n\010org_slug\030\002" +
+      " \001(\tR\007orgSlug\022 \n\014org_logo_url\030\003 \001(\tR\norg" +
+      "LogoUrl\022.\n\004role\030\004 \001(\0162\032.ai.stigmer.iam.v" +
+      "1.IamRoleR\004role\0229\n\nexpires_at\030\005 \001(\0132\032.go" +
+      "ogle.protobuf.TimestampR\texpiresAt\022\024\n\005la" +
+      "bel\030\006 \001(\tR\005label\022\031\n\010is_valid\030\007 \001(\010R\007isVa" +
+      "lid\022%\n\016invalid_reason\030\010 \001(\tR\rinvalidReas" +
+      "onB\236\001B\007IoProtoP\001\242\002\004ASII\252\002\034Ai.Stigmer.Iam" +
+      ".Invitation.V1\312\002\034Ai\\Stigmer\\Iam\\Invitati" +
+      "on\\V1\342\002(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPB" +
+      "Metadata\352\002 Ai::Stigmer::Iam::Invitation:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -135,7 +134,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_invitation_v1_InvitationPreview_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_invitation_v1_InvitationPreview_descriptor,
-        new java.lang.String[] { "OrganizationName", "OrganizationSlug", "OrganizationLogoUrl", "Role", "ExpiresAt", "Label", "IsValid", "InvalidReason", });
+        new java.lang.String[] { "OrgName", "OrgSlug", "OrgLogoUrl", "Role", "ExpiresAt", "Label", "IsValid", "InvalidReason", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.iam.invitation.v1.ApiProto.getDescriptor();
     ai.stigmer.iam.v1.EnumProto.getDescriptor();

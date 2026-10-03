@@ -28,7 +28,7 @@ from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_sti
 from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0ai/stigmer/billing/subscription/v1/command.proto\x12\"ai.stigmer.billing.subscription.v1\x1a,ai/stigmer/billing/subscription/v1/api.proto\x1a+ai/stigmer/billing/subscription/v1/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa3\x03\n\x1dSubscriptionCommandController\x12\xb6\x01\n\nchangePlan\x12\x33.ai.stigmer.billing.subscription.v1.ChangePlanInput\x1a\x30.ai.stigmer.billing.subscription.v1.Subscription\"A\xc2\xb8\x18=\x08\x1c\x10\x1e\"\x06org_id*/unauthorized to change this organization\'s plan\x12\xc2\x01\n\x06\x63\x61ncel\x12;.ai.stigmer.billing.subscription.v1.CancelSubscriptionInput\x1a\x30.ai.stigmer.billing.subscription.v1.Subscription\"I\xc2\xb8\x18\x45\x08\x1c\x10\x1e\"\x06org_id*7unauthorized to cancel this organization\'s subscription\x1a\x04\xa0\xff+GB\xe3\x01\n&com.ai.stigmer.billing.subscription.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0ai/stigmer/billing/subscription/v1/command.proto\x12\"ai.stigmer.billing.subscription.v1\x1a,ai/stigmer/billing/subscription/v1/api.proto\x1a+ai/stigmer/billing/subscription/v1/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x9d\x03\n\x1dSubscriptionCommandController\x12\xb3\x01\n\nchangePlan\x12\x33.ai.stigmer.billing.subscription.v1.ChangePlanInput\x1a\x30.ai.stigmer.billing.subscription.v1.Subscription\">\xc2\xb8\x18:\x08\x1c\x10\x1e\"\x03org*/unauthorized to change this organization\'s plan\x12\xbf\x01\n\x06\x63\x61ncel\x12;.ai.stigmer.billing.subscription.v1.CancelSubscriptionInput\x1a\x30.ai.stigmer.billing.subscription.v1.Subscription\"F\xc2\xb8\x18\x42\x08\x1c\x10\x1e\"\x03org*7unauthorized to cancel this organization\'s subscription\x1a\x04\xa0\xff+GB\xe3\x01\n&com.ai.stigmer.billing.subscription.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,9 +39,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SUBSCRIPTIONCOMMANDCONTROLLER']._loaded_options = None
   _globals['_SUBSCRIPTIONCOMMANDCONTROLLER']._serialized_options = b'\240\377+G'
   _globals['_SUBSCRIPTIONCOMMANDCONTROLLER'].methods_by_name['changePlan']._loaded_options = None
-  _globals['_SUBSCRIPTIONCOMMANDCONTROLLER'].methods_by_name['changePlan']._serialized_options = b'\302\270\030=\010\034\020\036\"\006org_id*/unauthorized to change this organization\'s plan'
+  _globals['_SUBSCRIPTIONCOMMANDCONTROLLER'].methods_by_name['changePlan']._serialized_options = b'\302\270\030:\010\034\020\036\"\003org*/unauthorized to change this organization\'s plan'
   _globals['_SUBSCRIPTIONCOMMANDCONTROLLER'].methods_by_name['cancel']._loaded_options = None
-  _globals['_SUBSCRIPTIONCOMMANDCONTROLLER'].methods_by_name['cancel']._serialized_options = b'\302\270\030E\010\034\020\036\"\006org_id*7unauthorized to cancel this organization\'s subscription'
+  _globals['_SUBSCRIPTIONCOMMANDCONTROLLER'].methods_by_name['cancel']._serialized_options = b'\302\270\030B\010\034\020\036\"\003org*7unauthorized to cancel this organization\'s subscription'
   _globals['_SUBSCRIPTIONCOMMANDCONTROLLER']._serialized_start=283
-  _globals['_SUBSCRIPTIONCOMMANDCONTROLLER']._serialized_end=702
+  _globals['_SUBSCRIPTIONCOMMANDCONTROLLER']._serialized_end=696
 # @@protoc_insertion_point(module_scope)

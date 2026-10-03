@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import { isNotFound } from "@stigmer/sdk";
 import type { Subscription } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
-import { GetSubscriptionForOrganizationInputSchema } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
+import { GetSubscriptionForOrgInputSchema } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -34,7 +34,7 @@ export interface UseSubscriptionReturn {
  * this hook reads that as `null`, because never subscribed is a state (the
  * Free plan), not a failure.
  *
- * Pass `null` as `orgId` to skip fetching. Refetches when the window
+ * Pass `null` as `org` to skip fetching. Refetches when the window
  * regains focus, so a plan changed in another window, or a card saved in
  * the system browser, shows on return.
  *
@@ -42,16 +42,16 @@ export interface UseSubscriptionReturn {
  *
  * @example
  * ```tsx
- * const { subscription } = useSubscription(orgId);
+ * const { subscription } = useSubscription(org);
  * ```
  */
-export function useSubscription(orgId: string | null): UseSubscriptionReturn {
+export function useSubscription(org: string | null): UseSubscriptionReturn {
   const stigmer = useStigmer();
   const { data: subscription, isLoading, isRefetching, error, refetch } = useFetch(
-    orgId
+    org
       ? () =>
           stigmer.subscription
-            .getForOrganization(create(GetSubscriptionForOrganizationInputSchema, { orgId }))
+            .getForOrg(create(GetSubscriptionForOrgInputSchema, { org }))
             .catch((err: unknown) => {
               if (isNotFound(err)) {
                 return null;
@@ -59,7 +59,7 @@ export function useSubscription(orgId: string | null): UseSubscriptionReturn {
               throw err;
             })
       : null,
-    [orgId, stigmer],
+    [org, stigmer],
     null as Subscription | null,
     { refetchOnWindowFocus: true },
   );

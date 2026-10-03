@@ -177,12 +177,12 @@ function issuer(): ConformanceClients {
 // own. The amount is a parameter because the auto-recharge journey needs a
 // balance SMALL enough for one debit to trip the low-balance signal.
 async function fundAs(as: ConformanceClients, org: string, amountMicros = 100_000_000n): Promise<void> {
-  await as.billingCommand.getOrCreateBillingAccount({ orgId: org });
-  await as.billingCommand.adjustCredits({ orgId: org, amountMicros, reason: "conformance operator seed", idempotencyKey: uniqueName("op-seed") });
+  await as.billingCommand.getOrCreateBillingAccount({ org });
+  await as.billingCommand.adjustCredits({ org, amountMicros, reason: "conformance operator seed", idempotencyKey: uniqueName("op-seed") });
 }
 
 async function balanceOf(org: string): Promise<bigint> {
-  const balance = await clients.billingQuery.getCreditBalance({ orgId: org });
+  const balance = await clients.billingQuery.getCreditBalance({ org });
   return balance.availableMicros;
 }
 
@@ -244,7 +244,7 @@ function rechargeMetadata(rechargeEventId: string | undefined): Record<string, s
 // captured `POST /v1/customers` answer is the id. Customer creation and use
 // must share one test — the fake forgets its customers on reset().
 async function seedStripeCustomer(as: ConformanceClients, org: string): Promise<string> {
-  await as.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
+  await as.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
   const created = (await control.stripe.requests()).filter((r) => r.method === "POST" && r.path === "/v1/customers").at(-1);
   const customerId = created?.response.id;
   if (customerId === undefined) throw new Error(`seedStripeCustomer(${org}): the checkout created no Stripe customer on the fake`);
@@ -258,7 +258,7 @@ async function seedDefaultPaymentMethod(as: ConformanceClients, org: string, cus
   const paymentMethodId = uniqueName("pm_conf");
   const response = await post(paymentMethodAttached(paymentMethodId, customerId));
   expect(response.status, `payment_method.attached for ${org}: ${response.body}`).toBe(200);
-  const account = await as.billingQuery.getBillingAccount({ orgId: org });
+  const account = await as.billingQuery.getBillingAccount({ org });
   expect(account.defaultPaymentMethod?.paymentMethodId, "the attached card is the account's default").toBe(paymentMethodId);
   return paymentMethodId;
 }
@@ -319,14 +319,14 @@ async function armRecharge(op: PrivilegedScope): Promise<ArmedRecharge> {
   const customerId = await seedStripeCustomer(op.clients, org);
   const paymentMethodId = await seedDefaultPaymentMethod(op.clients, org, customerId);
   await op.clients.billingCommand.setAutoRechargeConfig({
-    orgId: org,
+    org,
     enabled: true,
     thresholdMicros: RECHARGE.thresholdMicros,
     rechargeAmountMicros: RECHARGE.amountMicros,
     monthlyCapMicros: RECHARGE.capMicros,
   });
   const executionId = uniqueName("exec-recharge");
-  const authorized = await op.clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" });
+  const authorized = await op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" });
   expect(authorized.authorized, "the $3 org is admitted").toBe(true);
   await debitOnce(op, executionId, 1);
   const paymentIntent = await awaitStripeRequest((r) => r.method === "POST" && r.path === "/v1/payment_intents", `auto-recharge PaymentIntent for ${org}`);
@@ -353,8 +353,8 @@ async function debitOnce(op: PrivilegedScope, executionId: string, sequence: num
 describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balances and the ledger (billingLedger targets)", () => {
   it("[billing.gate.provision-account.org-create-provisions-zero-balance] [billing.rpc.get-billing-account.owner-reads-zero-balance-account] [rpc:BillingQueryController.getBillingAccount] an organization create provisions an active zero-balance account the owner can read at once", async () => {
     const { org } = await unfundedOrg();
-    const account = await clients.billingQuery.getBillingAccount({ orgId: org });
-    expect(account.orgId).toBe(org);
+    const account = await clients.billingQuery.getBillingAccount({ org });
+    expect(account.org).toBe(org);
     expect(account.id, "the account carries an id").not.toBe("");
     expect(account.balance?.availableMicros ?? 0n).toBe(0n);
     expect(account.balance?.reservedMicros ?? 0n).toBe(0n);
@@ -364,13 +364,13 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     const { org } = await unfundedOrg();
     const other = await outsider();
     const denied = await expectGrpcCode(
-      () => other.billingQuery.getBillingAccount({ orgId: org }),
+      () => other.billingQuery.getBillingAccount({ org }),
       Code.PermissionDenied,
       "outsider getBillingAccount",
     );
     expect(denied.rawMessage).toBe(COPY.viewBilling);
     const deniedBalance = await expectGrpcCode(
-      () => other.billingQuery.getCreditBalance({ orgId: org }),
+      () => other.billingQuery.getCreditBalance({ org }),
       Code.PermissionDenied,
       "outsider getCreditBalance",
     );
@@ -379,8 +379,8 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
 
   it("[billing.rpc.get-or-create-billing-account.idempotent-for-existing] [rpc:BillingCommandController.getOrCreateBillingAccount] getOrCreateBillingAccount returns the existing account, never a second one", async () => {
     const { org } = await unfundedOrg();
-    const first = await clients.billingQuery.getBillingAccount({ orgId: org });
-    const again = await clients.billingCommand.getOrCreateBillingAccount({ orgId: org });
+    const first = await clients.billingQuery.getBillingAccount({ org });
+    const again = await clients.billingCommand.getOrCreateBillingAccount({ org });
     expect(again.id).toBe(first.id);
     expect(again.balance?.availableMicros).toBe(first.balance?.availableMicros);
   });
@@ -389,7 +389,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     const { org } = await unfundedOrg();
     const other = await outsider();
     const denied = await expectGrpcCode(
-      () => other.billingCommand.getOrCreateBillingAccount({ orgId: org }),
+      () => other.billingCommand.getOrCreateBillingAccount({ org }),
       Code.PermissionDenied,
       "outsider getOrCreateBillingAccount",
     );
@@ -399,18 +399,18 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
   it("[billing.rpc.adjust-credits.positive-and-negative-move-balance] [billing.rpc.get-credit-balance.reflects-adjustments] [billing.rpc.get-credit-ledger.lists-entries-newest-first-with-shape] [rpc:BillingCommandController.adjustCredits] [rpc:BillingQueryController.getCreditBalance] [rpc:BillingQueryController.getCreditLedger] adjustments move the balance and land on the ledger with their shape", async () => {
     const { org } = await unfundedOrg();
     const up = await issuer().billingCommand.adjustCredits({
-      orgId: org,
+      org,
       amountMicros: 5_000_000n,
       reason: "conformance credit",
       idempotencyKey: uniqueName("adj-up"),
     });
     expect(up.amountMicros).toBe(5_000_000n);
     expect(up.balanceAfterMicros).toBe(5_000_000n);
-    expect(up.orgId).toBe(org);
+    expect(up.org).toBe(org);
     expect(up.entryId).not.toBe("");
 
     const down = await issuer().billingCommand.adjustCredits({
-      orgId: org,
+      org,
       amountMicros: -2_000_000n,
       reason: "conformance debit",
       idempotencyKey: uniqueName("adj-down"),
@@ -418,12 +418,12 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(down.balanceAfterMicros).toBe(3_000_000n);
     expect(await balanceOf(org)).toBe(3_000_000n);
 
-    const ledger = await clients.billingQuery.getCreditLedger({ orgId: org });
+    const ledger = await clients.billingQuery.getCreditLedger({ org });
     const ids = ledger.entries.map((entry) => entry.entryId);
     expect(ids).toContain(up.entryId);
     expect(ids).toContain(down.entryId);
     for (const entry of ledger.entries) {
-      expect(entry.orgId).toBe(org);
+      expect(entry.org).toBe(org);
       expect(entry.idempotencyKey, "every entry carries the idempotency key it was written with").not.toBe("");
     }
   });
@@ -431,7 +431,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
   it("[billing.rpc.adjust-credits.zero-amount-invalid-argument] [rpc:BillingCommandController.adjustCredits] a zero adjustment is refused INVALID_ARGUMENT with the handler's copy", async () => {
     const { org } = await unfundedOrg();
     const refused = await expectGrpcCode(
-      () => issuer().billingCommand.adjustCredits({ orgId: org, amountMicros: 0n, reason: "zero", idempotencyKey: uniqueName("zero") }),
+      () => issuer().billingCommand.adjustCredits({ org, amountMicros: 0n, reason: "zero", idempotencyKey: uniqueName("zero") }),
       Code.InvalidArgument,
       "adjustCredits amount 0",
     );
@@ -441,8 +441,8 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
   it("[billing.rpc.adjust-credits.idempotency-key-replays-once] [rpc:BillingCommandController.adjustCredits] the same idempotency key applies the amount once and returns the original entry", async () => {
     const { org } = await unfundedOrg();
     const key = uniqueName("adj-idem");
-    const first = await issuer().billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "idem", idempotencyKey: key });
-    const replay = await issuer().billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "idem", idempotencyKey: key });
+    const first = await issuer().billingCommand.adjustCredits({ org, amountMicros: 1_000_000n, reason: "idem", idempotencyKey: key });
+    const replay = await issuer().billingCommand.adjustCredits({ org, amountMicros: 1_000_000n, reason: "idem", idempotencyKey: key });
     expect(replay.entryId).toBe(first.entryId);
     expect(await balanceOf(org)).toBe(1_000_000n);
   });
@@ -451,13 +451,13 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     const { org } = await unfundedOrg();
     const other = await outsider();
     const adjust = await expectGrpcCode(
-      () => other.billingCommand.adjustCredits({ orgId: org, amountMicros: 1n, reason: "x", idempotencyKey: uniqueName("o") }),
+      () => other.billingCommand.adjustCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: uniqueName("o") }),
       Code.PermissionDenied,
       "outsider adjustCredits",
     );
     expect(adjust.rawMessage).toBe(COPY.adjustCredits);
     const grant = await expectGrpcCode(
-      () => other.billingCommand.grantCredits({ orgId: org, amountMicros: 1n, reason: "x", idempotencyKey: uniqueName("og") }),
+      () => other.billingCommand.grantCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: uniqueName("og") }),
       Code.PermissionDenied,
       "outsider grantCredits",
     );
@@ -467,13 +467,13 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
   it("[billing.rpc.adjust-credits.owner-permission-denied] [billing.rpc.grant-credits.owner-permission-denied] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] the org's own owner cannot adjust or grant its credits, and the balance does not move", async () => {
     const { org } = await unfundedOrg();
     const adjust = await expectGrpcCode(
-      () => clients.billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "self-funding", idempotencyKey: uniqueName("own") }),
+      () => clients.billingCommand.adjustCredits({ org, amountMicros: 1_000_000n, reason: "self-funding", idempotencyKey: uniqueName("own") }),
       Code.PermissionDenied,
       "owner adjustCredits",
     );
     expect(adjust.rawMessage).toBe(COPY.adjustCredits);
     const grant = await expectGrpcCode(
-      () => clients.billingCommand.grantCredits({ orgId: org, amountMicros: 1_000_000n, reason: "self-granting", idempotencyKey: uniqueName("owng") }),
+      () => clients.billingCommand.grantCredits({ org, amountMicros: 1_000_000n, reason: "self-granting", idempotencyKey: uniqueName("owng") }),
       Code.PermissionDenied,
       "owner grantCredits",
     );
@@ -486,13 +486,13 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     // handler must answer for; an org that was never created has no account.
     const org = uniqueName("no-such-org");
     const adjust = await expectGrpcCode(
-      () => issuer().billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "x", idempotencyKey: uniqueName("nf") }),
+      () => issuer().billingCommand.adjustCredits({ org, amountMicros: 1_000_000n, reason: "x", idempotencyKey: uniqueName("nf") }),
       Code.NotFound,
       "issuer adjustCredits on an org with no account",
     );
     expect(adjust.rawMessage).toBe(DOMAIN_COPY.noAccountFor(org));
     const grant = await expectGrpcCode(
-      () => issuer().billingCommand.grantCredits({ orgId: org, amountMicros: 1_000_000n, reason: "x", idempotencyKey: uniqueName("nfg") }),
+      () => issuer().billingCommand.grantCredits({ org, amountMicros: 1_000_000n, reason: "x", idempotencyKey: uniqueName("nfg") }),
       Code.NotFound,
       "issuer grantCredits on an org with no account",
     );
@@ -503,7 +503,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     const { org } = await unfundedOrg();
     const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000);
     const grant = await issuer().billingCommand.grantCredits({
-      orgId: org,
+      org,
       amountMicros: 4_000_000n,
       expiresAt: timestampFromDate(expiresAt),
       reason: "conformance grant",
@@ -520,7 +520,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     // the code is pinned here.
     for (const amountMicros of [0n, -1n]) {
       await expectGrpcCode(
-        () => issuer().billingCommand.grantCredits({ orgId: org, amountMicros, reason: "bad", idempotencyKey: uniqueName("bad") }),
+        () => issuer().billingCommand.grantCredits({ org, amountMicros, reason: "bad", idempotencyKey: uniqueName("bad") }),
         Code.InvalidArgument,
         `grantCredits amount ${amountMicros}`,
       );
@@ -530,7 +530,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
   it("[billing.rpc.get-billing-usage-report.shape-and-empty-org] [rpc:BillingQueryController.getBillingUsageReport] an org with no usage reports zero everything", async () => {
     const { org } = await unfundedOrg();
     const report = await clients.billingQuery.getBillingUsageReport({
-      orgId: org,
+      org,
       startTime: timestampFromDate(new Date(Date.now() - 3600_000)),
       endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
     });
@@ -542,7 +542,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
 
   it("[billing.rpc.get-customer-model-pricing.applies-policy-markup] [rpc:BillingQueryController.getCustomerModelPricing] the customer pricing lists priced models with the *_micros_per_million fields", async () => {
     const { org } = await unfundedOrg();
-    const pricing = await clients.billingQuery.getCustomerModelPricing({ orgId: org });
+    const pricing = await clients.billingQuery.getCustomerModelPricing({ org });
     expect(pricing.entries.length, "the baseline seeds at least one priced model").toBeGreaterThan(0);
     for (const entry of pricing.entries) {
       expect(entry.modelId).not.toBe("");
@@ -556,7 +556,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     const other = await outsider();
     // Structurally valid and disabled — the refusal must be the authorization's.
     const denied = await expectGrpcCode(
-      () => other.billingCommand.setAutoRechargeConfig({ orgId: org, enabled: false, thresholdMicros: 0n, rechargeAmountMicros: 0n, monthlyCapMicros: 0n }),
+      () => other.billingCommand.setAutoRechargeConfig({ org, enabled: false, thresholdMicros: 0n, rechargeAmountMicros: 0n, monthlyCapMicros: 0n }),
       Code.PermissionDenied,
       "outsider setAutoRechargeConfig",
     );
@@ -572,7 +572,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
   it("[billing.rpc.create-credit-checkout-session.creates-customer-and-session] [rpc:BillingCommandController.createCreditCheckoutSession] a checkout creates the Stripe customer and session with the pack's line item and metadata", async () => {
     const { org } = await unfundedOrg();
     const created = await clients.billingCommand.createCreditCheckoutSession({
-      orgId: org,
+      org,
       packId: "starter",
       successUrl: "https://console.stigmer.test/billing?ok",
       cancelUrl: "https://console.stigmer.test/billing?cancel",
@@ -598,7 +598,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
 
   it("[billing.rpc.create-credit-checkout-session.reuses-existing-customer] [rpc:BillingCommandController.createCreditCheckoutSession] a second checkout for the same org creates no second Stripe customer", async () => {
     const { org } = await unfundedOrg();
-    const input = { orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/cancel" };
+    const input = { org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/cancel" };
     await clients.billingCommand.createCreditCheckoutSession(input);
     await clients.billingCommand.createCreditCheckoutSession(input);
     const customers = (await control.stripe.requests()).filter((r) => r.path === "/v1/customers" && r.method === "POST");
@@ -608,7 +608,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
   it("[billing.rpc.create-credit-checkout-session.unknown-pack-invalid-argument] [rpc:BillingCommandController.createCreditCheckoutSession] an unknown pack is refused INVALID_ARGUMENT before any Stripe call", async () => {
     const { org } = await unfundedOrg();
     await expectGrpcCode(
-      () => clients.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "no-such-pack", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" }),
+      () => clients.billingCommand.createCreditCheckoutSession({ org, packId: "no-such-pack", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" }),
       Code.InvalidArgument,
       "unknown pack",
     );
@@ -620,7 +620,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     await control.stripe.failNext({ pathPrefix: "/v1/checkout/sessions", status: 402, code: "card_declined", message: "declined" });
     let failed = false;
     try {
-      await clients.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
+      await clients.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
     } catch {
       failed = true;
     }
@@ -632,7 +632,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     const { org } = await unfundedOrg();
     const other = await outsider();
     const denied = await expectGrpcCode(
-      () => other.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" }),
+      () => other.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" }),
       Code.PermissionDenied,
       "outsider checkout",
     );
@@ -642,14 +642,14 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
   it("[billing.rpc.create-billing-portal-session.returns-portal-url] [billing.rpc.create-billing-portal-session.no-customer-failed-precondition] [rpc:BillingCommandController.createBillingPortalSession] the portal needs a Stripe customer, then returns the session URL", async () => {
     const { org } = await unfundedOrg();
     await expectGrpcCode(
-      () => clients.billingCommand.createBillingPortalSession({ orgId: org, returnUrl: "https://x.test/back" }),
+      () => clients.billingCommand.createBillingPortalSession({ org, returnUrl: "https://x.test/back" }),
       Code.FailedPrecondition,
       "portal without a customer",
     );
     expect((await control.stripe.requests()).filter((r) => r.path.startsWith("/v1/billing_portal"))).toEqual([]);
 
-    await clients.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
-    const portal = await clients.billingCommand.createBillingPortalSession({ orgId: org, returnUrl: "https://x.test/back" });
+    await clients.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
+    const portal = await clients.billingCommand.createBillingPortalSession({ org, returnUrl: "https://x.test/back" });
     expect(portal.portalUrl).toMatch(/^https:\/\/billing\.stripe\.test\//);
     const request = (await control.stripe.requests()).find((r) => r.path === "/v1/billing_portal/sessions");
     expect(request?.params["return_url"]).toBe("https://x.test/back");
@@ -657,7 +657,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
 
   it("[billing.rpc.create-payment-method-setup-session.creates-customer-and-setup-session] [rpc:BillingCommandController.createPaymentMethodSetupSession] a setup session saves a card for an org that never purchased, charging nothing", async () => {
     const { org } = await unfundedOrg();
-    const input = { orgId: org, successUrl: "https://x.test/saved", cancelUrl: "https://x.test/back" };
+    const input = { org, successUrl: "https://x.test/saved", cancelUrl: "https://x.test/back" };
     const first = await clients.billingCommand.createPaymentMethodSetupSession(input);
     expect(first.setupUrl).toMatch(/^https:\/\/checkout\.stripe\.test\//);
     expect(first.checkoutSessionId).not.toBe("");
@@ -679,7 +679,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     const { org } = await unfundedOrg();
     const other = await outsider();
     const denied = await expectGrpcCode(
-      () => other.billingCommand.createPaymentMethodSetupSession({ orgId: org, successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" }),
+      () => other.billingCommand.createPaymentMethodSetupSession({ org, successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" }),
       Code.PermissionDenied,
       "outsider setup session",
     );
@@ -689,7 +689,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
 
   it("[billing.rpc.set-auto-recharge-config.persists-and-validates] [rpc:BillingCommandController.setAutoRechargeConfig] auto-recharge persists disabled at once, refuses to enable without a saved card, then validates the amounts in the engine's order and persists an enabled configuration", async () => {
     const { org } = await unfundedOrg();
-    const config = (enabled: boolean, thresholdMicros: bigint, rechargeAmountMicros: bigint, monthlyCapMicros: bigint) => ({ orgId: org, enabled, thresholdMicros, rechargeAmountMicros, monthlyCapMicros });
+    const config = (enabled: boolean, thresholdMicros: bigint, rechargeAmountMicros: bigint, monthlyCapMicros: bigint) => ({ org, enabled, thresholdMicros, rechargeAmountMicros, monthlyCapMicros });
 
     // Disabled writes the amounts as given and reads back at once.
     const disabled = await clients.billingCommand.setAutoRechargeConfig(config(false, 7_000_000n, 25_000_000n, 50_000_000n));
@@ -697,7 +697,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(disabled.autoRecharge?.thresholdMicros).toBe(7_000_000n);
     expect(disabled.autoRecharge?.rechargeAmountMicros).toBe(25_000_000n);
     expect(disabled.autoRecharge?.monthlyCapMicros).toBe(50_000_000n);
-    const readBack = await clients.billingQuery.getBillingAccount({ orgId: org });
+    const readBack = await clients.billingQuery.getBillingAccount({ org });
     expect(readBack.autoRecharge?.thresholdMicros).toBe(7_000_000n);
 
     // Disabled still rejects a negative amount.
@@ -721,7 +721,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
       const refused = await expectGrpcCode(() => clients.billingCommand.setAutoRechargeConfig(input), Code.InvalidArgument, `enable with ${label}`);
       expect(refused.rawMessage, label).toBe(copy);
     }
-    const stillDisabled = await clients.billingQuery.getBillingAccount({ orgId: org });
+    const stillDisabled = await clients.billingQuery.getBillingAccount({ org });
     expect(stillDisabled.autoRecharge?.enabled ?? false, "a refused enable changes nothing").toBe(false);
 
     // A cap equal to the amount is the boundary the copy names ("at least").
@@ -731,7 +731,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(enabled.autoRecharge?.rechargeAmountMicros).toBe(20_000_000n);
     expect(enabled.autoRecharge?.monthlyCapMicros).toBe(20_000_000n);
     expect(enabled.autoRecharge?.currentMonthChargedMicros ?? 0n, "enabling claims nothing on the month").toBe(0n);
-    const persisted = await clients.billingQuery.getBillingAccount({ orgId: org });
+    const persisted = await clients.billingQuery.getBillingAccount({ org });
     expect(persisted.autoRecharge?.enabled).toBe(true);
     expect(persisted.autoRecharge?.rechargeAmountMicros).toBe(20_000_000n);
 
@@ -744,7 +744,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
   // The webhook half: the suite is Stripe here (the builders at module scope),
   // posting the events a purchase produces back to the lane.
   async function purchase(org: string): Promise<{ sessionId: string; creditsMicros: bigint }> {
-    const created = await clients.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
+    const created = await clients.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
     const session = (await control.stripe.requests()).find((r) => r.path === "/v1/checkout/sessions");
     const creditsMicros = BigInt(session?.params["metadata[stigmer_credits_micros]"] ?? "0");
     expect(creditsMicros).toBeGreaterThan(0n);
@@ -758,7 +758,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(response.status).toBe(200);
     expect(response.body).toBe("ok");
     expect(await balanceOf(org)).toBe(creditsMicros);
-    const ledger = await clients.billingQuery.getCreditLedger({ orgId: org });
+    const ledger = await clients.billingQuery.getCreditLedger({ org });
     const grant = ledger.entries.find((entry) => entry.idempotencyKey.startsWith("purchase_"));
     expect(grant, "the grant entry carries the purchase_<id> idempotency key").toBeDefined();
     expect(grant?.amountMicros).toBe(creditsMicros);
@@ -816,11 +816,11 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
   it("[billing.stripe.payment-method-attached.sets-default-when-none] payment_method.attached becomes the account's default card only when none is set, tells Stripe so, ignores a second card and a non-card, and does nothing for a customer Java does not know", async () => {
     const { org } = await unfundedOrg();
     const customerId = await seedStripeCustomer(clients, org);
-    expect((await clients.billingQuery.getBillingAccount({ orgId: org })).defaultPaymentMethod, "no default before any card").toBeUndefined();
+    expect((await clients.billingQuery.getBillingAccount({ org })).defaultPaymentMethod, "no default before any card").toBeUndefined();
 
     const first = uniqueName("pm_conf_first");
     expect((await post(paymentMethodAttached(first, customerId))).status).toBe(200);
-    const account = await clients.billingQuery.getBillingAccount({ orgId: org });
+    const account = await clients.billingQuery.getBillingAccount({ org });
     expect(account.defaultPaymentMethod?.paymentMethodId).toBe(first);
     expect(account.defaultPaymentMethod?.brand).toBe(FAKE_CARD.brand);
     expect(account.defaultPaymentMethod?.last4).toBe(FAKE_CARD.last4);
@@ -833,14 +833,14 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     // A second card does not displace the first — and Stripe is not told again.
     const second = uniqueName("pm_conf_second");
     expect((await post(paymentMethodAttached(second, customerId))).status).toBe(200);
-    expect((await clients.billingQuery.getBillingAccount({ orgId: org })).defaultPaymentMethod?.paymentMethodId).toBe(first);
+    expect((await clients.billingQuery.getBillingAccount({ org })).defaultPaymentMethod?.paymentMethodId).toBe(first);
     expect((await control.stripe.requests()).filter((r) => r.method === "POST" && r.path === `/v1/customers/${customerId}`)).toHaveLength(1);
 
     // A non-card method carries no card and is ignored; an unknown customer is a silent 200.
     const other = await unfundedOrg();
     const otherCustomer = await seedStripeCustomer(clients, other.org);
     expect((await post(paymentMethodAttached(uniqueName("pm_conf_bank"), otherCustomer, { type: "us_bank_account" }))).status).toBe(200);
-    expect((await clients.billingQuery.getBillingAccount({ orgId: other.org })).defaultPaymentMethod).toBeUndefined();
+    expect((await clients.billingQuery.getBillingAccount({ org: other.org })).defaultPaymentMethod).toBeUndefined();
     const unknown = await post(paymentMethodAttached(uniqueName("pm_conf_stray"), "cus_conf_nobody"));
     expect(unknown.status).toBe(200);
     expect(unknown.body).toBe("ok");
@@ -854,7 +854,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect((await post(customerUpdated(customerId, paymentMethodId))).status).toBe(200);
     const retrieved = (await control.stripe.requests()).find((r) => r.method === "GET" && r.path === `/v1/payment_methods/${paymentMethodId}`);
     expect(retrieved, "Java retrieves the method Stripe named — the card details are not on the event").toBeDefined();
-    const synced = await clients.billingQuery.getBillingAccount({ orgId: org });
+    const synced = await clients.billingQuery.getBillingAccount({ org });
     expect(synced.defaultPaymentMethod?.paymentMethodId).toBe(paymentMethodId);
     expect(synced.defaultPaymentMethod?.brand).toBe(FAKE_CARD.brand);
     expect(synced.defaultPaymentMethod?.last4).toBe(FAKE_CARD.last4);
@@ -863,7 +863,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
 
     // Stripe reports the default removed → the account's default is cleared.
     expect((await post(customerUpdated(customerId, null))).status).toBe(200);
-    expect((await clients.billingQuery.getBillingAccount({ orgId: org })).defaultPaymentMethod, "a cleared default is gone, not zeroed").toBeUndefined();
+    expect((await clients.billingQuery.getBillingAccount({ org })).defaultPaymentMethod, "a cleared default is gone, not zeroed").toBeUndefined();
 
     // A customer Java never minted: 200, nothing looked up.
     const before = (await control.stripe.requests()).length;
@@ -902,11 +902,11 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const { org } = await fundedOrg();
     const executionId = uniqueName("exec");
     const lanes: Array<[string, () => Promise<unknown>]> = [
-      ["authorizeExecution", () => clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" })],
+      ["authorizeExecution", () => clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" })],
       ["finalizeExecution", () => clients.billingCommand.finalizeExecution({ executionId })],
       ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ executionId })],
       ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6" })],
-      ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ orgId: org })],
+      ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ org })],
       ["getExecutionBillingSignal", () => clients.billingQuery.getExecutionBillingSignal({ executionId })],
     ];
     for (const [name, op] of lanes) {
@@ -949,16 +949,16 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
   it("[billing.rpc.preview-authorization.reasons-for-unfunded-and-funded] [billing.rpc.authorize-execution.denied-when-unfunded] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingCommandController.authorizeExecution] the operator's preview and authorize deny an unfunded org with the engine's one denial vocabulary and admit a funded one", async (ctx) => {
     const op = await operator();
     const unfunded = op.context.org;
-    const preview = await op.clients.billingQuery.previewAuthorization({ orgId: unfunded });
+    const preview = await op.clients.billingQuery.previewAuthorization({ org: unfunded });
     expect(preview.authorized).toBe(false);
     expect(preview.denialReason).toBe(COPY.insufficientCredits);
-    const denied = await op.clients.billingCommand.authorizeExecution({ orgId: unfunded, executionId: uniqueName("exec"), harness: "native" });
+    const denied = await op.clients.billingCommand.authorizeExecution({ org: unfunded, executionId: uniqueName("exec"), harness: "native" });
     expect(denied.authorized).toBe(false);
     expect(denied.denialReason).toBe(COPY.insufficientCredits);
     expect(denied.reservationId).toBe("");
 
     await fundAs(op.clients, unfunded);
-    const admitted = await op.clients.billingQuery.previewAuthorization({ orgId: unfunded });
+    const admitted = await op.clients.billingQuery.previewAuthorization({ org: unfunded });
     expect(admitted.authorized, ctx.task.name).toBe(true);
   });
 
@@ -966,31 +966,31 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const op = await operator();
     const org = op.context.org;
     await fundAs(op.clients, org);
-    const before = (await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros;
+    const before = (await op.clients.billingQuery.getCreditBalance({ org })).availableMicros;
     const executionId = uniqueName("exec");
 
     const noReservation = await op.clients.billingQuery.getExecutionBillingSignal({ executionId });
     expect(noReservation.reason).toBe("");
 
     const results = await Promise.all([
-      op.clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" }),
-      op.clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" }),
-      op.clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" }),
+      op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" }),
+      op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" }),
+      op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" }),
     ]);
     for (const result of results) expect(result.authorized).toBe(true);
     const reservationIds = new Set(results.map((r) => r.reservationId));
     expect(reservationIds.size, "concurrent authorizes converge on ONE reservation").toBe(1);
-    const held = (await op.clients.billingQuery.getCreditBalance({ orgId: org })).reservedMicros;
+    const held = (await op.clients.billingQuery.getCreditBalance({ org })).reservedMicros;
     expect(held).toBe(results[0]?.reservedMicros ?? -1n);
 
     const settled = await op.clients.billingCommand.finalizeExecution({ executionId });
     expect(settled.releasedReservationMicros).toBe(results[0]?.reservedMicros ?? -1n);
-    const afterFirst = await op.clients.billingQuery.getCreditBalance({ orgId: org });
+    const afterFirst = await op.clients.billingQuery.getCreditBalance({ org });
     expect(afterFirst.reservedMicros).toBe(0n);
     expect(afterFirst.availableMicros, "no usage was recorded, so settling returns the hold in full").toBe(before);
 
     await op.clients.billingCommand.finalizeExecution({ executionId }).catch(() => undefined);
-    const afterSecond = await op.clients.billingQuery.getCreditBalance({ orgId: org });
+    const afterSecond = await op.clients.billingQuery.getCreditBalance({ org });
     expect(afterSecond.availableMicros).toBe(before);
     expect(afterSecond.reservedMicros).toBe(0n);
   });
@@ -1009,7 +1009,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const org = op.context.org;
     await fundAs(op.clients, org);
     const executionId = uniqueName("exec");
-    const first = await op.clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" });
+    const first = await op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" });
     await op.clients.billingCommand.finalizeExecution({ executionId });
     const rearmed = await op.clients.billingCommand.rearmForRecovery({ executionId });
     expect(rearmed.authorized).toBe(true);
@@ -1022,11 +1022,11 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     const org = op.context.org;
     await fundAs(op.clients, org);
     const executionId = uniqueName("exec");
-    await op.clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" });
+    await op.clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" });
     await op.clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6", requestedModel: "claude-sonnet-4-6" });
     await op.clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 2, provider: "anthropic", resolvedModel: "model-nobody-priced", requestedModel: "model-nobody-priced" });
     const report = await op.clients.billingQuery.getBillingUsageReport({
-      orgId: org,
+      org,
       startTime: timestampFromDate(new Date(Date.now() - 3600_000)),
       endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
     });
@@ -1202,24 +1202,24 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — auto-recharge, th
     expect(paymentIntent.params["metadata[stigmer_credits_micros]"]).toBe(String(RECHARGE.amountMicros));
 
     // The month's slot is claimed at trigger time, before any money moves.
-    const claimed = await op.clients.billingQuery.getBillingAccount({ orgId: org });
+    const claimed = await op.clients.billingQuery.getBillingAccount({ org });
     expect(claimed.autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
-    const before = (await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros;
+    const before = (await op.clients.billingQuery.getCreditBalance({ org })).availableMicros;
 
     // A succeeded intent that is not a recharge (a checkout's, say) is ignored;
     // one naming a recharge Java never created is a silent 200 too.
     expect((await post(paymentIntentSucceeded(paymentIntentId))).status).toBe(200);
     expect((await post(paymentIntentSucceeded(paymentIntentId, uniqueName("evt-nobody-created")))).status).toBe(200);
-    expect((await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros, "nothing granted without the recharge's own id").toBe(before);
+    expect((await op.clients.billingQuery.getCreditBalance({ org })).availableMicros, "nothing granted without the recharge's own id").toBe(before);
 
     // The real one: credits land on the ledger under the recharge's key.
     const settled = paymentIntentSucceeded(paymentIntentId, rechargeEventId);
     const response = await post(settled);
     expect(response.status).toBe(200);
     expect(response.body).toBe("ok");
-    const after = await op.clients.billingQuery.getCreditBalance({ orgId: org });
+    const after = await op.clients.billingQuery.getCreditBalance({ org });
     expect(after.availableMicros - before).toBe(RECHARGE.amountMicros);
-    const ledger = await op.clients.billingQuery.getCreditLedger({ orgId: org });
+    const ledger = await op.clients.billingQuery.getCreditLedger({ org });
     const grant = ledger.entries.find((entry) => entry.idempotencyKey === `auto_recharge_${rechargeEventId}`);
     expect(grant, "the grant carries the recharge event's idempotency key").toBeDefined();
     expect(grant?.type).toBe(LedgerEntryType.auto_recharge_credit);
@@ -1228,24 +1228,24 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — auto-recharge, th
     // Once: the same event replayed, and a fresh event for the same recharge, grant nothing more.
     expect((await post(settled)).status).toBe(200);
     expect((await post(paymentIntentSucceeded(paymentIntentId, rechargeEventId))).status).toBe(200);
-    expect((await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros).toBe(after.availableMicros);
-    expect((await op.clients.billingQuery.getCreditLedger({ orgId: org })).entries.filter((e) => e.type === LedgerEntryType.auto_recharge_credit)).toHaveLength(1);
+    expect((await op.clients.billingQuery.getCreditBalance({ org })).availableMicros).toBe(after.availableMicros);
+    expect((await op.clients.billingQuery.getCreditLedger({ org })).entries.filter((e) => e.type === LedgerEntryType.auto_recharge_credit)).toHaveLength(1);
   });
 
   it("[billing.stripe.payment-intent-failed.recharge-compensated] payment_intent.payment_failed releases the month's slot and grants nothing, and the next debit past the threshold is free to trigger a fresh recharge", async () => {
     const op = await operator();
     const { org, executionId, paymentIntent, rechargeEventId } = await armRecharge(op);
     const paymentIntentId = paymentIntent.response.id ?? "";
-    expect((await op.clients.billingQuery.getBillingAccount({ orgId: org })).autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
-    const before = (await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros;
+    expect((await op.clients.billingQuery.getBillingAccount({ org })).autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
+    const before = (await op.clients.billingQuery.getCreditBalance({ org })).availableMicros;
 
     const response = await post(paymentIntentPaymentFailed(paymentIntentId, rechargeEventId, "Your card was declined."));
     expect(response.status).toBe(200);
     expect(response.body).toBe("ok");
-    const compensated = await op.clients.billingQuery.getBillingAccount({ orgId: org });
+    const compensated = await op.clients.billingQuery.getBillingAccount({ org });
     expect(compensated.autoRecharge?.currentMonthChargedMicros ?? 0n, "the failed charge gives its slot back").toBe(0n);
-    expect((await op.clients.billingQuery.getCreditBalance({ orgId: org })).availableMicros).toBe(before);
-    expect((await op.clients.billingQuery.getCreditLedger({ orgId: org })).entries.some((e) => e.type === LedgerEntryType.auto_recharge_credit), "no grant for a failed charge").toBe(false);
+    expect((await op.clients.billingQuery.getCreditBalance({ org })).availableMicros).toBe(before);
+    expect((await op.clients.billingQuery.getCreditLedger({ org })).entries.some((e) => e.type === LedgerEntryType.auto_recharge_credit), "no grant for a failed charge").toBe(false);
 
     // The release is real, not cosmetic: with the failed event no longer
     // pending, the next low-balance debit triggers a NEW recharge under a new
@@ -1259,7 +1259,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — auto-recharge, th
     expect(secondEventId).toBeDefined();
     expect(secondEventId).not.toBe(rechargeEventId);
     expect(second.idempotencyKey).toBe(`auto_recharge_${secondEventId}`);
-    expect((await op.clients.billingQuery.getBillingAccount({ orgId: org })).autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
+    expect((await op.clients.billingQuery.getBillingAccount({ org })).autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
   });
 });
 
@@ -1268,28 +1268,28 @@ describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (
     const org = uniqueName("org");
     const executionId = uniqueName("exec");
     const lanes: Array<[string, () => Promise<unknown>]> = [
-      ["getOrCreateBillingAccount", () => clients.billingCommand.getOrCreateBillingAccount({ orgId: org })],
-      ["adjustCredits", () => clients.billingCommand.adjustCredits({ orgId: org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
-      ["grantCredits", () => clients.billingCommand.grantCredits({ orgId: org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
-      ["authorizeExecution", () => clients.billingCommand.authorizeExecution({ orgId: org, executionId, harness: "native" })],
+      ["getOrCreateBillingAccount", () => clients.billingCommand.getOrCreateBillingAccount({ org })],
+      ["adjustCredits", () => clients.billingCommand.adjustCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
+      ["grantCredits", () => clients.billingCommand.grantCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
+      ["authorizeExecution", () => clients.billingCommand.authorizeExecution({ org, executionId, harness: "native" })],
       ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ executionId, sequence: 1, provider: "anthropic", resolvedModel: "m" })],
       ["finalizeExecution", () => clients.billingCommand.finalizeExecution({ executionId })],
       ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ executionId })],
-      ["createCreditCheckoutSession", () => clients.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "starter", successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
-      ["createBillingPortalSession", () => clients.billingCommand.createBillingPortalSession({ orgId: org, returnUrl: "https://x/back" })],
-      ["createPaymentMethodSetupSession", () => clients.billingCommand.createPaymentMethodSetupSession({ orgId: org, successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
-      ["setAutoRechargeConfig", () => clients.billingCommand.setAutoRechargeConfig({ orgId: org })],
+      ["createCreditCheckoutSession", () => clients.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
+      ["createBillingPortalSession", () => clients.billingCommand.createBillingPortalSession({ org, returnUrl: "https://x/back" })],
+      ["createPaymentMethodSetupSession", () => clients.billingCommand.createPaymentMethodSetupSession({ org, successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
+      ["setAutoRechargeConfig", () => clients.billingCommand.setAutoRechargeConfig({ org })],
       ["decideModelPricingOverride", () => clients.billingCommand.decideModelPricingOverride({ overrideId: "ovr_x" })],
       ["upsertModelPricingBaseline", () => clients.billingCommand.upsertModelPricingBaseline({ baseline: { modelId: "m", provider: "p", harness: "native", displayName: "M", speedTier: "balanced", costTier: "standard", pricing: {} } })],
       ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({ modelId: "m", provider: "p", harness: "native" })],
-      ["getBillingAccount", () => clients.billingQuery.getBillingAccount({ orgId: org })],
-      ["getCreditBalance", () => clients.billingQuery.getCreditBalance({ orgId: org })],
-      ["getCreditLedger", () => clients.billingQuery.getCreditLedger({ orgId: org })],
-      ["getBillingUsageReport", () => clients.billingQuery.getBillingUsageReport({ orgId: org, startTime: timestampFromDate(new Date()), endTime: timestampFromDate(new Date()) })],
-      ["getCustomerModelPricing", () => clients.billingQuery.getCustomerModelPricing({ orgId: org })],
+      ["getBillingAccount", () => clients.billingQuery.getBillingAccount({ org })],
+      ["getCreditBalance", () => clients.billingQuery.getCreditBalance({ org })],
+      ["getCreditLedger", () => clients.billingQuery.getCreditLedger({ org })],
+      ["getBillingUsageReport", () => clients.billingQuery.getBillingUsageReport({ org, startTime: timestampFromDate(new Date()), endTime: timestampFromDate(new Date()) })],
+      ["getCustomerModelPricing", () => clients.billingQuery.getCustomerModelPricing({ org })],
       ["getModelPricingGovernance", () => clients.billingQuery.getModelPricingGovernance({})],
       ["listModelPricingBaselines", () => clients.billingQuery.listModelPricingBaselines({})],
-      ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ orgId: org })],
+      ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ org })],
       ["getExecutionBillingSignal", () => clients.billingQuery.getExecutionBillingSignal({ executionId })],
     ];
     expect(lanes, "the 23 RPCs, no more, no fewer").toHaveLength(23);

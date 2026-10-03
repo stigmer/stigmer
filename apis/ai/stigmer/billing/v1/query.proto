@@ -14,7 +14,7 @@ service BillingQueryController {
   rpc getBillingAccount(GetBillingAccountInput) returns (BillingAccount) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
   }
 
@@ -22,7 +22,7 @@ service BillingQueryController {
   rpc getCreditBalance(GetCreditBalanceInput) returns (CreditBalance) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
   }
 
@@ -30,7 +30,7 @@ service BillingQueryController {
   rpc getCreditLedger(GetCreditLedgerInput) returns (CreditLedgerResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
   }
 
@@ -38,7 +38,7 @@ service BillingQueryController {
   rpc getBillingUsageReport(GetBillingUsageReportInput) returns (BillingUsageReportResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
   }
 
@@ -47,7 +47,7 @@ service BillingQueryController {
   rpc getCustomerModelPricing(GetCustomerModelPricingInput) returns (CustomerModelPricingResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
   }
 

@@ -11,10 +11,8 @@ import { DashboardFailedRuns } from "./DashboardFailedRuns.js";
 import type { DashboardFailedRun } from "./types.js";
 
 export interface OperationalDashboardProps {
-  /** Organization slug for execution summaries and pending approvals. */
+  /** The organization whose executions, approvals and usage the dashboard shows. */
   readonly org: string | null | undefined;
-  /** Organization ID (metadata.id) for the usage report. */
-  readonly orgId: string | null | undefined;
   /** Called when the user clicks "Review" on a pending approval. */
   readonly onApprovalClick?: (executionId: string) => void;
   /** Called when the user clicks "View" on a failed execution. */
@@ -37,7 +35,6 @@ export interface OperationalDashboardProps {
  * ```tsx
  * <OperationalDashboard
  *   org="acme"
- *   orgId={activeOrg?.metadata?.id}
  *   onApprovalClick={(id) => navigate(`/executions/${id}`)}
  *   onFailedRunClick={(id, type) => navigate(`/executions/${id}`)}
  * />
@@ -47,14 +44,12 @@ export interface OperationalDashboardProps {
  */
 export const OperationalDashboard = memo(function OperationalDashboard({
   org,
-  orgId,
   onApprovalClick,
   onFailedRunClick,
   className,
 }: OperationalDashboardProps) {
   const summaryOptions: UseDashboardSummaryOptions = {
     org,
-    orgId,
     refetchInterval: 60_000,
   };
   const { summary, isLoading: summaryLoading } = useDashboardSummary(summaryOptions);

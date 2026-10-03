@@ -9,7 +9,7 @@ import { leaveForStripe, type BillingRedirect } from "./redirect.js";
 /** Parameters for {@link useCreateCheckoutSession}'s `createSession` callback. */
 export interface CreateCheckoutSessionInput {
   /** Organization purchasing credits. */
-  readonly orgId: string;
+  readonly org: string;
   /** Credit pack to purchase: its id, e.g. "starter", "growth" or "team" (the pack named Scale). */
   readonly packId: string;
   /** URL to redirect to after successful payment. */
@@ -54,7 +54,7 @@ export interface UseCreateCheckoutSessionReturn {
  *
  * const handleBuy = () => {
  *   createSession({
- *     orgId,
+ *     org,
  *     packId: "growth",
  *     successUrl: `${window.location.origin}/settings/billing?checkout=success`,
  *     cancelUrl: `${window.location.origin}/settings/billing`,
@@ -81,7 +81,7 @@ export function useCreateCheckoutSession(
 
       try {
         const response = await stigmer.billing.createCreditCheckoutSession({
-          orgId: input.orgId,
+          org: input.org,
           packId: input.packId,
           successUrl: input.successUrl,
           cancelUrl: input.cancelUrl,

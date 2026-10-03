@@ -15,20 +15,20 @@ public interface GetOrgUsageReportOutputOrBuilder extends
    * Organization identifier.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 1 [json_name = "org"];</code>
+   * @return The org.
    */
-  java.lang.String getOrgId();
+  java.lang.String getOrg();
   /**
    * <pre>
    * Organization identifier.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 1 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrgIdBytes();
+      getOrgBytes();
 
   /**
    * <pre>

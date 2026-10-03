@@ -96,7 +96,7 @@ message RevokeOrgAccessInput {
   ];
 
   // The organization from which access is being revoked
-  string organization_id = 2 [
+  string org = 2 [
     (buf.validate.field).required = true,
     (buf.validate.field).string.min_len = 1
   ];
@@ -283,7 +283,7 @@ message AuthorizedPrincipalIdsList {
 // GetPrincipalsCountInput defines input for counting principals in an organization.
 message GetPrincipalsCountInput {
   // Organization ID to count principals for
-  string org_id = 1 [
+  string org = 1 [
     (buf.validate.field).required = true,
     (buf.validate.field).string.min_len = 1
   ];

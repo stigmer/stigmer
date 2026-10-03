@@ -29,7 +29,7 @@ const (
 // Idempotent: returns the existing account if one already exists.
 type GetOrCreateBillingAccountInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -64,9 +64,9 @@ func (*GetOrCreateBillingAccountInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *GetOrCreateBillingAccountInput) GetOrgId() string {
+func (x *GetOrCreateBillingAccountInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -75,7 +75,7 @@ func (x *GetOrCreateBillingAccountInput) GetOrgId() string {
 // platform operator's correction, or a credit issuer's funding.
 type AdjustCreditsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Positive to add credits, negative to remove.
 	AmountMicros int64 `protobuf:"varint,2,opt,name=amount_micros,json=amountMicros,proto3" json:"amount_micros,omitempty"`
 	// Human-readable reason for the adjustment (audit trail).
@@ -116,9 +116,9 @@ func (*AdjustCreditsInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *AdjustCreditsInput) GetOrgId() string {
+func (x *AdjustCreditsInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -153,7 +153,7 @@ func (x *AdjustCreditsInput) GetIdempotencyKey() string {
 // balance with an expiry_debit ledger entry.
 type GrantCreditsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Amount to grant. Must be positive; grants never remove credits.
 	AmountMicros int64 `protobuf:"varint,2,opt,name=amount_micros,json=amountMicros,proto3" json:"amount_micros,omitempty"`
 	// When the grant expires. Unset means the grant never expires.
@@ -202,9 +202,9 @@ func (*GrantCreditsInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *GrantCreditsInput) GetOrgId() string {
+func (x *GrantCreditsInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -240,7 +240,7 @@ func (x *GrantCreditsInput) GetIdempotencyKey() string {
 // AuthorizeExecutionInput requests a credit reservation before execution starts.
 type AuthorizeExecutionInput struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
-	OrgId       string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org         string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	ExecutionId string                 `protobuf:"bytes,2,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	// Execution harness ("native" or "cursor").
 	Harness string `protobuf:"bytes,3,opt,name=harness,proto3" json:"harness,omitempty"`
@@ -280,9 +280,9 @@ func (*AuthorizeExecutionInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *AuthorizeExecutionInput) GetOrgId() string {
+func (x *AuthorizeExecutionInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -1006,7 +1006,7 @@ func (x *RearmForRecoveryInput) GetExecutionId() string {
 // their identity account for Stripe Customer creation.
 type CreateCreditCheckoutSessionInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Credit pack to purchase (e.g., "starter", "growth", "team").
 	PackId string `protobuf:"bytes,2,opt,name=pack_id,json=packId,proto3" json:"pack_id,omitempty"`
 	// URL to redirect to after successful payment.
@@ -1047,9 +1047,9 @@ func (*CreateCreditCheckoutSessionInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *CreateCreditCheckoutSessionInput) GetOrgId() string {
+func (x *CreateCreditCheckoutSessionInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -1148,7 +1148,7 @@ func (x *CreateCreditCheckoutSessionResponse) GetCheckoutSessionId() string {
 // Stripe redirects after the user finishes.
 type CreateBillingPortalSessionInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// URL to redirect to after the user exits the Stripe Customer Portal.
 	ReturnUrl     string `protobuf:"bytes,2,opt,name=return_url,json=returnUrl,proto3" json:"return_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1185,9 +1185,9 @@ func (*CreateBillingPortalSessionInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *CreateBillingPortalSessionInput) GetOrgId() string {
+func (x *CreateBillingPortalSessionInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -1252,7 +1252,7 @@ func (x *CreateBillingPortalSessionResponse) GetPortalUrl() string {
 // Customer creation, as for a credit checkout.
 type CreatePaymentMethodSetupSessionInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// URL to redirect to after the payment method is saved.
 	SuccessUrl string `protobuf:"bytes,2,opt,name=success_url,json=successUrl,proto3" json:"success_url,omitempty"`
 	// URL to redirect to if the user leaves without saving one.
@@ -1291,9 +1291,9 @@ func (*CreatePaymentMethodSetupSessionInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *CreatePaymentMethodSetupSessionInput) GetOrgId() string {
+func (x *CreatePaymentMethodSetupSessionInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -1379,7 +1379,7 @@ func (x *CreatePaymentMethodSetupSessionResponse) GetCheckoutSessionId() string 
 // Disabling preserves the configuration for easy re-enablement.
 type SetAutoRechargeConfigInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Whether to enable auto-recharge.
 	Enabled bool `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Trigger recharge when available balance drops below this amount.
@@ -1422,9 +1422,9 @@ func (*SetAutoRechargeConfigInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *SetAutoRechargeConfigInput) GetOrgId() string {
+func (x *SetAutoRechargeConfigInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -1460,7 +1460,7 @@ func (x *SetAutoRechargeConfigInput) GetMonthlyCapMicros() int64 {
 // GetBillingAccountInput retrieves the billing account for an organization.
 type GetBillingAccountInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1495,9 +1495,9 @@ func (*GetBillingAccountInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *GetBillingAccountInput) GetOrgId() string {
+func (x *GetBillingAccountInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -1505,7 +1505,7 @@ func (x *GetBillingAccountInput) GetOrgId() string {
 // GetCreditBalanceInput retrieves just the balance breakdown.
 type GetCreditBalanceInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1540,9 +1540,9 @@ func (*GetCreditBalanceInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{19}
 }
 
-func (x *GetCreditBalanceInput) GetOrgId() string {
+func (x *GetCreditBalanceInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -1550,7 +1550,7 @@ func (x *GetCreditBalanceInput) GetOrgId() string {
 // GetCreditLedgerInput retrieves paginated ledger entries with optional filters.
 type GetCreditLedgerInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Pagination parameters.
 	Page *rpc.PageInfo `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
 	// Filter to specific entry types. Empty means all types.
@@ -1601,9 +1601,9 @@ func (*GetCreditLedgerInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{20}
 }
 
-func (x *GetCreditLedgerInput) GetOrgId() string {
+func (x *GetCreditLedgerInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -1699,7 +1699,7 @@ func (x *CreditLedgerResponse) GetTotalPages() int32 {
 // GetBillingUsageReportInput requests an aggregated billing usage report.
 type GetBillingUsageReportInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Start of the reporting period.
 	StartTime *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// End of the reporting period.
@@ -1738,9 +1738,9 @@ func (*GetBillingUsageReportInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{22}
 }
 
-func (x *GetBillingUsageReportInput) GetOrgId() string {
+func (x *GetBillingUsageReportInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -1931,7 +1931,7 @@ type GetCustomerModelPricingInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization ID. Used to resolve org-specific policy overrides.
 	// When empty, returns default pricing.
-	OrgId         string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1966,9 +1966,9 @@ func (*GetCustomerModelPricingInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{25}
 }
 
-func (x *GetCustomerModelPricingInput) GetOrgId() string {
+func (x *GetCustomerModelPricingInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -2746,7 +2746,7 @@ func (x *CustomerModelPricingEntry) GetMarkupBasisPoints() int32 {
 // execution right now, without writing a reservation.
 type PreviewAuthorizationInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Expected maximum cost. 0 means use the server-configured default cap,
 	// exactly as authorizeExecution treats it.
 	ExpectedCostCapMicros int64 `protobuf:"varint,2,opt,name=expected_cost_cap_micros,json=expectedCostCapMicros,proto3" json:"expected_cost_cap_micros,omitempty"`
@@ -2784,9 +2784,9 @@ func (*PreviewAuthorizationInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{36}
 }
 
-func (x *PreviewAuthorizationInput) GetOrgId() string {
+func (x *PreviewAuthorizationInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -2969,23 +2969,23 @@ var File_ai_stigmer_billing_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\x1eai/stigmer/billing/v1/io.proto\x12\x15ai.stigmer.billing.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a\"ai/stigmer/billing/v1/credit.proto\x1a ai/stigmer/billing/v1/enum.proto\x1a2ai/stigmer/billing/v1/model_pricing_baseline.proto\x1a,ai/stigmer/billing/v1/pricing_override.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"?\n" +
-	"\x1eGetOrCreateBillingAccountInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"\xa9\x01\n" +
-	"\x12AdjustCreditsInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12#\n" +
+	"\x1eai/stigmer/billing/v1/io.proto\x12\x15ai.stigmer.billing.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a\"ai/stigmer/billing/v1/credit.proto\x1a ai/stigmer/billing/v1/enum.proto\x1a2ai/stigmer/billing/v1/model_pricing_baseline.proto\x1a,ai/stigmer/billing/v1/pricing_override.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\":\n" +
+	"\x1eGetOrCreateBillingAccountInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\xa4\x01\n" +
+	"\x12AdjustCreditsInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12#\n" +
 	"\ramount_micros\x18\x02 \x01(\x03R\famountMicros\x12\x1e\n" +
 	"\x06reason\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06reason\x12/\n" +
-	"\x0fidempotency_key\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0eidempotencyKey\"\xec\x01\n" +
-	"\x11GrantCreditsInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12,\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0eidempotencyKey\"\xe7\x01\n" +
+	"\x11GrantCreditsInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12,\n" +
 	"\ramount_micros\x18\x02 \x01(\x03B\a\xbaH\x04\"\x02 \x00R\famountMicros\x129\n" +
 	"\n" +
 	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x1e\n" +
 	"\x06reason\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06reason\x12/\n" +
-	"\x0fidempotency_key\x18\x05 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0eidempotencyKey\"\xbe\x01\n" +
-	"\x17AuthorizeExecutionInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12)\n" +
+	"\x0fidempotency_key\x18\x05 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0eidempotencyKey\"\xb9\x01\n" +
+	"\x17AuthorizeExecutionInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12)\n" +
 	"\fexecution_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\x12 \n" +
 	"\aharness\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aharness\x127\n" +
 	"\x18expected_cost_cap_micros\x18\x04 \x01(\x03R\x15expectedCostCapMicros\"\xeb\x01\n" +
@@ -3041,9 +3041,9 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x1breleased_reservation_micros\x18\x03 \x01(\x03R\x19releasedReservationMicros\x12*\n" +
 	"\x11billed_call_count\x18\x04 \x01(\x05R\x0fbilledCallCount\"B\n" +
 	"\x15RearmForRecoveryInput\x12)\n" +
-	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\"\xb2\x01\n" +
-	" CreateCreditCheckoutSessionInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x1f\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\"\xad\x01\n" +
+	" CreateCreditCheckoutSessionInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1f\n" +
 	"\apack_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06packId\x12'\n" +
 	"\vsuccess_url\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"successUrl\x12%\n" +
@@ -3053,35 +3053,35 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\fcheckout_url\x18\x01 \x01(\tR\vcheckoutUrl\x12\x1f\n" +
 	"\vpurchase_id\x18\x02 \x01(\tR\n" +
 	"purchaseId\x12.\n" +
-	"\x13checkout_session_id\x18\x03 \x01(\tR\x11checkoutSessionId\"g\n" +
-	"\x1fCreateBillingPortalSessionInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12%\n" +
+	"\x13checkout_session_id\x18\x03 \x01(\tR\x11checkoutSessionId\"b\n" +
+	"\x1fCreateBillingPortalSessionInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12%\n" +
 	"\n" +
 	"return_url\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\treturnUrl\"C\n" +
 	"\"CreateBillingPortalSessionResponse\x12\x1d\n" +
 	"\n" +
-	"portal_url\x18\x01 \x01(\tR\tportalUrl\"\x95\x01\n" +
-	"$CreatePaymentMethodSetupSessionInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12'\n" +
+	"portal_url\x18\x01 \x01(\tR\tportalUrl\"\x90\x01\n" +
+	"$CreatePaymentMethodSetupSessionInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12'\n" +
 	"\vsuccess_url\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"successUrl\x12%\n" +
 	"\n" +
 	"cancel_url\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tcancelUrl\"v\n" +
 	"'CreatePaymentMethodSetupSessionResponse\x12\x1b\n" +
 	"\tsetup_url\x18\x01 \x01(\tR\bsetupUrl\x12.\n" +
-	"\x13checkout_session_id\x18\x02 \x01(\tR\x11checkoutSessionId\"\xe4\x01\n" +
-	"\x1aSetAutoRechargeConfigInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x18\n" +
+	"\x13checkout_session_id\x18\x02 \x01(\tR\x11checkoutSessionId\"\xdf\x01\n" +
+	"\x1aSetAutoRechargeConfigInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\x12)\n" +
 	"\x10threshold_micros\x18\x03 \x01(\x03R\x0fthresholdMicros\x124\n" +
 	"\x16recharge_amount_micros\x18\x04 \x01(\x03R\x14rechargeAmountMicros\x12,\n" +
-	"\x12monthly_cap_micros\x18\x05 \x01(\x03R\x10monthlyCapMicros\"7\n" +
-	"\x16GetBillingAccountInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"6\n" +
-	"\x15GetCreditBalanceInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"\xdd\x02\n" +
-	"\x14GetCreditLedgerInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x124\n" +
+	"\x12monthly_cap_micros\x18\x05 \x01(\x03R\x10monthlyCapMicros\"2\n" +
+	"\x16GetBillingAccountInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"1\n" +
+	"\x15GetCreditBalanceInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\xd8\x02\n" +
+	"\x14GetCreditLedgerInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x124\n" +
 	"\x04page\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\x12G\n" +
 	"\vtype_filter\x18\x03 \x03(\x0e2&.ai.stigmer.billing.v1.LedgerEntryTypeR\n" +
 	"typeFilter\x129\n" +
@@ -3092,9 +3092,9 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x14CreditLedgerResponse\x12B\n" +
 	"\aentries\x18\x01 \x03(\v2(.ai.stigmer.billing.v1.CreditLedgerEntryR\aentries\x12\x1f\n" +
 	"\vtotal_pages\x18\x02 \x01(\x05R\n" +
-	"totalPages\"\xbd\x01\n" +
-	"\x1aGetBillingUsageReportInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12A\n" +
+	"totalPages\"\xb8\x01\n" +
+	"\x1aGetBillingUsageReportInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12A\n" +
 	"\n" +
 	"start_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampB\x06\xbaH\x03\xc8\x01\x01R\tstartTime\x12=\n" +
 	"\bend_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampB\x06\xbaH\x03\xc8\x01\x01R\aendTime\"\xc0\x02\n" +
@@ -3111,9 +3111,9 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x14provider_cost_micros\x18\x04 \x01(\x03R\x12providerCostMicros\x124\n" +
 	"\x16billable_amount_micros\x18\x05 \x01(\x03R\x14billableAmountMicros\x12\x1d\n" +
 	"\n" +
-	"call_count\x18\x06 \x01(\x05R\tcallCount\"5\n" +
-	"\x1cGetCustomerModelPricingInput\x12\x15\n" +
-	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"j\n" +
+	"call_count\x18\x06 \x01(\x05R\tcallCount\"0\n" +
+	"\x1cGetCustomerModelPricingInput\x12\x10\n" +
+	"\x03org\x18\x01 \x01(\tR\x03org\"j\n" +
 	"\x1cCustomerModelPricingResponse\x12J\n" +
 	"\aentries\x18\x01 \x03(\v20.ai.stigmer.billing.v1.CustomerModelPricingEntryR\aentries\" \n" +
 	"\x1eGetModelPricingGovernanceInput\"\xc8\x01\n" +
@@ -3169,9 +3169,9 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"#cache_read_price_micros_per_million\x18\t \x01(\x03R\x1ecacheReadPriceMicrosPerMillion\x12*\n" +
 	"\x11pricing_policy_id\x18\n" +
 	" \x01(\tR\x0fpricingPolicyId\x12.\n" +
-	"\x13markup_basis_points\x18\v \x01(\x05R\x11markupBasisPoints\"s\n" +
-	"\x19PreviewAuthorizationInput\x12\x1d\n" +
-	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x127\n" +
+	"\x13markup_basis_points\x18\v \x01(\x05R\x11markupBasisPoints\"n\n" +
+	"\x19PreviewAuthorizationInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x127\n" +
 	"\x18expected_cost_cap_micros\x18\x02 \x01(\x03R\x15expectedCostCapMicros\"\x97\x01\n" +
 	"\x1cPreviewAuthorizationResponse\x12\x1e\n" +
 	"\n" +

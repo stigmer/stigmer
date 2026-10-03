@@ -159,9 +159,9 @@
       "protoFile": "apis/ai/stigmer/iam/invitation/v1/io.proto",
       "fields": [
         {
-          "name": "OrganizationName",
-          "jsonName": "organizationName",
-          "protoField": "organization_name",
+          "name": "OrgName",
+          "jsonName": "orgName",
+          "protoField": "org_name",
           "type": {
             "kind": "string"
           },
@@ -169,9 +169,9 @@
           "required": false
         },
         {
-          "name": "OrganizationSlug",
-          "jsonName": "organizationSlug",
-          "protoField": "organization_slug",
+          "name": "OrgSlug",
+          "jsonName": "orgSlug",
+          "protoField": "org_slug",
           "type": {
             "kind": "string"
           },
@@ -179,9 +179,9 @@
           "required": false
         },
         {
-          "name": "OrganizationLogoUrl",
-          "jsonName": "organizationLogoUrl",
-          "protoField": "organization_logo_url",
+          "name": "OrgLogoUrl",
+          "jsonName": "orgLogoUrl",
+          "protoField": "org_logo_url",
           "type": {
             "kind": "string"
           },

@@ -28,7 +28,7 @@ export function UsageSection() {
           Select an organization to view usage.
         </p>
       ) : (
-        <OrgUsagePanel orgId={orgId} />
+        <OrgUsagePanel org={orgId} />
       )}
     </section>
   );

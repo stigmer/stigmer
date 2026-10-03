@@ -85,7 +85,7 @@ message LicenseCustomer {
   // The cloud organization this customer also holds, as its slug (the same
   // value a resource's metadata.org carries). Empty when the customer has
   // none.
-  string organization = 4;
+  string org = 4;
 }
 
 // The commercial nature of a license's term.

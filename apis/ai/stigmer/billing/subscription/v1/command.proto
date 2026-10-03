@@ -36,11 +36,11 @@ service SubscriptionCommandController {
   //   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
   //     no saved payment method, which every period is collected from;
   //     BillingCommandController.createPaymentMethodSetupSession saves one.
-  //     Metadata: org_id.
+  //     Metadata: org.
   rpc changePlan(ChangePlanInput) returns (Subscription) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to change this organization's plan";
   }
 
@@ -51,7 +51,7 @@ service SubscriptionCommandController {
   rpc cancel(CancelSubscriptionInput) returns (Subscription) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to cancel this organization's subscription";
   }
 }

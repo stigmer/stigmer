@@ -9,28 +9,28 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SetProviderKeyInput(_message.Message):
-    __slots__ = ("org_id", "provider", "api_key")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "provider", "api_key")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     API_KEY_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     provider: str
     api_key: str
-    def __init__(self, org_id: _Optional[str] = ..., provider: _Optional[str] = ..., api_key: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., provider: _Optional[str] = ..., api_key: _Optional[str] = ...) -> None: ...
 
 class DeleteProviderKeyInput(_message.Message):
-    __slots__ = ("org_id", "provider")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "provider")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     provider: str
-    def __init__(self, org_id: _Optional[str] = ..., provider: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., provider: _Optional[str] = ...) -> None: ...
 
 class ListProviderKeysInput(_message.Message):
-    __slots__ = ("org_id",)
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
-    def __init__(self, org_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class ListProviderKeysOutput(_message.Message):
     __slots__ = ("keys",)

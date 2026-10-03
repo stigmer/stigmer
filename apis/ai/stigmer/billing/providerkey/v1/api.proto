@@ -23,7 +23,7 @@ import "google/protobuf/timestamp.proto";
 // returns as an inherited row.
 message ProviderKey {
   // The organization the key serves.
-  string org_id = 1;
+  string org = 1;
 
   // The provider the key is for: "anthropic" or "openai", the proxy's own
   // provider names.
@@ -52,5 +52,5 @@ message ProviderKey {
   // Set when the row is the integrator organization's key, serving this
   // managed organization because it holds none of its own for the provider.
   // Such a row is read-only here; it is managed on the integrator.
-  string inherited_from_org_id = 9;
+  string inherited_from_org = 9;
 }

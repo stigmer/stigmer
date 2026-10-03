@@ -93,7 +93,3 @@ For Auth0, the UserInfo endpoint is always `https://{tenant}.auth0.com/userinfo`
 Deleting an IdentityProvider that still has platform-managed organizations referencing it is blocked. Reassign or remove those references before deletion.
 
 Deleting an IdentityProvider also deletes the federated accounts it vouches for, with every role they hold, and its tenant organization mappings. A provider created again under the same slug inherits none of them: nothing the old provider's users held carries over.
-
-### Expecting `rate_limit_budget` to Throttle
-
-No server enforces `rate_limit_budget`. A value is accepted and stored, and it has no effect on sign-in or on request rates, so do not rely on it to protect a downstream service.

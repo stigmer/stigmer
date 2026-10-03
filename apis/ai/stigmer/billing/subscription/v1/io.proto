@@ -6,18 +6,18 @@ import "ai/stigmer/platform/v1/entitlement.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
-// GetSubscriptionForOrganizationInput names the organization whose
+// GetSubscriptionForOrgInput names the organization whose
 // subscription is read.
-message GetSubscriptionForOrganizationInput {
+message GetSubscriptionForOrgInput {
   // The organization's id.
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 }
 
 // GetEntitlementsInput names the organization whose entitlements are
 // resolved.
 message GetEntitlementsInput {
   // The organization's id.
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 }
 
 // GetEntitlementsOutput is what an organization is permitted right now and
@@ -34,7 +34,7 @@ message GetEntitlementsOutput {
 // ChangePlanInput moves an organization onto a plan.
 message ChangePlanInput {
   // The organization's id.
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 
   // The id of the Plan to move onto. Must be an active subscription plan.
   string plan_id = 2 [(buf.validate.field).required = true];
@@ -44,14 +44,14 @@ message ChangePlanInput {
 // canceled.
 message CancelSubscriptionInput {
   // The organization's id.
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 }
 
 // GetPeriodEstimateInput names the organization whose current period is
 // estimated.
 message GetPeriodEstimateInput {
   // The organization's id.
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 }
 
 // PeriodEstimate is what an organization's current subscription period

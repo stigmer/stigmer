@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { tokenTypeOf, isEmbeddedRunnerToken, sessionIdClaimOf } from "../token-claims.js";
+import { tokenTypeOf, isEmbeddedRunnerToken, sessionIdClaimOf, isJwtShaped, expiryClaimOf } from "../token-claims.js";
 
 /** Build an unsigned JWT-shaped token with the given payload. */
 function fakeJwt(payload: Record<string, unknown>): string {
@@ -55,5 +55,38 @@ describe("isEmbeddedRunnerToken", () => {
     // A user token has no token_type claim at all.
     expect(isEmbeddedRunnerToken(fakeJwt({ sub: "user-1" }))).toBe(false);
     expect(isEmbeddedRunnerToken(null)).toBe(false);
+  });
+});
+
+/** A three-part token whose payload is the given raw text. */
+function rawJwt(payloadText: string): string {
+  const b64 = (text: string) => Buffer.from(text).toString("base64url");
+  return `${b64('{"alg":"none"}')}.${b64(payloadText)}.signature`;
+}
+
+describe("isJwtShaped", () => {
+  it("accepts three parts with a JSON object payload", () => {
+    expect(isJwtShaped(fakeJwt({ sub: "user-1" }))).toBe(true);
+    expect(isJwtShaped(rawJwt("{}"))).toBe(true);
+  });
+
+  it("refuses absent, malformed, and non-object payloads", () => {
+    for (const token of [null, undefined, "", "not-a-jwt", "only.two", "a.b.c", rawJwt("null"), rawJwt("[1,2]"), rawJwt('"text"'), rawJwt("42")]) {
+      expect(isJwtShaped(token)).toBe(false);
+    }
+  });
+});
+
+describe("expiryClaimOf", () => {
+  it("reads a numeric exp", () => {
+    expect(expiryClaimOf(fakeJwt({ exp: 1_800_000_000 }))).toBe(1_800_000_000);
+  });
+
+  it("returns undefined for a missing, non-numeric or non-finite exp, and for malformed tokens", () => {
+    expect(expiryClaimOf(fakeJwt({ sub: "u" }))).toBeUndefined();
+    expect(expiryClaimOf(fakeJwt({ exp: "1800000000" }))).toBeUndefined();
+    expect(expiryClaimOf(rawJwt('{"exp":1e999}'))).toBeUndefined();
+    expect(expiryClaimOf("not-a-jwt")).toBeUndefined();
+    expect(expiryClaimOf(rawJwt("[]"))).toBeUndefined();
   });
 });

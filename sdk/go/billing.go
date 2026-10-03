@@ -49,7 +49,7 @@ type (
 
 // AdjustCreditsParams configures a manual credit adjustment.
 type AdjustCreditsParams struct {
-	OrgID string
+	Org string
 	// AmountMicros is positive to add credits, negative to remove.
 	AmountMicros int64
 	// Reason is recorded on the ledger entry (audit trail).
@@ -60,7 +60,7 @@ type AdjustCreditsParams struct {
 
 // GrantCreditsParams configures a promotional credit grant.
 type GrantCreditsParams struct {
-	OrgID string
+	Org string
 	// AmountMicros is the amount to grant. Must be positive.
 	AmountMicros int64
 	// ExpiresAt is when the grant expires (use-it-or-lose-it). Zero means the
@@ -74,7 +74,7 @@ type GrantCreditsParams struct {
 
 // GetCreditLedgerParams configures a credit ledger query.
 type GetCreditLedgerParams struct {
-	OrgID string
+	Org string
 	// Page selects a result page; nil returns the server default page.
 	Page *Page
 	// TypeFilter narrows to specific entry types. Empty means all types.
@@ -92,14 +92,14 @@ type GetCreditLedgerParams struct {
 
 // GetBillingUsageReportParams configures a billing usage report query.
 type GetBillingUsageReportParams struct {
-	OrgID     string
+	Org       string
 	StartTime time.Time
 	EndTime   time.Time
 }
 
 // CreateCheckoutSessionParams configures a Stripe Checkout Session.
 type CreateCheckoutSessionParams struct {
-	OrgID      string
+	Org        string
 	PackID     string
 	SuccessURL string
 	CancelURL  string
@@ -107,21 +107,21 @@ type CreateCheckoutSessionParams struct {
 
 // CreateBillingPortalSessionParams configures a Stripe Billing Portal session.
 type CreateBillingPortalSessionParams struct {
-	OrgID     string
+	Org       string
 	ReturnURL string
 }
 
 // CreatePaymentMethodSetupSessionParams configures a Stripe Checkout Session
 // that saves a payment method without charging it.
 type CreatePaymentMethodSetupSessionParams struct {
-	OrgID      string
+	Org        string
 	SuccessURL string
 	CancelURL  string
 }
 
 // SetAutoRechargeConfigParams configures automatic credit recharge.
 type SetAutoRechargeConfigParams struct {
-	OrgID                string
+	Org                  string
 	Enabled              bool
 	ThresholdMicros      int64
 	RechargeAmountMicros int64
@@ -130,8 +130,8 @@ type SetAutoRechargeConfigParams struct {
 
 // GetCustomerModelPricingParams configures a customer model pricing query.
 type GetCustomerModelPricingParams struct {
-	// OrgID resolves org-specific policy overrides. Empty for default pricing.
-	OrgID string
+	// Org resolves org-specific policy overrides. Empty for default pricing.
+	Org string
 }
 
 // DecideModelPricingOverrideParams records a decision on a pending pricing override.
@@ -193,8 +193,8 @@ func newBillingClient(conn grpc.ClientConnInterface) *BillingClient {
 // GetOrCreateBillingAccount provisions or retrieves the billing account for
 // an organization. Idempotent: creates the account on first call, returns the
 // existing account on subsequent calls.
-func (b *BillingClient) GetOrCreateBillingAccount(ctx context.Context, orgID string) (*BillingAccount, error) {
-	resp, err := b.command.GetOrCreateBillingAccount(ctx, &billingv1.GetOrCreateBillingAccountInput{OrgId: orgID})
+func (b *BillingClient) GetOrCreateBillingAccount(ctx context.Context, org string) (*BillingAccount, error) {
+	resp, err := b.command.GetOrCreateBillingAccount(ctx, &billingv1.GetOrCreateBillingAccountInput{Org: org})
 	if err != nil {
 		return nil, gen.WrapErr(err)
 	}
@@ -202,8 +202,8 @@ func (b *BillingClient) GetOrCreateBillingAccount(ctx context.Context, orgID str
 }
 
 // GetBillingAccount retrieves the billing account for an organization.
-func (b *BillingClient) GetBillingAccount(ctx context.Context, orgID string) (*BillingAccount, error) {
-	resp, err := b.query.GetBillingAccount(ctx, &billingv1.GetBillingAccountInput{OrgId: orgID})
+func (b *BillingClient) GetBillingAccount(ctx context.Context, org string) (*BillingAccount, error) {
+	resp, err := b.query.GetBillingAccount(ctx, &billingv1.GetBillingAccountInput{Org: org})
 	if err != nil {
 		return nil, gen.WrapErr(err)
 	}
@@ -211,8 +211,8 @@ func (b *BillingClient) GetBillingAccount(ctx context.Context, orgID string) (*B
 }
 
 // GetCreditBalance retrieves the credit balance breakdown for an organization.
-func (b *BillingClient) GetCreditBalance(ctx context.Context, orgID string) (*CreditBalance, error) {
-	resp, err := b.query.GetCreditBalance(ctx, &billingv1.GetCreditBalanceInput{OrgId: orgID})
+func (b *BillingClient) GetCreditBalance(ctx context.Context, org string) (*CreditBalance, error) {
+	resp, err := b.query.GetCreditBalance(ctx, &billingv1.GetCreditBalanceInput{Org: org})
 	if err != nil {
 		return nil, gen.WrapErr(err)
 	}
@@ -228,7 +228,7 @@ func (b *BillingClient) GetCreditBalance(ctx context.Context, orgID string) (*Cr
 // the organization is not enough.
 func (b *BillingClient) AdjustCredits(ctx context.Context, params *AdjustCreditsParams) (*CreditLedgerEntry, error) {
 	resp, err := b.command.AdjustCredits(ctx, &billingv1.AdjustCreditsInput{
-		OrgId:          params.OrgID,
+		Org:            params.Org,
 		AmountMicros:   params.AmountMicros,
 		Reason:         params.Reason,
 		IdempotencyKey: params.IdempotencyKey,
@@ -250,7 +250,7 @@ func (b *BillingClient) AdjustCredits(ctx context.Context, params *AdjustCredits
 // does.
 func (b *BillingClient) GrantCredits(ctx context.Context, params *GrantCreditsParams) (*CreditLedgerEntry, error) {
 	req := &billingv1.GrantCreditsInput{
-		OrgId:          params.OrgID,
+		Org:            params.Org,
 		AmountMicros:   params.AmountMicros,
 		Reason:         params.Reason,
 		IdempotencyKey: params.IdempotencyKey,
@@ -268,7 +268,7 @@ func (b *BillingClient) GrantCredits(ctx context.Context, params *GrantCreditsPa
 // GetCreditLedger retrieves paginated credit ledger entries with optional filters.
 func (b *BillingClient) GetCreditLedger(ctx context.Context, params *GetCreditLedgerParams) (*CreditLedgerResponse, error) {
 	req := &billingv1.GetCreditLedgerInput{
-		OrgId:      params.OrgID,
+		Org:        params.Org,
 		TypeFilter: params.TypeFilter,
 		View:       params.View,
 	}
@@ -293,7 +293,7 @@ func (b *BillingClient) GetCreditLedger(ctx context.Context, params *GetCreditLe
 // call counts, and a per-model breakdown with cost tier attribution.
 func (b *BillingClient) GetBillingUsageReport(ctx context.Context, params *GetBillingUsageReportParams) (*BillingUsageReportResponse, error) {
 	resp, err := b.query.GetBillingUsageReport(ctx, &billingv1.GetBillingUsageReportInput{
-		OrgId:     params.OrgID,
+		Org:       params.Org,
 		StartTime: timestamppb.New(params.StartTime),
 		EndTime:   timestamppb.New(params.EndTime),
 	})
@@ -308,7 +308,7 @@ func (b *BillingClient) GetBillingUsageReport(ctx context.Context, params *GetBi
 // URL; credits are provisioned asynchronously via webhook after payment.
 func (b *BillingClient) CreateCreditCheckoutSession(ctx context.Context, params *CreateCheckoutSessionParams) (*CreateCreditCheckoutSessionResponse, error) {
 	resp, err := b.command.CreateCreditCheckoutSession(ctx, &billingv1.CreateCreditCheckoutSessionInput{
-		OrgId:      params.OrgID,
+		Org:        params.Org,
 		PackId:     params.PackID,
 		SuccessUrl: params.SuccessURL,
 		CancelUrl:  params.CancelURL,
@@ -324,7 +324,7 @@ func (b *BillingClient) CreateCreditCheckoutSession(ctx context.Context, params 
 // returned portal URL; changes are synced back via webhooks.
 func (b *BillingClient) CreateBillingPortalSession(ctx context.Context, params *CreateBillingPortalSessionParams) (*CreateBillingPortalSessionResponse, error) {
 	resp, err := b.command.CreateBillingPortalSession(ctx, &billingv1.CreateBillingPortalSessionInput{
-		OrgId:     params.OrgID,
+		Org:       params.Org,
 		ReturnUrl: params.ReturnURL,
 	})
 	if err != nil {
@@ -339,7 +339,7 @@ func (b *BillingClient) CreateBillingPortalSession(ctx context.Context, params *
 // bought credit puts a card on file.
 func (b *BillingClient) CreatePaymentMethodSetupSession(ctx context.Context, params *CreatePaymentMethodSetupSessionParams) (*CreatePaymentMethodSetupSessionResponse, error) {
 	resp, err := b.command.CreatePaymentMethodSetupSession(ctx, &billingv1.CreatePaymentMethodSetupSessionInput{
-		OrgId:      params.OrgID,
+		Org:        params.Org,
 		SuccessUrl: params.SuccessURL,
 		CancelUrl:  params.CancelURL,
 	})
@@ -355,7 +355,7 @@ func (b *BillingClient) CreatePaymentMethodSetupSession(ctx context.Context, par
 // threshold. Returns the updated BillingAccount.
 func (b *BillingClient) SetAutoRechargeConfig(ctx context.Context, params *SetAutoRechargeConfigParams) (*BillingAccount, error) {
 	resp, err := b.command.SetAutoRechargeConfig(ctx, &billingv1.SetAutoRechargeConfigInput{
-		OrgId:                params.OrgID,
+		Org:                  params.Org,
 		Enabled:              params.Enabled,
 		ThresholdMicros:      params.ThresholdMicros,
 		RechargeAmountMicros: params.RechargeAmountMicros,
@@ -374,7 +374,7 @@ func (b *BillingClient) SetAutoRechargeConfig(ctx context.Context, params *SetAu
 func (b *BillingClient) GetCustomerModelPricing(ctx context.Context, params *GetCustomerModelPricingParams) (*CustomerModelPricingResponse, error) {
 	req := &billingv1.GetCustomerModelPricingInput{}
 	if params != nil {
-		req.OrgId = params.OrgID
+		req.Org = params.Org
 	}
 	resp, err := b.query.GetCustomerModelPricing(ctx, req)
 	if err != nil {

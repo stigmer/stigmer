@@ -36,11 +36,11 @@ class Entitlements(_message.Message):
     def __init__(self, limits: _Optional[_Union[EntitlementLimits, _Mapping]] = ..., features: _Optional[_Iterable[_Union[Feature, str]]] = ...) -> None: ...
 
 class EntitlementLimits(_message.Message):
-    __slots__ = ("max_organizations", "max_users", "included_managed_organizations")
-    MAX_ORGANIZATIONS_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("max_orgs", "max_users", "included_managed_organizations")
+    MAX_ORGS_FIELD_NUMBER: _ClassVar[int]
     MAX_USERS_FIELD_NUMBER: _ClassVar[int]
     INCLUDED_MANAGED_ORGANIZATIONS_FIELD_NUMBER: _ClassVar[int]
-    max_organizations: int
+    max_orgs: int
     max_users: int
     included_managed_organizations: int
-    def __init__(self, max_organizations: _Optional[int] = ..., max_users: _Optional[int] = ..., included_managed_organizations: _Optional[int] = ...) -> None: ...
+    def __init__(self, max_orgs: _Optional[int] = ..., max_users: _Optional[int] = ..., included_managed_organizations: _Optional[int] = ...) -> None: ...

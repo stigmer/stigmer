@@ -20,7 +20,6 @@ public final class IdentityProviderInput {
     private final String jwksUri;
     private final java.util.List<String> allowedIssuers;
     private final String expectedAudience;
-    private final int rateLimitBudget;
     private final String userinfoEndpoint;
     private final boolean isSsoProvider;
     private final String oidcClientId;
@@ -40,7 +39,6 @@ public final class IdentityProviderInput {
         this.jwksUri = builder.jwksUri;
         this.allowedIssuers = builder.allowedIssuers;
         this.expectedAudience = builder.expectedAudience;
-        this.rateLimitBudget = builder.rateLimitBudget;
         this.userinfoEndpoint = builder.userinfoEndpoint;
         this.isSsoProvider = builder.isSsoProvider;
         this.oidcClientId = builder.oidcClientId;
@@ -64,7 +62,6 @@ public final class IdentityProviderInput {
         if (this.expectedAudience != null) {
             spec.setExpectedAudience(this.expectedAudience);
         }
-        spec.setRateLimitBudget(this.rateLimitBudget);
         if (this.userinfoEndpoint != null) {
             spec.setUserinfoEndpoint(this.userinfoEndpoint);
         }
@@ -116,7 +113,6 @@ public final class IdentityProviderInput {
         private String jwksUri;
         private java.util.List<String> allowedIssuers;
         private String expectedAudience;
-        private int rateLimitBudget;
         private String userinfoEndpoint;
         private boolean isSsoProvider;
         private String oidcClientId;
@@ -142,7 +138,6 @@ public final class IdentityProviderInput {
         public Builder jwksUri(String jwksUri) { this.jwksUri = jwksUri; return this; }
         public Builder allowedIssuers(java.util.List<String> allowedIssuers) { this.allowedIssuers = allowedIssuers; return this; }
         public Builder expectedAudience(String expectedAudience) { this.expectedAudience = expectedAudience; return this; }
-        public Builder rateLimitBudget(int rateLimitBudget) { this.rateLimitBudget = rateLimitBudget; return this; }
         public Builder userinfoEndpoint(String userinfoEndpoint) { this.userinfoEndpoint = userinfoEndpoint; return this; }
         public Builder isSsoProvider(boolean isSsoProvider) { this.isSsoProvider = isSsoProvider; return this; }
         public Builder oidcClientId(String oidcClientId) { this.oidcClientId = oidcClientId; return this; }

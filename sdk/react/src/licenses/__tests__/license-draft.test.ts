@@ -73,15 +73,21 @@ describe("presets", () => {
 
 describe("toLicenseInput", () => {
   const draft: LicenseDraft = {
-    customer: { id: "cus_acme", displayName: " Acme  Corp ", contactEmail: " ops@acme.test ", organization: " " },
+    customer: { id: "cus_acme", displayName: " Acme  Corp ", contactEmail: " ops@acme.test ", org: " " },
     term: LicenseTerm.paid,
     lastCoveredDay: "2027-09-22",
     graceDays: 30,
     maxUsers: 50,
-    maxOrganizations: undefined,
+    maxOrgs: undefined,
     features: [Feature.sso_enforcement, Feature.byo_provider_keys],
     notes: "  PO 4411  ",
   };
+
+  it("names the customer's cloud organization as org when the draft has one", () => {
+    const input = toLicenseInput({ ...draft, customer: { ...draft.customer, org: " acme " } });
+    expect(input.customer).toMatchObject({ org: "acme" });
+    expect(input.customer).not.toHaveProperty("organization");
+  });
 
   it("sets expiry to 00:00 UTC after the last covered day and grace after that", () => {
     const input = toLicenseInput(draft);

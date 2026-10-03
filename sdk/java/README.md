@@ -152,14 +152,14 @@ import ai.stigmer.billing.v1.CreditBalance;
 import ai.stigmer.billing.v1.CreditLedgerEntry;
 
 try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
-    CreditBalance balance = client.billing().getCreditBalance(orgId);
+    CreditBalance balance = client.billing().getCreditBalance(org);
 
     CreditLedgerEntry entry = client.billing().adjustCredits(
         BillingClient.AdjustCreditsParams.builder()
-            .orgId(orgId)
+            .org(org)
             .amountMicros(25_000_000L) // +$25.00
             .reason("support credit for an outage")
-            .idempotencyKey("support-" + orgId + "-2026-09")
+            .idempotencyKey("support-" + org + "-2026-09")
             .build());
 }
 ```

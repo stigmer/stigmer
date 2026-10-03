@@ -40,7 +40,7 @@ import { wrapError } from "./gen/errors.js";
 
 /** Parameters for creating a Stripe Checkout Session. */
 export interface CreateCheckoutSessionParams {
-  readonly orgId: string;
+  readonly org: string;
   readonly packId: string;
   readonly successUrl: string;
   readonly cancelUrl: string;
@@ -48,20 +48,20 @@ export interface CreateCheckoutSessionParams {
 
 /** Parameters for creating a Stripe Billing Portal session. */
 export interface CreateBillingPortalSessionParams {
-  readonly orgId: string;
+  readonly org: string;
   readonly returnUrl: string;
 }
 
 /** Parameters for creating a Stripe Checkout Session that saves a card. */
 export interface CreatePaymentMethodSetupSessionParams {
-  readonly orgId: string;
+  readonly org: string;
   readonly successUrl: string;
   readonly cancelUrl: string;
 }
 
 /** Parameters for configuring auto-recharge. */
 export interface SetAutoRechargeConfigParams {
-  readonly orgId: string;
+  readonly org: string;
   readonly enabled: boolean;
   readonly thresholdMicros: bigint;
   readonly rechargeAmountMicros: bigint;
@@ -70,7 +70,7 @@ export interface SetAutoRechargeConfigParams {
 
 /** Parameters for a manual credit adjustment. */
 export interface AdjustCreditsParams {
-  readonly orgId: string;
+  readonly org: string;
   /** Positive to add credits, negative to remove. */
   readonly amountMicros: bigint;
   /** Human-readable reason recorded on the ledger entry (audit trail). */
@@ -81,7 +81,7 @@ export interface AdjustCreditsParams {
 
 /** Parameters for a promotional credit grant. */
 export interface GrantCreditsParams {
-  readonly orgId: string;
+  readonly org: string;
   /** Amount to grant. Must be positive; grants never remove credits. */
   readonly amountMicros: bigint;
   /**
@@ -97,7 +97,7 @@ export interface GrantCreditsParams {
 
 /** Parameters for querying the credit ledger. */
 export interface GetCreditLedgerParams {
-  readonly orgId: string;
+  readonly org: string;
   /** Pagination: `{ num, size }` where `num` is the 0-based page number. */
   readonly page?: { readonly num: number; readonly size: number };
   readonly typeFilter?: LedgerEntryType[];
@@ -116,14 +116,14 @@ export interface GetCreditLedgerParams {
 
 /** Parameters for querying the billing usage report. */
 export interface GetBillingUsageReportParams {
-  readonly orgId: string;
+  readonly org: string;
   readonly startTime: Date;
   readonly endTime: Date;
 }
 
 /** Parameters for querying customer model pricing. */
 export interface GetCustomerModelPricingParams {
-  readonly orgId?: string;
+  readonly org?: string;
 }
 
 /** Parameters for creating or revising a model registry baseline entry. */
@@ -193,10 +193,10 @@ export class BillingClient {
    * Idempotent: creates the account on first call, returns the
    * existing account on subsequent calls.
    */
-  async getOrCreateBillingAccount(orgId: string): Promise<BillingAccount> {
+  async getOrCreateBillingAccount(org: string): Promise<BillingAccount> {
     try {
       return await this.command.getOrCreateBillingAccount(
-        create(GetOrCreateBillingAccountInputSchema, { orgId }),
+        create(GetOrCreateBillingAccountInputSchema, { org }),
       );
     } catch (e) {
       throw wrapError(e);
@@ -204,10 +204,10 @@ export class BillingClient {
   }
 
   /** Retrieve the billing account for an organization. */
-  async getBillingAccount(orgId: string): Promise<BillingAccount> {
+  async getBillingAccount(org: string): Promise<BillingAccount> {
     try {
       return await this.query.getBillingAccount(
-        create(GetBillingAccountInputSchema, { orgId }),
+        create(GetBillingAccountInputSchema, { org }),
       );
     } catch (e) {
       throw wrapError(e);
@@ -215,10 +215,10 @@ export class BillingClient {
   }
 
   /** Retrieve the credit balance breakdown for an organization. */
-  async getCreditBalance(orgId: string): Promise<CreditBalance> {
+  async getCreditBalance(org: string): Promise<CreditBalance> {
     try {
       return await this.query.getCreditBalance(
-        create(GetCreditBalanceInputSchema, { orgId }),
+        create(GetCreditBalanceInputSchema, { org }),
       );
     } catch (e) {
       throw wrapError(e);
@@ -238,7 +238,7 @@ export class BillingClient {
     try {
       return await this.command.adjustCredits(
         create(AdjustCreditsInputSchema, {
-          orgId: params.orgId,
+          org: params.org,
           amountMicros: params.amountMicros,
           reason: params.reason,
           idempotencyKey: params.idempotencyKey,
@@ -264,7 +264,7 @@ export class BillingClient {
     try {
       return await this.command.grantCredits(
         create(GrantCreditsInputSchema, {
-          orgId: params.orgId,
+          org: params.org,
           amountMicros: params.amountMicros,
           reason: params.reason,
           idempotencyKey: params.idempotencyKey,
@@ -281,7 +281,7 @@ export class BillingClient {
     try {
       return await this.query.getCreditLedger(
         create(GetCreditLedgerInputSchema, {
-          orgId: params.orgId,
+          org: params.org,
           ...(params.page && {
             page: create(PageInfoSchema, {
               num: params.page.num,
@@ -313,7 +313,7 @@ export class BillingClient {
     try {
       return await this.command.createCreditCheckoutSession(
         create(CreateCreditCheckoutSessionInputSchema, {
-          orgId: params.orgId,
+          org: params.org,
           packId: params.packId,
           successUrl: params.successUrl,
           cancelUrl: params.cancelUrl,
@@ -337,7 +337,7 @@ export class BillingClient {
     try {
       return await this.command.createBillingPortalSession(
         create(CreateBillingPortalSessionInputSchema, {
-          orgId: params.orgId,
+          org: params.org,
           returnUrl: params.returnUrl,
         }),
       );
@@ -361,7 +361,7 @@ export class BillingClient {
     try {
       return await this.command.createPaymentMethodSetupSession(
         create(CreatePaymentMethodSetupSessionInputSchema, {
-          orgId: params.orgId,
+          org: params.org,
           successUrl: params.successUrl,
           cancelUrl: params.cancelUrl,
         }),
@@ -384,7 +384,7 @@ export class BillingClient {
     try {
       return await this.command.setAutoRechargeConfig(
         create(SetAutoRechargeConfigInputSchema, {
-          orgId: params.orgId,
+          org: params.org,
           enabled: params.enabled,
           thresholdMicros: params.thresholdMicros,
           rechargeAmountMicros: params.rechargeAmountMicros,
@@ -410,7 +410,7 @@ export class BillingClient {
     try {
       return await this.query.getBillingUsageReport(
         create(GetBillingUsageReportInputSchema, {
-          orgId: params.orgId,
+          org: params.org,
           startTime: timestampFromDate(params.startTime),
           endTime: timestampFromDate(params.endTime),
         }),
@@ -427,7 +427,7 @@ export class BillingClient {
    * the active billing policy markup already factored in. These are
    * the prices the customer pays, organized by harness and cost tier.
    *
-   * Pass `orgId` to resolve org-specific policy overrides (future).
+   * Pass `org` to resolve org-specific policy overrides (future).
    * Omit for default pricing.
    */
   async getCustomerModelPricing(
@@ -436,7 +436,7 @@ export class BillingClient {
     try {
       return await this.query.getCustomerModelPricing(
         create(GetCustomerModelPricingInputSchema, {
-          orgId: params?.orgId ?? "",
+          org: params?.org ?? "",
         }),
       );
     } catch (e) {

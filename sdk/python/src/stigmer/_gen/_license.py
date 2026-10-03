@@ -104,14 +104,14 @@ class LicenseCustomerInput:
     id: str
     display_name: str
     contact_email: str
-    organization: str = ""
+    org: str = ""
 
     def _to_proto(self) -> platform_license_pb2.LicenseCustomer:
         msg = platform_license_pb2.LicenseCustomer(
             id=self.id,
             display_name=self.display_name,
             contact_email=self.contact_email,
-            organization=self.organization,
+            org=self.org,
         )
         return msg
 
@@ -136,13 +136,13 @@ class EntitlementsInput:
 class EntitlementLimitsInput:
     """SDK input type for EntitlementLimits."""
 
-    max_organizations: int = 0
+    max_orgs: int = 0
     max_users: int = 0
     included_managed_organizations: int = 0
 
     def _to_proto(self) -> platform_entitlement_pb2.EntitlementLimits:
         msg = platform_entitlement_pb2.EntitlementLimits(
-            max_organizations=self.max_organizations,
+            max_orgs=self.max_orgs,
             max_users=self.max_users,
             included_managed_organizations=self.included_managed_organizations,
         )

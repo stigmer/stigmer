@@ -30,14 +30,14 @@ describe("failedPreconditionError", () => {
   it("attaches the reason as an ErrorInfo detail and leaves the message as written", () => {
     const error = failedPreconditionError("Teams need the Team plan or above.", {
       reason: "PLAN_UPGRADE_REQUIRED",
-      metadata: { feature: "teams", org_id: "org_1" },
+      metadata: { feature: "teams", org: "org_1" },
     });
 
     expect(error.rawMessage).toBe("Teams need the Team plan or above.");
     const [info] = error.findDetails(ErrorInfoSchema);
     expect(info?.reason).toBe("PLAN_UPGRADE_REQUIRED");
     expect(info?.domain).toBe(ERROR_REASON_DOMAIN);
-    expect(info?.metadata).toEqual({ feature: "teams", org_id: "org_1" });
+    expect(info?.metadata).toEqual({ feature: "teams", org: "org_1" });
   });
 
   it("delivers the detail to a client across a Connect call", async () => {
@@ -46,7 +46,7 @@ describe("failedPreconditionError", () => {
         check: () => {
           throw failedPreconditionError("A saved payment method is required.", {
             reason: "PAYMENT_METHOD_REQUIRED",
-            metadata: { org_id: "org_2" },
+            metadata: { org: "org_2" },
           });
         },
         list: () => ({ statuses: {} }),
@@ -67,6 +67,6 @@ describe("failedPreconditionError", () => {
     const [info] = error.findDetails(ErrorInfoSchema);
     expect(info?.reason).toBe("PAYMENT_METHOD_REQUIRED");
     expect(info?.domain).toBe(ERROR_REASON_DOMAIN);
-    expect(info?.metadata).toEqual({ org_id: "org_2" });
+    expect(info?.metadata).toEqual({ org: "org_2" });
   });
 });

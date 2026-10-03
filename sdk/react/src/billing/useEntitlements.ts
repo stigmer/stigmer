@@ -50,19 +50,19 @@ export interface UseEntitlementsReturn {
  *
  * @example
  * ```tsx
- * const { allows } = useEntitlements(orgId);
+ * const { allows } = useEntitlements(org);
  * if (allows(Feature.teams) === false) return <UpgradeNotice feature={Feature.teams} />;
  * ```
  */
 export function useEntitlements(
-  orgId: string | null,
+  org: string | null,
   options?: UseEntitlementsOptions,
 ): UseEntitlementsReturn {
   const stigmer = useStigmer();
-  const enabled = (options?.enabled ?? true) && orgId !== null && orgId !== "";
+  const enabled = (options?.enabled ?? true) && org !== null && org !== "";
   const { data: entitlements, isLoading, error, refetch } = useFetch(
-    enabled && orgId ? () => stigmer.subscription.getEntitlements(create(GetEntitlementsInputSchema, { orgId })) : null,
-    [enabled, orgId, stigmer],
+    enabled && org ? () => stigmer.subscription.getEntitlements(create(GetEntitlementsInputSchema, { org })) : null,
+    [enabled, org, stigmer],
     null as GetEntitlementsOutput | null,
     { refetchOnWindowFocus: true },
   );

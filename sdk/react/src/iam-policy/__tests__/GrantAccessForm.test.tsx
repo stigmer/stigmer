@@ -64,7 +64,7 @@ function renderForm() {
       resourceKind={ApiResourceKind.agent}
       resourceKindString="agent"
       resourceId="agt_1"
-      orgId="acme"
+      org="acme"
       includeTeams
     />,
   );

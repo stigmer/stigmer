@@ -81,10 +81,10 @@ public interface LicenseCustomerOrBuilder extends
    * none.
    * </pre>
    *
-   * <code>string organization = 4 [json_name = "organization"];</code>
-   * @return The organization.
+   * <code>string org = 4 [json_name = "org"];</code>
+   * @return The org.
    */
-  java.lang.String getOrganization();
+  java.lang.String getOrg();
   /**
    * <pre>
    * The cloud organization this customer also holds, as its slug (the same
@@ -92,9 +92,9 @@ public interface LicenseCustomerOrBuilder extends
    * none.
    * </pre>
    *
-   * <code>string organization = 4 [json_name = "organization"];</code>
-   * @return The bytes for organization.
+   * <code>string org = 4 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrganizationBytes();
+      getOrgBytes();
 }

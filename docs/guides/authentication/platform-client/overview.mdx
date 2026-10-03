@@ -257,7 +257,7 @@ All SDKs return structured errors with actionable messages:
 | `FAILED_PRECONDITION` | User doesn't exist, automatic provisioning off                                           | Enable `auto_provision_accounts` or pre-create the account.                                         |
 | `FAILED_PRECONDITION` | Client secret expired                                                                    | Extend or clear the PlatformClient's expiry in the Console; rotating alone does not extend it.      |
 | `FAILED_PRECONDITION` | The server trusts every request                                                          | Configure sign-in on the server (`STIGMER_OIDC_ISSUER`).                                            |
-| `INVALID_ARGUMENT`    | `org_id` names an Organization other than the PlatformClient's                           | Leave `org_id` empty, or pass the PlatformClient's own Organization.                                |
+| `INVALID_ARGUMENT`    | `org` names an Organization other than the PlatformClient's                              | Leave `org` empty, or pass the PlatformClient's own Organization.                                   |
 | `UNAUTHENTICATED`     | An API call bearing a token whose PlatformClient was deleted                             | Mint a new token from an active PlatformClient.                                                     |
 | `PERMISSION_DENIED`   | A browser API call bearing the minted token came from an origin not in `allowed_origins` | Add the requesting origin to the PlatformClient's `allowed_origins`.                                |
 

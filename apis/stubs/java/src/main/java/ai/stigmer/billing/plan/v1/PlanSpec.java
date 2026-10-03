@@ -17,7 +17,7 @@ package ai.stigmer.billing.plan.v1;
  * The instrument decides which terms a plan may carry, and the two rules
  * below refuse the cross: a license plan is invoiced for a term, so monthly
  * terms have no meaning on it; a subscription plan bills monthly, so an
- * annual price has none. per_extra_organization_micros is bound to the
+ * annual price has none. per_extra_org_micros is bound to the
  * entitlements' managed organizations, not to the instrument, and stays free.
  * </pre>
  *
@@ -431,7 +431,7 @@ private static final long serialVersionUID = 0L;
    * The instrument decides which terms a plan may carry, and the two rules
    * below refuse the cross: a license plan is invoiced for a term, so monthly
    * terms have no meaning on it; a subscription plan bills monthly, so an
-   * annual price has none. per_extra_organization_micros is bound to the
+   * annual price has none. per_extra_org_micros is bound to the
    * entitlements' managed organizations, not to the instrument, and stays free.
    * </pre>
    *

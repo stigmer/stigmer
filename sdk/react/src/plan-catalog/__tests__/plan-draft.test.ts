@@ -51,7 +51,7 @@ describe("planInputFromDraft", () => {
       perExtraOrganizationUsd: "25",
     });
     expect(result.ok && result.input.entitlements.limits).toEqual({ includedManagedOrganizations: 5 });
-    expect(result.ok && result.input.terms?.perExtraOrganizationMicros).toBe(25_000_000n);
+    expect(result.ok && result.input.terms?.perExtraOrgMicros).toBe(25_000_000n);
     const ignored = planInputFromDraft({ ...draft, includedManagedOrganizations: "5" });
     expect(ignored.ok && ignored.input.entitlements.limits).toBeUndefined();
   });

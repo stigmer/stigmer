@@ -15,7 +15,7 @@ export interface UseCreateBillingPortalSessionReturn {
    * portal returns to `redirect.returnUrl` when given, else to the page
    * the person is on.
    */
-  readonly openPortal: (orgId: string) => Promise<void>;
+  readonly openPortal: (org: string) => Promise<void>;
   /** `true` while the portal session is being created. */
   readonly isLoading: boolean;
   /** Error from the last failed attempt, or `null` when healthy. */
@@ -36,7 +36,7 @@ export interface UseCreateBillingPortalSessionReturn {
  * ```tsx
  * const { openPortal, isLoading } = useCreateBillingPortalSession();
  *
- * <button onClick={() => openPortal(orgId)} disabled={isLoading}>
+ * <button onClick={() => openPortal(org)} disabled={isLoading}>
  *   Manage payment methods
  * </button>
  * ```
@@ -53,7 +53,7 @@ export function useCreateBillingPortalSession(
   const clearError = useCallback(() => setError(null), []);
 
   const openPortal = useCallback(
-    async (orgId: string): Promise<void> => {
+    async (org: string): Promise<void> => {
       setIsLoading(true);
       setError(null);
 
@@ -66,7 +66,7 @@ export function useCreateBillingPortalSession(
               : "";
 
         const response = await stigmer.billing.createBillingPortalSession({
-          orgId,
+          org,
           returnUrl,
         });
 

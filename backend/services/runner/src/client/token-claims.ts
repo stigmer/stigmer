@@ -4,7 +4,9 @@
  * The runner never verifies signatures — the server does that. It only needs
  * to look at its own token's `token_type` claim to decide which credential
  * flow applies (e.g. "do I hold an unscoped bootstrap credential that must be
- * exchanged for a scoped one before an ExecutionContext read?"). Claim names
+ * exchanged for a scoped one before an ExecutionContext read?"), and the
+ * attach waiter checks a pushed token's shape and expiry before it starts a
+ * runner with it (`src/attach/push.ts`). Claim names
  * and values mirror the server's single source of truth,
  * `StigmerTokenType` (stigmer-cloud, api-authentication).
  */
@@ -22,6 +24,28 @@ const CLAIM_TOKEN_TYPE = "token_type";
 const CLAIM_SESSION_ID = "session_id";
 
 /**
+ * Decode a JWT's payload without verifying it, or undefined when the token is
+ * absent or not three dot-separated parts with a JSON object payload.
+ */
+function payloadOf(
+  token: string | null | undefined,
+): Record<string, unknown> | undefined {
+  if (!token) return undefined;
+  const parts = token.split(".");
+  if (parts.length !== 3) return undefined;
+  try {
+    const payload: unknown = JSON.parse(
+      Buffer.from(parts[1]!, "base64url").toString("utf8"),
+    );
+    return typeof payload === "object" && payload !== null && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Extract one string claim from a JWT without verifying it.
  *
  * Returns undefined for null/malformed tokens and for tokens without the
@@ -32,18 +56,19 @@ function claimOf(
   token: string | null | undefined,
   claim: string,
 ): string | undefined {
-  if (!token) return undefined;
-  const parts = token.split(".");
-  if (parts.length !== 3) return undefined;
-  try {
-    const payload = JSON.parse(
-      Buffer.from(parts[1]!, "base64url").toString("utf8"),
-    ) as Record<string, unknown>;
-    const value = payload[claim];
-    return typeof value === "string" ? value : undefined;
-  } catch {
-    return undefined;
-  }
+  const value = payloadOf(token)?.[claim];
+  return typeof value === "string" ? value : undefined;
+}
+
+/** Whether the token has a JWT's shape: three parts and a JSON object payload. */
+export function isJwtShaped(token: string | null | undefined): boolean {
+  return payloadOf(token) !== undefined;
+}
+
+/** The `exp` claim in seconds since the epoch, when the token carries a numeric one. */
+export function expiryClaimOf(token: string | null | undefined): number | undefined {
+  const value = payloadOf(token)?.exp;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 /** Extract the `token_type` claim (e.g. a user's Auth0 token has none). */

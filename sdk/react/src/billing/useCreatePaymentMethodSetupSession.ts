@@ -14,7 +14,7 @@ export interface UseCreatePaymentMethodSetupSessionReturn {
    * page can reopen that choice), or without a query when they leave.
    * The saved card becomes the organization's default for every invoice.
    */
-  readonly addPaymentMethod: (orgId: string, planId?: string) => Promise<void>;
+  readonly addPaymentMethod: (org: string, planId?: string) => Promise<void>;
   /** `true` while the setup session is being created. */
   readonly isSubmitting: boolean;
   /** Error from the last failed attempt, or `null` when healthy. */
@@ -41,7 +41,7 @@ export function useCreatePaymentMethodSetupSession(
   const [error, setError] = useState<Error | null>(null);
 
   const addPaymentMethod = useCallback(
-    async (orgId: string, planId?: string): Promise<void> => {
+    async (org: string, planId?: string): Promise<void> => {
       setIsSubmitting(true);
       setError(null);
       try {
@@ -51,7 +51,7 @@ export function useCreatePaymentMethodSetupSession(
           success.set("plan", planId);
         }
         const response = await stigmer.billing.createPaymentMethodSetupSession({
-          orgId,
+          org,
           successUrl: `${billingPage}?${success.toString()}`,
           cancelUrl: billingPage,
         });

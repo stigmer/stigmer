@@ -10,7 +10,7 @@ import { useSetAutoRechargeConfig } from "./useSetAutoRechargeConfig.js";
 /** Props for {@link AutoRechargeCard}. */
 export interface AutoRechargeCardProps {
   /** Organization ID. */
-  readonly orgId: string;
+  readonly org: string;
   /** Current auto-recharge configuration from the billing account. */
   readonly autoRecharge?: AutoRechargeConfig;
   /** Whether the account has a saved payment method. */
@@ -48,7 +48,7 @@ function dollarsToMicros(value: string): bigint {
  * @example
  * ```tsx
  * <AutoRechargeCard
- *   orgId={orgId}
+ *   org={org}
  *   autoRecharge={account.autoRecharge}
  *   hasPaymentMethod={!!account.defaultPaymentMethod?.paymentMethodId}
  *   accountStatus={account.status}
@@ -57,7 +57,7 @@ function dollarsToMicros(value: string): bigint {
  * ```
  */
 export function AutoRechargeCard({
-  orgId,
+  org,
   autoRecharge,
   hasPaymentMethod,
   accountStatus,
@@ -106,7 +106,7 @@ export function AutoRechargeCard({
 
     try {
       await setConfig({
-        orgId,
+        org,
         enabled,
         thresholdMicros: dollarsToMicros(threshold),
         rechargeAmountMicros: dollarsToMicros(amount),
@@ -118,7 +118,7 @@ export function AutoRechargeCard({
     } catch {
       // error state is managed by the hook
     }
-  }, [orgId, enabled, threshold, amount, cap, setConfig, clearError, onSaved]);
+  }, [org, enabled, threshold, amount, cap, setConfig, clearError, onSaved]);
 
   return (
     <div

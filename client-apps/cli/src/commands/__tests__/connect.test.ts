@@ -82,15 +82,15 @@ let savedApiKey: string | undefined;
 
 beforeEach(() => {
   configOverride = undefined;
-  savedOrg = process.env.STIGMER_ORG_ID;
+  savedOrg = process.env.STIGMER_ORG;
   savedApiKey = process.env.STIGMER_API_KEY;
-  delete process.env.STIGMER_ORG_ID;
+  delete process.env.STIGMER_ORG;
   delete process.env.STIGMER_API_KEY;
 });
 
 afterEach(() => {
-  if (savedOrg === undefined) delete process.env.STIGMER_ORG_ID;
-  else process.env.STIGMER_ORG_ID = savedOrg;
+  if (savedOrg === undefined) delete process.env.STIGMER_ORG;
+  else process.env.STIGMER_ORG = savedOrg;
   if (savedApiKey === undefined) delete process.env.STIGMER_API_KEY;
   else process.env.STIGMER_API_KEY = savedApiKey;
 });

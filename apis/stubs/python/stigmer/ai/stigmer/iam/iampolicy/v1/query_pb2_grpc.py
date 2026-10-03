@@ -201,7 +201,7 @@ class IamPolicyQueryControllerServicer(object):
         - Organization members count badge in navigation
         - Settings page member summary
 
-        Input: GetPrincipalsCountInput with org_id and principal_kind
+        Input: GetPrincipalsCountInput with org and principal_kind
         Output: PrincipalsCount with integer count
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)

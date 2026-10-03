@@ -597,8 +597,8 @@ export async function getAgentUsageReport(
         if (ctx.input.agentId === "") {
           throw invalidArgumentError("agent_id is required");
         }
-        if (ctx.input.orgId === "") {
-          throw invalidArgumentError("org_id is required");
+        if (ctx.input.org === "") {
+          throw invalidArgumentError("org is required");
         }
       },
     })
@@ -606,7 +606,7 @@ export async function getAgentUsageReport(
       name: "LoadAgentExecutions",
       async execute(ctx) {
         const all = await loadAllAgentExecutions(deps.store, deps.logger);
-        let filtered = filterByOrg(all, ctx.input.orgId);
+        let filtered = filterByOrg(all, ctx.input.org);
         filtered = filterByAgentId(filtered, ctx.input.agentId);
         filtered = filterByDateRange(
           filtered,
@@ -615,7 +615,7 @@ export async function getAgentUsageReport(
         );
         deps.logger.debug("Loaded executions for agent usage report", {
           agentId: ctx.input.agentId,
-          orgId: ctx.input.orgId,
+          orgId: ctx.input.org,
           count: filtered.length,
         });
         ctx.set(EXECUTION_LIST_KEY, filtered);
@@ -699,8 +699,8 @@ export async function getOrgUsageReport(
     .addStep({
       name: "ValidateOrgUsageReport",
       execute(ctx) {
-        if (ctx.input.orgId === "") {
-          throw invalidArgumentError("org_id is required");
+        if (ctx.input.org === "") {
+          throw invalidArgumentError("org is required");
         }
         if (ctx.input.fromDate === "") {
           throw invalidArgumentError("from_date is required");
@@ -714,14 +714,14 @@ export async function getOrgUsageReport(
       name: "LoadOrgExecutions",
       async execute(ctx) {
         const all = await loadAllAgentExecutions(deps.store, deps.logger);
-        let filtered = filterByOrg(all, ctx.input.orgId);
+        let filtered = filterByOrg(all, ctx.input.org);
         filtered = filterByDateRange(
           filtered,
           ctx.input.fromDate,
           ctx.input.toDate,
         );
         deps.logger.debug("Loaded executions for org usage report", {
-          orgId: ctx.input.orgId,
+          orgId: ctx.input.org,
           count: filtered.length,
         });
         ctx.set(EXECUTION_LIST_KEY, filtered);
@@ -745,7 +745,7 @@ export async function getOrgUsageReport(
         ctx.set(
           ORG_USAGE_REPORT_KEY,
           create(GetOrgUsageReportOutputSchema, {
-            orgId: ctx.input.orgId,
+            org: ctx.input.org,
             totalAgents: distinctAgentIds(executions).length,
             totalSessions: distinctSessionIds(executions).length,
             totalExecutions: executions.length,

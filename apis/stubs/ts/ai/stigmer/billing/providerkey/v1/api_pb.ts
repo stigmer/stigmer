@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/providerkey/v1/api.proto.
  */
 export const file_ai_stigmer_billing_providerkey_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEilgIKC1Byb3ZpZGVyS2V5Eg4KBm9yZ19pZBgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIQCghrZXlfaGludBgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGaW5fdXNlGAggASgIEh0KFWluaGVyaXRlZF9mcm9tX29yZ19pZBgJIAEoCWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEikAIKC1Byb3ZpZGVyS2V5EgsKA29yZxgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIQCghrZXlfaGludBgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGaW5fdXNlGAggASgIEhoKEmluaGVyaXRlZF9mcm9tX29yZxgJIAEoCWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * An organization's own LLM provider key, as every caller sees it: the key
@@ -33,9 +33,9 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
   /**
    * The organization the key serves.
    *
-   * @generated from field: string org_id = 1;
+   * @generated from field: string org = 1;
    */
-  orgId: string;
+  org: string;
 
   /**
    * The provider the key is for: "anthropic" or "openai", the proxy's own
@@ -93,9 +93,9 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
    * managed organization because it holds none of its own for the provider.
    * Such a row is read-only here; it is managed on the integrator.
    *
-   * @generated from field: string inherited_from_org_id = 9;
+   * @generated from field: string inherited_from_org = 9;
    */
-  inheritedFromOrgId: string;
+  inheritedFromOrg: string;
 };
 
 /**

@@ -80,14 +80,14 @@ export function resolveToken(config: Config): string {
 
 /**
  * Resolve the active organization.
- *   --org flag override > STIGMER_ORG_ID env > context.organization
+ *   --org flag override > STIGMER_ORG env > context.org
  *   > the active entry's org_id (legacy fallback)
  */
 export function resolveOrganization(config: Config, flagOrg?: string): string {
   if (flagOrg !== undefined && flagOrg !== "") {
     return flagOrg;
   }
-  const env = process.env.STIGMER_ORG_ID;
+  const env = process.env.STIGMER_ORG;
   if (env !== undefined && env !== "") {
     return env;
   }
@@ -140,10 +140,10 @@ export function resolveConsoleURL(
  */
 export function resolveContextOrganization(config: Config): string {
   if (
-    config.context?.organization !== undefined &&
-    config.context.organization !== ""
+    config.context?.org !== undefined &&
+    config.context.org !== ""
   ) {
-    return config.context.organization;
+    return config.context.org;
   }
   return activeBackend(config).entry?.org_id ?? "";
 }

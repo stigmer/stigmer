@@ -26,7 +26,7 @@ const (
 // that provider.
 type SetProviderKeyInput struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
-	OrgId    string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org      string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	Provider string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
 	// The provider API key. Write-only: no read returns it.
 	ApiKey        string `protobuf:"bytes,3,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
@@ -64,9 +64,9 @@ func (*SetProviderKeyInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_providerkey_v1_io_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *SetProviderKeyInput) GetOrgId() string {
+func (x *SetProviderKeyInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -88,7 +88,7 @@ func (x *SetProviderKeyInput) GetApiKey() string {
 // Remove the organization's key for a provider.
 type DeleteProviderKeyInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	Provider      string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -124,9 +124,9 @@ func (*DeleteProviderKeyInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_providerkey_v1_io_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *DeleteProviderKeyInput) GetOrgId() string {
+func (x *DeleteProviderKeyInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -141,7 +141,7 @@ func (x *DeleteProviderKeyInput) GetProvider() string {
 // List the organization's provider keys.
 type ListProviderKeysInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -176,9 +176,9 @@ func (*ListProviderKeysInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_providerkey_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ListProviderKeysInput) GetOrgId() string {
+func (x *ListProviderKeysInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -233,17 +233,17 @@ var File_ai_stigmer_billing_providerkey_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_providerkey_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/billing/providerkey/v1/io.proto\x12!ai.stigmer.billing.providerkey.v1\x1a+ai/stigmer/billing/providerkey/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"\x90\x01\n" +
-	"\x13SetProviderKeyInput\x12\x1e\n" +
-	"\x06org_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05orgId\x124\n" +
+	"*ai/stigmer/billing/providerkey/v1/io.proto\x12!ai.stigmer.billing.providerkey.v1\x1a+ai/stigmer/billing/providerkey/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"\x8b\x01\n" +
+	"\x13SetProviderKeyInput\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x124\n" +
 	"\bprovider\x18\x02 \x01(\tB\x18\xbaH\x15r\x13R\tanthropicR\x06openaiR\bprovider\x12#\n" +
 	"\aapi_key\x18\x03 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\b\x18\x80\x04R\x06apiKey\"n\n" +
-	"\x16DeleteProviderKeyInput\x12\x1e\n" +
-	"\x06org_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05orgId\x124\n" +
-	"\bprovider\x18\x02 \x01(\tB\x18\xbaH\x15r\x13R\tanthropicR\x06openaiR\bprovider\"7\n" +
-	"\x15ListProviderKeysInput\x12\x1e\n" +
-	"\x06org_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05orgId\"\\\n" +
+	"\xbaH\ar\x05\x10\b\x18\x80\x04R\x06apiKey\"i\n" +
+	"\x16DeleteProviderKeyInput\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x124\n" +
+	"\bprovider\x18\x02 \x01(\tB\x18\xbaH\x15r\x13R\tanthropicR\x06openaiR\bprovider\"2\n" +
+	"\x15ListProviderKeysInput\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\\\n" +
 	"\x16ListProviderKeysOutput\x12B\n" +
 	"\x04keys\x18\x01 \x03(\v2..ai.stigmer.billing.providerkey.v1.ProviderKeyR\x04keysB\xb5\x02\n" +
 	"%com.ai.stigmer.billing.providerkey.v1B\aIoProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"

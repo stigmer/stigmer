@@ -136,8 +136,8 @@ export function IdentityProviderDetailPanel({
       clearError();
       try {
         // Full-spec-replace safety: spread the complete mapped input and
-        // override only the edited fields, so unlisted spec fields (e.g.
-        // rate_limit_budget) survive the save. Fields the form clears
+        // override only the edited fields, so a spec field the form does
+        // not list survives the save. Fields the form clears
         // (SSO providers have no JIT settings) are set to undefined
         // explicitly — omitting them would carry the stale mapped value.
         const updated = await update({

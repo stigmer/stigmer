@@ -7,17 +7,17 @@ package ai.stigmer.billing.subscription.v1;
 
 /**
  * <pre>
- * GetSubscriptionForOrganizationInput names the organization whose
+ * GetSubscriptionForOrgInput names the organization whose
  * subscription is read.
  * </pre>
  *
- * Protobuf type {@code ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput}
+ * Protobuf type {@code ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput}
  */
 @com.google.protobuf.Generated
-public final class GetSubscriptionForOrganizationInput extends
+public final class GetSubscriptionForOrgInput extends
     com.google.protobuf.GeneratedMessage implements
-    // @@protoc_insertion_point(message_implements:ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput)
-    GetSubscriptionForOrganizationInputOrBuilder {
+    // @@protoc_insertion_point(message_implements:ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput)
+    GetSubscriptionForOrgInputOrBuilder {
 private static final long serialVersionUID = 0L;
   static {
     com.google.protobuf.RuntimeVersion.validateProtobufGencodeVersion(
@@ -26,55 +26,55 @@ private static final long serialVersionUID = 0L;
       /* minor= */ 34,
       /* patch= */ 0,
       /* suffix= */ "",
-      "GetSubscriptionForOrganizationInput");
+      "GetSubscriptionForOrgInput");
   }
-  // Use GetSubscriptionForOrganizationInput.newBuilder() to construct.
-  private GetSubscriptionForOrganizationInput(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+  // Use GetSubscriptionForOrgInput.newBuilder() to construct.
+  private GetSubscriptionForOrgInput(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
     super(builder);
   }
-  private GetSubscriptionForOrganizationInput() {
-    orgId_ = "";
+  private GetSubscriptionForOrgInput() {
+    org_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrganizationInput_descriptor;
+    return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrgInput_descriptor;
   }
 
   @java.lang.Override
   public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-    return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrganizationInput_descriptor;
+    return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrgInput_descriptor;
   }
 
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrganizationInput_fieldAccessorTable
+    return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrgInput_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
-            ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput.class, ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput.Builder.class);
+            ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput.class, ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput.Builder.class);
   }
 
-  public static final int ORG_ID_FIELD_NUMBER = 1;
+  public static final int ORG_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object orgId_ = "";
+  private volatile java.lang.Object org_ = "";
   /**
    * <pre>
    * The organization's id.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-   * @return The orgId.
+   * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
    */
   @java.lang.Override
-  public java.lang.String getOrgId() {
-    java.lang.Object ref = orgId_;
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      orgId_ = s;
+      org_ = s;
       return s;
     }
   }
@@ -83,18 +83,18 @@ private static final long serialVersionUID = 0L;
    * The organization's id.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for orgId.
+   * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrgIdBytes() {
-    java.lang.Object ref = orgId_;
+      getOrgBytes() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      orgId_ = b;
+      org_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -115,8 +115,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, org_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -127,8 +127,8 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, org_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -140,13 +140,13 @@ private static final long serialVersionUID = 0L;
     if (obj == this) {
      return true;
     }
-    if (!(obj instanceof ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput)) {
+    if (!(obj instanceof ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput)) {
       return super.equals(obj);
     }
-    ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput other = (ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput) obj;
+    ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput other = (ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput) obj;
 
-    if (!getOrgId()
-        .equals(other.getOrgId())) return false;
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -158,51 +158,51 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + ORG_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getOrgId().hashCode();
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
   }
 
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseFrom(
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseFrom(
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseFrom(
       java.nio.ByteBuffer data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseFrom(
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseFrom(
       com.google.protobuf.ByteString data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseFrom(
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseFrom(
       com.google.protobuf.ByteString data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseFrom(byte[] data)
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseFrom(byte[] data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseFrom(
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseFrom(
       byte[] data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseFrom(java.io.InputStream input)
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseFrom(
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -210,26 +210,26 @@ private static final long serialVersionUID = 0L;
         .parseWithIOException(PARSER, input, extensionRegistry);
   }
 
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseDelimitedFrom(java.io.InputStream input)
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseDelimitedFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input);
   }
 
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseDelimitedFrom(
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseDelimitedFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
   }
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseFrom(
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseFrom(
       com.google.protobuf.CodedInputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput parseFrom(
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput parseFrom(
       com.google.protobuf.CodedInputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -242,7 +242,7 @@ private static final long serialVersionUID = 0L;
   public static Builder newBuilder() {
     return DEFAULT_INSTANCE.toBuilder();
   }
-  public static Builder newBuilder(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput prototype) {
+  public static Builder newBuilder(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput prototype) {
     return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
   }
   @java.lang.Override
@@ -259,30 +259,30 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetSubscriptionForOrganizationInput names the organization whose
+   * GetSubscriptionForOrgInput names the organization whose
    * subscription is read.
    * </pre>
    *
-   * Protobuf type {@code ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput}
+   * Protobuf type {@code ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput)
-      ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInputOrBuilder {
+      // @@protoc_insertion_point(builder_implements:ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput)
+      ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInputOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrganizationInput_descriptor;
+      return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrgInput_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrganizationInput_fieldAccessorTable
+      return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrgInput_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput.class, ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput.Builder.class);
+              ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput.class, ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput.Builder.class);
     }
 
-    // Construct using ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput.newBuilder()
+    // Construct using ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput.newBuilder()
     private Builder() {
 
     }
@@ -296,24 +296,24 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      orgId_ = "";
+      org_ = "";
       return this;
     }
 
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrganizationInput_descriptor;
+      return ai.stigmer.billing.subscription.v1.IoProto.internal_static_ai_stigmer_billing_subscription_v1_GetSubscriptionForOrgInput_descriptor;
     }
 
     @java.lang.Override
-    public ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput getDefaultInstanceForType() {
-      return ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput.getDefaultInstance();
+    public ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput getDefaultInstanceForType() {
+      return ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput.getDefaultInstance();
     }
 
     @java.lang.Override
-    public ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput build() {
-      ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput result = buildPartial();
+    public ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput build() {
+      ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput result = buildPartial();
       if (!result.isInitialized()) {
         throw newUninitializedMessageException(result);
       }
@@ -321,34 +321,34 @@ private static final long serialVersionUID = 0L;
     }
 
     @java.lang.Override
-    public ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput buildPartial() {
-      ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput result = new ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput(this);
+    public ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput buildPartial() {
+      ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput result = new ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput(this);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
     }
 
-    private void buildPartial0(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput result) {
+    private void buildPartial0(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.orgId_ = orgId_;
+        result.org_ = org_;
       }
     }
 
     @java.lang.Override
     public Builder mergeFrom(com.google.protobuf.Message other) {
-      if (other instanceof ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput) {
-        return mergeFrom((ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput)other);
+      if (other instanceof ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput) {
+        return mergeFrom((ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput)other);
       } else {
         super.mergeFrom(other);
         return this;
       }
     }
 
-    public Builder mergeFrom(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput other) {
-      if (other == ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput.getDefaultInstance()) return this;
-      if (!other.getOrgId().isEmpty()) {
-        orgId_ = other.orgId_;
+    public Builder mergeFrom(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput other) {
+      if (other == ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput.getDefaultInstance()) return this;
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
@@ -379,7 +379,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              orgId_ = input.readStringRequireUtf8();
+              org_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
@@ -400,22 +400,22 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object orgId_ = "";
+    private java.lang.Object org_ = "";
     /**
      * <pre>
      * The organization's id.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-     * @return The orgId.
+     * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @return The org.
      */
-    public java.lang.String getOrgId() {
-      java.lang.Object ref = orgId_;
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        orgId_ = s;
+        org_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -426,17 +426,17 @@ private static final long serialVersionUID = 0L;
      * The organization's id.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for orgId.
+     * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for org.
      */
     public com.google.protobuf.ByteString
-        getOrgIdBytes() {
-      java.lang.Object ref = orgId_;
+        getOrgBytes() {
+      java.lang.Object ref = org_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        orgId_ = b;
+        org_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -447,14 +447,14 @@ private static final long serialVersionUID = 0L;
      * The organization's id.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-     * @param value The orgId to set.
+     * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @param value The org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgId(
+    public Builder setOrg(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
@@ -464,11 +464,11 @@ private static final long serialVersionUID = 0L;
      * The organization's id.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
+     * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrgId() {
-      orgId_ = getDefaultInstance().getOrgId();
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
@@ -478,37 +478,37 @@ private static final long serialVersionUID = 0L;
      * The organization's id.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for orgId to set.
+     * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgIdBytes(
+    public Builder setOrgBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
 
-    // @@protoc_insertion_point(builder_scope:ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput)
+    // @@protoc_insertion_point(builder_scope:ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput)
   }
 
-  // @@protoc_insertion_point(class_scope:ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput)
-  private static final ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput DEFAULT_INSTANCE;
+  // @@protoc_insertion_point(class_scope:ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput)
+  private static final ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput DEFAULT_INSTANCE;
   static {
-    DEFAULT_INSTANCE = new ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput();
+    DEFAULT_INSTANCE = new ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput();
   }
 
-  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput getDefaultInstance() {
+  public static ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput getDefaultInstance() {
     return DEFAULT_INSTANCE;
   }
 
-  private static final com.google.protobuf.Parser<GetSubscriptionForOrganizationInput>
-      PARSER = new com.google.protobuf.AbstractParser<GetSubscriptionForOrganizationInput>() {
+  private static final com.google.protobuf.Parser<GetSubscriptionForOrgInput>
+      PARSER = new com.google.protobuf.AbstractParser<GetSubscriptionForOrgInput>() {
     @java.lang.Override
-    public GetSubscriptionForOrganizationInput parsePartialFrom(
+    public GetSubscriptionForOrgInput parsePartialFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -527,17 +527,17 @@ private static final long serialVersionUID = 0L;
     }
   };
 
-  public static com.google.protobuf.Parser<GetSubscriptionForOrganizationInput> parser() {
+  public static com.google.protobuf.Parser<GetSubscriptionForOrgInput> parser() {
     return PARSER;
   }
 
   @java.lang.Override
-  public com.google.protobuf.Parser<GetSubscriptionForOrganizationInput> getParserForType() {
+  public com.google.protobuf.Parser<GetSubscriptionForOrgInput> getParserForType() {
     return PARSER;
   }
 
   @java.lang.Override
-  public ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput getDefaultInstanceForType() {
+  public ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput getDefaultInstanceForType() {
     return DEFAULT_INSTANCE;
   }
 

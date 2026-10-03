@@ -42,7 +42,7 @@ private static final long serialVersionUID = 0L;
     refreshTokenEnvVar_ = "";
     environmentId_ = "";
     resourceKind_ = "";
-    orgId_ = "";
+    org_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -117,7 +117,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * System-generated ID (metadata.id) of the API resource this grant
    * provides OAuth tokens for. Part of the composite key:
-   * (identity_account_id, resource_id, org_id).
+   * (identity_account_id, resource_id, org).
    * </pre>
    *
    * <code>string resource_id = 2 [json_name = "resourceId"];</code>
@@ -140,7 +140,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * System-generated ID (metadata.id) of the API resource this grant
    * provides OAuth tokens for. Part of the composite key:
-   * (identity_account_id, resource_id, org_id).
+   * (identity_account_id, resource_id, org).
    * </pre>
    *
    * <code>string resource_id = 2 [json_name = "resourceId"];</code>
@@ -529,51 +529,51 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int ORG_ID_FIELD_NUMBER = 11;
+  public static final int ORG_FIELD_NUMBER = 11;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object orgId_ = "";
+  private volatile java.lang.Object org_ = "";
   /**
    * <pre>
    * Organization context for this grant. Part of the composite key:
-   * (identity_account_id, resource_id, org_id). Enables the same user to
+   * (identity_account_id, resource_id, org). Enables the same user to
    * maintain separate OAuth connections for a shared resource across orgs.
    * </pre>
    *
-   * <code>string org_id = 11 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 11 [json_name = "org"];</code>
+   * @return The org.
    */
   @java.lang.Override
-  public java.lang.String getOrgId() {
-    java.lang.Object ref = orgId_;
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      orgId_ = s;
+      org_ = s;
       return s;
     }
   }
   /**
    * <pre>
    * Organization context for this grant. Part of the composite key:
-   * (identity_account_id, resource_id, org_id). Enables the same user to
+   * (identity_account_id, resource_id, org). Enables the same user to
    * maintain separate OAuth connections for a shared resource across orgs.
    * </pre>
    *
-   * <code>string org_id = 11 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 11 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrgIdBytes() {
-    java.lang.Object ref = orgId_;
+      getOrgBytes() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      orgId_ = b;
+      org_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -624,8 +624,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(resourceKind_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 10, resourceKind_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 11, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 11, org_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -667,8 +667,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(resourceKind_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(10, resourceKind_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(11, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(11, org_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -705,8 +705,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getEnvironmentId())) return false;
     if (!getResourceKind()
         .equals(other.getResourceKind())) return false;
-    if (!getOrgId()
-        .equals(other.getOrgId())) return false;
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -739,8 +739,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getEnvironmentId().hashCode();
     hash = (37 * hash) + RESOURCE_KIND_FIELD_NUMBER;
     hash = (53 * hash) + getResourceKind().hashCode();
-    hash = (37 * hash) + ORG_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getOrgId().hashCode();
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -887,7 +887,7 @@ private static final long serialVersionUID = 0L;
       refreshTokenEnvVar_ = "";
       environmentId_ = "";
       resourceKind_ = "";
-      orgId_ = "";
+      org_ = "";
       return this;
     }
 
@@ -952,7 +952,7 @@ private static final long serialVersionUID = 0L;
         result.resourceKind_ = resourceKind_;
       }
       if (((from_bitField0_ & 0x00000400) != 0)) {
-        result.orgId_ = orgId_;
+        result.org_ = org_;
       }
     }
 
@@ -1016,8 +1016,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000200;
         onChanged();
       }
-      if (!other.getOrgId().isEmpty()) {
-        orgId_ = other.orgId_;
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
         bitField0_ |= 0x00000400;
         onChanged();
       }
@@ -1098,7 +1098,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 82
             case 90: {
-              orgId_ = input.readStringRequireUtf8();
+              org_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000400;
               break;
             } // case 90
@@ -1216,7 +1216,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-generated ID (metadata.id) of the API resource this grant
      * provides OAuth tokens for. Part of the composite key:
-     * (identity_account_id, resource_id, org_id).
+     * (identity_account_id, resource_id, org).
      * </pre>
      *
      * <code>string resource_id = 2 [json_name = "resourceId"];</code>
@@ -1238,7 +1238,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-generated ID (metadata.id) of the API resource this grant
      * provides OAuth tokens for. Part of the composite key:
-     * (identity_account_id, resource_id, org_id).
+     * (identity_account_id, resource_id, org).
      * </pre>
      *
      * <code>string resource_id = 2 [json_name = "resourceId"];</code>
@@ -1261,7 +1261,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-generated ID (metadata.id) of the API resource this grant
      * provides OAuth tokens for. Part of the composite key:
-     * (identity_account_id, resource_id, org_id).
+     * (identity_account_id, resource_id, org).
      * </pre>
      *
      * <code>string resource_id = 2 [json_name = "resourceId"];</code>
@@ -1280,7 +1280,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-generated ID (metadata.id) of the API resource this grant
      * provides OAuth tokens for. Part of the composite key:
-     * (identity_account_id, resource_id, org_id).
+     * (identity_account_id, resource_id, org).
      * </pre>
      *
      * <code>string resource_id = 2 [json_name = "resourceId"];</code>
@@ -1296,7 +1296,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * System-generated ID (metadata.id) of the API resource this grant
      * provides OAuth tokens for. Part of the composite key:
-     * (identity_account_id, resource_id, org_id).
+     * (identity_account_id, resource_id, org).
      * </pre>
      *
      * <code>string resource_id = 2 [json_name = "resourceId"];</code>
@@ -2062,24 +2062,24 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object orgId_ = "";
+    private java.lang.Object org_ = "";
     /**
      * <pre>
      * Organization context for this grant. Part of the composite key:
-     * (identity_account_id, resource_id, org_id). Enables the same user to
+     * (identity_account_id, resource_id, org). Enables the same user to
      * maintain separate OAuth connections for a shared resource across orgs.
      * </pre>
      *
-     * <code>string org_id = 11 [json_name = "orgId"];</code>
-     * @return The orgId.
+     * <code>string org = 11 [json_name = "org"];</code>
+     * @return The org.
      */
-    public java.lang.String getOrgId() {
-      java.lang.Object ref = orgId_;
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        orgId_ = s;
+        org_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -2088,21 +2088,21 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization context for this grant. Part of the composite key:
-     * (identity_account_id, resource_id, org_id). Enables the same user to
+     * (identity_account_id, resource_id, org). Enables the same user to
      * maintain separate OAuth connections for a shared resource across orgs.
      * </pre>
      *
-     * <code>string org_id = 11 [json_name = "orgId"];</code>
-     * @return The bytes for orgId.
+     * <code>string org = 11 [json_name = "org"];</code>
+     * @return The bytes for org.
      */
     public com.google.protobuf.ByteString
-        getOrgIdBytes() {
-      java.lang.Object ref = orgId_;
+        getOrgBytes() {
+      java.lang.Object ref = org_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        orgId_ = b;
+        org_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -2111,18 +2111,18 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization context for this grant. Part of the composite key:
-     * (identity_account_id, resource_id, org_id). Enables the same user to
+     * (identity_account_id, resource_id, org). Enables the same user to
      * maintain separate OAuth connections for a shared resource across orgs.
      * </pre>
      *
-     * <code>string org_id = 11 [json_name = "orgId"];</code>
-     * @param value The orgId to set.
+     * <code>string org = 11 [json_name = "org"];</code>
+     * @param value The org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgId(
+    public Builder setOrg(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000400;
       onChanged();
       return this;
@@ -2130,15 +2130,15 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization context for this grant. Part of the composite key:
-     * (identity_account_id, resource_id, org_id). Enables the same user to
+     * (identity_account_id, resource_id, org). Enables the same user to
      * maintain separate OAuth connections for a shared resource across orgs.
      * </pre>
      *
-     * <code>string org_id = 11 [json_name = "orgId"];</code>
+     * <code>string org = 11 [json_name = "org"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrgId() {
-      orgId_ = getDefaultInstance().getOrgId();
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
       bitField0_ = (bitField0_ & ~0x00000400);
       onChanged();
       return this;
@@ -2146,19 +2146,19 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization context for this grant. Part of the composite key:
-     * (identity_account_id, resource_id, org_id). Enables the same user to
+     * (identity_account_id, resource_id, org). Enables the same user to
      * maintain separate OAuth connections for a shared resource across orgs.
      * </pre>
      *
-     * <code>string org_id = 11 [json_name = "orgId"];</code>
-     * @param value The bytes for orgId to set.
+     * <code>string org = 11 [json_name = "org"];</code>
+     * @param value The bytes for org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgIdBytes(
+    public Builder setOrgBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000400;
       onChanged();
       return this;

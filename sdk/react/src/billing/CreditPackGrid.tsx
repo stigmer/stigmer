@@ -34,7 +34,7 @@ export interface CreditPackGridProps {
  * <CreditPackGrid
  *   accountStatus={account.status}
  *   purchasingPackId={isSubmitting ? activePackId : null}
- *   onPurchase={(packId) => createSession({ orgId, packId, ... })}
+ *   onPurchase={(packId) => createSession({ org, packId, ... })}
  * />
  * ```
  */

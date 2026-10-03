@@ -19,7 +19,7 @@ service ProviderKeyQueryController {
   rpc list(ListProviderKeysInput) returns (ListProviderKeysOutput) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view provider keys for this organization";
   }
 }

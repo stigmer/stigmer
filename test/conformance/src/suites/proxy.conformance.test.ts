@@ -122,7 +122,7 @@ function anthropicCall(executionId: string, body: Record<string, unknown> = {}, 
 
 async function usageReport(org: string) {
   return clients.billingQuery.getBillingUsageReport({
-    orgId: org,
+    org,
     startTime: timestampFromDate(new Date(Date.now() - 3600_000)),
     endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
   });

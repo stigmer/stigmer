@@ -250,13 +250,13 @@ The customer a license is issued to, carried as a value inside the license.
     id: { type: "string", description: "Identifier the issuer minted for this customer, stable across every license issued to them.", required: true },
     displayName: { type: "string", description: "The customer's name as the licensed server shows it (\"licensed to Acme\").", required: true },
     contactEmail: { type: "string", description: "The address renewal and expiry notices go to.", required: true },
-    organization: { type: "string", description: "The cloud organization this customer also holds, as its slug (the same value a resource's metadata.org carries)." },
+    org: { type: "string", description: "The cloud organization this customer also holds, as its slug (the same value a resource's metadata.org carries)." },
   }}
 />
 
 ### EntitlementsInput
 
-What the platform permits a tenant: a set of limits and a set of features.
+What an edition permits its customer: a set of limits and a set of features.
 
 <TypeTable
   type={{
@@ -271,8 +271,8 @@ The numeric limits an entitlement carries.
 
 <TypeTable
   type={{
-    maxOrganizations: { type: "number", description: "The most organizations the tenant may hold at once." },
-    maxUsers: { type: "number", description: "The most identity accounts the tenant may hold at once." },
+    maxOrgs: { type: "number", description: "The most organizations the customer may hold at once." },
+    maxUsers: { type: "number", description: "The most identity accounts the customer may hold at once." },
     includedManagedOrganizations: { type: "number", description: "The platform-managed organizations a subscription includes before the per-organization fee applies." },
   }}
 />
@@ -340,8 +340,8 @@ A capability an entitlement can unlock.
 | Value | Description |
 |-------|-------------|
 | `sso_enforcement` | Enforcing sign-in through a registered identity provider, so members cannot use another login. |
-| `platform_client` | Gates nothing: every edition serves PlatformClient credentials to every tenant, so a plan or license that lists it grants nothing more. |
-| `byo_provider_keys` | Bringing the tenant's own LLM provider keys instead of the platform's metered proxy credentials. |
+| `platform_client` | Gates nothing: every edition serves PlatformClient credentials to every customer, so a plan or license that lists it grants nothing more. |
+| `byo_provider_keys` | Bringing the customer's own LLM provider keys instead of the platform's metered proxy credentials. |
 | `channels` | Delivering agents over messaging channels (Slack, WhatsApp) through a channel runtime. |
 | `sharing` | Sharing an agent through hosted share links, with the sharing organization's members or with anyone who has the link. |
 | `teams` | Creating teams and adding members to them. |

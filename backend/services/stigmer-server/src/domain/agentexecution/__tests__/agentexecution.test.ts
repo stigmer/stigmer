@@ -541,7 +541,7 @@ describe("usage reports over the wire", () => {
 
     const orgA = await query.getAgentUsageReport({
       agentId: "agt_scoped",
-      orgId: "org-a",
+      org: "org-a",
     });
     expect(orgA.totalExecutions).toBe(2);
     expect(orgA.totalSessions).toBe(2);
@@ -553,7 +553,7 @@ describe("usage reports over the wire", () => {
 
     const orgB = await query.getAgentUsageReport({
       agentId: "agt_scoped",
-      orgId: "org-b",
+      org: "org-b",
     });
     expect(orgB.totalExecutions).toBe(1);
   });
@@ -577,28 +577,28 @@ describe("usage reports over the wire", () => {
 
     const used = await query.getAgentUsageReport({
       agentId: "agt_named",
-      orgId: "org-a",
+      org: "org-a",
     });
     expect(used.agentName).toBe("PR Reviewer");
 
     const unused = await query.getAgentUsageReport({
       agentId: "agt_named",
-      orgId: "org-never-used",
+      org: "org-never-used",
     });
     expect(unused.agentName, "the raw id, not the name").toBe("agt_named");
   });
 
-  it("the scope-field refusals: agent report without org_id, org report without dates", async () => {
+  it("the scope-field refusals: agent report without org, org report without dates", async () => {
     await expectCode(
       () => query.getAgentUsageReport({ agentId: "agt_x" }),
       Code.InvalidArgument,
     );
     await expectCode(
-      () => query.getAgentUsageReport({ orgId: "org-a" }),
+      () => query.getAgentUsageReport({ org: "org-a" }),
       Code.InvalidArgument,
     );
     await expectCode(
-      () => query.getOrgUsageReport({ orgId: "org-a" }),
+      () => query.getOrgUsageReport({ org: "org-a" }),
       Code.InvalidArgument,
     );
   });
@@ -622,7 +622,7 @@ describe("usage reports over the wire", () => {
     );
 
     const report = await query.getOrgUsageReport({
-      orgId: "org-report",
+      org: "org-report",
       fromDate: "2026-04-01",
       toDate: "2026-04-30",
     });

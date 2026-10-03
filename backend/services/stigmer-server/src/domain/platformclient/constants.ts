@@ -77,7 +77,7 @@ export const EXPIRED_CLIENT_SECRET_MESSAGE =
   "PlatformClient secret has expired. Rotating the secret does not extend it; the client's owner must set a later expires_at or set never_expires.";
 
 export function organizationMismatchMessage(owningOrg: string): string {
-  return `org_id must be empty or the PlatformClient's owning organization ('${owningOrg}'); cross-organization minting is not supported`;
+  return `org must be empty or the PlatformClient's owning organization ('${owningOrg}'); cross-organization minting is not supported`;
 }
 
 export function noAccountMessage(externalUserId: string, org: string): string {

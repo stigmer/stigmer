@@ -39,7 +39,7 @@ describe("TeamDetailPanel save payload", () => {
     const update = vi.fn(async (_input: TeamInput) => TEAM);
     render(
       <StigmerContext.Provider value={{ team: { update } } as never}>
-        <TeamDetailPanel team={TEAM} orgId="org_acme" />
+        <TeamDetailPanel team={TEAM} org="org_acme" />
       </StigmerContext.Provider>,
     );
 

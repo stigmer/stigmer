@@ -42,22 +42,22 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ption/v1/io.proto\0328ai/stigmer/commons/ap" +
       "iresource/rpc_service_options.proto\032+ai/" +
       "stigmer/commons/rpc/method_options.proto" +
-      "2\243\003\n\035SubscriptionCommandController\022\266\001\n\nc" +
+      "2\235\003\n\035SubscriptionCommandController\022\263\001\n\nc" +
       "hangePlan\0223.ai.stigmer.billing.subscript" +
       "ion.v1.ChangePlanInput\0320.ai.stigmer.bill" +
-      "ing.subscription.v1.Subscription\"A\302\270\030=\010\034" +
-      "\020\036\"\006org_id*/unauthorized to change this " +
-      "organization\'s plan\022\302\001\n\006cancel\022;.ai.stig" +
-      "mer.billing.subscription.v1.CancelSubscr" +
-      "iptionInput\0320.ai.stigmer.billing.subscri" +
-      "ption.v1.Subscription\"I\302\270\030E\010\034\020\036\"\006org_id*" +
-      "7unauthorized to cancel this organizatio" +
-      "n\'s subscription\032\004\240\377+GB\273\001B\014CommandProtoP" +
-      "\001\242\002\004ASBS\252\002\"Ai.Stigmer.Billing.Subscripti" +
-      "on.V1\312\002\"Ai\\Stigmer\\Billing\\Subscription\\" +
-      "V1\342\002.Ai\\Stigmer\\Billing\\Subscription\\V1\\" +
-      "GPBMetadata\352\002&Ai::Stigmer::Billing::Subs" +
-      "cription::V1b\006proto3"
+      "ing.subscription.v1.Subscription\">\302\270\030:\010\034" +
+      "\020\036\"\003org*/unauthorized to change this org" +
+      "anization\'s plan\022\277\001\n\006cancel\022;.ai.stigmer" +
+      ".billing.subscription.v1.CancelSubscript" +
+      "ionInput\0320.ai.stigmer.billing.subscripti" +
+      "on.v1.Subscription\"F\302\270\030B\010\034\020\036\"\003org*7unaut" +
+      "horized to cancel this organization\'s su" +
+      "bscription\032\004\240\377+GB\273\001B\014CommandProtoP\001\242\002\004AS" +
+      "BS\252\002\"Ai.Stigmer.Billing.Subscription.V1\312" +
+      "\002\"Ai\\Stigmer\\Billing\\Subscription\\V1\342\002.A" +
+      "i\\Stigmer\\Billing\\Subscription\\V1\\GPBMet" +
+      "adata\352\002&Ai::Stigmer::Billing::Subscripti" +
+      "on::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

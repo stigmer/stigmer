@@ -1144,7 +1144,7 @@ type LlmCallUsageRecord struct {
 	// ─── Billing Handoff ────────────────────────────────────────────────────────
 	Billing *BillingLink `protobuf:"bytes,80,opt,name=billing,proto3" json:"billing,omitempty"`
 	// Organization that owns this execution.
-	OrgId string `protobuf:"bytes,7,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,7,opt,name=org,proto3" json:"org,omitempty"`
 	// Session this execution belongs to.
 	SessionId string `protobuf:"bytes,8,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// ─── Labels ─────────────────────────────────────────────────────────────────
@@ -1422,9 +1422,9 @@ func (x *LlmCallUsageRecord) GetBilling() *BillingLink {
 	return nil
 }
 
-func (x *LlmCallUsageRecord) GetOrgId() string {
+func (x *LlmCallUsageRecord) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -1920,7 +1920,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\n" +
 	"debited_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tdebitedAt\x122\n" +
 	"\x15billing_attempt_count\x18\x05 \x01(\x05R\x13billingAttemptCount\x12,\n" +
-	"\x12last_billing_error\x18\x06 \x01(\tR\x10lastBillingError\"\xbe\x0f\n" +
+	"\x12last_billing_error\x18\x06 \x01(\tR\x10lastBillingError\"\xb9\x0f\n" +
 	"\x12LlmCallUsageRecord\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x12!\n" +
 	"\fexecution_id\x18\x02 \x01(\tR\vexecutionId\x12*\n" +
@@ -1961,8 +1961,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\x04cost\x183 \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.CostStampR\x04cost\x12T\n" +
 	"\fproxy_timing\x18< \x01(\v21.ai.stigmer.agentic.agentexecution.v1.ProxyTimingR\vproxyTiming\x12.\n" +
 	"\x13provider_usage_json\x18F \x01(\tR\x11providerUsageJson\x12K\n" +
-	"\abilling\x18P \x01(\v21.ai.stigmer.agentic.agentexecution.v1.BillingLinkR\abilling\x12\x15\n" +
-	"\x06org_id\x18\a \x01(\tR\x05orgId\x12\x1d\n" +
+	"\abilling\x18P \x01(\v21.ai.stigmer.agentic.agentexecution.v1.BillingLinkR\abilling\x12\x10\n" +
+	"\x03org\x18\a \x01(\tR\x03org\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\b \x01(\tR\tsessionId\x12\\\n" +
 	"\x06labels\x18Z \x03(\v2D.ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntryR\x06labels\x1a9\n" +

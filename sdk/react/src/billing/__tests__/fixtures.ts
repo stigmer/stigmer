@@ -58,7 +58,7 @@ export const BUSINESS = plan("pln_business", "Business", 499n, {
     features: [Feature.byo_provider_keys, Feature.channels, Feature.sharing, Feature.teams, Feature.managed_organizations],
     limits: { includedManagedOrganizations: 5 },
   },
-  terms: { monthlyMinimumMicros: 499n * USD, usageShareBasisPoints: 1_000, perExtraOrganizationMicros: 25n * USD },
+  terms: { monthlyMinimumMicros: 499n * USD, usageShareBasisPoints: 1_000, perExtraOrgMicros: 25n * USD },
 });
 export const RETIRED = plan("pln_team_2026", "Team 2026", 79n, {}, true);
 

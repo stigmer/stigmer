@@ -32,10 +32,10 @@ const SAVED = new Date("2027-03-01T00:00:00Z");
 
 function key(
   provider: string,
-  fields: { readonly keyHint?: string; readonly inUse?: boolean; readonly inheritedFromOrgId?: string } = {},
+  fields: { readonly keyHint?: string; readonly inUse?: boolean; readonly inheritedFromOrg?: string } = {},
 ): ProviderKey {
   return create(ProviderKeySchema, {
-    orgId: "acme",
+    org: "acme",
     provider,
     keyHint: provider === "anthropic" ? "a111" : "o222",
     createdBy: "ida_admin",
@@ -103,7 +103,7 @@ describe("ProviderKeysSection", () => {
     await userEvent.click(within(await row("Anthropic")).getByRole("button", { name: "Save key" }));
     await waitFor(() =>
       expect(client.providerkey.set).toHaveBeenCalledWith(
-        expect.objectContaining({ orgId: "acme", provider: "anthropic", apiKey: "sk-ant-secret-9876" }),
+        expect.objectContaining({ org: "acme", provider: "anthropic", apiKey: "sk-ant-secret-9876" }),
       ),
     );
     expect(await within(await row("Anthropic")).findByText(/Key ending in 9876/)).toBeTruthy();
@@ -122,7 +122,7 @@ describe("ProviderKeysSection", () => {
     ).toBeTruthy();
     expect(client.providerkey.delete).not.toHaveBeenCalled();
     await userEvent.click(within(await row("OpenAI")).getByRole("button", { name: "Remove key" }));
-    await waitFor(() => expect(client.providerkey.delete).toHaveBeenCalledWith(expect.objectContaining({ orgId: "acme", provider: "openai" })));
+    await waitFor(() => expect(client.providerkey.delete).toHaveBeenCalledWith(expect.objectContaining({ org: "acme", provider: "openai" })));
     expect(await within(await row("OpenAI")).findByText(/Not set/)).toBeTruthy();
   });
 
@@ -158,7 +158,7 @@ describe("ProviderKeysSection", () => {
   it("shows the upgrade notice from a refused save's reason", async () => {
     const copy = "Your own provider keys need the Business plan. Upgrade organization 'acme' to save one.";
     renderSection(
-      mockClient({ setError: refusal(copy, "PLAN_UPGRADE_REQUIRED", { feature: "byo_provider_keys", org_id: "acme" }) }),
+      mockClient({ setError: refusal(copy, "PLAN_UPGRADE_REQUIRED", { feature: "byo_provider_keys", org: "acme" }) }),
     );
     await userEvent.click(within(await row("OpenAI")).getByRole("button", { name: "Add key" }));
     await userEvent.type(within(await row("OpenAI")).getByLabelText("OpenAI API key"), "sk-proj-1234");
@@ -168,7 +168,7 @@ describe("ProviderKeysSection", () => {
   });
 
   it("shows an inherited key read-only, named by the organization that provides it", async () => {
-    renderSection(mockClient({ keys: [key("anthropic", { inheritedFromOrgId: "integrator" })] }));
+    renderSection(mockClient({ keys: [key("anthropic", { inheritedFromOrg: "integrator" })] }));
     const anthropic = await row("Anthropic");
     expect(within(anthropic).getByText(/provided by integrator/)).toBeTruthy();
     await waitFor(() => expect(within(anthropic).queryByRole("button")).toBeNull());

@@ -54,7 +54,7 @@ export interface UseInvitationPreviewReturn {
  * if (!preview) return <NotFound />;
  * if (!preview.isValid) return <Expired reason={preview.invalidReason} />;
  *
- * return <p>Join {preview.organizationName} as {preview.role}</p>;
+ * return <p>Join {preview.orgName} as {preview.role}</p>;
  * ```
  */
 export function useInvitationPreview(

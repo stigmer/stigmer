@@ -35,7 +35,7 @@ export function OrgProfileSection() {
           Select an organization to view its profile.
         </p>
       ) : (
-        <OrgProfilePanel orgId={orgId} onUpdated={handleUpdated} />
+        <OrgProfilePanel org={orgId} onUpdated={handleUpdated} />
       )}
     </section>
   );

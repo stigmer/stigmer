@@ -348,9 +348,9 @@ export class CloudTarget implements TargetProfile {
   // fund, so the refusal names the credential instead of failing later on an
   // empty wallet.
   async fundTenancy(org: string): Promise<void> {
-    await this.clients().billingCommand.getOrCreateBillingAccount({ orgId: org });
+    await this.clients().billingCommand.getOrCreateBillingAccount({ org });
     await this.creditIssuer().billingCommand.adjustCredits({
-      orgId: org,
+      org,
       amountMicros: TENANCY_SEED_CREDITS_MICROS,
       reason: "conformance execution tenancy seed",
       idempotencyKey: `conformance-seed-${org}`,

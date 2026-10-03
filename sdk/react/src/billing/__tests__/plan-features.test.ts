@@ -45,7 +45,7 @@ describe("plan terms", () => {
   const terms = create(PlanTermsSchema, {
     monthlyMinimumMicros: 499n * USD,
     usageShareBasisPoints: 1_000,
-    perExtraOrganizationMicros: 25n * USD,
+    perExtraOrgMicros: 25n * USD,
   });
 
   it("reads the minimum and the usage share with the commission rule", () => {

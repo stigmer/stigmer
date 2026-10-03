@@ -24,10 +24,10 @@ service SubscriptionQueryController {
   // NOT_FOUND when the organization has none: it is on the Free plan, which
   // is not a row. Callers that only need what the organization may do
   // should call getEntitlements, which answers for every organization.
-  rpc getForOrganization(GetSubscriptionForOrganizationInput) returns (Subscription) {
+  rpc getForOrg(GetSubscriptionForOrgInput) returns (Subscription) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view this organization's subscription";
   }
 
@@ -42,7 +42,7 @@ service SubscriptionQueryController {
   rpc getEntitlements(GetEntitlementsInput) returns (GetEntitlementsOutput) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view this organization's entitlements";
   }
 
@@ -63,7 +63,7 @@ service SubscriptionQueryController {
   rpc getPeriodEstimate(GetPeriodEstimateInput) returns (PeriodEstimate) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view this organization's period estimate";
   }
 }

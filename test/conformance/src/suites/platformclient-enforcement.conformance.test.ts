@@ -29,7 +29,7 @@
 //     provisioned by a PlatformClient (identity origin `platform_client`)
 //     and its founder as not, which is how a members view tells the
 //     product's users from the organization's people;
-//   - a wrong secret, an org_id that is not the owning organization, and a
+//   - a wrong secret, an org that is not the owning organization, and a
 //     client that does not provision users are refused with the pinned copy;
 //   - rotating the secret stops the old one minting and leaves minted tokens
 //     valid until they expire;
@@ -89,7 +89,7 @@ const INVALID_CREDENTIALS_MESSAGE = "Invalid client_id or client_secret";
 
 function organizationMismatchMessage(owningOrg: string): string {
   return (
-    "org_id must be empty or the PlatformClient's owning organization " +
+    "org must be empty or the PlatformClient's owning organization " +
     `('${owningOrg}'); cross-organization minting is not supported`
   );
 }
@@ -355,7 +355,7 @@ describe.skipIf(!enforcementServed)(
       );
     });
 
-    it("[rpc:PlatformClientTokenController.mintUserToken] a wrong secret and an org_id other than the owning organization are refused with the pinned copy", async () => {
+    it("[rpc:PlatformClientTokenController.mintUserToken] a wrong secret and an org other than the owning organization are refused with the pinned copy", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org);
 
@@ -396,7 +396,7 @@ describe.skipIf(!enforcementServed)(
             client.credentials,
             uniqueName("enforcement-user"),
             {
-              orgId: `${context.org}-elsewhere`,
+              org: `${context.org}-elsewhere`,
             },
           ),
         Code.InvalidArgument,

@@ -16,19 +16,19 @@ public interface GetCustomerModelPricingInputOrBuilder extends
    * When empty, returns default pricing.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 1 [json_name = "org"];</code>
+   * @return The org.
    */
-  java.lang.String getOrgId();
+  java.lang.String getOrg();
   /**
    * <pre>
    * Organization ID. Used to resolve org-specific policy overrides.
    * When empty, returns default pricing.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 1 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrgIdBytes();
+      getOrgBytes();
 }

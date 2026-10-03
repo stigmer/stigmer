@@ -118,8 +118,8 @@ private static final long serialVersionUID = 0L;
     return usageShareBasisPoints_;
   }
 
-  public static final int PER_EXTRA_ORGANIZATION_MICROS_FIELD_NUMBER = 3;
-  private long perExtraOrganizationMicros_ = 0L;
+  public static final int PER_EXTRA_ORG_MICROS_FIELD_NUMBER = 3;
+  private long perExtraOrgMicros_ = 0L;
   /**
    * <pre>
    * What a subscription plan bills per month for each platform-managed
@@ -127,11 +127,11 @@ private static final long serialVersionUID = 0L;
    * Absent when the plan includes no managed organizations.
    * </pre>
    *
-   * <code>optional int64 per_extra_organization_micros = 3 [json_name = "perExtraOrganizationMicros", (.buf.validate.field) = { ... }</code>
-   * @return Whether the perExtraOrganizationMicros field is set.
+   * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
+   * @return Whether the perExtraOrgMicros field is set.
    */
   @java.lang.Override
-  public boolean hasPerExtraOrganizationMicros() {
+  public boolean hasPerExtraOrgMicros() {
     return ((bitField0_ & 0x00000004) != 0);
   }
   /**
@@ -141,12 +141,12 @@ private static final long serialVersionUID = 0L;
    * Absent when the plan includes no managed organizations.
    * </pre>
    *
-   * <code>optional int64 per_extra_organization_micros = 3 [json_name = "perExtraOrganizationMicros", (.buf.validate.field) = { ... }</code>
-   * @return The perExtraOrganizationMicros.
+   * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
+   * @return The perExtraOrgMicros.
    */
   @java.lang.Override
-  public long getPerExtraOrganizationMicros() {
-    return perExtraOrganizationMicros_;
+  public long getPerExtraOrgMicros() {
+    return perExtraOrgMicros_;
   }
 
   public static final int ANNUAL_PRICE_MICROS_FIELD_NUMBER = 4;
@@ -199,7 +199,7 @@ private static final long serialVersionUID = 0L;
       output.writeInt32(2, usageShareBasisPoints_);
     }
     if (((bitField0_ & 0x00000004) != 0)) {
-      output.writeInt64(3, perExtraOrganizationMicros_);
+      output.writeInt64(3, perExtraOrgMicros_);
     }
     if (((bitField0_ & 0x00000008) != 0)) {
       output.writeInt64(4, annualPriceMicros_);
@@ -223,7 +223,7 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(3, perExtraOrganizationMicros_);
+        .computeInt64Size(3, perExtraOrgMicros_);
     }
     if (((bitField0_ & 0x00000008) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -254,10 +254,10 @@ private static final long serialVersionUID = 0L;
       if (getUsageShareBasisPoints()
           != other.getUsageShareBasisPoints()) return false;
     }
-    if (hasPerExtraOrganizationMicros() != other.hasPerExtraOrganizationMicros()) return false;
-    if (hasPerExtraOrganizationMicros()) {
-      if (getPerExtraOrganizationMicros()
-          != other.getPerExtraOrganizationMicros()) return false;
+    if (hasPerExtraOrgMicros() != other.hasPerExtraOrgMicros()) return false;
+    if (hasPerExtraOrgMicros()) {
+      if (getPerExtraOrgMicros()
+          != other.getPerExtraOrgMicros()) return false;
     }
     if (hasAnnualPriceMicros() != other.hasAnnualPriceMicros()) return false;
     if (hasAnnualPriceMicros()) {
@@ -284,10 +284,10 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + USAGE_SHARE_BASIS_POINTS_FIELD_NUMBER;
       hash = (53 * hash) + getUsageShareBasisPoints();
     }
-    if (hasPerExtraOrganizationMicros()) {
-      hash = (37 * hash) + PER_EXTRA_ORGANIZATION_MICROS_FIELD_NUMBER;
+    if (hasPerExtraOrgMicros()) {
+      hash = (37 * hash) + PER_EXTRA_ORG_MICROS_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-          getPerExtraOrganizationMicros());
+          getPerExtraOrgMicros());
     }
     if (hasAnnualPriceMicros()) {
       hash = (37 * hash) + ANNUAL_PRICE_MICROS_FIELD_NUMBER;
@@ -438,7 +438,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       monthlyMinimumMicros_ = 0L;
       usageShareBasisPoints_ = 0;
-      perExtraOrganizationMicros_ = 0L;
+      perExtraOrgMicros_ = 0L;
       annualPriceMicros_ = 0L;
       return this;
     }
@@ -483,7 +483,7 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000002;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.perExtraOrganizationMicros_ = perExtraOrganizationMicros_;
+        result.perExtraOrgMicros_ = perExtraOrgMicros_;
         to_bitField0_ |= 0x00000004;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
@@ -511,8 +511,8 @@ private static final long serialVersionUID = 0L;
       if (other.hasUsageShareBasisPoints()) {
         setUsageShareBasisPoints(other.getUsageShareBasisPoints());
       }
-      if (other.hasPerExtraOrganizationMicros()) {
-        setPerExtraOrganizationMicros(other.getPerExtraOrganizationMicros());
+      if (other.hasPerExtraOrgMicros()) {
+        setPerExtraOrgMicros(other.getPerExtraOrgMicros());
       }
       if (other.hasAnnualPriceMicros()) {
         setAnnualPriceMicros(other.getAnnualPriceMicros());
@@ -554,7 +554,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 16
             case 24: {
-              perExtraOrganizationMicros_ = input.readInt64();
+              perExtraOrgMicros_ = input.readInt64();
               bitField0_ |= 0x00000004;
               break;
             } // case 24
@@ -700,7 +700,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private long perExtraOrganizationMicros_ ;
+    private long perExtraOrgMicros_ ;
     /**
      * <pre>
      * What a subscription plan bills per month for each platform-managed
@@ -708,11 +708,11 @@ private static final long serialVersionUID = 0L;
      * Absent when the plan includes no managed organizations.
      * </pre>
      *
-     * <code>optional int64 per_extra_organization_micros = 3 [json_name = "perExtraOrganizationMicros", (.buf.validate.field) = { ... }</code>
-     * @return Whether the perExtraOrganizationMicros field is set.
+     * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
+     * @return Whether the perExtraOrgMicros field is set.
      */
     @java.lang.Override
-    public boolean hasPerExtraOrganizationMicros() {
+    public boolean hasPerExtraOrgMicros() {
       return ((bitField0_ & 0x00000004) != 0);
     }
     /**
@@ -722,12 +722,12 @@ private static final long serialVersionUID = 0L;
      * Absent when the plan includes no managed organizations.
      * </pre>
      *
-     * <code>optional int64 per_extra_organization_micros = 3 [json_name = "perExtraOrganizationMicros", (.buf.validate.field) = { ... }</code>
-     * @return The perExtraOrganizationMicros.
+     * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
+     * @return The perExtraOrgMicros.
      */
     @java.lang.Override
-    public long getPerExtraOrganizationMicros() {
-      return perExtraOrganizationMicros_;
+    public long getPerExtraOrgMicros() {
+      return perExtraOrgMicros_;
     }
     /**
      * <pre>
@@ -736,13 +736,13 @@ private static final long serialVersionUID = 0L;
      * Absent when the plan includes no managed organizations.
      * </pre>
      *
-     * <code>optional int64 per_extra_organization_micros = 3 [json_name = "perExtraOrganizationMicros", (.buf.validate.field) = { ... }</code>
-     * @param value The perExtraOrganizationMicros to set.
+     * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
+     * @param value The perExtraOrgMicros to set.
      * @return This builder for chaining.
      */
-    public Builder setPerExtraOrganizationMicros(long value) {
+    public Builder setPerExtraOrgMicros(long value) {
 
-      perExtraOrganizationMicros_ = value;
+      perExtraOrgMicros_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
@@ -754,12 +754,12 @@ private static final long serialVersionUID = 0L;
      * Absent when the plan includes no managed organizations.
      * </pre>
      *
-     * <code>optional int64 per_extra_organization_micros = 3 [json_name = "perExtraOrganizationMicros", (.buf.validate.field) = { ... }</code>
+     * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearPerExtraOrganizationMicros() {
+    public Builder clearPerExtraOrgMicros() {
       bitField0_ = (bitField0_ & ~0x00000004);
-      perExtraOrganizationMicros_ = 0L;
+      perExtraOrgMicros_ = 0L;
       onChanged();
       return this;
     }

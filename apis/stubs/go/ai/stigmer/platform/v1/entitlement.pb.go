@@ -37,12 +37,12 @@ const (
 	// Cloud; this feature is what a plan or license turns on for it.
 	Feature_sso_enforcement Feature = 1
 	// Gates nothing: every edition serves PlatformClient credentials to every
-	// tenant, so a plan or license that lists it grants nothing more.
+	// customer, so a plan or license that lists it grants nothing more.
 	// It is the one value named before its gate was ruled out, and it stays
 	// because licenses already issued carry it and an enum value is a wire
 	// identifier. A new plan or license does not list it.
 	Feature_platform_client Feature = 2
-	// Bringing the tenant's own LLM provider keys instead of the platform's
+	// Bringing the customer's own LLM provider keys instead of the platform's
 	// metered proxy credentials.
 	Feature_byo_provider_keys Feature = 3
 	// Delivering agents over messaging channels (Slack, WhatsApp) through a
@@ -127,7 +127,7 @@ func (Feature) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_platform_v1_entitlement_proto_rawDescGZIP(), []int{0}
 }
 
-// What the platform permits a tenant: a set of limits and a set of features.
+// What an edition permits its customer: a set of limits and a set of features.
 //
 // An entitlement is what the platform permits; a subscription and a license
 // are the two instruments that grant it. The cloud derives an organization's
@@ -199,12 +199,12 @@ func (x *Entitlements) GetFeatures() []Feature {
 // comment on each limit names the instrument that reads it.
 type EntitlementLimits struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The most organizations the tenant may hold at once. Read by a license
+	// The most organizations the customer may hold at once. Read by a license
 	// (an Enterprise deployment counts its organizations against it) and by
 	// a subscription (a Business plan counts the managed organizations it
 	// includes).
-	MaxOrganizations *int32 `protobuf:"varint,1,opt,name=max_organizations,json=maxOrganizations,proto3,oneof" json:"max_organizations,omitempty"`
-	// The most identity accounts the tenant may hold at once. Read by both
+	MaxOrgs *int32 `protobuf:"varint,1,opt,name=max_orgs,json=maxOrgs,proto3,oneof" json:"max_orgs,omitempty"`
+	// The most identity accounts the customer may hold at once. Read by both
 	// instruments.
 	MaxUsers *int32 `protobuf:"varint,2,opt,name=max_users,json=maxUsers,proto3,oneof" json:"max_users,omitempty"`
 	// The platform-managed organizations a subscription includes before the
@@ -249,9 +249,9 @@ func (*EntitlementLimits) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_platform_v1_entitlement_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *EntitlementLimits) GetMaxOrganizations() int32 {
-	if x != nil && x.MaxOrganizations != nil {
-		return *x.MaxOrganizations
+func (x *EntitlementLimits) GetMaxOrgs() int32 {
+	if x != nil && x.MaxOrgs != nil {
+		return *x.MaxOrgs
 	}
 	return 0
 }
@@ -277,12 +277,12 @@ const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
 	"(ai/stigmer/platform/v1/entitlement.proto\x12\x16ai.stigmer.platform.v1\x1a\x1bbuf/validate/validate.proto\"\xa1\x01\n" +
 	"\fEntitlements\x12A\n" +
 	"\x06limits\x18\x01 \x01(\v2).ai.stigmer.platform.v1.EntitlementLimitsR\x06limits\x12N\n" +
-	"\bfeatures\x18\x02 \x03(\x0e2\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\bfeatures\"\x94\x02\n" +
-	"\x11EntitlementLimits\x129\n" +
-	"\x11max_organizations\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x00R\x10maxOrganizations\x88\x01\x01\x12)\n" +
+	"\bfeatures\x18\x02 \x03(\x0e2\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\bfeatures\"\xf9\x01\n" +
+	"\x11EntitlementLimits\x12'\n" +
+	"\bmax_orgs\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x00R\amaxOrgs\x88\x01\x01\x12)\n" +
 	"\tmax_users\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x01R\bmaxUsers\x88\x01\x01\x12R\n" +
-	"\x1eincluded_managed_organizations\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x02R\x1cincludedManagedOrganizations\x88\x01\x01B\x14\n" +
-	"\x12_max_organizationsB\f\n" +
+	"\x1eincluded_managed_organizations\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x02R\x1cincludedManagedOrganizations\x88\x01\x01B\v\n" +
+	"\t_max_orgsB\f\n" +
 	"\n" +
 	"_max_usersB!\n" +
 	"\x1f_included_managed_organizations*\xa4\x01\n" +

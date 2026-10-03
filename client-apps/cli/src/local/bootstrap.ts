@@ -59,7 +59,7 @@ export const RESERVED_DEFAULT_ORG_MESSAGE = `The '${DEFAULT_LOCAL_ORG}' organiza
 export const RESERVED_DEFAULT_ORG_HINTS: readonly string[] = [
   "Name the organization to use, in any of these ways:",
   "  --org <slug> on a command",
-  "  STIGMER_ORG_ID=<slug> in the environment",
+  "  STIGMER_ORG=<slug> in the environment",
   "  stigmer config context set --org <slug>",
 ];
 

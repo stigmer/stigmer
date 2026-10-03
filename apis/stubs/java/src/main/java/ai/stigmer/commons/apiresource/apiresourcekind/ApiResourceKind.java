@@ -97,7 +97,8 @@ public enum ApiResourceKind
   team(24),
   /**
    * <pre>
-   * Top-level tenant that owns and manages resources.
+   * The boundary that holds people, Agents, Workflows, Sessions and secrets
+   * together; nothing outside it sees them.
    *
    * Organization is the one resource whose metadata.id equals its metadata.slug
    * (set by the create pipeline), not a minted org_&lt;ulid&gt;. It is the immutable,
@@ -398,7 +399,8 @@ public enum ApiResourceKind
   public static final int team_VALUE = 24;
   /**
    * <pre>
-   * Top-level tenant that owns and manages resources.
+   * The boundary that holds people, Agents, Workflows, Sessions and secrets
+   * together; nothing outside it sees them.
    *
    * Organization is the one resource whose metadata.id equals its metadata.slug
    * (set by the create pipeline), not a minted org_&lt;ulid&gt;. It is the immutable,

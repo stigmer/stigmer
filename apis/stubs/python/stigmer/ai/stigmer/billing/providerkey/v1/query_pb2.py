@@ -26,7 +26,7 @@ from ai.stigmer.billing.providerkey.v1 import io_pb2 as ai_dot_stigmer_dot_billi
 from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/billing/providerkey/v1/query.proto\x12!ai.stigmer.billing.providerkey.v1\x1a*ai/stigmer/billing/providerkey/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe6\x01\n\x1aProviderKeyQueryController\x12\xc7\x01\n\x04list\x12\x38.ai.stigmer.billing.providerkey.v1.ListProviderKeysInput\x1a\x39.ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput\"J\xc2\xb8\x18\x46\x08\x1b\x10\x1e\"\x06org_id*8unauthorized to view provider keys for this organizationB\xdc\x01\n%com.ai.stigmer.billing.providerkey.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/billing/providerkey/v1/query.proto\x12!ai.stigmer.billing.providerkey.v1\x1a*ai/stigmer/billing/providerkey/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe3\x01\n\x1aProviderKeyQueryController\x12\xc4\x01\n\x04list\x12\x38.ai.stigmer.billing.providerkey.v1.ListProviderKeysInput\x1a\x39.ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput\"G\xc2\xb8\x18\x43\x08\x1b\x10\x1e\"\x03org*8unauthorized to view provider keys for this organizationB\xdc\x01\n%com.ai.stigmer.billing.providerkey.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,7 +35,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n%com.ai.stigmer.billing.providerkey.v1B\nQueryProtoP\001\242\002\004ASBP\252\002!Ai.Stigmer.Billing.Providerkey.V1\312\002!Ai\\Stigmer\\Billing\\Providerkey\\V1\342\002-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\352\002%Ai::Stigmer::Billing::Providerkey::V1'
   _globals['_PROVIDERKEYQUERYCONTROLLER'].methods_by_name['list']._loaded_options = None
-  _globals['_PROVIDERKEYQUERYCONTROLLER'].methods_by_name['list']._serialized_options = b'\302\270\030F\010\033\020\036\"\006org_id*8unauthorized to view provider keys for this organization'
+  _globals['_PROVIDERKEYQUERYCONTROLLER'].methods_by_name['list']._serialized_options = b'\302\270\030C\010\033\020\036\"\003org*8unauthorized to view provider keys for this organization'
   _globals['_PROVIDERKEYQUERYCONTROLLER']._serialized_start=174
-  _globals['_PROVIDERKEYQUERYCONTROLLER']._serialized_end=404
+  _globals['_PROVIDERKEYQUERYCONTROLLER']._serialized_end=401
 # @@protoc_insertion_point(module_scope)

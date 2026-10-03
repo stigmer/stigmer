@@ -87,7 +87,7 @@ const VIOLATION_COPY: Readonly<Record<string, string>> = {
   "spec.customer.display_name": "Name the customer.",
   "spec.customer.contact_email": "Enter the address renewal notices go to.",
   "spec.entitlements.limits.max_users": "Enter at least 1, or leave it empty for unlimited.",
-  "spec.entitlements.limits.max_organizations": "Enter at least 1, or leave it empty for unlimited.",
+  "spec.entitlements.limits.max_orgs": "Enter at least 1, or leave it empty for unlimited.",
   "spec.notes": "Notes are limited to 4,096 characters.",
 };
 
@@ -134,7 +134,7 @@ export function LicenseIssueForm({
   });
   const [maxUsers, setMaxUsers] = useState(limitText(renewing?.spec?.entitlements?.limits?.maxUsers));
   const [maxOrganizations, setMaxOrganizations] = useState(
-    limitText(renewing?.spec?.entitlements?.limits?.maxOrganizations),
+    limitText(renewing?.spec?.entitlements?.limits?.maxOrgs),
   );
   const [features, setFeatures] = useState<readonly GrantableFeature[]>(() =>
     (renewing?.spec?.entitlements?.features ?? []).filter(isGrantableFeature),
@@ -154,9 +154,9 @@ export function LicenseIssueForm({
           id: selected.customer.id,
           displayName: selected.customer.displayName,
           contactEmail: selected.customer.contactEmail,
-          organization: selected.customer.organization,
+          org: selected.customer.org,
         }
-      : { id: mintedId, displayName: newName, contactEmail: newEmail, organization: newOrganization };
+      : { id: mintedId, displayName: newName, contactEmail: newEmail, org: newOrganization };
   const matches =
     mode === "new" ? findCustomerMatches(customers, { displayName: newName, contactEmail: newEmail }) : [];
 
@@ -179,7 +179,7 @@ export function LicenseIssueForm({
       lastCoveredDay,
       graceDays: grace.value,
       maxUsers: users.value,
-      maxOrganizations: organizations.value,
+      maxOrgs: organizations.value,
       features,
       notes,
     };
@@ -473,7 +473,7 @@ export function LicenseIssueForm({
               message={shown(
                 maxOrganizations !== "",
                 organizations.ok
-                  ? violationAt("spec.entitlements.limits.max_organizations")
+                  ? violationAt("spec.entitlements.limits.max_orgs")
                   : organizations.error,
               )}
             />

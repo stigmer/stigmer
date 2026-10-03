@@ -165,7 +165,7 @@ public final class SubscriptionCommandControllerGrpc {
      *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
      *     no saved payment method, which every period is collected from;
      *     BillingCommandController.createPaymentMethodSetupSession saves one.
-     *     Metadata: org_id.
+     *     Metadata: org.
      * </pre>
      */
     default void changePlan(ai.stigmer.billing.subscription.v1.ChangePlanInput request,
@@ -241,7 +241,7 @@ public final class SubscriptionCommandControllerGrpc {
      *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
      *     no saved payment method, which every period is collected from;
      *     BillingCommandController.createPaymentMethodSetupSession saves one.
-     *     Metadata: org_id.
+     *     Metadata: org.
      * </pre>
      */
     public void changePlan(ai.stigmer.billing.subscription.v1.ChangePlanInput request,
@@ -300,7 +300,7 @@ public final class SubscriptionCommandControllerGrpc {
      *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
      *     no saved payment method, which every period is collected from;
      *     BillingCommandController.createPaymentMethodSetupSession saves one.
-     *     Metadata: org_id.
+     *     Metadata: org.
      * </pre>
      */
     public ai.stigmer.billing.subscription.v1.Subscription changePlan(ai.stigmer.billing.subscription.v1.ChangePlanInput request) throws io.grpc.StatusException {
@@ -357,7 +357,7 @@ public final class SubscriptionCommandControllerGrpc {
      *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
      *     no saved payment method, which every period is collected from;
      *     BillingCommandController.createPaymentMethodSetupSession saves one.
-     *     Metadata: org_id.
+     *     Metadata: org.
      * </pre>
      */
     public ai.stigmer.billing.subscription.v1.Subscription changePlan(ai.stigmer.billing.subscription.v1.ChangePlanInput request) {
@@ -414,7 +414,7 @@ public final class SubscriptionCommandControllerGrpc {
      *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
      *     no saved payment method, which every period is collected from;
      *     BillingCommandController.createPaymentMethodSetupSession saves one.
-     *     Metadata: org_id.
+     *     Metadata: org.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.subscription.v1.Subscription> changePlan(

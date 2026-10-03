@@ -80,7 +80,7 @@ export interface BackendConfig {
 }
 
 export interface ContextConfig {
-  organization?: string;
+  org?: string;
 }
 
 /**

@@ -32,7 +32,7 @@ export interface UseDeleteIamPolicyReturn {
  *
  * await remove({
  *   principal: { kind: "identity_account", id: accountId },
- *   resource: { kind: "organization", id: orgId },
+ *   resource: { kind: "organization", id: org },
  *   relation: "admin",
  * });
  * ```

@@ -72,6 +72,10 @@ test("the runner's model path runs every install journey beside the runner's own
   assert.deepEqual(selected(["backend/services/runner/src/shared/llm-proxy.ts"]), installs);
 });
 
+test("the server's sandbox-name derivation runs the runner lane, whose attach test compares against it", () => {
+  assert.ok(selected(["backend/services/stigmer-server/src/sandbox/naming.ts"]).includes("runner"));
+});
+
 test("a store migration runs the upgrade rehearsal; a CLI command runs `stigmer up`", () => {
   assert.deepEqual(selected(["backend/services/stigmer-server/src/store/sqlite/migrations.ts"]), [
     "conformance",

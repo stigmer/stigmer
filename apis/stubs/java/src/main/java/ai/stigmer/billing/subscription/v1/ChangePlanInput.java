@@ -32,7 +32,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ChangePlanInput() {
-    orgId_ = "";
+    org_ = "";
     planId_ = "";
   }
 
@@ -54,27 +54,27 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.billing.subscription.v1.ChangePlanInput.class, ai.stigmer.billing.subscription.v1.ChangePlanInput.Builder.class);
   }
 
-  public static final int ORG_ID_FIELD_NUMBER = 1;
+  public static final int ORG_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object orgId_ = "";
+  private volatile java.lang.Object org_ = "";
   /**
    * <pre>
    * The organization's id.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-   * @return The orgId.
+   * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
    */
   @java.lang.Override
-  public java.lang.String getOrgId() {
-    java.lang.Object ref = orgId_;
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      orgId_ = s;
+      org_ = s;
       return s;
     }
   }
@@ -83,18 +83,18 @@ private static final long serialVersionUID = 0L;
    * The organization's id.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for orgId.
+   * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrgIdBytes() {
-    java.lang.Object ref = orgId_;
+      getOrgBytes() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      orgId_ = b;
+      org_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -162,8 +162,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, org_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(planId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, planId_);
@@ -177,8 +177,8 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, org_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(planId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, planId_);
@@ -198,8 +198,8 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.billing.subscription.v1.ChangePlanInput other = (ai.stigmer.billing.subscription.v1.ChangePlanInput) obj;
 
-    if (!getOrgId()
-        .equals(other.getOrgId())) return false;
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getPlanId()
         .equals(other.getPlanId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -213,8 +213,8 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + ORG_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getOrgId().hashCode();
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (37 * hash) + PLAN_ID_FIELD_NUMBER;
     hash = (53 * hash) + getPlanId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -352,7 +352,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      orgId_ = "";
+      org_ = "";
       planId_ = "";
       return this;
     }
@@ -388,7 +388,7 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.billing.subscription.v1.ChangePlanInput result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.orgId_ = orgId_;
+        result.org_ = org_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.planId_ = planId_;
@@ -407,8 +407,8 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.billing.subscription.v1.ChangePlanInput other) {
       if (other == ai.stigmer.billing.subscription.v1.ChangePlanInput.getDefaultInstance()) return this;
-      if (!other.getOrgId().isEmpty()) {
-        orgId_ = other.orgId_;
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
@@ -444,7 +444,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              orgId_ = input.readStringRequireUtf8();
+              org_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
@@ -470,22 +470,22 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object orgId_ = "";
+    private java.lang.Object org_ = "";
     /**
      * <pre>
      * The organization's id.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-     * @return The orgId.
+     * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @return The org.
      */
-    public java.lang.String getOrgId() {
-      java.lang.Object ref = orgId_;
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        orgId_ = s;
+        org_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -496,17 +496,17 @@ private static final long serialVersionUID = 0L;
      * The organization's id.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for orgId.
+     * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for org.
      */
     public com.google.protobuf.ByteString
-        getOrgIdBytes() {
-      java.lang.Object ref = orgId_;
+        getOrgBytes() {
+      java.lang.Object ref = org_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        orgId_ = b;
+        org_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -517,14 +517,14 @@ private static final long serialVersionUID = 0L;
      * The organization's id.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-     * @param value The orgId to set.
+     * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @param value The org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgId(
+    public Builder setOrg(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
@@ -534,11 +534,11 @@ private static final long serialVersionUID = 0L;
      * The organization's id.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
+     * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrgId() {
-      orgId_ = getDefaultInstance().getOrgId();
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
@@ -548,15 +548,15 @@ private static final long serialVersionUID = 0L;
      * The organization's id.
      * </pre>
      *
-     * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for orgId to set.
+     * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgIdBytes(
+    public Builder setOrgBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;

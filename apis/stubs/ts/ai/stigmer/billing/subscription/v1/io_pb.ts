@@ -15,28 +15,28 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/subscription/v1/io.proto.
  */
 export const file_ai_stigmer_billing_subscription_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIj0KI0dldFN1YnNjcmlwdGlvbkZvck9yZ2FuaXphdGlvbklucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBIi4KFEdldEVudGl0bGVtZW50c0lucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIkIKD0NoYW5nZVBsYW5JbnB1dBIWCgZvcmdfaWQYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiMQoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSFgoGb3JnX2lkGAEgASgJQga6SAPIAQEiMAoWR2V0UGVyaW9kRXN0aW1hdGVJbnB1dBIWCgZvcmdfaWQYASABKAlCBrpIA8gBASLHAgoOUGVyaW9kRXN0aW1hdGUSDwoHcGxhbl9pZBgBIAEoCRIwCgxwZXJpb2Rfc3RhcnQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnBlcmlvZF9lbmQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhwKFHByb3ZpZGVyX2Nvc3RfbWljcm9zGAQgASgDEiMKG2NvbW1pc3Npb25fY29sbGVjdGVkX21pY3JvcxgFIAEoAxIiChptYW5hZ2VkX29yZ2FuaXphdGlvbl9jb3VudBgGIAEoBRJFCgVsaW5lcxgHIAMoCzI2LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lEhQKDHRvdGFsX21pY3JvcxgIIAEoAyJ1ChJQZXJpb2RFc3RpbWF0ZUxpbmUSSAoEa2luZBgBIAEoDjI6LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lS2luZBIVCg1hbW91bnRfbWljcm9zGAIgASgDKn8KFlBlcmlvZEVzdGltYXRlTGluZUtpbmQSKQolcGVyaW9kX2VzdGltYXRlX2xpbmVfa2luZF91bnNwZWNpZmllZBAAEggKBHBsYW4QARIVChFjb21taXNzaW9uX2NyZWRpdBACEhkKFW1hbmFnZWRfb3JnYW5pemF0aW9ucxADYgZwcm90bzM", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIjEKGkdldFN1YnNjcmlwdGlvbkZvck9yZ0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBIisKFEdldEVudGl0bGVtZW50c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIj8KD0NoYW5nZVBsYW5JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiLgoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEiLQoWR2V0UGVyaW9kRXN0aW1hdGVJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASLHAgoOUGVyaW9kRXN0aW1hdGUSDwoHcGxhbl9pZBgBIAEoCRIwCgxwZXJpb2Rfc3RhcnQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnBlcmlvZF9lbmQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhwKFHByb3ZpZGVyX2Nvc3RfbWljcm9zGAQgASgDEiMKG2NvbW1pc3Npb25fY29sbGVjdGVkX21pY3JvcxgFIAEoAxIiChptYW5hZ2VkX29yZ2FuaXphdGlvbl9jb3VudBgGIAEoBRJFCgVsaW5lcxgHIAMoCzI2LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lEhQKDHRvdGFsX21pY3JvcxgIIAEoAyJ1ChJQZXJpb2RFc3RpbWF0ZUxpbmUSSAoEa2luZBgBIAEoDjI6LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lS2luZBIVCg1hbW91bnRfbWljcm9zGAIgASgDKn8KFlBlcmlvZEVzdGltYXRlTGluZUtpbmQSKQolcGVyaW9kX2VzdGltYXRlX2xpbmVfa2luZF91bnNwZWNpZmllZBAAEggKBHBsYW4QARIVChFjb21taXNzaW9uX2NyZWRpdBACEhkKFW1hbmFnZWRfb3JnYW5pemF0aW9ucxADYgZwcm90bzM", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
- * GetSubscriptionForOrganizationInput names the organization whose
+ * GetSubscriptionForOrgInput names the organization whose
  * subscription is read.
  *
- * @generated from message ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput
+ * @generated from message ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput
  */
-export type GetSubscriptionForOrganizationInput = Message<"ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput"> & {
+export type GetSubscriptionForOrgInput = Message<"ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput"> & {
   /**
    * The organization's id.
    *
-   * @generated from field: string org_id = 1;
+   * @generated from field: string org = 1;
    */
-  orgId: string;
+  org: string;
 };
 
 /**
- * Describes the message ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput.
- * Use `create(GetSubscriptionForOrganizationInputSchema)` to create a new message.
+ * Describes the message ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput.
+ * Use `create(GetSubscriptionForOrgInputSchema)` to create a new message.
  */
-export const GetSubscriptionForOrganizationInputSchema: GenMessage<GetSubscriptionForOrganizationInput> = /*@__PURE__*/
+export const GetSubscriptionForOrgInputSchema: GenMessage<GetSubscriptionForOrgInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_subscription_v1_io, 0);
 
 /**
@@ -49,9 +49,9 @@ export type GetEntitlementsInput = Message<"ai.stigmer.billing.subscription.v1.G
   /**
    * The organization's id.
    *
-   * @generated from field: string org_id = 1;
+   * @generated from field: string org = 1;
    */
-  orgId: string;
+  org: string;
 };
 
 /**
@@ -100,9 +100,9 @@ export type ChangePlanInput = Message<"ai.stigmer.billing.subscription.v1.Change
   /**
    * The organization's id.
    *
-   * @generated from field: string org_id = 1;
+   * @generated from field: string org = 1;
    */
-  orgId: string;
+  org: string;
 
   /**
    * The id of the Plan to move onto. Must be an active subscription plan.
@@ -129,9 +129,9 @@ export type CancelSubscriptionInput = Message<"ai.stigmer.billing.subscription.v
   /**
    * The organization's id.
    *
-   * @generated from field: string org_id = 1;
+   * @generated from field: string org = 1;
    */
-  orgId: string;
+  org: string;
 };
 
 /**
@@ -151,9 +151,9 @@ export type GetPeriodEstimateInput = Message<"ai.stigmer.billing.subscription.v1
   /**
    * The organization's id.
    *
-   * @generated from field: string org_id = 1;
+   * @generated from field: string org = 1;
    */
-  orgId: string;
+  org: string;
 };
 
 /**

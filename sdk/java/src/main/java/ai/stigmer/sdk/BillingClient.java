@@ -62,14 +62,14 @@ import java.util.Objects;
  * methods require platform-operator privileges.
  *
  * <pre>{@code
- * CreditBalance balance = client.billing().getCreditBalance(orgId);
+ * CreditBalance balance = client.billing().getCreditBalance(org);
  *
  * CreditLedgerEntry entry = client.billing().adjustCredits(
  *     BillingClient.AdjustCreditsParams.builder()
- *         .orgId(orgId)
+ *         .org(org)
  *         .amountMicros(25_000_000L) // +$25.00
  *         .reason("initial tenant funding")
- *         .idempotencyKey("fund-" + orgId)
+ *         .idempotencyKey("fund-" + org)
  *         .build());
  * }</pre>
  */
@@ -91,11 +91,11 @@ public final class BillingClient {
      * <p>Idempotent: creates the account on first call, returns the existing
      * account on subsequent calls.
      */
-    public BillingAccount getOrCreateBillingAccount(String orgId) {
-        Objects.requireNonNull(orgId, "orgId is required");
+    public BillingAccount getOrCreateBillingAccount(String org) {
+        Objects.requireNonNull(org, "org is required");
         try {
             return command.getOrCreateBillingAccount(GetOrCreateBillingAccountInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .build());
         } catch (StatusRuntimeException e) {
             throw StigmerException.wrap(e);
@@ -103,11 +103,11 @@ public final class BillingClient {
     }
 
     /** Retrieves the billing account for an organization. */
-    public BillingAccount getBillingAccount(String orgId) {
-        Objects.requireNonNull(orgId, "orgId is required");
+    public BillingAccount getBillingAccount(String org) {
+        Objects.requireNonNull(org, "org is required");
         try {
             return query.getBillingAccount(GetBillingAccountInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .build());
         } catch (StatusRuntimeException e) {
             throw StigmerException.wrap(e);
@@ -115,11 +115,11 @@ public final class BillingClient {
     }
 
     /** Retrieves the credit balance breakdown for an organization. */
-    public CreditBalance getCreditBalance(String orgId) {
-        Objects.requireNonNull(orgId, "orgId is required");
+    public CreditBalance getCreditBalance(String org) {
+        Objects.requireNonNull(org, "org is required");
         try {
             return query.getCreditBalance(GetCreditBalanceInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .build());
         } catch (StatusRuntimeException e) {
             throw StigmerException.wrap(e);
@@ -263,11 +263,11 @@ public final class BillingClient {
      * by harness and cost tier. Pass an org ID to resolve org-specific policy
      * overrides; pass an empty string for default pricing.
      */
-    public CustomerModelPricingResponse getCustomerModelPricing(String orgId) {
-        Objects.requireNonNull(orgId, "orgId must not be null (use \"\" for default pricing)");
+    public CustomerModelPricingResponse getCustomerModelPricing(String org) {
+        Objects.requireNonNull(org, "org must not be null (use \"\" for default pricing)");
         try {
             return query.getCustomerModelPricing(GetCustomerModelPricingInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .build());
         } catch (StatusRuntimeException e) {
             throw StigmerException.wrap(e);
@@ -369,13 +369,13 @@ public final class BillingClient {
 
     /** Parameters for manually adjusting an organization's credit balance. */
     public static final class AdjustCreditsParams {
-        final String orgId;
+        final String org;
         final long amountMicros;
         final String reason;
         final String idempotencyKey;
 
         private AdjustCreditsParams(Builder builder) {
-            this.orgId = builder.orgId;
+            this.org = builder.org;
             this.amountMicros = builder.amountMicros;
             this.reason = builder.reason;
             this.idempotencyKey = builder.idempotencyKey;
@@ -385,7 +385,7 @@ public final class BillingClient {
 
         AdjustCreditsInput toProto() {
             return AdjustCreditsInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .setAmountMicros(amountMicros)
                     .setReason(reason)
                     .setIdempotencyKey(idempotencyKey)
@@ -393,7 +393,7 @@ public final class BillingClient {
         }
 
         public static final class Builder {
-            private String orgId;
+            private String org;
             private long amountMicros;
             private String reason;
             private String idempotencyKey;
@@ -401,8 +401,8 @@ public final class BillingClient {
             private Builder() {}
 
             /** Organization ID whose balance to adjust (required). */
-            public Builder orgId(String orgId) {
-                this.orgId = Objects.requireNonNull(orgId);
+            public Builder org(String org) {
+                this.org = Objects.requireNonNull(org);
                 return this;
             }
 
@@ -425,7 +425,7 @@ public final class BillingClient {
             }
 
             public AdjustCreditsParams build() {
-                Objects.requireNonNull(orgId, "orgId is required");
+                Objects.requireNonNull(org, "org is required");
                 Objects.requireNonNull(reason, "reason is required");
                 Objects.requireNonNull(idempotencyKey, "idempotencyKey is required");
                 return new AdjustCreditsParams(this);
@@ -437,14 +437,14 @@ public final class BillingClient {
 
     /** Parameters for granting promotional credits to an organization. */
     public static final class GrantCreditsParams {
-        final String orgId;
+        final String org;
         final long amountMicros;
         final Instant expiresAt;
         final String reason;
         final String idempotencyKey;
 
         private GrantCreditsParams(Builder builder) {
-            this.orgId = builder.orgId;
+            this.org = builder.org;
             this.amountMicros = builder.amountMicros;
             this.expiresAt = builder.expiresAt;
             this.reason = builder.reason;
@@ -455,7 +455,7 @@ public final class BillingClient {
 
         GrantCreditsInput toProto() {
             GrantCreditsInput.Builder req = GrantCreditsInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .setAmountMicros(amountMicros)
                     .setReason(reason)
                     .setIdempotencyKey(idempotencyKey);
@@ -466,7 +466,7 @@ public final class BillingClient {
         }
 
         public static final class Builder {
-            private String orgId;
+            private String org;
             private long amountMicros;
             private Instant expiresAt;
             private String reason;
@@ -475,8 +475,8 @@ public final class BillingClient {
             private Builder() {}
 
             /** Organization ID to grant credits to (required). */
-            public Builder orgId(String orgId) {
-                this.orgId = Objects.requireNonNull(orgId);
+            public Builder org(String org) {
+                this.org = Objects.requireNonNull(org);
                 return this;
             }
 
@@ -509,7 +509,7 @@ public final class BillingClient {
             }
 
             public GrantCreditsParams build() {
-                Objects.requireNonNull(orgId, "orgId is required");
+                Objects.requireNonNull(org, "org is required");
                 Objects.requireNonNull(reason, "reason is required");
                 Objects.requireNonNull(idempotencyKey, "idempotencyKey is required");
                 return new GrantCreditsParams(this);
@@ -521,7 +521,7 @@ public final class BillingClient {
 
     /** Parameters for querying the credit ledger. */
     public static final class GetCreditLedgerParams {
-        final String orgId;
+        final String org;
         final Page page;
         final List<LedgerEntryType> typeFilter;
         final LedgerView view;
@@ -529,7 +529,7 @@ public final class BillingClient {
         final Instant endTime;
 
         private GetCreditLedgerParams(Builder builder) {
-            this.orgId = builder.orgId;
+            this.org = builder.org;
             this.page = builder.page;
             this.typeFilter = builder.typeFilter;
             this.view = builder.view;
@@ -541,7 +541,7 @@ public final class BillingClient {
 
         GetCreditLedgerInput toProto() {
             GetCreditLedgerInput.Builder req = GetCreditLedgerInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .addAllTypeFilter(typeFilter);
             if (page != null) {
                 req.setPage(PageInfo.newBuilder()
@@ -562,7 +562,7 @@ public final class BillingClient {
         }
 
         public static final class Builder {
-            private String orgId;
+            private String org;
             private Page page;
             private List<LedgerEntryType> typeFilter = List.of();
             private LedgerView view;
@@ -572,8 +572,8 @@ public final class BillingClient {
             private Builder() {}
 
             /** Organization ID whose ledger to query (required). */
-            public Builder orgId(String orgId) {
-                this.orgId = Objects.requireNonNull(orgId);
+            public Builder org(String org) {
+                this.org = Objects.requireNonNull(org);
                 return this;
             }
 
@@ -613,7 +613,7 @@ public final class BillingClient {
             }
 
             public GetCreditLedgerParams build() {
-                Objects.requireNonNull(orgId, "orgId is required");
+                Objects.requireNonNull(org, "org is required");
                 return new GetCreditLedgerParams(this);
             }
         }
@@ -623,12 +623,12 @@ public final class BillingClient {
 
     /** Parameters for querying the aggregated billing usage report. */
     public static final class GetBillingUsageReportParams {
-        final String orgId;
+        final String org;
         final Instant startTime;
         final Instant endTime;
 
         private GetBillingUsageReportParams(Builder builder) {
-            this.orgId = builder.orgId;
+            this.org = builder.org;
             this.startTime = builder.startTime;
             this.endTime = builder.endTime;
         }
@@ -637,22 +637,22 @@ public final class BillingClient {
 
         GetBillingUsageReportInput toProto() {
             return GetBillingUsageReportInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .setStartTime(protoTimestamp(startTime))
                     .setEndTime(protoTimestamp(endTime))
                     .build();
         }
 
         public static final class Builder {
-            private String orgId;
+            private String org;
             private Instant startTime;
             private Instant endTime;
 
             private Builder() {}
 
             /** Organization ID to report on (required). */
-            public Builder orgId(String orgId) {
-                this.orgId = Objects.requireNonNull(orgId);
+            public Builder org(String org) {
+                this.org = Objects.requireNonNull(org);
                 return this;
             }
 
@@ -669,7 +669,7 @@ public final class BillingClient {
             }
 
             public GetBillingUsageReportParams build() {
-                Objects.requireNonNull(orgId, "orgId is required");
+                Objects.requireNonNull(org, "org is required");
                 Objects.requireNonNull(startTime, "startTime is required");
                 Objects.requireNonNull(endTime, "endTime is required");
                 return new GetBillingUsageReportParams(this);
@@ -681,13 +681,13 @@ public final class BillingClient {
 
     /** Parameters for creating a Stripe Checkout Session. */
     public static final class CreateCreditCheckoutSessionParams {
-        final String orgId;
+        final String org;
         final String packId;
         final String successUrl;
         final String cancelUrl;
 
         private CreateCreditCheckoutSessionParams(Builder builder) {
-            this.orgId = builder.orgId;
+            this.org = builder.org;
             this.packId = builder.packId;
             this.successUrl = builder.successUrl;
             this.cancelUrl = builder.cancelUrl;
@@ -697,7 +697,7 @@ public final class BillingClient {
 
         CreateCreditCheckoutSessionInput toProto() {
             return CreateCreditCheckoutSessionInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .setPackId(packId)
                     .setSuccessUrl(successUrl)
                     .setCancelUrl(cancelUrl)
@@ -705,7 +705,7 @@ public final class BillingClient {
         }
 
         public static final class Builder {
-            private String orgId;
+            private String org;
             private String packId;
             private String successUrl;
             private String cancelUrl;
@@ -713,8 +713,8 @@ public final class BillingClient {
             private Builder() {}
 
             /** Organization purchasing the credits (required). */
-            public Builder orgId(String orgId) {
-                this.orgId = Objects.requireNonNull(orgId);
+            public Builder org(String org) {
+                this.org = Objects.requireNonNull(org);
                 return this;
             }
 
@@ -737,7 +737,7 @@ public final class BillingClient {
             }
 
             public CreateCreditCheckoutSessionParams build() {
-                Objects.requireNonNull(orgId, "orgId is required");
+                Objects.requireNonNull(org, "org is required");
                 Objects.requireNonNull(packId, "packId is required");
                 Objects.requireNonNull(successUrl, "successUrl is required");
                 Objects.requireNonNull(cancelUrl, "cancelUrl is required");
@@ -750,11 +750,11 @@ public final class BillingClient {
 
     /** Parameters for creating a Stripe Billing Portal session. */
     public static final class CreateBillingPortalSessionParams {
-        final String orgId;
+        final String org;
         final String returnUrl;
 
         private CreateBillingPortalSessionParams(Builder builder) {
-            this.orgId = builder.orgId;
+            this.org = builder.org;
             this.returnUrl = builder.returnUrl;
         }
 
@@ -762,20 +762,20 @@ public final class BillingClient {
 
         CreateBillingPortalSessionInput toProto() {
             return CreateBillingPortalSessionInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .setReturnUrl(returnUrl)
                     .build();
         }
 
         public static final class Builder {
-            private String orgId;
+            private String org;
             private String returnUrl;
 
             private Builder() {}
 
             /** Organization whose billing to manage (required). */
-            public Builder orgId(String orgId) {
-                this.orgId = Objects.requireNonNull(orgId);
+            public Builder org(String org) {
+                this.org = Objects.requireNonNull(org);
                 return this;
             }
 
@@ -786,7 +786,7 @@ public final class BillingClient {
             }
 
             public CreateBillingPortalSessionParams build() {
-                Objects.requireNonNull(orgId, "orgId is required");
+                Objects.requireNonNull(org, "org is required");
                 Objects.requireNonNull(returnUrl, "returnUrl is required");
                 return new CreateBillingPortalSessionParams(this);
             }
@@ -797,12 +797,12 @@ public final class BillingClient {
 
     /** Parameters for {@link #createPaymentMethodSetupSession}. */
     public static final class CreatePaymentMethodSetupSessionParams {
-        final String orgId;
+        final String org;
         final String successUrl;
         final String cancelUrl;
 
         private CreatePaymentMethodSetupSessionParams(Builder builder) {
-            this.orgId = builder.orgId;
+            this.org = builder.org;
             this.successUrl = builder.successUrl;
             this.cancelUrl = builder.cancelUrl;
         }
@@ -811,22 +811,22 @@ public final class BillingClient {
 
         CreatePaymentMethodSetupSessionInput toProto() {
             return CreatePaymentMethodSetupSessionInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .setSuccessUrl(successUrl)
                     .setCancelUrl(cancelUrl)
                     .build();
         }
 
         public static final class Builder {
-            private String orgId;
+            private String org;
             private String successUrl;
             private String cancelUrl;
 
             private Builder() {}
 
             /** Organization to save the payment method for (required). */
-            public Builder orgId(String orgId) {
-                this.orgId = Objects.requireNonNull(orgId);
+            public Builder org(String org) {
+                this.org = Objects.requireNonNull(org);
                 return this;
             }
 
@@ -843,7 +843,7 @@ public final class BillingClient {
             }
 
             public CreatePaymentMethodSetupSessionParams build() {
-                Objects.requireNonNull(orgId, "orgId is required");
+                Objects.requireNonNull(org, "org is required");
                 Objects.requireNonNull(successUrl, "successUrl is required");
                 Objects.requireNonNull(cancelUrl, "cancelUrl is required");
                 return new CreatePaymentMethodSetupSessionParams(this);
@@ -855,14 +855,14 @@ public final class BillingClient {
 
     /** Parameters for configuring automatic credit recharge. */
     public static final class SetAutoRechargeConfigParams {
-        final String orgId;
+        final String org;
         final boolean enabled;
         final long thresholdMicros;
         final long rechargeAmountMicros;
         final long monthlyCapMicros;
 
         private SetAutoRechargeConfigParams(Builder builder) {
-            this.orgId = builder.orgId;
+            this.org = builder.org;
             this.enabled = builder.enabled;
             this.thresholdMicros = builder.thresholdMicros;
             this.rechargeAmountMicros = builder.rechargeAmountMicros;
@@ -873,7 +873,7 @@ public final class BillingClient {
 
         SetAutoRechargeConfigInput toProto() {
             return SetAutoRechargeConfigInput.newBuilder()
-                    .setOrgId(orgId)
+                    .setOrg(org)
                     .setEnabled(enabled)
                     .setThresholdMicros(thresholdMicros)
                     .setRechargeAmountMicros(rechargeAmountMicros)
@@ -882,7 +882,7 @@ public final class BillingClient {
         }
 
         public static final class Builder {
-            private String orgId;
+            private String org;
             private boolean enabled;
             private long thresholdMicros;
             private long rechargeAmountMicros;
@@ -891,8 +891,8 @@ public final class BillingClient {
             private Builder() {}
 
             /** Organization to configure (required). */
-            public Builder orgId(String orgId) {
-                this.orgId = Objects.requireNonNull(orgId);
+            public Builder org(String org) {
+                this.org = Objects.requireNonNull(org);
                 return this;
             }
 
@@ -921,7 +921,7 @@ public final class BillingClient {
             }
 
             public SetAutoRechargeConfigParams build() {
-                Objects.requireNonNull(orgId, "orgId is required");
+                Objects.requireNonNull(org, "org is required");
                 return new SetAutoRechargeConfigParams(this);
             }
         }

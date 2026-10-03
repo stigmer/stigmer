@@ -67,10 +67,10 @@ const KEYS: Record<string, ConfigKey> = {
       (backends[CLOUD_BACKEND_NAME] ??= { type: "cloud" }).org_id = value;
     },
   },
-  "context.organization": {
-    get: (config) => config.context?.organization ?? "",
+  "context.org": {
+    get: (config) => config.context?.org ?? "",
     set: (config, value) => {
-      (config.context ??= {}).organization = value;
+      (config.context ??= {}).org = value;
     },
   },
 };

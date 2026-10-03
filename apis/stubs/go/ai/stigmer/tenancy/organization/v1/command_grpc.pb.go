@@ -52,7 +52,7 @@ type OrganizationCommandControllerClient interface {
 	//
 	//   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
 	//     include the feature. Metadata: feature ("managed_organizations"),
-	//     org_id (the integrator organization).
+	//     org (the integrator organization).
 	Create(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Update an existing organization.
 	Update(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
@@ -136,7 +136,7 @@ type OrganizationCommandControllerServer interface {
 	//
 	//   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
 	//     include the feature. Metadata: feature ("managed_organizations"),
-	//     org_id (the integrator organization).
+	//     org (the integrator organization).
 	Create(context.Context, *Organization) (*Organization, error)
 	// Update an existing organization.
 	Update(context.Context, *Organization) (*Organization, error)

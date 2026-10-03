@@ -30,7 +30,7 @@ import { useDeleteTeam, useUpdateTeam } from "./useTeamMutations.js";
 export interface TeamDetailPanelProps {
   readonly team: Team;
   /** The organization's id (`metadata.id`), whose members can be added. */
-  readonly orgId: string;
+  readonly org: string;
   /** Fired with the saved team after an edit. */
   readonly onUpdated?: (team: Team) => void;
   /** Fired after the team is deleted. */
@@ -47,7 +47,7 @@ export interface TeamDetailPanelProps {
  */
 export function TeamDetailPanel({
   team,
-  orgId,
+  org,
   onUpdated,
   onDeleted,
   onBack,
@@ -112,7 +112,7 @@ export function TeamDetailPanel({
       )}
 
       <section aria-label="Members">
-        <TeamMembersPanel teamId={teamId} orgId={orgId} />
+        <TeamMembersPanel teamId={teamId} org={org} />
       </section>
 
       <PermissionGate resource={gate} relation="can_delete">

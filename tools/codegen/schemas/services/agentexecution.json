@@ -182,7 +182,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput",
           "outputType": "GetAgentUsageReportOutput",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput",
-          "description": "Get a usage report for an agent within an organization.\n\n Returns aggregated tokens, cost, and per-session breakdown for one\n organization's executions of the agent. Requires can_view on the\n organization named in org_id; executions outside that organization are\n never included, so the report is the per-agent drill-down of\n getOrgUsageReport."
+          "description": "Get a usage report for an agent within an organization.\n\n Returns aggregated tokens, cost, and per-session breakdown for one\n organization's executions of the agent. Requires can_view on the\n organization named in org; executions outside that organization are\n never included, so the report is the per-agent drill-down of\n getOrgUsageReport."
         },
         {
           "name": "GetOrgUsageReport",
@@ -1198,9 +1198,9 @@
           "required": false
         },
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
@@ -1326,9 +1326,9 @@
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
       "fields": [
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
@@ -1373,9 +1373,9 @@
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
       "fields": [
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
@@ -2525,7 +2525,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
+          "description": "The boundary that holds people, Agents, Workflows, Sessions and secrets\n together; nothing outside it sees them.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
         },
         {
           "name": "platform",

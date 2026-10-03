@@ -1,4 +1,12 @@
+import { createServer, type Http2Session } from "node:http2";
+import type { AddressInfo } from "node:net";
+
+import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { describe, it, expect } from "vitest";
+
+import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
+import type { MintUserTokenRequest } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
+
 import {
   createPlatformClientAuth,
   PlatformClientAuth,
@@ -71,6 +79,54 @@ describe("PlatformClientAuth.mintUserToken", () => {
     } catch (e: unknown) {
       expect(e).toHaveProperty("code", "invalid-argument");
       expect(e).toHaveProperty("name", "StigmerError");
+    }
+  });
+});
+
+describe("PlatformClientAuth.mintUserToken on the wire", () => {
+  /** A local gRPC-web server for the token service over cleartext HTTP/2 (the transport speaks HTTP/2), capturing the last request it received. */
+  async function tokenServer(seen: { request?: MintUserTokenRequest }): Promise<{ baseUrl: string; close: () => Promise<void> }> {
+    const handler = connectNodeAdapter({
+      routes: (router) =>
+        router.service(PlatformClientTokenController, {
+          mintUserToken: (req) => {
+            seen.request = req;
+            return { accessToken: "minted", tokenType: "Bearer", expiresIn: 60 };
+          },
+        }),
+    });
+    const server = createServer(handler);
+    const sessions = new Set<Http2Session>();
+    server.on("session", (session) => {
+      sessions.add(session);
+      session.on("close", () => sessions.delete(session));
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const { port } = server.address() as AddressInfo;
+    return {
+      baseUrl: `http://127.0.0.1:${port}`,
+      // The client keeps its HTTP/2 session open; close it, or the server never finishes closing.
+      close: () =>
+        new Promise<void>((resolve) => {
+          for (const session of sessions) session.close();
+          server.close(() => resolve());
+        }),
+    };
+  }
+
+  it.each([
+    ["names the organization the token is scoped to as org", { org: "acme" }, "acme"],
+    ["sends an empty org when none is named (the client's own organization)", {}, ""],
+  ] as const)("%s", async (_title, extra, expected) => {
+    const seen: { request?: MintUserTokenRequest } = {};
+    const server = await tokenServer(seen);
+    try {
+      const auth = createPlatformClientAuth({ baseUrl: server.baseUrl, clientId: "pc_1", clientSecret: "secret" });
+      const token = await auth.mintUserToken({ userId: "user-1", ...extra });
+      expect(token.accessToken).toBe("minted");
+      expect(seen.request?.org).toBe(expected);
+    } finally {
+      await server.close();
     }
   });
 });

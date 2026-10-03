@@ -45,7 +45,7 @@ describe("CreditLedgerTable", () => {
       .fn()
       .mockResolvedValue({ entries: [ledgerEntry()], totalPages: 1 });
 
-    render(<CreditLedgerTable orgId="org-1" />, {
+    render(<CreditLedgerTable org="org-1" />, {
       wrapper: wrapper(createMockStigmer(getCreditLedger)),
     });
 
@@ -69,7 +69,7 @@ describe("CreditLedgerTable", () => {
       .fn()
       .mockResolvedValue({ entries: [ledgerEntry()], totalPages: 1 });
 
-    render(<CreditLedgerTable orgId="org-1" />, {
+    render(<CreditLedgerTable org="org-1" />, {
       wrapper: wrapper(createMockStigmer(getCreditLedger)),
     });
 
@@ -88,7 +88,7 @@ describe("CreditLedgerTable", () => {
       .fn()
       .mockResolvedValue({ entries: [], totalPages: 0 });
 
-    render(<CreditLedgerTable orgId="org-1" />, {
+    render(<CreditLedgerTable org="org-1" />, {
       wrapper: wrapper(createMockStigmer(getCreditLedger)),
     });
 

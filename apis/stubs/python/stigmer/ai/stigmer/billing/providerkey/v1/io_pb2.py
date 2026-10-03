@@ -26,7 +26,7 @@ from ai.stigmer.billing.providerkey.v1 import api_pb2 as ai_dot_stigmer_dot_bill
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/billing/providerkey/v1/io.proto\x12!ai.stigmer.billing.providerkey.v1\x1a+ai/stigmer/billing/providerkey/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"\x90\x01\n\x13SetProviderKeyInput\x12\x1e\n\x06org_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05orgId\x12\x34\n\x08provider\x18\x02 \x01(\tB\x18\xbaH\x15r\x13R\tanthropicR\x06openaiR\x08provider\x12#\n\x07\x61pi_key\x18\x03 \x01(\tB\n\xbaH\x07r\x05\x10\x08\x18\x80\x04R\x06\x61piKey\"n\n\x16\x44\x65leteProviderKeyInput\x12\x1e\n\x06org_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05orgId\x12\x34\n\x08provider\x18\x02 \x01(\tB\x18\xbaH\x15r\x13R\tanthropicR\x06openaiR\x08provider\"7\n\x15ListProviderKeysInput\x12\x1e\n\x06org_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05orgId\"\\\n\x16ListProviderKeysOutput\x12\x42\n\x04keys\x18\x01 \x03(\x0b\x32..ai.stigmer.billing.providerkey.v1.ProviderKeyR\x04keysB\xd9\x01\n%com.ai.stigmer.billing.providerkey.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/billing/providerkey/v1/io.proto\x12!ai.stigmer.billing.providerkey.v1\x1a+ai/stigmer/billing/providerkey/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"\x8b\x01\n\x13SetProviderKeyInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\x34\n\x08provider\x18\x02 \x01(\tB\x18\xbaH\x15r\x13R\tanthropicR\x06openaiR\x08provider\x12#\n\x07\x61pi_key\x18\x03 \x01(\tB\n\xbaH\x07r\x05\x10\x08\x18\x80\x04R\x06\x61piKey\"i\n\x16\x44\x65leteProviderKeyInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\x34\n\x08provider\x18\x02 \x01(\tB\x18\xbaH\x15r\x13R\tanthropicR\x06openaiR\x08provider\"2\n\x15ListProviderKeysInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\\\n\x16ListProviderKeysOutput\x12\x42\n\x04keys\x18\x01 \x03(\x0b\x32..ai.stigmer.billing.providerkey.v1.ProviderKeyR\x04keysB\xd9\x01\n%com.ai.stigmer.billing.providerkey.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,24 +34,24 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.billing.provider
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n%com.ai.stigmer.billing.providerkey.v1B\007IoProtoP\001\242\002\004ASBP\252\002!Ai.Stigmer.Billing.Providerkey.V1\312\002!Ai\\Stigmer\\Billing\\Providerkey\\V1\342\002-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\352\002%Ai::Stigmer::Billing::Providerkey::V1'
-  _globals['_SETPROVIDERKEYINPUT'].fields_by_name['org_id']._loaded_options = None
-  _globals['_SETPROVIDERKEYINPUT'].fields_by_name['org_id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_SETPROVIDERKEYINPUT'].fields_by_name['org']._loaded_options = None
+  _globals['_SETPROVIDERKEYINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_SETPROVIDERKEYINPUT'].fields_by_name['provider']._loaded_options = None
   _globals['_SETPROVIDERKEYINPUT'].fields_by_name['provider']._serialized_options = b'\272H\025r\023R\tanthropicR\006openai'
   _globals['_SETPROVIDERKEYINPUT'].fields_by_name['api_key']._loaded_options = None
   _globals['_SETPROVIDERKEYINPUT'].fields_by_name['api_key']._serialized_options = b'\272H\007r\005\020\010\030\200\004'
-  _globals['_DELETEPROVIDERKEYINPUT'].fields_by_name['org_id']._loaded_options = None
-  _globals['_DELETEPROVIDERKEYINPUT'].fields_by_name['org_id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_DELETEPROVIDERKEYINPUT'].fields_by_name['org']._loaded_options = None
+  _globals['_DELETEPROVIDERKEYINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_DELETEPROVIDERKEYINPUT'].fields_by_name['provider']._loaded_options = None
   _globals['_DELETEPROVIDERKEYINPUT'].fields_by_name['provider']._serialized_options = b'\272H\025r\023R\tanthropicR\006openai'
-  _globals['_LISTPROVIDERKEYSINPUT'].fields_by_name['org_id']._loaded_options = None
-  _globals['_LISTPROVIDERKEYSINPUT'].fields_by_name['org_id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_LISTPROVIDERKEYSINPUT'].fields_by_name['org']._loaded_options = None
+  _globals['_LISTPROVIDERKEYSINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_SETPROVIDERKEYINPUT']._serialized_start=156
-  _globals['_SETPROVIDERKEYINPUT']._serialized_end=300
-  _globals['_DELETEPROVIDERKEYINPUT']._serialized_start=302
-  _globals['_DELETEPROVIDERKEYINPUT']._serialized_end=412
-  _globals['_LISTPROVIDERKEYSINPUT']._serialized_start=414
-  _globals['_LISTPROVIDERKEYSINPUT']._serialized_end=469
-  _globals['_LISTPROVIDERKEYSOUTPUT']._serialized_start=471
-  _globals['_LISTPROVIDERKEYSOUTPUT']._serialized_end=563
+  _globals['_SETPROVIDERKEYINPUT']._serialized_end=295
+  _globals['_DELETEPROVIDERKEYINPUT']._serialized_start=297
+  _globals['_DELETEPROVIDERKEYINPUT']._serialized_end=402
+  _globals['_LISTPROVIDERKEYSINPUT']._serialized_start=404
+  _globals['_LISTPROVIDERKEYSINPUT']._serialized_end=454
+  _globals['_LISTPROVIDERKEYSOUTPUT']._serialized_start=456
+  _globals['_LISTPROVIDERKEYSOUTPUT']._serialized_end=548
 # @@protoc_insertion_point(module_scope)

@@ -343,7 +343,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
 
     const agent = await clients.agentExecutionQuery.getAgentUsageReport({
       agentId: "agt_01conformancemissing",
-      orgId: org,
+      org,
     });
     // The name resolves only when the org has executions; until then the
     // id is echoed — pinned so clients know not to treat it as a name.
@@ -354,11 +354,11 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     expect(agent.totalExecutions).toBe(0);
 
     const orgReport = await clients.agentExecutionQuery.getOrgUsageReport({
-      orgId: org,
+      org,
       fromDate: "2026-01-01",
       toDate: "2026-01-31",
     });
-    expect(orgReport.orgId).toBe(org);
+    expect(orgReport.org).toBe(org);
     expect(orgReport.totalAgents).toBe(0);
     expect(orgReport.totalSessions).toBe(0);
     expect(orgReport.totalExecutions).toBe(0);
@@ -375,12 +375,12 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     for (const [lane, call] of [
       [
         "agent report",
-        () => clients.agentExecutionQuery.getAgentUsageReport({ agentId: "agt_01conformancemissing", orgId: missing }),
+        () => clients.agentExecutionQuery.getAgentUsageReport({ agentId: "agt_01conformancemissing", org: missing }),
       ],
       [
         "org report",
         () =>
-          clients.agentExecutionQuery.getOrgUsageReport({ orgId: missing, fromDate: "2026-01-01", toDate: "2026-01-31" }),
+          clients.agentExecutionQuery.getOrgUsageReport({ org: missing, fromDate: "2026-01-01", toDate: "2026-01-31" }),
       ],
     ] as const) {
       const error = await expectGrpcCode(call, Code.NotFound, `${lane} of a missing organization`);
@@ -392,10 +392,10 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     await expectGrpcCode(
       () => clients.agentExecutionQuery.getAgentUsageReport({ agentId: "agt_x" }),
       Code.InvalidArgument,
-      "agent usage report without org_id",
+      "agent usage report without org",
     );
     await expectGrpcCode(
-      () => clients.agentExecutionQuery.getOrgUsageReport({ orgId: "conf-org" }),
+      () => clients.agentExecutionQuery.getOrgUsageReport({ org: "conf-org" }),
       Code.InvalidArgument,
       "org usage report without the date range",
     );

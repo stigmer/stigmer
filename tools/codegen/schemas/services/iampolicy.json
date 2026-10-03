@@ -125,7 +125,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput",
           "outputType": "PrincipalsCount",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.PrincipalsCount",
-          "description": "Count distinct principals that have access to a resource.\n\n This RPC answers: \"How many [principal-kind] have access to this organization?\"\n Used for member count badges and summary statistics.\n\n Use Cases:\n - Organization members count badge in navigation\n - Settings page member summary\n\n Input: GetPrincipalsCountInput with org_id and principal_kind\n Output: PrincipalsCount with integer count"
+          "description": "Count distinct principals that have access to a resource.\n\n This RPC answers: \"How many [principal-kind] have access to this organization?\"\n Used for member count badges and summary statistics.\n\n Use Cases:\n - Organization members count badge in navigation\n - Settings page member summary\n\n Input: GetPrincipalsCountInput with org and principal_kind\n Output: PrincipalsCount with integer count"
         }
       ]
     }
@@ -254,9 +254,9 @@
           }
         },
         {
-          "name": "OrganizationId",
-          "jsonName": "organizationId",
-          "protoField": "organization_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
@@ -663,9 +663,9 @@
       "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
       "fields": [
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },

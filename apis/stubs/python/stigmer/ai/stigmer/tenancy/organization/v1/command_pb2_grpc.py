@@ -69,7 +69,7 @@ class OrganizationCommandControllerServicer(object):
 
         - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
         include the feature. Metadata: feature ("managed_organizations"),
-        org_id (the integrator organization).
+        org (the integrator organization).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

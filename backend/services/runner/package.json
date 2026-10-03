@@ -27,7 +27,7 @@
     "build": "rm -rf dist && tsc -p tsconfig.build.json && node scripts/build-fingerprint.js",
     "build:slim": "npm run build && node scripts/bundle-slim.mjs",
     "verify:slim": "node scripts/verify-slim-artifact.mjs",
-    "verify:dist": "node scripts/verify-dist-boot.mjs",
+    "verify:dist": "node scripts/verify-dist-boot.mjs && node scripts/verify-attach-boot.mjs",
     "verify:consumer": "node ../../../scripts/verify-consumer-install.mjs",
     "gen:ipc-fixtures": "tsx scripts/generate-ipc-fixtures.ts",
     "start": "tsx src/main.ts",

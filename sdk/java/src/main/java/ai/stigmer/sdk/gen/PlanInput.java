@@ -148,19 +148,19 @@ public final class PlanInput {
 
     /** SDK input type for EntitlementLimits. */
     public static final class EntitlementLimitsInput {
-        private final int maxOrganizations;
+        private final int maxOrgs;
         private final int maxUsers;
         private final int includedManagedOrganizations;
 
         private EntitlementLimitsInput(Builder builder) {
-            this.maxOrganizations = builder.maxOrganizations;
+            this.maxOrgs = builder.maxOrgs;
             this.maxUsers = builder.maxUsers;
             this.includedManagedOrganizations = builder.includedManagedOrganizations;
         }
 
         EntitlementLimits toProto() {
             EntitlementLimits.Builder builder = EntitlementLimits.newBuilder();
-            builder.setMaxOrganizations(this.maxOrganizations);
+            builder.setMaxOrgs(this.maxOrgs);
             builder.setMaxUsers(this.maxUsers);
             builder.setIncludedManagedOrganizations(this.includedManagedOrganizations);
             return builder.build();
@@ -169,13 +169,13 @@ public final class PlanInput {
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private int maxOrganizations;
+            private int maxOrgs;
             private int maxUsers;
             private int includedManagedOrganizations;
 
             private Builder() {}
 
-            public Builder maxOrganizations(int maxOrganizations) { this.maxOrganizations = maxOrganizations; return this; }
+            public Builder maxOrgs(int maxOrgs) { this.maxOrgs = maxOrgs; return this; }
             public Builder maxUsers(int maxUsers) { this.maxUsers = maxUsers; return this; }
             public Builder includedManagedOrganizations(int includedManagedOrganizations) { this.includedManagedOrganizations = includedManagedOrganizations; return this; }
 
@@ -187,13 +187,13 @@ public final class PlanInput {
     public static final class PlanTermsInput {
         private final long monthlyMinimumMicros;
         private final int usageShareBasisPoints;
-        private final long perExtraOrganizationMicros;
+        private final long perExtraOrgMicros;
         private final long annualPriceMicros;
 
         private PlanTermsInput(Builder builder) {
             this.monthlyMinimumMicros = builder.monthlyMinimumMicros;
             this.usageShareBasisPoints = builder.usageShareBasisPoints;
-            this.perExtraOrganizationMicros = builder.perExtraOrganizationMicros;
+            this.perExtraOrgMicros = builder.perExtraOrgMicros;
             this.annualPriceMicros = builder.annualPriceMicros;
         }
 
@@ -201,7 +201,7 @@ public final class PlanInput {
             PlanTerms.Builder builder = PlanTerms.newBuilder();
             builder.setMonthlyMinimumMicros(this.monthlyMinimumMicros);
             builder.setUsageShareBasisPoints(this.usageShareBasisPoints);
-            builder.setPerExtraOrganizationMicros(this.perExtraOrganizationMicros);
+            builder.setPerExtraOrgMicros(this.perExtraOrgMicros);
             builder.setAnnualPriceMicros(this.annualPriceMicros);
             return builder.build();
         }
@@ -211,14 +211,14 @@ public final class PlanInput {
         public static final class Builder {
             private long monthlyMinimumMicros;
             private int usageShareBasisPoints;
-            private long perExtraOrganizationMicros;
+            private long perExtraOrgMicros;
             private long annualPriceMicros;
 
             private Builder() {}
 
             public Builder monthlyMinimumMicros(long monthlyMinimumMicros) { this.monthlyMinimumMicros = monthlyMinimumMicros; return this; }
             public Builder usageShareBasisPoints(int usageShareBasisPoints) { this.usageShareBasisPoints = usageShareBasisPoints; return this; }
-            public Builder perExtraOrganizationMicros(long perExtraOrganizationMicros) { this.perExtraOrganizationMicros = perExtraOrganizationMicros; return this; }
+            public Builder perExtraOrgMicros(long perExtraOrgMicros) { this.perExtraOrgMicros = perExtraOrgMicros; return this; }
             public Builder annualPriceMicros(long annualPriceMicros) { this.annualPriceMicros = annualPriceMicros; return this; }
 
             public PlanTermsInput build() { return new PlanTermsInput(this); }

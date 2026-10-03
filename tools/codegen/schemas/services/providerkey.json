@@ -50,9 +50,9 @@
       "protoFile": "apis/ai/stigmer/billing/providerkey/v1/io.proto",
       "fields": [
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
@@ -101,9 +101,9 @@
       "protoFile": "apis/ai/stigmer/billing/providerkey/v1/io.proto",
       "fields": [
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
@@ -138,9 +138,9 @@
       "protoFile": "apis/ai/stigmer/billing/providerkey/v1/io.proto",
       "fields": [
         {
-          "name": "OrgId",
-          "jsonName": "orgId",
-          "protoField": "org_id",
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
           "type": {
             "kind": "string"
           },
