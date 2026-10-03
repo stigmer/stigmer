@@ -276,6 +276,51 @@ test("private-record identifiers fail public guidance; --private-repo relaxes th
   }
 });
 
+test("bare task ids, two-digit decisions, bare rulings and findings, record stages and private repository references fail public guidance; their near-misses do not", () => {
+  const root = repo({
+    "AGENTS.md": [
+      "Landed at T07.",
+      "Then at T13b.",
+      "See DD-12 and Q-OR.",
+      "Then DD-AB-1.",
+      "Closes F-12.",
+      "Shipped in C2 Stage 4.",
+      "Tracked as stigmer-cloud#12.",
+      // Near-misses: an ISO time, a timestamp, a bare build stage, a standard's section, a public issue.
+      "At 2026-09-30T12:00, `${day}T00:00:00Z`, a DD-MM-YYYY or DD-HHmmss format, Stage 1 of make check, RFC 6749 §2.3.1, #1249 and stigmer#1249 are fine.",
+    ].join("\n"),
+  });
+  try {
+    const found = (privateRepo) =>
+      checkLeakage(root, ["AGENTS.md"], { privateRepo }).map((f) => f.split(": ").slice(1).join(": "));
+    assert.deepEqual(found(false), [
+      "task id in public guidance: T07",
+      "task id in public guidance: T13b",
+      "decision id in public guidance: DD-12",
+      "ruling id in public guidance: Q-OR",
+      "decision id in public guidance: DD-AB-1",
+      "finding id in public guidance: F-12",
+      "record stage in public guidance: C2 Stage 4",
+      "private repository reference in public guidance: stigmer-cloud#12",
+    ]);
+    assert.deepEqual(
+      found(true),
+      [
+        "task id in public guidance: T07",
+        "task id in public guidance: T13b",
+        "decision id in public guidance: DD-12",
+        "ruling id in public guidance: Q-OR",
+        "decision id in public guidance: DD-AB-1",
+        "finding id in public guidance: F-12",
+        "record stage in public guidance: C2 Stage 4",
+      ],
+      "the private repository may cite its own issues",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a guide over its word budget is a finding; the root and nested budgets differ; .agents docs carry none", () => {
   const words = (n) => Array.from({ length: n }, (_, i) => `w${i}`).join(" ") + "\n";
   const root = repo({
