@@ -50,8 +50,6 @@
  * one in-process queue, so a turn and the idle sweep (sweep.ts) never
  * interleave on an actor within one server.
  */
-import { setTimeout as sleep } from "node:timers/promises";
-
 import {
   TEMPORAL_API_KEY_ENV,
   TEMPORAL_TLS_CLIENT_KEY_DATA_ENV,
@@ -67,6 +65,7 @@ import type {
   SandboxScope,
 } from "../provisioner.js";
 import type { SubstrateDriverSettings } from "./config.js";
+import { delay } from "./delay.js";
 import { buildEgressRules } from "./egress.js";
 import { ActorState, type EgressRule } from "./gen/ateapipb/ateapi_pb.js";
 import {
@@ -213,8 +212,7 @@ export function newSubstrateSandboxDriverOverGateway(
   const { config, settings, logger, gateway } = options;
   validateSubstrateDriverConfig(config);
   const now = options.now ?? Date.now;
-  const wait =
-    options.sleep ?? ((ms: number) => sleep(ms).then(() => undefined));
+  const wait = options.sleep ?? delay;
 
   const temporalSecretEnv: Record<string, string> = {};
   const temporalPlainEnv: Record<string, string> = {};

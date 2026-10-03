@@ -18,6 +18,8 @@
  * any secret is ever logged; only the code and the waiter's text.
  */
 
+import { delay } from "./delay.js";
+
 /** What the waiter answered. */
 export type PushResult =
   | { readonly ok: true; readonly started: boolean }
@@ -51,9 +53,7 @@ export async function pushAttach(
   } = {},
 ): Promise<PushResult> {
   const fetchImpl = options.fetch ?? fetch;
-  const sleep =
-    options.sleep ??
-    ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const sleep = options.sleep ?? delay;
   const now = options.now ?? Date.now;
   const deadline = now() + RETRY_WINDOW_MS;
   const body = JSON.stringify({

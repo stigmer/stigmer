@@ -300,6 +300,18 @@ describe("ensure, from each state", () => {
     expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.RUNNING);
   });
 
+  it("in transition for longer than the settle wait: fails, naming the state", async () => {
+    const h = harness();
+    h.substrate.put({
+      name: ACTOR,
+      state: ActorState.SUSPENDING,
+      template: "stigmer-runner-old",
+    });
+    await expect(
+      h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+    ).rejects.toThrow(/stayed SUSPENDING for 60 s/);
+  });
+
   it("DELETING: refuses", async () => {
     const h = harness();
     h.substrate.put({
@@ -391,6 +403,15 @@ describe("failures", () => {
       h.substrate.calls.filter((c) => c.startsWith("createTemplate")),
     ).toHaveLength(2);
     expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.RUNNING);
+  });
+
+  it("a create that fails again after the template was prepared again: thrown", async () => {
+    const h = harness();
+    h.substrate.fail("createActor", new Error("boom one"));
+    h.substrate.fail("createActor", new Error("boom two"));
+    await expect(
+      h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+    ).rejects.toThrow(/boom two/);
   });
 
   it("a waiter refusal throws with its status and code", async () => {
@@ -559,6 +580,14 @@ describe("deprovision, probe, lifecycle", () => {
     await h.driver.provisioner.deprovisionWorkflowSandbox("wex_1");
     await h.driver.provisioner.deprovisionConnectSandbox("mcx_1");
     expect(h.substrate.actors.size).toBe(0);
+  });
+
+  it("lifecycle.resume is the ensure", async () => {
+    const h = harness();
+    h.substrate.put({ name: ACTOR, state: ActorState.PAUSED, template: "t" });
+    await h.driver.lifecycle.resume("session", SESSION, env);
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.RUNNING);
+    expect(h.router.pushes).toHaveLength(1);
   });
 
   it("reattach pushes and touches no lifecycle", async () => {

@@ -45,6 +45,7 @@ import {
   SnapshotContentScope,
   type ActorTemplate,
 } from "./gen/ateapipb/ateapi_pb.js";
+import { delay } from "./delay.js";
 import type { SubstrateGateway } from "./gateway.js";
 
 /** The waiter entry the template runs (the runner package's dist/attach/main.js). */
@@ -212,9 +213,7 @@ export function newTemplateKeeper(options: {
   readonly now?: () => number;
 }): TemplateKeeper {
   const { gateway, template, logger } = options;
-  const sleep =
-    options.sleep ??
-    ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const sleep = options.sleep ?? delay;
   const now = options.now ?? Date.now;
   const name = template.metadata?.name ?? "";
   let inFlight: Promise<string> | undefined;

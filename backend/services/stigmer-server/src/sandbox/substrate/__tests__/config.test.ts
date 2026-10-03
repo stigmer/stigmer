@@ -68,6 +68,18 @@ describe("newSubstrateSettingsFromEnv", () => {
         STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR: "workload",
       }),
     ).toThrow(/key=value/);
+    expect(
+      newSubstrateSettingsFromEnv({
+        ...base,
+        STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR: "workload=stigmer,,",
+      }).workerSelector,
+    ).toEqual({ workload: "stigmer" });
+    expect(() =>
+      newSubstrateSettingsFromEnv({
+        ...base,
+        STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR: " , ",
+      }),
+    ).toThrow(/names no label/);
     expect(() =>
       newSubstrateSettingsFromEnv({
         ...base,

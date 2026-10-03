@@ -13,7 +13,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -141,6 +141,37 @@ describe("activity(sessionId)", () => {
       busy: false,
       lastActiveAt: undefined,
     });
+  });
+});
+
+describe("a row that does not decode", () => {
+  it("is skipped with a warning, and the session's other executions still count", async () => {
+    const warnings: string[] = [];
+    const logger = createLogger({
+      level: "warn",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => warnings.push(entry.message),
+    });
+    const good = execution(
+      "aex_1",
+      "ses_a",
+      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      new Date("2026-10-03T10:00:00Z"),
+    );
+    const stub = {
+      queryResources: async () => [
+        { id: "aex_bad", data: new Uint8Array([0xff, 0xff, 0xff]), cursor: "" },
+        {
+          id: "aex_1",
+          data: toBinary(AgentExecutionSchema, good),
+          cursor: "",
+        },
+      ],
+    } as unknown as Store;
+    const reader = newStoreSessionActivityReader(stub, logger);
+    expect((await reader.activity("ses_a")).busy).toBe(true);
+    expect(warnings).toContain("Failed to unmarshal execution, skipping");
   });
 });
 

@@ -16,7 +16,7 @@
  *     template is moved; unused templates are retired;
  *   - start runs a pass at once and stop waits for it.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createLogger } from "../../../boot/logger.js";
 import { sandboxBaseName } from "../../naming.js";
@@ -365,5 +365,96 @@ describe("housekeeping", () => {
     expect(h.substrate.calls.some((c) => c.startsWith("createTemplate"))).toBe(
       true,
     );
+  });
+});
+
+describe("failures and races", () => {
+  it("one sandbox that fails is skipped; the others are still swept", async () => {
+    const h = harness();
+    const bad = known(h, "ses_bad", ActorState.RUNNING, 6 * MIN);
+    const good = known(h, "ses_good", ActorState.RUNNING, 6 * MIN);
+    const pause = h.substrate.pauseActor.bind(h.substrate);
+    h.substrate.pauseActor = async (name) => {
+      if (name === bad) throw new Error("worker gone");
+      return pause(name);
+    };
+    await h.pass();
+    expect(h.substrate.actors.get(bad)?.state).toBe(ActorState.RUNNING);
+    expect(h.substrate.actors.get(good)?.state).toBe(ActorState.PAUSED);
+  });
+
+  it("a sandbox gone between the pass's read and its queue is left alone", async () => {
+    const h = harness();
+    const name = known(h, "ses_a", ActorState.RUNNING, 6 * MIN);
+    h.sessions.onRead = (_id, read) => {
+      if (read === 1) h.substrate.actors.delete(name);
+    };
+    await h.pass();
+    expect(h.substrate.calls).not.toContain(`pauseActor ${name}`);
+  });
+
+  it("an orphan named by an ensure while it waited in the queue is not suspended", async () => {
+    const h = harness();
+    const name = sandboxBaseName("session", "ses_late");
+    h.substrate.put({
+      name,
+      state: ActorState.RUNNING,
+      template: "t",
+      createTime: new Date(h.t() - 60 * MIN),
+    });
+    let release: () => void = () => {};
+    const held = h.driver.internals.serialize(
+      name,
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const pass = h.pass();
+    await new Promise((r) => setImmediate(r));
+    h.driver.internals.sessionByActor.set(name, "ses_late");
+    release();
+    await Promise.all([held, pass]);
+    expect(h.substrate.actors.get(name)?.state).toBe(ActorState.RUNNING);
+  });
+
+  it("start logs a template it cannot prepare and a pass that fails, and never runs two passes at once", async () => {
+    vi.useFakeTimers();
+    try {
+      const h = harness();
+      const errors: string[] = [];
+      const logger = createLogger({
+        level: "error",
+        pretty: false,
+        write: () => {},
+        sink: (entry) => errors.push(entry.message),
+      });
+      h.substrate.fail("ensureAtespace", new Error("no Substrate"));
+      let release: () => void = () => {};
+      let lists = 0;
+      h.substrate.listActors = async () => {
+        lists += 1;
+        if (lists === 1) {
+          await new Promise<void>((resolve) => {
+            release = resolve;
+          });
+        }
+        throw new Error("list failed");
+      };
+      const handle = startSubstrateSweep({ ...h.options, logger });
+      await vi.advanceTimersByTimeAsync(
+        settings.sweepIntervalSeconds * 1000 * 3,
+      );
+      expect(lists).toBe(1);
+      release();
+      await vi.advanceTimersByTimeAsync(0);
+      await handle.stop();
+      expect(errors).toContain(
+        "Substrate template preparation failed; the next sandbox ensure retries it",
+      );
+      expect(errors).toContain("Substrate idle sweep pass failed");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

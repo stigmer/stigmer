@@ -122,5 +122,8 @@ describe("what no rule may name", () => {
         settings,
       ),
     ).toThrow(/names the address 10\.0\.0\.5/);
+    expect(() =>
+      buildEgressRules({ ...config, backendEndpoint: "http://[bad" }, settings),
+    ).toThrow(/is not a URL or host:port/);
   });
 });

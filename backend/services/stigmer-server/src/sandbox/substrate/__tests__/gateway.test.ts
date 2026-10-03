@@ -33,6 +33,7 @@ import {
 } from "../gen/ateapipb/ateapi_pb.js";
 import {
   bearerFromFile,
+  newSubstrateClientGateway,
   newSubstrateGatewayOverTransport,
   SubstrateAbortedError,
   SubstrateNoWorkerError,
@@ -247,5 +248,161 @@ describe("lists and moves", () => {
       goldenReady: false,
       goldenError: "",
     });
+  });
+});
+
+describe("the calls that succeed", () => {
+  it("creates, lists, moves through the lifecycle and deletes", async () => {
+    const seen: string[] = [];
+    const record =
+      <T>(name: string, answer: T) =>
+      () => {
+        seen.push(name);
+        return answer;
+      };
+    const gateway = gatewayOver({
+      createAtespace: record("createAtespace", {}),
+      createActor: record("createActor", actor("a", ActorState.SUSPENDED)),
+      createActorTemplate: record(
+        "createActorTemplate",
+        create(ActorTemplateSchema, {}),
+      ),
+      createActorEgressPolicy: record("createActorEgressPolicy", {}),
+      resumeActor: record("resumeActor", { resumed: true }),
+      pauseActor: record("pauseActor", {}),
+      suspendActor: record("suspendActor", {}),
+      revertActor: record("revertActor", {}),
+      deleteActor: record("deleteActor", actor("a", ActorState.DELETING)),
+      deleteActorTemplate: record(
+        "deleteActorTemplate",
+        create(ActorTemplateSchema, {}),
+      ),
+      listActorTemplates(request) {
+        seen.push("listActorTemplates");
+        return request.pageToken === ""
+          ? {
+              actorTemplates: [
+                create(ActorTemplateSchema, { metadata: { name: "t1" } }),
+              ],
+              nextPageToken: "p2",
+            }
+          : {
+              actorTemplates: [
+                create(ActorTemplateSchema, { metadata: { name: "t2" } }),
+              ],
+              nextPageToken: "",
+            };
+      },
+    });
+    await gateway.ensureAtespace();
+    expect(await gateway.createActor("a", "t")).toBe("created");
+    expect(
+      await gateway.createTemplate(
+        create(ActorTemplateSchema, { metadata: { name: "t" } }),
+      ),
+    ).toBe("created");
+    await gateway.ensureEgressPolicy("a", []);
+    await gateway.resumeActor("a");
+    await gateway.pauseActor("a");
+    await gateway.suspendActor("a");
+    await gateway.revertActor("a");
+    await gateway.deleteActor("a");
+    await gateway.deleteTemplate({
+      name: "t",
+      uid: "u",
+      version: 2n,
+      createTime: undefined,
+      goldenReady: true,
+      goldenError: "",
+    });
+    expect((await gateway.listTemplates()).map((t) => t.name)).toEqual([
+      "t1",
+      "t2",
+    ]);
+    expect(seen).toEqual([
+      "createAtespace",
+      "createActor",
+      "createActorTemplate",
+      "createActorEgressPolicy",
+      "resumeActor",
+      "pauseActor",
+      "suspendActor",
+      "revertActor",
+      "deleteActor",
+      "deleteActorTemplate",
+      "listActorTemplates",
+      "listActorTemplates",
+    ]);
+  });
+
+  it("an unexpected failure on a create or a delete passes through", async () => {
+    const boom = () => {
+      throw new ConnectError("boom", Code.Internal);
+    };
+    const gateway = gatewayOver({
+      createAtespace: boom,
+      createActor: boom,
+      createActorTemplate: boom,
+      createActorEgressPolicy: boom,
+      deleteActor: boom,
+      deleteActorTemplate: boom,
+      getActor: boom,
+      getActorTemplate: boom,
+      updateActor: boom,
+    });
+    const view = {
+      name: "a",
+      uid: "u",
+      version: 1n,
+      state: ActorState.SUSPENDED,
+      template: "t",
+      createTime: undefined,
+      updateTime: undefined,
+    };
+    for (const call of [
+      () => gateway.ensureAtespace(),
+      () => gateway.createActor("a", "t"),
+      () => gateway.createTemplate(create(ActorTemplateSchema, {})),
+      () => gateway.ensureEgressPolicy("a", []),
+      () => gateway.deleteActor("a"),
+      () =>
+        gateway.deleteTemplate({
+          name: "t",
+          uid: "u",
+          version: 1n,
+          createTime: undefined,
+          goldenReady: false,
+          goldenError: "",
+        }),
+      () => gateway.getActor("a"),
+      () => gateway.getTemplate("t"),
+      () => gateway.moveActor(view, "t2"),
+    ]) {
+      await expect(call()).rejects.toMatchObject({ code: Code.Internal });
+    }
+  });
+});
+
+describe("the live client", () => {
+  it("dials the configured endpoint over TLS with the token and the CA it was given", async () => {
+    const caFile = path.join(dir, "ca.pem");
+    writeFileSync(caFile, "not a certificate");
+    const gateway = newSubstrateClientGateway({
+      apiEndpoint: "https://127.0.0.1:1",
+      apiServerName: "api.ate-system.svc",
+      apiCaFile: caFile,
+      apiTokenFile: tokenFile,
+      routerUrl: "http://127.0.0.1:2",
+      atespace: "stigmer",
+      storageLocation: "gs://b/p",
+      workerSelector: { workload: "stigmer" },
+      sandboxConfigName: "gvisor-default",
+      httpsEgress: "none",
+      extraHttpEgress: [],
+      pauseAfterSeconds: 300,
+      suspendAfterSeconds: 1800,
+      sweepIntervalSeconds: 60,
+    });
+    await expect(gateway.getActor("a")).rejects.toBeInstanceOf(ConnectError);
   });
 });
