@@ -29,7 +29,7 @@ export interface LivenessStatusLineProps {
  * sub-agent, and no pending approval — when a gate is waiting on the *user*,
  * shimmering "Working…" would be a lie, and when a tool is running, its own
  * row carries the sweep. It disappears the moment the execution settles
- * (phase-driven, DD-009 — never inferred from the stream going quiet).
+ * (phase-driven — never inferred from the stream going quiet).
  *
  * Replaceable via {@link MessageThreadSlots.LivenessStatusLine} (the
  * SetupProgress precedent) for hosts that want their own liveness voice.

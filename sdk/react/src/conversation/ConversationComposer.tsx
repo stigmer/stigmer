@@ -28,7 +28,8 @@ export interface ConversationComposerProps {
    * lane WhatsApp offers for a closed window, so the surface must
    * offer the door, not just the advisory's warning (hosts should
    * point at the button in the advisory copy; the advisory itself
-   * stays interaction-free — it is the input's description, F-18).
+   * stays interaction-free — it is the input's description and adds no
+   * tab stop).
    * Omit on channels whose provider has no template registry.
    */
   readonly onOpenTemplatePicker?: () => void;
@@ -40,8 +41,8 @@ export interface ConversationComposerProps {
   readonly disabledReason: string | null;
   /**
    * A pre-send forecast that ANNOTATES the enabled input — the
-   * `disabledReason` pattern's sibling with the opposite contract
-   * (channel-conversations DD-014 D-e): a closed service window is a
+   * `disabledReason` pattern's sibling with the opposite contract:
+   * a closed service window is a
    * forecast, not a structural block, so the input stays usable and the
    * send engines remain the authority. Rendered above the input and
    * associated via `aria-describedby` (never a live region: the

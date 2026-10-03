@@ -7,7 +7,7 @@
 // Kept in its own module (not in a component file) so behavior-only
 // consumers — the panel controller opens the tabs, the viewer routes them —
 // depend on the identity without pulling the diff renderer into their module
-// graph (DD-003 headless-first). Mirrors artifact-document.ts.
+// graph (headless-first). Mirrors artifact-document.ts.
 
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { virtualEntryId } from "../internal/store/index.js";

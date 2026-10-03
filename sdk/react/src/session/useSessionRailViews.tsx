@@ -73,7 +73,8 @@ export interface UseSessionRailViewsOptions {
  *
  * This is the session-domain half of the unified panel: the surface stays a
  * domain-pure workspace organism and these views are injected into its rail
- * (DD-004 composition). Contextual visibility mirrors the retired inspector's
+ * (composition by injection). Contextual visibility mirrors the retired
+ * inspector's
  * tab rules — Changes/Artifacts surface only when data exists (with count
  * badges).
  */
@@ -174,7 +175,7 @@ export function useSessionRailViews({
 }
 
 // ---------------------------------------------------------------------------
-// Inline SVG icons — monochrome, `currentColor`-tinted (DD-005; SDK
+// Inline SVG icons — monochrome, `currentColor`-tinted (SDK
 // independence — no lucide dependency)
 // ---------------------------------------------------------------------------
 

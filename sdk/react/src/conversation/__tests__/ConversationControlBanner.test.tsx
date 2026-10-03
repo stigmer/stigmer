@@ -116,7 +116,7 @@ describe("ConversationControlBanner", () => {
     expect(p.handBack).toHaveBeenCalled();
   });
 
-  it("guards handback behind a confirm while the customer awaits an answer (DD-007 D-e)", async () => {
+  it("guards handback behind a confirm while the customer awaits an answer", async () => {
     const user = userEvent.setup();
     const p = participation();
     render(

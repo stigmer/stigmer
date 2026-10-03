@@ -55,7 +55,7 @@ export interface UseConversationMediaUrlOptions {
  * Addressed by `(channel, conversation, item_id)` — never a storage key:
  * the server resolves the blob from its own row, so the read path stays
  * conversation-viewer-scoped by construction and blob capabilities never
- * ride the wire (whatsapp-media DD-001 D4). The URL expires (about an
+ * ride the wire. The URL expires (about an
  * hour); minting at view time keeps it always valid, the
  * `useArtifactDownloadUrl` rationale.
  *

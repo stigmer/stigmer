@@ -178,7 +178,7 @@ describe("useConversation", () => {
     expect(result.current.isLoading).toBe(true);
   });
 
-  it("refetches the row when the window regains focus (DD-012: refocus is fresh)", async () => {
+  it("refetches the row when the window regains focus", async () => {
     const getConversation = vi.fn().mockResolvedValue(row());
     renderHook(() => useConversation("ach_1", "15550001111", NO_POLL), {
       wrapper: wrapper(createMockStigmer(getConversation)),

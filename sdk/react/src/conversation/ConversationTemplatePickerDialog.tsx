@@ -120,8 +120,7 @@ function unsendableReasonOf(template: ChannelTemplate): string | null {
   }
   if (template.headerFormat === "IMAGE") {
     // The wire's header_image_link needs a public HTTPS asset at send
-    // time; no console surface can supply one yet (v1 scope cut,
-    // recorded on cloud#260).
+    // time; no console surface can supply one yet.
     return "Not sendable from the console yet: this template's image header needs a hosted image at send time.";
   }
   return null;

@@ -253,7 +253,7 @@ describe("useConversationList", () => {
     expect(result.current.conversations).toEqual([]);
   });
 
-  it("refetches the head when the window regains focus (DD-012: refocus is fresh)", async () => {
+  it("refetches the head when the window regains focus", async () => {
     const listConversations = vi
       .fn()
       .mockResolvedValue({ items: [], totalCount: 0 });
@@ -270,7 +270,7 @@ describe("useConversationList", () => {
   });
 });
 
-describe("useConversationList.applyServerState (DD-012 D-a: own actions reflect immediately)", () => {
+describe("useConversationList.applyServerState (own actions reflect immediately)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });

@@ -17,7 +17,7 @@ import { useConversationMediaUrl } from "./useConversationMediaUrl.js";
 /**
  * The full address of one timeline item's media — what
  * `getMediaDownloadUrl` is addressed by. The storage key deliberately
- * never rides the wire (whatsapp-media DD-001 D4); the server resolves
+ * never rides the wire; the server resolves
  * it from its own row, so this address is all a client ever holds.
  */
 export interface ConversationMediaAddress {
@@ -171,7 +171,7 @@ function MediaImageThumbnail({
  * it in a new tab: the media contract presigns inline disposition only,
  * so the browser previews what it can (PDFs) and downloads the rest.
  * A failed mint reports below the chip in the surface's own error
- * grammar (DD-006 — never a silent dead click).
+ * grammar (never a silent dead click).
  */
 function MediaDocumentChip({
   media,

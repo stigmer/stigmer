@@ -502,7 +502,7 @@ describe("FileReviewCard", () => {
     });
   });
 
-  describe("blocked / partial states (Slice 6)", () => {
+  describe("blocked / partial states", () => {
     it("labels a binary file and offers an enabled 'Keep anyway'", () => {
       const onSubmit = vi.fn();
       render(

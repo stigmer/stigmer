@@ -500,8 +500,8 @@ export function useNewSessionFlow(
           // preference (#664); the pinned tier is stamped only as
           // "fast" — standard stays off the wire, preserving the #357
           // UNSPECIFIED-vs-explicit telemetry distinction. The effective
-          // model carries the account-default seed explicitly (DD-003:
-          // the preference is a seed; the execution spec is the record).
+          // model carries the account-default seed explicitly (the
+          // preference is a seed; the execution spec is the record).
           modelName: pinnedModelName ?? selectedModel ?? effectiveModelId,
           runtimeEnv,
           attachments: context?.attachments,

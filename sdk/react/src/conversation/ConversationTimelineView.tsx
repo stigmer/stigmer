@@ -95,7 +95,7 @@ export interface ConversationTimelineViewProps {
  *
  * Honesty rules, enforced here rather than hoped for: outbound items
  * carry their send attempt AND the provider's receipt as two independent
- * facts (DD-004 D-d — an item can be handed to the provider yet fail on
+ * facts (an item can be handed to the provider yet fail on
  * the customer's side), failed and suppressed sends render as exactly
  * that, and non-text inbound renders a typed placeholder instead of
  * disappearing.
@@ -238,16 +238,16 @@ const TimelineItemRow = memo(function TimelineItemRow({
       : null;
   const body = item.text || (mediaAddress !== null ? "" : inboundPlaceholderOf(item));
 
-  // DD-014 D-c (amended at the Sitting 2 gate, R-1): the provider's
+  // The provider's
   // failure explanation is decision-bearing — window closed vs bad
   // number changes what the operator does next — so it renders as
   // VISIBLE text, not hover-only (the footer glyphs are deliberately
-  // non-focusable per F-18, which makes a tooltip mouse-only). Verbatim
+  // non-focusable, which makes a tooltip mouse-only). Verbatim
   // relay, never pattern-matched; the numeric twin (receipt_error_code)
   // stays off the surface as machine vocabulary. Gated exactly like
   // ReceiptTicks' failed arm — attempt delivered AND receipt failed —
-  // so the attempt-axis explanation (attemptExplanationOf, cloud#262's
-  // slice) can structurally never leak in here: its gate requires
+  // so the attempt-axis explanation (attemptExplanationOf) can
+  // structurally never leak in here: its gate requires
   // attempt FAILED, this one attempt delivered, so at most one of the
   // two explanations ever renders.
   const receiptExplanation =
@@ -257,8 +257,8 @@ const TimelineItemRow = memo(function TimelineItemRow({
       ? item.receiptDetail
       : null;
 
-  // The attempt axis's explanation (cloud#262, closing F-25), the same
-  // R-1 visible-text treatment as the receipt explanation and for the
+  // The attempt axis's explanation, the same
+  // visible-text treatment as the receipt explanation and for the
   // same reason: why a send failed is decision-bearing (a closed
   // 24h-window refusal says "the customer must write first"; a deleted
   // channel says there is nothing to retry). The words and the gate
@@ -316,7 +316,7 @@ const TimelineItemRow = memo(function TimelineItemRow({
 
 /**
  * A footer status glyph with its explanation on the house tooltip
- * (F-18, replacing native `title` — OS-delayed, imprecise, invisible to
+ * (replacing native `title` — OS-delayed, imprecise, invisible to
  * keyboard and touch). The trigger renders as a plain `<span>` and is
  * deliberately NOT focusable: these sit inside every bubble's footer,
  * so focusable triggers would add several tab stops per message. Their

@@ -126,7 +126,7 @@ describe("ConversationComposer", () => {
     ).toBe(true);
   });
 
-  it("annotates an ENABLED input with the advisory, wired as the input's description (DD-014 D-e)", () => {
+  it("annotates an ENABLED input with the advisory, wired as the input's description", () => {
     render(
       <ConversationComposer
         onSend={vi.fn()}
@@ -140,7 +140,7 @@ describe("ConversationComposer", () => {
     // A forecast, not a block: the input stays usable.
     expect(input.disabled).toBe(false);
 
-    // R-2 (Sitting 2 gate ruling): the advisory is the input's
+    // The advisory is the input's
     // aria-describedby target — read at the moment of action — never a
     // live region (it is state a reader meets on open, not an event).
     const describedBy = input.getAttribute("aria-describedby");
@@ -149,7 +149,7 @@ describe("ConversationComposer", () => {
     expect(advisoryEl?.textContent).toContain("24-hour reply window has closed");
     expect(advisoryEl?.getAttribute("role")).toBeNull();
 
-    // Zero new tab stops (the F-18 discipline).
+    // Zero new tab stops: the advisory is description, never a control.
     expect(advisoryEl?.querySelector("button, a, [tabindex]")).toBeNull();
   });
 

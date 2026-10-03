@@ -87,7 +87,7 @@ export interface ArtifactInspection {
  *
  * It is the single writer of this pipeline's derived state, consumed by every
  * artifact chrome — the modal action bar and the editor-area
- * `ArtifactDocument` toolbar (DD-003 headless-first). Because there is exactly
+ * `ArtifactDocument` toolbar (headless-first). Because there is exactly
  * one place computing `detectionLabel` / `ctaLabel` / the apply flow, the two
  * surfaces cannot drift.
  *

@@ -71,12 +71,12 @@ export interface UseLiveAgentExecutionReturn {
  * `agentExecution.get()` — never a subscription — while a running one layers
  * the streaming pipeline on top of the fetched snapshot.
  *
- * - The snapshot fetch is DD-014 cached (`agent-execution:<id>`), so a
+ * - The snapshot fetch is cached (`agent-execution:<id>`), so a
  *   remount (e.g. returning to a transcript tab) renders instantly from the
  *   previous result with a background refresh — no loading flash.
  * - The stream starts only after the fetch proves the phase non-terminal;
  *   `useExecutionStream` then owns the live lifecycle (rAF coalescing,
- *   auto-reconnect, terminal-phase completion — DD-009/DD-017).
+ *   auto-reconnect, terminal-phase completion).
  * - Once streaming, the stream's snapshot supersedes the fetched one (it is
  *   always at least as fresh, including the terminal state the fetch missed).
  *

@@ -61,7 +61,7 @@ export interface ConversationListPaneProps {
   readonly onChannelFilterChange: (agentChannelId: string) => void;
   /**
    * The server-evaluated predicate filter currently applied to the list
-   * (DD-011 D-g — the same predicate the nav badge counts, so the
+   * (the same predicate the nav badge counts, so the
    * filtered list always matches the number that opened it). Defaults
    * to unspecified (all conversations).
    */
@@ -83,14 +83,14 @@ export interface ConversationListPaneProps {
 }
 
 /**
- * The conversation inbox pane (channel-conversations T04): every
+ * The conversation inbox pane: every
  * conversation across the org's channels, newest activity first, with
  * control, attention, and awaiting-reply indicators.
  *
  * Presentational — pair with `useConversationList` and
  * `useOrgAgentChannelList`, or compose via `ConversationsWorkbench`.
- * The wants-human filter is SERVER-evaluated (DD-011 D-g closed the API
- * gap that T04 D1 cited): a client-side tab over one fetched page would
+ * The wants-human filter is SERVER-evaluated (the list RPC takes the
+ * predicate): a client-side tab over one fetched page would
  * silently lie across pages, so the pane only reports the choice and the
  * list hook sends it to the server.
  */
@@ -259,7 +259,7 @@ const FILTER_OPTIONS: readonly {
  * the `ViewSwitcher` pattern (its second sighting; extract a shared
  * primitive if a third segmented control appears).
  *
- * "Needs human" is exactly the nav badge's predicate (DD-011 D-f/D-g),
+ * "Needs human" is exactly the nav badge's predicate,
  * so the number on the badge and the list this control opens can never
  * disagree.
  */
@@ -341,7 +341,7 @@ function ConversationFilterToggle({
  * DISTINCTION, not just the fact: who holds the
  * conversation is exactly what the two strengths encode, and it names
  * the stake without promising an outcome — a muted dot survives a dead
- * agent turn on purpose (DD-011 D-b's recovery path).
+ * agent turn on purpose.
  */
 const AWAITING_COPY: Record<"strong" | "muted", string> = {
   strong: "Customer awaiting reply — a human has this conversation; the agent will not answer",
@@ -438,10 +438,10 @@ const ConversationRow = memo(function ConversationRow({
             {awaiting && (
               // The WhatsApp inbox convention: an awaiting conversation
               // carries a dot under its timestamp. Strength maps the
-              // holder (DD-011 D-a): strong when a human holds it — the
+              // holder: strong when a human holds it — the
               // agent will not answer, a person must — muted when the
-              // agent does. Strong is FILLED and muted is a hollow RING
-              // (cloud#266): fill-vs-outline reads as "act vs watching"
+              // agent does. Strong is FILLED and muted is a hollow RING:
+              // fill-vs-outline reads as "act vs watching"
               // without decoding color, and color alone inverted in dark
               // mode, where the muted gray outshone the strong primary.
               // The meaning rides the house tooltip (the attention

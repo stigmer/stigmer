@@ -1,5 +1,5 @@
 // Thread emission rules for the retriever transparency card
-// (stigmer/stigmer#293 Phase 3a, DD-008 D5). The load-bearing pins:
+// (stigmer/stigmer#293 Phase 3). The load-bearing pins:
 //
 //   1. The card is a PER-SEGMENT item derived from each execution's own
 //      spec+status — NOT a live-only tail indicator like setup-progress.

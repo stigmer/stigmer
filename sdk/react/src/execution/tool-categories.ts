@@ -126,7 +126,7 @@ const PREVIEW_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
   "fetch",
   // A memory proposal is a decision surface: the verbatim fact and the
   // Confirm/Reject actions ARE the content — never fold it behind a chevron
-  // (DD-005 D4: a proposal the user scrolled past is caught by the memory
+  // (a proposal the user scrolled past is caught by the memory
   // page, but the chip must not hide itself while in view).
   "memory",
   "unknown",

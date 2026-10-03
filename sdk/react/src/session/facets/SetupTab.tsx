@@ -100,7 +100,7 @@ export interface SetupTabProps {
  *
  * When mutation callbacks are provided via `mutations`, items render
  * inline remove affordances. When callbacks are absent, sections render
- * read-only (backward compatible, DD-011).
+ * read-only (backward compatible).
  *
  * All visual properties flow through `--stgm-*` tokens.
  */

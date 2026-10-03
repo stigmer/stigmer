@@ -183,14 +183,15 @@ export interface SessionViewerProps {
   /**
    * Platform-injected file lister for workspace entries. When provided,
    * each entry in the Setup tab's workspace section renders an
-   * expandable file tree. (DD-004 capability injection, DD-011 opt-in.)
+   * expandable file tree. (Capability injection, opt-in.)
    */
   readonly workspaceFileLister?: WorkspaceFileLister;
   /**
    * Platform-injected content reader for the read-only file viewer. When
    * provided, clicking a file in the Workspace tree opens it in a contextual
    * "Viewer" tab. GitHub Contents/blob on web, Tauri fs on desktop; `undefined`
-   * degrades the viewer to an "unavailable here" state (DD-004, DD-011 opt-in).
+   * degrades the viewer to an "unavailable here" state (capability injection,
+   * opt-in).
    */
   readonly workspaceFileReader?: WorkspaceFileReader;
   /**
@@ -198,7 +199,8 @@ export interface SessionViewerProps {
    * panel's Search pane gains a `Name | Text` toggle for full-text search
    * across the workspace. Desktop injects a native ripgrep-backed searcher;
    * web leaves it undefined (git content search needs a branch-accurate
-   * backend — DD-09), keeping Search filename-only there (DD-004, DD-011 opt-in).
+   * backend), keeping Search filename-only there (capability injection,
+   * opt-in).
    */
   readonly workspaceContentSearcher?: WorkspaceContentSearcher;
   /**
@@ -329,7 +331,7 @@ export interface SessionViewerProps {
    * Host-injected access management control (e.g. the Console's
    * `ManageAccessButton` with its own permission gating). Rendered inside
    * the panel's Config facet rather than the header — access is session
-   * configuration, not a moment-to-moment action (DD-004 slot injection).
+   * configuration, not a moment-to-moment action (slot injection).
    */
   readonly accessSlot?: ReactNode;
   /** Called after a resource is applied from the Artifacts tab. */
@@ -495,7 +497,7 @@ export function SessionViewer({
   // WHICH plan the panel's plan document tab shows. `null` means the session's
   // current (latest) plan — the editable, buildable one; an execution id
   // selects that turn's historical plan, rendered read-only. One tab, host-
-  // controlled content (Decision 3 in DD-16).
+  // controlled content.
   const [openPlanExecutionId, setOpenPlanExecutionId] = useState<string | null>(null);
 
   // The plan tab's identity across both plan lifecycles: while a plan
@@ -521,11 +523,11 @@ export function SessionViewer({
   }
 
   // The unified-panel controller: owns the open-editor group store, the
-  // open/collapsed state, and the rail-view FSM. Shared with the launcher
-  // (DD-016). The editor store is owned here (never subscribed at this level)
+  // open/collapsed state, and the rail-view FSM. Shared with the launcher.
+  // The editor store is owned here (never subscribed at this level)
   // so opening/switching files re-renders only the panel subtree — the
   // SessionPanelRegion subscribes, not the conversation column — preserving
-  // streaming render isolation (DD-009/DD-010, invariant 2).
+  // streaming render isolation.
   const panel = useSessionPanel({
     phase: hasPhase ? phase : null,
     hasChanges: hasWriteBacks,
@@ -960,8 +962,8 @@ const ConversationColumn = memo(function ConversationColumn({
         // a plan read-only in the panel remains — reading is the point.
         onRetrySend={isObserver ? undefined : conv.retryLastSend}
         onRetryExecution={isObserver ? undefined : onRetryExecution}
-        // Approval mechanics are an OPERATOR surface, never a guest's
-        // (DD-014): the HITL gate protects the org's tools, and an anonymous
+        // Approval mechanics are an OPERATOR surface, never a guest's:
+        // the HITL gate protects the org's tools, and an anonymous
         // visitor is not its trustee. Guest executions run unattended
         // (gated tools auto-skip server-side), so nothing is ever pending on
         // a new execution — withholding the callback is the belt-and-braces
@@ -1179,7 +1181,7 @@ function SessionPanelRegion({
     reveal && reveal.key === activeKey ? reveal : undefined;
 
   // Correlate the active file with its session change for diff-as-default
-  // (DD-06 parity with the transcript's rendering of the same change). A
+  // (parity with the transcript's rendering of the same change). A
   // virtual document (the plan tab) is not a workspace file — pass `null` so
   // the hook's no-file guard skips the net-change fold entirely, rather than
   // relying on the correlation harmlessly missing the sentinel id.

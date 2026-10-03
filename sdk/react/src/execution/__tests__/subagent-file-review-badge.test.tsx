@@ -1,5 +1,5 @@
 /**
- * Sub-agent file-review badges (DD-24/T05_0 follow-up).
+ * Sub-agent file-review badges.
  *
  * A sub-agent's flowed file-edit row is stamped by the runner with the PARENT
  * turn's change set id (sub-agent writes fold into the parent set). These tests
@@ -166,7 +166,7 @@ describe("sub-agent row badges (SubAgentSection)", () => {
     expect(badge(discarded.container)?.textContent).toBe("Discarded");
   });
 
-  it("shows no badge when the stamped set cannot be resolved (graceful degrade, DD-24 D3)", () => {
+  it("shows no badge when the stamped set cannot be resolved (graceful degrade)", () => {
     // Row stamped with a set id absent from the session map.
     const orphan = renderSubAgentRow(
       subAgentWithStampedEdit(SubAgentStatus.SUB_AGENT_COMPLETED, "exec-1:missing"),

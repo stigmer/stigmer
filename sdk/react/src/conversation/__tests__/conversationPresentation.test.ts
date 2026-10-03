@@ -50,7 +50,7 @@ describe("isInternalItem", () => {
   });
 });
 
-describe("awaitingIndicatorOf (DD-011 D-a: strength maps the holder)", () => {
+describe("awaitingIndicatorOf (strength maps the holder)", () => {
   it("renders strongly when a human holds an awaiting conversation — the agent will not answer", () => {
     expect(
       awaitingIndicatorOf(
@@ -95,7 +95,7 @@ describe("outboundItemIdOf", () => {
   });
 });
 
-describe("the two status axes (DD-004 D-d: never collapsed)", () => {
+describe("the two status axes (never collapsed)", () => {
   it("maps the send attempt independently of the receipt", () => {
     expect(sendAttemptOf(item({ deliveryStatus: ChannelDeliveryStatus.pending }))).toBe("pending");
     expect(sendAttemptOf(item({ deliveryStatus: ChannelDeliveryStatus.delivering }))).toBe("delivering");
@@ -209,7 +209,7 @@ describe("conversationContactOf", () => {
   });
 });
 
-describe("serviceWindowOf (DD-014 D-a: client-derived, WhatsApp-only)", () => {
+describe("serviceWindowOf (client-derived, WhatsApp-only)", () => {
   const NOW = new Date("2026-08-08T12:00:00Z");
   const lastWrote = (iso: string) =>
     create(ChannelConversationSchema, {
@@ -229,7 +229,7 @@ describe("serviceWindowOf (DD-014 D-a: client-derived, WhatsApp-only)", () => {
     // The stored anchor is the platform's receipt instant, minutes AFTER
     // Meta's own clock started the window, so the estimate inherently
     // errs toward claiming open too long. Closing the tie is the honest
-    // offset; the warn-never-block posture (DD-014 D-b) makes either
+    // offset; the warn-never-block posture makes either
     // direction safe to render.
     expect(serviceWindowOf(lastWrote("2026-08-07T12:00:00Z"), "whatsapp", NOW)).toBe("closed");
     expect(serviceWindowOf(lastWrote("2026-08-06T09:00:00Z"), "whatsapp", NOW)).toBe("closed");

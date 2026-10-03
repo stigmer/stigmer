@@ -182,7 +182,7 @@ export function useConversation(
     return () => clearInterval(id);
   }, [enabled, refetchIntervalMs, refetch]);
 
-  // Focus refetch (DD-012 D-a: returning to the tab is fresh), guarded by
+  // Focus refetch (returning to the tab is fresh), guarded by
   // the same in-flight flag as the interval. Mirrors useFetch's
   // refetchOnWindowFocus — the second sighting of this listener shape;
   // extract a shared helper if a third hand-rolled loop ever needs it.

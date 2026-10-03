@@ -194,7 +194,7 @@ describe("ConversationListPane", () => {
     expect(screen.getByText("Human has the conversation")).toBeDefined();
   });
 
-  it("marks an awaiting conversation strongly when a human holds it — the agent will not answer (DD-011 D-a, F-13)", () => {
+  it("marks an awaiting conversation strongly when a human holds it — the agent will not answer", () => {
     render(
       <ConversationListPane
         {...baseProps()}

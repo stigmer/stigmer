@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
-// Wiring-contract tests for the read-only `"observer"` audience (design
-// decision 012: channel-session observability).
+// Wiring-contract tests for the read-only `"observer"` audience
+// (channel-session observability).
 //
 // Two invariants are pinned:
 // 1. `audience="observer"` renders a pure transcript — no composer, no

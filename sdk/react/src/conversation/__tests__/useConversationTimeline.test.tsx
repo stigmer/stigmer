@@ -209,7 +209,7 @@ describe("useConversationTimeline", () => {
     expect(result.current.hasOlder).toBe(false);
   });
 
-  it("refetches the head when the window regains focus (DD-012: refocus is fresh)", async () => {
+  it("refetches the head when the window regains focus", async () => {
     const getTimeline = vi.fn().mockResolvedValue({ items: [], nextPageToken: "" });
     renderHook(() => useConversationTimeline("ach_1", "15550001111", NO_POLL), {
       wrapper: wrapper(createMockStigmer(getTimeline)),

@@ -488,7 +488,7 @@ describe("owner-pinned runConfig wiring (#664)", () => {
     expect(lastComposerProps().showModelSelector).toBe(true);
   });
 
-  it("NewSessionViewer forwards runConfig to the flow and hides the model picker (DD-016 parity)", () => {
+  it("NewSessionViewer forwards runConfig to the flow and hides the model picker, as SessionViewer does", () => {
     render(
       <NewSessionViewer
         org="acme"
@@ -505,7 +505,7 @@ describe("owner-pinned runConfig wiring (#664)", () => {
     expect(lastComposerProps().showModelSelector).toBe(false);
   });
 
-  it("NewSessionViewer honors showModelSelector={false} alone (DD-016 parity)", () => {
+  it("NewSessionViewer honors showModelSelector={false} alone, as SessionViewer does", () => {
     render(
       <NewSessionViewer
         org="acme"

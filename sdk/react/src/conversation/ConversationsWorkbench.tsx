@@ -88,8 +88,9 @@ export interface ConversationsWorkbenchProps {
    * latest content and re-engages follow mode, so the reply stays in view
    * when the refetch delivers its real ledger item. Refused sends never pin
    * — the composer restores the draft and there is nothing to show. Default
-   * `true` on all three SDK thread surfaces at once (the ratified DD-011
-   * divergence — cross-surface consistency is the point); set `false` to
+   * `true` on all three SDK thread surfaces at once (a deliberate
+   * exception to opt-in defaults — cross-surface consistency is the point);
+   * set `false` to
    * keep today's leave-the-reader-alone behavior.
    *
    * @default true
@@ -100,7 +101,7 @@ export interface ConversationsWorkbenchProps {
 }
 
 /**
- * The Conversations console surface (channel-conversations T04), fully
+ * The Conversations console surface, fully
  * composed: the org-wide inbox on the left; the open conversation's
  * timeline, participation banners, and staff composer on the right.
  *
@@ -139,7 +140,7 @@ export function ConversationsWorkbench({
     selected?.agentChannelId ?? "",
     selected?.conversationKey ?? "",
   );
-  // DD-012 D-a: a command answer is fresher than any in-flight poll on
+  // A command answer is fresher than any in-flight poll on
   // BOTH surfaces rendering this conversation — fan it out to the detail
   // seam (banners, composer state) and the list seam (the inbox row), so
   // your own takeover never lags the inbox.
@@ -167,14 +168,14 @@ export function ConversationsWorkbench({
   );
   const descriptor = channelProviderOf(selectedChannel?.spec?.providerConfig?.case);
 
-  // DD-007 D-e: the handback guard arms on the row's server-derived
-  // awaiting_reply fact — bounce-aware since T08 (a staff reply the
+  // The handback guard arms on the row's server-derived
+  // awaiting_reply fact — bounce-aware (a staff reply the
   // provider later failed does NOT count as an answer), and platform
   // acknowledgments never stamp it. Never re-derive this from timeline
   // authorship: that derivation read a bounced staff reply as "answered"
   // and went silent in exactly the scenario the guard exists for
-  // — the client-side twin of the re-derivation DD-011 A-1 removed
-  // server-side. No loading gap: the Hand back button renders from this
+  // — the client-side twin of a re-derivation the server no longer
+  // makes. No loading gap: the Hand back button renders from this
   // same row, so the guard and the control it protects appear together.
   const unansweredCustomer = detail.conversation?.awaitingReply ?? false;
 
@@ -185,22 +186,22 @@ export function ConversationsWorkbench({
         ? "The customer hasn't written yet — staff replies unlock with their first message."
         : null;
 
-  // DD-014 D-b/D-e: the closed-window forecast, computed fresh on EVERY
+  // The closed-window forecast, computed fresh on EVERY
   // render — deliberately NOT memoized on [detail.conversation]: the
   // row's reference is intentionally stable across identical polls
   // while the window is wall-clock-anchored, so a memo keyed on
   // the row would freeze this warning forever on a quiet conversation.
   // The 5s detail poll's re-render is the refresh cadence; the workbench
   // test "the 5s detail poll alone carries the advisory over the
-  // boundary" is the guard. The advisory names the rule (DD-014 D-c's
-  // one home for it); the failed tick relays the provider's verdict.
+  // boundary" is the guard. The advisory names the rule (its one
+  // home); the failed tick relays the provider's verdict.
   const serviceWindow = detail.conversation
     ? serviceWindowOf(detail.conversation, descriptor?.id ?? null, now ?? new Date())
     : null;
-  // cloud#260: templates are the lane that SUCCEEDS on a closed window,
+  // Templates are the lane that SUCCEEDS on a closed window,
   // offered from the persistent affordance beside Send — the advisory
   // points at it in copy only (it is the input's description with zero
-  // tab stops, F-18; a control inside it would be unreachable context).
+  // tab stops; a control inside it would be unreachable context).
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const templatesAvailable =
     (descriptor?.supportsMessageTemplates ?? false) && selectedChannel !== null;
@@ -222,7 +223,7 @@ export function ConversationsWorkbench({
     [onSelectionChange],
   );
 
-  // F-05: an accepted reply's ledger item is only visible once the next
+  // An accepted reply's ledger item is only visible once the next
   // timeline read answers, so the composer's busy state must span
   // click-to-visible, not end at the RPC. The settling record names the
   // item the reply output promised (`ob:<outbound_message_id>`) and the
@@ -334,7 +335,7 @@ export function ConversationsWorkbench({
           />
         </div>
       ) : (
-        // Keyed by conversation identity (DD-014: `key` remounts are the
+        // Keyed by conversation identity (`key` remounts are the
         // clean-reset pattern): every open starts a fresh detail column, so
         // auto-scroll opens following at the newest message and the
         // composer's draft and notice can never travel from one customer's

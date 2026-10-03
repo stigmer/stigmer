@@ -112,7 +112,7 @@ const timelineItems = [
     text: "I'll take this personally",
     deliveryStatus: ChannelDeliveryStatus.delivered,
     receiptState: ChannelReceiptState.receipt_failed,
-    // The T07 visible explanation line (DD-014 D-c) rides the audit.
+    // The visible receipt explanation line rides the audit.
     receiptDetail:
       "More than 24 hours have passed since the recipient last replied to the sender number.",
     receiptErrorCode: 131047,

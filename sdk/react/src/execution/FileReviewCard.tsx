@@ -67,7 +67,7 @@ export interface FileReviewCardProps {
    * list (kind letter + linked path + `+N −M` + per-file controls) and the card
    * stays purely the decision surface. Decision semantics — digests, scopes,
    * acknowledgments — are identical in both modes; this is presentation only
-   * (opt-in with a backward-compatible default, DD-011).
+   * (opt-in with a backward-compatible default).
    */
   readonly showDiffs?: boolean;
   /**
@@ -115,8 +115,8 @@ export interface FileReviewCardProps {
  * option records a new decision (the backend reconcile is last-write-wins).
  *
  * A `binary-only` set (binary files are the only blocker) can be kept in one
- * action: the bulk button reads "Keep all" and carries the acknowledgment
- * (DD-17). A `blocked` set (something unavailable to review) cannot be approved
+ * action: the bulk button reads "Keep all" and carries the acknowledgment.
+ * A `blocked` set (something unavailable to review) cannot be approved
  * as a whole — the Approve button is disabled with an explanation, and the
  * per-file path is the escape: keep the reviewable files and discard the rest.
  *
@@ -176,7 +176,7 @@ export const FileReviewCard = memo(function FileReviewCard({
 
   // The set-level reviewability drives the bulk affordance. A "binary-only" set
   // (binary files are the ONLY blocker) is keepable in one acknowledged action
-  // ("Keep all", DD-17); a "blocked" set (a secret/elided file with no keepable
+  // ("Keep all"); a "blocked" set (a secret/elided file with no keepable
   // bytes) can never be approved at once and must be resolved per file.
   const reviewability = changeSetReviewability(fileChangeSet);
   const incomplete = reviewability !== "complete";
@@ -190,7 +190,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   // The bulk (CHANGE_SET) controls live on the bar for multi-file sets and for a
   // single complete file; they are hidden for a single incomplete file, whose
   // only honest decision is the per-file control in the expanded body (a single
-  // binary uses its per-file "Keep anyway" — DD-16 — and a blocked lone file can
+  // binary uses its per-file "Keep anyway" — and a blocked lone file can
   // only be discarded).
   const showBulkControls = total > 1 || !incomplete;
 
@@ -245,8 +245,8 @@ export const FileReviewCard = memo(function FileReviewCard({
       // file's digest (echoed verbatim — the server compares it against the same
       // captured value, so it can never spuriously mismatch). A "Keep anyway" on a
       // binary file carries the acknowledgment: it has no text diff, but its exact
-      // bytes are captured and reconcilable, so the user consciously keeps it
-      // (DD-16). The server honors this only for a binary file and never relaxes
+      // bytes are captured and reconcilable, so the user consciously keeps it.
+      // The server honors this only for a binary file and never relaxes
       // the digest gate.
       onSubmit?.(action, {
         scope: FileDecisionScope.FILE,
@@ -277,7 +277,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   }, [changes]);
 
   // Which non-reviewable classes are present in the set — folded once (memoized
-  // like `totals`, DD-010) so the blocked-set copy is accurate to what's actually
+  // like `totals`) so the blocked-set copy is accurate to what's actually
   // here (never the generic "binary or truncated").
   const blockSummary = useMemo(() => {
     let hasBinary = false;
@@ -295,7 +295,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   const incompleteNoticeId = useId();
 
   const labels = bulkLabels(total, decidedCount, binaryOnly);
-  // A set the DD-28 policy kept (every change produced by a command the user
+  // A set the auto-keep policy kept (every change produced by a command the user
   // already approved) says so explicitly: consent was given at the command
   // gate, and the record must never read as if a human reviewed it here.
   const autoKept = !interactive && isPolicyAutoKept(fileChangeSet);

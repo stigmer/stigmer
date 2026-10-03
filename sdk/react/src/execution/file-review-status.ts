@@ -13,7 +13,7 @@ import {
 
 /**
  * Why an `"unavailable"` file cannot be reviewed — the honest per-file cause the
- * runner records on `CapturedFileChange.blocked_reason` (design doc 15).
+ * runner records on `CapturedFileChange.blocked_reason`.
  *
  * - `"secret"` — the path looks like a secret; the bytes were deliberately never
  *   captured (there is nothing to review, by design).

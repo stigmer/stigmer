@@ -31,13 +31,13 @@ export interface ConversationAttentionBannerProps {
 }
 
 /**
- * The needs-attention banner (channel-conversations DD-008): the
+ * The needs-attention banner: the
  * escalating agent's reason, verbatim, with the escalation's ANSWER
  * beside its false-alarm dismissal.
  *
  * Take over is the primary action because the human arriving IS the
  * answer to an escalation — taking over clears attention structurally
- * (cloud#266 / F-20: the answer used to live one banner away in
+ * (the answer used to live one banner away in
  * equal-weight chrome, so staff read the plea and missed the response).
  * It renders only while the agent holds the conversation on a channel
  * with a staff lane; a human already holding it IS the attention

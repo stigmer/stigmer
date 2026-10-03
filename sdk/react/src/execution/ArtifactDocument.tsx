@@ -83,7 +83,7 @@ export function ArtifactDocument({
       {/* Toolbar sticks to the top of the editor pane's scroll container so the
           file identity and actions stay visible while the body scrolls. Rows
           wrap on narrow panes (min-w-0 + flex-wrap) rather than forcing a
-          horizontal scrollbar — the DD-20 reflow contract. */}
+          horizontal scrollbar, so the toolbar reflows on any pane width. */}
       <div className="stg:sticky stg:top-0 stg:z-10 stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-1.5 stg:border-b stg:border-border stg:bg-background stg:px-4 stg:py-2">
         <span className="stg:shrink-0 stg:text-muted-foreground">
           {inspection.isDirectory ? <FolderIcon /> : <FileIcon />}

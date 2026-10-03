@@ -21,8 +21,8 @@ export interface ConversationControlBannerProps {
    * `true` when the customer's last message has not been answered —
    * the conversation row's server-derived `awaiting_reply` fact, which
    * is bounce-aware: a staff reply the provider later failed does not
-   * count as an answer (channel-conversations F-28/DD-015). Arms the
-   * handback confirm guard (DD-007 D-e): handing back runs NO turn, so
+   * count as an answer. Arms the
+   * handback confirm guard: handing back runs NO turn, so
    * the agent stays quiet until the customer next speaks, and the
    * unanswered state must be unmissable. Never derive this from
    * timeline authorship — the send attempt's presence on the timeline
@@ -109,7 +109,7 @@ export function ConversationControlBanner({
                   : // Without the host's identity the holder may be the
                     // viewer themself — claiming "a teammate" would be a
                     // guess. State only what the row proves: a human
-                    // holds it (channel-conversations F-01).
+                    // holds it.
                     "This conversation is with a human — the agent is quiet until handback."}
             </>
           ) : (

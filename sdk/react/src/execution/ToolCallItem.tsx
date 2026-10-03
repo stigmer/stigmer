@@ -110,7 +110,7 @@ export interface ToolCallItemProps {
  * call carries a model-authored intent phrase is titled with that phrase
  * instead — the command becomes the subtitle (stigmer#276).
  *
- * Wrapped in `React.memo` — structural sharing (DD-009/010) preserves
+ * Wrapped in `React.memo` — structural sharing preserves
  * the `ToolCall` reference when unchanged, so a settled row skips
  * re-renders while sibling tools stream.
  *

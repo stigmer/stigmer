@@ -301,7 +301,7 @@ const FOCUS_RING_CLASSES =
   "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring";
 
 // ---------------------------------------------------------------------------
-// Inline SVG icons — monochrome, `currentColor`-tinted (DD-005; SDK
+// Inline SVG icons — monochrome, `currentColor`-tinted (SDK
 // independence — no icon-library dependency)
 // ---------------------------------------------------------------------------
 

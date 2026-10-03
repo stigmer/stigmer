@@ -10,7 +10,7 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 
 // ---------------------------------------------------------------------------
 // useOpenFileChange correlates the open file with the ONE session change that
-// touched it (diff-as-default source, DD-06) — the contract that used to live on
+// touched it (diff-as-default source) — the contract that used to live on
 // the inspector's Viewer tab and now feeds the workspace surface. The fold
 // (useSessionFileChanges) is mocked; the join (findChangeForSelection) is real.
 // ---------------------------------------------------------------------------

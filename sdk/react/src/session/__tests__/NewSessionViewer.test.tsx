@@ -58,7 +58,7 @@ const stubEmptyFlow = {
 
 // A launcher flow WITH attached context (a git workspace entry). Used to prove
 // the composer stays centered regardless of context — the invariant that
-// replaced the old `hasContext` position flip (DD-16 layout stability).
+// replaced the old `hasContext` position flip (layout stability).
 const stubPopulatedFlow = {
   ...stubEmptyFlow,
   workspace: {

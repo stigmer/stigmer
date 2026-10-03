@@ -6,7 +6,7 @@
 // Kept in its own module (not in a component file) so behavior-only
 // consumers — the session/workflow panel controllers open artifact tabs, the
 // viewers route to them — depend on the identity without pulling a component
-// (and its content renderer) into their module graph (DD-003 headless-first).
+// (and its content renderer) into their module graph (headless-first).
 // Mirrors session/plan-document.ts.
 
 import { virtualEntryId } from "../internal/store/index.js";

@@ -88,7 +88,7 @@ export function toolCallGroupPropsEqual(
  * Wrapped in `React.memo` with a custom comparator that checks `toolCalls`
  * elements by reference (structural sharing keeps individual `ToolCall` objects
  * stable for unchanged calls), so settled rows skip re-renders while siblings
- * stream (DD-009/010).
+ * stream.
  *
  * @example
  * ```tsx
