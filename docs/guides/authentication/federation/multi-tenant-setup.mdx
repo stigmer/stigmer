@@ -559,27 +559,17 @@ needed.
 
 ### Error handling
 
-If, at a user's first sign-in, the JWT contains the `tenantOrgClaim` but its
-value does not match any platform-managed Organization's `externalOrgId`,
-Stigmer rejects the authentication request with a descriptive error:
+If, at a user's first sign-in, the JWT does not contain the `tenantOrgClaim`, or
+its value does not match any platform-managed Organization's `externalOrgId`
+under this Identity Provider, Stigmer refuses the sign-in with
+`401 Unauthenticated` and removes the account it began to create. This is a
+fail-closed design: no account remains and no partial access is granted.
 
-{/* vale off */}
-
-> No organization found for `external_org_id` 'tenant-999' under identity
-> provider 'acme/acme-cloud-auth'. Create a platform-managed organization with
-> this `external_org_id` mapped to the identity provider.
-
-{/* vale on */}
-
-This is a fail-closed design. Stigmer does not create the account or grant
-partial access when the tenant cannot be resolved. The error message tells your
-platform exactly what to fix.
-
-<Callout type="warn">
-  If the JWT at a user's first sign-in does not contain the `tenantOrgClaim` at
-  all, the authentication request is also rejected, and no account remains. When
-  `tenantOrgClaim` is configured, include the claim in every JWT.
-</Callout>
+The refusal says that provisioning failed and the account was rolled back; it
+does not name the tenant. When it happens, check that the token carries the
+claim, and that an Organization with that `externalOrgId` exists under this
+Identity Provider. When `tenantOrgClaim` is configured, include the claim in
+every JWT.
 
 ### JIT vs. manual for multi-tenant
 
