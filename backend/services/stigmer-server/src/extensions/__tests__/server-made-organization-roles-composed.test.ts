@@ -16,10 +16,18 @@
  *      member's row does not come back. The pass is once per database (its
  *      marker), so a role revoked after it stays revoked.
  *
+ * And a laptop that turns sign-in on, over one directory: a trusted-local
+ * one-organization server makes `stigmer` as the laptop's operator account,
+ * which owns it; booted again with sign-in and no operator email, the first
+ * person to sign in owns it and the next is a member, as on a fresh sign-in
+ * install. The laptop account's stamp and owner row are nobody's on that
+ * organization (domain/iampolicy/membership.ts).
+ *
  * The unit vouches for unsigned JWT-shaped tokens and declares the
  * require-authentication posture with no Authorizer (composed-support.ts),
  * the open-source sign-in shape role-reconciliation-composed.test.ts boots;
- * boots 2 and 3 add `orgLimit: 1`, the open-source edition's declaration.
+ * the one-organization boots add `orgLimit: 1`, the open-source edition's
+ * declaration.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -53,6 +61,8 @@ import {
 
 const FIRST = "fake|first";
 const SECOND = "fake|second";
+const firstId = (): string => accountIdFor(FIRST);
+const secondId = (): string => accountIdFor(SECOND);
 
 /** `principal:relation@organization|by:actor` per row, sorted: the whole role state of the store. */
 async function rolesIn(store: Store): Promise<ReadonlyArray<string>> {
@@ -94,9 +104,6 @@ describe("roles on the server-made organization (composed server, OIDC with no u
   const asSecond = () =>
     transportFor(port, fakeJwt(SECOND, "second@example.com"));
 
-  const firstId = accountIdFor(FIRST);
-  const secondId = accountIdFor(SECOND);
-
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "server-made-roles-"));
     await boot(signIn);
@@ -134,8 +141,8 @@ describe("roles on the server-made organization (composed server, OIDC with no u
     );
     expect(await rolesIn(server.store)).toEqual(
       [
-        `${firstId}:owner@stigmer|by:${firstId}`,
-        `${secondId}:member@stigmer|by:${secondId}`,
+        `${firstId()}:owner@stigmer|by:${firstId()}`,
+        `${secondId()}:member@stigmer|by:${secondId()}`,
       ].sort(),
     );
     expect(
@@ -154,7 +161,7 @@ describe("roles on the server-made organization (composed server, OIDC with no u
 
   it("boot 3: a role removed after the pass stays removed — a reboot hands nothing back", async () => {
     await createClient(IamPolicyCommandController, asFirst()).revokeOrgAccess({
-      identityAccountId: secondId,
+      identityAccountId: secondId(),
       org: "stigmer",
     });
     await server.shutdown();
@@ -162,12 +169,74 @@ describe("roles on the server-made organization (composed server, OIDC with no u
     await boot(oneOrganization);
 
     expect(await rolesIn(server.store)).toEqual([
-      `${firstId}:owner@stigmer|by:${firstId}`,
+      `${firstId()}:owner@stigmer|by:${firstId()}`,
     ]);
     const found = await createClient(
       OrganizationQueryController,
       asSecond(),
     ).findMyOrganizations({});
     expect(found.entries).toEqual([]);
+  });
+});
+
+describe("a laptop that turns sign-in on (composed server, trusted-local then OIDC with no operator email, over one directory)", () => {
+  let dir: string;
+  let server: ComposedServer;
+  let port: number;
+
+  const laptop: ServerExtension = { name: "laptop", orgLimit: 1 };
+  const signedIn: ServerExtension = {
+    name: "fake-oidc-only",
+    requireAuthentication: true,
+    identityVerifiers: [fakeVerifier],
+    orgLimit: 1,
+  };
+
+  async function boot(unit: ServerExtension): Promise<void> {
+    server = await composeServer({
+      config: loadConfig(baseConfig(dir)),
+      logger: silentLogger,
+      extensions: [unit],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    port = await server.start();
+  }
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "laptop-to-sign-in-"));
+    await boot(laptop);
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("the first person to sign in owns the laptop's organization, and the next is a member", async () => {
+    const [laptopRow] = await rolesIn(server.store);
+    expect(laptopRow).toMatch(/:owner@stigmer\|by:/);
+    await server.shutdown();
+
+    await boot(signedIn);
+    await createClient(
+      IdentityAccountCommandController,
+      transportFor(port, fakeJwt(FIRST, "first@example.com")),
+    ).provisionMyAccount({});
+    await createClient(
+      IdentityAccountCommandController,
+      transportFor(port, fakeJwt(SECOND, "second@example.com")),
+    ).provisionMyAccount({});
+
+    const roles = await rolesIn(server.store);
+    expect(roles).toContain(`${firstId()}:owner@stigmer|by:${firstId()}`);
+    expect(roles).toContain(`${secondId()}:member@stigmer|by:${secondId()}`);
+    const found = await createClient(
+      OrganizationQueryController,
+      transportFor(port, fakeJwt(FIRST, "first@example.com")),
+    ).findMyOrganizations({});
+    expect(found.entries.map((entry) => entry.metadata?.id)).toEqual([
+      "stigmer",
+    ]);
   });
 });

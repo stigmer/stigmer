@@ -41,7 +41,15 @@
  *   created it in the console: arm 3 answers `owner`, and arm 4 answers
  *   `owner` when no operator email is configured. With one configured, arm
  *   4 keeps `admin` there, so a stranger who signs in before the operator
- *   never owns it. `user`-class
+ *   never owns it. On that organization the laptop's operator account (the
+ *   trusted-local principal, idp id `local|…`,
+ *   domain/identityaccount/operator.ts) is nobody to these arms: neither
+ *   its creator stamps (its account id, its email) nor its role rows count
+ *   as another person or as rows. A laptop that made the organization and
+ *   later turns sign-in on is then a fresh sign-in install, as the
+ *   self-hosting guides promise: the operator email owns it, or, with none
+ *   configured, the first person to sign in does; the laptop account can no
+ *   longer sign in to hold it. `user`-class
  *   callers only: a runner, a machine or the in-process class
  *   never earns a role. Nothing on an organization the account already
  *   holds a row on, so a run that faulted midway converges on the next.
@@ -152,6 +160,7 @@ import { metadataOf } from "../../pipeline/steps/shapes.js";
 import type { Store } from "../../store/interface.js";
 import { rfc3339Seconds } from "../../store/rfc3339.js";
 import { accountAsCaller } from "../identityaccount/actor.js";
+import { LOCAL_IDP_ID_PREFIX } from "../identityaccount/constants.js";
 import type { AccountCreatedHook } from "../identityaccount/provisioning.js";
 import type { PolicyChangeCause } from "./change.js";
 import {
@@ -263,6 +272,8 @@ export interface RoleQuestion {
   readonly organizationHasRows: boolean;
   /** Whether this is the organization the server made itself (SINGLE_ORG_KEY), where arms 3 and 4 may answer `owner`. */
   readonly serverMadeOrganization: boolean;
+  /** The laptop operator accounts' creator stamps (account ids and emails): on the server-made organization, nobody's. */
+  readonly laptopOperatorStamps: ReadonlySet<string>;
 }
 
 /**
@@ -282,6 +293,7 @@ export function roleFor(question: RoleQuestion): IamRole {
     blueprintsInOrganization,
     organizationHasRows,
     serverMadeOrganization,
+    laptopOperatorStamps,
   } = question;
   const isMine = (stamp: string): boolean =>
     stamp !== "" && (stamp === subject || stamp === accountId);
@@ -297,7 +309,12 @@ export function roleFor(question: RoleQuestion): IamRole {
   const anotherPersonStamped = [
     organization.createdBy,
     ...blueprintsInOrganization.map((b) => b.createdBy),
-  ].some((stamp) => isPersonStamp(stamp) && !isMine(stamp));
+  ].some(
+    (stamp) =>
+      isPersonStamp(stamp) &&
+      !isMine(stamp) &&
+      !(serverMadeOrganization && laptopOperatorStamps.has(stamp)),
+  );
   if (!anotherPersonStamped && !organizationHasRows) {
     return serverMadeOrganization && operatorEmail === ""
       ? IamRole.owner
@@ -312,6 +329,13 @@ interface ScannedWorld {
   readonly blueprints: ReadonlyArray<ScannedResource>;
   /** The id under SINGLE_ORG_KEY, "" when the server made no organization itself. */
   readonly serverMadeOrganization: string;
+  readonly laptopOperators: LaptopOperators;
+}
+
+/** The trusted-local operator accounts the store holds (idp id `local|…`): their ids, and every stamp that names them. */
+interface LaptopOperators {
+  readonly accountIds: ReadonlySet<string>;
+  readonly stamps: ReadonlySet<string>;
 }
 
 /** `spec_audit.created_at` in epoch milliseconds; a row with no stamp sorts first (it is the oldest thing we know nothing about). */
@@ -365,12 +389,37 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
     );
   }
 
+  /** The trusted-local operator accounts: the laptop's one principal, which nobody signs in as. */
+  async function scanLaptopOperators(): Promise<LaptopOperators> {
+    const accountIds = new Set<string>();
+    const stamps = new Set<string>();
+    for (const bytes of await store.listResources(
+      ApiResourceKind.identity_account,
+    )) {
+      const account = fromBinary(IdentityAccountSchema, bytes);
+      if (!(account.spec?.idpId ?? "").startsWith(LOCAL_IDP_ID_PREFIX)) {
+        continue;
+      }
+      for (const stamp of [
+        account.metadata?.id ?? "",
+        account.spec?.email ?? "",
+      ]) {
+        if (stamp !== "") {
+          stamps.add(stamp);
+        }
+      }
+      accountIds.add(account.metadata?.id ?? "");
+    }
+    return { accountIds, stamps };
+  }
+
   /** The whole world one pass reads, scanned once: every organization and every blueprint. */
   async function scanWorld(): Promise<ScannedWorld> {
     return {
       organizations: await scan(ApiResourceKind.organization),
       blueprints: await scanBlueprints(),
       serverMadeOrganization: await store.bootstrapState.get(SINGLE_ORG_KEY),
+      laptopOperators: await scanLaptopOperators(),
     };
   }
 
@@ -401,6 +450,10 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       const blueprintsInOrganization = world.blueprints.filter(
         (blueprint) => blueprint.org === organization.id,
       );
+      const serverMadeOrganization =
+        world.serverMadeOrganization !== "" &&
+        organization.id === world.serverMadeOrganization;
+      const rows = await policies.findByResource(ORGANIZATION, organization.id);
       const role = roleFor({
         accountId,
         subject,
@@ -408,12 +461,19 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
         operatorEmail,
         organization,
         blueprintsInOrganization,
-        organizationHasRows:
-          (await policies.findByResource(ORGANIZATION, organization.id))
-            .length > 0,
-        serverMadeOrganization:
-          world.serverMadeOrganization !== "" &&
-          organization.id === world.serverMadeOrganization,
+        // On the server-made organization the laptop operator's rows are
+        // nobody's (the header), so they are not "rows" to arm 4.
+        organizationHasRows: rows.some(
+          (row) =>
+            !(
+              serverMadeOrganization &&
+              world.laptopOperators.accountIds.has(
+                row.spec?.principal?.id ?? "",
+              )
+            ),
+        ),
+        serverMadeOrganization,
+        laptopOperatorStamps: world.laptopOperators.stamps,
       });
       await grantPath.grant(
         organizationRole(accountId, role, organization.id),
@@ -460,6 +520,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
           blueprints: await scanBlueprints(),
           serverMadeOrganization:
             await store.bootstrapState.get(SINGLE_ORG_KEY),
+          laptopOperators: await scanLaptopOperators(),
         },
         "first_sign_in",
       );
@@ -513,6 +574,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
           organizations,
           blueprints: await scanBlueprints(),
           serverMadeOrganization: serverMade,
+          laptopOperators: await scanLaptopOperators(),
         };
         for (const account of accounts) {
           await applyRulesTo(

@@ -94,6 +94,8 @@ import { NO_STORED_RESOURCES, fakeIamPolicyStore } from "./support.js";
 import type { FakeIamPolicyStore } from "./support.js";
 
 const OPERATOR_EMAIL = "operator@example.com";
+/** No trusted-local operator account in the store. */
+const NO_LAPTOP_OPERATOR: ReadonlySet<string> = new Set();
 const silentLogger = { debug() {}, info() {}, warn() {}, error() {} };
 
 function userCaller(identityId: string, email?: string): CallerIdentity {
@@ -704,9 +706,13 @@ describe("membership rules", () => {
         IamRole.member,
       ],
     ])("%s", (_name, input, expected) => {
-      expect(roleFor({ serverMadeOrganization: false, ...input })).toBe(
-        expected,
-      );
+      expect(
+        roleFor({
+          serverMadeOrganization: false,
+          laptopOperatorStamps: NO_LAPTOP_OPERATOR,
+          ...input,
+        }),
+      ).toBe(expected);
     });
 
     // The organization a one-organization server made itself, under sign-in:
@@ -764,10 +770,65 @@ describe("membership rules", () => {
         IamRole.member,
       ],
     ])("%s", (_name, input, expected) => {
-      expect(roleFor({ ...input, serverMadeOrganization: true })).toBe(
-        expected,
-      );
+      expect(
+        roleFor({
+          laptopOperatorStamps: NO_LAPTOP_OPERATOR,
+          ...input,
+          serverMadeOrganization: true,
+        }),
+      ).toBe(expected);
     });
+
+    // A laptop that made the organization under trusted-local and then
+    // turned sign-in on: the organization is stamped by the laptop operator's
+    // account, its blueprints by the operator's email, and that account
+    // holds the owner row (which the caller leaves out of "has rows").
+    const laptopStamps: ReadonlySet<string> = new Set([
+      "ida_laptop",
+      "laptop@example.com",
+    ]);
+    const madeOnTheLaptop: ScannedResource = {
+      id: "stigmer",
+      org: "",
+      createdBy: "ida_laptop",
+    };
+    it.each([
+      [
+        "with no operator email, the first person to sign in owns it",
+        { operatorEmail: "", serverMadeOrganization: true },
+        IamRole.owner,
+      ],
+      [
+        "with an operator email configured, a stranger first is admin",
+        { operatorEmail: OPERATOR_EMAIL, serverMadeOrganization: true },
+        IamRole.admin,
+      ],
+      [
+        "on an organization the server did not make, the laptop's stamps are a person's: member",
+        { operatorEmail: "", serverMadeOrganization: false },
+        IamRole.member,
+      ],
+    ])(
+      "the laptop operator's stamps on the server-made organization are nobody's: %s",
+      (_name, input, expected) => {
+        expect(
+          roleFor({
+            ...bob,
+            organization: madeOnTheLaptop,
+            blueprintsInOrganization: [
+              {
+                id: "agt_laptop",
+                org: "stigmer",
+                createdBy: "laptop@example.com",
+              },
+            ],
+            organizationHasRows: false,
+            laptopOperatorStamps: laptopStamps,
+            ...input,
+          }),
+        ).toBe(expected);
+      },
+    );
 
     it("the same answers on an organization the server did not make stay admin", () => {
       const question = {
@@ -777,6 +838,7 @@ describe("membership rules", () => {
         organizationHasRows: false,
         operatorEmail: "",
         serverMadeOrganization: false,
+        laptopOperatorStamps: NO_LAPTOP_OPERATOR,
       };
       expect(roleFor(question)).toBe(IamRole.admin);
       expect(
