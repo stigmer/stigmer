@@ -24,7 +24,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 
 import { READY_LINE_KEY } from "../ready-line.js";
-import { runServer } from "../run.js";
+import { nodeProcessHost, runServer } from "../run.js";
 import type { ProcessHost } from "../run.js";
 import { openSourceEdition } from "../../editions/open-source.js";
 import type { SandboxProvisioner } from "../../sandbox/provisioner.js";
@@ -171,6 +171,18 @@ describe("runServer", () => {
 
     expect(host.exits).toEqual([1]);
     expect(host.stdout).toEqual([]);
+  });
+
+  it("the real host writes the ready line to the process's stdout", () => {
+    const write = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    try {
+      nodeProcessHost.writeStdout("ready\n");
+      expect(write).toHaveBeenCalledWith("ready\n");
+    } finally {
+      write.mockRestore();
+    }
   });
 
   it("a composition failure rejects for the entry to report", async () => {

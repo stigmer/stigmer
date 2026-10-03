@@ -36,18 +36,18 @@ export interface ProcessHost {
   writeStdout(text: string): void;
 }
 
-/* v8 ignore start -- the real process host: a signal handler on the test runner's own process and process.exit cannot run under vitest; scripts/verify-boot.mjs drives them on the built artifact (SIGTERM, exit 0, the ready line) */
 /** The host a real process is. */
 export const nodeProcessHost: ProcessHost = {
+  /* v8 ignore start -- a signal handler on the test runner's own process and process.exit cannot run under vitest; scripts/verify-boot.mjs drives both on the built artifact (SIGTERM, exit 0) */
   onSignal: (signal, handler) => {
     process.on(signal, handler);
   },
   exit: (code) => process.exit(code),
+  /* v8 ignore stop */
   writeStdout: (text) => {
     process.stdout.write(text);
   },
 };
-/* v8 ignore stop */
 
 export interface RunServerOptions {
   /** The composed units, in order. */

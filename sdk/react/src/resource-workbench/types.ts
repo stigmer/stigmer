@@ -32,18 +32,18 @@ export type StatusPhase =
 // ---------------------------------------------------------------------------
 
 /**
- * Defines a single column in the {@link ResourceTable}.
- *
- * Generic over `TData` so platform builders can use richer item types
- * beyond `SearchResult` while the Console uses `SearchResult` directly.
- */
-/**
  * The id of a column that shows each row's organization. The workbench
  * leaves it out on a server that holds one organization
  * (`ServerInfo.singleOrg`), where nobody names it.
  */
 export const ORG_COLUMN_ID = "org";
 
+/**
+ * Defines a single column in the {@link ResourceTable}.
+ *
+ * Generic over `TData` so platform builders can use richer item types
+ * beyond `SearchResult` while the Console uses `SearchResult` directly.
+ */
 export interface WorkbenchColumnDef<TData = SearchResult> {
   /**
    * Stable column identifier (used for visibility persistence and URL

@@ -746,6 +746,11 @@ Available layout modes for the resource workbench.
 
 ### WorkbenchColumnDef
 
+Defines a single column in the [`ResourceTable`](#resourcetable).
+
+Generic over `TData` so platform builders can use richer item types
+beyond `SearchResult` while the Console uses `SearchResult` directly.
+
 <TypeTable
   type={{
     cell: { type: "(item: TData) => ReactNode", description: "Accessor function that extracts the cell value from a row item. Return a `ReactNode` for custom cell rendering.", required: true },
