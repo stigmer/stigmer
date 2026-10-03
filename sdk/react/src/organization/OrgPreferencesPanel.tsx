@@ -24,7 +24,7 @@ const ORG_ALONE_MEMORY_HELPER_TEXT =
 /** Props for {@link OrgPreferencesPanel}. */
 export interface OrgPreferencesPanelProps {
   /** The ID of the organization whose preferences to display and edit. */
-  readonly orgId: string;
+  readonly org: string;
   /** Fired with the updated resource after a successful save. */
   readonly onUpdated?: (org: Organization) => void;
   /** Additional CSS class names for the root container. */
@@ -48,11 +48,11 @@ export interface OrgPreferencesPanelProps {
  *
  * @example
  * ```tsx
- * <OrgPreferencesPanel orgId="org-id-123" />
+ * <OrgPreferencesPanel org="org-id-123" />
  * ```
  */
 export function OrgPreferencesPanel({
-  orgId,
+  org,
   onUpdated,
   className,
 }: OrgPreferencesPanelProps) {
@@ -62,7 +62,7 @@ export function OrgPreferencesPanel({
     isLoading: isFetching,
     error: fetchError,
     refetch,
-  } = useOrganization(orgId || null);
+  } = useOrganization(org || null);
 
   const {
     update,
@@ -91,7 +91,7 @@ export function OrgPreferencesPanel({
   // Fail-open: OSS local mode has no IAM service, so editing stays
   // available there; cloud gets a genuine server verdict.
   const { allowed: canEdit } = useCheckPermission(
-    orgId ? { kind: "organization", id: orgId } : null,
+    org ? { kind: "organization", id: org } : null,
     "can_edit",
   );
 

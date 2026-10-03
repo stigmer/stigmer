@@ -128,7 +128,7 @@ export function TeamsSection() {
           <TeamDetailPanel
             key={flow.team.metadata?.id}
             team={flow.team}
-            orgId={orgId}
+            org={orgId}
             onUpdated={handleUpdated}
             onDeleted={handleDeleted}
             onBack={() => setFlow({ phase: "idle" })}

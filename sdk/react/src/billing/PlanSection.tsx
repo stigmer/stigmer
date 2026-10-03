@@ -26,7 +26,7 @@ const CARD_WAIT_MS = 30_000;
 /** Props for {@link PlanSection}. */
 export interface PlanSectionProps {
   /** The organization whose plan is shown. */
-  readonly orgId: string;
+  readonly org: string;
   /**
    * The organization is platform-managed: it runs on its integrator's
    * plan, and the section says so instead of offering plans.
@@ -63,11 +63,11 @@ export interface PlanSectionProps {
  *
  * @example
  * ```tsx
- * <PlanSection orgId={orgId} hasPaymentMethod={hasCard} />
+ * <PlanSection org={org} hasPaymentMethod={hasCard} />
  * ```
  */
 export function PlanSection({
-  orgId,
+  org,
   managed = false,
   hasPaymentMethod,
   onRefreshAccount,
@@ -80,11 +80,11 @@ export function PlanSection({
   const available = useResourceAvailable(ApiResourceKind.subscription);
   const renderNow = now ?? new Date();
   const catalog = usePlans({ includeRetired: true, enabled: available });
-  const current = useSubscription(available ? orgId : null);
+  const current = useSubscription(available ? org : null);
   const standing = planStanding(current.subscription, renderNow);
   const livePlanId = standingPlanId(standing);
-  const estimate = usePeriodEstimate(orgId, { enabled: available && !managed && livePlanId !== "" });
-  const manage = useCheckPermission(available && orgId ? { kind: "organization", id: orgId } : null, "can_manage_billing");
+  const estimate = usePeriodEstimate(org, { enabled: available && !managed && livePlanId !== "" });
+  const manage = useCheckPermission(available && org ? { kind: "organization", id: org } : null, "can_manage_billing");
   const canManage = !managed && !manage.isLoading && manage.allowed;
 
   const changer = useChangePlan();
@@ -159,7 +159,7 @@ export function PlanSection({
 
   const confirm = useCallback(() => {
     if (move === null) return;
-    const done = move.kind === "cancel" ? canceler.cancel(orgId) : changer.changePlan(orgId, move.to.metadata?.id ?? "");
+    const done = move.kind === "cancel" ? canceler.cancel(org) : changer.changePlan(org, move.to.metadata?.id ?? "");
     done.then(
       () => {
         setMove(null);
@@ -167,12 +167,12 @@ export function PlanSection({
       },
       () => undefined,
     );
-  }, [move, orgId, canceler.cancel, changer.changePlan, refreshAll]);
+  }, [move, org, canceler.cancel, changer.changePlan, refreshAll]);
 
   const addPaymentMethod = useCallback(() => {
     const planId = move !== null && move.kind !== "cancel" ? move.to.metadata?.id : undefined;
-    setup.addPaymentMethod(orgId, planId).catch(() => undefined);
-  }, [move, orgId, setup.addPaymentMethod]);
+    setup.addPaymentMethod(org, planId).catch(() => undefined);
+  }, [move, org, setup.addPaymentMethod]);
 
   if (!available) {
     return null;

@@ -48,14 +48,14 @@ export interface UseCreditLedgerOptions {
  * filtering. Returns the entries and total page count for building
  * pagination controls.
  *
- * Pass `null` as `orgId` to skip fetching (stable no-op).
+ * Pass `null` as `org` to skip fetching (stable no-op).
  *
- * @param orgId - Organization ID, or `null` to skip.
+ * @param org - Organization ID, or `null` to skip.
  * @param options - Pagination and filter options.
  *
  * @example
  * ```tsx
- * const { ledger, isLoading } = useCreditLedger(orgId, { pageNum: 1 });
+ * const { ledger, isLoading } = useCreditLedger(org, { pageNum: 1 });
  *
  * if (isLoading) return <Skeleton />;
  * if (!ledger) return null;
@@ -64,7 +64,7 @@ export interface UseCreditLedgerOptions {
  * ```
  */
 export function useCreditLedger(
-  orgId: string | null,
+  org: string | null,
   options: UseCreditLedgerOptions = {},
 ): UseCreditLedgerReturn {
   const stigmer = useStigmer();
@@ -73,10 +73,10 @@ export function useCreditLedger(
   const typeFilterKey = typeFilter?.join(",") ?? "";
 
   const { data: ledger, isLoading, isRefetching, error, refetch } = useFetch(
-    orgId
+    org
       ? () =>
           stigmer.billing.getCreditLedger({
-            orgId,
+            org,
             // The SDK page number is 0-based (matches the proto/backend); the
             // hook's pageNum is 1-based for ergonomic UI controls.
             page: { num: pageNum - 1, size: pageSize },
@@ -84,7 +84,7 @@ export function useCreditLedger(
             view,
           })
       : null,
-    [orgId, pageNum, pageSize, typeFilterKey, view, stigmer],
+    [org, pageNum, pageSize, typeFilterKey, view, stigmer],
     null as CreditLedgerResponse | null,
   );
 

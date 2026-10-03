@@ -22,7 +22,7 @@ function client(subscribed: boolean): Stigmer {
   return {
     plan: { list: async () => ({ entries: [TEAM, BUSINESS, RETIRED] }) },
     subscription: {
-      getForOrganization: async () => {
+      getForOrg: async () => {
         if (!subscribed) throw notFound();
         return subscription(SubscriptionState.active);
       },
@@ -36,7 +36,7 @@ afterEach(resetAudit);
 
 describe("Plan surfaces a11y", () => {
   it.each(COLOR_MODES)("Free with the comparison (%s)", async (mode) => {
-    const container = renderAudited(<PlanSection orgId="acme" hasPaymentMethod now={NOW} />, mode, {
+    const container = renderAudited(<PlanSection org="acme" hasPaymentMethod now={NOW} />, mode, {
       ...CANVAS,
       client: client(false),
     });
@@ -45,7 +45,7 @@ describe("Plan surfaces a11y", () => {
   });
 
   it.each(COLOR_MODES)("an active plan with its estimate (%s)", async (mode) => {
-    const container = renderAudited(<PlanSection orgId="acme" hasPaymentMethod now={NOW} />, mode, {
+    const container = renderAudited(<PlanSection org="acme" hasPaymentMethod now={NOW} />, mode, {
       ...CANVAS,
       client: client(true),
     });
@@ -54,7 +54,7 @@ describe("Plan surfaces a11y", () => {
   });
 
   it.each(COLOR_MODES)("the confirm dialog without a card (%s)", async (mode) => {
-    const container = renderAudited(<PlanSection orgId="acme" hasPaymentMethod={false} now={NOW} />, mode, {
+    const container = renderAudited(<PlanSection org="acme" hasPaymentMethod={false} now={NOW} />, mode, {
       ...CANVAS,
       client: client(false),
     });

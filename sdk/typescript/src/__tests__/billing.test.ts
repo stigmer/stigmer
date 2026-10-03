@@ -52,14 +52,14 @@ describe("BillingClient.adjustCredits", () => {
     const client = new BillingClient(fakeTransport(captured));
 
     const entry = await client.adjustCredits({
-      orgId: "acme",
+      org: "acme",
       amountMicros: 25_000_000n,
       reason: "initial tenant funding",
       idempotencyKey: "fund-acme-001",
     });
 
     expect(entry.amountMicros).toBe(25_000_000n);
-    expect(captured.adjustCredits?.orgId).toBe("acme");
+    expect(captured.adjustCredits?.org).toBe("acme");
     expect(captured.adjustCredits?.amountMicros).toBe(25_000_000n);
     expect(captured.adjustCredits?.reason).toBe("initial tenant funding");
     expect(captured.adjustCredits?.idempotencyKey).toBe("fund-acme-001");
@@ -73,7 +73,7 @@ describe("BillingClient.grantCredits", () => {
 
     const expiresAt = new Date("2026-08-31T23:59:59Z");
     const entry = await client.grantCredits({
-      orgId: "acme",
+      org: "acme",
       amountMicros: 5_000_000n,
       expiresAt,
       reason: "monthly free allowance 2026-08",
@@ -82,7 +82,7 @@ describe("BillingClient.grantCredits", () => {
 
     expect(entry.amountMicros).toBe(5_000_000n);
     const req = captured.grantCredits;
-    expect(req?.orgId).toBe("acme");
+    expect(req?.org).toBe("acme");
     expect(req?.amountMicros).toBe(5_000_000n);
     expect(req?.expiresAt && timestampDate(req.expiresAt)).toEqual(expiresAt);
     expect(req?.reason).toBe("monthly free allowance 2026-08");
@@ -94,7 +94,7 @@ describe("BillingClient.grantCredits", () => {
     const client = new BillingClient(fakeTransport(captured));
 
     await client.grantCredits({
-      orgId: "acme",
+      org: "acme",
       amountMicros: 1_000_000n,
       reason: "welcome credit",
       idempotencyKey: "welcome-acme",
@@ -112,7 +112,7 @@ describe("BillingClient.getCreditLedger", () => {
     const startTime = new Date("2026-08-01T00:00:00Z");
     const endTime = new Date("2026-08-13T00:00:00Z");
     await client.getCreditLedger({
-      orgId: "acme",
+      org: "acme",
       page: { num: 2, size: 50 },
       typeFilter: [LedgerEntryType.adjustment_credit],
       startTime,
@@ -121,7 +121,7 @@ describe("BillingClient.getCreditLedger", () => {
     });
 
     const req = captured.getCreditLedger;
-    expect(req?.orgId).toBe("acme");
+    expect(req?.org).toBe("acme");
     expect(req?.page?.num).toBe(2);
     expect(req?.page?.size).toBe(50);
     expect(req?.typeFilter).toEqual([LedgerEntryType.adjustment_credit]);
@@ -134,7 +134,7 @@ describe("BillingClient.getCreditLedger", () => {
     const captured: Captured = {};
     const client = new BillingClient(fakeTransport(captured));
 
-    await client.getCreditLedger({ orgId: "acme" });
+    await client.getCreditLedger({ org: "acme" });
 
     const req = captured.getCreditLedger;
     expect(req?.page).toBeUndefined();

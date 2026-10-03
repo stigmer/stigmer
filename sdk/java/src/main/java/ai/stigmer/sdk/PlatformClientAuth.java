@@ -86,7 +86,7 @@ public final class PlatformClientAuth implements AutoCloseable {
                 .setUserId(userId)
                 .setUserEmail(input.userEmail())
                 .setUserName(input.userName())
-                .setOrgId(input.orgId())
+                .setOrg(input.org())
                 .build();
 
         try {

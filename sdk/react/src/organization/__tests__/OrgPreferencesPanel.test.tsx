@@ -60,7 +60,7 @@ function renderPanel(client: unknown) {
   return render(
     <StigmerContext.Provider value={client as never}>
       <DeploymentModeContext.Provider value="local">
-        <OrgPreferencesPanel orgId="acme" />
+        <OrgPreferencesPanel org="acme" />
       </DeploymentModeContext.Provider>
     </StigmerContext.Provider>,
   );

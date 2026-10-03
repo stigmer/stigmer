@@ -46,7 +46,7 @@ describe("formatDayFromToday", () => {
 describe("entitlementParts", () => {
   it("names each limit, saying unlimited where the contract reads absence as unlimited", () => {
     expect(
-      entitlementParts(create(EntitlementsSchema, { limits: { maxUsers: 5, maxOrganizations: 1 }, features: [Feature.byo_provider_keys] })),
+      entitlementParts(create(EntitlementsSchema, { limits: { maxUsers: 5, maxOrgs: 1 }, features: [Feature.byo_provider_keys] })),
     ).toEqual(["5 users", "1 organization", "1 feature"]);
     expect(entitlementParts(create(EntitlementsSchema, {}))).toEqual([
       "Unlimited users",

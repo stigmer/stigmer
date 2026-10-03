@@ -69,7 +69,7 @@ function scenarAccount(overrides: Record<string, unknown> = {}) {
     displayName: "scenar team",
     adminApiKey: "***REDACTED***",
     enabled: true,
-    orgIds: ["org-a"],
+    orgs: ["org-a"],
     memberKeys: [
       create(CursorMemberKeySchema, {
         keyId: "k-1",
@@ -180,7 +180,7 @@ describe("CursorAccountsConsole", () => {
         displayName: "empty team",
         memberKeys: [],
         // No org assignment = shared-pool account (DD-008): the class is
-        // derived from org_ids, never from the deprecated default flag.
+        // derived from orgs, never from the deprecated default flag.
         orgIds: [],
       }),
       enabledKeyCount: 0,
@@ -604,7 +604,7 @@ describe("CursorAccountsConsole", () => {
     // negates into the proto field.
     expect(submitted.onDemandUsageDisabled).toBe(false);
     // The deprecated default flag is never written by current clients —
-    // the shared pool is derived from empty org_ids (DD-008).
+    // the shared pool is derived from empty orgs (DD-008).
     expect(submitted.isPlatformDefault).toBe(false);
   });
 

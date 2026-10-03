@@ -588,7 +588,6 @@ describe("toIdentityProviderUpdateInput", () => {
         jwksUri: "https://acme.okta.example/jwks",
         allowedIssuers: ["https://acme.okta.example"],
         expectedAudience: "stigmer",
-        rateLimitBudget: 120,
         userinfoEndpoint: "https://acme.okta.example/userinfo",
         isSsoProvider: true,
         oidcClientId: "oidc-123",
@@ -610,16 +609,6 @@ describe("toIdentityProviderUpdateInput", () => {
       original,
       buildIdentityProviderProto(toIdentityProviderUpdateInput(original)),
     );
-  });
-
-  it("preserves rate_limit_budget when only the display name changes (live wipe bug)", () => {
-    const original = fixture();
-    const rebuilt = buildIdentityProviderProto({
-      ...toIdentityProviderUpdateInput(original),
-      displayName: "Acme Okta (renamed)",
-    });
-    expect(rebuilt.spec?.rateLimitBudget).toBe(120);
-    expect(rebuilt.spec?.displayName).toBe("Acme Okta (renamed)");
   });
 });
 

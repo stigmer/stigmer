@@ -105,7 +105,7 @@ func TestBillingAdjustCredits_MapsParams(t *testing.T) {
 	client := &BillingClient{command: fake}
 
 	entry, err := client.AdjustCredits(context.Background(), &AdjustCreditsParams{
-		OrgID:          "acme",
+		Org:            "acme",
 		AmountMicros:   25_000_000,
 		Reason:         "initial tenant funding",
 		IdempotencyKey: "fund-acme-001",
@@ -118,8 +118,8 @@ func TestBillingAdjustCredits_MapsParams(t *testing.T) {
 	}
 
 	in := fake.adjustCreditsIn
-	if in.GetOrgId() != "acme" {
-		t.Errorf("OrgId = %q, want acme", in.GetOrgId())
+	if in.GetOrg() != "acme" {
+		t.Errorf("Org = %q, want acme", in.GetOrg())
 	}
 	if in.GetAmountMicros() != 25_000_000 {
 		t.Errorf("AmountMicros = %d, want 25000000", in.GetAmountMicros())
@@ -138,7 +138,7 @@ func TestBillingAdjustCredits_WrapsGRPCError(t *testing.T) {
 	}
 	client := &BillingClient{command: fake}
 
-	_, err := client.AdjustCredits(context.Background(), &AdjustCreditsParams{OrgID: "acme"})
+	_, err := client.AdjustCredits(context.Background(), &AdjustCreditsParams{Org: "acme"})
 	var sdkErr *Error
 	if !errors.As(err, &sdkErr) {
 		t.Fatalf("error = %v (%T), want *stigmer.Error", err, err)
@@ -156,7 +156,7 @@ func TestBillingGrantCredits_MapsParams(t *testing.T) {
 
 	expiresAt := time.Date(2026, 8, 31, 23, 59, 59, 0, time.UTC)
 	entry, err := client.GrantCredits(context.Background(), &GrantCreditsParams{
-		OrgID:          "acme",
+		Org:            "acme",
 		AmountMicros:   5_000_000,
 		ExpiresAt:      expiresAt,
 		Reason:         "monthly free allowance 2026-08",
@@ -170,8 +170,8 @@ func TestBillingGrantCredits_MapsParams(t *testing.T) {
 	}
 
 	in := fake.grantCreditsIn
-	if in.GetOrgId() != "acme" {
-		t.Errorf("OrgId = %q, want acme", in.GetOrgId())
+	if in.GetOrg() != "acme" {
+		t.Errorf("Org = %q, want acme", in.GetOrg())
 	}
 	if in.GetAmountMicros() != 5_000_000 {
 		t.Errorf("AmountMicros = %d, want 5000000", in.GetAmountMicros())
@@ -192,7 +192,7 @@ func TestBillingGrantCredits_OmitsUnsetExpiry(t *testing.T) {
 	client := &BillingClient{command: fake}
 
 	if _, err := client.GrantCredits(context.Background(), &GrantCreditsParams{
-		OrgID:          "acme",
+		Org:            "acme",
 		AmountMicros:   1_000_000,
 		Reason:         "welcome credit",
 		IdempotencyKey: "welcome-acme",
@@ -211,7 +211,7 @@ func TestBillingGrantCredits_WrapsGRPCError(t *testing.T) {
 	}
 	client := &BillingClient{command: fake}
 
-	_, err := client.GrantCredits(context.Background(), &GrantCreditsParams{OrgID: "acme"})
+	_, err := client.GrantCredits(context.Background(), &GrantCreditsParams{Org: "acme"})
 	var sdkErr *Error
 	if !errors.As(err, &sdkErr) {
 		t.Fatalf("error = %v (%T), want *stigmer.Error", err, err)
@@ -228,7 +228,7 @@ func TestBillingGetCreditLedger_MapsAllFilters(t *testing.T) {
 	start := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2026, 8, 13, 0, 0, 0, 0, time.UTC)
 	_, err := client.GetCreditLedger(context.Background(), &GetCreditLedgerParams{
-		OrgID:      "acme",
+		Org:        "acme",
 		Page:       &Page{Num: 2, Size: 50},
 		TypeFilter: []LedgerEntryType{billingv1.LedgerEntryType_adjustment_credit},
 		StartTime:  start,
@@ -240,8 +240,8 @@ func TestBillingGetCreditLedger_MapsAllFilters(t *testing.T) {
 	}
 
 	in := fake.ledgerIn
-	if in.GetOrgId() != "acme" {
-		t.Errorf("OrgId = %q, want acme", in.GetOrgId())
+	if in.GetOrg() != "acme" {
+		t.Errorf("Org = %q, want acme", in.GetOrg())
 	}
 	if in.GetPage().GetNum() != 2 || in.GetPage().GetSize() != 50 {
 		t.Errorf("Page = %v, want num=2 size=50", in.GetPage())
@@ -264,7 +264,7 @@ func TestBillingGetCreditLedger_OmitsUnsetOptionals(t *testing.T) {
 	fake := &fakeBillingQuery{}
 	client := &BillingClient{query: fake}
 
-	if _, err := client.GetCreditLedger(context.Background(), &GetCreditLedgerParams{OrgID: "acme"}); err != nil {
+	if _, err := client.GetCreditLedger(context.Background(), &GetCreditLedgerParams{Org: "acme"}); err != nil {
 		t.Fatalf("GetCreditLedger: %v", err)
 	}
 
@@ -287,7 +287,7 @@ func TestBillingGetBillingUsageReport_MapsTimestamps(t *testing.T) {
 	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2026, 7, 31, 23, 59, 59, 0, time.UTC)
 	if _, err := client.GetBillingUsageReport(context.Background(), &GetBillingUsageReportParams{
-		OrgID:     "acme",
+		Org:       "acme",
 		StartTime: start,
 		EndTime:   end,
 	}); err != nil {
@@ -295,8 +295,8 @@ func TestBillingGetBillingUsageReport_MapsTimestamps(t *testing.T) {
 	}
 
 	in := fake.usageIn
-	if in.GetOrgId() != "acme" {
-		t.Errorf("OrgId = %q, want acme", in.GetOrgId())
+	if in.GetOrg() != "acme" {
+		t.Errorf("Org = %q, want acme", in.GetOrg())
 	}
 	if got := in.GetStartTime().AsTime(); !got.Equal(start) {
 		t.Errorf("StartTime = %v, want %v", got, start)
@@ -311,7 +311,7 @@ func TestBillingSetAutoRechargeConfig_MapsParams(t *testing.T) {
 	client := &BillingClient{command: fake}
 
 	if _, err := client.SetAutoRechargeConfig(context.Background(), &SetAutoRechargeConfigParams{
-		OrgID:                "acme",
+		Org:                  "acme",
 		Enabled:              true,
 		ThresholdMicros:      5_000_000,
 		RechargeAmountMicros: 20_000_000,
@@ -337,7 +337,7 @@ func TestBillingCreateCreditCheckoutSession_MapsParams(t *testing.T) {
 	client := &BillingClient{command: fake}
 
 	if _, err := client.CreateCreditCheckoutSession(context.Background(), &CreateCheckoutSessionParams{
-		OrgID:      "acme",
+		Org:        "acme",
 		PackID:     "pack-25",
 		SuccessURL: "https://app.example.com/billing?ok=1",
 		CancelURL:  "https://app.example.com/billing",
@@ -361,15 +361,15 @@ func TestBillingGetCustomerModelPricing_NilParamsMeansDefaultPricing(t *testing.
 	if _, err := client.GetCustomerModelPricing(context.Background(), nil); err != nil {
 		t.Fatalf("GetCustomerModelPricing: %v", err)
 	}
-	if fake.pricingIn.GetOrgId() != "" {
-		t.Errorf("OrgId = %q, want empty for default pricing", fake.pricingIn.GetOrgId())
+	if fake.pricingIn.GetOrg() != "" {
+		t.Errorf("Org = %q, want empty for default pricing", fake.pricingIn.GetOrg())
 	}
 
-	if _, err := client.GetCustomerModelPricing(context.Background(), &GetCustomerModelPricingParams{OrgID: "acme"}); err != nil {
+	if _, err := client.GetCustomerModelPricing(context.Background(), &GetCustomerModelPricingParams{Org: "acme"}); err != nil {
 		t.Fatalf("GetCustomerModelPricing: %v", err)
 	}
-	if fake.pricingIn.GetOrgId() != "acme" {
-		t.Errorf("OrgId = %q, want acme", fake.pricingIn.GetOrgId())
+	if fake.pricingIn.GetOrg() != "acme" {
+		t.Errorf("Org = %q, want acme", fake.pricingIn.GetOrg())
 	}
 }
 

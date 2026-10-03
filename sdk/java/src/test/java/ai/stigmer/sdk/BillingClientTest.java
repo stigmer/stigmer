@@ -40,14 +40,14 @@ class BillingClientTest {
     @Test
     void adjustCredits_toProto_mapsAllFields() {
         AdjustCreditsInput proto = BillingClient.AdjustCreditsParams.builder()
-                .orgId("org_123")
+                .org("org_123")
                 .amountMicros(-5_000_000L)
                 .reason("correct double grant")
                 .idempotencyKey("adj-2026-08-13-01")
                 .build()
                 .toProto();
 
-        assertEquals("org_123", proto.getOrgId());
+        assertEquals("org_123", proto.getOrg());
         assertEquals(-5_000_000L, proto.getAmountMicros());
         assertEquals("correct double grant", proto.getReason());
         assertEquals("adj-2026-08-13-01", proto.getIdempotencyKey());
@@ -58,9 +58,9 @@ class BillingClientTest {
         assertThrows(NullPointerException.class, () -> BillingClient.AdjustCreditsParams.builder()
                 .amountMicros(1L).reason("r").idempotencyKey("k").build());
         assertThrows(NullPointerException.class, () -> BillingClient.AdjustCreditsParams.builder()
-                .orgId("org_123").amountMicros(1L).idempotencyKey("k").build());
+                .org("org_123").amountMicros(1L).idempotencyKey("k").build());
         assertThrows(NullPointerException.class, () -> BillingClient.AdjustCreditsParams.builder()
-                .orgId("org_123").amountMicros(1L).reason("r").build());
+                .org("org_123").amountMicros(1L).reason("r").build());
     }
 
     // -- GrantCreditsParams -------------------------------------------------------
@@ -70,7 +70,7 @@ class BillingClientTest {
         Instant expiresAt = Instant.parse("2026-08-31T23:59:59Z");
 
         GrantCreditsInput proto = BillingClient.GrantCreditsParams.builder()
-                .orgId("org_123")
+                .org("org_123")
                 .amountMicros(5_000_000L)
                 .expiresAt(expiresAt)
                 .reason("monthly free allowance 2026-08")
@@ -78,7 +78,7 @@ class BillingClientTest {
                 .build()
                 .toProto();
 
-        assertEquals("org_123", proto.getOrgId());
+        assertEquals("org_123", proto.getOrg());
         assertEquals(5_000_000L, proto.getAmountMicros());
         assertEquals(expiresAt.getEpochSecond(), proto.getExpiresAt().getSeconds());
         assertEquals("monthly free allowance 2026-08", proto.getReason());
@@ -88,7 +88,7 @@ class BillingClientTest {
     @Test
     void grantCredits_toProto_omitsUnsetExpiry() {
         GrantCreditsInput proto = BillingClient.GrantCreditsParams.builder()
-                .orgId("org_123")
+                .org("org_123")
                 .amountMicros(1_000_000L)
                 .reason("welcome credit")
                 .idempotencyKey("welcome-org_123")
@@ -103,9 +103,9 @@ class BillingClientTest {
         assertThrows(NullPointerException.class, () -> BillingClient.GrantCreditsParams.builder()
                 .amountMicros(1L).reason("r").idempotencyKey("k").build());
         assertThrows(NullPointerException.class, () -> BillingClient.GrantCreditsParams.builder()
-                .orgId("org_123").amountMicros(1L).idempotencyKey("k").build());
+                .org("org_123").amountMicros(1L).idempotencyKey("k").build());
         assertThrows(NullPointerException.class, () -> BillingClient.GrantCreditsParams.builder()
-                .orgId("org_123").amountMicros(1L).reason("r").build());
+                .org("org_123").amountMicros(1L).reason("r").build());
     }
 
     // -- GetCreditLedgerParams --------------------------------------------------
@@ -116,7 +116,7 @@ class BillingClientTest {
         Instant end = Instant.parse("2026-08-13T00:00:00.000000500Z");
 
         GetCreditLedgerInput proto = BillingClient.GetCreditLedgerParams.builder()
-                .orgId("org_123")
+                .org("org_123")
                 .page(new Page(2, 50))
                 .typeFilter(List.of(LedgerEntryType.purchase_credit, LedgerEntryType.usage_debit))
                 .view(LedgerView.ledger_view_statement)
@@ -125,7 +125,7 @@ class BillingClientTest {
                 .build()
                 .toProto();
 
-        assertEquals("org_123", proto.getOrgId());
+        assertEquals("org_123", proto.getOrg());
         assertEquals(2, proto.getPage().getNum());
         assertEquals(50, proto.getPage().getSize());
         assertEquals(
@@ -140,7 +140,7 @@ class BillingClientTest {
     @Test
     void getCreditLedger_toProto_omitsUnsetOptionals() {
         GetCreditLedgerInput proto = BillingClient.GetCreditLedgerParams.builder()
-                .orgId("org_123")
+                .org("org_123")
                 .build()
                 .toProto();
 
@@ -165,13 +165,13 @@ class BillingClientTest {
         Instant end = Instant.parse("2026-08-01T00:00:00Z");
 
         GetBillingUsageReportInput proto = BillingClient.GetBillingUsageReportParams.builder()
-                .orgId("org_123")
+                .org("org_123")
                 .startTime(start)
                 .endTime(end)
                 .build()
                 .toProto();
 
-        assertEquals("org_123", proto.getOrgId());
+        assertEquals("org_123", proto.getOrg());
         assertEquals(start.getEpochSecond(), proto.getStartTime().getSeconds());
         assertEquals(end.getEpochSecond(), proto.getEndTime().getSeconds());
     }
@@ -180,10 +180,10 @@ class BillingClientTest {
     void getBillingUsageReport_missingTimeRange_throws() {
         assertThrows(NullPointerException.class,
                 () -> BillingClient.GetBillingUsageReportParams.builder()
-                        .orgId("org_123").endTime(Instant.now()).build());
+                        .org("org_123").endTime(Instant.now()).build());
         assertThrows(NullPointerException.class,
                 () -> BillingClient.GetBillingUsageReportParams.builder()
-                        .orgId("org_123").startTime(Instant.now()).build());
+                        .org("org_123").startTime(Instant.now()).build());
     }
 
     // -- Stripe params ------------------------------------------------------------
@@ -192,14 +192,14 @@ class BillingClientTest {
     void createCreditCheckoutSession_toProto_mapsAllFields() {
         CreateCreditCheckoutSessionInput proto =
                 BillingClient.CreateCreditCheckoutSessionParams.builder()
-                        .orgId("org_123")
+                        .org("org_123")
                         .packId("starter")
                         .successUrl("https://app.example.com/billing/success")
                         .cancelUrl("https://app.example.com/billing/cancel")
                         .build()
                         .toProto();
 
-        assertEquals("org_123", proto.getOrgId());
+        assertEquals("org_123", proto.getOrg());
         assertEquals("starter", proto.getPackId());
         assertEquals("https://app.example.com/billing/success", proto.getSuccessUrl());
         assertEquals("https://app.example.com/billing/cancel", proto.getCancelUrl());
@@ -209,7 +209,7 @@ class BillingClientTest {
     void createCreditCheckoutSession_missingRequiredFields_throw() {
         assertThrows(NullPointerException.class,
                 () -> BillingClient.CreateCreditCheckoutSessionParams.builder()
-                        .orgId("org_123").packId("starter")
+                        .org("org_123").packId("starter")
                         .successUrl("https://a").build());
     }
 
@@ -217,12 +217,12 @@ class BillingClientTest {
     void createBillingPortalSession_toProto_mapsAllFields() {
         CreateBillingPortalSessionInput proto =
                 BillingClient.CreateBillingPortalSessionParams.builder()
-                        .orgId("org_123")
+                        .org("org_123")
                         .returnUrl("https://app.example.com/billing")
                         .build()
                         .toProto();
 
-        assertEquals("org_123", proto.getOrgId());
+        assertEquals("org_123", proto.getOrg());
         assertEquals("https://app.example.com/billing", proto.getReturnUrl());
     }
 
@@ -230,13 +230,13 @@ class BillingClientTest {
     void createPaymentMethodSetupSession_toProto_mapsAllFields() {
         CreatePaymentMethodSetupSessionInput proto =
                 BillingClient.CreatePaymentMethodSetupSessionParams.builder()
-                        .orgId("org_123")
+                        .org("org_123")
                         .successUrl("https://app.example.com/billing/saved")
                         .cancelUrl("https://app.example.com/billing")
                         .build()
                         .toProto();
 
-        assertEquals("org_123", proto.getOrgId());
+        assertEquals("org_123", proto.getOrg());
         assertEquals("https://app.example.com/billing/saved", proto.getSuccessUrl());
         assertEquals("https://app.example.com/billing", proto.getCancelUrl());
     }
@@ -244,7 +244,7 @@ class BillingClientTest {
     @Test
     void setAutoRechargeConfig_toProto_mapsAllFields() {
         SetAutoRechargeConfigInput proto = BillingClient.SetAutoRechargeConfigParams.builder()
-                .orgId("org_123")
+                .org("org_123")
                 .enabled(true)
                 .thresholdMicros(5_000_000L)
                 .rechargeAmountMicros(25_000_000L)
@@ -252,7 +252,7 @@ class BillingClientTest {
                 .build()
                 .toProto();
 
-        assertEquals("org_123", proto.getOrgId());
+        assertEquals("org_123", proto.getOrg());
         assertTrue(proto.getEnabled());
         assertEquals(5_000_000L, proto.getThresholdMicros());
         assertEquals(25_000_000L, proto.getRechargeAmountMicros());

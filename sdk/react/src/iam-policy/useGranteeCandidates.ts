@@ -49,7 +49,7 @@ export type GranteeCandidate = PersonCandidate | TeamCandidate;
 /** Options for {@link useGranteeCandidates}. */
 export interface UseGranteeCandidatesOptions {
   /** The organization whose people (and teams) are offered, or `null` to skip. */
-  readonly orgId: string | null;
+  readonly org: string | null;
   /** Offer the organization's teams too. Pass `false` where teams cannot be granted. */
   readonly includeTeams: boolean;
 }
@@ -70,17 +70,17 @@ export interface UseGranteeCandidatesReturn {
  * @example
  * ```tsx
  * const { people, teams } = useGranteeCandidates({
- *   orgId,
+ *   org,
  *   includeTeams: share.canShareWithTeams,
  * });
  * ```
  */
 export function useGranteeCandidates({
-  orgId,
+  org,
   includeTeams,
 }: UseGranteeCandidatesOptions): UseGranteeCandidatesReturn {
-  const access = useResourceAccess(orgId ? { kind: "organization", id: orgId } : null);
-  const teamList = useTeamList(includeTeams ? orgId : null);
+  const access = useResourceAccess(org ? { kind: "organization", id: org } : null);
+  const teamList = useTeamList(includeTeams ? org : null);
 
   const people = useMemo(() => {
     const byId = new Map<string, PersonCandidate>();

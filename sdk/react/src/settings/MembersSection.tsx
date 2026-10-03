@@ -24,7 +24,7 @@ export function MembersSection() {
     ApiResourceKind.invitation,
   );
   const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
-  const orgId = activeOrg?.metadata?.id ?? "";
+  const org = activeOrg?.metadata?.id ?? "";
   const orgSlug = activeOrg?.metadata?.slug ?? "";
 
   const { identityProviders } = useIdentityProviderList(
@@ -57,7 +57,7 @@ export function MembersSection() {
         )}
       </p>
 
-      {!orgId ? (
+      {!org ? (
         <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to manage members.
         </p>
@@ -72,7 +72,7 @@ export function MembersSection() {
               </p>
             </div>
           )}
-          <OrgMembersPanel orgId={orgId} />
+          <OrgMembersPanel org={org} />
         </>
       )}
     </section>

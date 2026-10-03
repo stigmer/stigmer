@@ -68,7 +68,7 @@ export function CursorAccountEditor({
     !(initial?.onDemandUsageDisabled ?? false),
   );
   const [orgIdsText, setOrgIdsText] = useState(
-    (initial?.orgIds ?? []).join("\n"),
+    (initial?.orgs ?? []).join("\n"),
   );
   // Unlike the admin key, the invite link round-trips readable (the
   // server decrypts it on read — operators must be able to copy it), so
@@ -90,10 +90,10 @@ export function CursorAccountEditor({
         adminApiKey: adminApiKey.trim(),
         enabled,
         // is_platform_default is deprecated (DD-008): the shared pool is
-        // derived from empty org_ids, so current clients never write it.
+        // derived from empty orgs, so current clients never write it.
         onDemandUsageDisabled: !onDemandEnabled,
         teamInviteLink: teamInviteLink.trim(),
-        orgIds: orgIdsText
+        orgs: orgIdsText
           .split(/[\s,]+/)
           .map((s) => s.trim())
           .filter((s) => s !== ""),

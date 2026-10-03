@@ -39,16 +39,16 @@ export interface UseOrgUsageReportReturn {
  * org ID and date range. The server returns aggregated totals, a
  * per-model breakdown, the top agents by cost, and a daily cost trend.
  *
- * Pass `null` as `orgId` to skip fetching (stable no-op). Call
+ * Pass `null` as `org` to skip fetching (stable no-op). Call
  * `refetch()` to re-query manually.
  *
- * @param orgId - Organization ID, or `null` to skip.
+ * @param org - Organization ID, or `null` to skip.
  * @param dateRange - Closed date range (YYYY-MM-DD strings).
  *
  * @example
  * ```tsx
  * const range = dateRangeFromPreset("30d");
- * const { report, isLoading, error } = useOrgUsageReport(orgId, range);
+ * const { report, isLoading, error } = useOrgUsageReport(org, range);
  *
  * if (isLoading) return <Skeleton />;
  * if (error) return <ErrorMessage error={error} />;
@@ -59,23 +59,23 @@ export interface UseOrgUsageReportReturn {
  * ```
  */
 export function useOrgUsageReport(
-  orgId: string | null,
+  org: string | null,
   dateRange: DateRange,
 ): UseOrgUsageReportReturn {
   const stigmer = useStigmer();
 
   const { data: report, isLoading, isRefetching, error, refetch } = useFetch(
-    orgId
+    org
       ? () =>
           stigmer.agentExecution.getOrgUsageReport(
             create(GetOrgUsageReportInputSchema, {
-              orgId,
+              org,
               fromDate: dateRange.from,
               toDate: dateRange.to,
             }),
           )
       : null,
-    [orgId, dateRange.from, dateRange.to, stigmer],
+    [org, dateRange.from, dateRange.to, stigmer],
     null as GetOrgUsageReportOutput | null,
   );
 

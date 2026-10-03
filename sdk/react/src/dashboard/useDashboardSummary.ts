@@ -17,10 +17,8 @@ import type { DashboardSummary } from "./types.js";
 
 /** Options for {@link useDashboardSummary}. */
 export interface UseDashboardSummaryOptions {
-  /** Organization slug for execution summaries. */
+  /** The organization whose execution summaries and usage report to read. */
   readonly org: string | null | undefined;
-  /** Organization ID (metadata.id) for the usage report. */
-  readonly orgId: string | null | undefined;
   /** Refetch interval in milliseconds. @default 60_000 */
   readonly refetchInterval?: number;
 }
@@ -66,7 +64,7 @@ export function useDashboardSummary(
 
   const dateRange = useMemo(() => dateRangeFromPreset("7d"), []);
   const { report: orgUsage, isLoading: usageLoading, error: usageError, refetch: usageRefetch } =
-    useOrgUsageReport(options.orgId ?? null, dateRange);
+    useOrgUsageReport(options.org ?? null, dateRange);
 
   const isLoading = wfLoading || agLoading || usageLoading;
   const error = wfError ?? agError ?? usageError;

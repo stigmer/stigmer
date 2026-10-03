@@ -16,23 +16,23 @@ const TEAMS_COPY =
 
 describe("planUpgradeFeature", () => {
   it("reads the feature from the refusal's reason, not its copy", () => {
-    expect(planUpgradeFeature(refusal(TEAMS_COPY, "PLAN_UPGRADE_REQUIRED", { feature: "teams", org_id: "acme" }))).toBe(
+    expect(planUpgradeFeature(refusal(TEAMS_COPY, "PLAN_UPGRADE_REQUIRED", { feature: "teams", org: "acme" }))).toBe(
       Feature.teams,
     );
     expect(
-      planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "managed_organizations", org_id: "p" })),
+      planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "managed_organizations", org: "p" })),
     ).toBe(Feature.managed_organizations);
     expect(
-      planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "byo_provider_keys", org_id: "acme" })),
+      planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "byo_provider_keys", org: "acme" })),
     ).toBe(Feature.byo_provider_keys);
     expect(planUpgradeFeature(new StigmerError("failed-precondition", TEAMS_COPY, 9))).toBeNull();
-    expect(planUpgradeFeature(refusal("x", "PAYMENT_METHOD_REQUIRED", { org_id: "acme" }))).toBeNull();
+    expect(planUpgradeFeature(refusal("x", "PAYMENT_METHOD_REQUIRED", { org: "acme" }))).toBeNull();
   });
 });
 
 describe("UpgradeNotice", () => {
   it("shows the server's copy and links to the host's plans", () => {
-    const error = refusal(TEAMS_COPY, "PLAN_UPGRADE_REQUIRED", { feature: "teams", org_id: "acme" });
+    const error = refusal(TEAMS_COPY, "PLAN_UPGRADE_REQUIRED", { feature: "teams", org: "acme" });
     render(<UpgradeNotice feature={Feature.teams} error={error} billingHref="/org/acme/billing" />);
     expect(screen.getByText(TEAMS_COPY)).toBeTruthy();
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/org/acme/billing");

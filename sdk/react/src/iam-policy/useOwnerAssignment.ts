@@ -26,11 +26,11 @@ export interface UseOwnerAssignmentReturn {
  * change asks the same question here. Fails open, like every capability
  * gate: the server refuses whatever this lets through.
  *
- * @param orgId - The organization's id, or `null` to skip the check.
+ * @param org - The organization's id, or `null` to skip the check.
  */
-export function useOwnerAssignment(orgId: string | null): UseOwnerAssignmentReturn {
+export function useOwnerAssignment(org: string | null): UseOwnerAssignmentReturn {
   const { allowed } = useCheckPermission(
-    orgId ? { kind: "organization", id: orgId } : null,
+    org ? { kind: "organization", id: org } : null,
     "can_assign_roles",
   );
   return {

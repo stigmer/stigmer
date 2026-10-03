@@ -24,7 +24,7 @@ export interface UseChangePlanReturn {
    * {@link useCreatePaymentMethodSetupSession}). Resolves with the
    * subscription as it stands after the change.
    */
-  readonly changePlan: (orgId: string, planId: string) => Promise<Subscription>;
+  readonly changePlan: (org: string, planId: string) => Promise<Subscription>;
   /** `true` while a change is in flight. */
   readonly isSubmitting: boolean;
   /** Error from the last failed attempt, or `null` when healthy. */
@@ -45,11 +45,11 @@ export function useChangePlan(): UseChangePlanReturn {
   const [error, setError] = useState<Error | null>(null);
 
   const changePlan = useCallback(
-    async (orgId: string, planId: string): Promise<Subscription> => {
+    async (org: string, planId: string): Promise<Subscription> => {
       setIsSubmitting(true);
       setError(null);
       try {
-        return await stigmer.subscription.changePlan(create(ChangePlanInputSchema, { orgId, planId }));
+        return await stigmer.subscription.changePlan(create(ChangePlanInputSchema, { org, planId }));
       } catch (e) {
         const err = toError(e);
         setError(err);
@@ -75,7 +75,7 @@ export interface UseCancelSubscriptionReturn {
    * of the current period and is on Free after it; nothing it built is
    * deleted. Choosing the same plan again before then resumes it.
    */
-  readonly cancel: (orgId: string) => Promise<Subscription>;
+  readonly cancel: (org: string) => Promise<Subscription>;
   /** `true` while a cancel is in flight. */
   readonly isSubmitting: boolean;
   /** Error from the last failed attempt, or `null` when healthy. */
@@ -94,11 +94,11 @@ export function useCancelSubscription(): UseCancelSubscriptionReturn {
   const [error, setError] = useState<Error | null>(null);
 
   const cancel = useCallback(
-    async (orgId: string): Promise<Subscription> => {
+    async (org: string): Promise<Subscription> => {
       setIsSubmitting(true);
       setError(null);
       try {
-        return await stigmer.subscription.cancel(create(CancelSubscriptionInputSchema, { orgId }));
+        return await stigmer.subscription.cancel(create(CancelSubscriptionInputSchema, { org }));
       } catch (e) {
         const err = toError(e);
         setError(err);

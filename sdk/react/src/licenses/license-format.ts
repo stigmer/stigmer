@@ -157,7 +157,7 @@ export function entitlementParts(entitlements: Entitlements | undefined): readon
   const features = entitlements?.features.filter(isGrantableFeature).length ?? 0;
   return [
     limitPart(limits?.maxUsers, "user"),
-    limitPart(limits?.maxOrganizations, "organization"),
+    limitPart(limits?.maxOrgs, "organization"),
     features === 0 ? "No features" : plural(features, "feature"),
   ];
 }

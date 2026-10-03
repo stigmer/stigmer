@@ -8,7 +8,7 @@ import { useOrg } from "../organization/OrgProvider.js";
 export function OrgPreferencesSection() {
   const headingId = useId();
   const { activeOrg } = useOrg();
-  const orgId = activeOrg?.metadata?.id ?? "";
+  const org = activeOrg?.metadata?.id ?? "";
 
   return (
     <section aria-labelledby={headingId}>
@@ -23,12 +23,12 @@ export function OrgPreferencesSection() {
         organization&apos;s members.
       </p>
 
-      {!orgId ? (
+      {!org ? (
         <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to view its preferences.
         </p>
       ) : (
-        <OrgPreferencesPanel orgId={orgId} />
+        <OrgPreferencesPanel org={org} />
       )}
     </section>
   );

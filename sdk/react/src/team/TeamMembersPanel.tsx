@@ -32,7 +32,7 @@ export interface TeamMembersPanelProps {
   /** The team's id (`metadata.id`). */
   readonly teamId: string;
   /** The organization's id (`metadata.id`), whose members can be added. */
-  readonly orgId: string;
+  readonly org: string;
   readonly className?: string;
 }
 
@@ -42,7 +42,7 @@ export interface TeamMembersPanelProps {
  *
  * All visual properties flow through `--stgm-*` design tokens.
  */
-export function TeamMembersPanel({ teamId, orgId, className }: TeamMembersPanelProps) {
+export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelProps) {
   const team = useMemo(
     () => ({ kind: "team", id: teamId, resourceKind: ApiResourceKind.team }),
     [teamId],
@@ -131,7 +131,7 @@ export function TeamMembersPanel({ teamId, orgId, className }: TeamMembersPanelP
       <PermissionGate resource={grantGate} relation="can_grant_access">
         <div className="stg:mt-4 stg:flex stg:items-end stg:gap-2 stg:border-t stg:border-border stg:pt-4">
           <PrincipalPicker
-            orgId={orgId}
+            org={org}
             value={adding}
             onChange={setAdding}
             excludeGrantees={members}

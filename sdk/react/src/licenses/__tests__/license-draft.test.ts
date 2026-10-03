@@ -73,7 +73,7 @@ describe("presets", () => {
 
 describe("toLicenseInput", () => {
   const draft: LicenseDraft = {
-    customer: { id: "cus_acme", displayName: " Acme  Corp ", contactEmail: " ops@acme.test ", organization: " " },
+    customer: { id: "cus_acme", displayName: " Acme  Corp ", contactEmail: " ops@acme.test ", org: " " },
     term: LicenseTerm.paid,
     lastCoveredDay: "2027-09-22",
     graceDays: 30,

@@ -37,7 +37,7 @@ export type SelectedGrantee = GranteeCandidate;
 /** Props for {@link PrincipalPicker}. */
 export interface PrincipalPickerProps {
   /** Organization whose people (and teams) are selectable. */
-  readonly orgId: string;
+  readonly org: string;
   /** Currently selected grantee, or `null`. Controlled. */
   readonly value: SelectedGrantee | null;
   /** Fired when the selection changes. */
@@ -73,7 +73,7 @@ export interface PrincipalPickerProps {
  * All visual properties flow through `--stgm-*` design tokens.
  */
 export function PrincipalPicker({
-  orgId,
+  org,
   value,
   onChange,
   includeTeams = false,
@@ -85,7 +85,7 @@ export function PrincipalPicker({
 }: PrincipalPickerProps) {
   const listboxId = useId();
   const { people, teams, isLoading, error } = useGranteeCandidates({
-    orgId: orgId || null,
+    org: org || null,
     includeTeams,
   });
 

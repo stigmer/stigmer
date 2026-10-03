@@ -17,7 +17,7 @@ export interface SharePanelProps {
    * Organization the resource belongs to (`metadata.org`). Drives the
    * org-member typeahead in the grant form.
    */
-  readonly orgId: string;
+  readonly org: string;
   /** Fired when the user closes the panel. */
   readonly onClose?: () => void;
   /** Additional CSS class names for the root container. */
@@ -42,7 +42,7 @@ export interface SharePanelProps {
  *   resource={{ kind: "session", id: sessionId, resourceKind: ApiResourceKind.session }}
  *   resourceKindString="session"
  *   resourceKind={ApiResourceKind.session}
- *   orgId={orgId}
+ *   org={org}
  *   onClose={() => setOpen(false)}
  * />
  * ```
@@ -51,7 +51,7 @@ export function SharePanel({
   resource,
   resourceKindString,
   resourceKind,
-  orgId,
+  org,
   onClose,
   className,
 }: SharePanelProps) {
@@ -85,7 +85,7 @@ export function SharePanel({
         resource={resource}
         resourceKindString={resourceKindString}
         resourceKind={resourceKind}
-        orgId={orgId}
+        org={org}
       />
     </div>
   );

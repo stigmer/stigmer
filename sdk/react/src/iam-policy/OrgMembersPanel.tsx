@@ -35,7 +35,7 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
 /** Props for {@link OrgMembersPanel}. */
 export interface OrgMembersPanelProps {
   /** Organization ID (`metadata.id`) whose members to manage. */
-  readonly orgId: string;
+  readonly org: string;
   /** Exposed refetch for parent-triggered refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
   /** Additional CSS class names for the root container. */
@@ -72,19 +72,19 @@ export interface OrgMembersPanelProps {
  *
  * @example
  * ```tsx
- * <OrgMembersPanel orgId={activeOrg.metadata.id} />
+ * <OrgMembersPanel org={activeOrg.metadata.id} />
  * ```
  */
 export function OrgMembersPanel({
-  orgId,
+  org,
   onRefetchRef,
   className,
 }: OrgMembersPanelProps) {
-  const resource = orgId ? { kind: "organization", id: orgId } : null;
+  const resource = org ? { kind: "organization", id: org } : null;
   const { members, isLoading, error, refetch } = useResourceAccess(resource);
   const { account: currentAccount } = useWhoAmI();
   const currentAccountId = currentAccount?.metadata?.id ?? null;
-  const { canAssignOwner, unassignable } = useOwnerAssignment(orgId || null);
+  const { canAssignOwner, unassignable } = useOwnerAssignment(org || null);
 
   const [actionMemberId, setActionMemberId] = useState<string | null>(null);
   const [productUsersOpen, setProductUsersOpen] = useState(false);
@@ -113,7 +113,7 @@ export function OrgMembersPanel({
       <MemberRow
         key={memberId}
         entry={entry}
-        orgId={orgId}
+        org={org}
         audience={audience}
         isSelf={memberId === currentAccountId}
         canAssignOwner={canAssignOwner}
@@ -224,7 +224,7 @@ type MemberAudience = "member" | "productUser";
 
 function MemberRow({
   entry,
-  orgId,
+  org,
   audience,
   isSelf,
   canAssignOwner,
@@ -235,7 +235,7 @@ function MemberRow({
   onMutated,
 }: {
   entry: PrincipalAccess;
-  orgId: string;
+  org: string;
   audience: MemberAudience;
   isSelf: boolean;
   /** Whether the caller may grant, revoke or remove the owner role here. */
@@ -278,7 +278,7 @@ function MemberRow({
       <RemoveConfirmation
         memberId={memberId}
         memberName={name}
-        orgId={orgId}
+        org={org}
         audience={audience}
         onDone={() => {
           cancelAction();
@@ -293,7 +293,7 @@ function MemberRow({
     return (
       <ChangeRoleRow
         entry={entry}
-        orgId={orgId}
+        org={org}
         omitRoles={unassignable}
         onDone={() => {
           cancelAction();
@@ -409,14 +409,14 @@ function RoleBadge({ grant }: { grant: RoleGrant }) {
 function RemoveConfirmation({
   memberId,
   memberName,
-  orgId,
+  org,
   audience,
   onDone,
   onCancel,
 }: {
   memberId: string;
   memberName: string;
-  orgId: string;
+  org: string;
   audience: MemberAudience;
   onDone: () => void;
   onCancel: () => void;
@@ -425,12 +425,12 @@ function RemoveConfirmation({
 
   const handleConfirm = useCallback(async () => {
     try {
-      await revoke(memberId, orgId);
+      await revoke(memberId, org);
       onDone();
     } catch {
       // error state is surfaced via the hook
     }
-  }, [memberId, orgId, revoke, onDone]);
+  }, [memberId, org, revoke, onDone]);
 
   return (
     <div
@@ -522,13 +522,13 @@ function RemoveCopy({
 
 function ChangeRoleRow({
   entry,
-  orgId,
+  org,
   omitRoles,
   onDone,
   onCancel,
 }: {
   entry: PrincipalAccess;
-  orgId: string;
+  org: string;
   /** The roles the caller may not assign, left out of the picker. */
   omitRoles: readonly IamRole[];
   onDone: () => void;
@@ -567,7 +567,7 @@ function ChangeRoleRow({
         }),
         resource: create(ApiResourceRefSchema, {
           kind: "organization",
-          id: orgId,
+          id: org,
         }),
         relation: iamRoleToString(selectedRole),
       });
@@ -580,7 +580,7 @@ function ChangeRoleRow({
         }),
         resource: create(ApiResourceRefSchema, {
           kind: "organization",
-          id: orgId,
+          id: org,
         }),
         relation: currentRoleCode,
       });
@@ -594,7 +594,7 @@ function ChangeRoleRow({
     selectedRole,
     currentRoleCode,
     memberId,
-    orgId,
+    org,
     deletePolicy,
     createPolicy,
     onDone,

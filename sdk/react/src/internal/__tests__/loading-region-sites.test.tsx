@@ -121,7 +121,7 @@ const SITES: readonly Site[] = [
       iamPolicy: { listResourceAccessByPrincipal: pending, checkMyPermission: pending },
       identityAccount: { whoAmI: pending },
     },
-    ui: <OrgMembersPanel orgId="org_acme" />,
+    ui: <OrgMembersPanel org="org_acme" />,
   },
   {
     name: "IdentityProviderListPanel",
@@ -189,7 +189,7 @@ const SITES: readonly Site[] = [
     name: "OrgUsagePanel",
     label: "Loading usage data",
     client: { agentExecution: { getOrgUsageReport: pending } },
-    ui: <OrgUsagePanel orgId="org_acme" />,
+    ui: <OrgUsagePanel org="org_acme" />,
   },
   {
     name: "VersionTimeline",

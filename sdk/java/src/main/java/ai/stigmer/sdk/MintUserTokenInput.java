@@ -21,13 +21,13 @@ public final class MintUserTokenInput {
     private final String userId;
     private final String userEmail;
     private final String userName;
-    private final String orgId;
+    private final String org;
 
     private MintUserTokenInput(Builder builder) {
         this.userId = builder.userId;
         this.userEmail = builder.userEmail;
         this.userName = builder.userName;
-        this.orgId = builder.orgId;
+        this.org = builder.org;
     }
 
     /** Platform's stable user identifier. Becomes the JWT sub claim. */
@@ -40,7 +40,7 @@ public final class MintUserTokenInput {
     public String userName() { return userName; }
 
     /** Organization to scope the token to. Defaults to the PlatformClient's owning org. */
-    public String orgId() { return orgId; }
+    public String org() { return org; }
 
     public static Builder builder() { return new Builder(); }
 
@@ -48,14 +48,14 @@ public final class MintUserTokenInput {
         private String userId;
         private String userEmail = "";
         private String userName = "";
-        private String orgId = "";
+        private String org = "";
 
         private Builder() {}
 
         public Builder userId(String userId) { this.userId = userId; return this; }
         public Builder userEmail(String userEmail) { this.userEmail = userEmail; return this; }
         public Builder userName(String userName) { this.userName = userName; return this; }
-        public Builder orgId(String orgId) { this.orgId = orgId; return this; }
+        public Builder org(String org) { this.org = org; return this; }
 
         public MintUserTokenInput build() { return new MintUserTokenInput(this); }
     }

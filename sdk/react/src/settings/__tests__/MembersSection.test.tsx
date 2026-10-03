@@ -20,8 +20,8 @@ vi.mock("../../identity-provider/useIdentityProviderList.js", () => ({
   useIdentityProviderList: () => ({ identityProviders: [] }),
 }));
 vi.mock("../../iam-policy/OrgMembersPanel.js", () => ({
-  OrgMembersPanel: ({ orgId }: { orgId: string }) => (
-    <div data-testid="members-panel">panel for {orgId}</div>
+  OrgMembersPanel: ({ org }: { org: string }) => (
+    <div data-testid="members-panel">panel for {org}</div>
   ),
 }));
 

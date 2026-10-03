@@ -150,7 +150,7 @@ export function toLicenseInput(draft: LicenseDraft): LicenseInput {
     ...(draft.maxUsers !== undefined && { maxUsers: draft.maxUsers }),
     ...(draft.maxOrganizations !== undefined && { maxOrganizations: draft.maxOrganizations }),
   };
-  const organization = draft.customer.organization?.trim();
+  const organization = draft.customer.org?.trim();
   const notes = draft.notes.trim();
 
   return {

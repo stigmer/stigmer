@@ -57,7 +57,7 @@ function renderPanel(client: unknown) {
   return render(
     <StigmerContext.Provider value={client as never}>
       <DeploymentModeContext.Provider value="local">
-        <OrgProfilePanel orgId="acme" />
+        <OrgProfilePanel org="acme" />
       </DeploymentModeContext.Provider>
     </StigmerContext.Provider>,
   );
@@ -126,7 +126,7 @@ describe("OrgProfilePanel identity-provider summary", () => {
     render(
       <StigmerContext.Provider value={client as never}>
         <DeploymentModeContext.Provider value="cloud">
-          <OrgProfilePanel orgId="acme" />
+          <OrgProfilePanel org="acme" />
         </DeploymentModeContext.Provider>
       </StigmerContext.Provider>,
     );
