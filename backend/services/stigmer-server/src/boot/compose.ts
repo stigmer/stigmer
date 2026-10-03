@@ -220,7 +220,11 @@ import {
 } from "../domain/workflowexecution/temporal/config.js";
 import { builtInSandboxProvisionerFactories } from "../sandbox/builtins.js";
 import { newSandboxLane } from "../sandbox/lane.js";
-import { newSandboxProvisioner } from "../sandbox/provisioner.js";
+import {
+  newSandboxProvisioner,
+  type SandboxBackgroundHandle,
+} from "../sandbox/provisioner.js";
+import { newStoreSessionActivityReader } from "../sandbox/session-activity.js";
 import { newWorkflowSandboxTerminalObserver } from "../sandbox/steps.js";
 import { newWorkflowExecutionEngineStateProvider } from "../temporal/workflowexecution/engine-client.js";
 import { newWorkflowExecutionWorkerFactory } from "../temporal/workflowexecution/worker.js";
@@ -846,6 +850,8 @@ export async function composeServer(
         runnerImage: config.sandboxRunnerImage,
         runnerCommand: config.sandboxRunnerCommand,
         kubernetesNamespace: config.sandboxKubernetesNamespace,
+        runnerEnv: config.sandboxRunnerEnv,
+        runnerSecretEnv: config.sandboxRunnerSecretEnv,
       },
       logger,
     },
@@ -868,6 +874,9 @@ export async function composeServer(
       type: config.sandboxProvisionerType,
     });
   }
+  // The driver's own background work (an idle sweep), started with the
+  // server's other loops and stopped before them (start()/shutdown()).
+  let sandboxBackground: SandboxBackgroundHandle | undefined;
   // ONE terminal observer instance feeds all three workflow-execution
   // status write sites (the UpdateStatus RPC, the orchestrator's persist
   // activity, the lifecycle persists).
@@ -2047,6 +2056,14 @@ export async function composeServer(
       // periodic loop, and the reconnect kick — Go server.go 763–764.
       const kickScheduleReconcile = scheduleReconciler.startReconciliation();
       temporalManager.addReconnectHook(kickScheduleReconcile);
+      // The sandbox driver's background work, when it has any: it reads the
+      // store and the sandbox platform, never Temporal.
+      if (sandboxLane.enabled) {
+        sandboxBackground = sandboxLane.provisioner.startBackground?.({
+          sessions: newStoreSessionActivityReader(store, logger),
+          logger,
+        });
+      }
       // Artifact storage must be reachable and writable before the server
       // answers (Go server.go boots-fatal on the same probe).
       await artifactStorage.health();
@@ -2121,6 +2138,9 @@ export async function composeServer(
       healthState.setOverall(ServingStatus.NOT_SERVING);
       ossModelRegistryStore?.stopRefresh();
       await artifactFileServer?.shutdown();
+      // The sandbox driver's background work stops first: a pass mid-flight
+      // still reads the store, which closes last.
+      await sandboxBackground?.stop();
       // The reconciler stops before the manager: a pass mid-flight may
       // still call through the manager's client, and nothing may fire
       // after shutdown.

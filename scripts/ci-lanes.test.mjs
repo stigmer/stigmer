@@ -76,6 +76,12 @@ test("the server's sandbox-name derivation runs the runner lane, whose attach te
   assert.ok(selected(["backend/services/stigmer-server/src/sandbox/naming.ts"]).includes("runner"));
 });
 
+test("the server's copy of the runner's secret names runs the runner lane, whose attach test compares against it", () => {
+  assert.ok(
+    selected(["backend/services/stigmer-server/src/sandbox/runner-secret-names.ts"]).includes("runner"),
+  );
+});
+
 test("a store migration runs the upgrade rehearsal; a CLI command runs `stigmer up`", () => {
   assert.deepEqual(selected(["backend/services/stigmer-server/src/store/sqlite/migrations.ts"]), [
     "conformance",

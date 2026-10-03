@@ -1,6 +1,7 @@
 # =============================================================================
 # Codegen freshness gate: mcp-server/src/gen, sdk/typescript/src/gen,
-# sdk/python/src/stigmer/_gen
+# sdk/python/src/stigmer/_gen, and the substrate sandbox driver's Agent
+# Substrate stubs (backend/services/stigmer-server/src/sandbox/substrate/gen)
 # =============================================================================
 # The freshness counterpart of ci.go-sdk / ci.java-sdk for the three committed
 # codegen dirs that had no gate at all (oss#496): nothing regenerated them in
@@ -83,3 +84,15 @@ jobs:
       # generation paths; this catches a stub regen that bypassed them.
       - name: Verify stubs carry no @internal comment sections
         run: make stubs-internal-check
+
+      # The substrate sandbox driver's Agent Substrate stubs are buf's output
+      # from a pinned tag (backend/services/stigmer-server/buf.gen.substrate.yaml);
+      # regenerate them and fail on any difference, so a tag move lands with
+      # its regenerated stubs.
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify the Agent Substrate stubs are fresh
+        run: make gen-substrate-stubs-check

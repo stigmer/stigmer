@@ -20,7 +20,9 @@
  *   - a served console's MCP OAuth callback is derived on the public
  *     origin the operator named in SKILL_TRANSFER_BASE_URL, whatever the
  *     port, and without one an ephemeral port still derives nothing
- *     (stigmer#1200).
+ *     (stigmer#1200);
+ *   - a sandbox driver's background work starts with the server, reading
+ *     the server's own sessions, and is stopped, awaited, at shutdown.
  */
 import { createClient } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -36,7 +38,7 @@ import {
   connect as netConnect,
 } from "node:net";
 import type { AddressInfo } from "node:net";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -47,6 +49,11 @@ import { composeServer } from "../compose.js";
 import { createLogger } from "../logger.js";
 import type { LogEntry, Logger } from "../logger.js";
 import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
+import type { ServerExtension } from "../../extensions/registry.js";
+import type {
+  SandboxBackgroundContext,
+  SandboxProvisioner,
+} from "../../sandbox/provisioner.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -54,7 +61,11 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-function compose(env: NodeJS.ProcessEnv = {}, logger: Logger = silentLogger) {
+function compose(
+  env: NodeJS.ProcessEnv = {},
+  logger: Logger = silentLogger,
+  extensions: ReadonlyArray<ServerExtension> = [],
+) {
   // Each composed server gets a throwaway database — the storage stage
   // opens DB_PATH for real (never the developer's ~/.stigmer).
   const testDir = mkdtempSync(path.join(tmpdir(), "compose-test-"));
@@ -77,6 +88,7 @@ function compose(env: NodeJS.ProcessEnv = {}, logger: Logger = silentLogger) {
     logger,
     portOverride: 0,
     host: "127.0.0.1",
+    extensions,
   });
 }
 
@@ -289,5 +301,55 @@ describe("the MCP OAuth callback", () => {
     } finally {
       await server.shutdown();
     }
+  });
+});
+
+describe("a sandbox driver's background work", () => {
+  it("starts with the server over its sessions and is stopped at shutdown", async () => {
+    const events: string[] = [];
+    let context: SandboxBackgroundContext | undefined;
+    const provisioner = {
+      startBackground(given: SandboxBackgroundContext) {
+        context = given;
+        events.push("started");
+        return {
+          async stop() {
+            events.push("stopped");
+          },
+        };
+      },
+    } as unknown as SandboxProvisioner;
+    // The routing configs read the process environment (temporal/*/config.ts).
+    vi.stubEnv("STIGMER_ACTIVITY_ROUTING", "session");
+    const server = await compose(
+      { SANDBOX_PROVISIONER_TYPE: "recording" },
+      silentLogger,
+      [
+        {
+          name: "recording-sandboxes",
+          drivers: {
+            sandboxProvisionerDrivers: new Map([
+              ["recording", () => provisioner],
+            ]),
+          },
+        },
+      ],
+    );
+    expect(events).toEqual([]);
+    await server.start();
+    try {
+      expect(events).toEqual(["started"]);
+      expect(await context?.sessions.activity("ses_none")).toEqual({
+        busy: false,
+        lastActiveAt: undefined,
+      });
+      const ids: string[] = [];
+      for await (const id of context!.sessions.sessionIds()) ids.push(id);
+      expect(ids).toEqual([]);
+    } finally {
+      await server.shutdown();
+      vi.unstubAllEnvs();
+    }
+    expect(events).toEqual(["started", "stopped"]);
   });
 });

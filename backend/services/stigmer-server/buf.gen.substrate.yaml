@@ -1,0 +1,28 @@
+# Agent Substrate's Control API, generated for the `substrate` sandbox driver
+# (src/sandbox/substrate). Server-private: never part of @stigmer/protos,
+# which carries Stigmer's own API only.
+#
+# The tag is the Substrate release this server speaks to. Substrate's API
+# server rejects any field it does not know (its RejectUnknownFields
+# interceptor), so stubs from any other release are wrong for a deployment
+# running this one: the tag moves only together with the Substrate version
+# the operator guide names (docs/guides/self-hosting/runners.mdx).
+#
+#   make gen-substrate-stubs        regenerate src/sandbox/substrate/gen
+#   make gen-substrate-stubs-check  fail when the committed output is stale
+version: v2
+plugins:
+  # The protobuf-es version apis/buf.gen.ts.yaml pins. Its v2 output carries
+  # the service descriptor @connectrpc/connect's createClient takes, so no
+  # Connect plugin is needed.
+  - remote: buf.build/bufbuild/es:v2.2.2
+    out: gen
+    opt:
+      - target=ts
+      - import_extension=js
+inputs:
+  - git_repo: https://github.com/agent-substrate/substrate
+    ref: v0.3.0
+    subdir: pkg/proto
+    paths:
+      - ateapipb/ateapi.proto

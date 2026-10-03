@@ -22,6 +22,9 @@ export default defineConfig({
         // in-process comes off the list, so it is measured again.
         "src/temporal/agentexecution/workflows/invoke-agent-execution.ts",
         "src/temporal/workflowexecution/workflows/invoke-workflow-execution.ts",
+        // Generated stubs are buf's output, not code a test owes coverage to
+        // (scripts/test-coverage.mjs: a generated module is excluded here).
+        "src/sandbox/substrate/gen/**",
       ],
       reporter: ["json", "json-summary"],
       reportOnFailure: true,

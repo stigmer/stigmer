@@ -15,6 +15,11 @@
  * never-closes-on-TERMINATED quirk, ported faithfully). Do NOT
  * "harmonize" the two — the difference is deliberate and documented in
  * Go.
+ *
+ * isActiveExecutionPhase answers the opposite question for a session:
+ * "is a run of it still alive?" It guards a session's delete, and it is
+ * the busy check of an idle sweep, which must never put a session to
+ * sleep while a run is pending, running, waiting on a person, or paused.
  */
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
@@ -36,4 +41,22 @@ export function isTranscriptTerminalPhase(phase: ExecutionPhase): boolean {
     phase === ExecutionPhase.EXECUTION_FAILED ||
     phase === ExecutionPhase.EXECUTION_CANCELLED
   );
+}
+
+/**
+ * Pending, in progress, waiting for approval, or paused. WAITING_FOR_APPROVAL
+ * and PAUSED are deliberately included: the execution is logically alive
+ * and expected to resume. The hosted edition counts the same set as a
+ * session's active runs.
+ */
+export function isActiveExecutionPhase(phase: ExecutionPhase): boolean {
+  switch (phase) {
+    case ExecutionPhase.EXECUTION_PENDING:
+    case ExecutionPhase.EXECUTION_IN_PROGRESS:
+    case ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
+    case ExecutionPhase.EXECUTION_PAUSED:
+      return true;
+    default:
+      return false;
+  }
 }
