@@ -78,7 +78,7 @@ describe("toLicenseInput", () => {
     lastCoveredDay: "2027-09-22",
     graceDays: 30,
     maxUsers: 50,
-    maxOrganizations: undefined,
+    maxOrgs: undefined,
     features: [Feature.sso_enforcement, Feature.byo_provider_keys],
     notes: "  PO 4411  ",
   };

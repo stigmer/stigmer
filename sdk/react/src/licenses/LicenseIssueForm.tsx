@@ -133,7 +133,7 @@ export function LicenseIssueForm({
     return grace === DEFAULT_GRACE_DAYS[renewingTerm] ? null : String(grace);
   });
   const [maxUsers, setMaxUsers] = useState(limitText(renewing?.spec?.entitlements?.limits?.maxUsers));
-  const [maxOrganizations, setMaxOrganizations] = useState(
+  const [maxOrgs, setMaxOrgs] = useState(
     limitText(renewing?.spec?.entitlements?.limits?.maxOrgs),
   );
   const [features, setFeatures] = useState<readonly GrantableFeature[]>(() =>
@@ -162,7 +162,7 @@ export function LicenseIssueForm({
 
   const grace = parseGraceDays(graceText);
   const users = parseLimit(maxUsers);
-  const organizations = parseLimit(maxOrganizations);
+  const organizations = parseLimit(maxOrgs);
   const coverageError =
     lastCoveredDay === ""
       ? "Choose the last day the license covers."
@@ -179,7 +179,7 @@ export function LicenseIssueForm({
       lastCoveredDay,
       graceDays: grace.value,
       maxUsers: users.value,
-      maxOrganizations: organizations.value,
+      maxOrgs: organizations.value,
       features,
       notes,
     };
@@ -464,14 +464,14 @@ export function LicenseIssueForm({
               inputMode="numeric"
               min={1}
               step={1}
-              value={maxOrganizations}
-              onChange={(e) => setMaxOrganizations(e.target.value)}
+              value={maxOrgs}
+              onChange={(e) => setMaxOrgs(e.target.value)}
               placeholder="Unlimited"
               disabled={isSubmitting}
             />
             <FieldError
               message={shown(
-                maxOrganizations !== "",
+                maxOrgs !== "",
                 organizations.ok
                   ? violationAt("spec.entitlements.limits.max_orgs")
                   : organizations.error,

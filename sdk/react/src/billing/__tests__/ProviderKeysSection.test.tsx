@@ -32,7 +32,7 @@ const SAVED = new Date("2027-03-01T00:00:00Z");
 
 function key(
   provider: string,
-  fields: { readonly keyHint?: string; readonly inUse?: boolean; readonly inheritedFromOrgId?: string } = {},
+  fields: { readonly keyHint?: string; readonly inUse?: boolean; readonly inheritedFromOrg?: string } = {},
 ): ProviderKey {
   return create(ProviderKeySchema, {
     org: "acme",
@@ -168,7 +168,7 @@ describe("ProviderKeysSection", () => {
   });
 
   it("shows an inherited key read-only, named by the organization that provides it", async () => {
-    renderSection(mockClient({ keys: [key("anthropic", { inheritedFromOrgId: "integrator" })] }));
+    renderSection(mockClient({ keys: [key("anthropic", { inheritedFromOrg: "integrator" })] }));
     const anthropic = await row("Anthropic");
     expect(within(anthropic).getByText(/provided by integrator/)).toBeTruthy();
     await waitFor(() => expect(within(anthropic).queryByRole("button")).toBeNull());

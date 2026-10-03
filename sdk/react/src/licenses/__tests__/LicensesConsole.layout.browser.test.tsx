@@ -39,7 +39,7 @@ const entries = [
     expiresAt: "2027-01-15T00:00:00Z",
     graceUntil: "2027-02-14T00:00:00Z",
     maxUsers: 1500,
-    maxOrganizations: 12,
+    maxOrgs: 12,
     features: [Feature.sso_enforcement, Feature.byo_provider_keys],
   }),
   license({

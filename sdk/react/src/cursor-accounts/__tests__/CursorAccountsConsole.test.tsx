@@ -181,7 +181,7 @@ describe("CursorAccountsConsole", () => {
         memberKeys: [],
         // No org assignment = shared-pool account (DD-008): the class is
         // derived from orgs, never from the deprecated default flag.
-        orgIds: [],
+        orgs: [],
       }),
       enabledKeyCount: 0,
     });
@@ -211,7 +211,7 @@ describe("CursorAccountsConsole", () => {
       account: scenarAccount({
         accountId: "acc-3",
         displayName: "drained team",
-        orgIds: [],
+        orgs: [],
       }),
       enabledKeyCount: 1,
       routableKeyCount: 0,
@@ -596,7 +596,7 @@ describe("CursorAccountsConsole", () => {
     const submitted = upsertAccount.mock.calls[0][0].account;
     expect(submitted.displayName).toBe("new team");
     expect(submitted.adminApiKey).toBe("key_admin_plain");
-    expect(submitted.orgIds).toEqual(["org-x", "org-y"]);
+    expect(submitted.orgs).toEqual(["org-x", "org-y"]);
     // Readable round-trip: the invite link submits as typed, no marker.
     expect(submitted.teamInviteLink).toBe("https://cursor.com/team-invite/abc");
     expect(submitted.enabled).toBe(true);

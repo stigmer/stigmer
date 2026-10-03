@@ -44,7 +44,7 @@ export interface UseProviderKeysReturn {
  * four characters, who saved it and when, when it last served a call, and
  * whether the organization's plan still lets it be used. A managed
  * organization's list includes its integrator's keys for the providers it
- * holds none of (`inheritedFromOrgId`). Every member may read it
+ * holds none of (`inheritedFromOrg`). Every member may read it
  * (`can_view_billing`).
  *
  * Cloud-only.
