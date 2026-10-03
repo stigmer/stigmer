@@ -29,12 +29,3 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # Four IamPermission values that no RPC, pipeline step or model relation
-  # asked leave the contract, each number and name reserved in place. A
-  # deliberate FILE-category break the CI gate would otherwise refuse; this
-  # block lets that one pull request through and nothing else, and the pull
-  # request that follows the merge removes it, because main then has no
-  # such value for a deletion to be measured against.
-  ignore_only:
-    ENUM_VALUE_NO_DELETE:
-      - ai/stigmer/iam/v1/enum.proto
