@@ -262,6 +262,14 @@ What the driver needs:
   patterns, in the backend and Temporal endpoints and the extra destinations:
   egress rules name hosts, and Substrate's gateway resolves a short name among
   its own services.
+- **Cleartext lanes inside the cluster.** The runner reaches the server and
+  Temporal in cleartext: an `http://` backend endpoint (and MCP endpoint, when
+  you set one), and none of the server's `STIGMER_TEMPORAL_*` connection
+  settings (TLS, an API key, certificates). Substrate's gateway can carry TLS
+  only by decrypting it, which breaks a Temporal client certificate or a pinned
+  CA, and Substrate v0.3.0 doesn't yet serve its rule for passing TLS through
+  untouched. The server refuses to boot otherwise; these lanes can use TLS once
+  Substrate serves that rule.
 
 What an Agent can reach: the server's endpoints, any extra cleartext `host:port`
 you list in `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTP`, and HTTPS to any name

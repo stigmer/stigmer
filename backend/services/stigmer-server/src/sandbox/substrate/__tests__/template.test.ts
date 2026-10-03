@@ -2,8 +2,8 @@
  * Pins the shared template and its keeper (template.ts):
  *
  *   - the template runs the attach waiter behind its /readyz probe, holds
- *     only plain per-target settings (no runner secret, no token, no secret
- *     Temporal item), mounts the workspace and the actor's own name, and
+ *     only plain per-target settings (no runner secret, no token), mounts
+ *     the workspace and the actor's own name, and
  *     snapshots FULL on pause, DATA on commit, golden on resume;
  *   - HTTPS egress adds the gateway's trust bundle and points every tool's
  *     trust variable at it; off, neither is there;
@@ -35,7 +35,7 @@ const silentLogger = createLogger({
 
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://stigmer.stigmer.svc:7234",
-  mcpPublicEndpoint: "https://api.example.com",
+  mcpPublicEndpoint: "http://stigmer-mcp.stigmer.svc:8080",
   temporalAddress: "temporal.stigmer.svc:7233",
   temporalNamespace: "default",
   temporalConnectionEnv: {},
@@ -63,11 +63,6 @@ const settings: SubstrateDriverSettings = {
   sweepIntervalSeconds: 60,
 };
 
-const temporalPlainEnv = {
-  STIGMER_TEMPORAL_TLS: "true",
-  STIGMER_TEMPORAL_TLS_SERVER_NAME: "t.example.com",
-};
-
 function envOf(
   template: ReturnType<typeof buildRunnerTemplate>,
 ): Record<string, string> {
@@ -81,7 +76,6 @@ describe("the template", () => {
     const template = buildRunnerTemplate({
       config,
       settings,
-      temporalPlainEnv,
     });
     const container = template.containers[0];
     expect(container?.command).toEqual(["node", "/runner/dist/attach/main.js"]);
@@ -97,9 +91,7 @@ describe("the template", () => {
       TEMPORAL_SERVICE_ADDRESS: "temporal.stigmer.svc:7233",
       TEMPORAL_NAMESPACE: "default",
       WORKSPACE_ROOT_DIR: "/workspace",
-      STIGMER_MCP_PUBLIC_ENDPOINT: "https://api.example.com",
-      STIGMER_TEMPORAL_TLS: "true",
-      STIGMER_TEMPORAL_TLS_SERVER_NAME: "t.example.com",
+      STIGMER_MCP_PUBLIC_ENDPOINT: "http://stigmer-mcp.stigmer.svc:8080",
       ANTHROPIC_BASE_URL: "http://fake-model.example:18555",
       STIGMER_SANDBOX_NAME_FILE: "/run/ate/actor-name",
     });
@@ -118,7 +110,6 @@ describe("the template", () => {
     const template = buildRunnerTemplate({
       config,
       settings: { ...settings, httpsEgress: "none" },
-      temporalPlainEnv,
     });
     expect(template.volumes.map((v) => v.name)).toEqual([
       "workspace",
@@ -161,7 +152,6 @@ describe("the template", () => {
     const template = buildRunnerTemplate({
       config,
       settings,
-      temporalPlainEnv,
     });
     expect(
       template.volumes[1]?.systemInfo?.dataSources[0]?.trustBundle,
@@ -183,24 +173,20 @@ describe("the template", () => {
       buildRunnerTemplate({
         config,
         settings: { ...settings, httpsEgress: "none" },
-        temporalPlainEnv,
       }),
     );
     expect(off).not.toHaveProperty("NODE_EXTRA_CA_CERTS");
   });
 
   it("is named by its content", () => {
-    const a = buildRunnerTemplate({ config, settings, temporalPlainEnv })
-      .metadata?.name;
-    const b = buildRunnerTemplate({ config, settings, temporalPlainEnv })
-      .metadata?.name;
+    const a = buildRunnerTemplate({ config, settings }).metadata?.name;
+    const b = buildRunnerTemplate({ config, settings }).metadata?.name;
     const c = buildRunnerTemplate({
       config: {
         ...config,
         runnerImage: `localhost:5001/runner@sha256:${"b".repeat(64)}`,
       },
       settings,
-      temporalPlainEnv,
     }).metadata?.name;
     expect(a).toMatch(/^stigmer-runner-[0-9a-f]{12}$/);
     expect(b).toBe(a);
@@ -213,7 +199,7 @@ describe("the keeper", () => {
     let t = 0;
     return newTemplateKeeper({
       gateway: substrate,
-      template: buildRunnerTemplate({ config, settings, temporalPlainEnv }),
+      template: buildRunnerTemplate({ config, settings }),
       logger: silentLogger,
       now: () => t,
       sleep: async (ms) => {

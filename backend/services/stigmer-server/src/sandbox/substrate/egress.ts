@@ -5,13 +5,22 @@
  *
  * Allowed: the lanes the runner needs (this server's backend endpoint,
  * Temporal, and this server's public MCP address, which stdio MCP
- * servers inside the sandbox may dial), each as a cleartext rule when it
- * is plain and an intercepted HTTPS rule when it is TLS; the operator's
- * extra cleartext destinations; and, unless HTTPS egress is off, HTTPS to
- * every name (`"*"`), intercepted by Substrate's egress gateway, so an
- * agent can fetch from the web while every tool trusts the gateway's CA
- * (template.ts). Nothing else: no SSH, no database protocol, no HTTP/3,
+ * servers inside the sandbox may dial), each as a cleartext rule; the
+ * operator's extra cleartext destinations; and, unless HTTPS egress is off,
+ * HTTPS to every name (`"*"`), intercepted by Substrate's egress gateway,
+ * so an agent can fetch from the web while every tool trusts the gateway's
+ * CA (template.ts). Nothing else: no SSH, no database protocol, no HTTP/3,
  * no TLS that is not HTTP.
+ *
+ * A runner lane over TLS is a boot throw. Substrate's gateway can carry
+ * TLS only by intercepting it: its `tls_passthrough` rule, which would
+ * forward TLS untouched, is accepted by Substrate 0.3.0 but matches nothing
+ * in its gateway yet, so those names are denied. An intercepted lane
+ * cannot carry a Temporal client certificate or a pinned Temporal CA, and
+ * it needs the gateway's CA in the sandbox even with HTTPS egress off. So
+ * the runner's lanes are cleartext addresses the gateway can reach, inside
+ * the cluster; when passthrough works, a TLS lane becomes a passthrough
+ * rule and this refusal goes.
  *
  * Never allowed: Substrate's own services. Its router addresses any actor
  * by a header alone and the attach push trusts whoever reaches it, so
@@ -38,7 +47,6 @@
  * endpoint given as an IP address is a boot throw too.
  */
 import { create } from "@bufbuild/protobuf";
-import { TEMPORAL_TLS_ENV } from "@stigmer/temporal-codecs/connection";
 
 import type { SandboxDriverConfig } from "../provisioner.js";
 import type { SubstrateDriverSettings } from "./config.js";
@@ -66,11 +74,9 @@ export function buildEgressRules(
 ): EgressRule[] {
   const destinations: Destination[] = [
     urlDestination(config.backendEndpoint, "STIGMER_SANDBOX_BACKEND_ENDPOINT"),
-    hostPortDestination(
-      config.temporalAddress,
-      config.temporalConnectionEnv[TEMPORAL_TLS_ENV] === "true",
-      "STIGMER_SANDBOX_TEMPORAL_ADDRESS",
-    ),
+    // Temporal's TLS is its connection settings', which the driver
+    // refuses (driver.ts); its address is plain host:port.
+    urlDestination(config.temporalAddress, "STIGMER_SANDBOX_TEMPORAL_ADDRESS"),
     ...(config.mcpPublicEndpoint !== ""
       ? [
           urlDestination(
@@ -95,6 +101,11 @@ export function buildEgressRules(
   for (const given of destinations) {
     // A trailing dot names the same host (an absolute DNS name).
     const destination = { ...given, host: given.host.replace(/\.$/, "") };
+    if (destination.tls) {
+      throw new Error(
+        `${destination.source} is a TLS lane (${destination.host}:${destination.port}); the substrate driver needs the runner's lanes in cleartext inside the cluster, because Substrate's egress gateway can carry TLS only by intercepting it (its tls_passthrough rule is not served yet), which breaks a Temporal client certificate or a pinned CA and needs the gateway's CA in every sandbox`,
+      );
+    }
     if (isIpAddress(destination.host)) {
       throw new Error(
         `${destination.source} names the address ${destination.host}; Substrate's egress rules name hosts, so give it a DNS name`,
@@ -119,19 +130,14 @@ export function buildEgressRules(
         `${destination.source} names ${destination.host}, one of Substrate's own services; no sandbox may reach them, because whoever reaches the router can push to any sandbox`,
       );
     }
-    const key = `${destination.tls ? "https" : "http"}://${destination.host}:${destination.port}`;
+    const key = `${destination.host}:${destination.port}`;
     if (seen.has(key)) continue;
     seen.add(key);
     const rule = {
       hostnames: [destination.host],
       ports: { numbers: [destination.port] },
     };
-    rules.push(
-      create(
-        EgressRuleSchema,
-        destination.tls ? { https: rule } : { http: rule },
-      ),
-    );
+    rules.push(create(EgressRuleSchema, { http: rule }));
   }
   if (settings.httpsEgress === "all") {
     rules.push(create(EgressRuleSchema, { https: { hostnames: ["*"] } }));
@@ -152,16 +158,6 @@ function urlDestination(raw: string, source: string): Destination {
   const tls = url.protocol === "https:";
   const port = url.port !== "" ? Number(url.port) : tls ? 443 : 80;
   return { host: url.hostname.toLowerCase(), port, tls, source };
-}
-
-/** A `host:port` whose TLS is configured apart from it (Temporal's). */
-function hostPortDestination(
-  raw: string,
-  tls: boolean,
-  source: string,
-): Destination {
-  const destination = urlDestination(raw, source);
-  return { ...destination, tls };
 }
 
 function hostOf(url: string): string {

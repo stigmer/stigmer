@@ -58,7 +58,9 @@
  * storage and once per server process for an actor that is running or
  * paused, at its first ensure or sweep, so a changed endpoint or HTTPS
  * egress switched off reaches existing sandboxes after a restart rather
- * than only new ones.
+ * than only new ones. The runner's own lanes are cleartext (egress.ts says
+ * why), so the server's Temporal connection settings, every one of which
+ * asks for TLS, are refused at boot rather than carried to the runner.
  *
  * A runner this process started (it woke the actor from storage or
  * created it) has accepted no push but this process's, all with this
@@ -84,11 +86,6 @@
  * one in-process queue, so a turn and the idle sweep (sweep.ts) never
  * interleave on an actor within one server.
  */
-import {
-  TEMPORAL_API_KEY_ENV,
-  TEMPORAL_TLS_CLIENT_KEY_DATA_ENV,
-} from "@stigmer/temporal-codecs/connection";
-
 import type { Logger } from "../../boot/logger.js";
 import { SANDBOX_QUEUE_PREFIXES, sandboxBaseName } from "../naming.js";
 import { RUNNER_SECRET_NAMES } from "../runner-secret-names.js";
@@ -225,11 +222,6 @@ const SETTLE_WAIT_MS = 60_000;
 const SETTLE_POLL_MS = 250;
 /** A template younger than this is never retired (another server may be preparing it). */
 const TEMPLATE_RETIRE_GRACE_MS = 10 * 60_000;
-/** The Temporal connection items that are secret; the rest go in the template. */
-const TEMPORAL_SECRET_NAMES: readonly string[] = [
-  TEMPORAL_API_KEY_ENV,
-  TEMPORAL_TLS_CLIENT_KEY_DATA_ENV,
-];
 
 /** The refusals that say a waiter already took another push (module header). */
 const ATTACHED_ELSEWHERE: ReadonlySet<string> = new Set([
@@ -259,6 +251,12 @@ export function validateSubstrateDriverConfig(
       "sandbox provisioner 'substrate' requires STIGMER_SANDBOX_TEMPORAL_ADDRESS (or TEMPORAL_HOST_PORT) reachable from inside a sandbox",
     );
   }
+  const temporalSettings = Object.keys(config.temporalConnectionEnv);
+  if (temporalSettings.length > 0) {
+    throw new Error(
+      `sandbox provisioner 'substrate' needs the runner's Temporal lane in cleartext inside the cluster, but the server's Temporal connection settings ask for TLS (${temporalSettings.sort().join(", ")}): Substrate's egress gateway can carry TLS only by intercepting it, which breaks a client certificate or a pinned CA (egress.ts)`,
+    );
+  }
   const unknown = Object.keys(config.runnerSecretEnv).filter(
     (name) => !RUNNER_SECRET_NAMES.includes(name),
   );
@@ -284,17 +282,10 @@ export function newSubstrateSandboxDriverOverGateway(
   /** Pauses from before this instant may hold another configuration's secrets (module header). */
   const processStartedAt = now();
 
-  const temporalSecretEnv: Record<string, string> = {};
-  const temporalPlainEnv: Record<string, string> = {};
-  for (const [name, value] of Object.entries(config.temporalConnectionEnv)) {
-    (TEMPORAL_SECRET_NAMES.includes(name)
-      ? temporalSecretEnv
-      : temporalPlainEnv)[name] = value;
-  }
   const egressRules: readonly EgressRule[] = buildEgressRules(config, settings);
   const keeper = newTemplateKeeper({
     gateway,
-    template: buildRunnerTemplate({ config, settings, temporalPlainEnv }),
+    template: buildRunnerTemplate({ config, settings }),
     logger,
     sleep: wait,
     now,
@@ -355,7 +346,6 @@ export function newSubstrateSandboxDriverOverGateway(
   function secretsFor(env: SandboxEnvironment): Record<string, string> {
     return {
       ...config.runnerSecretEnv,
-      ...temporalSecretEnv,
       ...(env.stigmerToken !== "" ? { STIGMER_TOKEN: env.stigmerToken } : {}),
     };
   }

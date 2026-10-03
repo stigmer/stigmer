@@ -85,8 +85,6 @@ export const TEMPLATE_NAME_PREFIX = "stigmer-runner-";
 export interface RunnerTemplateInput {
   readonly config: SandboxDriverConfig;
   readonly settings: SubstrateDriverSettings;
-  /** The Temporal connection settings that are not secret (driver.ts splits them). */
-  readonly temporalPlainEnv: Readonly<Record<string, string>>;
 }
 
 /** The template, named by its content. */
@@ -97,7 +95,6 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
 
   const env: Record<string, string> = {
     ...config.runnerEnv,
-    ...input.temporalPlainEnv,
     MODE: "local",
     STIGMER_BACKEND_ENDPOINT: config.backendEndpoint,
     TEMPORAL_SERVICE_ADDRESS: config.temporalAddress,

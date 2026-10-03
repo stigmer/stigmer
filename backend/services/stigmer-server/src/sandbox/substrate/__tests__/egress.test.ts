@@ -1,9 +1,11 @@
 /**
  * Pins every actor's egress rules (egress.ts):
  *
- *   - the runner's lanes as cleartext rules when plain and HTTPS rules when
- *     TLS, the operator's extra destinations, and the HTTPS wildcard only
- *     when HTTPS egress is on;
+ *   - the runner's lanes and the operator's extra destinations as cleartext
+ *     rules, and the HTTPS wildcard only when HTTPS egress is on;
+ *   - an https:// backend or MCP endpoint is a boot throw, whatever the
+ *     HTTPS setting (Substrate's gateway can carry TLS only by intercepting
+ *     it; Temporal's TLS is its connection settings, refused in driver.ts);
  *   - no rule ever names Substrate's own services: a configured destination
  *     that is the router, the Control API, or anything under `ate-system`
  *     is a boot throw, and so is a pattern, a single-label name (resolved in
@@ -61,14 +63,13 @@ describe("the rules", () => {
     ]);
   });
 
-  it("make a TLS lane an HTTPS rule, and add the operator's destinations and the wildcard", () => {
+  it("add the operator's destinations and, with HTTPS egress on, the wildcard", () => {
     const rules = buildEgressRules(
       {
         ...config,
-        backendEndpoint: "https://stigmer.example.com",
-        temporalAddress: "temporal.example.com:7233",
-        temporalConnectionEnv: { STIGMER_TEMPORAL_TLS: "true" },
-        mcpPublicEndpoint: "https://stigmer.example.com",
+        backendEndpoint: "http://stigmer.stigmer.svc:7234",
+        temporalAddress: "temporal.temporal.svc:7233",
+        mcpPublicEndpoint: "http://stigmer.stigmer.svc:7234",
       },
       {
         ...settings,
@@ -77,11 +78,33 @@ describe("the rules", () => {
       },
     );
     expect(shape(rules)).toEqual([
-      "https stigmer.example.com:443",
-      "https temporal.example.com:7233",
+      "http stigmer.stigmer.svc:7234",
+      "http temporal.temporal.svc:7233",
       "http fake-model.example:18555",
       "https *:-",
     ]);
+  });
+});
+
+describe("a runner lane over TLS", () => {
+  it("is a boot throw, whichever lane and whatever the HTTPS setting, until Substrate forwards TLS untouched", () => {
+    for (const httpsEgress of ["all", "none"] as const) {
+      const with_ = { ...settings, httpsEgress };
+      expect(() =>
+        buildEgressRules(
+          { ...config, backendEndpoint: "https://stigmer.example.com" },
+          with_,
+        ),
+      ).toThrow(
+        /STIGMER_SANDBOX_BACKEND_ENDPOINT is a TLS lane \(stigmer\.example\.com:443\)/,
+      );
+      expect(() =>
+        buildEgressRules(
+          { ...config, mcpPublicEndpoint: "https://stigmer.example.com" },
+          with_,
+        ),
+      ).toThrow(/STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT is a TLS lane/);
+    }
   });
 });
 
@@ -129,7 +152,7 @@ describe("what no rule may name", () => {
     }
     expect(() =>
       buildEgressRules(
-        { ...config, mcpPublicEndpoint: "https://*.example.com" },
+        { ...config, mcpPublicEndpoint: "http://*.example.com" },
         settings,
       ),
     ).toThrow(/STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT names the pattern/);
