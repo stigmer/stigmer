@@ -228,36 +228,63 @@ public final class LicenseInput {
 
     /** SDK input type for EntitlementLimits. */
     public static final class EntitlementLimitsInput {
-        private final int maxOrgs;
-        private final int maxUsers;
-        private final int includedManagedOrganizations;
+        private final Integer maxOrgs;
+        private final Integer maxUsers;
+        private final Integer includedManagedOrganizations;
+        private final Integer maxActiveSessionSandboxes;
+        private final Integer maxActiveWorkflowSandboxes;
+        private final Integer archivedWorkspaceRetentionDays;
 
         private EntitlementLimitsInput(Builder builder) {
             this.maxOrgs = builder.maxOrgs;
             this.maxUsers = builder.maxUsers;
             this.includedManagedOrganizations = builder.includedManagedOrganizations;
+            this.maxActiveSessionSandboxes = builder.maxActiveSessionSandboxes;
+            this.maxActiveWorkflowSandboxes = builder.maxActiveWorkflowSandboxes;
+            this.archivedWorkspaceRetentionDays = builder.archivedWorkspaceRetentionDays;
         }
 
         EntitlementLimits toProto() {
             EntitlementLimits.Builder builder = EntitlementLimits.newBuilder();
-            builder.setMaxOrgs(this.maxOrgs);
-            builder.setMaxUsers(this.maxUsers);
-            builder.setIncludedManagedOrganizations(this.includedManagedOrganizations);
+            if (this.maxOrgs != null) {
+                builder.setMaxOrgs(this.maxOrgs);
+            }
+            if (this.maxUsers != null) {
+                builder.setMaxUsers(this.maxUsers);
+            }
+            if (this.includedManagedOrganizations != null) {
+                builder.setIncludedManagedOrganizations(this.includedManagedOrganizations);
+            }
+            if (this.maxActiveSessionSandboxes != null) {
+                builder.setMaxActiveSessionSandboxes(this.maxActiveSessionSandboxes);
+            }
+            if (this.maxActiveWorkflowSandboxes != null) {
+                builder.setMaxActiveWorkflowSandboxes(this.maxActiveWorkflowSandboxes);
+            }
+            if (this.archivedWorkspaceRetentionDays != null) {
+                builder.setArchivedWorkspaceRetentionDays(this.archivedWorkspaceRetentionDays);
+            }
             return builder.build();
         }
 
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private int maxOrgs;
-            private int maxUsers;
-            private int includedManagedOrganizations;
+            private Integer maxOrgs;
+            private Integer maxUsers;
+            private Integer includedManagedOrganizations;
+            private Integer maxActiveSessionSandboxes;
+            private Integer maxActiveWorkflowSandboxes;
+            private Integer archivedWorkspaceRetentionDays;
 
             private Builder() {}
 
             public Builder maxOrgs(int maxOrgs) { this.maxOrgs = maxOrgs; return this; }
             public Builder maxUsers(int maxUsers) { this.maxUsers = maxUsers; return this; }
             public Builder includedManagedOrganizations(int includedManagedOrganizations) { this.includedManagedOrganizations = includedManagedOrganizations; return this; }
+            public Builder maxActiveSessionSandboxes(int maxActiveSessionSandboxes) { this.maxActiveSessionSandboxes = maxActiveSessionSandboxes; return this; }
+            public Builder maxActiveWorkflowSandboxes(int maxActiveWorkflowSandboxes) { this.maxActiveWorkflowSandboxes = maxActiveWorkflowSandboxes; return this; }
+            public Builder archivedWorkspaceRetentionDays(int archivedWorkspaceRetentionDays) { this.archivedWorkspaceRetentionDays = archivedWorkspaceRetentionDays; return this; }
 
             public EntitlementLimitsInput build() { return new EntitlementLimitsInput(this); }
         }

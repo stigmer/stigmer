@@ -215,8 +215,24 @@ type EntitlementLimits struct {
 	// managed_organizations feature, since absent here means "no limit" and
 	// zero is refused. A license ignores it.
 	IncludedManagedOrganizations *int32 `protobuf:"varint,3,opt,name=included_managed_organizations,json=includedManagedOrganizations,proto3,oneof" json:"included_managed_organizations,omitempty"`
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+	// The most session sandboxes an organization may hold provisioning or
+	// running at once. A session launch that would need a new sandbox past it
+	// is refused; a follow-up turn on a sandbox already running is not
+	// counted. Read by a subscription. A license ignores it until a
+	// self-hosted capacity gate reads it.
+	MaxActiveSessionSandboxes *int32 `protobuf:"varint,4,opt,name=max_active_session_sandboxes,json=maxActiveSessionSandboxes,proto3,oneof" json:"max_active_session_sandboxes,omitempty"`
+	// The most workflow-execution sandboxes an organization may hold
+	// provisioning or running at once. A workflow launch that would need a
+	// new sandbox past it is refused. Read by a subscription. A license
+	// ignores it until a self-hosted capacity gate reads it.
+	MaxActiveWorkflowSandboxes *int32 `protobuf:"varint,5,opt,name=max_active_workflow_sandboxes,json=maxActiveWorkflowSandboxes,proto3,oneof" json:"max_active_workflow_sandboxes,omitempty"`
+	// How many days an archived session workspace is kept before it is
+	// deleted, its files and snapshot included. Absent keeps it for as long
+	// as the session exists. Read by a subscription. A license ignores it
+	// until a self-hosted sandbox lifecycle reads it.
+	ArchivedWorkspaceRetentionDays *int32 `protobuf:"varint,6,opt,name=archived_workspace_retention_days,json=archivedWorkspaceRetentionDays,proto3,oneof" json:"archived_workspace_retention_days,omitempty"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *EntitlementLimits) Reset() {
@@ -270,6 +286,27 @@ func (x *EntitlementLimits) GetIncludedManagedOrganizations() int32 {
 	return 0
 }
 
+func (x *EntitlementLimits) GetMaxActiveSessionSandboxes() int32 {
+	if x != nil && x.MaxActiveSessionSandboxes != nil {
+		return *x.MaxActiveSessionSandboxes
+	}
+	return 0
+}
+
+func (x *EntitlementLimits) GetMaxActiveWorkflowSandboxes() int32 {
+	if x != nil && x.MaxActiveWorkflowSandboxes != nil {
+		return *x.MaxActiveWorkflowSandboxes
+	}
+	return 0
+}
+
+func (x *EntitlementLimits) GetArchivedWorkspaceRetentionDays() int32 {
+	if x != nil && x.ArchivedWorkspaceRetentionDays != nil {
+		return *x.ArchivedWorkspaceRetentionDays
+	}
+	return 0
+}
+
 var File_ai_stigmer_platform_v1_entitlement_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
@@ -277,15 +314,21 @@ const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
 	"(ai/stigmer/platform/v1/entitlement.proto\x12\x16ai.stigmer.platform.v1\x1a\x1bbuf/validate/validate.proto\"\xa1\x01\n" +
 	"\fEntitlements\x12A\n" +
 	"\x06limits\x18\x01 \x01(\v2).ai.stigmer.platform.v1.EntitlementLimitsR\x06limits\x12N\n" +
-	"\bfeatures\x18\x02 \x03(\x0e2\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\bfeatures\"\xf9\x01\n" +
+	"\bfeatures\x18\x02 \x03(\x0e2\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\bfeatures\"\xdb\x04\n" +
 	"\x11EntitlementLimits\x12'\n" +
 	"\bmax_orgs\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x00R\amaxOrgs\x88\x01\x01\x12)\n" +
 	"\tmax_users\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x01R\bmaxUsers\x88\x01\x01\x12R\n" +
-	"\x1eincluded_managed_organizations\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x02R\x1cincludedManagedOrganizations\x88\x01\x01B\v\n" +
+	"\x1eincluded_managed_organizations\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x02R\x1cincludedManagedOrganizations\x88\x01\x01\x12M\n" +
+	"\x1cmax_active_session_sandboxes\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x03R\x19maxActiveSessionSandboxes\x88\x01\x01\x12O\n" +
+	"\x1dmax_active_workflow_sandboxes\x18\x05 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x04R\x1amaxActiveWorkflowSandboxes\x88\x01\x01\x12W\n" +
+	"!archived_workspace_retention_days\x18\x06 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x05R\x1earchivedWorkspaceRetentionDays\x88\x01\x01B\v\n" +
 	"\t_max_orgsB\f\n" +
 	"\n" +
 	"_max_usersB!\n" +
-	"\x1f_included_managed_organizations*\xa4\x01\n" +
+	"\x1f_included_managed_organizationsB\x1f\n" +
+	"\x1d_max_active_session_sandboxesB \n" +
+	"\x1e_max_active_workflow_sandboxesB$\n" +
+	"\"_archived_workspace_retention_days*\xa4\x01\n" +
 	"\aFeature\x12\x17\n" +
 	"\x13feature_unspecified\x10\x00\x12\x13\n" +
 	"\x0fsso_enforcement\x10\x01\x12\x13\n" +

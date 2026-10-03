@@ -86,4 +86,81 @@ public interface EntitlementLimitsOrBuilder extends
    * @return The includedManagedOrganizations.
    */
   int getIncludedManagedOrganizations();
+
+  /**
+   * <pre>
+   * The most session sandboxes an organization may hold provisioning or
+   * running at once. A session launch that would need a new sandbox past it
+   * is refused; a follow-up turn on a sandbox already running is not
+   * counted. Read by a subscription. A license ignores it until a
+   * self-hosted capacity gate reads it.
+   * </pre>
+   *
+   * <code>optional int32 max_active_session_sandboxes = 4 [json_name = "maxActiveSessionSandboxes", (.buf.validate.field) = { ... }</code>
+   * @return Whether the maxActiveSessionSandboxes field is set.
+   */
+  boolean hasMaxActiveSessionSandboxes();
+  /**
+   * <pre>
+   * The most session sandboxes an organization may hold provisioning or
+   * running at once. A session launch that would need a new sandbox past it
+   * is refused; a follow-up turn on a sandbox already running is not
+   * counted. Read by a subscription. A license ignores it until a
+   * self-hosted capacity gate reads it.
+   * </pre>
+   *
+   * <code>optional int32 max_active_session_sandboxes = 4 [json_name = "maxActiveSessionSandboxes", (.buf.validate.field) = { ... }</code>
+   * @return The maxActiveSessionSandboxes.
+   */
+  int getMaxActiveSessionSandboxes();
+
+  /**
+   * <pre>
+   * The most workflow-execution sandboxes an organization may hold
+   * provisioning or running at once. A workflow launch that would need a
+   * new sandbox past it is refused. Read by a subscription. A license
+   * ignores it until a self-hosted capacity gate reads it.
+   * </pre>
+   *
+   * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
+   * @return Whether the maxActiveWorkflowSandboxes field is set.
+   */
+  boolean hasMaxActiveWorkflowSandboxes();
+  /**
+   * <pre>
+   * The most workflow-execution sandboxes an organization may hold
+   * provisioning or running at once. A workflow launch that would need a
+   * new sandbox past it is refused. Read by a subscription. A license
+   * ignores it until a self-hosted capacity gate reads it.
+   * </pre>
+   *
+   * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
+   * @return The maxActiveWorkflowSandboxes.
+   */
+  int getMaxActiveWorkflowSandboxes();
+
+  /**
+   * <pre>
+   * How many days an archived session workspace is kept before it is
+   * deleted, its files and snapshot included. Absent keeps it for as long
+   * as the session exists. Read by a subscription. A license ignores it
+   * until a self-hosted sandbox lifecycle reads it.
+   * </pre>
+   *
+   * <code>optional int32 archived_workspace_retention_days = 6 [json_name = "archivedWorkspaceRetentionDays", (.buf.validate.field) = { ... }</code>
+   * @return Whether the archivedWorkspaceRetentionDays field is set.
+   */
+  boolean hasArchivedWorkspaceRetentionDays();
+  /**
+   * <pre>
+   * How many days an archived session workspace is kept before it is
+   * deleted, its files and snapshot included. Absent keeps it for as long
+   * as the session exists. Read by a subscription. A license ignores it
+   * until a self-hosted sandbox lifecycle reads it.
+   * </pre>
+   *
+   * <code>optional int32 archived_workspace_retention_days = 6 [json_name = "archivedWorkspaceRetentionDays", (.buf.validate.field) = { ... }</code>
+   * @return The archivedWorkspaceRetentionDays.
+   */
+  int getArchivedWorkspaceRetentionDays();
 }

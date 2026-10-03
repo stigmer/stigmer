@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/entitlement.proto.
  */
 export const file_ai_stigmer_platform_v1_entitlement: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL2VudGl0bGVtZW50LnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIo8BCgxFbnRpdGxlbWVudHMSOQoGbGltaXRzGAEgASgLMikuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnRpdGxlbWVudExpbWl0cxJECghmZWF0dXJlcxgCIAMoDjIfLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRmVhdHVyZUIRukgOkgELGAEiB4IBBBABIAAiyAEKEUVudGl0bGVtZW50TGltaXRzEh4KCG1heF9vcmdzGAEgASgFQge6SAQaAiAASACIAQESHwoJbWF4X3VzZXJzGAIgASgFQge6SAQaAiAASAGIAQESNAoeaW5jbHVkZWRfbWFuYWdlZF9vcmdhbml6YXRpb25zGAMgASgFQge6SAQaAiAASAKIAQFCCwoJX21heF9vcmdzQgwKCl9tYXhfdXNlcnNCIQofX2luY2x1ZGVkX21hbmFnZWRfb3JnYW5pemF0aW9ucyqkAQoHRmVhdHVyZRIXChNmZWF0dXJlX3Vuc3BlY2lmaWVkEAASEwoPc3NvX2VuZm9yY2VtZW50EAESEwoPcGxhdGZvcm1fY2xpZW50EAISFQoRYnlvX3Byb3ZpZGVyX2tleXMQAxIMCghjaGFubmVscxAEEgsKB3NoYXJpbmcQBRIJCgV0ZWFtcxAGEhkKFW1hbmFnZWRfb3JnYW5pemF0aW9ucxAHQhJCEEVudGl0bGVtZW50UHJvdG9iBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL2VudGl0bGVtZW50LnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIo8BCgxFbnRpdGxlbWVudHMSOQoGbGltaXRzGAEgASgLMikuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnRpdGxlbWVudExpbWl0cxJECghmZWF0dXJlcxgCIAMoDjIfLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRmVhdHVyZUIRukgOkgELGAEiB4IBBBABIAAi0wMKEUVudGl0bGVtZW50TGltaXRzEh4KCG1heF9vcmdzGAEgASgFQge6SAQaAiAASACIAQESHwoJbWF4X3VzZXJzGAIgASgFQge6SAQaAiAASAGIAQESNAoeaW5jbHVkZWRfbWFuYWdlZF9vcmdhbml6YXRpb25zGAMgASgFQge6SAQaAiAASAKIAQESMgocbWF4X2FjdGl2ZV9zZXNzaW9uX3NhbmRib3hlcxgEIAEoBUIHukgEGgIgAEgDiAEBEjMKHW1heF9hY3RpdmVfd29ya2Zsb3dfc2FuZGJveGVzGAUgASgFQge6SAQaAiAASASIAQESNwohYXJjaGl2ZWRfd29ya3NwYWNlX3JldGVudGlvbl9kYXlzGAYgASgFQge6SAQaAiAASAWIAQFCCwoJX21heF9vcmdzQgwKCl9tYXhfdXNlcnNCIQofX2luY2x1ZGVkX21hbmFnZWRfb3JnYW5pemF0aW9uc0IfCh1fbWF4X2FjdGl2ZV9zZXNzaW9uX3NhbmRib3hlc0IgCh5fbWF4X2FjdGl2ZV93b3JrZmxvd19zYW5kYm94ZXNCJAoiX2FyY2hpdmVkX3dvcmtzcGFjZV9yZXRlbnRpb25fZGF5cyqkAQoHRmVhdHVyZRIXChNmZWF0dXJlX3Vuc3BlY2lmaWVkEAASEwoPc3NvX2VuZm9yY2VtZW50EAESEwoPcGxhdGZvcm1fY2xpZW50EAISFQoRYnlvX3Byb3ZpZGVyX2tleXMQAxIMCghjaGFubmVscxAEEgsKB3NoYXJpbmcQBRIJCgV0ZWFtcxAGEhkKFW1hbmFnZWRfb3JnYW5pemF0aW9ucxAHQhJCEEVudGl0bGVtZW50UHJvdG9iBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * What an edition permits its customer: a set of limits and a set of features.
@@ -91,6 +91,37 @@ export type EntitlementLimits = Message<"ai.stigmer.platform.v1.EntitlementLimit
    * @generated from field: optional int32 included_managed_organizations = 3;
    */
   includedManagedOrganizations?: number;
+
+  /**
+   * The most session sandboxes an organization may hold provisioning or
+   * running at once. A session launch that would need a new sandbox past it
+   * is refused; a follow-up turn on a sandbox already running is not
+   * counted. Read by a subscription. A license ignores it until a
+   * self-hosted capacity gate reads it.
+   *
+   * @generated from field: optional int32 max_active_session_sandboxes = 4;
+   */
+  maxActiveSessionSandboxes?: number;
+
+  /**
+   * The most workflow-execution sandboxes an organization may hold
+   * provisioning or running at once. A workflow launch that would need a
+   * new sandbox past it is refused. Read by a subscription. A license
+   * ignores it until a self-hosted capacity gate reads it.
+   *
+   * @generated from field: optional int32 max_active_workflow_sandboxes = 5;
+   */
+  maxActiveWorkflowSandboxes?: number;
+
+  /**
+   * How many days an archived session workspace is kept before it is
+   * deleted, its files and snapshot included. Absent keeps it for as long
+   * as the session exists. Read by a subscription. A license ignores it
+   * until a self-hosted sandbox lifecycle reads it.
+   *
+   * @generated from field: optional int32 archived_workspace_retention_days = 6;
+   */
+  archivedWorkspaceRetentionDays?: number;
 };
 
 /**

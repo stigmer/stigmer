@@ -136,15 +136,26 @@ class EntitlementsInput:
 class EntitlementLimitsInput:
     """SDK input type for EntitlementLimits."""
 
-    max_orgs: int = 0
-    max_users: int = 0
-    included_managed_organizations: int = 0
+    max_orgs: int | None = None
+    max_users: int | None = None
+    included_managed_organizations: int | None = None
+    max_active_session_sandboxes: int | None = None
+    max_active_workflow_sandboxes: int | None = None
+    archived_workspace_retention_days: int | None = None
 
     def _to_proto(self) -> platform_entitlement_pb2.EntitlementLimits:
-        msg = platform_entitlement_pb2.EntitlementLimits(
-            max_orgs=self.max_orgs,
-            max_users=self.max_users,
-            included_managed_organizations=self.included_managed_organizations,
-        )
+        msg = platform_entitlement_pb2.EntitlementLimits()
+        if self.max_orgs is not None:
+            msg.max_orgs = self.max_orgs
+        if self.max_users is not None:
+            msg.max_users = self.max_users
+        if self.included_managed_organizations is not None:
+            msg.included_managed_organizations = self.included_managed_organizations
+        if self.max_active_session_sandboxes is not None:
+            msg.max_active_session_sandboxes = self.max_active_session_sandboxes
+        if self.max_active_workflow_sandboxes is not None:
+            msg.max_active_workflow_sandboxes = self.max_active_workflow_sandboxes
+        if self.archived_workspace_retention_days is not None:
+            msg.archived_workspace_retention_days = self.archived_workspace_retention_days
         return msg
 

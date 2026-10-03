@@ -274,6 +274,9 @@ The numeric limits an entitlement carries.
     maxOrgs: { type: "number", description: "The most organizations the customer may hold at once." },
     maxUsers: { type: "number", description: "The most identity accounts the customer may hold at once." },
     includedManagedOrganizations: { type: "number", description: "The platform-managed organizations a subscription includes before the per-organization fee applies." },
+    maxActiveSessionSandboxes: { type: "number", description: "The most session sandboxes an organization may hold provisioning or running at once." },
+    maxActiveWorkflowSandboxes: { type: "number", description: "The most workflow-execution sandboxes an organization may hold provisioning or running at once." },
+    archivedWorkspaceRetentionDays: { type: "number", description: "How many days an archived session workspace is kept before it is deleted, its files and snapshot included." },
   }}
 />
 

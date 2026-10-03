@@ -89,6 +89,9 @@ export interface EntitlementLimitsInput {
   maxOrgs?: number;
   maxUsers?: number;
   includedManagedOrganizations?: number;
+  maxActiveSessionSandboxes?: number;
+  maxActiveWorkflowSandboxes?: number;
+  archivedWorkspaceRetentionDays?: number;
 }
 
 function buildLicenseCustomerProto(input: LicenseCustomerInput) {
@@ -105,6 +108,9 @@ function buildEntitlementLimitsProto(input: EntitlementLimitsInput) {
     maxOrgs: input.maxOrgs,
     maxUsers: input.maxUsers,
     includedManagedOrganizations: input.includedManagedOrganizations,
+    maxActiveSessionSandboxes: input.maxActiveSessionSandboxes,
+    maxActiveWorkflowSandboxes: input.maxActiveWorkflowSandboxes,
+    archivedWorkspaceRetentionDays: input.archivedWorkspaceRetentionDays,
   }));
 }
 

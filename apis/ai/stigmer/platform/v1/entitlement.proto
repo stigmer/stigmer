@@ -57,6 +57,25 @@ message EntitlementLimits {
   // managed_organizations feature, since absent here means "no limit" and
   // zero is refused. A license ignores it.
   optional int32 included_managed_organizations = 3 [(buf.validate.field).int32.gt = 0];
+
+  // The most session sandboxes an organization may hold provisioning or
+  // running at once. A session launch that would need a new sandbox past it
+  // is refused; a follow-up turn on a sandbox already running is not
+  // counted. Read by a subscription. A license ignores it until a
+  // self-hosted capacity gate reads it.
+  optional int32 max_active_session_sandboxes = 4 [(buf.validate.field).int32.gt = 0];
+
+  // The most workflow-execution sandboxes an organization may hold
+  // provisioning or running at once. A workflow launch that would need a
+  // new sandbox past it is refused. Read by a subscription. A license
+  // ignores it until a self-hosted capacity gate reads it.
+  optional int32 max_active_workflow_sandboxes = 5 [(buf.validate.field).int32.gt = 0];
+
+  // How many days an archived session workspace is kept before it is
+  // deleted, its files and snapshot included. Absent keeps it for as long
+  // as the session exists. Read by a subscription. A license ignores it
+  // until a self-hosted sandbox lifecycle reads it.
+  optional int32 archived_workspace_retention_days = 6 [(buf.validate.field).int32.gt = 0];
 }
 
 // A capability an entitlement can unlock.
