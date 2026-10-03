@@ -35,10 +35,12 @@ breaking:
   # IdentityProviderSpec.rate_limit_budget, which no server ever enforced
   # (its number and name are reserved). Field numbers are unchanged, so
   # binary payloads read the same; the JSON names change. It is made before
-  # launch, with no stored JSON or outside consumer to carry over, and the
-  # release notes name every change under Upgrading. This block lets that
-  # one pull request through and nothing else; the pull request that
-  # follows its merge removes it.
+  # launch: no outside consumer uses these names, the hosted service moves its
+  # own stored proto JSON in a migration, no license ticket was issued outside
+  # Stigmer, and the release notes name every change under Upgrading. This
+  # block lets that one pull request through and nothing else; the pull
+  # request that follows its merge removes it
+  # (https://github.com/stigmer/stigmer/issues/1791).
   ignore_only:
     FIELD_SAME_NAME:
       - ai/stigmer/agentic/agentexecution/v1/io.proto
