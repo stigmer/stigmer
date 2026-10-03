@@ -284,11 +284,12 @@ test("single-digit decisions, two-letter codes, waves and lettered slices fail p
       "Then ZQ-09b.",
       "Landed in Wave 9.",
       "Then wave-9z.",
+      "Then Wave9.",
       "Carried by Slice Z.",
       // Near-misses: arithmetic, a score, a curve, encodings and date formats, a
       // method call, a word ending in "wave", and the record-internal ids whose
       // tail must not be found a second time.
-      "Turn N-1, the F-1 score, P-256, ES-256, UTF-8, ISO-8601, MM-DD-YYYY, text.slice(1), a microwave 3 times, Q-ZZ-9 and DD-ZZ-9.",
+      "Turn N-1, the F-1 score, P-256, ES-256, CC-BY-4.0, UTF-8, ISO-8601, MM-DD-YYYY, text.slice(1), a microwave 3 times, Q-ZZ-9 and DD-ZZ-9.",
     ].join("\n"),
   });
   try {
@@ -300,6 +301,7 @@ test("single-digit decisions, two-letter codes, waves and lettered slices fail p
         "lettered record code in public guidance: ZQ-09b",
         "wave label in public guidance: Wave 9",
         "wave label in public guidance: wave-9z",
+        "wave label in public guidance: Wave9",
         "lettered slice in public guidance: Slice Z",
         "decision id in public guidance: DD-ZZ-9",
         "ruling id in public guidance: Q-ZZ-9",

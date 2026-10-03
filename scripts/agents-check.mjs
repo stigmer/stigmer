@@ -185,15 +185,17 @@ const NON_PATH_PREFIXES = ["http://", "https://", "mailto:", "#", "@", "~", "$",
  * resolve them, and they stay findings everywhere. A bare `Stage 3` is not one
  * of them, because a build's own steps are named that way. Other shapes stay
  * with the reviewer, because ordinary text has them too: a one-letter code
- * (`turn N-1` is arithmetic, `F-1` a score), an entry number ("workspace
- * entry 1" is a form's own label), a bare short code (thousands of lines here
- * match `[A-Z]{2}[0-9]`), a phase label (the runner numbers its
- * turn-setup phases), and prose pointing at "the plan". Last, a private
- * repository's issue or URL (`stigmer-cloud#0`): a public reader cannot open
- * it, and the private repository may cite its own (`privateOk`). The examples
- * are synthetic, chosen to match no id this repository has ever cited.
- * Exported so a source guard over files a repository publishes refuses the
- * same shapes instead of restating them.
+ * (`turn N-1` is arithmetic, `F-1` a score), a two-letter code joined to a word
+ * by a hyphen (`pre-ZQ-9`; a licence id such as `CC-BY-4.0` has that shape, and
+ * the lookbehind that skips it also keeps `Q-ZZ-9`'s tail from counting twice),
+ * an entry number ("workspace entry 1" is a form's own label), a bare short
+ * code (thousands of lines here match `[A-Z]{2}[0-9]`), a phase label (the
+ * runner numbers its turn-setup phases), and prose pointing at "the plan".
+ * Last, a private repository's issue or URL (`stigmer-cloud#0`): a public
+ * reader cannot open it, and the private repository may cite its own
+ * (`privateOk`). The examples are synthetic, chosen to match no id this
+ * repository has ever cited. Exported so a source guard over files a repository
+ * publishes refuses the same shapes instead of restating them.
  */
 export const LEAK_PATTERNS = [
   { name: "planning-record path", re: /_projects\//, privateOk: true },
