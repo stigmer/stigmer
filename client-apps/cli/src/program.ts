@@ -9,7 +9,6 @@
 import { Command } from "commander";
 import { registerApiKey } from "./commands/apikey/index.js";
 import { registerApply } from "./commands/apply.js";
-import { registerBootstrap } from "./commands/bootstrap.js";
 import { registerAuth } from "./commands/auth/index.js";
 import { registerCompletion } from "./commands/completion.js";
 import { registerConfig } from "./commands/config/index.js";
@@ -52,7 +51,7 @@ export function buildProgram(): Command {
     .version(VERSION, "--version", "print the CLI version")
     .option("-d, --debug", "enable debug output")
     .option("--standalone", "ignore the config file; use flags and environment only")
-    .option("--org <slug>", "organization slug override")
+    .option("--org <slug>", "organization, on servers that hold several")
     .option("--api-key <key>", "API key for authentication")
     .enablePositionalOptions();
 
@@ -94,7 +93,6 @@ export function buildProgram(): Command {
   registerConnect(program);
   registerMcpServer(program);
   registerUp(program);
-  registerBootstrap(program);
   registerDown(program);
   registerStatus(program);
   registerLogs(program);

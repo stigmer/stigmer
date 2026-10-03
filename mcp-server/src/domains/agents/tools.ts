@@ -24,7 +24,12 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
       description:
         "Get full details of a Stigmer agent by its org and slug (e.g. org=stigmer slug=code-reviewer).",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the agent (e.g. stigmer)."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the agent (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
         slug: z
           .string()
           .describe("Agent slug — the unique identifier within the org (e.g. code-reviewer)."),
@@ -52,7 +57,12 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
     {
       description: "Delete a Stigmer agent by its org and slug. Returns the deleted agent.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the agent (e.g. stigmer)."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the agent (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
         slug: z
           .string()
           .describe("Agent slug — the unique identifier within the org (e.g. code-reviewer)."),

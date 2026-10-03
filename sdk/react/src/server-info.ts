@@ -52,3 +52,29 @@ export function useServerInfo(): UseServerInfoReturn {
   );
   return { serverInfo, isLoading, error };
 }
+
+/**
+ * Whether the connected server holds one organization and fills it into
+ * every call that names none (`serverInfo.singleOrg`, the open-source
+ * edition). A surface that names organizations — the switcher, the
+ * "Organization" settings group, the create-an-organization onboarding —
+ * hides on `true`.
+ *
+ * `undefined` while the answer is loading, so a surface waits rather than
+ * flashing an organization it will hide; `false` once the server answered
+ * otherwise, failed to answer, or predates the field, so organizations
+ * show as they always have.
+ *
+ * @example
+ * ```tsx
+ * const singleOrg = useSingleOrg();
+ * return singleOrg === false ? <OrgSwitcher /> : null;
+ * ```
+ */
+export function useSingleOrg(): boolean | undefined {
+  const { serverInfo, isLoading } = useServerInfo();
+  if (isLoading) {
+    return undefined;
+  }
+  return serverInfo?.singleOrg === true;
+}

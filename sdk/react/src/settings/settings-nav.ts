@@ -121,6 +121,28 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
 ];
 
 /**
+ * {@link SETTINGS_NAV_GROUPS} as a server that holds one organization shows
+ * them (`ServerInfo.singleOrg`, the open-source edition), where nobody ever
+ * names the organization: the first group is "General" rather than
+ * "Organization", and the organization's profile page (its name, slug and
+ * logo) is left out. Its preferences and members stay; Teams, Invitations
+ * and Identity Providers keep the edition gates their own pages apply.
+ * {@link useSettingsNavGroups} picks between the two.
+ */
+export const SINGLE_ORG_SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] =
+  SETTINGS_NAV_GROUPS.map((group, index) =>
+    index === 0
+      ? {
+          label: "General",
+          description: "Preferences and members of this server.",
+          items: group.items.filter(
+            (item) => item.href !== "/settings/org-profile",
+          ),
+        }
+      : group,
+  );
+
+/**
  * Stigmer-internal platform-operator navigation group.
  *
  * Deliberately NOT part of {@link SETTINGS_NAV_GROUPS}: that constant

@@ -126,6 +126,31 @@ const trustsEveryRequest = serverInfo?.authenticationRequired === false;
 ```
 
 
+### useSingleOrg
+
+Whether the connected server holds one organization and fills it into
+every call that names none (`serverInfo.singleOrg`, the open-source
+edition). A surface that names organizations — the switcher, the
+"Organization" settings group, the create-an-organization onboarding —
+hides on `true`.
+
+`undefined` while the answer is loading, so a surface waits rather than
+flashing an organization it will hide; `false` once the server answered
+otherwise, failed to answer, or predates the field, so organizations
+show as they always have.
+
+**Signature**
+
+```tsx
+function useSingleOrg(): boolean | undefined
+```
+
+```tsx
+const singleOrg = useSingleOrg();
+return singleOrg === false ? <OrgSwitcher /> : null;
+```
+
+
 ### useStigmer
 
 Access the `Stigmer` SDK client from the nearest

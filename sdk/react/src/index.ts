@@ -24,7 +24,7 @@ export type { ColorMode, ResolvedColorMode } from "./color-mode.js";
 export { useStigmerPortalContainer } from "./portal-container.js";
 
 // Server identity: edition, version and authentication posture
-export { useServerInfo } from "./server-info.js";
+export { useServerInfo, useSingleOrg } from "./server-info.js";
 export type { UseServerInfoReturn } from "./server-info.js";
 
 // Deployment mode and resource availability
@@ -1347,6 +1347,7 @@ export type {
 // Settings — navigation structure + section components shared across app shells
 export {
   SETTINGS_NAV_GROUPS,
+  SINGLE_ORG_SETTINGS_NAV_GROUPS,
   PLATFORM_SETTINGS_NAV_GROUP,
   useSettingsNavGroups,
 } from "./settings/index.js";
@@ -2042,6 +2043,7 @@ export {
   ResourceInspector,
   ResourceWorkbench,
   ResourceAvatar,
+  ORG_COLUMN_ID,
 } from "./resource-workbench/index.js";
 export type {
   ViewMode,

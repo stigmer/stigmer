@@ -20,7 +20,6 @@ export {
 } from "./config.js";
 export {
   DEFAULT_CLOUD_CONSOLE_URL,
-  DEFAULT_LOCAL_ORG,
   ensureAuthenticated,
   resolveConsoleURL,
   resolveContextOrganization,

@@ -14,6 +14,7 @@ export type {
   BulkAction,
   WorkbenchState,
 } from "./types.js";
+export { ORG_COLUMN_ID } from "./types.js";
 
 // Hooks
 export { useViewPreference } from "./hooks/useViewPreference.js";

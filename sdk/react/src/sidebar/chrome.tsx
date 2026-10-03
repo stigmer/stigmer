@@ -5,6 +5,7 @@ import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrgSwitcher } from "../organization/OrgSwitcher.js";
+import { useSingleOrg } from "../server-info.js";
 
 // ---------------------------------------------------------------------------
 // Shared sidebar chrome — the pieces WorkspaceSidebar and SettingsSidebar
@@ -59,6 +60,7 @@ export function SidebarChrome({
   children,
 }: SidebarChromeProps) {
   const navId = useId();
+  const singleOrg = useSingleOrg();
   return (
     <nav
       id={navId}
@@ -84,7 +86,9 @@ export function SidebarChrome({
           <PanelLeft className="stg:size-4" />
         </button>
         <div className="stg:min-w-0 stg:flex-1">
-          <OrgSwitcher onOrgChanged={onOrgChanged} />
+          {/* A server that holds one organization never shows it; the
+              switcher waits for the server's answer rather than flash. */}
+          {singleOrg === false && <OrgSwitcher onOrgChanged={onOrgChanged} />}
         </div>
       </div>
 

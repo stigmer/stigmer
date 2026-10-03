@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useRef, useState } from "react";
-import { SETTINGS_NAV_GROUPS, PLATFORM_SETTINGS_NAV_GROUP } from "../settings-nav";
+import {
+  SETTINGS_NAV_GROUPS,
+  SINGLE_ORG_SETTINGS_NAV_GROUPS,
+  PLATFORM_SETTINGS_NAV_GROUP,
+} from "../settings-nav";
 import { useSettingsNavGroups } from "../useSettingsNavGroups";
 
 // Drive the nav gate through the permission hook. The fail-closed
@@ -23,10 +27,19 @@ vi.mock("../../iam-policy/useCheckPermission", () => ({
   },
 }));
 
+// Whether the server holds one organization, as useSingleOrg reports it:
+// undefined while loading, then true or false.
+let singleOrg: boolean | undefined = false;
+
+vi.mock("../../server-info", () => ({
+  useSingleOrg: () => singleOrg,
+}));
+
 afterEach(() => {
   cleanup();
   verdicts = {};
   checkedRelations = [];
+  singleOrg = false;
 });
 
 function GroupsProbe() {
@@ -42,6 +55,31 @@ function GroupsProbe() {
 }
 
 const BASE_LABELS = SETTINGS_NAV_GROUPS.map((g) => g.label).join(",");
+
+describe("useSettingsNavGroups on a server that holds one organization", () => {
+  it("names no organization: the first group is General, without the organization's profile", () => {
+    singleOrg = true;
+    render(<GroupsProbe />);
+
+    const labels = screen.getByTestId("groups").getAttribute("data-labels");
+    expect(labels).toBe(SINGLE_ORG_SETTINGS_NAV_GROUPS.map((g) => g.label).join(","));
+    expect(SINGLE_ORG_SETTINGS_NAV_GROUPS[0]?.label).toBe("General");
+    expect(SINGLE_ORG_SETTINGS_NAV_GROUPS[0]?.items.map((i) => i.label)).toEqual([
+      "Preferences",
+      "Members",
+      "Teams",
+      "Invitations",
+      "Identity Providers",
+    ]);
+    expect(SINGLE_ORG_SETTINGS_NAV_GROUPS.slice(1)).toEqual(SETTINGS_NAV_GROUPS.slice(1));
+  });
+
+  it("shows the organization groups while the answer loads and when the server holds several", () => {
+    singleOrg = undefined;
+    render(<GroupsProbe />);
+    expect(screen.getByTestId("groups").getAttribute("data-labels")).toBe(BASE_LABELS);
+  });
+});
 
 describe("useSettingsNavGroups", () => {
   it("appends the full Platform group when the operator holds every platform permission", () => {

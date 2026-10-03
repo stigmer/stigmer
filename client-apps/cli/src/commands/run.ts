@@ -20,6 +20,7 @@ import {
   type AgentExecOptions,
 } from "./agent-exec-flags.js";
 import { globalOrg } from "./shared.js";
+import { requireOrganization } from "../client/single-org.js";
 
 interface RunFlags extends AgentExecOptions {
   json?: boolean;
@@ -53,14 +54,10 @@ async function runRun(
   const client = connectBackend();
   ensureAuthenticated(client.config);
   const org = resolveOrganization(client.config, globalOrg(command));
-  if (org === "") {
-    throw new UsageError(
-      "organization not set\n\n" +
-        "Set it with one of:\n" +
-        "  stigmer config context set --org <org>\n" +
-        "  stigmer run --org <org> ...",
-    );
-  }
+  await requireOrganization(client.stigmer, org, [
+    "stigmer config context set --org <org>",
+    "stigmer run --org <org> ...",
+  ]);
 
   const outputMode = options.json === true ? "json" : "inline";
 

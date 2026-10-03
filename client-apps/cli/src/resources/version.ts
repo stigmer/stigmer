@@ -26,7 +26,8 @@ export async function renderWorkflowVersionHistory(client: Stigmer, org: string,
   if (response.versions.length === 0) {
     return [
       "",
-      `No version history found for ${org}/${slug}`,
+      // An empty org is a server that holds one: it is never named.
+      `No version history found for ${org === "" ? slug : `${org}/${slug}`}`,
       "Tip: Apply a workflow to create the first version:",
       "  stigmer apply -f workflow.yaml",
       "",

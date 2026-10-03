@@ -35,6 +35,16 @@ export interface ServerInfo {
    * Only an explicit `false` means the feature is unavailable.
    */
   readonly authenticationRequired: boolean | undefined;
+  /**
+   * Whether the server holds one organization and fills it into every call
+   * that names none — the open-source edition. `true`: leave `org` empty
+   * everywhere, and never show or ask for an organization. `false`: the
+   * server holds several, so a call names its organization.
+   *
+   * `undefined` when the server predates the field: treat it as `false`
+   * and show organizations.
+   */
+  readonly singleOrg: boolean | undefined;
 }
 
 /**
@@ -53,8 +63,8 @@ export class PlatformClient {
   }
 
   /**
-   * Retrieve the connected server's edition, version and authentication
-   * posture.
+   * Retrieve the connected server's edition, version, authentication
+   * posture and whether it holds one organization.
    *
    * Maps the proto {@link ServerEdition} to a {@link DeploymentMode}
    * through {@link deploymentModeOf}:
@@ -73,6 +83,7 @@ export class PlatformClient {
         edition: resp.edition,
         version: resp.version,
         authenticationRequired: resp.authenticationRequired,
+        singleOrg: resp.singleOrg,
       };
     } catch (e) {
       throw wrapError(e);

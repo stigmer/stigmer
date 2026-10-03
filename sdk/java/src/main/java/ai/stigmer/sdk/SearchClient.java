@@ -84,7 +84,7 @@ public final class SearchClient {
 
         public static final class Builder {
             private List<ApiResourceKind> kinds = List.of();
-            private String org;
+            private String org = "";
             private String query;
             private Page page;
 
@@ -96,9 +96,13 @@ public final class SearchClient {
                 return this;
             }
 
-            /** Organization slug to scope the query (required). */
+            /**
+             * Organization slug to scope the query. Leave it unset on a server
+             * that holds one organization, which fills it; a server that holds
+             * several refuses a search that names none.
+             */
             public Builder org(String org) {
-                this.org = org;
+                this.org = Objects.requireNonNull(org);
                 return this;
             }
 
@@ -115,7 +119,6 @@ public final class SearchClient {
             }
 
             public SearchParams build() {
-                Objects.requireNonNull(org, "org is required for search");
                 return new SearchParams(this);
             }
         }

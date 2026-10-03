@@ -29,7 +29,12 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
         "progress, pending approvals, and the final result. Omit session_id to start a fresh " +
         "conversation; pass one to send a follow-up message into an existing session.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the agent (e.g. stigmer)."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the agent (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
         agent: z
           .string()
           .describe("Agent slug — the unique identifier within the org (e.g. code-reviewer)."),

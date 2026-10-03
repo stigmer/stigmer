@@ -21,6 +21,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { parseReference } from "./reference.js";
+import { requireOrganization } from "../client/single-org.js";
 
 /** The schedule kind's canonical id prefix (proto kind_meta). */
 const SCHEDULE_ID_PREFIX = "sch";
@@ -49,11 +50,10 @@ async function loadSchedule(stigmer: Stigmer, ref: string, org: string): Promise
   if (parsed.kind === "id") {
     return stigmer.schedule.get(parsed.id);
   }
-  if (parsed.org === "") {
-    throw new UsageError(
-      "organization not set\n\nSet it with:\n  stigmer config context set --org <org>\n  stigmer schedule resume --org <org> ...",
-    );
-  }
+  await requireOrganization(stigmer, parsed.org, [
+    "stigmer config context set --org <org>",
+    "stigmer schedule resume --org <org> ...",
+  ]);
   return stigmer.schedule.getByReference({ org: parsed.org, slug: parsed.slug });
 }
 

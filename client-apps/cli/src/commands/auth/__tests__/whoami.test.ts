@@ -36,7 +36,7 @@ function fields(
 
 describe("whoamiResult", () => {
   it("renders an existing account as 'Authenticated' with its identity fields", () => {
-    const result = whoamiResult(ACCOUNT, { created: false, org: "acme" });
+    const result = whoamiResult(ACCOUNT, { created: false, org: "acme", singleOrg: false });
     expect(result.status).toBe("success");
     expect(result.message).toBe("Authenticated");
     expect(fields(result)).toEqual({
@@ -51,7 +51,7 @@ describe("whoamiResult", () => {
   });
 
   it("says so when this call created the account — the first sign-in is visible, never silent", () => {
-    const result = whoamiResult(ACCOUNT, { created: true, org: "acme" });
+    const result = whoamiResult(ACCOUNT, { created: true, org: "acme", singleOrg: false });
     expect(result.status).toBe("success");
     expect(result.message).toBe(
       "Authenticated — your account was created on this first sign-in",
@@ -60,11 +60,19 @@ describe("whoamiResult", () => {
   });
 
   it("a missing organization is a hint with the command that sets it", () => {
-    const result = whoamiResult(ACCOUNT, { created: false, org: "" });
+    const result = whoamiResult(ACCOUNT, { created: false, org: "", singleOrg: false });
     expect(fields(result).Organization).toBeUndefined();
     expect(result.hints).toEqual([
       "No organization set. Use: stigmer config context set --org <slug>",
     ]);
+  });
+
+  it("on a server that holds one organization, names none and hints nothing", () => {
+    for (const org of ["", "acme"]) {
+      const result = whoamiResult(ACCOUNT, { created: false, org, singleOrg: true });
+      expect(fields(result).Organization).toBeUndefined();
+      expect(result.hints).toEqual([]);
+    }
   });
 
   it("renders only the fields an empty profile has (the unconfigured laptop's operator)", () => {
@@ -73,7 +81,7 @@ describe("whoamiResult", () => {
         metadata: { id: "ida_fn0zdvkkkhhrb4wry43zba8gnn", name: "system" },
         spec: { idpId: "local|system" },
       }),
-      { created: false, org: "local" },
+      { created: false, org: "local", singleOrg: false },
     );
     expect(fields(result)).toEqual({
       "Account ID": "ida_fn0zdvkkkhhrb4wry43zba8gnn",
@@ -89,7 +97,7 @@ describe("whoamiResult", () => {
         ...ALICE,
         spec: { ...ALICE.spec, isMachineAccount: true },
       }),
-      { created: false, org: "acme" },
+      { created: false, org: "acme", singleOrg: false },
     );
     expect(fields(result)["Account Type"]).toBe("Machine Account");
   });

@@ -6,9 +6,9 @@ supervised background daemon. This is the quickstart command for local
 development: no cloud account needed.
 
 On first run the CLI acquires the `stigmer-server` and runner packages at the
-matching version, then bootstraps the backend: it creates the `stigmer`
-organization, the one the CLI uses when a command names none. Nothing else is
-installed: a conversation started with no agent
+matching version. The server holds everything you create in one place of its
+own, which it sets up the first time it starts, so no command asks you where
+anything goes. Nothing else is installed: a conversation started with no agent
 runs the built-in assistant, so a fresh install answers its first message at
 once. An install seeded by an earlier release keeps its `assistant` agent as an
 ordinary agent beside the built-in one; every conversation with it continues.
@@ -77,7 +77,6 @@ stigmer down     # stop the stack
 | [`stigmer status`](./status) | Show local stack status |
 | [`stigmer logs`](./logs) | View logs from the local stack |
 | [`stigmer setup`](./setup) | Configure the LLM provider |
-| [`stigmer bootstrap`](./bootstrap) | Bootstrap a raw self-hosted server the same way |
 
 ## See also
 

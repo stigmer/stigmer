@@ -9,7 +9,9 @@
  * and `false` reach callers as they were sent, and a server that predates
  * the field answers `undefined`, never `false` — the difference between
  * "this server trusts every request" and "this server did not say", which
- * a console meeting an older server must not confuse.
+ * a console meeting an older server must not confuse. The single-organization
+ * answer crosses the same way: `true` (fill-on, hide organizations), `false`,
+ * and `undefined` from a server that predates it.
  */
 import { describe, expect, it } from "vitest";
 import { createRouterTransport } from "@connectrpc/connect";
@@ -25,6 +27,7 @@ import { PlatformClient } from "../platform";
 function clientAnswering(
   edition: ServerEdition,
   authenticationRequired?: boolean,
+  singleOrg?: boolean,
 ): PlatformClient {
   return new PlatformClient(
     createRouterTransport(({ service }) => {
@@ -36,6 +39,7 @@ function clientAnswering(
             ...(authenticationRequired !== undefined
               ? { authenticationRequired }
               : {}),
+            ...(singleOrg !== undefined ? { singleOrg } : {}),
           }),
       });
     }),
@@ -69,6 +73,22 @@ describe("PlatformClient.getServerInfo", () => {
         sent,
       ).getServerInfo();
       expect(info.authenticationRequired).toBe(reported);
+    },
+  );
+
+  it.each([
+    [true, true],
+    [false, false],
+    [undefined, undefined],
+  ] as const)(
+    "reports a server's single-organization answer of %s as %s",
+    async (sent, reported) => {
+      const info = await clientAnswering(
+        ServerEdition.oss,
+        false,
+        sent,
+      ).getServerInfo();
+      expect(info.singleOrg).toBe(reported);
     },
   );
 });

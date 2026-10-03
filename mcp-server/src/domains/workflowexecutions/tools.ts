@@ -33,7 +33,12 @@ export function registerWorkflowExecutionTools(server: McpServer, target: Backen
         "(wex_* ID) while the run continues in the background — poll get_workflow_execution and " +
         "get_workflow_execution_events to observe progress and diagnose failures.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the workflow (e.g. stigmer)."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the workflow (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
         workflow: z
           .string()
           .describe("Workflow slug — the unique identifier within the org (e.g. release-notes)."),
@@ -117,7 +122,12 @@ export function registerWorkflowExecutionTools(server: McpServer, target: Backen
         "(Agent-execution approvals are not listed here — they surface in get_agent_execution's " +
         "status.pending_approvals.)",
       inputSchema: {
-        org: z.string().describe("Organization slug to scope the query (e.g. stigmer)."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug to scope the query (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
         page_size: z
           .number()
           .int()

@@ -2,9 +2,11 @@
 
 import { useMemo } from "react";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useSingleOrg } from "../server-info.js";
 import {
   PLATFORM_SETTINGS_NAV_GROUP,
   SETTINGS_NAV_GROUPS,
+  SINGLE_ORG_SETTINGS_NAV_GROUPS,
   type SettingsNavGroup,
 } from "./settings-nav.js";
 
@@ -17,7 +19,9 @@ const PLATFORM_RESOURCE = { kind: "platform", id: "stigmer" } as const;
 
 /**
  * Permission-aware settings navigation: {@link SETTINGS_NAV_GROUPS}
- * for everyone, plus the {@link PLATFORM_SETTINGS_NAV_GROUP} items the
+ * for everyone ({@link SINGLE_ORG_SETTINGS_NAV_GROUPS} on a server that
+ * holds one organization, which never names it), plus the
+ * {@link PLATFORM_SETTINGS_NAV_GROUP} items the
  * caller's platform permissions unlock (per-item `requiredPermission`,
  * checked against `platform:stigmer`). The group appears when at least
  * one of its items is visible.
@@ -73,6 +77,8 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
   const providerStandingAllowed = providerStanding.allowed;
   const licensesAllowed = licenses.allowed;
   const plansAllowed = plans.allowed;
+  const baseGroups =
+    useSingleOrg() === true ? SINGLE_ORG_SETTINGS_NAV_GROUPS : SETTINGS_NAV_GROUPS;
 
   return useMemo(() => {
     const verdicts: Record<string, boolean> = {
@@ -92,11 +98,11 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
     );
 
     if (visibleItems.length === 0) {
-      return SETTINGS_NAV_GROUPS;
+      return baseGroups;
     }
     return [
-      ...SETTINGS_NAV_GROUPS,
+      ...baseGroups,
       { ...PLATFORM_SETTINGS_NAV_GROUP, items: visibleItems },
     ];
-  }, [pricingAllowed, cursorAccountsAllowed, providerStandingAllowed, licensesAllowed, plansAllowed]);
+  }, [baseGroups, pricingAllowed, cursorAccountsAllowed, providerStandingAllowed, licensesAllowed, plansAllowed]);
 }

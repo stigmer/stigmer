@@ -16,6 +16,7 @@ import {
 import { UsageError } from "../errors/index.js";
 import { shouldColorize } from "../output/style.js";
 import { globalOrg } from "./shared.js";
+import { holdsOneOrganization, requireOrganization } from "../client/single-org.js";
 
 interface ConnectFlags {
   timeout?: string;
@@ -77,18 +78,16 @@ async function runConnect(
   ensureAuthenticated(client.config);
   const org = resolveOrganization(client.config, globalOrg(command));
 
-  // Connecting pushes to the backend, which requires an org for credential
-  // resolution. Fail with actionable guidance instead of the backend's cryptic
-  // "org value length must be at least 1" validation error. Dry-run discovers
-  // locally (no backend push) and needs no org for an id reference, so it is
-  // exempt — mirrors the org guard in run/resume.
-  if (options.dryRun !== true && org === "") {
-    throw new UsageError(
-      "organization not set\n\n" +
-        "Set it with:\n" +
-        "  stigmer config context set --org <org>\n" +
-        "  stigmer connect mcp-server <server> --org <org>",
-    );
+  // Connecting pushes to the backend, which needs an org for credential
+  // resolution on a server that holds several: fail with actionable guidance
+  // instead of the backend's validation error. Dry-run discovers locally (no
+  // backend push) and needs no org for an id reference, so it is exempt —
+  // mirrors the org guard in run/resume.
+  if (options.dryRun !== true) {
+    await requireOrganization(client.stigmer, org, [
+      "stigmer config context set --org <org>",
+      "stigmer connect mcp-server <server> --org <org>",
+    ]);
   }
 
   const result = await connectMcpServer(client.stigmer, {
@@ -108,6 +107,7 @@ async function runConnect(
     result,
     (line) => process.stdout.write(`${line}\n`),
     colorize,
+    await holdsOneOrganization(client.stigmer),
   );
 }
 

@@ -1,5 +1,6 @@
 export {
   SETTINGS_NAV_GROUPS,
+  SINGLE_ORG_SETTINGS_NAV_GROUPS,
   PLATFORM_SETTINGS_NAV_GROUP,
 } from "./settings-nav.js";
 export type { SettingsNavItem, SettingsNavGroup } from "./settings-nav.js";

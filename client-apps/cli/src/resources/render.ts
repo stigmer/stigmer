@@ -31,11 +31,21 @@ export interface TableShape {
   readonly row: (json: JsonObject) => readonly string[];
 }
 
-/** Render a single resource for a read verb (json/yaml = protojson; table = fields). */
-export function renderResource(schema: DescMessage, message: Message, format: OutputFormat): string {
+/** How the human field view renders: `hideOrg` leaves the Org line out (a server that holds one organization never names it). */
+export interface RenderFieldsOptions {
+  readonly hideOrg?: boolean;
+}
+
+/** Render a single resource for a read verb (json/yaml = protojson, always complete; table = fields). */
+export function renderResource(
+  schema: DescMessage,
+  message: Message,
+  format: OutputFormat,
+  options: RenderFieldsOptions = {},
+): string {
   if (format === "json") return renderProtoJson(schema, message);
   if (format === "yaml") return renderProtoYaml(schema, message);
-  return renderResourceFields(protoToJsonValue(schema, message));
+  return renderResourceFields(protoToJsonValue(schema, message), options);
 }
 
 /** Render a collection for a read verb (json/yaml = protojson array; table = grid). */
@@ -75,7 +85,7 @@ export function renderListMessage(
 }
 
 // Human field view of a resource's metadata envelope (+ common spec fields).
-function renderResourceFields(json: JsonValue): string {
+function renderResourceFields(json: JsonValue, options: RenderFieldsOptions): string {
   const obj = asObject(json);
   const metadata = asObject(obj.metadata);
   const spec = asObject(obj.spec);
@@ -84,7 +94,7 @@ function renderResourceFields(json: JsonValue): string {
   pushField(fields, "ID", metadata.id);
   pushField(fields, "Name", metadata.name);
   pushField(fields, "Slug", metadata.slug);
-  pushField(fields, "Org", metadata.org);
+  if (options.hideOrg !== true) pushField(fields, "Org", metadata.org);
   pushField(fields, "Visibility", metadata.visibility);
   pushField(fields, "Description", spec.description);
 

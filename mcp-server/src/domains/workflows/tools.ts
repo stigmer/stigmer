@@ -28,7 +28,12 @@ export function registerWorkflowTools(server: McpServer, target: BackendTarget):
         "that returns the version entry with its validated YAML rather than the live workflow. " +
         "Tags are not accepted here; resolve a tag to its hash via list_workflow_versions first.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the workflow."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the workflow. Leave empty on a server that holds one organization.",
+          ),
         slug: z.string().describe("Workflow slug — unique identifier within the org."),
         version: z
           .string()
@@ -65,7 +70,12 @@ export function registerWorkflowTools(server: McpServer, target: BackendTarget):
     {
       description: "Delete a Stigmer workflow by its org and slug. Returns the deleted workflow.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the workflow."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the workflow. Leave empty on a server that holds one organization.",
+          ),
         slug: z.string().describe("Workflow slug — unique identifier within the org."),
       },
     },
@@ -89,7 +99,12 @@ export function registerWorkflowTools(server: McpServer, target: BackendTarget):
         "immutable version identified by its content hash. Entries omit the version YAML — fetch " +
         "one version's full content with get_workflow and its hash.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the workflow."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the workflow. Leave empty on a server that holds one organization.",
+          ),
         slug: z.string().describe("Workflow slug — unique identifier within the org."),
         page_size: z
           .number()
@@ -122,7 +137,12 @@ export function registerWorkflowTools(server: McpServer, target: BackendTarget):
         "version holds at most one tag. Get version hashes from list_workflow_versions. Returns " +
         "the updated workflow.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the workflow."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the workflow. Leave empty on a server that holds one organization.",
+          ),
         slug: z.string().describe("Workflow slug — unique identifier within the org."),
         version: z.string().describe("Full 64-character SHA-256 hash of the version to tag."),
         tag: z

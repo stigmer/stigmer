@@ -19,7 +19,13 @@ import { AccountPreferencesPanel } from "../AccountPreferencesPanel";
 // about posture runs against a server that authenticates its callers.
 function answering(authenticationRequired: boolean | undefined): UseServerInfoReturn {
   return {
-    serverInfo: { deploymentMode: "cloud", edition: 1, version: "dev", authenticationRequired },
+    serverInfo: {
+      deploymentMode: "cloud",
+      edition: 1,
+      version: "dev",
+      authenticationRequired,
+      singleOrg: undefined,
+    },
     isLoading: false,
     error: null,
   };

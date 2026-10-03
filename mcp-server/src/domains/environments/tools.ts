@@ -29,7 +29,12 @@ export function registerEnvironmentTools(server: McpServer, target: BackendTarge
         "declarations. Secret values are redacted to ***REDACTED*** — they can never be read " +
         "back through this tool.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the environment (e.g. stigmer)."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the environment (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
         slug: z
           .string()
           .describe("Environment slug — the unique identifier within the org (e.g. github-creds)."),
@@ -65,7 +70,12 @@ export function registerEnvironmentTools(server: McpServer, target: BackendTarge
         "Delete a Stigmer environment by its org and slug. Returns the deleted environment. " +
         "Agents and workflows referencing it will fail to resolve their variables at run time.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the environment (e.g. stigmer)."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the environment (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
         slug: z
           .string()
           .describe("Environment slug — the unique identifier within the org (e.g. github-creds)."),

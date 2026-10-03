@@ -18,7 +18,6 @@ import { type Config, load as loadConfig } from "../../config/config.js";
 import { log } from "../../logger.js";
 import { CliExitError } from "../../errors/cli-exit-error.js";
 import { ExitCode } from "../../errors/exit-codes.js";
-import { bootstrapLocalBackend } from "../bootstrap.js";
 import { DAEMON_PID_FILE, SERVER_PORT } from "../constants.js";
 import { tcpConnects, waitForTcp } from "../net/tcp.js";
 import { dataDir, logDir } from "../paths.js";
@@ -72,8 +71,6 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
 
   await waitForTcp({ port: SERVER_PORT, timeoutMs: READY_TIMEOUT_MS, label: "stigmer-server" });
 
-  await bootstrapLocalBackend();
-
   saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, daemonPid, options));
 }
 
@@ -83,11 +80,9 @@ export interface UpForegroundDeps {
   runDaemon?: (deps: InternalDaemonDeps) => Promise<number>;
   /** Resolves when the stack should shut down (default: the first SIGTERM/SIGINT). */
   waitForShutdown?: () => Promise<void>;
-  /** Post-readiness bootstrap (default: `bootstrapLocalBackend`, which ensures the `stigmer` org). */
-  bootstrap?: () => Promise<void>;
   /** Receives each line the server and runner write (default: a `[component]`-prefixed stdout mirror). */
   mirror?: OutputMirror;
-  /** Invoked once the stack is serving and bootstrapped — the moment a detached `up` would have returned. */
+  /** Invoked once the stack is serving — the moment a detached `up` would have returned. */
   onReady?: () => void | Promise<void>;
 }
 
@@ -100,8 +95,9 @@ export interface UpForegroundDeps {
  * `up`, so `stigmer status` and `stigmer down` from another shell see an
  * ordinary daemon whose PID happens to be ours. The children receive the very
  * environment a detached daemon would have inherited, and what a detached `up`
- * does once the server answers — the bootstrap, the startup record — happens in
- * `onStarted`, at the same point in the stack's life.
+ * does once the server answers — the startup record — happens in `onStarted`,
+ * at the same point in the stack's life. The server makes its own
+ * organization before it answers, so there is nothing else to do.
  */
 export async function upForeground(
   options: UpOptions = {},
@@ -110,7 +106,6 @@ export async function upForeground(
 ): Promise<number> {
   const { data, logs, temporalAddress, env } = await prepareLaunch(options, home);
   const runDaemon = deps.runDaemon ?? runInternalDaemon;
-  const bootstrap = deps.bootstrap ?? bootstrapLocalBackend;
 
   return runDaemon({
     config: readDaemonConfig(env),
@@ -118,7 +113,6 @@ export async function upForeground(
     host: new NodeProcessHost({ mirror: deps.mirror ?? mirrorToStdout }),
     waitForShutdown: deps.waitForShutdown ?? waitForShutdownSignal,
     onStarted: async () => {
-      await bootstrap();
       saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, process.pid, options));
       await deps.onReady?.();
     },

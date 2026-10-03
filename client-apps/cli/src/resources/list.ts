@@ -44,6 +44,7 @@ import {
   str,
   type TableShape,
 } from "./render.js";
+import { requireOrganization } from "../client/single-org.js";
 
 // Kinds that list through the SearchService (list mode: empty query, org
 // scope). Must stay in step with the server's SearchableKinds allowlist
@@ -163,14 +164,14 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   [
     ApiResourceKind.schedule,
     async (client, org, limit) => {
-      // ListSchedulesRequest requires an org (min_len 1), but an unset cloud
-      // context resolves to "" — refuse with actionable copy instead of
-      // relaying the server's raw validation error.
-      if (org === "") {
-        throw new UsageError(
-          "schedules are org-scoped: pass --org <slug> or configure an organization context",
-        );
-      }
+      // ListSchedulesRequest requires an org (min_len 1): a server that holds
+      // one fills it, and on one that holds several an unset context is
+      // refused with actionable copy instead of the server's raw validation
+      // error.
+      await requireOrganization(client, org, [
+        "stigmer list schedules --org <org>",
+        "stigmer config context set --org <org>",
+      ]);
       const result = await client.schedule.list(
         create(ListSchedulesRequestSchema, {
           org,

@@ -38,6 +38,7 @@ import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { isAgentId } from "./reference.js";
 import { resolveAgentRef } from "./run/resolve.js";
+import { requireOrganization } from "../client/single-org.js";
 
 /** Who can chat over the shared link. Mirrors the SDK's SharingAudience. */
 export type ShareAudience = "public" | "org";
@@ -81,15 +82,13 @@ export async function shareAgent(
   org: string,
   options: ShareAgentOptions,
 ): Promise<CommandResult> {
-  // Fail fast with actionable guidance instead of the backend's cryptic
-  // "org value length must be at least 1" — mirrors the connect org guard.
-  if (org === "" && !isAgentId(ref) && !ref.includes("/")) {
-    throw new UsageError(
-      "organization not set\n\n" +
-        "Set it with:\n" +
-        "  stigmer config context set --org <org>\n" +
-        `  stigmer share agent ${ref} --org <org>`,
-    );
+  // Fail fast with actionable guidance instead of the backend's validation
+  // error, on a server that needs an org — mirrors the connect org guard.
+  if (!isAgentId(ref) && !ref.includes("/")) {
+    await requireOrganization(client, org, [
+      "stigmer config context set --org <org>",
+      `stigmer share agent ${ref} --org <org>`,
+    ]);
   }
 
   const agent = await resolveAgentRef(client, ref, org);

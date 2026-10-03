@@ -6,6 +6,7 @@
 // are dynamically imported inside the action so `--help` stays fast (DD-001).
 
 import type { Command } from "commander";
+import { holdsOneOrganization } from "../client/single-org.js";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import type { OutputFlags } from "../output/index.js";
@@ -70,8 +71,11 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
   }
 
   const parsed = parseReference(reference, org, info.idPrefix);
-  const { schema, message } = await fetchResource(client.stigmer, info.kind, parsed);
-  process.stdout.write(renderResource(schema, message, readFormat(options)));
+  const [{ schema, message }, hideOrg] = await Promise.all([
+    fetchResource(client.stigmer, info.kind, parsed),
+    holdsOneOrganization(client.stigmer),
+  ]);
+  process.stdout.write(renderResource(schema, message, readFormat(options), { hideOrg }));
 }
 
 async function runGetExecution(reference: string, options: GetFlags, command: Command): Promise<void> {
@@ -87,8 +91,11 @@ async function runGetExecution(reference: string, options: GetFlags, command: Co
   // resolves agent-vs-workflow by prefix and throws a usage error otherwise.
   void globalOrg(command);
 
-  const { schema, message } = await getExecution(client.stigmer, reference);
-  process.stdout.write(renderResource(schema, message, readFormat(options)));
+  const [{ schema, message }, hideOrg] = await Promise.all([
+    getExecution(client.stigmer, reference),
+    holdsOneOrganization(client.stigmer),
+  ]);
+  process.stdout.write(renderResource(schema, message, readFormat(options), { hideOrg }));
 }
 
 // Splits "org/slug" into its parts; a bare token uses the resolved org context.

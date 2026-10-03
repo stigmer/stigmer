@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ListParams, ListResult } from "@stigmer/sdk";
@@ -26,6 +26,8 @@ import { BulkActionBar } from "./BulkActionBar.js";
 import { ResourceInspector } from "./ResourceInspector.js";
 import { EmptyState } from "../../empty-state/index.js";
 import { ResourceAvatar } from "./ResourceAvatar.js";
+import { useSingleOrg } from "../../server-info.js";
+import { ORG_COLUMN_ID } from "../types.js";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -259,6 +261,18 @@ export function ResourceWorkbench<TData = SearchResult>({
     setPage(1);
   }
 
+  // --- Columns -----------------------------------------------------------
+  // A server that holds one organization never names it: its organization
+  // column goes (ORG_COLUMN_ID).
+  const singleOrg = useSingleOrg();
+  const shownColumns = useMemo(
+    () =>
+      singleOrg === true
+        ? columns.filter((column) => column.id !== ORG_COLUMN_ID)
+        : columns,
+    [columns, singleOrg],
+  );
+
   // --- Collection data ---------------------------------------------------
   const collection = useResourceCollection<TData>({
     listFn: listFn as ((params: ListParams) => Promise<ListResult>) | null,
@@ -267,7 +281,7 @@ export function ResourceWorkbench<TData = SearchResult>({
     page,
     sort: filtersHook.sort,
     onSortChange: filtersHook.setSort,
-    columns: columns as WorkbenchColumnDef<TData>[],
+    columns: shownColumns as WorkbenchColumnDef<TData>[],
     enableSelection,
     getItemId,
     refetchToken,

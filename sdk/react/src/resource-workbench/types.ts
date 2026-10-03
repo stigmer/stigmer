@@ -37,8 +37,19 @@ export type StatusPhase =
  * Generic over `TData` so platform builders can use richer item types
  * beyond `SearchResult` while the Console uses `SearchResult` directly.
  */
+/**
+ * The id of a column that shows each row's organization. The workbench
+ * leaves it out on a server that holds one organization
+ * (`ServerInfo.singleOrg`), where nobody names it.
+ */
+export const ORG_COLUMN_ID = "org";
+
 export interface WorkbenchColumnDef<TData = SearchResult> {
-  /** Stable column identifier (used for visibility persistence and URL state). */
+  /**
+   * Stable column identifier (used for visibility persistence and URL
+   * state). {@link ORG_COLUMN_ID} marks the column that shows the row's
+   * organization.
+   */
   readonly id: string;
   /** Column header label. */
   readonly header: string;

@@ -23,7 +23,12 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
         "Get full details of a Stigmer skill by org and slug, optionally at a specific version. " +
         "Omit 'version' for the latest.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the skill."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the skill. Leave empty on a server that holds one organization.",
+          ),
         slug: z.string().describe("Skill slug — unique identifier within the org."),
         version: z
           .string()
@@ -50,7 +55,12 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
       description:
         "Delete a Stigmer skill and all its versions by org and slug. To create or update skills, use the 'stigmer skill push' CLI command. Returns the deleted skill.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the skill (e.g. stigmer)."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the skill (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
         slug: z
           .string()
           .describe(
@@ -72,7 +82,12 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
         "when, and which version is current. Fetch one version's full content with get_skill and " +
         "its hash or tag.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the skill."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the skill. Leave empty on a server that holds one organization.",
+          ),
         slug: z.string().describe("Skill slug — unique identifier within the org."),
         page_size: z
           .number()

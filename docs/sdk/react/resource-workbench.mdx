@@ -637,6 +637,13 @@ A single active filter value applied to the collection.
 />
 
 
+### ORG_COLUMN_ID
+
+The id of a column that shows each row's organization. The workbench
+leaves it out on a server that holds one organization
+(`ServerInfo.singleOrg`), where nobody names it.
+
+
 ### ResourceAction
 
 A single action available for a resource item (shown in context menus).
@@ -739,18 +746,13 @@ Available layout modes for the resource workbench.
 
 ### WorkbenchColumnDef
 
-Defines a single column in the [`ResourceTable`](#resourcetable).
-
-Generic over `TData` so platform builders can use richer item types
-beyond `SearchResult` while the Console uses `SearchResult` directly.
-
 <TypeTable
   type={{
     cell: { type: "(item: TData) => ReactNode", description: "Accessor function that extracts the cell value from a row item. Return a `ReactNode` for custom cell rendering.", required: true },
     defaultVisible: { type: "boolean", description: "Whether this column is visible by default. Users can toggle visibility via column preferences." },
     flex: { type: "number", description: "Relative flex weight for distributing remaining horizontal space. Columns with higher weight receive more space." },
     header: { type: "string", description: "Column header label.", required: true },
-    id: { type: "string", description: "Stable column identifier (used for visibility persistence and URL state).", required: true },
+    id: { type: "string", description: "Stable column identifier (used for visibility persistence and URL state). ORG_COLUMN_ID marks the column that shows the row's organization.", required: true },
     minWidth: { type: "number", description: "Minimum column width in pixels. The table uses this as a CSS `min-width` to prevent content collapse." },
     sortable: { type: "boolean", description: "Whether this column is sortable. When `true`, clicking the header toggles sort direction." },
   }}

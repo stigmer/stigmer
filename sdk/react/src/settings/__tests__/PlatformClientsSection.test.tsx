@@ -78,6 +78,7 @@ function answering(
       edition: 1,
       version: "dev",
       authenticationRequired,
+      singleOrg: undefined,
     },
     isLoading: false,
     error: null,

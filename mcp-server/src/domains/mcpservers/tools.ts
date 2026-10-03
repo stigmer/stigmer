@@ -22,7 +22,12 @@ export function registerMcpServerTools(server: McpServer, target: BackendTarget)
       description:
         "Get full details of a Stigmer MCP server by its org and slug (e.g. org=acme slug=my-server).",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the MCP server (e.g. acme)."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the MCP server (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
         slug: z
           .string()
           .describe("MCP server slug — the unique identifier within the org (e.g. my-server)."),
@@ -53,7 +58,12 @@ export function registerMcpServerTools(server: McpServer, target: BackendTarget)
       description:
         "Delete a Stigmer MCP server definition by its org and slug. Returns the deleted MCP server.",
       inputSchema: {
-        org: z.string().describe("Organization slug that owns the MCP server (e.g. acme)."),
+        org: z
+          .string()
+          .default("")
+          .describe(
+            "Organization slug that owns the MCP server (e.g. acme). Leave empty on a server that holds one organization.",
+          ),
         slug: z
           .string()
           .describe("MCP server slug — the unique identifier within the org (e.g. github)."),

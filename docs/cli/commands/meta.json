@@ -8,7 +8,6 @@
     "run",
     "usage",
     "---Lifecycle---",
-    "bootstrap",
     "down",
     "logs",
     "reset",

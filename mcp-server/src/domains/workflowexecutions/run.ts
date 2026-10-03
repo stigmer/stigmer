@@ -40,7 +40,10 @@ export async function runWorkflow(
   token: string,
   args: RunWorkflowArgs,
 ): Promise<string> {
-  const desc = `workflow "${args.workflow}" in org "${args.org}"`;
+  const desc =
+    args.org === ""
+      ? `workflow "${args.workflow}"`
+      : `workflow "${args.workflow}" in org "${args.org}"`;
   return withTransport(serverAddress, token, async (transport, callOptions) => {
     const query = createClient(WorkflowQueryController, transport);
     let workflowId: string;
@@ -55,9 +58,10 @@ export async function runWorkflow(
     }
 
     // Workflow tasks resolve their org through the runtime env; the CLI
-    // injects STIGMER_ORG the same way, so a caller-supplied value wins.
+    // injects STIGMER_ORG the same way, so a caller-supplied value wins. No
+    // org named (a server that holds one fills it) injects nothing.
     const runtimeEnv = toExecutionValues(args.runtimeEnv);
-    if (runtimeEnv.STIGMER_ORG === undefined) {
+    if (runtimeEnv.STIGMER_ORG === undefined && args.org !== "") {
       runtimeEnv.STIGMER_ORG = createMessage(ExecutionValueSchema, {
         value: args.org,
         isSecret: false,

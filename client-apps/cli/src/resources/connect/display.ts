@@ -11,12 +11,19 @@ export type ConnectSink = (line: string) => void;
 
 const NAME_COLUMN = 30;
 
-export function renderConnectResult(result: ConnectResult, sink: ConnectSink, colorize: boolean): void {
+export function renderConnectResult(
+  result: ConnectResult,
+  sink: ConnectSink,
+  colorize: boolean,
+  hideOrg = false,
+): void {
   const style = styler(colorize);
   const meta = result.server.metadata;
 
   sink("");
-  sink(style.cyan(`MCP Server: ${meta?.org ?? ""}/${meta?.name ?? ""}`));
+  // A server that holds one organization never names it.
+  const name = meta?.name ?? "";
+  sink(style.cyan(`MCP Server: ${hideOrg ? name : `${meta?.org ?? ""}/${name}`}`));
   sink(transportLine(result.server));
   sink("");
 

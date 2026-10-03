@@ -8,22 +8,13 @@
 
 import { CliExitError, ExitCode } from "../errors/index.js";
 import { SERVER_PORT } from "../local/constants.js";
-import { type Config, activeBackend, isCloudMode } from "./config.js";
+import { type Config, activeBackend } from "./config.js";
 
 const DEFAULT_CLOUD_ENDPOINT = "api.stigmer.ai:443";
 const DEFAULT_LOCAL_ENDPOINT = "localhost:7234";
 
 /** Well-known URL for the Stigmer Cloud web console. */
 export const DEFAULT_CLOUD_CONSOLE_URL = "https://app.stigmer.ai";
-
-/**
- * The organization a local or selfhost backend falls back to when nothing
- * names one, so bare-slug `get`/`run`/`apply` resolve without ceremony.
- * `stigmer up` creates it on the local stack and `stigmer bootstrap` on a raw
- * self-hosted server (local/bootstrap.ts). Cloud mode has no implicit org —
- * the caller must select one (flag/env/context/login).
- */
-export const DEFAULT_LOCAL_ORG = "stigmer";
 
 /**
  * Resolve the server endpoint.
@@ -95,11 +86,11 @@ export function resolveOrganization(config: Config, flagOrg?: string): string {
   if (context !== "") {
     return context;
   }
-  // Nothing configured: local and selfhost fall back to the single-tenant
-  // default org so bare-slug operations resolve without ceremony; cloud
-  // stays empty (the caller must select an org, e.g. apply raises a clear
-  // "organization not set").
-  return isCloudMode(config) ? "" : DEFAULT_LOCAL_ORG;
+  // Nothing names one: the CLI never invents an organization. A server that
+  // holds one fills it into every request that names none (its
+  // getServerInfo answers single_org); a server that holds several refuses
+  // the request, and the commands that need one say so first.
+  return "";
 }
 
 /**

@@ -16,6 +16,7 @@ import {
   resolveContextOrganization,
 } from "../../config/index.js";
 import { CommandResult } from "../../output/index.js";
+import { holdsOneOrganization } from "../../client/single-org.js";
 
 /** What the call learned beyond the account itself. */
 export interface WhoamiContext {
@@ -23,6 +24,8 @@ export interface WhoamiContext {
   readonly created: boolean;
   /** The organization the CLI context resolves to; "" when none is set. */
   readonly org: string;
+  /** The server holds one organization and fills it, so the CLI never names one. */
+  readonly singleOrg: boolean;
 }
 
 /**
@@ -61,12 +64,15 @@ export function whoamiResult(
     );
   }
 
-  if (context.org !== "") {
-    section.field("Organization", context.org);
-  } else {
-    result.hint(
-      "No organization set. Use: stigmer config context set --org <slug>",
-    );
+  // A server that holds one organization fills it: nothing to show or set.
+  if (!context.singleOrg) {
+    if (context.org !== "") {
+      section.field("Organization", context.org);
+    } else {
+      result.hint(
+        "No organization set. Use: stigmer config context set --org <slug>",
+      );
+    }
   }
 
   return result;
@@ -83,5 +89,6 @@ export async function runWhoami(): Promise<CommandResult> {
   return whoamiResult(account, {
     created,
     org: resolveContextOrganization(client.config),
+    singleOrg: await holdsOneOrganization(client.stigmer),
   });
 }

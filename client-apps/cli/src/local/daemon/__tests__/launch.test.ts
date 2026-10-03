@@ -1,7 +1,7 @@
 // Pins the foreground launcher's contract with the daemon body: the config it
 // hands over is the detached shape's, encoded through the same env contract;
 // the children inherit that built environment; the post-readiness work (the
-// bootstrap, the startup record, the caller's onReady) runs from onStarted;
+// startup record, the caller's onReady) runs from onStarted;
 // the daemon's exit code is the launcher's. Resolution is driven through the
 // same overrides a container sets (STIGMER_SERVER_DIR, STIGMER_RUNNER_DIR,
 // STIGMER_TEMPORAL_BIN), so nothing is downloaded or installed.
@@ -59,7 +59,7 @@ afterEach(() => {
 });
 
 describe.skipIf(serverPortBusy)("upForeground", () => {
-  it("runs the daemon body in-process with the detached shape's config and env, bootstrapping from onStarted", async () => {
+  it("runs the daemon body in-process with the detached shape's config and env, finishing from onStarted", async () => {
     const home = tempDir("stigmer-fg-home-");
     process.env.ANTHROPIC_API_KEY = "sk-test";
     const order: string[] = [];
@@ -73,9 +73,6 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
         order.push("daemon:waiting");
         return 0;
       },
-      bootstrap: async () => {
-        order.push("bootstrap");
-      },
       onReady: () => {
         order.push("onReady");
       },
@@ -83,7 +80,7 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
     });
 
     expect(code).toBe(0);
-    expect(order).toEqual(["daemon:started", "bootstrap", "onReady", "daemon:waiting"]);
+    expect(order).toEqual(["daemon:started", "onReady", "daemon:waiting"]);
 
     const deps = captured as unknown as InternalDaemonDeps;
     // The config is the env contract read back — the detached daemon's view.
@@ -100,19 +97,19 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
     expect(loadStartupConfig(join(home, ".stigmer", "data"))?.stigmer_server_pid).toBe(process.pid);
   });
 
-  it("propagates the daemon's failure exit code without bootstrapping", async () => {
+  it("propagates the daemon's failure exit code without reporting ready", async () => {
     const home = tempDir("stigmer-fg-home-");
-    const bootstrap = vi.fn(async () => {});
+    const onReady = vi.fn();
 
     const code = await upForeground({}, home, {
       // A critical component failed to start: the body returns 1 before onStarted.
       runDaemon: async () => 1,
-      bootstrap,
+      onReady,
       waitForShutdown: () => Promise.resolve(),
     });
 
     expect(code).toBe(1);
-    expect(bootstrap).not.toHaveBeenCalled();
+    expect(onReady).not.toHaveBeenCalled();
     expect(loadStartupConfig(join(home, ".stigmer", "data"))).toBeNull();
   });
 
@@ -125,7 +122,6 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
         captured = deps;
         return 0;
       },
-      bootstrap: async () => {},
       waitForShutdown: () => Promise.resolve(),
     });
 

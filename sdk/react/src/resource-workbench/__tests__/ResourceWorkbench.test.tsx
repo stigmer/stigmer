@@ -6,7 +6,17 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ResourceWorkbench } from "../components/ResourceWorkbench";
 import { useResourceCollection } from "../hooks/useResourceCollection";
 
-afterEach(cleanup);
+// Whether the server holds one organization, as useSingleOrg reports it.
+let singleOrg: boolean | undefined = false;
+
+vi.mock("../../server-info.js", () => ({
+  useSingleOrg: () => singleOrg,
+}));
+
+afterEach(() => {
+  cleanup();
+  singleOrg = false;
+});
 
 function Wrapper({ children }: { children: ReactNode }) {
   return (
@@ -55,6 +65,41 @@ describe("ResourceWorkbench searchable prop", () => {
 
     await waitFor(() => expect(screen.getByText("No resources found")).toBeTruthy());
     expect(screen.queryByRole("textbox")).toBeNull();
+  });
+});
+
+describe("ResourceWorkbench on a server that holds one organization", () => {
+  const rows = [{ id: "agt_a", name: "Helper", org: "stigmer" }];
+  const columns = [
+    { id: "name", header: "Name", cell: (row: (typeof rows)[number]) => row.name },
+    { id: "org", header: "Organization", cell: (row: (typeof rows)[number]) => row.org },
+  ];
+
+  function renderTable() {
+    render(
+      <ResourceWorkbench
+        listFn={listFnReturning(rows)}
+        org=""
+        columns={columns}
+        viewModes={["table"]}
+        defaultViewMode="table"
+      />,
+      { wrapper: Wrapper },
+    );
+  }
+
+  it("leaves the organization column out", async () => {
+    singleOrg = true;
+    renderTable();
+    await waitFor(() => expect(screen.getByText("Helper")).toBeTruthy());
+    expect(screen.queryByRole("columnheader", { name: "Organization" })).toBeNull();
+    expect(screen.queryByText("stigmer")).toBeNull();
+  });
+
+  it("keeps it on a server that holds several", async () => {
+    renderTable();
+    await waitFor(() => expect(screen.getByText("Helper")).toBeTruthy());
+    expect(screen.getByRole("columnheader", { name: "Organization" })).toBeTruthy();
   });
 });
 

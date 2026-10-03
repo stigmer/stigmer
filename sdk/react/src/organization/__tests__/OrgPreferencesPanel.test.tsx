@@ -16,7 +16,13 @@ import { OrgPreferencesPanel } from "../OrgPreferencesPanel";
 // posture runs against a server that authenticates its callers.
 function answering(authenticationRequired: boolean): UseServerInfoReturn {
   return {
-    serverInfo: { deploymentMode: "local", edition: 1, version: "dev", authenticationRequired },
+    serverInfo: {
+      deploymentMode: "local",
+      edition: 1,
+      version: "dev",
+      authenticationRequired,
+      singleOrg: undefined,
+    },
     isLoading: false,
     error: null,
   };
