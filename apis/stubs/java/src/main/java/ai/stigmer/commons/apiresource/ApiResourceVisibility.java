@@ -88,8 +88,8 @@ public enum ApiResourceVisibility
    *
    * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
    * (Before cloud#257 the tuple targeted organization#member, which
-   * excluded viewer-role users; legacy tuples keep resolving until the
-   * cloud's boot-time backfill converges them.)
+   * excluded viewer-role users; the authorization model no longer admits
+   * that shape.)
    *
    * For workflow instances, this enables zero-tuple-per-execution shared
    * observability: everyone in the org sees all executions via inheritance
@@ -190,8 +190,8 @@ public enum ApiResourceVisibility
    *
    * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
    * (Before cloud#257 the tuple targeted organization#member, which
-   * excluded viewer-role users; legacy tuples keep resolving until the
-   * cloud's boot-time backfill converges them.)
+   * excluded viewer-role users; the authorization model no longer admits
+   * that shape.)
    *
    * For workflow instances, this enables zero-tuple-per-execution shared
    * observability: everyone in the org sees all executions via inheritance

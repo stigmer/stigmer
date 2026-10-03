@@ -21,7 +21,9 @@
  *     a changed subject with FAILED_PRECONDITION (the schedule domain's
  *     immutability shape);
  *   - the byte-pinned NOT_FOUND copy on get / getByEmail / getByIdpId /
- *     whoAmI; getActorInfo names the account;
+ *     whoAmI; getActorInfo names the account the way its audit stamps
+ *     do (stigmer/stigmer#1226): its first and last name, or its own
+ *     name (a provisioned account's is its email) when it has neither;
  *   - the four federation RPCs refuse UNIMPLEMENTED with the edition
  *     reason when no unit composes the capability — never INTERNAL.
  *
@@ -118,6 +120,8 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     id?: string;
     idpId?: string;
     email?: string;
+    firstName?: string;
+    lastName?: string;
     isMachineAccount?: boolean;
     provisioningMode?: IdentityAccountProvisioningMode;
   }) {
@@ -133,8 +137,8 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
       spec: {
         idpId,
         email: overrides?.email ?? `person${seq}@example.com`,
-        firstName: "Test",
-        lastName: `Person${seq}`,
+        firstName: overrides?.firstName ?? "Test",
+        lastName: overrides?.lastName ?? `Person${seq}`,
         ...(overrides?.isMachineAccount !== undefined
           ? { isMachineAccount: overrides.isMachineAccount }
           : {}),
@@ -390,13 +394,34 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
 
     it("getActorInfo names the account the way audit stamps do", async () => {
       const created = await platform.create(
-        accountInput({ idpId: "auth0|actor", email: "actor@example.com" }),
+        accountInput({
+          idpId: "auth0|actor",
+          email: "actor@example.com",
+          firstName: "Ada",
+          lastName: "Lovelace",
+        }),
       );
       const actor = await query.getActorInfo({
         value: created.metadata?.id ?? "",
       });
       expect(actor.id).toBe(created.metadata?.id);
       expect(actor.email).toBe("actor@example.com");
+      expect(actor.displayName).toBe("Ada Lovelace");
+    });
+
+    it("getActorInfo names an account with no first or last name by its own name, never empty", async () => {
+      const created = await platform.create(
+        accountInput({
+          idpId: "auth0|unnamed-actor",
+          email: "unnamed@example.com",
+          firstName: "",
+          lastName: "",
+        }),
+      );
+      const actor = await query.getActorInfo({
+        value: created.metadata?.id ?? "",
+      });
+      expect(actor.displayName).toBe("unnamed@example.com");
     });
 
     it("the whoAmI copy is the cloud's sentence (asserted through the constant the handler throws)", () => {

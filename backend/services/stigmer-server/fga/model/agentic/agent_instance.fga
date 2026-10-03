@@ -14,7 +14,7 @@ module agentic
 #   PRIVATE  — no viewer tuples beyond owner. Only owner can access.
 #   ORG      — agent_instance#viewer@organization:<org>#viewer tuple written.
 #              Everyone in the org gets viewer access (all roles satisfy
-#              organization#viewer; #member is the legacy pre-2026-08-11 shape).
+#              organization#viewer).
 #
 # DEFAULT instances are different — structural inheritance, not tuples:
 # Every agent has exactly one system-managed default instance (the empty
@@ -82,13 +82,11 @@ type agent_instance
     # - identity_account: explicit individual grants
     # - organization#viewer: everyone in the org (ORG visibility — the shape
     #   written since 2026-08-11; every role satisfies it)
-    # - organization#member: legacy pre-2026-08-11 ORG shape (kept resolving
-    #   until the boot backfill converges stored tuples)
     # - team#member: an Enterprise team's grant, every member, bounded by
     #   the organization in team.fga
     # Default instances additionally inherit the parent agent's full viewer
     # set through `viewer from default_of` (see default_of above).
-    define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or viewer from default_of
+    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or viewer from default_of
     
     # ========================================
     # PERMISSIONS

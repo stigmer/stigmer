@@ -21,6 +21,8 @@ export interface LicenseFixture {
   readonly features?: readonly Feature[];
   readonly ticket?: string;
   readonly notes?: string;
+  /** Who issued it, as the audit stamp names them; the platform operator when absent. */
+  readonly issuer?: { readonly displayName: string; readonly email: string };
 }
 
 export function license(f: LicenseFixture): License {
@@ -52,7 +54,11 @@ export function license(f: LicenseFixture): License {
       ticket: f.ticket ?? "",
       audit: {
         specAudit: {
-          createdBy: { id: "ida_operator", email: "operator@stigmer.test", displayName: "Platform Operator" },
+          createdBy: {
+            id: "ida_operator",
+            email: f.issuer?.email ?? "operator@stigmer.test",
+            displayName: f.issuer?.displayName ?? "Platform Operator",
+          },
           createdAt: timestampFromDate(new Date(f.issuedAt)),
         },
       },

@@ -69,22 +69,18 @@ enum IamPermission {
 
   // Platform-level permissions.
   can_bootstrap_iam = 17;
-  can_manage_identity_accounts = 18;
-
-  // Back-office access permission.
-  login_to_back_office = 20;
 
   // MCP server connect permission.
   can_connect = 22;
 
-  // Organization-level runner create permission.
-  can_create_runner = 25;
-
-  // Deprecated: session deletion is authorized via can_delete on the
-  // session itself (owner-only). This platform-level permission is no
-  // longer referenced by any RPC or FGA relation; the value is retained
-  // because enum value removal is a breaking change.
-  can_delete_session = 26 [deprecated = true];
+  // Values 18, 20, 25 and 26 held can_manage_identity_accounts,
+  // login_to_back_office, can_create_runner and can_delete_session. No RPC,
+  // pipeline step or authorization model relation asked any of them (the
+  // last three named a relation no type defined), so they answered nothing.
+  // Reserved so the numbers and names are never reused for different
+  // permissions.
+  reserved 18, 20, 25, 26;
+  reserved "can_manage_identity_accounts", "login_to_back_office", "can_create_runner", "can_delete_session";
 
   // Billing permissions (org-scoped).
   can_view_billing = 27;
@@ -98,9 +94,9 @@ enum IamPermission {
   // organization.
   //
   // @internal
-  // Asked on every share create beside can_edit on the shared agent: a
-  // share spends the organization's credits on the open internet, an
-  // admin-level act, whichever agent it offers. A share's agent lives in
+  // Asked on every share create beside can_manage_audience on the shared
+  // agent: a share spends the organization's credits on the open internet,
+  // an admin-level act, whichever agent it offers. A share's agent lives in
   // the share's own organization (the AgentShare spec), so the two
   // questions are always one organization's.
   can_create_agent_share = 30;

@@ -21,6 +21,10 @@
  *     of what a person can be granted and never ownership, so the grant
  *     step and the model cannot disagree about where a team may be
  *     granted;
+ *   - an organization is admitted only as its whole read audience,
+ *     `organization#viewer`: a narrower role's userset (the retired
+ *     `organization#member` read grant) would leave out every viewer-role
+ *     member, and the model's README names the shape as one to avoid;
  *   - the derived rules are exactly the three relations `kind_meta` cannot
  *     derive;
  *   - a kind whose authorization is its parent's whole
@@ -292,6 +296,12 @@ function isPerson(subject: SubjectType): boolean {
   return subject.form === "object" && subject.type === "identity_account";
 }
 
+function isOrganizationUserset(
+  subject: SubjectType,
+): subject is Extract<SubjectType, { readonly form: "userset" }> {
+  return subject.form === "userset" && subject.type === "organization";
+}
+
 function isTeamMembers(subject: SubjectType): boolean {
   return subject.form === "userset" && subject.type === "team" && subject.relation === "member";
 }
@@ -378,6 +388,20 @@ describe("the built-in model", () => {
         .sort();
       expect(admitsTeam, declaration.type).toEqual(contract);
     }
+  });
+
+  it("admits an organization only as its whole read audience, organization#viewer, never a narrower role's userset", () => {
+    const narrower: string[] = [];
+    for (const declaration of builtInModel.declarations) {
+      for (const [relation, rewrite] of declaration.relations) {
+        for (const subject of directSubjects(rewrite).filter(isOrganizationUserset)) {
+          if (subject.relation !== "viewer") {
+            narrower.push(`${declaration.type}#${relation} admits organization#${subject.relation}`);
+          }
+        }
+      }
+    }
+    expect(narrower.sort()).toEqual([]);
   });
 
   it("stores every role a kind lets a person hold as a relation that admits the person directly — the model and the contract say one thing", () => {

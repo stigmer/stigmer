@@ -157,10 +157,12 @@ export function LicenseDetail({
         <Row label="Issued">
           {issuedAt ? <Instant date={issuedAt}>{formatInstantUtc(issuedAt)}</Instant> : "Unknown"}
           {/* The audit names the account, not only its role-like display name:
-              with several operators, "who issued this contract" needs the address. */}
+              with several operators, "who issued this contract" needs the address.
+              An account with no name of its own is called by its email, so
+              the address is shown once. */}
           {issuer && (issuer.email || issuer.displayName) && (
             <span className="stg:block stg:text-muted-foreground">
-              {issuer.displayName && issuer.email
+              {issuer.displayName && issuer.email && issuer.displayName !== issuer.email
                 ? `by ${issuer.displayName} (${issuer.email})`
                 : `by ${issuer.displayName || issuer.email}`}
             </span>

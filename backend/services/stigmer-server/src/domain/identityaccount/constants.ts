@@ -52,8 +52,11 @@ export function accountIdFor(idpId: string): string {
 /**
  * Whether `id` has an account id's shape, `ida_<...>`: a derived id and a
  * minted one share it (see the header). A shape test, not an existence
- * check. Its one use is to skip a read that could only miss, since no
- * account carries an account id as its subject (resolve.ts).
+ * check. Two uses: skipping a read that could only miss, since no
+ * account carries an account id as its subject (resolve.ts); and telling
+ * a key whose owner account was deleted from one whose owner was never
+ * provisioned, when its creator stamp names no account
+ * (domain/apikey/verifier.ts).
  */
 export function isAccountIdShaped(id: string): boolean {
   return id.startsWith(`${ACCOUNT_ID_PREFIX}_`);

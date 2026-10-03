@@ -23,7 +23,7 @@
  * The engine speaks the CONTRACT's vocabulary, not a backend's (Q-S3-1,
  * 2026-09-13): `ApiResourceRef` for a principal or resource (kind = the
  * enum member name, id, and for a principal an optional relation — the
- * userset form `organization:X#member`), `IamPolicySpec` for a policy and
+ * userset form `organization:X#viewer`), `IamPolicySpec` for a policy and
  * for the what-if policies every query may carry, and the relation and
  * kind strings as the wire sends them. The cloud's driver renders these to
  * OpenFGA's `type:id#relation` strings itself; that grammar belongs to the
@@ -32,9 +32,9 @@
  * Semantics the controller and the conformance suite rely on (the Java
  * check-handler posture the cloud's client already implements):
  *
- *   - `check` resolves usersets (a grant to `organization:acme#member`
- *     answers true for a member), so "may I read this" is the model's
- *     answer and not a lookup of who was named.
+ *   - `check` resolves usersets (a grant to `organization:acme#viewer`
+ *     answers true for everyone in the organization), so "may I read
+ *     this" is the model's answer and not a lookup of who was named.
  *   - the two listings never expand usersets, and `listPrincipalIds`
  *     answers DIRECT principals only — a listing is an inventory of who
  *     was named, never a resolution of who could reach.

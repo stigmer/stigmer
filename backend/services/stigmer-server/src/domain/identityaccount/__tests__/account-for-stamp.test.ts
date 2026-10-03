@@ -16,7 +16,11 @@
  *     email, a deleted account) is `undefined` — the CALLER decides what
  *     that means (the fire caller's deterministic refusal; the verifier's
  *     liveness sentence); this function never throws for it;
- *   - a store fault propagates as the same error object.
+ *   - a store fault propagates as the same error object;
+ *   - an account-id stamp the id read misses (a deleted account) makes no
+ *     subject read: no account carries an `ida_` as its subject, so that
+ *     read could only miss (stigmer/stigmer#1765: the API-key lane reads
+ *     every key's stamp, deleted owners included).
  *
  * Written failing on 2026-09-16, before the export exists; the change that follows
  * extracts it from the fire caller's inline read (extract, do not copy).
@@ -98,6 +102,23 @@ describe("accountForStamp", () => {
     };
     await accountForStamp(accounts, SUBJECT);
     expect(calls).toEqual([`id:${SUBJECT}`, `sub:${SUBJECT}`]);
+  });
+
+  it("an account-id stamp the id read misses is undefined after that one read — no subject read that could only miss", async () => {
+    const calls: string[] = [];
+    const accounts: AccountsByCaller = {
+      findById: async (id) => {
+        calls.push(`id:${id}`);
+        return undefined;
+      },
+      findDirectByIdpId: async (idpId) => {
+        calls.push(`sub:${idpId}`);
+        return undefined;
+      },
+    };
+    const deleted = accountIdFor("auth0|departed");
+    expect(await accountForStamp(accounts, deleted)).toBeUndefined();
+    expect(calls).toEqual([`id:${deleted}`]);
   });
 
   it("a store fault propagates as the same error object, never a credential rejection", async () => {

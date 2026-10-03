@@ -74,7 +74,6 @@ tests:
           can_view: true
           can_edit: true
           can_delete: true
-          can_use: true
           can_grant_access: true
           can_view_access: true
 
@@ -98,7 +97,6 @@ tests:
         object: plugin:thermos
         assertions:
           can_view: true
-          can_use: true
           can_edit: false
           can_delete: false
           can_grant_access: false
@@ -114,7 +112,6 @@ tests:
         object: plugin:secret-tools
         assertions:
           can_view: false
-          can_use: false
           can_edit: false
       - user: identity_account:mallory
         object: plugin:secret-tools

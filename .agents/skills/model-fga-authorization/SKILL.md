@@ -35,6 +35,16 @@ that pins it, and write the change in the same shape.
   (`backend/services/stigmer-server/src/authorization/__tests__/wire-permissions.test.ts`)
   fails otherwise, and a known gap it pins asks for its line's removal when the
   model closes it.
+- A permission exists because something asks it. Every `can_*` relation is an
+  `IamPermission` value or is named by the rewrite of a relation that is itself
+  reachable, and every `IamPermission` value is defined by some type; the same
+  file pins both. A relation nothing asks is deleted with the assertions that
+  name it, and an enum value nothing defines is removed with its number and name
+  reserved.
+- A type is never deleted for being unasked: the model declares every
+  open-source kind
+  (`backend/services/stigmer-server/src/authorization/model/__tests__/registry.test.ts`),
+  and an undeclared target is the evaluator's fault, not a denial.
 
 ## 3. Pin it with a suite
 
@@ -59,7 +69,7 @@ at it), then runs the suites and the model's pins through the built-in
 evaluator. Commit the regenerated JSON with the source; CI's
 `ci.authorization-model` lane fails on a stale file.
 
-## 5. What a new type or relation needs in the server
+## 5. What a type or relation change needs in the server
 
 - A new type: a row in
   `backend/services/stigmer-server/src/authorization/model/bindings.ts` (its
@@ -68,6 +78,11 @@ evaluator. Commit the regenerated JSON with the source; CI's
 - A relation `kind_meta.authorization` cannot derive from the row: a derived
   rule in the same table (`default-of.ts` and `execution-viewer.ts` are the
   precedents).
+- A removed relation: its derived rule goes with it, since the model refuses a
+  rule for a relation the type does not define. No server code changes its
+  answer: the evaluator answers a permission a type does not define with false,
+  and an edition that runs OpenFGA must answer it the same way (the IamPolicy
+  conformance suite asks one on a run).
 - A shape the evaluator does not run (`but not`, a wildcard, a condition): the
   reader
   (`backend/services/stigmer-server/src/authorization/model/openfga-json.ts`)

@@ -83,7 +83,9 @@
 //     already has);
 //   - authorizationQueries: the three tuple-half RPCs and a contextual
 //     checkMyPermission answer where true and are UNIMPLEMENTED with the
-//     edition sentence where false, never INTERNAL;
+//     edition sentence where false, never INTERNAL; where true, a relation
+//     the asked kind does not have is false and an empty list, the
+//     built-in evaluator's answer, never the engine's validation error;
 //
 // The enforcing block (slice 6, Q-S6-2) rides the target's ENFORCING LANE
 // (targets/target.ts) rather than a flag: what only an ENFORCING Authorizer
@@ -93,8 +95,11 @@
 // waited behind. An outsider is PERMISSION_DENIED with each annotation's
 // copy on the seven annotated RPCs, on `get` of a row (load-then-authorize)
 // and hears `false` from checkMyPermission; an organization that does not
-// exist is NOT_FOUND on the same seven (S2 finding 10 — the Authorizer's
-// `not-found` arm) and `false` from checkMyPermission (finding 33 i); and a
+// exist is NOT_FOUND on the same seven (the Authorizer's `not-found`
+// arm) and `false` from checkMyPermission; a
+// target whose kind's type defines no such permission (a run) is a denial
+// in every edition, NOT_FOUND for a run that does not exist and `false`
+// from checkMyPermission, never the engine's validation error; and a
 // member the owner made through the ordinary `create` — the one arm where a
 // grant's EFFECT is read back on the wire — sees the roster
 // (can_view_access: viewer) and is refused promoting itself to owner
@@ -196,6 +201,10 @@ const ORGANIZATION_API_VERSION = "tenancy.stigmer.ai/v1";
 const ORGANIZATION_KIND = "Organization";
 // An agent id shaped like a real one; no such agent exists on any target.
 const ABSENT_AGENT = "agt_01hzzzzzzzzzzzzzzzzzzzzzzz";
+// The same for a run: an agent execution's type defines neither
+// can_grant_access nor can_view_access, so it is the target that asks the
+// model a question it does not define.
+const ABSENT_AGENT_EXECUTION = "aex_01hzzzzzzzzzzzzzzzzzzzzzzz";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -1008,6 +1017,30 @@ describe.skipIf(!capabilities.authorizationQueries)(
       });
       expect(contextual.isAuthorized).toBe(true);
     });
+
+    it("a relation the asked kind does not have is false and an empty list, never INTERNAL", async () => {
+      const me =
+        (await clients.identityAccountQuery.whoAmI({})).metadata?.id ?? "";
+
+      // An agent execution's type defines no can_view_access. The engine
+      // answers what the model answers, as the built-in evaluator does:
+      // nobody holds it, so false and nothing, not the engine's
+      // validation error.
+      const held = await clients.iamPolicyQuery.checkAuthorization({
+        policy: policyTriple(
+          { kind: "identity_account", id: me },
+          "can_view_access",
+          { kind: "agent_execution", id: ABSENT_AGENT_EXECUTION },
+        ),
+      });
+      expect(held.isAuthorized).toBe(false);
+      const listed = await clients.iamPolicyQuery.listAuthorizedResourceIds({
+        principal: ref("identity_account", me),
+        resourceKind: "agent_execution",
+        relation: "can_view_access",
+      });
+      expect(listed.resourceIds).toEqual([]);
+    });
   },
 );
 
@@ -1190,6 +1223,42 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show (
       const lane = laneOrSkip(ctx);
       const result = await lane.clients.iamPolicyQuery.checkMyPermission({
         resource: ref("organization", ABSENT_ORG),
+        relation: "can_view_access",
+      });
+      expect(result.isAuthorized).toBe(false);
+    });
+  });
+
+  describe("a target whose kind the model gives no such permission", () => {
+    // A permission a kind's type does not define is a denial, never an
+    // engine error: the built-in evaluator answers false for it, and an
+    // edition that asks OpenFGA must answer the same instead of surfacing
+    // the engine's validation error as INTERNAL. The run does not exist,
+    // so the denial reaches the wire as the pipeline's NOT_FOUND for the
+    // kind (kind_meta's name), exactly as a missing organization does.
+    it("[rpc:IamPolicyCommandController.create] a grant naming a run that does not exist is NOT_FOUND, never INTERNAL", async (ctx) => {
+      const lane = laneOrSkip(ctx);
+      const error = await expectGrpcCode(
+        () =>
+          lane.clients.iamPolicyCommand.create(
+            policyTriple(
+              { kind: "identity_account", id: syntheticAccountId() },
+              "viewer",
+              { kind: "agent_execution", id: ABSENT_AGENT_EXECUTION },
+            ),
+          ),
+        Code.NotFound,
+        "a grant naming a nonexistent run",
+      );
+      expect(error.rawMessage).toBe(
+        `AgentExecution not found: ${ABSENT_AGENT_EXECUTION}`,
+      );
+    });
+
+    it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_view_access) on a run answers false, never an error", async (ctx) => {
+      const lane = laneOrSkip(ctx);
+      const result = await lane.clients.iamPolicyQuery.checkMyPermission({
+        resource: ref("agent_execution", ABSENT_AGENT_EXECUTION),
         relation: "can_view_access",
       });
       expect(result.isAuthorized).toBe(false);

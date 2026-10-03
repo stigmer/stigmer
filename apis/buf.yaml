@@ -29,25 +29,12 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # Public visibility retired: the operator permission that granted it, the
-  # two Search switches that read it and the kind-config flag that declared
-  # it leave the contract, each number and name reserved in place. A
+  # Four IamPermission values that no RPC, pipeline step or model relation
+  # asked leave the contract, each number and name reserved in place. A
   # deliberate FILE-category break the CI gate would otherwise refuse; this
   # block lets that one pull request through and nothing else, and the pull
   # request that follows the merge removes it, because main then has no
-  # such field for a deletion to be measured against.
-  #
-  # GetServerInfoOutput.authentication_required gains explicit presence
-  # before any release carries it, so a console can tell a server that
-  # predates the field (absent: posture unknown) from one that trusts every
-  # request (false). Same wire bytes; only the generated accessors change.
-  # The same rule applies: this block covers that one pull request, and the
-  # pull request that follows the merge removes the entry.
+  # such value for a deletion to be measured against.
   ignore_only:
     ENUM_VALUE_NO_DELETE:
       - ai/stigmer/iam/v1/enum.proto
-    FIELD_NO_DELETE:
-      - ai/stigmer/search/v1/io.proto
-      - ai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto
-    FIELD_SAME_CARDINALITY:
-      - ai/stigmer/platform/v1/server_info.proto

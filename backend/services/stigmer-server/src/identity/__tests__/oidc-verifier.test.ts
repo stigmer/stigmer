@@ -19,6 +19,11 @@
  * changes what identityId means is exactly the modeled-state rule
  * forbids); over an empty store every pre-entry arm reads as before.
  *
+ * A hit also names the caller from the account row (stigmer/stigmer#1226):
+ * the row's email and display name win over the token's claims, which
+ * fill only what the row leaves empty, so a token minted with no profile
+ * claims (Auth0's default) still stamps the person's email and name.
+ *
  * Issuer discovery is a REQUIRED dependency too (T01_1_review.md A8; the
  * S2 slice-2 refinement): the verifier reads the JWKS location through
  * the shared oidc-discovery module the composition root builds once for
@@ -261,7 +266,11 @@ describe("the byte-pinned classifyAuthError arms", () => {
 });
 
 describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
-  function seeded(sub: string, email: string) {
+  function seeded(
+    sub: string,
+    email: string,
+    names: { firstName?: string; lastName?: string } = {},
+  ) {
     const accounts = fakeIdentityAccountStore();
     accounts.rows.set(
       accountIdFor(sub),
@@ -271,18 +280,22 @@ describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
           idpId: sub,
           email,
           provisioningMode: IdentityAccountProvisioningMode.direct,
+          ...names,
         },
       }),
     );
     return accounts;
   }
 
-  it("a subject with an account resolves to the ACCOUNT id; the claims still flow", async () => {
-    const accounts = seeded("auth0|known", "known@example.com");
+  it("a subject with an account resolves to the ACCOUNT id, named by its row over the token's claims", async () => {
+    const accounts = seeded("auth0|known", "known@example.com", {
+      firstName: "Known",
+      lastName: "Person",
+    });
     const token = await mintToken({
       sub: "auth0|known",
-      email: "known@example.com",
-      name: "Known",
+      email: "stale@example.com",
+      name: "Stale Name",
     });
     const identity = await newOidcIdentityVerifier({
       issuer,
@@ -296,7 +309,41 @@ describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
       issuer,
       rawToken: token,
       email: "known@example.com",
-      displayName: "Known",
+      displayName: "Known Person",
+    });
+  });
+
+  it("a token with no profile claims (Auth0's default) still stamps the account's email and name", async () => {
+    const accounts = seeded("auth0|quiet", "quiet@example.com", {
+      firstName: "Quiet",
+      lastName: "Person",
+    });
+    const token = await mintToken({ sub: "auth0|quiet" });
+    const identity = await newOidcIdentityVerifier({
+      issuer,
+      audience: AUDIENCE,
+      accounts,
+      discovery: newIssuerDiscovery(),
+    }).verify(token);
+    expect(identity).toMatchObject({
+      identityId: accountIdFor("auth0|quiet"),
+      email: "quiet@example.com",
+      displayName: "Quiet Person",
+    });
+  });
+
+  it("an account named only by its address takes the token's name — userinfo gave no first or last name", async () => {
+    const accounts = seeded("auth0|plain", "plain@example.com");
+    const token = await mintToken({ sub: "auth0|plain", name: "Plain Claim" });
+    const identity = await newOidcIdentityVerifier({
+      issuer,
+      audience: AUDIENCE,
+      accounts,
+      discovery: newIssuerDiscovery(),
+    }).verify(token);
+    expect(identity).toMatchObject({
+      email: "plain@example.com",
+      displayName: "Plain Claim",
     });
   });
 

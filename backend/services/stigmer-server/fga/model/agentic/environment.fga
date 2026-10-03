@@ -88,11 +88,9 @@ type environment
     # VIEWER ACCESS (Explicit Grants + Org Sharing)
     # ========================================
     # organization#viewer is the shape VisibilityTupleReconciler writes for
-    # visibility_org (the org's full read audience — every role satisfies it);
-    # organization#member is the legacy pre-2026-08-11 shape, kept resolving
-    # until the boot backfill converges stored tuples. Viewers see REDACTED
-    # secret values.
-    define viewer: ([identity_account, organization#member, organization#viewer] and affiliated from organization) or owner
+    # visibility_org (the org's full read audience — every role satisfies it).
+    # Viewers see REDACTED secret values.
+    define viewer: ([identity_account, organization#viewer] and affiliated from organization) or owner
     
     # ========================================
     # PERMISSIONS

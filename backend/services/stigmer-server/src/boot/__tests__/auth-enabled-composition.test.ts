@@ -22,7 +22,13 @@
  *      the subject to the account id and API keys minted before OR after
  *      provisioning answer whoAmI with the owner's account; no operator
  *      account exists under the posture;
- *   7. (20260913.02, sp.console-login) the console the server serves is
+ *   7. (stigmer/stigmer#1226, #1765) a provider that keeps profile claims
+ *      out of its access tokens (Auth0's default) still has every write
+ *      name the person: the account row, filled from userinfo at
+ *      provisioning, names the caller on the OIDC lane and through a key
+ *      minted from that session; and once that account is deleted, its
+ *      key is refused on the very next request;
+ *   8. the console the server serves is
  *      told the posture through /config.json — the issuer and audience
  *      this composition runs under, with the console client id the
  *      operator did NOT register here left empty — and the composition
@@ -77,6 +83,9 @@ let privateKey: GenerateKeyPairResult["privateKey"];
 // A lever for the UNAVAILABLE arm: the issuer's /userinfo answers 503 for
 // this subject while set. Undefined = every subject is served.
 let userinfoRefusesSub: string | undefined;
+// What the issuer's /userinfo answers for a subject whose access token
+// carries no profile claims: the provider's own record, as Auth0 keeps it.
+const userinfoEmailOf = new Map<string, string>();
 let server: ComposedServer;
 let port: number;
 // A key minted while its owner was still idp-shaped: its creator stamp is
@@ -84,7 +93,7 @@ let port: number;
 // owner's account once one exists (20260911.11 A1's derived id).
 let keyMintedBeforeProvisioning: string;
 // Every WARN the composition root logged while wiring — the console
-// sign-in arm (7) reads it.
+// sign-in arm (8) reads it.
 const warnings: string[] = [];
 
 function bearer(token: string): Interceptor {
@@ -101,8 +110,14 @@ function transportWith(token?: string): Transport {
   });
 }
 
-async function mintOidcToken(sub: string, email: string): Promise<string> {
-  return new SignJWT({ email, name: "Composed Test User" })
+/**
+ * An access token for `sub`. With an `email` it carries the profile
+ * claims; without one it carries none, as Auth0 mints them by default.
+ */
+async function mintOidcToken(sub: string, email?: string): Promise<string> {
+  return new SignJWT(
+    email !== undefined ? { email, name: "Composed Test User" } : {},
+  )
     .setProtectedHeader({ alg: "RS256", kid: "test-key" })
     .setIssuer(issuer)
     .setAudience(AUDIENCE)
@@ -168,7 +183,7 @@ beforeAll(async () => {
       res.end(
         JSON.stringify({
           sub: claims.sub ?? "",
-          email: claims.email ?? "",
+          email: claims.email ?? userinfoEmailOf.get(claims.sub ?? "") ?? "",
           given_name: "Composed",
           family_name: "User",
           picture: `${issuer}/pictures/${encodeURIComponent(claims.sub ?? "")}`,
@@ -512,5 +527,85 @@ describe("identity accounts under the OIDC posture (20260911.11; Q-IA-2, A1, A2)
     } finally {
       userinfoRefusesSub = undefined;
     }
+  });
+});
+
+describe("every write names the person, whatever the token carries (stigmer/stigmer#1226, #1765)", () => {
+  const QUIET = "auth0|quiet-provider";
+
+  it("a token with no profile claims stamps the account's email and name, on the OIDC lane and through a key minted from it", async () => {
+    userinfoEmailOf.set(QUIET, "quiet@example.com");
+    const token = await mintOidcToken(QUIET);
+    const account = await createClient(
+      IdentityAccountCommandController,
+      transportWith(token),
+    ).provisionMyAccount({});
+    expect(account.spec?.email).toBe("quiet@example.com");
+
+    const key = await createClient(
+      ApiKeyCommandController,
+      transportWith(token),
+    ).create({
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "ApiKey",
+      metadata: { name: "minted without profile claims", org: "local" },
+      spec: {},
+    });
+    expect(key.status?.audit?.specAudit?.createdBy).toMatchObject({
+      id: accountIdFor(QUIET),
+      email: "quiet@example.com",
+      displayName: "Composed User",
+    });
+
+    const overKey = await createClient(
+      ApiKeyCommandController,
+      transportWith(key.spec?.keyHash ?? ""),
+    ).create({
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "ApiKey",
+      metadata: { name: "minted over the key", org: "local" },
+      spec: {},
+    });
+    expect(overKey.status?.audit?.specAudit?.createdBy).toMatchObject({
+      id: accountIdFor(QUIET),
+      email: "quiet@example.com",
+      displayName: "Composed User",
+    });
+  });
+
+  it("once the key owner's account is deleted, the key is refused on the very next request with the unknown-key copy", async () => {
+    const DEPARTING = "auth0|departing";
+    const token = await mintOidcToken(DEPARTING, "departing@example.com");
+    const account = await createClient(
+      IdentityAccountCommandController,
+      transportWith(token),
+    ).provisionMyAccount({});
+    const accountToken = await mintOidcToken(
+      DEPARTING,
+      "departing@example.com",
+    );
+    const key = await createClient(
+      ApiKeyCommandController,
+      transportWith(accountToken),
+    ).create({
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "ApiKey",
+      metadata: { name: "outlives its owner", org: "local" },
+      spec: {},
+    });
+    const overKey = createClient(
+      IdentityAccountQueryController,
+      transportWith(key.spec?.keyHash ?? ""),
+    );
+    expect((await overKey.whoAmI({})).metadata?.id).toBe(account.metadata?.id);
+
+    await createClient(
+      IdentityAccountCommandController,
+      transportWith(accountToken),
+    ).delete({ value: account.metadata?.id ?? "" });
+
+    const error = await overKey.whoAmI({}).catch((e: unknown) => e);
+    expect(ConnectError.from(error).code).toBe(Code.Unauthenticated);
+    expect(ConnectError.from(error).rawMessage).toBe("invalid token");
   });
 });

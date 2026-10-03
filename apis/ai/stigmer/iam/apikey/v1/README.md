@@ -91,7 +91,7 @@ The server's API-key module is `backend/services/stigmer-server/src/domain/apike
 2. **Hash**: the raw token is hashed with SHA-256 and encoded as Base64URL without padding, the form `spec.key_hash` stores.
 3. **Lookup**: the key is read from the store by that hash. There is no cache, so a deleted key is refused on the next request.
 4. **Expiry**: a key whose `spec.expires_at` is set and past is refused with `token has expired`; an unknown or deleted key with `invalid token`.
-5. **Identity**: the request runs as the key's creator (`status.audit.spec_audit.created_by`). Downstream code sees the same principal a signed-in session of that account would.
+5. **Identity**: the request runs as the key's creator (`status.audit.spec_audit.created_by`), named by the creator's identity account: its email, and its first and last name. When the account has neither name, the name the key recorded when it was minted stands in, then the account's own name, then its email. Downstream code sees the same principal a signed-in session of that account would. A key whose creator stamp is an account id and whose account has been deleted is refused with `invalid token`: deleting an account does not delete its keys, so this is what stops them, for as long as no account answers for that id. A direct account's id is derived from its issuer subject, so the same person signing up again brings the id, and those keys, back (#1771). A key minted before its creator had an account carries their raw issuer subject instead; while no account answers for that subject, it is admitted as that unprovisioned subject, exactly as a sign-in with the same subject would be.
 6. **Last use**: the key's `status.last_used_at` is stamped, at most once a minute.
 
 ### Key Components

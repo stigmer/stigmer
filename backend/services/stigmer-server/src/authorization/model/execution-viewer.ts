@@ -9,8 +9,7 @@
  * It is derived from `spec.execution_visibility`, which `kind_meta`
  * cannot express: `organization` derives
  * `#execution_viewer@organization:<org>#viewer`, the organization's full
- * read audience (the relation also admits `#member`, the legacy shape),
- * and `private` or unset derives nothing, so each run stays its
+ * read audience, and `private` or unset derives nothing, so each run stays its
  * triggerer's. Pure over the row; no related row is read. Which level
  * names which audience is `executionAudienceShapes`
  * (pipeline/steps/authorization-tuples.ts), the one mapping this

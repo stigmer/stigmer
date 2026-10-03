@@ -17,6 +17,16 @@
  *     subject, never a `""` principal — the one deliberate divergence
  *     from the cloud's inline `?? ""`.
  *
+ * `identityIdForSubject` is now the deprecated id view of
+ * `principalForSubject`, so the block above also pins that the view moved
+ * no behaviour. The principal itself (stigmer/stigmer#1226):
+ *
+ *   - a hit is the account id with the row's email and display name, the
+ *     credential's claims filling only a field the row leaves empty, so a
+ *     token with no profile claims still names the person;
+ *   - a miss is the subject with its claims, an empty claim left out;
+ *   - the same single read, the same faults.
+ *
  * And the read in the other direction, `accountForCaller` (20260913.01
  * slice 4, Q-S4-1): the account a CallerIdentity stands for, the two
  * primary-key reads whoAmI has always made, stated once so the built-in
@@ -74,6 +84,7 @@ import {
   identityIdForSubject,
   isPreSignInOperatorStamp,
   mayProvisionDirectAccount,
+  principalForSubject,
 } from "../resolve.js";
 import type { AccountsByCaller, AccountsBySubject } from "../resolve.js";
 import { fakeIdentityAccountStore } from "./support.js";
@@ -159,6 +170,105 @@ describe("identityIdForSubject", () => {
     expect(error).toBeInstanceOf(Error);
     expect(error).not.toBeInstanceOf(ConnectError);
     expect(String(error)).toContain("auth0|corrupt");
+  });
+});
+
+describe("principalForSubject", () => {
+  function profiled(
+    sub: string,
+    spec: { email?: string; firstName?: string; lastName?: string },
+  ) {
+    const accounts = fakeIdentityAccountStore();
+    const id = accountIdFor(sub);
+    accounts.rows.set(
+      id,
+      create(IdentityAccountSchema, {
+        metadata: { id, name: spec.email ?? "" },
+        spec: {
+          idpId: sub,
+          provisioningMode: IdentityAccountProvisioningMode.direct,
+          ...spec,
+        },
+      }),
+    );
+    return accounts;
+  }
+
+  it("a hit is the account, named by its row — a token with no profile claims still names the person", async () => {
+    const accounts = profiled("auth0|ada", {
+      email: "ada@example.com",
+      firstName: "Ada",
+      lastName: "Lovelace",
+    });
+    expect(await principalForSubject(accounts, "auth0|ada")).toEqual({
+      identityId: accountIdFor("auth0|ada"),
+      email: "ada@example.com",
+      displayName: "Ada Lovelace",
+    });
+  });
+
+  it("the row wins over the token's claims, field by field", async () => {
+    const accounts = profiled("auth0|ada", {
+      email: "ada@example.com",
+      firstName: "Ada",
+      lastName: "Lovelace",
+    });
+    expect(
+      await principalForSubject(accounts, "auth0|ada", {
+        email: "old@example.com",
+        displayName: "Countess",
+      }),
+    ).toEqual({
+      identityId: accountIdFor("auth0|ada"),
+      email: "ada@example.com",
+      displayName: "Ada Lovelace",
+    });
+  });
+
+  it("a claim fills only a field the row leaves empty", async () => {
+    const accounts = profiled("auth0|bare", {});
+    expect(
+      await principalForSubject(accounts, "auth0|bare", {
+        email: "bare@example.com",
+        displayName: "Bare Person",
+      }),
+    ).toEqual({
+      identityId: accountIdFor("auth0|bare"),
+      email: "bare@example.com",
+      displayName: "Bare Person",
+    });
+  });
+
+  it("a miss is the subject with its claims, an empty claim left out", async () => {
+    const accounts = seeded("auth0|someone-else");
+    expect(
+      await principalForSubject(accounts, "auth0|unknown", {
+        email: "unknown@example.com",
+        displayName: "",
+      }),
+    ).toEqual({ identityId: "auth0|unknown", email: "unknown@example.com" });
+  });
+
+  it("is the one read identityIdForSubject makes, and a store fault propagates as the same error", async () => {
+    const accounts = seeded("auth0|known");
+    const lookup = vi.spyOn(accounts, "findDirectByIdpId");
+    await principalForSubject(accounts, "auth0|known");
+    expect(lookup).toHaveBeenCalledTimes(1);
+
+    const fault = new Error("store is on fire");
+    const broken: AccountsBySubject = {
+      findDirectByIdpId: () => Promise.reject(fault),
+    };
+    await expect(principalForSubject(broken, "auth0|anyone")).rejects.toBe(
+      fault,
+    );
+  });
+
+  it("a hit whose row carries no id is the same fault naming the subject", async () => {
+    const accounts = seeded("auth0|corrupt", "");
+    await expect(
+      principalForSubject(accounts, "auth0|corrupt"),
+    ).rejects.toThrow(/auth0\|corrupt/);
   });
 });
 

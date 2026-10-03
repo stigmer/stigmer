@@ -41,14 +41,6 @@ type platform
     define credit_issuer: [identity_account]
     
     # ========================================
-    # IMPERSONATION
-    # ========================================
-    # Controls who can use on-behalf-of impersonation via gRPC metadata.
-    # Gates the x-on-behalf-of header.
-    # FGA check: identity_account:<caller_id> can_impersonate platform:stigmer
-    define can_impersonate: operator
-    
-    # ========================================
     # IAM BOOTSTRAP
     # ========================================
     # Permission to create and clean up FGA tuples during resource lifecycle.
@@ -57,27 +49,11 @@ type platform
     define can_bootstrap_iam: operator
     
     # ========================================
-    # IDENTITY ACCOUNT MANAGEMENT
-    # ========================================
-    # Permission for admin operations on identity accounts:
-    # get actor info, simulate signup, delete accounts, manage account access.
-    # FGA check: identity_account:<caller_id> can_manage_identity_accounts platform:stigmer
-    define can_manage_identity_accounts: operator
-    
-    # ========================================
     # IAM POLICY MANAGEMENT
     # ========================================
     # Platform-level IAM policy operations (operators only)
     define can_grant_access: operator
     define can_view_access: operator
-    
-    # ========================================
-    # USAGE METERING
-    # ========================================
-    # Permission to write trusted usage data from the proxy layer.
-    # Gates the updateUsage RPC on AgentExecutionCommandController.
-    # FGA check: identity_account:<caller_id> can_update_usage platform:stigmer
-    define can_update_usage: operator
     
     # ========================================
     # BILLING OPERATIONS (Internal)

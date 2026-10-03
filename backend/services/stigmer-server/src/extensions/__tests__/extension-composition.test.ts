@@ -62,6 +62,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import {
   PlatformQueryController,
@@ -99,6 +101,8 @@ import type { AgentExecutionStatusTransition } from "../status-hooks.js";
 import type { ServerExtension } from "../registry.js";
 import type { IdentityVerifier } from "../identity.js";
 import type { ResourceRowReader } from "../resource-row-reader.js";
+import { accountIdFor } from "../../domain/identityaccount/constants.js";
+import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
 import { deleteExecutionContextForExecution } from "../../domain/executioncontext/internal-delete.js";
 import { apiResourceKindName } from "../../store/proto-fields.js";
@@ -438,6 +442,12 @@ describe("extension composition (require-authentication posture)", () => {
   const logLines: string[] = [];
 
   const CLAIMED_TOKEN = "unit-test-credential";
+  // The unit's caller is an account the store holds, as every composition's
+  // is: the API-key lane refuses a key whose owner account is gone
+  // (stigmer/stigmer#1765), so a key minted over the unit's credential
+  // authenticates only while that account exists.
+  const UNIT_SUBJECT = "fake|unit-caller";
+  const UNIT_ACCOUNT_ID = accountIdFor(UNIT_SUBJECT);
   const requiringExtension: ServerExtension = {
     name: "fake-identity",
     requireAuthentication: true,
@@ -448,7 +458,7 @@ describe("extension composition (require-authentication posture)", () => {
           Promise.resolve(
             token === CLAIMED_TOKEN
               ? {
-                  identityId: "ida_fake",
+                  identityId: UNIT_ACCOUNT_ID,
                   callerClass: "user",
                   issuer: "fake",
                   rawToken: token,
@@ -493,6 +503,18 @@ describe("extension composition (require-authentication posture)", () => {
       portOverride: 0,
       host: "127.0.0.1",
     });
+    await newResourceIdentityAccountStore(server.store).save(
+      create(IdentityAccountSchema, {
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: "IdentityAccount",
+        metadata: { id: UNIT_ACCOUNT_ID, name: "unit@example.com" },
+        spec: {
+          idpId: UNIT_SUBJECT,
+          email: "unit@example.com",
+          provisioningMode: IdentityAccountProvisioningMode.direct,
+        },
+      }),
+    );
     port = await server.start();
   });
 
@@ -574,7 +596,9 @@ describe("extension composition (require-authentication posture)", () => {
       apiKeyPlaintext = created.spec?.keyHash ?? "";
       apiKeyId = created.metadata?.id ?? "";
       expect(apiKeyPlaintext.startsWith("stk_")).toBe(true);
-      expect(created.status?.audit?.specAudit?.createdBy?.id).toBe("ida_fake");
+      expect(created.status?.audit?.specAudit?.createdBy?.id).toBe(
+        UNIT_ACCOUNT_ID,
+      );
     });
 
     it("the minted key authenticates as its owning identity — no OIDC issuer anywhere", async () => {
@@ -597,7 +621,9 @@ describe("extension composition (require-authentication posture)", () => {
         metadata: { name: "minted over the api key", org: "local" },
         spec: {},
       });
-      expect(second.status?.audit?.specAudit?.createdBy?.id).toBe("ida_fake");
+      expect(second.status?.audit?.specAudit?.createdBy?.id).toBe(
+        UNIT_ACCOUNT_ID,
+      );
     });
 
     it("a garbage stk_ bearer gets the lane's own refusal, not the chassis's unclaimed copy", async () => {
