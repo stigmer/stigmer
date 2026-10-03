@@ -110,7 +110,11 @@ import {
   verifyPlatformToken,
   RequestContext,
   ResourceNotFoundError,
+  newSubstrateSandboxDriver,
+  newSubstrateSettingsFromEnv,
   ROUTING_SESSION,
+  sandboxTaskQueue,
+  SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS,
   SYSTEM_SHARE_CLIENT_SLUG,
   TARGET_RESOURCE_KEY,
   TOKEN_TYPE_EXECUTION_SCOPED,
@@ -174,6 +178,11 @@ import type {
   SandboxProvisioner,
   SandboxProvisionerFactory,
   ScheduleFireCallerMint,
+  SubstrateMaintenance,
+  SubstratePauseGuard,
+  SubstrateRunnerMode,
+  SubstrateSleepGuard,
+  SubstrateSleepOutcome,
   SecretCodec,
   SecretService,
   ServerExtension,
@@ -289,15 +298,17 @@ interface ConsumerSlugLookup {
   findIdBySlug(slug: string): Promise<string | undefined>;
 }
 
-const unknownSlugAnswersUndefined: PortContractBody<ConsumerSlugLookup> = async ({ store }) => {
+const unknownSlugAnswersUndefined: PortContractBody<
+  ConsumerSlugLookup
+> = async ({ store }) => {
   if ((await store.findIdBySlug("absent")) !== undefined) {
     throw new Error("an unknown slug must answer undefined");
   }
 };
 
-const CONSUMER_SLUG_LOOKUP_CASES: ReadonlyArray<PortContractDeclaration<ConsumerSlugLookup>> = [
-  ["an unknown slug answers undefined", unknownSlugAnswersUndefined],
-];
+const CONSUMER_SLUG_LOOKUP_CASES: ReadonlyArray<
+  PortContractDeclaration<ConsumerSlugLookup>
+> = [["an unknown slug answers undefined", unknownSlugAnswersUndefined]];
 
 export function consumerSlugLookupContract(): ReadonlyArray<PortContractCase> {
   return portContractCases(
@@ -919,6 +930,70 @@ const consumerSandboxDriver: SandboxProvisionerFactory = ({
 };
 
 /**
+ * A consumer that wraps the substrate driver and keeps its own records and
+ * idle sweep (the shape a hosted composition takes): it builds the driver
+ * itself in its runner mode, leaves the open-source sweep unstarted, warms
+ * the template, sleeps sandboxes through guards it answers from its own
+ * records, runs the pass's upkeep over its own listing, keeps its windows
+ * inside the in-place pause bound, and names a sandbox's queue for a
+ * renewed token's push.
+ */
+const consumerSubstrateDriver: SandboxProvisionerFactory = ({
+  config,
+  logger,
+}): SandboxProvisioner => {
+  const runnerMode: SubstrateRunnerMode = "cloud";
+  const driver = newSubstrateSandboxDriver({
+    config,
+    settings: newSubstrateSettingsFromEnv(),
+    logger,
+    runnerMode,
+  });
+  const { lifecycle } = driver;
+  void lifecycle.prepare();
+  const recordUnchanged = (): Promise<boolean> => Promise.resolve(true);
+  const guard: SubstratePauseGuard = {
+    proceed: (actor) =>
+      Promise.resolve(actor.state === "running" || actor.state === "paused"),
+    stillIdle: recordUnchanged,
+  };
+  const suspendGuard: SubstrateSleepGuard = { proceed: recordUnchanged };
+  const sweep = async (sessionId: string): Promise<void> => {
+    const paused: SubstrateSleepOutcome = await lifecycle.pause(
+      "session",
+      sessionId,
+      guard,
+    );
+    if (paused === "done") {
+      await lifecycle.suspend("session", sessionId, suspendGuard);
+    }
+    const upkeep: SubstrateMaintenance = await lifecycle.maintain(
+      await lifecycle.list(),
+    );
+    void upkeep.retired;
+    // An orphan is a sandbox the composition's own records do not name.
+    const recorded = (name: string): Promise<boolean> =>
+      Promise.resolve(name !== "");
+    for (const actor of await lifecycle.list()) {
+      if (!(await recorded(actor.name))) {
+        await lifecycle.deleteByName(actor.name);
+      }
+    }
+  };
+  void sweep;
+  const pauseBound: number = SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS;
+  void pauseBound;
+  const renewed = (sessionId: string, token: string) =>
+    lifecycle.reattach("session", sessionId, {
+      taskQueue: sandboxTaskQueue("session", sessionId),
+      stigmerToken: token,
+      callerClass: "runner",
+    });
+  void renewed;
+  return driver.provisioner;
+};
+
+/**
  * A consumer-shaped channel runtime —
  * the full grouped surface: install delegation, whole-method messaging
  * and conversation serving, and the two edition-split CRUD hooks. All
@@ -1279,7 +1354,9 @@ const organizationDirectory: OrganizationDirectory = {
   ) => {
     void identityProviderRef.slug;
     void externalOrgId;
-    return Promise.resolve<ExternalOrganizationLookup>({ kind: "no-identity-provider" });
+    return Promise.resolve<ExternalOrganizationLookup>({
+      kind: "no-identity-provider",
+    });
   },
 };
 
@@ -1339,6 +1416,7 @@ export const fakeExtension: ServerExtension = {
     ]),
     sandboxProvisionerDrivers: new Map([
       ["consumer-sandbox", consumerSandboxDriver],
+      ["consumer-substrate", consumerSubstrateDriver],
     ]),
     resourceAuthorizationLifecycle: authorizationLifecycle,
     organizationDirectory,

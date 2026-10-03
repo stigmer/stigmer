@@ -30,6 +30,7 @@ import {
 } from "./driver.js";
 import { newSubstrateClientGateway } from "./gateway.js";
 import { startSubstrateSweep } from "./sweep.js";
+import type { SubstrateRunnerMode } from "./template.js";
 
 /** The substrate driver, built: its provisioner, its lifecycle, and its optional sweep. */
 export interface SubstrateSandboxDriverHandle {
@@ -43,6 +44,8 @@ export function newSubstrateSandboxDriver(options: {
   readonly config: SandboxDriverConfig;
   readonly settings: SubstrateDriverSettings;
   readonly logger: Logger;
+  /** The runner's MODE in every sandbox (template.ts); `local`, open source's, when absent. */
+  readonly runnerMode?: SubstrateRunnerMode;
 }): SubstrateSandboxDriverHandle {
   validateSubstrateDriverConfig(options.config);
   const driver = newSubstrateSandboxDriverOverGateway({

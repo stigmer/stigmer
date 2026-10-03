@@ -16,12 +16,12 @@
  *     comes from PAUSED, where no turn can be in flight.
  *   - Every other state is mid-transition or already asleep: nothing.
  */
-import { ActorState } from "./gen/ateapipb/ateapi_pb.js";
+import type { SubstrateSandboxState } from "./driver.js";
 
 export type IdleAction = "none" | "pause" | "suspend";
 
 export interface IdleInput {
-  readonly state: ActorState;
+  readonly state: SubstrateSandboxState;
   readonly busy: boolean;
   readonly lastActiveAt: Date;
   readonly now: Date;
@@ -35,9 +35,9 @@ export function decideIdle(input: IdleInput): IdleAction {
   }
   const idleMs = input.now.getTime() - input.lastActiveAt.getTime();
   switch (input.state) {
-    case ActorState.RUNNING:
+    case "running":
       return idleMs >= input.pauseAfterMs ? "pause" : "none";
-    case ActorState.PAUSED:
+    case "paused":
       return idleMs >= input.suspendAfterMs ? "suspend" : "none";
     default:
       return "none";

@@ -37,10 +37,12 @@
  * message wakes the sandbox again. Every suspend comes from PAUSED, so
  * the window is that narrow.
  *
- * Each pass also makes the egress policy of every running or paused
- * sandbox this configuration's, once per process (driver.ts), moves
- * suspended sandboxes on an older template to the current one, and retires
- * templates no sandbox uses.
+ * The pause and the suspend themselves, and every pass's upkeep (egress
+ * made current, a sleeping sandbox moved to the current template, unused
+ * templates retired, a stuck delete repeated), are the driver's lifecycle
+ * operations, the same ones a composition with its own sweep calls
+ * (driver.ts); this sweep holds only the decision of what is idle and the
+ * map from sandboxes to sessions.
  */
 import type { Logger } from "../../boot/logger.js";
 import { sandboxBaseName } from "../naming.js";
@@ -50,11 +52,10 @@ import type {
   SessionActivityReader,
 } from "../provisioner.js";
 import type {
+  SubstrateActorSummary,
   SubstrateDriverInternals,
   SubstrateSandboxLifecycle,
 } from "./driver.js";
-import { ActorState } from "./gen/ateapipb/ateapi_pb.js";
-import type { SubstrateActorView } from "./gateway.js";
 import { decideIdle, type IdleAction } from "./idle-decision.js";
 import { CLOCK_SKEW_ALLOWANCE_MS } from "./limits.js";
 
@@ -86,22 +87,14 @@ export function newSweepState(): SweepState {
 export function startSubstrateSweep(
   options: SubstrateSweepOptions,
 ): SandboxBackgroundHandle {
-  const { driver, logger } = options;
+  const { driver, lifecycle, logger } = options;
   const state = newSweepState();
   let running: Promise<void> | undefined;
   let stopped = false;
 
   // Prepare the template in the background, so the first turn rarely waits
-  // for its golden snapshot; a failure is logged and the next ensure retries.
-  driver.keeper.ready().catch((error: unknown) => {
-    logger.error(
-      "Substrate template preparation failed; the next sandbox ensure retries it",
-      {
-        template: driver.keeper.name,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
-  });
+  // for its golden snapshot; prepare() logs a failure and never rejects.
+  void lifecycle.prepare();
 
   const tick = (): void => {
     if (stopped || running !== undefined) return;
@@ -133,14 +126,15 @@ export async function runSweepPass(
   state: SweepState,
   options: SubstrateSweepOptions,
 ): Promise<void> {
-  const { driver, sessions, logger } = options;
+  const { driver, lifecycle, sessions, logger } = options;
   const now = options.now ?? Date.now;
-  const actors = await driver.gateway.listActors();
+  const stopping = options.stopping ?? (() => false);
+  const actors = await lifecycle.list();
 
   const awake = actors.filter(
     (actor) =>
       actor.name.startsWith(SESSION_ACTOR_PREFIX) &&
-      (actor.state === ActorState.RUNNING || actor.state === ActorState.PAUSED),
+      (actor.state === "running" || actor.state === "paused"),
   );
   const unnamed = awake.filter(
     (actor) => !driver.sessionByActor.has(actor.name),
@@ -158,40 +152,10 @@ export async function runSweepPass(
     await scanSessions(state, options);
   }
 
-  for (const actor of actors) {
+  for (const actor of awake) {
     // A shutdown waits for the sandbox in hand, never for the whole pass.
-    if (options.stopping?.() === true) return;
+    if (stopping()) return;
     try {
-      if (actor.state === ActorState.DELETING) {
-        // A delete that failed part-way leaves the actor DELETING; deleting
-        // again resumes it (Substrate's API guide).
-        await driver.serialize(actor.name, () =>
-          driver.gateway.deleteActor(actor.name),
-        );
-        continue;
-      }
-      if (actor.state === ActorState.SUSPENDED) {
-        if (actor.template !== driver.keeper.name) {
-          await driver.serialize(actor.name, async () => {
-            const fresh = await driver.gateway.getActor(actor.name);
-            if (fresh?.state === ActorState.SUSPENDED)
-              await driver.moveToCurrent(fresh);
-          });
-        }
-        continue;
-      }
-      if (
-        actor.state === ActorState.RUNNING ||
-        actor.state === ActorState.PAUSED
-      ) {
-        // Any scope: a sandbox awake since before this process started gets
-        // this configuration's egress rules now, not at its next wake.
-        await driver.serialize(actor.name, () =>
-          driver.reconcileEgress(actor.name),
-        );
-      }
-      if (!awake.includes(actor)) continue;
-
       const sessionId = driver.sessionByActor.get(actor.name);
       if (sessionId === undefined) {
         if (
@@ -209,7 +173,7 @@ export async function runSweepPass(
         now(),
       );
       if (action !== "none") {
-        await act(actor.name, sessionId, action, options, now);
+        await act(sessionId, action, options, now);
       }
     } catch (error) {
       logger.warn("Substrate idle sweep skipped a sandbox", {
@@ -219,12 +183,12 @@ export async function runSweepPass(
     }
   }
 
-  if (options.stopping?.() === true) return;
-  await options.lifecycle.retireTemplates();
+  if (stopping()) return;
+  await lifecycle.maintain(actors, { stopping });
 }
 
 /** Whether a sandbox may be newer than `instant`, leaning that way by the clock-skew allowance. */
-function createdAfter(actor: SubstrateActorView, instant: number): boolean {
+function createdAfter(actor: SubstrateActorSummary, instant: number): boolean {
   return (
     actor.createTime === undefined ||
     actor.createTime.getTime() >= instant - CLOCK_SKEW_ALLOWANCE_MS
@@ -252,7 +216,7 @@ async function scanSessions(
 }
 
 function decide(
-  actor: SubstrateActorView,
+  actor: SubstrateActorSummary,
   activity: SessionActivity,
   driver: SubstrateDriverInternals,
   now: number,
@@ -272,49 +236,45 @@ function decide(
   });
 }
 
-/** Re-decides inside the actor's queue from fresh reads, then acts (module header). */
+/**
+ * Acts through the lifecycle, whose guard re-decides inside the actor's
+ * queue from fresh reads and, after a pause, thaws the sandbox when a turn
+ * has arrived (module header).
+ */
 async function act(
-  name: string,
   sessionId: string,
   planned: IdleAction,
   options: SubstrateSweepOptions,
   now: () => number,
 ): Promise<void> {
-  const { driver, sessions, logger } = options;
-  await driver.serialize(name, async () => {
-    const actor = await driver.gateway.getActor(name);
-    if (actor === undefined) return;
-    if (
-      decide(actor, await sessions.activity(sessionId), driver, now()) !==
-      planned
-    )
-      return;
-    if (planned === "pause") {
-      await driver.gateway.pauseActor(name);
-      if ((await sessions.activity(sessionId)).busy) {
-        await driver.gateway.resumeActor(name);
-        logger.info("A turn arrived while its sandbox paused; resumed it", {
-          actor: name,
-          sessionId,
-        });
-        return;
-      }
-      logger.info("Substrate sandbox paused (idle)", {
-        actor: name,
+  const { driver, lifecycle, sessions, logger } = options;
+  const actor = sandboxBaseName("session", sessionId);
+  const proceed = async (fresh: SubstrateActorSummary): Promise<boolean> =>
+    decide(fresh, await sessions.activity(sessionId), driver, now()) ===
+    planned;
+  if (planned === "pause") {
+    const outcome = await lifecycle.pause("session", sessionId, {
+      proceed,
+      stillIdle: async () => !(await sessions.activity(sessionId)).busy,
+    });
+    if (outcome === "thawed") {
+      logger.info("A turn arrived while its sandbox paused; resumed it", {
+        actor,
         sessionId,
       });
-      return;
+    } else if (outcome === "done") {
+      logger.info("Substrate sandbox paused (idle)", { actor, sessionId });
     }
-    await driver.gateway.suspendActor(name);
-    logger.info("Substrate sandbox suspended (idle)", {
-      actor: name,
-      sessionId,
-    });
-  });
+    return;
+  }
+  const outcome = await lifecycle.suspend("session", sessionId, { proceed });
+  if (outcome === "done") {
+    logger.info("Substrate sandbox suspended (idle)", { actor, sessionId });
+  }
 }
 
 async function suspendOrphan(
-  actor: SubstrateActorView,
+  actor: SubstrateActorSummary,
   options: SubstrateSweepOptions,
 ): Promise<void> {
   const { driver, logger } = options;

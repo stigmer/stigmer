@@ -98,7 +98,7 @@ class FakeSessions implements SessionActivityReader {
   }
 }
 
-function harness() {
+function harness(logger = silentLogger) {
   let t = Date.parse("2026-10-03T12:00:00Z");
   const now = () => t;
   const substrate = new FakeSubstrate(now);
@@ -106,7 +106,7 @@ function harness() {
   const driver = newSubstrateSandboxDriverOverGateway({
     config,
     settings,
-    logger: silentLogger,
+    logger,
     gateway: substrate,
     fetch: fakeRouter().fetch,
     now,
@@ -118,7 +118,7 @@ function harness() {
     driver: driver.internals,
     lifecycle: driver.lifecycle,
     sessions,
-    logger: silentLogger,
+    logger,
     now,
   };
   const state = newSweepState();
@@ -213,11 +213,15 @@ describe("the ladder", () => {
         });
     };
     await h.pass();
+    // The pass's upkeep (the egress policy, once per process, for a
+    // sandbox still awake when read again) runs after the ladder, over the
+    // same listing.
     expect(h.substrate.calls.filter((c) => c.endsWith(name))).toEqual([
-      `ensureEgressPolicy ${name}`,
       `getActor ${name}`,
       `pauseActor ${name}`,
       `resumeActor ${name}`,
+      `getActor ${name}`,
+      `ensureEgressPolicy ${name}`,
     ]);
     expect(h.substrate.actors.get(name)?.state).toBe(ActorState.RUNNING);
   });
@@ -478,20 +482,16 @@ describe("failures and races", () => {
       template: "t",
       createTime: new Date(h.t() - 60 * MIN),
     });
-    // While the pass reconciles the sandbox's egress, an ensure queues
-    // behind it and names the session; the orphan check queues after that.
+    // An ensure holds the actor's queue when the pass reads it as an
+    // orphan; it names the session before the orphan check, queued behind
+    // it, runs.
     let release: () => void = () => {};
-    let ensureQueued: Promise<void> | undefined;
-    const ensureEgress = h.substrate.ensureEgressPolicy.bind(h.substrate);
-    h.substrate.ensureEgressPolicy = async (actorName, rules) => {
-      ensureQueued ??= h.driver.internals.serialize(actorName, async () => {
-        h.driver.internals.sessionByActor.set(name, "ses_late");
-        await new Promise<void>((resolve) => {
-          release = resolve;
-        });
+    const ensureQueued = h.driver.internals.serialize(name, async () => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
       });
-      return ensureEgress(actorName, rules);
-    };
+      h.driver.internals.sessionByActor.set(name, "ses_late");
+    });
     const pass = h.pass();
     await new Promise((r) => setImmediate(r));
     release();
@@ -503,7 +503,6 @@ describe("failures and races", () => {
   it("start logs a template it cannot prepare and a pass that fails, and never runs two passes at once", async () => {
     vi.useFakeTimers();
     try {
-      const h = harness();
       const errors: string[] = [];
       const logger = createLogger({
         level: "error",
@@ -511,6 +510,7 @@ describe("failures and races", () => {
         write: () => {},
         sink: (entry) => errors.push(entry.message),
       });
+      const h = harness(logger);
       h.substrate.fail("ensureAtespace", new Error("no Substrate"));
       let release: () => void = () => {};
       let lists = 0;
