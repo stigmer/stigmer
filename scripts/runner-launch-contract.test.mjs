@@ -46,8 +46,9 @@ test("the runner layer puts the Node and the artifact where the command starts t
   );
 });
 
-test("the sandbox image is the base plus the runner layer at /runner", () => {
+test("the sandbox image is the base plus the runner layer's own COPY lines", () => {
   const sandbox = stage("sandbox");
   assert.match(sandbox[0], /^FROM\s+base\s+AS\s+sandbox/i);
-  assert.ok(sandbox.some((line) => /^COPY\s+--from=runner-layer\s+\/runner\s+\/runner\s*$/.test(line)));
+  const copies = (lines) => lines.filter((line) => /^COPY\s/.test(line));
+  assert.deepEqual(copies(sandbox), copies(stage("runner-layer")));
 });

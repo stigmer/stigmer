@@ -41,7 +41,7 @@
 #                    is the one npm installed here, so each arch's leg
 #                    builds its own)
 #   runner-layer   — FROM scratch, /runner only
-#   sandbox        — base plus the runner layer, joined as ONE layer. The
+#   sandbox        — base plus the runner layer's three layers. The
 #                    CLOUD sandbox image (release.sandbox-cloud builds
 #                    `--target sandbox`). The runner process is started by
 #                    the control plane (the drivers set the command), so CMD
@@ -170,10 +170,16 @@ RUN cd backend/libs/ts/outbound && npm run build
 
 # ---------- The runner, compiled and bundled ----------
 # Built against the real libs (the file: references resolve to libs' tree),
-# with every dependency; only the slim artifact leaves this stage. Its
-# bundler imports the repository's one rule for source-map pragmas, so that
-# file is copied to the path it imports from. meta.json is esbuild's build
-# diagnostics, which no runtime reads (the desktop's staging skips it too).
+# with every dependency; only the slim artifact leaves this stage, split in
+# two by how often each part changes: /build/slim/node_modules (the staged
+# packages, which change with the lockfile) and /build/slim/dist (the
+# bundles, which change with the runner). Every file's time is set to npm's
+# fixed tarball date, so an unchanged dependency tree is the same layer
+# bytes build after build and a node holding it pulls only the bundles
+# (stigmer/stigmer#1244). Its bundler imports the repository's one rule for
+# source-map pragmas, so that file is copied to the path it imports from.
+# meta.json is esbuild's build diagnostics, which no runtime reads (the
+# desktop's staging skips it too).
 FROM libs AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && \
@@ -185,21 +191,33 @@ WORKDIR /build/backend/services/runner
 RUN npm ci --legacy-peer-deps
 
 COPY backend/services/runner/ .
-RUN npm run build:slim && rm dist-slim/meta.json
+RUN npm run build:slim && rm dist-slim/meta.json && \
+    mkdir -p /build/slim && mv dist-slim/node_modules /build/slim/node_modules && \
+    mv dist-slim /build/slim/dist && \
+    find /build/slim -exec touch -h -d 1985-10-26T08:15:00Z {} +
 
 # ---------- The runner layer ----------
-# Everything Stigmer adds to a base image, under /runner and nowhere else.
-# The Node binary alone (no npm): the runner needs nothing else of it.
+# Everything Stigmer adds to a base image, under /runner and nowhere else,
+# as three layers ordered by how often they change: the Node binary alone
+# (no npm: the runner needs nothing else of it), the staged packages, the
+# bundles. Together they are the slim artifact's self-contained directory
+# at /runner/dist.
 FROM scratch AS runner-layer
 
 COPY --from=node-runtime /usr/local/bin/node /runner/bin/node
-COPY --from=builder /build/backend/services/runner/dist-slim/ /runner/dist/
+COPY --from=builder /build/slim/node_modules/ /runner/dist/node_modules/
+COPY --from=builder /build/slim/dist/ /runner/dist/
 
 # ---------- The cloud sandbox image ----------
-# The default base plus the runner layer, joined as one layer.
+# The default base plus the runner layer: the same three COPY lines as the
+# runner-layer stage (scripts/runner-launch-contract.test.mjs holds them
+# equal), so the image keeps the runner layer's three layers rather than
+# one, and a runner-only release changes only the bundles.
 FROM base AS sandbox
 
-COPY --from=runner-layer /runner /runner
+COPY --from=node-runtime /usr/local/bin/node /runner/bin/node
+COPY --from=builder /build/slim/node_modules/ /runner/dist/node_modules/
+COPY --from=builder /build/slim/dist/ /runner/dist/
 
 # ---------- Compose runner (the self-host stack's runner) ----------
 # The sandbox stage plus the stigmer CLI. Why the CLI: in the OSS/local
