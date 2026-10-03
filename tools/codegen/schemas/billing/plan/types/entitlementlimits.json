@@ -36,6 +36,39 @@
       "description": "The platform-managed organizations a subscription includes before the\n per-organization fee applies. Read by a subscription only: an\n integrator's plan includes this many managed organizations, and the\n organizations resolve their own entitlements through the integrator's.\n Whether managed organizations are admitted at all is the\n managed_organizations feature, since absent here means \"no limit\" and\n zero is refused. A license ignores it.",
       "required": false,
       "oneofGroup": "_included_managed_organizations"
+    },
+    {
+      "name": "MaxActiveSessionSandboxes",
+      "jsonName": "maxActiveSessionSandboxes",
+      "protoField": "max_active_session_sandboxes",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "The most session sandboxes an organization may hold provisioning or\n running at once. Read by a subscription: the Cloud's sandbox capacity\n gate refuses a session launch that would need a new sandbox past it,\n and a follow-up turn on a running sandbox is never counted. A license\n ignores it until a self-hosted capacity gate reads it.",
+      "required": false,
+      "oneofGroup": "_max_active_session_sandboxes"
+    },
+    {
+      "name": "MaxActiveWorkflowSandboxes",
+      "jsonName": "maxActiveWorkflowSandboxes",
+      "protoField": "max_active_workflow_sandboxes",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "The most workflow-execution sandboxes an organization may hold\n provisioning or running at once. Read by a subscription: the Cloud's\n sandbox capacity gate refuses a workflow launch that would need a new\n sandbox past it. A license ignores it until a self-hosted capacity gate\n reads it.",
+      "required": false,
+      "oneofGroup": "_max_active_workflow_sandboxes"
+    },
+    {
+      "name": "ArchivedWorkspaceRetentionDays",
+      "jsonName": "archivedWorkspaceRetentionDays",
+      "protoField": "archived_workspace_retention_days",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "How many days an archived session workspace is kept before it is\n deleted. Absent keeps it for as long as the session exists. Read by a\n subscription: the Cloud's sandbox lifecycle deletes an organization's\n archived workspaces, files and snapshot included, once they are older\n than this. A license ignores it until a self-hosted sandbox lifecycle\n reads it.",
+      "required": false,
+      "oneofGroup": "_archived_workspace_retention_days"
     }
   ]
 }

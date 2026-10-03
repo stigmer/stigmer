@@ -226,6 +226,33 @@ const rows: ReadonlyArray<Row<DescMessage>> = [
     init: {},
   }),
   row({
+    name: "a session sandbox limit of zero",
+    schema: EntitlementLimitsSchema,
+    init: { maxActiveSessionSandboxes: 0 },
+    refusedBy: "int32.gt",
+  }),
+  row({
+    name: "a workflow sandbox limit of zero",
+    schema: EntitlementLimitsSchema,
+    init: { maxActiveWorkflowSandboxes: 0 },
+    refusedBy: "int32.gt",
+  }),
+  row({
+    name: "an archive retention of zero days, which would delete on archive",
+    schema: EntitlementLimitsSchema,
+    init: { archivedWorkspaceRetentionDays: 0 },
+    refusedBy: "int32.gt",
+  }),
+  row({
+    name: "both sandbox limits and an archive retention, each positive",
+    schema: EntitlementLimitsSchema,
+    init: {
+      maxActiveSessionSandboxes: 3,
+      maxActiveWorkflowSandboxes: 1,
+      archivedWorkspaceRetentionDays: 30,
+    },
+  }),
+  row({
     name: "a feature named twice",
     schema: EntitlementsSchema,
     init: { features: [Feature.channels, Feature.channels] },

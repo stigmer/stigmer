@@ -151,11 +151,17 @@ public final class PlanInput {
         private final int maxOrgs;
         private final int maxUsers;
         private final int includedManagedOrganizations;
+        private final int maxActiveSessionSandboxes;
+        private final int maxActiveWorkflowSandboxes;
+        private final int archivedWorkspaceRetentionDays;
 
         private EntitlementLimitsInput(Builder builder) {
             this.maxOrgs = builder.maxOrgs;
             this.maxUsers = builder.maxUsers;
             this.includedManagedOrganizations = builder.includedManagedOrganizations;
+            this.maxActiveSessionSandboxes = builder.maxActiveSessionSandboxes;
+            this.maxActiveWorkflowSandboxes = builder.maxActiveWorkflowSandboxes;
+            this.archivedWorkspaceRetentionDays = builder.archivedWorkspaceRetentionDays;
         }
 
         EntitlementLimits toProto() {
@@ -163,6 +169,9 @@ public final class PlanInput {
             builder.setMaxOrgs(this.maxOrgs);
             builder.setMaxUsers(this.maxUsers);
             builder.setIncludedManagedOrganizations(this.includedManagedOrganizations);
+            builder.setMaxActiveSessionSandboxes(this.maxActiveSessionSandboxes);
+            builder.setMaxActiveWorkflowSandboxes(this.maxActiveWorkflowSandboxes);
+            builder.setArchivedWorkspaceRetentionDays(this.archivedWorkspaceRetentionDays);
             return builder.build();
         }
 
@@ -172,12 +181,18 @@ public final class PlanInput {
             private int maxOrgs;
             private int maxUsers;
             private int includedManagedOrganizations;
+            private int maxActiveSessionSandboxes;
+            private int maxActiveWorkflowSandboxes;
+            private int archivedWorkspaceRetentionDays;
 
             private Builder() {}
 
             public Builder maxOrgs(int maxOrgs) { this.maxOrgs = maxOrgs; return this; }
             public Builder maxUsers(int maxUsers) { this.maxUsers = maxUsers; return this; }
             public Builder includedManagedOrganizations(int includedManagedOrganizations) { this.includedManagedOrganizations = includedManagedOrganizations; return this; }
+            public Builder maxActiveSessionSandboxes(int maxActiveSessionSandboxes) { this.maxActiveSessionSandboxes = maxActiveSessionSandboxes; return this; }
+            public Builder maxActiveWorkflowSandboxes(int maxActiveWorkflowSandboxes) { this.maxActiveWorkflowSandboxes = maxActiveWorkflowSandboxes; return this; }
+            public Builder archivedWorkspaceRetentionDays(int archivedWorkspaceRetentionDays) { this.archivedWorkspaceRetentionDays = archivedWorkspaceRetentionDays; return this; }
 
             public EntitlementLimitsInput build() { return new EntitlementLimitsInput(this); }
         }

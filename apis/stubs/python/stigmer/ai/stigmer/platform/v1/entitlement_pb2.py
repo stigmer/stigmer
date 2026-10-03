@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/platform/v1/entitlement.proto\x12\x16\x61i.stigmer.platform.v1\x1a\x1b\x62uf/validate/validate.proto\"\xa1\x01\n\x0c\x45ntitlements\x12\x41\n\x06limits\x18\x01 \x01(\x0b\x32).ai.stigmer.platform.v1.EntitlementLimitsR\x06limits\x12N\n\x08\x66\x65\x61tures\x18\x02 \x03(\x0e\x32\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\x0b\x18\x01\"\x07\x82\x01\x04\x10\x01 \x00R\x08\x66\x65\x61tures\"\xf9\x01\n\x11\x45ntitlementLimits\x12\'\n\x08max_orgs\x18\x01 \x01(\x05\x42\x07\xbaH\x04\x1a\x02 \x00H\x00R\x07maxOrgs\x88\x01\x01\x12)\n\tmax_users\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02 \x00H\x01R\x08maxUsers\x88\x01\x01\x12R\n\x1eincluded_managed_organizations\x18\x03 \x01(\x05\x42\x07\xbaH\x04\x1a\x02 \x00H\x02R\x1cincludedManagedOrganizations\x88\x01\x01\x42\x0b\n\t_max_orgsB\x0c\n\n_max_usersB!\n\x1f_included_managed_organizations*\xa4\x01\n\x07\x46\x65\x61ture\x12\x17\n\x13\x66\x65\x61ture_unspecified\x10\x00\x12\x13\n\x0fsso_enforcement\x10\x01\x12\x13\n\x0fplatform_client\x10\x02\x12\x15\n\x11\x62yo_provider_keys\x10\x03\x12\x0c\n\x08\x63hannels\x10\x04\x12\x0b\n\x07sharing\x10\x05\x12\t\n\x05teams\x10\x06\x12\x19\n\x15managed_organizations\x10\x07\x42\xa9\x01\n\x1a\x63om.ai.stigmer.platform.v1B\x10\x45ntitlementProtoP\x01\xa2\x02\x03\x41SP\xaa\x02\x16\x41i.Stigmer.Platform.V1\xca\x02\x16\x41i\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19\x41i::Stigmer::Platform::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/platform/v1/entitlement.proto\x12\x16\x61i.stigmer.platform.v1\x1a\x1b\x62uf/validate/validate.proto\"\xa1\x01\n\x0c\x45ntitlements\x12\x41\n\x06limits\x18\x01 \x01(\x0b\x32).ai.stigmer.platform.v1.EntitlementLimitsR\x06limits\x12N\n\x08\x66\x65\x61tures\x18\x02 \x03(\x0e\x32\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\x0b\x18\x01\"\x07\x82\x01\x04\x10\x01 \x00R\x08\x66\x65\x61tures\"\xdb\x04\n\x11\x45ntitlementLimits\x12\'\n\x08max_orgs\x18\x01 \x01(\x05\x42\x07\xbaH\x04\x1a\x02 \x00H\x00R\x07maxOrgs\x88\x01\x01\x12)\n\tmax_users\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02 \x00H\x01R\x08maxUsers\x88\x01\x01\x12R\n\x1eincluded_managed_organizations\x18\x03 \x01(\x05\x42\x07\xbaH\x04\x1a\x02 \x00H\x02R\x1cincludedManagedOrganizations\x88\x01\x01\x12M\n\x1cmax_active_session_sandboxes\x18\x04 \x01(\x05\x42\x07\xbaH\x04\x1a\x02 \x00H\x03R\x19maxActiveSessionSandboxes\x88\x01\x01\x12O\n\x1dmax_active_workflow_sandboxes\x18\x05 \x01(\x05\x42\x07\xbaH\x04\x1a\x02 \x00H\x04R\x1amaxActiveWorkflowSandboxes\x88\x01\x01\x12W\n!archived_workspace_retention_days\x18\x06 \x01(\x05\x42\x07\xbaH\x04\x1a\x02 \x00H\x05R\x1e\x61rchivedWorkspaceRetentionDays\x88\x01\x01\x42\x0b\n\t_max_orgsB\x0c\n\n_max_usersB!\n\x1f_included_managed_organizationsB\x1f\n\x1d_max_active_session_sandboxesB \n\x1e_max_active_workflow_sandboxesB$\n\"_archived_workspace_retention_days*\xa4\x01\n\x07\x46\x65\x61ture\x12\x17\n\x13\x66\x65\x61ture_unspecified\x10\x00\x12\x13\n\x0fsso_enforcement\x10\x01\x12\x13\n\x0fplatform_client\x10\x02\x12\x15\n\x11\x62yo_provider_keys\x10\x03\x12\x0c\n\x08\x63hannels\x10\x04\x12\x0b\n\x07sharing\x10\x05\x12\t\n\x05teams\x10\x06\x12\x19\n\x15managed_organizations\x10\x07\x42\xa9\x01\n\x1a\x63om.ai.stigmer.platform.v1B\x10\x45ntitlementProtoP\x01\xa2\x02\x03\x41SP\xaa\x02\x16\x41i.Stigmer.Platform.V1\xca\x02\x16\x41i\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19\x41i::Stigmer::Platform::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,10 +41,16 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ENTITLEMENTLIMITS'].fields_by_name['max_users']._serialized_options = b'\272H\004\032\002 \000'
   _globals['_ENTITLEMENTLIMITS'].fields_by_name['included_managed_organizations']._loaded_options = None
   _globals['_ENTITLEMENTLIMITS'].fields_by_name['included_managed_organizations']._serialized_options = b'\272H\004\032\002 \000'
-  _globals['_FEATURE']._serialized_start=514
-  _globals['_FEATURE']._serialized_end=678
+  _globals['_ENTITLEMENTLIMITS'].fields_by_name['max_active_session_sandboxes']._loaded_options = None
+  _globals['_ENTITLEMENTLIMITS'].fields_by_name['max_active_session_sandboxes']._serialized_options = b'\272H\004\032\002 \000'
+  _globals['_ENTITLEMENTLIMITS'].fields_by_name['max_active_workflow_sandboxes']._loaded_options = None
+  _globals['_ENTITLEMENTLIMITS'].fields_by_name['max_active_workflow_sandboxes']._serialized_options = b'\272H\004\032\002 \000'
+  _globals['_ENTITLEMENTLIMITS'].fields_by_name['archived_workspace_retention_days']._loaded_options = None
+  _globals['_ENTITLEMENTLIMITS'].fields_by_name['archived_workspace_retention_days']._serialized_options = b'\272H\004\032\002 \000'
+  _globals['_FEATURE']._serialized_start=868
+  _globals['_FEATURE']._serialized_end=1032
   _globals['_ENTITLEMENTS']._serialized_start=98
   _globals['_ENTITLEMENTS']._serialized_end=259
   _globals['_ENTITLEMENTLIMITS']._serialized_start=262
-  _globals['_ENTITLEMENTLIMITS']._serialized_end=511
+  _globals['_ENTITLEMENTLIMITS']._serialized_end=865
 # @@protoc_insertion_point(module_scope)

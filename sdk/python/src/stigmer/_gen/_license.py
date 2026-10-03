@@ -139,12 +139,18 @@ class EntitlementLimitsInput:
     max_orgs: int = 0
     max_users: int = 0
     included_managed_organizations: int = 0
+    max_active_session_sandboxes: int = 0
+    max_active_workflow_sandboxes: int = 0
+    archived_workspace_retention_days: int = 0
 
     def _to_proto(self) -> platform_entitlement_pb2.EntitlementLimits:
         msg = platform_entitlement_pb2.EntitlementLimits(
             max_orgs=self.max_orgs,
             max_users=self.max_users,
             included_managed_organizations=self.included_managed_organizations,
+            max_active_session_sandboxes=self.max_active_session_sandboxes,
+            max_active_workflow_sandboxes=self.max_active_workflow_sandboxes,
+            archived_workspace_retention_days=self.archived_workspace_retention_days,
         )
         return msg
 

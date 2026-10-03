@@ -82,9 +82,12 @@ type EntitlementsInput struct {
 
 // EntitlementLimitsInput is the SDK input type for EntitlementLimits.
 type EntitlementLimitsInput struct {
-	MaxOrgs                      int32
-	MaxUsers                     int32
-	IncludedManagedOrganizations int32
+	MaxOrgs                        int32
+	MaxUsers                       int32
+	IncludedManagedOrganizations   int32
+	MaxActiveSessionSandboxes      int32
+	MaxActiveWorkflowSandboxes     int32
+	ArchivedWorkspaceRetentionDays int32
 }
 
 func (i *LicenseInput) toProto() (*licensev1.License, error) {
@@ -221,5 +224,8 @@ func entitlementLimitsInputFromProto(p *platformv1.EntitlementLimits) *Entitleme
 	input.MaxOrgs = p.GetMaxOrgs()
 	input.MaxUsers = p.GetMaxUsers()
 	input.IncludedManagedOrganizations = p.GetIncludedManagedOrganizations()
+	input.MaxActiveSessionSandboxes = p.GetMaxActiveSessionSandboxes()
+	input.MaxActiveWorkflowSandboxes = p.GetMaxActiveWorkflowSandboxes()
+	input.ArchivedWorkspaceRetentionDays = p.GetArchivedWorkspaceRetentionDays()
 	return input
 }
