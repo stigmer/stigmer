@@ -438,8 +438,9 @@ handles account creation and role grants automatically based on a JWT claim.
 ### How `tenantOrgClaim` works
 
 When you set `tenantOrgClaim` on an Identity Provider, Stigmer reads that claim
-from the JWT at authentication time and uses it to route the user to the correct
-tenant Organization. The resolution algorithm:
+from the JWT when it creates the user's account, at their first sign-in, and
+uses it to place the user in the correct tenant Organization. The resolution
+algorithm:
 
 1. Read the claim value from the JWT (for example, claim `org_id` yields value
    `tenant-123`)
@@ -449,6 +450,13 @@ tenant Organization. The resolution algorithm:
    `autoProvisionAccounts` is `true`)
 4. Grant `autoGrantRole` (default: viewer) on the resolved tenant Organization
    (because `autoGrantOnOrg` is `true`)
+
+<Callout type="warn">
+  Stigmer reads the claim only at the sign-in that creates the account. A
+  returning user is not placed again: if their token names another tenant,
+  Stigmer grants nothing there, so grant that role from your backend with an IAM
+  Policy, as in manual setup.
+</Callout>
 
 <ScenarEmbed
   id="multi-tenant-jit-playback"
@@ -551,9 +559,9 @@ needed.
 
 ### Error handling
 
-If the JWT contains the `tenantOrgClaim` but its value does not match any
-platform-managed Organization's `externalOrgId`, Stigmer rejects the
-authentication request with a descriptive error:
+If, at a user's first sign-in, the JWT contains the `tenantOrgClaim` but its
+value does not match any platform-managed Organization's `externalOrgId`,
+Stigmer rejects the authentication request with a descriptive error:
 
 {/* vale off */}
 
@@ -568,9 +576,9 @@ partial access when the tenant cannot be resolved. The error message tells your
 platform exactly what to fix.
 
 <Callout type="warn">
-  If the JWT does not contain the `tenantOrgClaim` at all, the authentication
-  request is also rejected. When `tenantOrgClaim` is configured, every JWT must
-  include that claim.
+  If the JWT at a user's first sign-in does not contain the `tenantOrgClaim` at
+  all, the authentication request is also rejected, and no account remains. When
+  `tenantOrgClaim` is configured, include the claim in every JWT.
 </Callout>
 
 ### JIT vs. manual for multi-tenant
