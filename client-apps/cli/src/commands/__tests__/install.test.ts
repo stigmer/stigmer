@@ -135,7 +135,7 @@ beforeEach(() => {
       `    endpoint: 127.0.0.1:${port}`,
       "current_backend: test",
       "context:",
-      "  organization: acme",
+      "  org: acme",
       "marketplaces:",
       "  acme-plugins:",
       "    type: local",

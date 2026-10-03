@@ -4,7 +4,7 @@
 // Order matters and mirrors Go: validate cheap flags first (mode, approve
 // default), then parse workspaces, then merge env, then process attachments
 // (the only step that hits the network). A failure short-circuits before any
-// upload. STIGMER_ORG_ID is injected into the runtime env when absent so agents
+// upload. STIGMER_ORG is injected into the runtime env when absent so agents
 // can address the caller's org without the user wiring it manually.
 
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
@@ -108,7 +108,7 @@ export interface PrepareAgentExecOptions {
 
 /**
  * Validate flags and resolve all execution inputs. The `org` is used to inject
- * STIGMER_ORG_ID and the `client` to upload non-workspace attachments.
+ * STIGMER_ORG and the `client` to upload non-workspace attachments.
  */
 export async function prepareAgentExec(
   flags: AgentExecFlags,
@@ -162,8 +162,8 @@ export async function prepareAgentExec(
     envFiles: flags.envFile,
     secretFiles: flags.secretFile,
   });
-  if (runtimeEnv.STIGMER_ORG_ID === undefined && org !== "") {
-    runtimeEnv.STIGMER_ORG_ID = { value: org, isSecret: false };
+  if (runtimeEnv.STIGMER_ORG === undefined && org !== "") {
+    runtimeEnv.STIGMER_ORG = { value: org, isSecret: false };
   }
 
   const { attachments, workspaceFileRefs } = await processAttachments(

@@ -173,8 +173,7 @@ stigmer config context set --org <your-org-slug>
 The last command checks that you belong to the Organization before it saves it,
 so a mistyped slug is refused on the spot. Every `apply`, `run` and `get` on
 this page now lands where the console looks; `--org <slug>` on a command, or
-`STIGMER_ORG_ID` set for the process, points one command at another
-Organization.
+`STIGMER_ORG` set for the process, points one command at another Organization.
 
 A named backend keeps its own address and, later, its own API key, so switching
 between this cluster, your laptop and Stigmer Cloud is one command. The

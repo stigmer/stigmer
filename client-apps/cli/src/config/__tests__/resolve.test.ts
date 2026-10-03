@@ -19,7 +19,7 @@ import {
 const ENV_KEYS = [
   "STIGMER_SERVER_ADDRESS",
   "STIGMER_API_KEY",
-  "STIGMER_ORG_ID",
+  "STIGMER_ORG",
 ] as const;
 
 afterEach(() => {
@@ -123,13 +123,13 @@ describe("resolveToken", () => {
 
 describe("resolveOrganization", () => {
   it("prefers the --org flag override", () => {
-    process.env.STIGMER_ORG_ID = "env-org";
+    process.env.STIGMER_ORG = "env-org";
     const config = cloudConfig({ org_id: "config-org" });
     expect(resolveOrganization(config, "flag-org")).toBe("flag-org");
   });
 
-  it("falls back to STIGMER_ORG_ID, then context, then the entry's org_id", () => {
-    process.env.STIGMER_ORG_ID = "env-org";
+  it("falls back to STIGMER_ORG, then context, then the entry's org_id", () => {
+    process.env.STIGMER_ORG = "env-org";
     expect(resolveOrganization(cloudConfig({ org_id: "config-org" }))).toBe(
       "env-org",
     );
@@ -138,7 +138,7 @@ describe("resolveOrganization", () => {
   it("uses context organization when no flag/env is set", () => {
     const config = cloudConfig(
       { org_id: "legacy" },
-      { organization: "ctx-org" },
+      { org: "ctx-org" },
     );
     expect(resolveOrganization(config)).toBe("ctx-org");
     expect(resolveContextOrganization(config)).toBe("ctx-org");
@@ -160,7 +160,7 @@ describe("resolveOrganization", () => {
 
   it("prefers an explicit context org over the local default", () => {
     expect(
-      resolveOrganization(localConfig({ organization: "my-local-org" })),
+      resolveOrganization(localConfig({ org: "my-local-org" })),
     ).toBe("my-local-org");
   });
 

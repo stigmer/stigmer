@@ -55,10 +55,10 @@ export async function runWorkflow(
     }
 
     // Workflow tasks resolve their org through the runtime env; the CLI
-    // injects STIGMER_ORG_ID the same way, so a caller-supplied value wins.
+    // injects STIGMER_ORG the same way, so a caller-supplied value wins.
     const runtimeEnv = toExecutionValues(args.runtimeEnv);
-    if (runtimeEnv.STIGMER_ORG_ID === undefined) {
-      runtimeEnv.STIGMER_ORG_ID = createMessage(ExecutionValueSchema, {
+    if (runtimeEnv.STIGMER_ORG === undefined) {
+      runtimeEnv.STIGMER_ORG = createMessage(ExecutionValueSchema, {
         value: args.org,
         isSecret: false,
       });

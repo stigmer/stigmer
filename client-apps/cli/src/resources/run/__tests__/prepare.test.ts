@@ -1,5 +1,5 @@
 // Unit tests for the prelude orchestrator: flag validation helpers and the
-// STIGMER_ORG_ID injection rule. Attachment uploading is covered in
+// STIGMER_ORG injection rule. Attachment uploading is covered in
 // attachments.test.ts, so these tests use no attachments.
 
 import { describe, expect, it } from "vitest";
@@ -153,23 +153,23 @@ function countingClient(preferences: StubPreferences): { client: Stigmer; calls:
 const SERVED_RUN_OPTIONS = { accountPreferencesAvailable: true } as const;
 
 describe("prepareAgentExec env injection", () => {
-  it("injects STIGMER_ORG_ID when absent", async () => {
+  it("injects STIGMER_ORG when absent", async () => {
     const prepared = await prepareAgentExec(BASE_FLAGS, STUB_CLIENT, "acme");
-    expect(prepared.runtimeEnv.STIGMER_ORG_ID).toEqual({ value: "acme", isSecret: false });
+    expect(prepared.runtimeEnv.STIGMER_ORG).toEqual({ value: "acme", isSecret: false });
   });
 
-  it("does not override an explicit STIGMER_ORG_ID", async () => {
+  it("does not override an explicit STIGMER_ORG", async () => {
     const prepared = await prepareAgentExec(
-      { ...BASE_FLAGS, env: ["STIGMER_ORG_ID=explicit"] },
+      { ...BASE_FLAGS, env: ["STIGMER_ORG=explicit"] },
       STUB_CLIENT,
       "acme",
     );
-    expect(prepared.runtimeEnv.STIGMER_ORG_ID).toEqual({ value: "explicit", isSecret: false });
+    expect(prepared.runtimeEnv.STIGMER_ORG).toEqual({ value: "explicit", isSecret: false });
   });
 
   it("skips injection when org is empty", async () => {
     const prepared = await prepareAgentExec(BASE_FLAGS, STUB_CLIENT, "");
-    expect(prepared.runtimeEnv.STIGMER_ORG_ID).toBeUndefined();
+    expect(prepared.runtimeEnv.STIGMER_ORG).toBeUndefined();
   });
 
   it("carries through scalar flags", async () => {

@@ -9,7 +9,7 @@ describe("config keys", () => {
       "backend.cloud.endpoint",
       "backend.cloud.org_id",
       "backend.type",
-      "context.organization",
+      "context.org",
       "current_backend",
     ]);
   });

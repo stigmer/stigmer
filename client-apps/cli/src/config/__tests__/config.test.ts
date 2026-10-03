@@ -32,7 +32,7 @@ describe("load", () => {
     const path = tempConfigPath();
     writeFileSync(
       path,
-      "backend:\n  type: cloud\n  cloud:\n    endpoint: api.stigmer.ai:443\n    org_id: acme\ncontext:\n  organization: acme\n",
+      "backend:\n  type: cloud\n  cloud:\n    endpoint: api.stigmer.ai:443\n    org_id: acme\ncontext:\n  org: acme\n",
     );
     const config = load(path);
     // The legacy slot becomes the reserved "cloud" entry; the legacy type
@@ -44,7 +44,7 @@ describe("load", () => {
       org_id: "acme",
     });
     expect(config.backend.cloud).toBeUndefined();
-    expect(config.context?.organization).toBe("acme");
+    expect(config.context?.org).toBe("acme");
     expect(isCloudMode(config)).toBe(true);
   });
 
@@ -121,12 +121,12 @@ describe("save", () => {
 
     const config = load(path);
     // Mutate an unrelated field, then save.
-    (config.context ??= {}).organization = "acme";
+    (config.context ??= {}).org = "acme";
     save(config, path);
 
     const reloaded = readFileSync(path, "utf8");
     expect(reloaded).toContain("managed: true");
     expect(reloaded).toContain("mode: local");
-    expect(reloaded).toContain("organization: acme");
+    expect(reloaded).toContain("org: acme");
   });
 });
