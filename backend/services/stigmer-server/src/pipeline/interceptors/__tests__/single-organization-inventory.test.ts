@@ -96,7 +96,7 @@ describe("the single-organization fill inventory (docs/single-organization.md) i
 
   it("the comparison bites: a missing row, an extra row and a moved path each differ", () => {
     const truth = servedRows(server);
-    const doc = truth.map((row) => `| ${row.replace(" | ", " | ")} |`);
+    const doc = truth.map((row) => `| ${row} |`);
     expect(rowsOf(doc.join("\n"))).toEqual(truth);
 
     const missing = doc.slice(1);
