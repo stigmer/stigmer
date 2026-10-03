@@ -24,7 +24,11 @@
  * a server with no organization and a slug that is never taken again, so the
  * next boot would make another under a new slug. Refused, it writes nothing.
  * A store that holds several (one from before the server held one) may
- * delete down to one, which is the way back to a server that fills it.
+ * delete down to one, which is the way back to a server that fills it. The
+ * count is read, not locked, as the limit's is: two deletes racing on a
+ * store that holds two can both pass and leave none. The next boot then
+ * makes the organization again, or, when the slug was retired, warns and
+ * lets the console's onboarding make one, which the limit admits at zero.
  *
  * Both reasons are wire contract, documented on OrganizationCommandController
  * create and delete.

@@ -123,7 +123,7 @@ server:
 Leave the `runner.llm` lines out if you created no LLM Secret. The operator
 email is optional too, and worth setting now: it's stamped on what you create,
 and when you later turn authentication on, the person who signs in with this
-email becomes an administrator of every Organization. Then install:
+email owns the server's Organization. Then install:
 
 ```bash
 helm install stigmer oci://ghcr.io/stigmer/charts/stigmer \
@@ -273,8 +273,8 @@ runner. It refuses the issuer without it, so turning authentication on is an
 upgrade you prepare, not a value you flip. The
 [authentication guide](./authentication) says where that key comes from, what to
 register with your OIDC provider, and the order of the steps; follow it from
-here. Once authentication is on, the person whose provider email matches
-`server.operator.email` becomes an administrator of every Organization.
+here. Once authentication is on, sign in as the operator first: the person whose
+provider email matches `server.operator.email` owns the server's Organization.
 
 ## Bring your own Postgres and Temporal
 

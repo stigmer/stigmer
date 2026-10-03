@@ -162,12 +162,13 @@ file you edited and that the service was recreated.
 
 Open the console. It sends you to your provider to sign in and brings you back.
 The first time, the server creates your Identity Account from the profile your
-provider publishes. If your email matches the operator email you set, you become
-an administrator of every Organization; the server trusts that email exactly as
-your provider asserts it, so use a provider that verifies email addresses. If
-the stack has no Organization yet, the console asks you to create one. The
-person who creates an Organization is recorded as its owner; people who sign in
-afterwards join it as members.
+provider publishes, and you land in the server's one Organization, which it made
+at its first start. If your email matches the operator email you set, you own
+it; the server trusts that email exactly as your provider asserts it, so use a
+provider that verifies email addresses. Sign in as the operator first: the first
+person your provider lets in before the operator becomes an administrator, and
+everyone else joins as a member. With no operator email set, the first person to
+sign in owns the Organization.
 
 ### Create the keys
 
