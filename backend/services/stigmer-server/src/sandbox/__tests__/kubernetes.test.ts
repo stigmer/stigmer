@@ -12,7 +12,9 @@
  *     MODE=local, the secretKeyRef token env only when a token exists,
  *     the empty Secret for token-less sandboxes;
  *   - the server's public address rides as STIGMER_MCP_PUBLIC_ENDPOINT
- *     only when configured (stigmer/stigmer#1447).
+ *     only when configured (stigmer/stigmer#1447);
+ *   - the operator's runner settings ride as values and its runner secrets
+ *     ride the per-sandbox Secret, never a manifest value.
  */
 import { describe, expect, it } from "vitest";
 
@@ -42,6 +44,8 @@ const config: SandboxDriverConfig = {
   runnerImage: "ghcr.io/stigmer/runner:latest",
   runnerCommand: "stigmer-runner",
   kubernetesNamespace: "stigmer-sandboxes",
+  runnerEnv: {},
+  runnerSecretEnv: {},
 };
 
 function fakeGateway(
@@ -276,5 +280,41 @@ describe("the manifest shapes (the Java SandboxManifestFactory pins)", () => {
         key: name,
       });
     }
+  });
+});
+
+describe("the operator's runner lists", () => {
+  const withLists: SandboxDriverConfig = {
+    ...config,
+    runnerEnv: { ANTHROPIC_BASE_URL: "http://gateway.example:8080" },
+    runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-test" },
+  };
+
+  it("plain settings ride as values; secrets ride the per-sandbox Secret, never the manifest", () => {
+    const deployment = buildSandboxDeployment(
+      "session",
+      "ses_1",
+      { taskQueue: "session:ses_1", stigmerToken: "tok", callerClass: "user" },
+      withLists,
+    );
+    const env = deployment.spec?.template.spec?.containers[0]?.env ?? [];
+    expect(env).toContainEqual({ name: "ANTHROPIC_BASE_URL", value: "http://gateway.example:8080" });
+    expect(env).toContainEqual({
+      name: "ANTHROPIC_API_KEY",
+      valueFrom: { secretKeyRef: { name: `${sandboxBaseName("session", "ses_1")}-env`, key: "ANTHROPIC_API_KEY" } },
+    });
+    expect(JSON.stringify(deployment)).not.toContain("sk-test");
+    const secret = buildSandboxSecret("session", "ses_1", "tok", {}, withLists.runnerSecretEnv);
+    expect(secret.stringData).toEqual({ ANTHROPIC_API_KEY: "sk-test", STIGMER_TOKEN: "tok" });
+  });
+
+  it("the ensure writes the runner's secrets into the Secret it applies", async () => {
+    const gateway = fakeGateway(new Map());
+    await newKubernetesSandboxProvisionerOverGateway(gateway, withLists, silentLogger).ensureSessionSandbox("ses_1", {
+      taskQueue: "session:ses_1",
+      stigmerToken: "tok",
+      callerClass: "user",
+    });
+    expect(gateway.applied.secrets[0]?.stringData).toMatchObject({ ANTHROPIC_API_KEY: "sk-test" });
   });
 });

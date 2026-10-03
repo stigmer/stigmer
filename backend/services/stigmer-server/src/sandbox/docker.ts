@@ -148,12 +148,21 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       ...(config.mcpPublicEndpoint !== ""
         ? ["--env", `STIGMER_MCP_PUBLIC_ENDPOINT=${config.mcpPublicEndpoint}`]
         : []),
+      // The operator's plain runner settings, as values like the endpoints.
+      ...Object.entries(config.runnerEnv).flatMap(([name, value]) => [
+        "--env",
+        `${name}=${value}`,
+      ]),
     ];
     // Value-less --env inherits from the CLI's environment (module header:
     // the token must never appear in argv). The Temporal connection
-    // settings ride the same channel: they carry credentials, and PEM text
-    // does not belong on a command line.
-    const secretEnv: Record<string, string> = { ...config.temporalConnectionEnv };
+    // settings and the operator's runner secrets ride the same channel:
+    // they carry credentials, and PEM text does not belong on a command
+    // line.
+    const secretEnv: Record<string, string> = {
+      ...config.runnerSecretEnv,
+      ...config.temporalConnectionEnv,
+    };
     if (env.stigmerToken !== "") secretEnv["STIGMER_TOKEN"] = env.stigmerToken;
     let runEnv: NodeJS.ProcessEnv | undefined;
     if (Object.keys(secretEnv).length > 0) {

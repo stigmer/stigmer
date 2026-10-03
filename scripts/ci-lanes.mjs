@@ -166,6 +166,10 @@ export const LANES = {
       "sdk/python/src/stigmer/_gen/**",
       "sdk/python/Makefile",
       "sdk/go/proto/**",
+      // The substrate driver's Agent Substrate stubs and their generator
+      // config (make gen-substrate-stubs-check).
+      "backend/services/stigmer-server/buf.gen.substrate.yaml",
+      "backend/services/stigmer-server/src/sandbox/substrate/gen/**",
       // The Makefile its steps' targets come from (ci.all-in-one says why).
       "Makefile",
       // What the lane sets up and installs from (ci.all-in-one says why).

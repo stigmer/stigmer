@@ -9,7 +9,15 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**"],
-      exclude: [...coverageConfigDefaults.exclude, "**/__test-utils__/**", "**/__fixtures__/**", "**/__mocks__/**"],
+      // Generated stubs are buf's output, not code a test owes coverage to
+      // (scripts/test-coverage.mjs: a generated module is excluded here).
+      exclude: [
+        ...coverageConfigDefaults.exclude,
+        "**/__test-utils__/**",
+        "**/__fixtures__/**",
+        "**/__mocks__/**",
+        "src/sandbox/substrate/gen/**",
+      ],
       reporter: ["json", "json-summary"],
       reportOnFailure: true,
       experimentalAstAwareRemapping: true,

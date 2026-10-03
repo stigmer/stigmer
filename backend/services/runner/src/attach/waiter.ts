@@ -31,27 +31,34 @@
  *     `STIGMER_TOKEN`: the token it carries is the one the runner restarts
  *     with, and every other secret must be the first push's, so a caller
  *     inside the sandbox (its agent can reach the listener over loopback)
- *     cannot swap the runner's other secrets or drop its token. The live
+ *     cannot swap the runner's other secrets or drop its token, nor replace
+ *     it with a token of another kind or for another session. The live
  *     runner keeps renewing its own token as it does in a pod. A push for
- *     another queue is refused.
+ *     another queue is refused. Every refusal carries a stable `code`
+ *     (push.ts, PushRefusalCode) beside its text, so a driver acts on the
+ *     code: `secrets_changed` tells it the runner must start fresh to take
+ *     new secrets.
  *   - It supervises the runner the way a pod's restart policy does: a runner
  *     that exits is started again, after a delay that grows to a cap, with
- *     the latest pushed environment. Stopping the waiter stops the runner
- *     first and waits for its graceful shutdown.
+ *     the latest pushed environment. A push that arrives while a restart
+ *     waits out its delay starts the runner at once, since a push means a
+ *     turn is about to need it. Stopping the waiter stops the runner first
+ *     and waits for its graceful shutdown.
  *
  * One limit, the same as a pod's: a restart uses the latest PUSHED token, not
  * the one the live runner renewed in-process (`sandbox-token-renewal.ts`).
  * A runner that crashes after that token has expired restarts with a dead
  * credential and retries at the delay cap until the driver's next push. So a
- * driver pushes on every wakeup, and again before the pushed token's
- * lifetime ends while the sandbox runs.
+ * driver pushes on every wakeup, and a composition whose tokens are renewed
+ * pushes the renewed token while the sandbox runs.
  *
  * Neither the token nor any secret is ever logged.
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { spawn, type ChildProcess } from "node:child_process";
-import { verifyAttachPush, type AttachPush } from "./push.js";
+import { sessionIdClaimOf, tokenTypeOf } from "../client/token-claims.js";
+import { verifyAttachPush, type AttachPush, type PushRefusalCode } from "./push.js";
 
 /** Largest push body accepted; a real push is a few kilobytes. */
 const MAX_PUSH_BYTES = 64 * 1024;
@@ -102,24 +109,47 @@ export function runnerEnvFor(baseEnv: NodeJS.ProcessEnv, push: AttachPush): Node
   return { ...env, STIGMER_TASK_QUEUE: push.taskQueue, ...push.secrets };
 }
 
+/** Why a later push was refused: a stable code and a reason for people. */
+export interface LaterPushRefusal {
+  readonly code: "secrets_changed" | "token_mismatch";
+  readonly reason: string;
+}
+
 /**
  * Why a later push may not be accepted, or undefined when it only rotates the
- * token: every secret but `STIGMER_TOKEN` must equal the first push's, and a
- * token the first push carried may be replaced but not dropped.
+ * token: every secret but `STIGMER_TOKEN` must equal the first push's
+ * (`secrets_changed`), and a token the first push carried may be replaced but
+ * not dropped, nor replaced by one of another kind: the new token must keep
+ * the first one's `token_type` and, when the first named a session, that
+ * session (`token_mismatch`). Tokens that name an execution rather than a
+ * session carry no session claim, so the rule holds for them too.
  */
-export function onlyTokenRotated(
+export function laterPushRefusal(
   first: Readonly<Record<string, string>>,
   later: Readonly<Record<string, string>>,
-): string | undefined {
+): LaterPushRefusal | undefined {
   const names = new Set([...Object.keys(first), ...Object.keys(later)]);
   names.delete("STIGMER_TOKEN");
   for (const name of names) {
     if (first[name] !== later[name]) {
-      return `a later push may only rotate STIGMER_TOKEN; ${name} differs from the first push`;
+      return {
+        code: "secrets_changed",
+        reason: `a later push may only rotate STIGMER_TOKEN; ${name} differs from the first push`,
+      };
     }
   }
-  if ((first.STIGMER_TOKEN ?? "") !== "" && (later.STIGMER_TOKEN ?? "") === "") {
-    return "a later push may not drop STIGMER_TOKEN";
+  const firstToken = first.STIGMER_TOKEN ?? "";
+  const laterToken = later.STIGMER_TOKEN ?? "";
+  if (firstToken === "") return undefined;
+  if (laterToken === "") {
+    return { code: "token_mismatch", reason: "a later push may not drop STIGMER_TOKEN" };
+  }
+  if (tokenTypeOf(laterToken) !== tokenTypeOf(firstToken)) {
+    return { code: "token_mismatch", reason: "a later push's token is of another kind than the first push's" };
+  }
+  const firstSession = sessionIdClaimOf(firstToken);
+  if (firstSession !== undefined && sessionIdClaimOf(laterToken) !== firstSession) {
+    return { code: "token_mismatch", reason: "a later push's token names another session than the first push's" };
   }
   return undefined;
 }
@@ -132,6 +162,11 @@ export function spawnErrorCode(err: unknown): string {
     if (err instanceof Error) return err.name;
   }
   return "unknown error";
+}
+
+/** A refusal's reply: the stable code a driver acts on, and the reason for people. */
+function refuse(res: ServerResponse, status: number, code: PushRefusalCode, error: string): void {
+  reply(res, status, { error, code });
 }
 
 function reply(res: ServerResponse, status: number, body: Record<string, unknown>): void {
@@ -194,6 +229,7 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
   }
 
   function restart(): void {
+    restartTimer = undefined;
     const started = spawnSafely(runnerEnv);
     if (started === undefined) {
       scheduleRestart("could not be started");
@@ -223,36 +259,36 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
   async function handleAttach(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const raw = await readBody(req);
     if (raw === undefined) {
-      reply(res, 413, { error: `the push exceeds ${MAX_PUSH_BYTES} bytes` });
+      refuse(res, 413, "too_large", `the push exceeds ${MAX_PUSH_BYTES} bytes`);
       return;
     }
     let body: unknown;
     try {
       body = JSON.parse(raw);
     } catch {
-      reply(res, 400, { error: "the push is not JSON" });
+      refuse(res, 400, "malformed", "the push is not JSON");
       return;
     }
     const verdict = verifyAttachPush(body, options.readSandboxName(), now());
     if (!verdict.ok) {
       // JSON-encoded: the reason may quote the pushed queue, untrusted text.
       log(`[attach] push refused (${verdict.status}): ${JSON.stringify(verdict.reason)}`);
-      reply(res, verdict.status, { error: verdict.reason });
+      refuse(res, verdict.status, verdict.code, verdict.reason);
       return;
     }
     const { push } = verdict;
     // One sandbox serves one queue for its life. The name binding already
     // ties a queue to one sandbox; this holds even if two queues' names met.
     if (attachedQueue !== undefined && attachedQueue !== push.taskQueue) {
-      reply(res, 409, { error: `this sandbox serves ${attachedQueue}` });
+      refuse(res, 409, "other_queue", `this sandbox serves ${attachedQueue}`);
       return;
     }
     const first = attachedQueue === undefined;
     if (!first) {
-      const rotation = onlyTokenRotated(attachedSecrets, push.secrets);
-      if (rotation !== undefined) {
-        log(`[attach] push refused (409): ${JSON.stringify(rotation)}`);
-        reply(res, 409, { error: rotation });
+      const refusal = laterPushRefusal(attachedSecrets, push.secrets);
+      if (refusal !== undefined) {
+        log(`[attach] push refused (409 ${refusal.code}): ${JSON.stringify(refusal.reason)}`);
+        refuse(res, 409, refusal.code, refusal.reason);
         return;
       }
     }
@@ -262,7 +298,7 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
       // whose runner cannot start leaves the sandbox free for a corrected one.
       const started = spawnSafely(env);
       if (started === undefined) {
-        reply(res, 500, { error: "the runner could not be started" });
+        refuse(res, 500, "runner_start_failed", "the runner could not be started");
         return;
       }
       attachedSecrets = push.secrets;
@@ -272,6 +308,15 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
       supervise(started);
     } else {
       runnerEnv = env;
+      // A runner waiting out its restart delay starts now, with the fresh
+      // token: the push is the driver saying a turn is about to need it.
+      if (restartTimer !== undefined) {
+        clearTimeout(restartTimer);
+        restartTimer = undefined;
+        nextDelay = firstDelay;
+        log("[attach] a push arrived during the restart delay; restarting now");
+        restart();
+      }
     }
     reply(res, 200, { taskQueue: push.taskQueue, started: first });
   }
@@ -283,12 +328,12 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
     }
     if (req.url === "/attach") {
       if (req.method !== "POST") {
-        reply(res, 405, { error: "POST only" });
+        refuse(res, 405, "method_not_allowed", "POST only");
         return;
       }
       handleAttach(req, res).catch((err: unknown) => {
         log(`[attach] push failed: ${err instanceof Error ? err.message : String(err)}`);
-        if (!res.headersSent) reply(res, 500, { error: "the push could not be read" });
+        if (!res.headersSent) refuse(res, 500, "unreadable", "the push could not be read");
       });
       return;
     }

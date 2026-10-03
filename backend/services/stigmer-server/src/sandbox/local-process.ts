@@ -97,6 +97,10 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
     );
     const childEnv: NodeJS.ProcessEnv = {
       ...inherited,
+      // Already inherited when the server itself has them; listed so a
+      // runner gets exactly what the operator listed on every driver.
+      ...config.runnerEnv,
+      ...config.runnerSecretEnv,
       ...config.temporalConnectionEnv,
       MODE: "local",
       STIGMER_TASK_QUEUE: env.taskQueue,

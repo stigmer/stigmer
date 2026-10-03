@@ -60,6 +60,8 @@ describe.skipIf(process.platform === "win32")(
       runnerImage: "unused-by-this-driver",
       runnerCommand: script,
       kubernetesNamespace: "unused-by-this-driver",
+      runnerEnv: { ANTHROPIC_BASE_URL: "http://127.0.0.1:18555" },
+      runnerSecretEnv: { ANTHROPIC_API_KEY: "k-model-smoke" },
     };
     const driver = newLocalProcessSandboxProvisioner({
       config,
@@ -123,6 +125,10 @@ describe.skipIf(process.platform === "win32")(
       expect(dump).toContain("TEMPORAL_NAMESPACE=stigmer-smoke");
       expect(dump).toContain("STIGMER_TEMPORAL_TLS=true");
       expect(dump).toContain("STIGMER_TEMPORAL_API_KEY=k-smoke");
+      // The operator's runner lists reach the child (the server's config,
+      // STIGMER_SANDBOX_RUNNER_ENV and STIGMER_SANDBOX_RUNNER_SECRETS).
+      expect(dump).toContain("ANTHROPIC_BASE_URL=http://127.0.0.1:18555");
+      expect(dump).toContain("ANTHROPIC_API_KEY=k-model-smoke");
       expect(dump).not.toContain("STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_PATH");
       delete process.env["STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_PATH"];
     });

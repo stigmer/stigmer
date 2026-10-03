@@ -19,3 +19,7 @@ backend/libs/ts/plugin-package/src/__tests__/fixtures/cursor-plugins/
 # The Cursor hook configuration is rendered by `make agents-sync` and compared
 # byte for byte by `make agents-check`, so formatting must not touch it.
 .cursor/hooks.json
+
+# Agent Substrate's API stubs are buf's output (gen-substrate-stubs-check
+# compares them byte for byte), so formatting must not touch them.
+backend/services/stigmer-server/src/sandbox/substrate/gen/

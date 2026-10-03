@@ -22,8 +22,13 @@
 import os from "node:os";
 import path from "node:path";
 
-import { loadTemporalConnectionConfig } from "@stigmer/temporal-codecs";
+import {
+  loadTemporalConnectionConfig,
+  TEMPORAL_CONNECTION_ENV_NAMES,
+} from "@stigmer/temporal-codecs";
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
+
+import { SANDBOX_DRIVER_OWNED_RUNNER_ENV } from "../sandbox/provisioner.js";
 
 export interface ServerConfig {
   /** Unified transport port: gRPC, gRPC-Web, Connect, and the REST lanes. */
@@ -284,6 +289,26 @@ export interface ServerConfig {
    * per-sandbox namespaces (the cloud provisioner's verified posture).
    */
   readonly sandboxKubernetesNamespace: string;
+  /**
+   * The runner's own settings every provisioned sandbox receives
+   * (STIGMER_SANDBOX_RUNNER_ENV: a comma-separated list of variable names,
+   * each value read from this server's environment at boot). For values
+   * that are not secret, such as a model gateway's address
+   * (ANTHROPIC_BASE_URL). Every driver delivers them the way it delivers
+   * its other plain settings (sandbox/provisioner.ts,
+   * SandboxDriverConfig.runnerEnv).
+   */
+  readonly sandboxRunnerEnv: Readonly<Record<string, string>>;
+  /**
+   * The runner's secrets every provisioned sandbox receives
+   * (STIGMER_SANDBOX_RUNNER_SECRETS, the same list form), such as the
+   * direct-mode model and Cursor keys an open-source runner authenticates
+   * with: a runner outside the cloud has no proxy to hold them for it
+   * (the runner's config.ts, "Direct mode"). Every driver delivers them
+   * through the channel it uses for the runner's token, never a plain
+   * manifest value or argv.
+   */
+  readonly sandboxRunnerSecretEnv: Readonly<Record<string, string>>;
 }
 
 // The bundled "Stigmer Local" OAuth App credentials (callback:
@@ -432,6 +457,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       "STIGMER_SANDBOX_K8S_NAMESPACE",
       "stigmer-sandboxes",
     ),
+    ...loadSandboxRunnerEnv(env),
   };
 }
 
@@ -530,6 +556,67 @@ function defaultArtifactPath(): string {
  * name without an email is incoherent (the email IS the identity). The
  * error copy matches Go's character-for-character.
  */
+/**
+ * The two sandbox runner lists — boot-FATAL on the misconfigurations a
+ * lenient read would turn into a runner that boots without its key and
+ * fails every turn at its first model call: a listed name with no value
+ * here, and a name on both lists (plain and secret at once). Names are
+ * environment variable names, and never one a driver sets itself
+ * (SANDBOX_DRIVER_OWNED_RUNNER_ENV and the Temporal connection names): a
+ * list must not be able to replace a sandbox's queue, token or endpoints.
+ */
+function loadSandboxRunnerEnv(env: NodeJS.ProcessEnv): {
+  sandboxRunnerEnv: Readonly<Record<string, string>>;
+  sandboxRunnerSecretEnv: Readonly<Record<string, string>>;
+} {
+  const plain = sandboxRunnerList(env, "STIGMER_SANDBOX_RUNNER_ENV");
+  const secret = sandboxRunnerList(env, "STIGMER_SANDBOX_RUNNER_SECRETS");
+  for (const name of Object.keys(plain)) {
+    if (name in secret) {
+      throw new Error(
+        `${name} is listed in both STIGMER_SANDBOX_RUNNER_ENV and STIGMER_SANDBOX_RUNNER_SECRETS — a sandbox receives it one way; keep it in one list`,
+      );
+    }
+  }
+  return { sandboxRunnerEnv: plain, sandboxRunnerSecretEnv: secret };
+}
+
+const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function sandboxRunnerList(
+  env: NodeJS.ProcessEnv,
+  key: string,
+): Readonly<Record<string, string>> {
+  const values: Record<string, string> = {};
+  for (const raw of (env[key] ?? "").split(",")) {
+    const name = raw.trim();
+    if (name === "") {
+      continue;
+    }
+    if (!ENV_NAME.test(name)) {
+      throw new Error(
+        `${key} lists "${name}", which is not an environment variable name`,
+      );
+    }
+    if (
+      SANDBOX_DRIVER_OWNED_RUNNER_ENV.includes(name) ||
+      TEMPORAL_CONNECTION_ENV_NAMES.includes(name)
+    ) {
+      throw new Error(
+        `${key} lists ${name}, which every sandbox driver sets itself — remove it from the list`,
+      );
+    }
+    const value = env[name];
+    if (value === undefined || value === "") {
+      throw new Error(
+        `${key} lists ${name}, but this server's environment does not set it — set it or remove it from the list`,
+      );
+    }
+    values[name] = value;
+  }
+  return values;
+}
+
 function loadOperatorIdentity(env: NodeJS.ProcessEnv): {
   operatorEmail: string;
   operatorName: string;
