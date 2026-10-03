@@ -206,7 +206,7 @@ describe("envmerge conformance — the agent's shell", () => {
         // `env | grep`, not `printenv A B`: BSD printenv prints one name.
         command: "env | grep '^SHELL_' ; true",
       }),
-      { delayMs: 3_000 },
+      { delayMs: 10_000 },
     );
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(

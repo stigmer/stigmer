@@ -47,8 +47,15 @@
  *        (guard-reserved-labels.ts): an edit that keeps an attachment
  *        someone else made passes. The server acting as itself (the
  *        `internal` class) is exempt, as at every authorization step.
- *        Until access to an environment is its own permission, an
- *        org-visible environment is one every member may attach.
+ *        Two limits hold until access to an environment is its own
+ *        permission: `can_view` is held by every member on an org-visible
+ *        environment and by an explicit viewer grantee on a private one,
+ *        and each of them may attach it; and an editor who keeps an
+ *        attachment someone else made may change what consumes it (an
+ *        `agent_call` task's agent, a schedule's agent), since who may edit
+ *        the row is that kind's own permission. Grant view on an
+ *        environment, and edit on a row that carries one, as you would its
+ *        values.
  *   (iii) Another organization: the target must exist AND be
  *        platform-visible, answered with ONE sentence that does not say
  *        which failed. The caller has no standing to learn what another

@@ -809,14 +809,22 @@ describe("the writer clause: a write may introduce only an environment its write
   function environmentViews(checks: string[]): Authorizer {
     return {
       authorize: async (caller, check) => {
-        checks.push(`${caller.identityId}:${IamPermission[check.permission]}:${check.resourceId}`);
+        checks.push(
+          `${caller.identityId}:${IamPermission[check.permission]}:${check.resourceId}`,
+        );
         if (check.resourceId === "env_flaky") {
-          return { kind: "unavailable", cause: new Error("authorization store offline") };
+          return {
+            kind: "unavailable",
+            cause: new Error("authorization store offline"),
+          };
         }
         if (check.resourceId === "env_left") {
           return { kind: "not-found" };
         }
-        if (check.resourceId === "env_ana_keys" && caller.identityId !== "acc_ana") {
+        if (
+          check.resourceId === "env_ana_keys" &&
+          caller.identityId !== "acc_ana"
+        ) {
           return { kind: "deny", reason: "not a viewer" };
         }
         return { kind: "allow" };
@@ -828,10 +836,18 @@ describe("the writer clause: a write may introduce only an environment its write
     return create(AgentInstanceSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "AgentInstance",
-      metadata: { name: "Team helper", org: "acme", visibility: V.visibility_org },
+      metadata: {
+        name: "Team helper",
+        org: "acme",
+        visibility: V.visibility_org,
+      },
       spec: {
         agentId: "agt_helper",
-        environmentRefs: slugs.map((slug) => ({ kind: K.environment, org: "acme", slug })),
+        environmentRefs: slugs.map((slug) => ({
+          kind: K.environment,
+          org: "acme",
+          slug,
+        })),
       },
     });
   }
@@ -881,8 +897,12 @@ describe("the writer clause: a write may introduce only an environment its write
 
   it("admits the owner's own private environment on an org-visible instance, and an org-visible one for any member", async () => {
     const checks: string[] = [];
-    expect(await write({ writer: "acc_ana", names: ["ana-keys"], checks })).toBeUndefined();
-    expect(await write({ writer: "acc_ben", names: ["team-keys"], checks })).toBeUndefined();
+    expect(
+      await write({ writer: "acc_ana", names: ["ana-keys"], checks }),
+    ).toBeUndefined();
+    expect(
+      await write({ writer: "acc_ben", names: ["team-keys"], checks }),
+    ).toBeUndefined();
     expect(checks).toEqual([
       "acc_ana:can_view:env_ana_keys",
       "acc_ben:can_view:env_team_keys",
@@ -912,7 +932,12 @@ describe("the writer clause: a write may introduce only an environment its write
   it("exempts the server acting as itself", async () => {
     const checks: string[] = [];
     expect(
-      await write({ writer: "system", names: ["ana-keys"], callerClass: "internal", checks }),
+      await write({
+        writer: "system",
+        names: ["ana-keys"],
+        callerClass: "internal",
+        checks,
+      }),
     ).toBeUndefined();
     expect(checks).toEqual([]);
   });
@@ -926,7 +951,9 @@ describe("the writer clause: a write may introduce only an environment its write
     const error = await write({ writer: "acc_ben", names: ["left"] });
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((error as ConnectError).rawMessage).toBe(
-      missingReferencesMessage(referenceTargetKind(K.environment)!, [{ slug: "left", org: "acme" }]),
+      missingReferencesMessage(referenceTargetKind(K.environment)!, [
+        { slug: "left", org: "acme" },
+      ]),
     );
   });
 
