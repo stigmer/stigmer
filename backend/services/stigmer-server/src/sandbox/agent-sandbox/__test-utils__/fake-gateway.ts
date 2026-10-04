@@ -6,6 +6,8 @@
  * succeeds, and a Secret is created or replaced whole. Every call is
  * recorded in order. A Sandbox can be marked as being deleted for a number
  * of reads, after which it is gone, as the garbage collector would leave it.
+ * A list matches label selectors of `key=value` pairs, as the API server's
+ * equality selectors do, and every Sandbox has a creation time a test sets.
  */
 import type { V1Secret } from "@kubernetes/client-node";
 
@@ -24,12 +26,15 @@ export interface FakeSandbox {
   podTemplate: AgentSandboxPodTemplate;
   /** Reads left while it is being deleted; undefined when it is not. */
   deletingReads: number | undefined;
+  createdAt: Date;
 }
 
 export class FakeAgentSandboxCluster implements AgentSandboxGateway {
   readonly sandboxes = new Map<string, FakeSandbox>();
   readonly secrets = new Map<string, V1Secret>();
   readonly calls: string[] = [];
+  /** The creation time a new Sandbox gets. */
+  clock: () => Date = () => new Date(0);
   /** A Sandbox another server creates between this one's read and create. */
   createdElsewhere: AgentSandboxResource | undefined;
   private nextUid = 1;
@@ -45,6 +50,7 @@ export class FakeAgentSandboxCluster implements AgentSandboxGateway {
       operatingMode,
       podTemplate: resource.spec.podTemplate,
       deletingReads: undefined,
+      createdAt: this.clock(),
     };
     this.sandboxes.set(resource.metadata.name, sandbox);
     return sandbox;
@@ -56,6 +62,7 @@ export class FakeAgentSandboxCluster implements AgentSandboxGateway {
       uid: sandbox.uid,
       operatingMode: sandbox.operatingMode,
       deleting: sandbox.deletingReads !== undefined,
+      createdAt: sandbox.createdAt,
       labels: sandbox.resource.metadata.labels,
     };
   }
@@ -72,6 +79,21 @@ export class FakeAgentSandboxCluster implements AgentSandboxGateway {
       sandbox.deletingReads -= 1;
     }
     return this.view(name, sandbox);
+  }
+
+  async listSandboxes(labelSelector: string): Promise<AgentSandboxView[]> {
+    this.calls.push(`list:${labelSelector}`);
+    const wanted = labelSelector
+      .split(",")
+      .filter((pair) => pair !== "")
+      .map((pair) => pair.split("=") as [string, string]);
+    return [...this.sandboxes.entries()]
+      .filter(([, sandbox]) =>
+        wanted.every(
+          ([key, value]) => sandbox.resource.metadata.labels[key] === value,
+        ),
+      )
+      .map(([name, sandbox]) => this.view(name, sandbox));
   }
 
   async createSandbox(

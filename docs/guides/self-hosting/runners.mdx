@@ -205,13 +205,24 @@ pod lost to a node, or deleted by hand, comes back with its files. When a
 stopped sandbox starts again, it runs the server's current runner image and
 settings, not the ones it was created with.
 
-The server needs a Role in that namespace allowing `get`, `create`, `patch` and
-`delete` on `sandboxes.agents.x-k8s.io`, and `create`, `update` and `delete` on
-`secrets`. The server never deletes a Secret itself. A cluster that enforces
-owner-reference permissions, such as OpenShift, asks for `delete` before it lets
-the server name a Secret's owner. The server needs no rights on Deployments,
-pods or claims. Without agent-sandbox installed, a Session's first run fails,
-and the error names the resource and the manifest to install.
+An idle Session's sandbox goes to sleep. After 330 seconds with no run, its pod
+is removed and its workspace claim kept; the Session's next message starts a pod
+again over the same files, on a node that already holds the runner image in a
+few seconds. A Session that is running, or waiting on a person's approval, is
+never put to sleep. `STIGMER_SANDBOX_AGENT_SANDBOX_SUSPEND_AFTER_SECONDS` sets
+the idle time, and `STIGMER_SANDBOX_AGENT_SANDBOX_SWEEP_INTERVAL_SECONDS` how
+often the server looks (30 seconds), so a sandbox sleeps within one interval of
+its idle time. A cluster whose nodes pull the runner image afresh wakes more
+slowly; lengthen the idle time there. A sleeping sandbox is never deleted: it
+goes when its Session does.
+
+The server needs a Role in that namespace allowing `get`, `list`, `create`,
+`patch` and `delete` on `sandboxes.agents.x-k8s.io`, and `create`, `update` and
+`delete` on `secrets`. The server never deletes a Secret itself. A cluster that
+enforces owner-reference permissions, such as OpenShift, asks for `delete`
+before it lets the server name a Secret's owner. The server needs no rights on
+Deployments, pods or claims. Without agent-sandbox installed, a Session's first
+run fails, and the error names the resource and the manifest to install.
 
 A runner outside Stigmer Cloud calls its model with its own key, so a sandboxed
 runner needs the keys the shared runner would have. Name them in two lists on
