@@ -1,10 +1,10 @@
 apiVersion: agentic.stigmer.ai/v1
 kind: AgentShare
 metadata:
-  # The slug names the share in the stigmer org (`stigmer get agent-share
-  # stigmer-docs`). Its public chat link and the docs site's
-  # <stigmer-agent share="…"> attribute carry the share's id instead, which
-  # the server mints on the first apply (README.md, "Wire the docs site").
+  # The slug names the share in the stigmer org. Its public chat link and the
+  # docs site's <stigmer-agent share="…"> attribute carry the share's id
+  # instead, which the server mints on the first apply (README.md, "Wire the
+  # docs site").
   name: stigmer-docs
   org: stigmer
 spec:

@@ -52,6 +52,16 @@ describe("<stigmer-agent>", () => {
     const element = mount({ share: "ash_support", title: "Chat with Support Bot" });
 
     expect(iframeOf(element)!.title).toBe("Chat with Support Bot");
+  });
+
+  it("keeps the frame, and the conversation in it, when the host changes its title", () => {
+    setDefaultAppOrigin(APP_ORIGIN);
+    const element = mount({ share: "ash_support", title: "Chat with Support Bot" });
+    const frame = iframeOf(element);
+
+    element.setAttribute("title", "Renamed");
+
+    expect(iframeOf(element)).toBe(frame);
     expect(element.style.width).toBe("400px");
     expect(element.style.height).toBe("600px");
   });

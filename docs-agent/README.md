@@ -71,10 +71,12 @@ element (see `site/src/components/docs/ask-ai/` in this repo).
 A chat link names a share only by its id, which the server mints on the
 share's first apply, so the docs site learns it from the deployment:
 
-1. Read the share's id (`metadata.id`, `ash_…`):
+1. Read the share's id (`metadata.id`, `ash_…`) from its link. On a share
+   that is already on, this changes nothing and prints the link, whose last
+   segment is the id:
 
    ```bash
-   stigmer get agent-share stigmer-docs --org stigmer -o yaml
+   stigmer share agent stigmer/stigmer-docs
    ```
 
 2. Set `ASK_AI_SHARE` in `site/src/components/docs/ask-ai/config.ts` to that

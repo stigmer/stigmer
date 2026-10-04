@@ -1,7 +1,6 @@
+// Pins the console's share link (share-url.ts): the configured public
+// origin plus the share's id, the one identity a hosted chat link carries.
 import { describe, expect, it, vi } from "vitest";
-
-// The console's share link: the configured public origin plus the share's
-// id, the one identity a hosted chat link carries.
 
 vi.mock("@/config/env", () => ({
   getAppBaseUrl: () => "https://app.example.com",

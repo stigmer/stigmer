@@ -16,14 +16,17 @@ const here = dirname(fileURLToPath(import.meta.url));
 /** Where the seed records the share id. */
 export const SHARE_ID_FILE = join(here, ".share-id");
 
-/** Reads the applied share's id through the CLI and records it. */
-export function recordShareId(bin, org, slug) {
-  const share = JSON.parse(
-    execFileSync(bin, ["--org", org, "get", "agent-share", slug, "-o", "json"]).toString(),
-  );
-  const id = share?.metadata?.id;
-  if (typeof id !== "string" || id === "") {
-    throw new Error(`no id on agent-share ${org}/${slug}`);
+/**
+ * Reads the applied share's id through the CLI and records it. On a share
+ * that is already on, `stigmer share agent` changes nothing (it keeps the
+ * share's audience when none is asked for) and prints the share's link,
+ * `/chat/<share id>`.
+ */
+export function recordShareId(bin, org, agentSlug) {
+  const printed = execFileSync(bin, ["share", "agent", `${org}/${agentSlug}`]).toString();
+  const id = printed.match(/\/chat\/(ash_[0-9a-z]+)/)?.[1];
+  if (id === undefined) {
+    throw new Error(`no share link in the output of stigmer share agent ${org}/${agentSlug}:\n${printed}`);
   }
   writeFileSync(SHARE_ID_FILE, `${id}\n`);
   return id;
