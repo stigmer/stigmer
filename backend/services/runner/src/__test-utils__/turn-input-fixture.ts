@@ -29,12 +29,11 @@ import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/age
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import type { TurnInput } from "../harness/types.js";
-import type { ResolvedBlueprint } from "../shared/blueprint-resolver.js";
+import type { ResolvedBlueprint, RunAgent } from "../shared/blueprint-resolver.js";
 import { ToolScope } from "../shared/tool-lists.js";
 import { mockWorkspaceBackend } from "./mock-workspace.js";
 
@@ -93,20 +92,17 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
       spec: create(AgentExecutionSpecSchema, { sessionId, message: overrides.message ?? "" }),
       status: overrides.persistedStatus,
     });
-  const agent = create(AgentSchema, {
-    metadata: create(ApiResourceMetadataSchema, {
-      id: TURN_INPUT_FIXTURE_IDS.agentId,
-      org: TURN_INPUT_FIXTURE_IDS.org,
-      name: "fixture-agent",
-    }),
+  const agent: RunAgent = {
+    id: TURN_INPUT_FIXTURE_IDS.agentId,
+    versionHash: "",
     spec: create(AgentSpecSchema, { instructions: "You are the fixture agent." }),
-  });
+  };
   const workspaceDir = overrides.workspaceDir ?? join(tmpdir(), "stigmer-runner-turn-input-fixture");
   const blueprint: ResolvedBlueprint = {
     agent,
     session,
     sessionSpec: session.spec!,
-    instructions: agent.spec!.instructions,
+    instructions: agent.spec.instructions,
     subAgents: [],
     mergedMcpServerUsages: [],
     mergedSkillRefs: [],

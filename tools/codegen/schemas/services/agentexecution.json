@@ -2925,6 +2925,26 @@
         },
         "description": "Report of which recalled memories were injected into this execution's\n prompt.\n\n Absent, or present with selection_active=false, means wholesale: every\n fact in the spec.recalled_memories snapshot was injected.",
         "required": false
+      },
+      {
+        "name": "AgentId",
+        "jsonName": "agentId",
+        "protoField": "agent_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ID of the agent this turn ran. Empty when the turn ran the built-in\n assistant, which is not a stored agent.",
+        "required": false
+      },
+      {
+        "name": "AgentVersionHash",
+        "jsonName": "agentVersionHash",
+        "protoField": "agent_version_hash",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Content hash of the agent version this turn ran (AgentStatus.version_hash\n at create; resolvable through AgentQueryController.getVersion with\n agent_id).\n\n Empty when agent_id is empty, or when the agent had no recorded version\n at create (an agent last written before agents were versioned, or one\n whose last version failed to archive); such a turn runs the agent as\n it is when the turn starts.",
+        "required": false
       }
     ]
   },

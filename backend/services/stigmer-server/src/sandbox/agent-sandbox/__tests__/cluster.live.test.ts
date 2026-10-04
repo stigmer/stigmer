@@ -14,7 +14,8 @@
  *     driver's environment and reached Temporal from inside the cluster);
  *   - a file written to /workspace survives a suspend (the pod goes, the
  *     claim stays Bound) and the wake that follows, which brings the runner
- *     back to the queue;
+ *     back to the queue with the fresh token the wake wrote before its pod
+ *     started;
  *   - deprovision leaves no Sandbox, pod, claim or Secret behind.
  *
  * It needs everything it is given and fails without it, never skips: the
@@ -141,6 +142,16 @@ describe("the agent-sandbox driver on a live cluster", () => {
   const taskQueue = `session:${sessionId}`;
   const env = { taskQueue, stigmerToken: "tok-live", callerClass: "user" };
   const driver = newAgentSandboxProvisioner({ config, logger });
+  const tokenInPod = () =>
+    kubectl(
+      "exec",
+      name,
+      "-c",
+      "runner",
+      "--",
+      "printenv",
+      "STIGMER_TOKEN",
+    ).trim();
   const podPhase = () =>
     kubectl(
       "get",
@@ -160,6 +171,7 @@ describe("the agent-sandbox driver on a live cluster", () => {
       polledSince(taskQueue, created),
     );
 
+    expect(tokenInPod()).toBe("tok-live");
     kubectl(
       "exec",
       name,
@@ -211,6 +223,9 @@ describe("the agent-sandbox driver on a live cluster", () => {
         "/workspace/live-proof",
       ).trim(),
     ).toBe("kept");
+    // The wake writes the Secret before the pod starts, so the woken runner
+    // booted with the fresh token, not the one it slept with.
+    expect(tokenInPod()).toBe("tok-live-2");
     await until("the woken runner to poll its queue", () =>
       polledSince(taskQueue, woken),
     );

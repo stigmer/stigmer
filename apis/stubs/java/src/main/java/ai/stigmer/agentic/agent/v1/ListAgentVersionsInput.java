@@ -8,6 +8,9 @@ package ai.stigmer.agentic.agent.v1;
 /**
  * <pre>
  * ListAgentVersionsInput requests the version history for an agent.
+ *
+ * Returns every version, newest first. Used by the console, SDK and CLI to
+ * render version timelines.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.ListAgentVersionsInput}
@@ -59,6 +62,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object org_ = "";
   /**
+   * <pre>
+   * Organization that owns the agent.
+   * </pre>
+   *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
    * @return The org.
    */
@@ -76,6 +83,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Organization that owns the agent.
+   * </pre>
+   *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
    * @return The bytes for org.
    */
@@ -98,6 +109,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object slug_ = "";
   /**
+   * <pre>
+   * Agent slug (unique within the organization).
+   * </pre>
+   *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
    * @return The slug.
    */
@@ -115,6 +130,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Agent slug (unique within the organization).
+   * </pre>
+   *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
    * @return The bytes for slug.
    */
@@ -137,6 +156,11 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object pageToken_ = "";
   /**
+   * <pre>
+   * Opaque token for offset pagination.
+   * Empty string or omitted for the first page.
+   * </pre>
+   *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
    * @return The pageToken.
    */
@@ -154,6 +178,11 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Opaque token for offset pagination.
+   * Empty string or omitted for the first page.
+   * </pre>
+   *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
    * @return The bytes for pageToken.
    */
@@ -175,6 +204,11 @@ private static final long serialVersionUID = 0L;
   public static final int PAGE_SIZE_FIELD_NUMBER = 4;
   private int pageSize_ = 0;
   /**
+   * <pre>
+   * Maximum number of versions to return per page.
+   * Server may return fewer. Default is 50, max is 100.
+   * </pre>
+   *
    * <code>int32 page_size = 4 [json_name = "pageSize"];</code>
    * @return The pageSize.
    */
@@ -373,6 +407,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ListAgentVersionsInput requests the version history for an agent.
+   *
+   * Returns every version, newest first. Used by the console, SDK and CLI to
+   * render version timelines.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.ListAgentVersionsInput}
@@ -554,6 +591,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object org_ = "";
     /**
+     * <pre>
+     * Organization that owns the agent.
+     * </pre>
+     *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return The org.
      */
@@ -570,6 +611,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Organization that owns the agent.
+     * </pre>
+     *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return The bytes for org.
      */
@@ -587,6 +632,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Organization that owns the agent.
+     * </pre>
+     *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @param value The org to set.
      * @return This builder for chaining.
@@ -600,6 +649,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization that owns the agent.
+     * </pre>
+     *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
@@ -610,6 +663,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization that owns the agent.
+     * </pre>
+     *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for org to set.
      * @return This builder for chaining.
@@ -626,6 +683,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object slug_ = "";
     /**
+     * <pre>
+     * Agent slug (unique within the organization).
+     * </pre>
+     *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
      * @return The slug.
      */
@@ -642,6 +703,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Agent slug (unique within the organization).
+     * </pre>
+     *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
      * @return The bytes for slug.
      */
@@ -659,6 +724,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Agent slug (unique within the organization).
+     * </pre>
+     *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
      * @param value The slug to set.
      * @return This builder for chaining.
@@ -672,6 +741,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Agent slug (unique within the organization).
+     * </pre>
+     *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
@@ -682,6 +755,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Agent slug (unique within the organization).
+     * </pre>
+     *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for slug to set.
      * @return This builder for chaining.
@@ -698,6 +775,11 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object pageToken_ = "";
     /**
+     * <pre>
+     * Opaque token for offset pagination.
+     * Empty string or omitted for the first page.
+     * </pre>
+     *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
      * @return The pageToken.
      */
@@ -714,6 +796,11 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Opaque token for offset pagination.
+     * Empty string or omitted for the first page.
+     * </pre>
+     *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
      * @return The bytes for pageToken.
      */
@@ -731,6 +818,11 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Opaque token for offset pagination.
+     * Empty string or omitted for the first page.
+     * </pre>
+     *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
      * @param value The pageToken to set.
      * @return This builder for chaining.
@@ -744,6 +836,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Opaque token for offset pagination.
+     * Empty string or omitted for the first page.
+     * </pre>
+     *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
      * @return This builder for chaining.
      */
@@ -754,6 +851,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Opaque token for offset pagination.
+     * Empty string or omitted for the first page.
+     * </pre>
+     *
      * <code>string page_token = 3 [json_name = "pageToken"];</code>
      * @param value The bytes for pageToken to set.
      * @return This builder for chaining.
@@ -770,6 +872,11 @@ private static final long serialVersionUID = 0L;
 
     private int pageSize_ ;
     /**
+     * <pre>
+     * Maximum number of versions to return per page.
+     * Server may return fewer. Default is 50, max is 100.
+     * </pre>
+     *
      * <code>int32 page_size = 4 [json_name = "pageSize"];</code>
      * @return The pageSize.
      */
@@ -778,6 +885,11 @@ private static final long serialVersionUID = 0L;
       return pageSize_;
     }
     /**
+     * <pre>
+     * Maximum number of versions to return per page.
+     * Server may return fewer. Default is 50, max is 100.
+     * </pre>
+     *
      * <code>int32 page_size = 4 [json_name = "pageSize"];</code>
      * @param value The pageSize to set.
      * @return This builder for chaining.
@@ -790,6 +902,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Maximum number of versions to return per page.
+     * Server may return fewer. Default is 50, max is 100.
+     * </pre>
+     *
      * <code>int32 page_size = 4 [json_name = "pageSize"];</code>
      * @return This builder for chaining.
      */

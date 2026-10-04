@@ -10,6 +10,7 @@ from ai.stigmer.agentic.agent.v1 import api_pb2
 from ai.stigmer.agentic.agent.v1 import command_pb2_grpc
 from ai.stigmer.agentic.agent.v1 import query_pb2_grpc
 from ai.stigmer.agentic.agent.v1 import io_pb2
+from ai.stigmer.agentic.agent.v1 import version_pb2
 from ai.stigmer.agentic.agent.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
@@ -61,6 +62,12 @@ class AgentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def tag_version(self, input: version_pb2.TagAgentVersionInput) -> api_pb2.Agent:
+        try:
+            return self._command.tagVersion(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.Agent:
         try:
             return self._query.get(io_pb2.AgentId(value=id))
@@ -72,6 +79,18 @@ class AgentClient:
             proto = ref._to_proto()
             proto.kind = api_resource_kind_pb2.agent
             return self._query.getByReference(proto)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_versions(self, input: version_pb2.ListAgentVersionsInput) -> version_pb2.ListAgentVersionsResponse:
+        try:
+            return self._query.listVersions(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_version(self, input: version_pb2.GetAgentVersionInput) -> version_pb2.AgentVersionEntry:
+        try:
+            return self._query.getVersion(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -107,6 +126,7 @@ class AgentInput:
     slug: str | None = None
     labels: dict[str, str] | None = None
     visibility: int = 0
+    version_message: str = ""
     description: str = ""
     icon_url: str = ""
     instructions: str = ""
@@ -149,6 +169,10 @@ class AgentInput:
             metadata.labels.update(self.labels)
         if self.visibility:
             metadata.visibility = self.visibility
+        if self.version_message:
+            metadata.version.CopyFrom(metadata_pb2.ApiResourceMetadataVersion(
+                message=self.version_message,
+            ))
         return api_pb2.Agent(
             api_version="agentic.stigmer.ai/v1",
             kind="Agent",

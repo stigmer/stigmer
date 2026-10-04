@@ -42,7 +42,6 @@ import {
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { ToolListResolutionError, ToolScope, outOfScopeMessage } from "../../../../shared/tool-lists.js";
 import {
-  FIXTURE,
   beginDeepAgentScenario,
   deepAgentExecutionRecord,
   runDeepAgentTurn,
@@ -51,7 +50,7 @@ import {
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
 
 const CALL_ID = "call-hermetic-listed-out-0001";
-const AGENT_OWNER = `Agent "${FIXTURE.agentName}"`;
+const AGENT_OWNER = "The agent";
 
 describe("ExecuteDeepAgent hermetic — tool lists", () => {
   let env: HermeticEnvironment;

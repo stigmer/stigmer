@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.agentic.agent.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.agent.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2
+from ai.stigmer.agentic.agent.v1 import version_pb2 as ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
@@ -27,6 +28,16 @@ class AgentQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
                 _registered_method=True)
+        self.listVersions = channel.unary_unary(
+                '/ai.stigmer.agentic.agent.v1.AgentQueryController/listVersions',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.ListAgentVersionsInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.ListAgentVersionsResponse.FromString,
+                _registered_method=True)
+        self.getVersion = channel.unary_unary(
+                '/ai.stigmer.agentic.agent.v1.AgentQueryController/getVersion',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.GetAgentVersionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.AgentVersionEntry.FromString,
+                _registered_method=True)
 
 
 class AgentQueryControllerServicer(object):
@@ -41,8 +52,35 @@ class AgentQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getByReference(self, request, context):
-        """Get an agent by its organization-scoped reference (org/slug).
+        """Get an agent by its organization-scoped reference (org/slug) with version support.
         Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+
+        Version resolution (via ApiResourceReference.version field):
+        - Empty/"latest" → Returns the current version
+        - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+        - SHA256 hash (64 hex chars) → Returns the exact immutable version
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def listVersions(self, request, context):
+        """List version history for an agent.
+
+        Returns all historical versions, newest first. Each entry carries the
+        version hash, when and by whom it was applied, its tag, its message and
+        the full spec of that version.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getVersion(self, request, context):
+        """Get a specific version of an agent by its content hash.
+
+        Used by the runner and the server to run a turn on the version it
+        recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+        show what a past version said.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -60,6 +98,16 @@ def add_AgentQueryControllerServicer_to_server(servicer, server):
                     servicer.getByReference,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
+            ),
+            'listVersions': grpc.unary_unary_rpc_method_handler(
+                    servicer.listVersions,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.ListAgentVersionsInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.ListAgentVersionsResponse.SerializeToString,
+            ),
+            'getVersion': grpc.unary_unary_rpc_method_handler(
+                    servicer.getVersion,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.GetAgentVersionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.AgentVersionEntry.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -117,6 +165,60 @@ class AgentQueryController(object):
             '/ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listVersions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agent.v1.AgentQueryController/listVersions',
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.ListAgentVersionsInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.ListAgentVersionsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getVersion(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agent.v1.AgentQueryController/getVersion',
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.GetAgentVersionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.AgentVersionEntry.FromString,
             options,
             channel_credentials,
             insecure,

@@ -843,7 +843,7 @@ export type {
   ParsedGitRepo,
 } from "./github/index.js";
 
-// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, creation wizard, update
+// Agent — data hook, count hook, list hook, search hook, picker, detail view, versions, env form, setup orchestration, env diffing, creation wizard, update
 export {
   useAgent,
   useAgentCount,
@@ -851,6 +851,9 @@ export {
   useAgentSearch,
   AgentPicker,
   AgentDetailView,
+  useAgentVersions,
+  useAgentVersionCount,
+  AgentVersionsTab,
   AgentEnvForm,
   diffEnv,
   useAgentSetup,
@@ -868,6 +871,8 @@ export type {
   UseAgentSearchReturn,
   AgentPickerProps,
   AgentDetailViewProps,
+  UseAgentVersionsReturn,
+  AgentVersionsTabProps,
   AgentEnvFormProps,
   AgentEnvFormSubmitOptions,
   AgentEnvFormVariable,

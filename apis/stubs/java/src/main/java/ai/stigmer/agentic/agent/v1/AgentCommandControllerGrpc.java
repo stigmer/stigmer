@@ -170,6 +170,37 @@ public final class AgentCommandControllerGrpc {
     return getDeleteMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.TagAgentVersionInput,
+      ai.stigmer.agentic.agent.v1.Agent> getTagVersionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "tagVersion",
+      requestType = ai.stigmer.agentic.agent.v1.TagAgentVersionInput.class,
+      responseType = ai.stigmer.agentic.agent.v1.Agent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.TagAgentVersionInput,
+      ai.stigmer.agentic.agent.v1.Agent> getTagVersionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.TagAgentVersionInput, ai.stigmer.agentic.agent.v1.Agent> getTagVersionMethod;
+    if ((getTagVersionMethod = AgentCommandControllerGrpc.getTagVersionMethod) == null) {
+      synchronized (AgentCommandControllerGrpc.class) {
+        if ((getTagVersionMethod = AgentCommandControllerGrpc.getTagVersionMethod) == null) {
+          AgentCommandControllerGrpc.getTagVersionMethod = getTagVersionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agent.v1.TagAgentVersionInput, ai.stigmer.agentic.agent.v1.Agent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "tagVersion"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.TagAgentVersionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.Agent.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentCommandControllerMethodDescriptorSupplier("tagVersion"))
+              .build();
+        }
+      }
+    }
+    return getTagVersionMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -298,6 +329,19 @@ public final class AgentCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeleteMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Assign or move a tag to a specific agent version.
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     * </pre>
+     */
+    default void tagVersion(ai.stigmer.agentic.agent.v1.TagAgentVersionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getTagVersionMethod(), responseObserver);
+    }
   }
 
   /**
@@ -400,6 +444,20 @@ public final class AgentCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Assign or move a tag to a specific agent version.
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     * </pre>
+     */
+    public void tagVersion(ai.stigmer.agentic.agent.v1.TagAgentVersionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getTagVersionMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -483,6 +541,19 @@ public final class AgentCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Assign or move a tag to a specific agent version.
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent tagVersion(ai.stigmer.agentic.agent.v1.TagAgentVersionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getTagVersionMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -565,6 +636,19 @@ public final class AgentCommandControllerGrpc {
     public ai.stigmer.agentic.agent.v1.Agent delete(ai.stigmer.agentic.agent.v1.AgentId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Assign or move a tag to a specific agent version.
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent tagVersion(ai.stigmer.agentic.agent.v1.TagAgentVersionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getTagVersionMethod(), getCallOptions(), request);
     }
   }
 
@@ -654,6 +738,20 @@ public final class AgentCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Assign or move a tag to a specific agent version.
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> tagVersion(
+        ai.stigmer.agentic.agent.v1.TagAgentVersionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getTagVersionMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
@@ -661,6 +759,7 @@ public final class AgentCommandControllerGrpc {
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_VISIBILITY = 3;
   private static final int METHODID_DELETE = 4;
+  private static final int METHODID_TAG_VERSION = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -697,6 +796,10 @@ public final class AgentCommandControllerGrpc {
           break;
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.agentic.agent.v1.AgentId) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
+          break;
+        case METHODID_TAG_VERSION:
+          serviceImpl.tagVersion((ai.stigmer.agentic.agent.v1.TagAgentVersionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
           break;
         default:
@@ -752,6 +855,13 @@ public final class AgentCommandControllerGrpc {
               ai.stigmer.agentic.agent.v1.AgentId,
               ai.stigmer.agentic.agent.v1.Agent>(
                 service, METHODID_DELETE)))
+        .addMethod(
+          getTagVersionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agent.v1.TagAgentVersionInput,
+              ai.stigmer.agentic.agent.v1.Agent>(
+                service, METHODID_TAG_VERSION)))
         .build();
   }
 
@@ -805,6 +915,7 @@ public final class AgentCommandControllerGrpc {
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateVisibilityMethod())
               .addMethod(getDeleteMethod())
+              .addMethod(getTagVersionMethod())
               .build();
         }
       }

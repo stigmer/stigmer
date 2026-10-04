@@ -15,7 +15,6 @@ import { describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionSchema, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSpecSchema, RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -28,7 +27,7 @@ import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { CHANNEL_ATTACHMENT_SLUG } from "../../shared/channel-attachment.js";
 import { CHANNEL_ID_LABEL, CONVERSATION_ATTACHMENT_SLUG } from "../../shared/conversation-attachment.js";
 import { MEMORY_ATTACHMENT_SLUG } from "../../shared/memory-attachment.js";
-import type { ResolvedBlueprint } from "../../shared/blueprint-resolver.js";
+import type { ResolvedBlueprint, RunAgent } from "../../shared/blueprint-resolver.js";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 
@@ -64,11 +63,8 @@ function args(options: { readonly agentLists?: { tools: string[]; disallowedTool
     }),
     spec: create(SessionSpecSchema, {}),
   });
-  const agent = options.agentLists
-    ? create(AgentSchema, {
-        metadata: create(ApiResourceMetadataSchema, { id: "agt_1", slug: "support-bot" }),
-        spec: create(AgentSpecSchema, options.agentLists),
-      })
+  const agent: RunAgent | undefined = options.agentLists
+    ? { id: "agt_1", versionHash: "", spec: create(AgentSpecSchema, options.agentLists) }
     : undefined;
   const blueprint: ResolvedBlueprint = {
     agent,
@@ -116,7 +112,7 @@ describe("resolveMcpServersAndPolicies — platform servers and the agent's scop
     expect(mcp.toolScope.restricted).toBe(true);
     expect(mcp.toolScope.allowsClaudeTool("Read")).toBe(true);
     expect(mcp.toolScope.allowsClaudeTool("Write")).toBe(false);
-    expect(mcp.toolScope.owner).toBe('Agent "support-bot"');
+    expect(mcp.toolScope.owner).toBe("The agent");
   });
 
   it("leaves the built-in assistant unrestricted", async () => {

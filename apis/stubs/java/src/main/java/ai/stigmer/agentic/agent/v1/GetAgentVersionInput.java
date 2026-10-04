@@ -7,7 +7,10 @@ package ai.stigmer.agentic.agent.v1;
 
 /**
  * <pre>
- * GetAgentVersionInput requests a specific historical version.
+ * GetAgentVersionInput requests one version of an agent by its hash.
+ *
+ * Used by the runner and the server to run a turn on the version it
+ * recorded, and by clients to show what a past version said.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.GetAgentVersionInput}
@@ -58,6 +61,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object agentId_ = "";
   /**
+   * <pre>
+   * ID of the agent resource.
+   * </pre>
+   *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
    * @return The agentId.
    */
@@ -75,6 +82,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * ID of the agent resource.
+   * </pre>
+   *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
    * @return The bytes for agentId.
    */
@@ -97,6 +108,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object versionHash_ = "";
   /**
+   * <pre>
+   * SHA-256 hash identifying the version to retrieve.
+   * </pre>
+   *
    * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
    * @return The versionHash.
    */
@@ -114,6 +129,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * SHA-256 hash identifying the version to retrieve.
+   * </pre>
+   *
    * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
    * @return The bytes for versionHash.
    */
@@ -300,7 +319,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetAgentVersionInput requests a specific historical version.
+   * GetAgentVersionInput requests one version of an agent by its hash.
+   *
+   * Used by the runner and the server to run a turn on the version it
+   * recorded, and by clients to show what a past version said.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.GetAgentVersionInput}
@@ -456,6 +478,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object agentId_ = "";
     /**
+     * <pre>
+     * ID of the agent resource.
+     * </pre>
+     *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
      * @return The agentId.
      */
@@ -472,6 +498,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * ID of the agent resource.
+     * </pre>
+     *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
      * @return The bytes for agentId.
      */
@@ -489,6 +519,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * ID of the agent resource.
+     * </pre>
+     *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
      * @param value The agentId to set.
      * @return This builder for chaining.
@@ -502,6 +536,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * ID of the agent resource.
+     * </pre>
+     *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
@@ -512,6 +550,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * ID of the agent resource.
+     * </pre>
+     *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for agentId to set.
      * @return This builder for chaining.
@@ -528,6 +570,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object versionHash_ = "";
     /**
+     * <pre>
+     * SHA-256 hash identifying the version to retrieve.
+     * </pre>
+     *
      * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
      * @return The versionHash.
      */
@@ -544,6 +590,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * SHA-256 hash identifying the version to retrieve.
+     * </pre>
+     *
      * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
      * @return The bytes for versionHash.
      */
@@ -561,6 +611,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * SHA-256 hash identifying the version to retrieve.
+     * </pre>
+     *
      * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
      * @param value The versionHash to set.
      * @return This builder for chaining.
@@ -574,6 +628,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * SHA-256 hash identifying the version to retrieve.
+     * </pre>
+     *
      * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
@@ -584,6 +642,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * SHA-256 hash identifying the version to retrieve.
+     * </pre>
+     *
      * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for versionHash to set.
      * @return This builder for chaining.

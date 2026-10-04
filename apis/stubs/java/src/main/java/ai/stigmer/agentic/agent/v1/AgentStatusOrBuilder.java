@@ -62,4 +62,46 @@ public interface AgentStatusOrBuilder extends
    */
   com.google.protobuf.ByteString
       getDefaultInstanceIdBytes();
+
+  /**
+   * <pre>
+   * Content hash of the agent's current version: the SHA-256 of the
+   * canonical JSON rendering of the stored AgentSpec (unset and default
+   * fields omitted, object keys sorted at every depth, enums as numbers).
+   *
+   * Every write whose spec differs from every version the agent has had
+   * records a new version under this hash; a write that reproduces an
+   * earlier spec points back to that version, and an unchanged write
+   * records none. The history is read through AgentQueryController's
+   * listVersions and getVersion.
+   *
+   * Empty for an agent last written before agents were versioned, and when
+   * the version could not be recorded (the write still succeeds).
+   * </pre>
+   *
+   * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+   * @return The versionHash.
+   */
+  java.lang.String getVersionHash();
+  /**
+   * <pre>
+   * Content hash of the agent's current version: the SHA-256 of the
+   * canonical JSON rendering of the stored AgentSpec (unset and default
+   * fields omitted, object keys sorted at every depth, enums as numbers).
+   *
+   * Every write whose spec differs from every version the agent has had
+   * records a new version under this hash; a write that reproduces an
+   * earlier spec points back to that version, and an unchanged write
+   * records none. The history is read through AgentQueryController's
+   * listVersions and getVersion.
+   *
+   * Empty for an agent last written before agents were versioned, and when
+   * the version could not be recorded (the write still succeeds).
+   * </pre>
+   *
+   * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+   * @return The bytes for versionHash.
+   */
+  com.google.protobuf.ByteString
+      getVersionHashBytes();
 }

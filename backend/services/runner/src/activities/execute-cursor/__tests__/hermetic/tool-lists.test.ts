@@ -236,7 +236,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
 
     expect(hookDecisions, "the real hook refused both").toEqual(["deny", "deny"]);
     expect(phase, "a refused call never fails the turn").toBe("EXECUTION_COMPLETED");
-    const expected = outOfScopeMessage("GenerateImage", ToolScope.of('Agent "hermetic-agent"', lists));
+    const expected = outOfScopeMessage("GenerateImage", ToolScope.of("The agent", lists));
     const rootRow = final.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === "gen-1")!;
     const subRows = final.subAgentExecutions.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
     expect(subRows.map((tc) => tc.id)).toEqual(["sub-gen-1"]);
@@ -252,7 +252,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
     const neverUsed = new ScriptedCursorAgent({ agentId: "agent-lists-never-2", turns: [] });
     const { scenario, phase, final } = await run({ message: USER_MESSAGE, tools: ["mcp__nosuch"] }, neverUsed);
     expect(phase).toBe("EXECUTION_FAILED");
-    const message = new ToolListResolutionError('Agent "hermetic-agent"', ["mcp__nosuch"]).message;
+    const message = new ToolListResolutionError("The agent", ["mcp__nosuch"]).message;
     expect(final.error).toBe(message);
     expect(systemRows(final)).toEqual([`Execution failed: ${message}`]);
     expect(scenario.sdk.resolutions).toHaveLength(0);

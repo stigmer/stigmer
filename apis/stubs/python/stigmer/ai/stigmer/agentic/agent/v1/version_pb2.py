@@ -28,7 +28,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/agent/v1/version.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb2\x03\n\x11\x41gentVersionEntry\x12!\n\x0cversion_hash\x18\x01 \x01(\tR\x0bversionHash\x12\x39\n\napplied_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tappliedAt\x12T\n\napplied_by\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\tappliedBy\x12\x10\n\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1d\n\nis_current\x18\x05 \x01(\x08R\tisCurrent\x12\x18\n\x07message\x18\x06 \x01(\tR\x07message\x12K\n\rspec_snapshot\x18\x07 \x01(\x0b\x32&.ai.stigmer.agentic.agent.v1.AgentSpecR\x0cspecSnapshot\x12Q\n\x0egit_provenance\x18\x08 \x01(\x0b\x32*.ai.stigmer.agentic.agent.v1.GitProvenanceR\rgitProvenance\"p\n\rGitProvenance\x12\x1d\n\nremote_url\x18\x01 \x01(\tR\tremoteUrl\x12\x10\n\x03ref\x18\x02 \x01(\tR\x03ref\x12\x16\n\x06\x63ommit\x18\x03 \x01(\tR\x06\x63ommit\x12\x16\n\x06subdir\x18\x04 \x01(\tR\x06subdir\"\x8a\x01\n\x16ListAgentVersionsInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n\tpage_size\x18\x04 \x01(\x05R\x08pageSize\"\xb0\x01\n\x19ListAgentVersionsResponse\x12J\n\x08versions\x18\x01 \x03(\x0b\x32..ai.stigmer.agentic.agent.v1.AgentVersionEntryR\x08versions\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n\x0btotal_count\x18\x03 \x01(\x05R\ntotalCount\"s\n\x14GetAgentVersionInput\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12\x38\n\x0cversion_hash\x18\x02 \x01(\tB\x15\xbaH\x12r\x10\x32\x0e^[a-f0-9]{64}$R\x0bversionHash\"\xa1\x01\n\x14TagAgentVersionInput\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12\x38\n\x0cversion_hash\x18\x02 \x01(\tB\x15\xbaH\x12r\x10\x32\x0e^[a-f0-9]{64}$R\x0bversionHash\x12,\n\x03tag\x18\x03 \x01(\tB\x1a\xbaH\x17r\x15\x10\x01\x32\x11^[a-zA-Z0-9._-]+$R\x03tagB\xc0\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\x0cVersionProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/agent/v1/version.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf5\x02\n\x11\x41gentVersionEntry\x12!\n\x0cversion_hash\x18\x01 \x01(\tR\x0bversionHash\x12\x39\n\napplied_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tappliedAt\x12T\n\napplied_by\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\tappliedBy\x12\x10\n\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1d\n\nis_current\x18\x05 \x01(\x08R\tisCurrent\x12\x18\n\x07message\x18\x06 \x01(\tR\x07message\x12K\n\rspec_snapshot\x18\x07 \x01(\x0b\x32&.ai.stigmer.agentic.agent.v1.AgentSpecR\x0cspecSnapshotJ\x04\x08\x08\x10\tR\x0egit_provenance\"\x8a\x01\n\x16ListAgentVersionsInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n\tpage_size\x18\x04 \x01(\x05R\x08pageSize\"\xb0\x01\n\x19ListAgentVersionsResponse\x12J\n\x08versions\x18\x01 \x03(\x0b\x32..ai.stigmer.agentic.agent.v1.AgentVersionEntryR\x08versions\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n\x0btotal_count\x18\x03 \x01(\x05R\ntotalCount\"s\n\x14GetAgentVersionInput\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12\x38\n\x0cversion_hash\x18\x02 \x01(\tB\x15\xbaH\x12r\x10\x32\x0e^[a-f0-9]{64}$R\x0bversionHash\"\xa1\x01\n\x14TagAgentVersionInput\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12\x38\n\x0cversion_hash\x18\x02 \x01(\tB\x15\xbaH\x12r\x10\x32\x0e^[a-f0-9]{64}$R\x0bversionHash\x12,\n\x03tag\x18\x03 \x01(\tB\x1a\xbaH\x17r\x15\x10\x01\x32\x11^[a-zA-Z0-9._-]+$R\x03tagB\xc0\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\x0cVersionProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -51,15 +51,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_TAGAGENTVERSIONINPUT'].fields_by_name['tag']._loaded_options = None
   _globals['_TAGAGENTVERSIONINPUT'].fields_by_name['tag']._serialized_options = b'\272H\027r\025\020\0012\021^[a-zA-Z0-9._-]+$'
   _globals['_AGENTVERSIONENTRY']._serialized_start=222
-  _globals['_AGENTVERSIONENTRY']._serialized_end=656
-  _globals['_GITPROVENANCE']._serialized_start=658
-  _globals['_GITPROVENANCE']._serialized_end=770
-  _globals['_LISTAGENTVERSIONSINPUT']._serialized_start=773
-  _globals['_LISTAGENTVERSIONSINPUT']._serialized_end=911
-  _globals['_LISTAGENTVERSIONSRESPONSE']._serialized_start=914
-  _globals['_LISTAGENTVERSIONSRESPONSE']._serialized_end=1090
-  _globals['_GETAGENTVERSIONINPUT']._serialized_start=1092
-  _globals['_GETAGENTVERSIONINPUT']._serialized_end=1207
-  _globals['_TAGAGENTVERSIONINPUT']._serialized_start=1210
-  _globals['_TAGAGENTVERSIONINPUT']._serialized_end=1371
+  _globals['_AGENTVERSIONENTRY']._serialized_end=595
+  _globals['_LISTAGENTVERSIONSINPUT']._serialized_start=598
+  _globals['_LISTAGENTVERSIONSINPUT']._serialized_end=736
+  _globals['_LISTAGENTVERSIONSRESPONSE']._serialized_start=739
+  _globals['_LISTAGENTVERSIONSRESPONSE']._serialized_end=915
+  _globals['_GETAGENTVERSIONINPUT']._serialized_start=917
+  _globals['_GETAGENTVERSIONINPUT']._serialized_end=1032
+  _globals['_TAGAGENTVERSIONINPUT']._serialized_start=1035
+  _globals['_TAGAGENTVERSIONINPUT']._serialized_end=1196
 # @@protoc_insertion_point(module_scope)

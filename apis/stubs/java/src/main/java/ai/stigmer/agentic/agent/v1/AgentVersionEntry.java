@@ -7,11 +7,7 @@ package ai.stigmer.agentic.agent.v1;
 
 /**
  * <pre>
- * AgentVersionEntry represents a single historical version of an agent.
- *
- * Each apply/update that changes the agent spec creates a new immutable
- * version entry. The version is identified by its content hash (SHA-256 of
- * the canonical protojson representation of AgentSpec).
+ * AgentVersionEntry is one historical version of an agent.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.AgentVersionEntry}
@@ -65,7 +61,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object versionHash_ = "";
   /**
    * <pre>
-   * SHA-256 hash of the canonical protojson of AgentSpec.
+   * SHA-256 of the canonical JSON rendering of the version's AgentSpec: the
+   * immutable version identifier.
    * </pre>
    *
    * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -86,7 +83,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * SHA-256 hash of the canonical protojson of AgentSpec.
+   * SHA-256 of the canonical JSON rendering of the version's AgentSpec: the
+   * immutable version identifier.
    * </pre>
    *
    * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -111,7 +109,7 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Timestamp appliedAt_;
   /**
    * <pre>
-   * When this version was created.
+   * When this version was applied.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -123,7 +121,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When this version was created.
+   * When this version was applied.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -135,7 +133,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When this version was created.
+   * When this version was applied.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -149,7 +147,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceAuditActor appliedBy_;
   /**
    * <pre>
-   * Who created this version.
+   * Who applied this version.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -161,7 +159,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Who created this version.
+   * Who applied this version.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -173,7 +171,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Who created this version.
+   * Who applied this version.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -188,7 +186,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object tag_ = "";
   /**
    * <pre>
-   * Tag assigned to this version.
+   * The tag this version holds now, if any. A tag names at most one version,
+   * so moving it to another version clears it here.
+   * Examples: "stable", "v1.0", "production"
    * </pre>
    *
    * <code>string tag = 4 [json_name = "tag"];</code>
@@ -209,7 +209,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Tag assigned to this version.
+   * The tag this version holds now, if any. A tag names at most one version,
+   * so moving it to another version clears it here.
+   * Examples: "stable", "v1.0", "production"
    * </pre>
    *
    * <code>string tag = 4 [json_name = "tag"];</code>
@@ -234,7 +236,7 @@ private static final long serialVersionUID = 0L;
   private boolean isCurrent_ = false;
   /**
    * <pre>
-   * Whether this is the currently active version.
+   * Whether this is the agent's current version.
    * </pre>
    *
    * <code>bool is_current = 5 [json_name = "isCurrent"];</code>
@@ -250,7 +252,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object message_ = "";
   /**
    * <pre>
-   * Human-readable message describing what changed.
+   * Human-readable message describing what changed in this version, from
+   * metadata.version.message at apply time. Analogous to a git commit
+   * message.
    * </pre>
    *
    * <code>string message = 6 [json_name = "message"];</code>
@@ -271,7 +275,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Human-readable message describing what changed.
+   * Human-readable message describing what changed in this version, from
+   * metadata.version.message at apply time. Analogous to a git commit
+   * message.
    * </pre>
    *
    * <code>string message = 6 [json_name = "message"];</code>
@@ -296,9 +302,9 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.agent.v1.AgentSpec specSnapshot_;
   /**
    * <pre>
-   * Full agent spec snapshot for this version.
-   * Unlike workflows (which store YAML), agents store the typed proto spec
-   * directly since AgentSpec has no Struct fields and is self-describing.
+   * The agent spec exactly as this version stored it: the instructions,
+   * sub-agents, skill and MCP server references and environment a turn on
+   * this version runs with.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -310,9 +316,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Full agent spec snapshot for this version.
-   * Unlike workflows (which store YAML), agents store the typed proto spec
-   * directly since AgentSpec has no Struct fields and is self-describing.
+   * The agent spec exactly as this version stored it: the instructions,
+   * sub-agents, skill and MCP server references and environment a turn on
+   * this version runs with.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -324,9 +330,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Full agent spec snapshot for this version.
-   * Unlike workflows (which store YAML), agents store the typed proto spec
-   * directly since AgentSpec has no Struct fields and is self-describing.
+   * The agent spec exactly as this version stored it: the instructions,
+   * sub-agents, skill and MCP server references and environment a turn on
+   * this version runs with.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -334,44 +340,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public ai.stigmer.agentic.agent.v1.AgentSpecOrBuilder getSpecSnapshotOrBuilder() {
     return specSnapshot_ == null ? ai.stigmer.agentic.agent.v1.AgentSpec.getDefaultInstance() : specSnapshot_;
-  }
-
-  public static final int GIT_PROVENANCE_FIELD_NUMBER = 8;
-  private ai.stigmer.agentic.agent.v1.GitProvenance gitProvenance_;
-  /**
-   * <pre>
-   * Git provenance tracking.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-   * @return Whether the gitProvenance field is set.
-   */
-  @java.lang.Override
-  public boolean hasGitProvenance() {
-    return ((bitField0_ & 0x00000008) != 0);
-  }
-  /**
-   * <pre>
-   * Git provenance tracking.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-   * @return The gitProvenance.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agent.v1.GitProvenance getGitProvenance() {
-    return gitProvenance_ == null ? ai.stigmer.agentic.agent.v1.GitProvenance.getDefaultInstance() : gitProvenance_;
-  }
-  /**
-   * <pre>
-   * Git provenance tracking.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agent.v1.GitProvenanceOrBuilder getGitProvenanceOrBuilder() {
-    return gitProvenance_ == null ? ai.stigmer.agentic.agent.v1.GitProvenance.getDefaultInstance() : gitProvenance_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -409,9 +377,6 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(7, getSpecSnapshot());
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
-      output.writeMessage(8, getGitProvenance());
-    }
     getUnknownFields().writeTo(output);
   }
 
@@ -445,10 +410,6 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(7, getSpecSnapshot());
-    }
-    if (((bitField0_ & 0x00000008) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(8, getGitProvenance());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -488,11 +449,6 @@ private static final long serialVersionUID = 0L;
       if (!getSpecSnapshot()
           .equals(other.getSpecSnapshot())) return false;
     }
-    if (hasGitProvenance() != other.hasGitProvenance()) return false;
-    if (hasGitProvenance()) {
-      if (!getGitProvenance()
-          .equals(other.getGitProvenance())) return false;
-    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -524,10 +480,6 @@ private static final long serialVersionUID = 0L;
     if (hasSpecSnapshot()) {
       hash = (37 * hash) + SPEC_SNAPSHOT_FIELD_NUMBER;
       hash = (53 * hash) + getSpecSnapshot().hashCode();
-    }
-    if (hasGitProvenance()) {
-      hash = (37 * hash) + GIT_PROVENANCE_FIELD_NUMBER;
-      hash = (53 * hash) + getGitProvenance().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -628,11 +580,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentVersionEntry represents a single historical version of an agent.
-   *
-   * Each apply/update that changes the agent spec creates a new immutable
-   * version entry. The version is identified by its content hash (SHA-256 of
-   * the canonical protojson representation of AgentSpec).
+   * AgentVersionEntry is one historical version of an agent.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.AgentVersionEntry}
@@ -670,7 +618,6 @@ private static final long serialVersionUID = 0L;
         internalGetAppliedAtFieldBuilder();
         internalGetAppliedByFieldBuilder();
         internalGetSpecSnapshotFieldBuilder();
-        internalGetGitProvenanceFieldBuilder();
       }
     }
     @java.lang.Override
@@ -695,11 +642,6 @@ private static final long serialVersionUID = 0L;
       if (specSnapshotBuilder_ != null) {
         specSnapshotBuilder_.dispose();
         specSnapshotBuilder_ = null;
-      }
-      gitProvenance_ = null;
-      if (gitProvenanceBuilder_ != null) {
-        gitProvenanceBuilder_.dispose();
-        gitProvenanceBuilder_ = null;
       }
       return this;
     }
@@ -765,12 +707,6 @@ private static final long serialVersionUID = 0L;
             : specSnapshotBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.gitProvenance_ = gitProvenanceBuilder_ == null
-            ? gitProvenance_
-            : gitProvenanceBuilder_.build();
-        to_bitField0_ |= 0x00000008;
-      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -812,9 +748,6 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasSpecSnapshot()) {
         mergeSpecSnapshot(other.getSpecSnapshot());
-      }
-      if (other.hasGitProvenance()) {
-        mergeGitProvenance(other.getGitProvenance());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -883,13 +816,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
-            case 66: {
-              input.readMessage(
-                  internalGetGitProvenanceFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -910,7 +836,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object versionHash_ = "";
     /**
      * <pre>
-     * SHA-256 hash of the canonical protojson of AgentSpec.
+     * SHA-256 of the canonical JSON rendering of the version's AgentSpec: the
+     * immutable version identifier.
      * </pre>
      *
      * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -930,7 +857,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * SHA-256 hash of the canonical protojson of AgentSpec.
+     * SHA-256 of the canonical JSON rendering of the version's AgentSpec: the
+     * immutable version identifier.
      * </pre>
      *
      * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -951,7 +879,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * SHA-256 hash of the canonical protojson of AgentSpec.
+     * SHA-256 of the canonical JSON rendering of the version's AgentSpec: the
+     * immutable version identifier.
      * </pre>
      *
      * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -968,7 +897,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * SHA-256 hash of the canonical protojson of AgentSpec.
+     * SHA-256 of the canonical JSON rendering of the version's AgentSpec: the
+     * immutable version identifier.
      * </pre>
      *
      * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -982,7 +912,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * SHA-256 hash of the canonical protojson of AgentSpec.
+     * SHA-256 of the canonical JSON rendering of the version's AgentSpec: the
+     * immutable version identifier.
      * </pre>
      *
      * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -1004,7 +935,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> appliedAtBuilder_;
     /**
      * <pre>
-     * When this version was created.
+     * When this version was applied.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -1015,7 +946,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When this version was created.
+     * When this version was applied.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -1030,7 +961,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When this version was created.
+     * When this version was applied.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -1050,7 +981,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When this version was created.
+     * When this version was applied.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -1068,7 +999,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When this version was created.
+     * When this version was applied.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -1093,7 +1024,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When this version was created.
+     * When this version was applied.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -1110,7 +1041,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When this version was created.
+     * When this version was applied.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -1122,7 +1053,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When this version was created.
+     * When this version was applied.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -1137,7 +1068,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When this version was created.
+     * When this version was applied.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -1161,7 +1092,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceAuditActor, ai.stigmer.commons.apiresource.ApiResourceAuditActor.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditActorOrBuilder> appliedByBuilder_;
     /**
      * <pre>
-     * Who created this version.
+     * Who applied this version.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -1172,7 +1103,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who created this version.
+     * Who applied this version.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -1187,7 +1118,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who created this version.
+     * Who applied this version.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -1207,7 +1138,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who created this version.
+     * Who applied this version.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -1225,7 +1156,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who created this version.
+     * Who applied this version.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -1250,7 +1181,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who created this version.
+     * Who applied this version.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -1267,7 +1198,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who created this version.
+     * Who applied this version.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -1279,7 +1210,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who created this version.
+     * Who applied this version.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -1294,7 +1225,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Who created this version.
+     * Who applied this version.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -1316,7 +1247,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object tag_ = "";
     /**
      * <pre>
-     * Tag assigned to this version.
+     * The tag this version holds now, if any. A tag names at most one version,
+     * so moving it to another version clears it here.
+     * Examples: "stable", "v1.0", "production"
      * </pre>
      *
      * <code>string tag = 4 [json_name = "tag"];</code>
@@ -1336,7 +1269,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tag assigned to this version.
+     * The tag this version holds now, if any. A tag names at most one version,
+     * so moving it to another version clears it here.
+     * Examples: "stable", "v1.0", "production"
      * </pre>
      *
      * <code>string tag = 4 [json_name = "tag"];</code>
@@ -1357,7 +1292,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tag assigned to this version.
+     * The tag this version holds now, if any. A tag names at most one version,
+     * so moving it to another version clears it here.
+     * Examples: "stable", "v1.0", "production"
      * </pre>
      *
      * <code>string tag = 4 [json_name = "tag"];</code>
@@ -1374,7 +1311,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tag assigned to this version.
+     * The tag this version holds now, if any. A tag names at most one version,
+     * so moving it to another version clears it here.
+     * Examples: "stable", "v1.0", "production"
      * </pre>
      *
      * <code>string tag = 4 [json_name = "tag"];</code>
@@ -1388,7 +1327,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tag assigned to this version.
+     * The tag this version holds now, if any. A tag names at most one version,
+     * so moving it to another version clears it here.
+     * Examples: "stable", "v1.0", "production"
      * </pre>
      *
      * <code>string tag = 4 [json_name = "tag"];</code>
@@ -1408,7 +1349,7 @@ private static final long serialVersionUID = 0L;
     private boolean isCurrent_ ;
     /**
      * <pre>
-     * Whether this is the currently active version.
+     * Whether this is the agent's current version.
      * </pre>
      *
      * <code>bool is_current = 5 [json_name = "isCurrent"];</code>
@@ -1420,7 +1361,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether this is the currently active version.
+     * Whether this is the agent's current version.
      * </pre>
      *
      * <code>bool is_current = 5 [json_name = "isCurrent"];</code>
@@ -1436,7 +1377,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether this is the currently active version.
+     * Whether this is the agent's current version.
      * </pre>
      *
      * <code>bool is_current = 5 [json_name = "isCurrent"];</code>
@@ -1452,7 +1393,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object message_ = "";
     /**
      * <pre>
-     * Human-readable message describing what changed.
+     * Human-readable message describing what changed in this version, from
+     * metadata.version.message at apply time. Analogous to a git commit
+     * message.
      * </pre>
      *
      * <code>string message = 6 [json_name = "message"];</code>
@@ -1472,7 +1415,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable message describing what changed.
+     * Human-readable message describing what changed in this version, from
+     * metadata.version.message at apply time. Analogous to a git commit
+     * message.
      * </pre>
      *
      * <code>string message = 6 [json_name = "message"];</code>
@@ -1493,7 +1438,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable message describing what changed.
+     * Human-readable message describing what changed in this version, from
+     * metadata.version.message at apply time. Analogous to a git commit
+     * message.
      * </pre>
      *
      * <code>string message = 6 [json_name = "message"];</code>
@@ -1510,7 +1457,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable message describing what changed.
+     * Human-readable message describing what changed in this version, from
+     * metadata.version.message at apply time. Analogous to a git commit
+     * message.
      * </pre>
      *
      * <code>string message = 6 [json_name = "message"];</code>
@@ -1524,7 +1473,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable message describing what changed.
+     * Human-readable message describing what changed in this version, from
+     * metadata.version.message at apply time. Analogous to a git commit
+     * message.
      * </pre>
      *
      * <code>string message = 6 [json_name = "message"];</code>
@@ -1546,9 +1497,9 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.agent.v1.AgentSpec, ai.stigmer.agentic.agent.v1.AgentSpec.Builder, ai.stigmer.agentic.agent.v1.AgentSpecOrBuilder> specSnapshotBuilder_;
     /**
      * <pre>
-     * Full agent spec snapshot for this version.
-     * Unlike workflows (which store YAML), agents store the typed proto spec
-     * directly since AgentSpec has no Struct fields and is self-describing.
+     * The agent spec exactly as this version stored it: the instructions,
+     * sub-agents, skill and MCP server references and environment a turn on
+     * this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1559,9 +1510,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Full agent spec snapshot for this version.
-     * Unlike workflows (which store YAML), agents store the typed proto spec
-     * directly since AgentSpec has no Struct fields and is self-describing.
+     * The agent spec exactly as this version stored it: the instructions,
+     * sub-agents, skill and MCP server references and environment a turn on
+     * this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1576,9 +1527,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Full agent spec snapshot for this version.
-     * Unlike workflows (which store YAML), agents store the typed proto spec
-     * directly since AgentSpec has no Struct fields and is self-describing.
+     * The agent spec exactly as this version stored it: the instructions,
+     * sub-agents, skill and MCP server references and environment a turn on
+     * this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1598,9 +1549,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Full agent spec snapshot for this version.
-     * Unlike workflows (which store YAML), agents store the typed proto spec
-     * directly since AgentSpec has no Struct fields and is self-describing.
+     * The agent spec exactly as this version stored it: the instructions,
+     * sub-agents, skill and MCP server references and environment a turn on
+     * this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1618,9 +1569,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Full agent spec snapshot for this version.
-     * Unlike workflows (which store YAML), agents store the typed proto spec
-     * directly since AgentSpec has no Struct fields and is self-describing.
+     * The agent spec exactly as this version stored it: the instructions,
+     * sub-agents, skill and MCP server references and environment a turn on
+     * this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1645,9 +1596,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Full agent spec snapshot for this version.
-     * Unlike workflows (which store YAML), agents store the typed proto spec
-     * directly since AgentSpec has no Struct fields and is self-describing.
+     * The agent spec exactly as this version stored it: the instructions,
+     * sub-agents, skill and MCP server references and environment a turn on
+     * this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1664,9 +1615,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Full agent spec snapshot for this version.
-     * Unlike workflows (which store YAML), agents store the typed proto spec
-     * directly since AgentSpec has no Struct fields and is self-describing.
+     * The agent spec exactly as this version stored it: the instructions,
+     * sub-agents, skill and MCP server references and environment a turn on
+     * this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1678,9 +1629,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Full agent spec snapshot for this version.
-     * Unlike workflows (which store YAML), agents store the typed proto spec
-     * directly since AgentSpec has no Struct fields and is self-describing.
+     * The agent spec exactly as this version stored it: the instructions,
+     * sub-agents, skill and MCP server references and environment a turn on
+     * this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1695,9 +1646,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Full agent spec snapshot for this version.
-     * Unlike workflows (which store YAML), agents store the typed proto spec
-     * directly since AgentSpec has no Struct fields and is self-describing.
+     * The agent spec exactly as this version stored it: the instructions,
+     * sub-agents, skill and MCP server references and environment a turn on
+     * this version runs with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -1714,163 +1665,6 @@ private static final long serialVersionUID = 0L;
         specSnapshot_ = null;
       }
       return specSnapshotBuilder_;
-    }
-
-    private ai.stigmer.agentic.agent.v1.GitProvenance gitProvenance_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agent.v1.GitProvenance, ai.stigmer.agentic.agent.v1.GitProvenance.Builder, ai.stigmer.agentic.agent.v1.GitProvenanceOrBuilder> gitProvenanceBuilder_;
-    /**
-     * <pre>
-     * Git provenance tracking.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-     * @return Whether the gitProvenance field is set.
-     */
-    public boolean hasGitProvenance() {
-      return ((bitField0_ & 0x00000080) != 0);
-    }
-    /**
-     * <pre>
-     * Git provenance tracking.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-     * @return The gitProvenance.
-     */
-    public ai.stigmer.agentic.agent.v1.GitProvenance getGitProvenance() {
-      if (gitProvenanceBuilder_ == null) {
-        return gitProvenance_ == null ? ai.stigmer.agentic.agent.v1.GitProvenance.getDefaultInstance() : gitProvenance_;
-      } else {
-        return gitProvenanceBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Git provenance tracking.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-     */
-    public Builder setGitProvenance(ai.stigmer.agentic.agent.v1.GitProvenance value) {
-      if (gitProvenanceBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        gitProvenance_ = value;
-      } else {
-        gitProvenanceBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Git provenance tracking.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-     */
-    public Builder setGitProvenance(
-        ai.stigmer.agentic.agent.v1.GitProvenance.Builder builderForValue) {
-      if (gitProvenanceBuilder_ == null) {
-        gitProvenance_ = builderForValue.build();
-      } else {
-        gitProvenanceBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Git provenance tracking.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-     */
-    public Builder mergeGitProvenance(ai.stigmer.agentic.agent.v1.GitProvenance value) {
-      if (gitProvenanceBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0) &&
-          gitProvenance_ != null &&
-          gitProvenance_ != ai.stigmer.agentic.agent.v1.GitProvenance.getDefaultInstance()) {
-          getGitProvenanceBuilder().mergeFrom(value);
-        } else {
-          gitProvenance_ = value;
-        }
-      } else {
-        gitProvenanceBuilder_.mergeFrom(value);
-      }
-      if (gitProvenance_ != null) {
-        bitField0_ |= 0x00000080;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Git provenance tracking.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-     */
-    public Builder clearGitProvenance() {
-      bitField0_ = (bitField0_ & ~0x00000080);
-      gitProvenance_ = null;
-      if (gitProvenanceBuilder_ != null) {
-        gitProvenanceBuilder_.dispose();
-        gitProvenanceBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Git provenance tracking.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.GitProvenance.Builder getGitProvenanceBuilder() {
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return internalGetGitProvenanceFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Git provenance tracking.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.GitProvenanceOrBuilder getGitProvenanceOrBuilder() {
-      if (gitProvenanceBuilder_ != null) {
-        return gitProvenanceBuilder_.getMessageOrBuilder();
-      } else {
-        return gitProvenance_ == null ?
-            ai.stigmer.agentic.agent.v1.GitProvenance.getDefaultInstance() : gitProvenance_;
-      }
-    }
-    /**
-     * <pre>
-     * Git provenance tracking.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agent.v1.GitProvenance, ai.stigmer.agentic.agent.v1.GitProvenance.Builder, ai.stigmer.agentic.agent.v1.GitProvenanceOrBuilder> 
-        internalGetGitProvenanceFieldBuilder() {
-      if (gitProvenanceBuilder_ == null) {
-        gitProvenanceBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agent.v1.GitProvenance, ai.stigmer.agentic.agent.v1.GitProvenance.Builder, ai.stigmer.agentic.agent.v1.GitProvenanceOrBuilder>(
-                getGitProvenance(),
-                getParentForChildren(),
-                isClean());
-        gitProvenance_ = null;
-      }
-      return gitProvenanceBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentVersionEntry)

@@ -36,6 +36,9 @@ export type AgentShareSpec = Message<"ai.stigmer.agentic.agentshare.v1.AgentShar
    * with tool credentials bound from it. To share another organization's
    * agent, install the plugin that carries it and share the installed copy.
    *
+   * The reference names no version (or "latest"): a share runs the agent's
+   * current version, and a reference naming another version is refused.
+   *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1;
    */
   agentRef?: ApiResourceReference;

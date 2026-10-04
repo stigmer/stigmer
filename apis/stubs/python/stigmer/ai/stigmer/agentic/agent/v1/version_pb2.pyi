@@ -13,7 +13,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentVersionEntry(_message.Message):
-    __slots__ = ("version_hash", "applied_at", "applied_by", "tag", "is_current", "message", "spec_snapshot", "git_provenance")
+    __slots__ = ("version_hash", "applied_at", "applied_by", "tag", "is_current", "message", "spec_snapshot")
     VERSION_HASH_FIELD_NUMBER: _ClassVar[int]
     APPLIED_AT_FIELD_NUMBER: _ClassVar[int]
     APPLIED_BY_FIELD_NUMBER: _ClassVar[int]
@@ -21,7 +21,6 @@ class AgentVersionEntry(_message.Message):
     IS_CURRENT_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     SPEC_SNAPSHOT_FIELD_NUMBER: _ClassVar[int]
-    GIT_PROVENANCE_FIELD_NUMBER: _ClassVar[int]
     version_hash: str
     applied_at: _timestamp_pb2.Timestamp
     applied_by: _status_pb2.ApiResourceAuditActor
@@ -29,20 +28,7 @@ class AgentVersionEntry(_message.Message):
     is_current: bool
     message: str
     spec_snapshot: _spec_pb2.AgentSpec
-    git_provenance: GitProvenance
-    def __init__(self, version_hash: _Optional[str] = ..., applied_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., applied_by: _Optional[_Union[_status_pb2.ApiResourceAuditActor, _Mapping]] = ..., tag: _Optional[str] = ..., is_current: bool = ..., message: _Optional[str] = ..., spec_snapshot: _Optional[_Union[_spec_pb2.AgentSpec, _Mapping]] = ..., git_provenance: _Optional[_Union[GitProvenance, _Mapping]] = ...) -> None: ...
-
-class GitProvenance(_message.Message):
-    __slots__ = ("remote_url", "ref", "commit", "subdir")
-    REMOTE_URL_FIELD_NUMBER: _ClassVar[int]
-    REF_FIELD_NUMBER: _ClassVar[int]
-    COMMIT_FIELD_NUMBER: _ClassVar[int]
-    SUBDIR_FIELD_NUMBER: _ClassVar[int]
-    remote_url: str
-    ref: str
-    commit: str
-    subdir: str
-    def __init__(self, remote_url: _Optional[str] = ..., ref: _Optional[str] = ..., commit: _Optional[str] = ..., subdir: _Optional[str] = ...) -> None: ...
+    def __init__(self, version_hash: _Optional[str] = ..., applied_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., applied_by: _Optional[_Union[_status_pb2.ApiResourceAuditActor, _Mapping]] = ..., tag: _Optional[str] = ..., is_current: bool = ..., message: _Optional[str] = ..., spec_snapshot: _Optional[_Union[_spec_pb2.AgentSpec, _Mapping]] = ...) -> None: ...
 
 class ListAgentVersionsInput(_message.Message):
     __slots__ = ("org", "slug", "page_token", "page_size")

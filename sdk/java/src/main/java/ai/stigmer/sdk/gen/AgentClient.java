@@ -6,6 +6,11 @@ import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentCommandControllerGrpc;
 import ai.stigmer.agentic.agent.v1.AgentId;
 import ai.stigmer.agentic.agent.v1.AgentQueryControllerGrpc;
+import ai.stigmer.agentic.agent.v1.AgentVersionEntry;
+import ai.stigmer.agentic.agent.v1.GetAgentVersionInput;
+import ai.stigmer.agentic.agent.v1.ListAgentVersionsInput;
+import ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse;
+import ai.stigmer.agentic.agent.v1.TagAgentVersionInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.commons.rpc.PageInfo;
@@ -57,6 +62,12 @@ public final class AgentClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public Agent tagVersion(TagAgentVersionInput input) {
+        try {
+            return command.tagVersion(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public Agent get(String id) {
         try {
             return query.get(AgentId.newBuilder().setValue(id).build());
@@ -66,6 +77,18 @@ public final class AgentClient {
     public Agent getByReference(ResourceRef ref) {
         try {
             return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.agent).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ListAgentVersionsResponse listVersions(ListAgentVersionsInput input) {
+        try {
+            return query.listVersions(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public AgentVersionEntry getVersion(GetAgentVersionInput input) {
+        try {
+            return query.getVersion(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

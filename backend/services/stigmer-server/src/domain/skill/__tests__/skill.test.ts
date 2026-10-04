@@ -7,8 +7,9 @@
  *
  * The load-bearing pins the conformance suite CANNOT cover (needs direct
  * store access): repoint-never-duplicate row counts, the single-holder tag
- * column, audit-slot preservation across pushes (#540), and delete's
- * archive cleanup.
+ * column (a version fetched after its tag moved reports the tag it holds
+ * now), audit-slot preservation across pushes (#540), and delete's archive
+ * cleanup.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import http2 from "node:http2";
@@ -275,6 +276,28 @@ describe("get / getByReference — the version ladder", () => {
     expect(byLiveTag.status?.versionHash).toBe(v2.status?.versionHash);
     const byArchivedTag = await query.getByReference({ org: ORG, slug: name, version: "v1" });
     expect(byArchivedTag.status?.versionHash).toBe(v1.status?.versionHash);
+  });
+
+  it("a version fetched by hash reports the tag it holds now, not the one it was pushed with", async () => {
+    const name = uniqueName();
+    const v1 = await command.push({
+      org: ORG,
+      artifact: makeArtifact(name, { body: "# v1" }),
+      tag: "stable",
+    });
+    await command.push({
+      org: ORG,
+      artifact: makeArtifact(name, { body: "# v2" }),
+      tag: "stable",
+    });
+
+    const archived = await query.getByReference({
+      org: ORG,
+      slug: name,
+      version: v1.status!.versionHash,
+    });
+    expect(archived.status?.versionHash).toBe(v1.status?.versionHash);
+    expect(archived.spec?.tag).toBe("");
   });
 
   it("answers NotFound for an unknown version and an unknown slug", async () => {

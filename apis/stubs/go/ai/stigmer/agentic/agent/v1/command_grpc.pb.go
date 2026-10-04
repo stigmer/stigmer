@@ -25,6 +25,7 @@ const (
 	AgentCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/update"
 	AgentCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentCommandController/updateVisibility"
 	AgentCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/delete"
+	AgentCommandController_TagVersion_FullMethodName       = "/ai.stigmer.agentic.agent.v1.AgentCommandController/tagVersion"
 )
 
 // AgentCommandControllerClient is the client API for AgentCommandController service.
@@ -59,6 +60,12 @@ type AgentCommandControllerClient interface {
 	// another organization before sharing across organizations was retired;
 	// such a share stops resolving instead.
 	Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
+	// Assign or move a tag to a specific agent version.
+	//
+	// Tags are human-readable pointers to immutable versions. Calling this
+	// with an existing tag name moves it from the previous version to the
+	// specified version. Common tags: "stable", "production", "v2.0".
+	TagVersion(ctx context.Context, in *TagAgentVersionInput, opts ...grpc.CallOption) (*Agent, error)
 }
 
 type agentCommandControllerClient struct {
@@ -119,6 +126,16 @@ func (c *agentCommandControllerClient) Delete(ctx context.Context, in *AgentId, 
 	return out, nil
 }
 
+func (c *agentCommandControllerClient) TagVersion(ctx context.Context, in *TagAgentVersionInput, opts ...grpc.CallOption) (*Agent, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Agent)
+	err := c.cc.Invoke(ctx, AgentCommandController_TagVersion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentCommandControllerServer is the server API for AgentCommandController service.
 // All implementations should embed UnimplementedAgentCommandControllerServer
 // for forward compatibility.
@@ -151,6 +168,12 @@ type AgentCommandControllerServer interface {
 	// another organization before sharing across organizations was retired;
 	// such a share stops resolving instead.
 	Delete(context.Context, *AgentId) (*Agent, error)
+	// Assign or move a tag to a specific agent version.
+	//
+	// Tags are human-readable pointers to immutable versions. Calling this
+	// with an existing tag name moves it from the previous version to the
+	// specified version. Common tags: "stable", "production", "v2.0".
+	TagVersion(context.Context, *TagAgentVersionInput) (*Agent, error)
 }
 
 // UnimplementedAgentCommandControllerServer should be embedded to have
@@ -174,6 +197,9 @@ func (UnimplementedAgentCommandControllerServer) UpdateVisibility(context.Contex
 }
 func (UnimplementedAgentCommandControllerServer) Delete(context.Context, *AgentId) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedAgentCommandControllerServer) TagVersion(context.Context, *TagAgentVersionInput) (*Agent, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TagVersion not implemented")
 }
 func (UnimplementedAgentCommandControllerServer) testEmbeddedByValue() {}
 
@@ -285,6 +311,24 @@ func _AgentCommandController_Delete_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentCommandController_TagVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TagAgentVersionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentCommandControllerServer).TagVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentCommandController_TagVersion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentCommandControllerServer).TagVersion(ctx, req.(*TagAgentVersionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentCommandController_ServiceDesc is the grpc.ServiceDesc for AgentCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -311,6 +355,10 @@ var AgentCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _AgentCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "tagVersion",
+			Handler:    _AgentCommandController_TagVersion_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

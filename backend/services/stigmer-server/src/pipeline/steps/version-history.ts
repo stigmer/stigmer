@@ -1,20 +1,24 @@
 /**
- * The read side of content-addressed versioning, shared by every kind whose
- * version is the SHA-256 of a pushed archive (skills, plugins): the
- * getByReference version ladder and the paginated version history. Skills
- * carried both alone (the Go LoadSkillByReferenceStep / ListVersions port);
- * plugins need the identical ladder over another schema, and a second copy
- * would be the drift the house forbids, so the steps take a
+ * The read side of content-addressed versioning, shared by every versioned
+ * kind (workflows, agents, skills, plugins): the getByReference version
+ * ladder, the paginated version history, one version by hash, and the tag
+ * move. One copy, because two ladders drift: the steps take a
  * `VersionedResourceBinding` that names what differs per kind (the schema,
  * the noun in sentences, where the head hash and the live tag live, how a
- * snapshot maps to an entry) and keep everything else once.
+ * tag is written onto a snapshot, how a snapshot maps to an entry) and keep
+ * everything else once.
  *
  * The ladder: resolve the live head by slug+org; empty/"latest" returns it;
  * a 64-hex version matches the head's hash or falls to the indexed
  * audit-by-hash lookup; anything else is a tag, matching the head's live
- * tag first (honest under the single-holder model: a push reconciles the
+ * tag first (honest under the single-holder model: a write reconciles the
  * live tag with the audit tag column, clearing the live tag when
- * assignment fails) and then the indexed audit-by-tag lookup.
+ * assignment fails) and then the indexed audit-by-tag lookup. An archived
+ * snapshot carries the tag it was archived with at best (snapshots archive
+ * tagless), so the ladder and getVersion write the audit column's tag onto
+ * it through `overlayTag`: a version whose tag later moved never claims it.
+ * A kind whose "tag" is content (the plugin's manifest version) supplies no
+ * overlay.
  *
  * listVersions marks is_current by HEAD-HASH match, not recency: under
  * repoint semantics (#475) re-pushing archived content re-activates its
@@ -23,8 +27,9 @@
  * truth), never from the snapshot.
  *
  * Proven by the skill domain's __tests__/skill.test.ts (ladder and
- * pagination blocks) and the skill and plugin conformance suites'
- * getByReference/listVersions blocks.
+ * pagination blocks), the workflow and agent domains' version tests, and
+ * the workflow, agent, skill and plugin conformance suites'
+ * getByReference/listVersions/getVersion/tagVersion blocks.
  */
 import { fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
@@ -40,8 +45,11 @@ import {
 } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
-import { AuditNotFoundError } from "../../store/interface.js";
-import type { Store } from "../../store/interface.js";
+import {
+  AuditNotFoundError,
+  ResourceNotFoundError,
+} from "../../store/interface.js";
+import type { AuditRecord, Store } from "../../store/interface.js";
 import { findResourceBySlug, requireOrgForReference } from "./helpers.js";
 import type { ResolvedTargetResolver } from "./authorize-resolved-target.js";
 import { TARGET_RESOURCE_KEY } from "./load-target.js";
@@ -58,12 +66,29 @@ export function isVersionHash(version: string): boolean {
 export interface VersionedResourceBinding<Desc extends DescMessage> {
   readonly kind: ApiResourceKind;
   readonly schema: Desc;
-  /** The noun in sentences: "skill", "plugin". */
+  /** The noun in sentences: "workflow", "agent", "skill", "plugin". */
   readonly noun: string;
   /** The head's content hash (status.version_hash, status.digest). */
   headHashOf(resource: MessageShape<Desc>): string;
-  /** The tag the live head claims (spec.tag; the plugin's manifest version). */
+  /** The tag the live head claims (metadata.version.tag, spec.tag; the plugin's manifest version). */
   liveTagOf(resource: MessageShape<Desc>): string;
+  /**
+   * Writes `tag` where this kind's live tag lives: onto an archived
+   * snapshot read back (the audit column's tag, the only current one) and
+   * onto the head when a tag move reconciles it. Absent for a kind whose
+   * tag is content (the plugin's manifest version), which must never be
+   * rewritten.
+   */
+  overlayTag?(resource: MessageShape<Desc>, tag: string): void;
+}
+
+/**
+ * A kind number as error copy: the name for a defined value, the bare
+ * number for an unknown one. A reference's kind carries no defined-only
+ * rule, and the JSON enum name throws on an unknown value.
+ */
+function kindLabel(kind: ApiResourceKind): string {
+  return ApiResourceKind[kind] ?? String(kind);
 }
 
 type GetByReferenceDesc = typeof ApiResourceReferenceSchema;
@@ -92,7 +117,7 @@ export function newLoadByReferenceWithVersionStep<Desc extends DescMessage>(
         ref.kind !== binding.kind
       ) {
         throw invalidArgumentError(
-          `kind mismatch: expected ${ApiResourceKind[binding.kind]}, got ${ApiResourceKind[ref.kind]}`,
+          `kind mismatch: expected ${kindLabel(binding.kind)}, got ${kindLabel(ref.kind)}`,
         );
       }
 
@@ -125,8 +150,7 @@ export function newLoadByReferenceWithVersionStep<Desc extends DescMessage>(
 
       const archived = await findAuditByVersion(
         store,
-        ctx.apiResourceKind,
-        binding.schema,
+        binding,
         idOf(head),
         version,
       );
@@ -155,34 +179,49 @@ function headMatchesVersion<Desc extends DescMessage>(
 }
 
 /**
- * Indexed audit lookup by hash or tag — not-found is a normal outcome
- * (undefined), storage failures are Internal.
+ * Indexed audit lookup by hash or tag, decoded with the audit column's tag
+ * overlaid — not-found is a normal outcome (undefined), storage failures
+ * are Internal.
  */
 async function findAuditByVersion<Desc extends DescMessage>(
   store: Store,
-  kind: ApiResourceKind,
-  schema: Desc,
+  binding: VersionedResourceBinding<Desc>,
   resourceId: string,
   version: string,
 ): Promise<MessageShape<Desc> | undefined> {
-  if (isVersionHash(version)) {
-    try {
-      return await store.getAuditByHash(kind, resourceId, version, schema);
-    } catch (error) {
-      if (error instanceof AuditNotFoundError) {
-        return undefined;
-      }
-      throw internalError(error, "failed to query audit by hash");
-    }
-  }
+  let record: AuditRecord;
   try {
-    return await store.getAuditByTag(kind, resourceId, version, schema);
+    record = isVersionHash(version)
+      ? await store.getAuditRecordByHash(binding.kind, resourceId, version)
+      : await store.getAuditRecordByTag(binding.kind, resourceId, version);
   } catch (error) {
     if (error instanceof AuditNotFoundError) {
       return undefined;
     }
-    throw internalError(error, "failed to query audit by tag");
+    throw internalError(
+      error,
+      `failed to query ${binding.noun} audit by version`,
+    );
   }
+  return decodeArchived(binding, record);
+}
+
+/** An audit row's snapshot with the column's tag written on; a corrupt row is Internal. */
+function decodeArchived<Desc extends DescMessage>(
+  binding: VersionedResourceBinding<Desc>,
+  record: AuditRecord,
+): MessageShape<Desc> {
+  let snapshot: MessageShape<Desc>;
+  try {
+    snapshot = fromBinary(binding.schema, record.data);
+  } catch (error) {
+    throw internalError(
+      error,
+      `failed to decode archived ${binding.noun} version`,
+    );
+  }
+  binding.overlayTag?.(snapshot, record.tag);
+  return snapshot;
 }
 
 // ─── listVersions ────────────────────────────────────────────────────────
@@ -388,6 +427,218 @@ export function decodePageToken(token: string): number {
     throw invalidArgumentError("invalid page_token");
   }
   return index;
+}
+
+// ─── getVersion ──────────────────────────────────────────────────────────
+
+/** The fields every GetVersion input carries, read off the kind's own message. */
+export interface VersionLookup {
+  readonly resourceId: string;
+  readonly versionHash: string;
+}
+
+/**
+ * One version of a resource by its hash, as the kind's entry: the live
+ * head when the hash is the head's (is_current, its live tag, which a tag
+ * move keeps reconciled with the audit column), else the archived row with
+ * the column's tag. A missing resource and a missing version are both
+ * NotFound, naming which; a store fault is Internal. The caller has already
+ * asked the annotation's can_view on the resource id.
+ */
+export async function getVersionEntry<
+  Desc extends DescMessage,
+  InputDesc extends DescMessage,
+  Entry extends Message,
+  Response extends Message,
+>(
+  store: Store,
+  binding: VersionHistoryBinding<Desc, InputDesc, Entry, Response>,
+  lookup: VersionLookup,
+): Promise<Entry> {
+  let head: MessageShape<Desc>;
+  try {
+    head = await store.getResource(binding.kind, lookup.resourceId, binding.schema);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError(binding.noun, lookup.resourceId);
+    }
+    throw internalError(error, `failed to load ${binding.noun}`);
+  }
+
+  if (binding.headHashOf(head) === lookup.versionHash) {
+    return binding.mapEntry(head, true, binding.liveTagOf(head));
+  }
+
+  let record: AuditRecord;
+  try {
+    record = await store.getAuditRecordByHash(
+      binding.kind,
+      lookup.resourceId,
+      lookup.versionHash,
+    );
+  } catch (error) {
+    if (error instanceof AuditNotFoundError) {
+      throw notFoundError(
+        `${binding.noun} version`,
+        truncateHash(lookup.versionHash),
+      );
+    }
+    throw internalError(
+      error,
+      `failed to load ${binding.noun} version from audit`,
+    );
+  }
+  return binding.mapEntry(decodeArchived(binding, record), false, record.tag);
+}
+
+/** A hash shortened for messages and logs: the first 12 hex characters. */
+export function truncateHash(hash: string): string {
+  return hash.length > 12 ? hash.slice(0, 12) + "..." : hash;
+}
+
+// ─── tagVersion ──────────────────────────────────────────────────────────
+
+/** What a kind with a tag RPC says about its input and where its live tag lives. */
+export interface VersionTagBinding<
+  Desc extends DescMessage,
+  InputDesc extends DescMessage,
+> extends VersionedResourceBinding<Desc> {
+  tagInput(message: MessageShape<InputDesc>): VersionLookup & {
+    readonly tag: string;
+  };
+  overlayTag(resource: MessageShape<Desc>, tag: string): void;
+}
+
+/**
+ * Loads the live resource the tag move targets, once, for the guard that
+ * runs between this step and the move (a plugin-managed resource's tags
+ * are its plugin's) and for the move itself.
+ */
+export function newLoadForTagVersionStep<
+  Desc extends DescMessage,
+  InputDesc extends DescMessage,
+>(
+  store: Store,
+  binding: VersionTagBinding<Desc, InputDesc>,
+  stepName: string,
+  resourceKey: string,
+): PipelineStep<InputDesc> {
+  return {
+    name: stepName,
+    async execute(ctx: RequestContext<InputDesc>): Promise<void> {
+      const { resourceId } = binding.tagInput(ctx.input);
+      let resource: MessageShape<Desc>;
+      try {
+        resource = await store.getResource(
+          binding.kind,
+          resourceId,
+          binding.schema,
+        );
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError(binding.noun, resourceId);
+        }
+        throw internalError(error, `failed to load ${binding.noun}`);
+      }
+      ctx.set(resourceKey, resource);
+    },
+  };
+}
+
+/**
+ * Moves a tag single-holder (git-tag semantics): the audit tag COLUMN is
+ * the source of truth and setAuditTag clears any prior holder in the same
+ * write. A hash with no audit row is NotFound and leaves the prior holder
+ * untouched. The head's live tag is then reconciled to the head version's
+ * post-move tag, which covers tagging the head, moving a tag off it, and
+ * touching only archived versions alike. The updated head lands under
+ * `resultKey`.
+ */
+export function newTagVersionStep<
+  Desc extends DescMessage,
+  InputDesc extends DescMessage,
+>(
+  store: Store,
+  binding: VersionTagBinding<Desc, InputDesc>,
+  stepName: string,
+  resourceKey: string,
+  resultKey: string,
+): PipelineStep<InputDesc> {
+  return {
+    name: stepName,
+    async execute(ctx: RequestContext<InputDesc>): Promise<void> {
+      const req = binding.tagInput(ctx.input);
+      const resource = ctx.get(resourceKey) as MessageShape<Desc>;
+
+      try {
+        await store.setAuditTag(
+          binding.kind,
+          req.resourceId,
+          req.versionHash,
+          req.tag,
+        );
+      } catch (error) {
+        if (error instanceof AuditNotFoundError) {
+          throw notFoundError(`${binding.noun} version`, req.versionHash);
+        }
+        throw internalError(
+          error,
+          `failed to assign ${binding.noun} version tag`,
+        );
+      }
+
+      const headTag = await resolveHeadTag(
+        store,
+        binding,
+        req.resourceId,
+        binding.headHashOf(resource),
+      );
+
+      let updated: MessageShape<Desc>;
+      try {
+        updated = await store.updateResource(
+          binding.kind,
+          req.resourceId,
+          binding.schema,
+          (head) => binding.overlayTag(head, headTag),
+        );
+      } catch (error) {
+        throw internalError(
+          error,
+          `failed to reconcile ${binding.noun} head tag`,
+        );
+      }
+      ctx.set(resultKey, updated);
+    },
+  };
+}
+
+/**
+ * The tag the head version holds in the audit column. An empty head hash or
+ * a head without an audit row holds none.
+ */
+async function resolveHeadTag<Desc extends DescMessage>(
+  store: Store,
+  binding: VersionedResourceBinding<Desc>,
+  resourceId: string,
+  headHash: string,
+): Promise<string> {
+  if (headHash === "") {
+    return "";
+  }
+  try {
+    const record = await store.getAuditRecordByHash(
+      binding.kind,
+      resourceId,
+      headHash,
+    );
+    return record.tag;
+  } catch (error) {
+    if (error instanceof AuditNotFoundError) {
+      return "";
+    }
+    throw internalError(error, "failed to resolve head version tag");
+  }
 }
 
 /** metadata.id of a resource message; every versioned kind carries the commons metadata. */

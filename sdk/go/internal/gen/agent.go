@@ -66,6 +66,11 @@ func (a *AgentClient) Delete(ctx context.Context, id string) (*agentv1.Agent, er
 	return resp, wrapErr(err)
 }
 
+func (a *AgentClient) TagVersion(ctx context.Context, input *agentv1.TagAgentVersionInput) (*agentv1.Agent, error) {
+	resp, err := a.command.TagVersion(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *AgentClient) Get(ctx context.Context, id string) (*agentv1.Agent, error) {
 	resp, err := a.query.Get(ctx, &agentv1.AgentId{Value: id})
 	return resp, wrapErr(err)
@@ -74,6 +79,16 @@ func (a *AgentClient) Get(ctx context.Context, id string) (*agentv1.Agent, error
 func (a *AgentClient) GetByReference(ctx context.Context, ref ResourceRef) (*agentv1.Agent, error) {
 	ref.Kind = apiresourcekind.ApiResourceKind_agent
 	resp, err := a.query.GetByReference(ctx, ref.toProto())
+	return resp, wrapErr(err)
+}
+
+func (a *AgentClient) ListVersions(ctx context.Context, input *agentv1.ListAgentVersionsInput) (*agentv1.ListAgentVersionsResponse, error) {
+	resp, err := a.query.ListVersions(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentClient) GetVersion(ctx context.Context, input *agentv1.GetAgentVersionInput) (*agentv1.AgentVersionEntry, error) {
+	resp, err := a.query.GetVersion(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -109,6 +124,7 @@ type AgentInput struct {
 	Org             string
 	Labels          map[string]string
 	Visibility      apiresource.ApiResourceVisibility
+	VersionMessage  string
 	Description     string
 	IconUrl         string
 	Instructions    string
@@ -156,6 +172,11 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 			Visibility: i.Visibility,
 		},
 		Spec: &agentv1.AgentSpec{},
+	}
+	if i.VersionMessage != "" {
+		resource.Metadata.Version = &apiresource.ApiResourceMetadataVersion{
+			Message: i.VersionMessage,
+		}
 	}
 	resource.Spec.Description = i.Description
 	resource.Spec.IconUrl = i.IconUrl

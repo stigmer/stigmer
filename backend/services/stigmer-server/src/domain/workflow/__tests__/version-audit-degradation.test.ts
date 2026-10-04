@@ -1,5 +1,6 @@
 /**
- * Pins SaveVersionAudit's safe-degradation arms at step level — the
+ * Pins SaveVersionAudit's safe-degradation arms at step level (the
+ * workflow's binding of the shared archive step) — the
  * composed suite (workflow.test.ts) cannot make the real store fail
  * selectively:
  *
@@ -26,7 +27,7 @@ import { createLogger } from "../../../boot/logger.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { AuditNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
-import { newSaveVersionAuditStep } from "../steps.js";
+import { newSaveVersionAuditStep } from "../version-resolution.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -116,9 +117,9 @@ function contextWithWorkflow(
   );
 }
 
-/** The create chain's arguments: isCreate, and no Persist follows. */
+/** The create chain's argument: no Persist follows. */
 function createStep(store: Store) {
-  return newSaveVersionAuditStep(store, silentLogger, true, true);
+  return newSaveVersionAuditStep(store, silentLogger, true);
 }
 
 describe("SaveVersionAudit — safe degradation", () => {
@@ -142,9 +143,7 @@ describe("SaveVersionAudit — safe degradation", () => {
     });
     const ctx = contextWithWorkflow("stable");
 
-    await newSaveVersionAuditStep(store, silentLogger, true, false).execute(
-      ctx,
-    );
+    await newSaveVersionAuditStep(store, silentLogger, false).execute(ctx);
 
     expect(ctx.newState.metadata?.version?.tag).toBe("");
     expect(state.persisted).toEqual([]);

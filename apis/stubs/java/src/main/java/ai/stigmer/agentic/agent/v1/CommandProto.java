@@ -38,29 +38,34 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\n)ai/stigmer/agentic/agent/v1/command.pr" +
       "oto\022\033ai.stigmer.agentic.agent.v1\032%ai/sti" +
       "gmer/agentic/agent/v1/api.proto\032$ai/stig" +
-      "mer/agentic/agent/v1/io.proto\032\'ai/stigme" +
-      "r/commons/apiresource/io.proto\0328ai/stigm" +
-      "er/commons/apiresource/rpc_service_optio" +
-      "ns.proto\032+ai/stigmer/commons/rpc/method_" +
-      "options.proto2\311\005\n\026AgentCommandController" +
-      "\022O\n\005apply\022\".ai.stigmer.agentic.agent.v1." +
-      "Agent\032\".ai.stigmer.agentic.agent.v1.Agen" +
-      "t\022\233\001\n\006create\022\".ai.stigmer.agentic.agent." +
+      "mer/agentic/agent/v1/io.proto\032)ai/stigme" +
+      "r/agentic/agent/v1/version.proto\032\'ai/sti" +
+      "gmer/commons/apiresource/io.proto\0328ai/st" +
+      "igmer/commons/apiresource/rpc_service_op" +
+      "tions.proto\032+ai/stigmer/commons/rpc/meth" +
+      "od_options.proto2\346\006\n\026AgentCommandControl" +
+      "ler\022O\n\005apply\022\".ai.stigmer.agentic.agent." +
       "v1.Agent\032\".ai.stigmer.agentic.agent.v1.A" +
-      "gent\"I\302\270\030E\010\006\020\036\"\014metadata.org*1unauthoriz" +
-      "ed to create agent in this organization\022" +
-      "\205\001\n\006update\022\".ai.stigmer.agentic.agent.v1" +
-      ".Agent\032\".ai.stigmer.agentic.agent.v1.Age" +
-      "nt\"3\302\270\030/\010\002\020(\"\013metadata.id*\034unauthorized " +
-      "to update agent\022\255\001\n\020updateVisibility\0225.a" +
-      "i.stigmer.commons.apiresource.UpdateVisi" +
-      "bilityInput\032\".ai.stigmer.agentic.agent.v" +
-      "1.Agent\">\302\270\030:\0100\020(\"\013resource_id*\'unauthor" +
-      "ized to update agent visibility\022\201\001\n\006dele" +
-      "te\022$.ai.stigmer.agentic.agent.v1.AgentId" +
-      "\032\".ai.stigmer.agentic.agent.v1.Agent\"-\302\270" +
-      "\030)\010\003\020(\"\005value*\034unauthorized to delete ag" +
-      "ent\032\004\240\377+(B\237\001B\014CommandProtoP\001\242\002\004ASAA\252\002\033Ai" +
+      "gent\022\233\001\n\006create\022\".ai.stigmer.agentic.age" +
+      "nt.v1.Agent\032\".ai.stigmer.agentic.agent.v" +
+      "1.Agent\"I\302\270\030E\010\006\020\036\"\014metadata.org*1unautho" +
+      "rized to create agent in this organizati" +
+      "on\022\205\001\n\006update\022\".ai.stigmer.agentic.agent" +
+      ".v1.Agent\032\".ai.stigmer.agentic.agent.v1." +
+      "Agent\"3\302\270\030/\010\002\020(\"\013metadata.id*\034unauthoriz" +
+      "ed to update agent\022\255\001\n\020updateVisibility\022" +
+      "5.ai.stigmer.commons.apiresource.UpdateV" +
+      "isibilityInput\032\".ai.stigmer.agentic.agen" +
+      "t.v1.Agent\">\302\270\030:\0100\020(\"\013resource_id*\'unaut" +
+      "horized to update agent visibility\022\201\001\n\006d" +
+      "elete\022$.ai.stigmer.agentic.agent.v1.Agen" +
+      "tId\032\".ai.stigmer.agentic.agent.v1.Agent\"" +
+      "-\302\270\030)\010\003\020(\"\005value*\034unauthorized to delete" +
+      " agent\022\232\001\n\ntagVersion\0221.ai.stigmer.agent" +
+      "ic.agent.v1.TagAgentVersionInput\032\".ai.st" +
+      "igmer.agentic.agent.v1.Agent\"5\302\270\0301\010\002\020(\"\010" +
+      "agent_id*!unauthorized to tag agent vers" +
+      "ion\032\004\240\377+(B\237\001B\014CommandProtoP\001\242\002\004ASAA\252\002\033Ai" +
       ".Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\A" +
       "gentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Age" +
       "nt\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic" +
@@ -71,6 +76,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.agent.v1.ApiProto.getDescriptor(),
           ai.stigmer.agentic.agent.v1.IoProto.getDescriptor(),
+          ai.stigmer.agentic.agent.v1.VersionProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
@@ -78,6 +84,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agent.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.agent.v1.IoProto.getDescriptor();
+    ai.stigmer.agentic.agent.v1.VersionProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();

@@ -8,6 +8,7 @@ import ai.stigmer.agentic.agent.v1.McpServerUsage;
 import ai.stigmer.agentic.agent.v1.SubAgent;
 import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.ApiResourceMetadataVersion;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
@@ -19,6 +20,7 @@ public final class AgentInput {
     private final String slug;
     private final java.util.Map<String, String> labels;
     private final ApiResourceVisibility visibility;
+    private final String versionMessage;
     private final String description;
     private final String iconUrl;
     private final String instructions;
@@ -36,6 +38,7 @@ public final class AgentInput {
         this.slug = builder.slug;
         this.labels = builder.labels;
         this.visibility = builder.visibility;
+        this.versionMessage = builder.versionMessage;
         this.description = builder.description;
         this.iconUrl = builder.iconUrl;
         this.instructions = builder.instructions;
@@ -102,6 +105,11 @@ public final class AgentInput {
         if (this.visibility != null) {
             metaBuilder.setVisibility(this.visibility);
         }
+        if (this.versionMessage != null && !this.versionMessage.isEmpty()) {
+            metaBuilder.setVersion(ApiResourceMetadataVersion.newBuilder()
+                .setMessage(this.versionMessage)
+                .build());
+        }
         return Agent.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("Agent")
@@ -119,6 +127,7 @@ public final class AgentInput {
         private String slug;
         private java.util.Map<String, String> labels;
         private ApiResourceVisibility visibility;
+        private String versionMessage;
         private String description;
         private String iconUrl;
         private String instructions;
@@ -142,6 +151,7 @@ public final class AgentInput {
         public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
+        public Builder versionMessage(String versionMessage) { this.versionMessage = versionMessage; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder iconUrl(String iconUrl) { this.iconUrl = iconUrl; return this; }
         public Builder instructions(String instructions) { this.instructions = instructions; return this; }

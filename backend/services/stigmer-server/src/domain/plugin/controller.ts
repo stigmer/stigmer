@@ -655,6 +655,8 @@ const pluginVersionBinding: VersionHistoryBinding<
   noun: "plugin",
   headHashOf: (plugin) => plugin.status?.digest ?? "",
   liveTagOf: pluginLiveTag,
+  // No overlayTag: a plugin's tag is its manifest version, which is
+  // content, so a fetched version is never rewritten to another tag.
   input: (req) => req,
   mapEntry: (plugin, isCurrent, tag) => {
     const entry = create(PluginVersionEntrySchema, { isCurrent, tag });

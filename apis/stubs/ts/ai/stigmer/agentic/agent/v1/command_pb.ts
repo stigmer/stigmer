@@ -8,6 +8,8 @@ import type { AgentSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_api } from "./api_pb.js";
 import type { AgentIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_io } from "./io_pb.js";
+import type { TagAgentVersionInputSchema } from "./version_pb.js";
+import { file_ai_stigmer_agentic_agent_v1_version } from "./version_pb.js";
 import type { UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
@@ -17,7 +19,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agent/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxMskFChZBZ2VudENvbW1hbmRDb250cm9sbGVyEk8KBWFwcGx5EiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50EpsBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiScK4GEUIBhAeIgxtZXRhZGF0YS5vcmcqMXVuYXV0aG9yaXplZCB0byBjcmVhdGUgYWdlbnQgaW4gdGhpcyBvcmdhbml6YXRpb24ShQEKBnVwZGF0ZRIiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIzwrgYLwgCECgiC21ldGFkYXRhLmlkKhx1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50Eq0BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCI+wrgYOggwECgiC3Jlc291cmNlX2lkKid1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50IHZpc2liaWxpdHkSgQEKBmRlbGV0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudElkGiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50Ii3CuBgpCAMQKCIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBkZWxldGUgYWdlbnQaBKD/KyhiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxMuYGChZBZ2VudENvbW1hbmRDb250cm9sbGVyEk8KBWFwcGx5EiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50EpsBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiScK4GEUIBhAeIgxtZXRhZGF0YS5vcmcqMXVuYXV0aG9yaXplZCB0byBjcmVhdGUgYWdlbnQgaW4gdGhpcyBvcmdhbml6YXRpb24ShQEKBnVwZGF0ZRIiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIzwrgYLwgCECgiC21ldGFkYXRhLmlkKhx1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50Eq0BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCI+wrgYOggwECgiC3Jlc291cmNlX2lkKid1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50IHZpc2liaWxpdHkSgQEKBmRlbGV0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudElkGiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50Ii3CuBgpCAMQKCIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBkZWxldGUgYWdlbnQSmgEKCnRhZ1ZlcnNpb24SMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuVGFnQWdlbnRWZXJzaW9uSW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiNcK4GDEIAhAoIghhZ2VudF9pZCohdW5hdXRob3JpemVkIHRvIHRhZyBhZ2VudCB2ZXJzaW9uGgSg/ysoYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_agentic_agent_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentCommandController handles write operations for AI agents.
@@ -89,6 +91,20 @@ export const AgentCommandController: GenService<{
   delete: {
     methodKind: "unary";
     input: typeof AgentIdSchema;
+    output: typeof AgentSchema;
+  },
+  /**
+   * Assign or move a tag to a specific agent version.
+   *
+   * Tags are human-readable pointers to immutable versions. Calling this
+   * with an existing tag name moves it from the previous version to the
+   * specified version. Common tags: "stable", "production", "v2.0".
+   *
+   * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.tagVersion
+   */
+  tagVersion: {
+    methodKind: "unary";
+    input: typeof TagAgentVersionInputSchema;
     output: typeof AgentSchema;
   },
 }> = /*@__PURE__*/

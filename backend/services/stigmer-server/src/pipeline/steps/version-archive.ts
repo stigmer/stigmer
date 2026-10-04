@@ -1,31 +1,52 @@
 /**
- * The write side of content-addressed versioning, shared by every kind
- * whose version is the SHA-256 of a pushed archive (skills, plugins): the
- * "archive the head" step a push runs after the head is fully populated,
- * and the best-effort archive cleanup a delete runs before the row. Skills
- * carried both alone (#341, adopted for skills in #475; the Go
- * ArchiveCurrentSkillStep / DeleteSkillArchivesStep port); plugins need the
- * identical semantics over another schema, so the steps live here and each
- * kind names its step (`ArchiveCurrentSkill`, `ArchiveCurrentPlugin`), its
- * context key and where its hash and tag live.
+ * The write side of content-addressed versioning, shared by every
+ * versioned kind (workflows, agents, skills, plugins): the version-metadata
+ * rule an applied kind's write runs once its hash is known, the "archive
+ * the head" step a write runs after the head is fully populated, and the
+ * best-effort archive cleanup a delete runs before the row. Skills carried
+ * the archive and the cleanup alone (#341, adopted for skills in #475; the
+ * Go ArchiveCurrentSkillStep / DeleteSkillArchivesStep port); one copy
+ * serves every kind, and each kind names its step (`SaveVersionAudit`,
+ * `ArchiveCurrentSkill`, `ArchiveCurrentPlugin`, …), where its head rides
+ * and where its hash and tag live.
  *
  * The load-bearing semantics, all preserved from the skill port:
- *   - repoint-never-duplicate: re-pushing EVER-archived content repoints the
- *     head to the existing audit row (an A→B→A re-push must not duplicate
- *     A's row);
+ *   - repoint-never-duplicate: re-writing EVER-archived content repoints
+ *     the head to the existing audit row (an A→B→A re-push must not
+ *     duplicate A's row);
  *   - snapshots archive TAGLESS; the audit tag COLUMN is the tag's only
  *     home, assigned through the single-holder setAuditTag primitive —
- *     assigned even when the content was already archived, because
- *     re-pushing under a new tag is the only retag path;
+ *     assigned even when the content was already archived, because a
+ *     re-push or an unchanged re-apply naming a new tag moves it there;
  *   - safe degradation: archive failure clears the version hash from the
  *     head (the persisted head never references an unresolvable audit
- *     entry); tag-assignment failure clears the live tag.
+ *     entry); tag-assignment failure clears the live tag. A chain whose
+ *     archive runs after its last write re-persists either revert
+ *     (`persistOnRevert`); a chain that persists after the archive needs
+ *     no such arm.
+ *
+ * The version-metadata rule (PopulateVersionHash) is for kinds applied as a
+ * whole resource (workflows, agents), whose update replaces
+ * metadata.version with whatever the client sent. On a changed hash the
+ * version id becomes the new hash, previous_version_id the old one, and
+ * message are the client's. On an unchanged hash id, previous_version_id
+ * and message stay the stored head's. The tag is the client's in both
+ * cases. A write that names a tag moves it there (the archive step's
+ * single-holder assignment, even on an unchanged apply); a write that names
+ * none onto a version already archived shows the tag that version holds in
+ * the audit column, read and never written, so the head and the history
+ * never disagree about where a tag is and an apply never undoes a tag move
+ * made since it loaded the row.
  *
  * Proven by the skill domain's __tests__/push-degradation.test.ts (the
- * failing-store arms) and both kinds' conformance suites (the
- * content-addressed versioning blocks).
+ * failing-store arms), the workflow and agent domains' version tests, and
+ * every versioned kind's conformance suite (the content-addressed
+ * versioning blocks).
  */
-import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
+import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
+
+import { ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { PipelineStep } from "../pipeline.js";
@@ -33,16 +54,81 @@ import type { RequestContext } from "../request-context.js";
 import { AuditNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { RESOURCE_ID_KEY } from "./delete.js";
+import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { metadataOf } from "./shapes.js";
+
+/** The context key a kind's hash step stashes the head's new content hash under. */
+export const VERSION_HASH_KEY = "version_hash";
+
+/** Where an applied kind keeps its head hash. */
+export interface PopulateVersionBinding<Desc extends DescMessage> {
+  headHashOf(resource: MessageShape<Desc>): string;
+  setHeadHash(resource: MessageShape<Desc>, hash: string): void;
+}
+
+/**
+ * PopulateVersionHash — writes the hash under VERSION_HASH_KEY into the
+ * head and applies the version-metadata rule (the module doc). On update
+ * the head's status is the stored one (BuildUpdateState carries it over),
+ * so its hash is the stored hash, and the stored metadata.version is read
+ * from the loaded row. No hash (a hash step with nothing to hash) leaves
+ * the head as it is.
+ */
+export function newPopulateVersionStep<Desc extends DescMessage>(
+  binding: PopulateVersionBinding<Desc>,
+): PipelineStep<Desc> {
+  return {
+    name: "PopulateVersionHash",
+    execute(ctx: RequestContext<Desc>): void {
+      const newHash = ctx.get(VERSION_HASH_KEY);
+      if (typeof newHash !== "string" || newHash === "") {
+        return;
+      }
+      const head = ctx.newState;
+      const metadata = metadataOf(head);
+      if (metadata === undefined) {
+        return;
+      }
+      const previousHash = binding.headHashOf(head);
+      const version =
+        metadata.version ?? create(ApiResourceMetadataVersionSchema);
+      metadata.version = version;
+      binding.setHeadHash(head, newHash);
+
+      if (newHash !== previousHash) {
+        version.id = newHash;
+        version.previousVersionId = previousHash;
+      } else {
+        const existing = ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined;
+        const stored =
+          existing === undefined ? undefined : metadataOf(existing)?.version;
+        // An earlier release saved an unchanged apply with the client's
+        // empty version id; the head's own hash repairs it.
+        version.id = stored?.id || newHash;
+        version.previousVersionId = stored?.previousVersionId ?? "";
+        version.message = stored?.message ?? "";
+      }
+      ctx.setNewState(head);
+    },
+  };
+}
 
 /** What a content-versioned kind must expose for its head to be archived. */
 export interface ArchiveCurrentVersionBinding<Desc extends DescMessage> {
   /** The step's name in the chain; shared vocabulary, never renamed. */
   readonly stepName: string;
-  /** The context key the fully populated head rides. */
-  readonly resourceKey: string;
+  /**
+   * The context key the fully populated head rides; undefined for a chain
+   * whose head is its new state (an applied kind's create and update).
+   */
+  readonly resourceKey: string | undefined;
+  /**
+   * Re-persist the head after a revert, for a chain in which no write
+   * follows the archive (it runs after the chain's last persist).
+   */
+  readonly persistOnRevert?: boolean;
   readonly schema: Desc;
-  /** The noun in log lines: "skill", "plugin". */
+  /** The noun in log lines: "workflow", "agent", "skill", "plugin". */
   readonly noun: string;
   headHashOf(resource: MessageShape<Desc>): string;
   /** Degradation arm: the head must never reference an unresolvable audit row. */
@@ -50,6 +136,12 @@ export interface ArchiveCurrentVersionBinding<Desc extends DescMessage> {
   liveTagOf(resource: MessageShape<Desc>): string;
   /** Degradation arm: the live tag must agree with the audit column. */
   clearLiveTag(resource: MessageShape<Desc>): void;
+  /**
+   * Shows on the head the tag its already-archived version holds, for a
+   * write that names none (the module doc). Absent for a kind whose tag is
+   * content (the plugin's manifest version).
+   */
+  showArchivedTag?(resource: MessageShape<Desc>, tag: string): void;
 }
 
 /**
@@ -68,7 +160,11 @@ export function newArchiveCurrentVersionStep<
   return {
     name: binding.stepName,
     async execute(ctx: RequestContext<RequestDesc>): Promise<void> {
-      const resource = ctx.get(binding.resourceKey) as MessageShape<Desc>;
+      const resource = (
+        binding.resourceKey === undefined
+          ? ctx.newState
+          : ctx.get(binding.resourceKey)
+      ) as MessageShape<Desc>;
       const versionHash = binding.headHashOf(resource);
       if (versionHash === "") {
         return;
@@ -76,6 +172,33 @@ export function newArchiveCurrentVersionStep<
       const tag = binding.liveTagOf(resource);
       const resourceId = metadataOf(resource)?.id ?? "";
       const idField = `${binding.noun}Id`;
+
+      // A revert changes the head after the chain's last write, so in a
+      // chain with no later persist it reaches the stored row only through
+      // this re-persist. A failure here is logged, never a failed write:
+      // the response is already consistent and the next write rewrites the
+      // row.
+      const flushRevert = async (revert: string): Promise<void> => {
+        if (binding.persistOnRevert !== true) {
+          return;
+        }
+        try {
+          await store.saveResource(
+            ctx.apiResourceKind,
+            resourceId,
+            binding.schema,
+            resource,
+          );
+        } catch (persistError) {
+          logger.error(`failed to re-persist ${binding.noun} after ${revert}`, {
+            [idField]: resourceId,
+            error:
+              persistError instanceof Error
+                ? persistError.message
+                : String(persistError),
+          });
+        }
+      };
 
       // Repoint, never duplicate: if this content was ever archived, the
       // head simply repoints to the existing row and only the tag
@@ -131,6 +254,7 @@ export function newArchiveCurrentVersionStep<
           // that does not exist. The push still succeeds, but without
           // version tracking for this apply.
           binding.clearHeadHash(resource);
+          await flushRevert("reverting its version hash");
           return;
         }
       }
@@ -160,6 +284,32 @@ export function newArchiveCurrentVersionStep<
           // so get / getByReference never advertise a tag the store cannot
           // resolve.
           binding.clearLiveTag(resource);
+          await flushRevert("clearing its tag");
+        }
+      }
+
+      // A write naming no tag onto a version already archived shows the tag
+      // that version holds; it is read, never written, so a tag moved since
+      // this write loaded the row stays where it was moved. A failed read
+      // leaves the head untagged, the state the audit column cannot
+      // contradict.
+      if (alreadyArchived && tag === "" && binding.showArchivedTag !== undefined) {
+        try {
+          const record = await store.getAuditRecordByHash(
+            ctx.apiResourceKind,
+            resourceId,
+            versionHash,
+          );
+          binding.showArchivedTag(resource, record.tag);
+        } catch (error) {
+          logger.warn(
+            `Could not read the tag of the archived ${binding.noun} version — leaving the head untagged`,
+            {
+              [idField]: resourceId,
+              versionHash,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          );
         }
       }
 

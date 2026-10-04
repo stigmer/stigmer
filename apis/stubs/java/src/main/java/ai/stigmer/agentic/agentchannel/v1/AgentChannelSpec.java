@@ -107,6 +107,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the agent this channel serves.
+   *
+   * The reference names no version (or "latest"): this runs the agent's
+   * current version, and a reference naming another version is refused.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -119,6 +122,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the agent this channel serves.
+   *
+   * The reference names no version (or "latest"): this runs the agent's
+   * current version, and a reference naming another version is refused.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -131,6 +137,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the agent this channel serves.
+   *
+   * The reference names no version (or "latest"): this runs the agent's
+   * current version, and a reference naming another version is refused.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1104,6 +1113,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent this channel serves.
+     *
+     * The reference names no version (or "latest"): this runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1115,6 +1127,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent this channel serves.
+     *
+     * The reference names no version (or "latest"): this runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1130,6 +1145,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent this channel serves.
+     *
+     * The reference names no version (or "latest"): this runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1150,6 +1168,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent this channel serves.
+     *
+     * The reference names no version (or "latest"): this runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1168,6 +1189,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent this channel serves.
+     *
+     * The reference names no version (or "latest"): this runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1193,6 +1217,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent this channel serves.
+     *
+     * The reference names no version (or "latest"): this runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1210,6 +1237,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent this channel serves.
+     *
+     * The reference names no version (or "latest"): this runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1222,6 +1252,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent this channel serves.
+     *
+     * The reference names no version (or "latest"): this runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1237,6 +1270,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the agent this channel serves.
+     *
+     * The reference names no version (or "latest"): this runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>

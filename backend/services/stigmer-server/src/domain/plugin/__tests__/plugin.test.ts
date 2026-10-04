@@ -472,6 +472,18 @@ describe("Plugin members are the plugin's to redefine", () => {
       Code.FailedPrecondition,
       "is managed by plugin",
     );
+    // A materialised agent is versioned like any other, and which version
+    // a tag names is the plugin's word too.
+    expect(agent.status?.versionHash).toMatch(/^[a-f0-9]{64}$/);
+    await expectCode(
+      agents.tagVersion({
+        agentId: agentMember.id,
+        versionHash: agent.status!.versionHash,
+        tag: "stable",
+      }),
+      Code.FailedPrecondition,
+      `agent '${name}' is managed by plugin '${name}'`,
+    );
   });
 
   it("refuses a client re-push of a managed skill under the same name", async () => {

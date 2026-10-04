@@ -1,7 +1,8 @@
 import { test, expect } from "../../fixtures";
-import { createTestSkill } from "../../fixtures/seed-helpers";
+import { createTestAgent, createTestSkill } from "../../fixtures/seed-helpers";
 import { navigateToWorkflowDetail } from "../../helpers/workflow-detail";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { toAgentUpdateInput } from "@stigmer/sdk";
 
 /**
  * Version-history UX coverage.
@@ -10,7 +11,7 @@ import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1
  * "I push multiple times but only ever see one version." These tests seed
  * real version history through the SDK and assert the detail-page timeline
  * renders one entry per distinct content hash (and none for idempotent
- * re-applies/re-pushes).
+ * re-applies/re-pushes), for workflows, skills and agents.
  */
 test.describe("Version history timeline", () => {
   test("workflow: a changed apply shows two timeline entries and a diff", async ({
@@ -112,6 +113,43 @@ test.describe("Version history timeline", () => {
       await expect(timeline.getByRole("listitem")).toHaveCount(1);
     } finally {
       await stigmerClient.workflow.delete(workflowId).catch(() => {});
+    }
+  });
+
+  test("agent: a changed update shows two entries, the tab counts them, and an older one diffs its instructions", async ({
+    page,
+    stigmerClient,
+  }) => {
+    const agent = await createTestAgent(stigmerClient, {
+      instructions: "Review pull requests and keep every comment short.",
+    });
+
+    try {
+      const fetched = await stigmerClient.agent.get(agent.id);
+      await stigmerClient.agent.update({
+        ...toAgentUpdateInput(fetched),
+        instructions: "Review pull requests and keep every comment short.\nAlways flag missing tests.",
+      });
+      // An unchanged update records no version.
+      await stigmerClient.agent.update(toAgentUpdateInput(await stigmerClient.agent.get(agent.id)));
+
+      await page.goto(`/library/agents/${agent.org}/${agent.slug}`);
+      await page.waitForLoadState("networkidle");
+
+      const tab = page.getByRole("tab", { name: /Versions/ });
+      await expect(tab).toContainText("2", { timeout: 15_000 });
+      await tab.click();
+
+      const timeline = page.getByRole("list", { name: "Version history" });
+      await expect(timeline).toBeVisible({ timeout: 15_000 });
+      const entries = timeline.getByRole("listitem");
+      await expect(entries).toHaveCount(2);
+
+      await entries.nth(1).getByRole("button").first().click();
+      await expect(page.getByText(/Comparing/)).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByRole("cell", { name: "Always flag missing tests." })).toBeVisible();
+    } finally {
+      await agent.cleanup();
     }
   });
 

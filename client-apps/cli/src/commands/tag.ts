@@ -9,7 +9,7 @@ import { globalOrg } from "./shared.js";
 export function registerTag(program: Command): void {
   program
     .command("tag <type> <org/slug> <hash> <tag>")
-    .description("assign a tag to a resource version (supported types: workflow)")
+    .description("assign a tag to a resource version (supported types: workflow, agent)")
     .action((type: string, ref: string, hash: string, tag: string, _options: unknown, command: Command) =>
       runTag(type, ref, hash, tag, command),
     );

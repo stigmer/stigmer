@@ -414,15 +414,20 @@ export async function fetchExecution(deps: ResolutionDeps): Promise<{
   return { execution, spec, sessionId: spec.sessionId };
 }
 
-/** Phase 2: load the session and resolve the full agent blueprint through it. */
+/**
+ * Phase 2: load the session and resolve the full agent blueprint: the agent
+ * and version the execution recorded at create, merged with the session's
+ * own tools.
+ */
 export async function resolveAgentBlueprint(
   deps: ResolutionDeps,
+  execution: AgentExecution,
   sessionId: string,
 ): Promise<{ readonly session: Session; readonly blueprint: ResolvedBlueprint }> {
   deps.enterPhase("resolve_blueprint");
   await deps.reportProgress("Resolving agent blueprint");
   const session = await deps.client.getSession(sessionId);
-  const blueprint = await resolveBlueprint(deps.client, session);
+  const blueprint = await resolveBlueprint(deps.client, session, execution.status);
   deps.timing.mark("resolve_blueprint");
   return { session, blueprint };
 }
@@ -764,7 +769,7 @@ export async function resolveMcpServersAndPolicies(
       org: session.metadata?.org ?? "",
       // Provenance, not scope: empty for the built-in assistant, and the
       // carrier omits an empty field (memory-attachment.ts).
-      agentId: blueprint.agent?.metadata?.id ?? "",
+      agentId: blueprint.agent?.id ?? "",
       sessionId,
       agentExecutionId: executionId,
     },
@@ -780,7 +785,7 @@ export async function resolveMcpServersAndPolicies(
   const mcpDefault = buildMcpApprovalDefault(servers, leases);
   const agentSpec = blueprint.agent?.spec;
   const toolScope = agentSpec
-    ? ToolScope.of(`Agent "${blueprint.agent?.metadata?.slug || blueprint.agent?.metadata?.name || "agent"}"`, {
+    ? ToolScope.of("The agent", {
         tools: agentSpec.tools,
         disallowedTools: agentSpec.disallowedTools,
       })
@@ -1082,7 +1087,7 @@ export async function resolveTurnContext(
   persist: () => Promise<void>,
 ): Promise<TurnResolution> {
   const { execution, spec, sessionId } = await fetchExecution(deps);
-  const { session, blueprint } = await resolveAgentBlueprint(deps, sessionId);
+  const { session, blueprint } = await resolveAgentBlueprint(deps, execution, sessionId);
   const environment = await resolveEnvironment(deps);
   const { workspace, writeback } = await provisionWorkspace(deps, { session, sessionId, envVars: environment.envVars });
   frame.primaryDir = workspace.primaryDir;

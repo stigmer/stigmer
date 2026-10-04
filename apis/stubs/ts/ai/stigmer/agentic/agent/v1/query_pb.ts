@@ -8,6 +8,8 @@ import type { AgentSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_api } from "./api_pb.js";
 import type { AgentIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_io } from "./io_pb.js";
+import type { AgentVersionEntrySchema, GetAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVersionsResponseSchema } from "./version_pb.js";
+import { file_ai_stigmer_agentic_agent_v1_version } from "./version_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
@@ -17,7 +19,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agent/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTKLAgoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARoEoP8rKGIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTK4BAoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARKBAQoMbGlzdFZlcnNpb25zEjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkxpc3RBZ2VudFZlcnNpb25zSW5wdXQaNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTGlzdEFnZW50VmVyc2lvbnNSZXNwb25zZSIE0LgYARKmAQoKZ2V0VmVyc2lvbhIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5HZXRBZ2VudFZlcnNpb25JbnB1dBouLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFZlcnNpb25FbnRyeSI1wrgYMQgBECgiCGFnZW50X2lkKiF1bmF1dGhvcml6ZWQgdG8gZ2V0IGFnZW50IHZlcnNpb24aBKD/KyhiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_agentic_agent_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentQueryController handles read operations for AI agents.
@@ -36,8 +38,13 @@ export const AgentQueryController: GenService<{
     output: typeof AgentSchema;
   },
   /**
-   * Get an agent by its organization-scoped reference (org/slug).
+   * Get an agent by its organization-scoped reference (org/slug) with version support.
    * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+   *
+   * Version resolution (via ApiResourceReference.version field):
+   * - Empty/"latest" → Returns the current version
+   * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+   * - SHA256 hash (64 hex chars) → Returns the exact immutable version
    *
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getByReference
    */
@@ -45,6 +52,34 @@ export const AgentQueryController: GenService<{
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof AgentSchema;
+  },
+  /**
+   * List version history for an agent.
+   *
+   * Returns all historical versions, newest first. Each entry carries the
+   * version hash, when and by whom it was applied, its tag, its message and
+   * the full spec of that version.
+   *
+   * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.listVersions
+   */
+  listVersions: {
+    methodKind: "unary";
+    input: typeof ListAgentVersionsInputSchema;
+    output: typeof ListAgentVersionsResponseSchema;
+  },
+  /**
+   * Get a specific version of an agent by its content hash.
+   *
+   * Used by the runner and the server to run a turn on the version it
+   * recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+   * show what a past version said.
+   *
+   * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getVersion
+   */
+  getVersion: {
+    methodKind: "unary";
+    input: typeof GetAgentVersionInputSchema;
+    output: typeof AgentVersionEntrySchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_agent_v1_query, 0);
