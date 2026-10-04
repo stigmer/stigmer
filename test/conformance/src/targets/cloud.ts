@@ -17,9 +17,10 @@ import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampo
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import {
   CLOUD_ENV,
-  jwtSubject,
-  mintCloudUserToken,
   organizationMemberGrant,
+  provisionConsolePerson,
+  requireDirectLoginTenant,
+  type ConsolePerson,
 } from "../harness/cloud-env";
 import {
   createTransport,
@@ -27,10 +28,6 @@ import {
   type ConformanceClients,
   type PresentingOptions,
 } from "../harness/clients";
-import {
-  newDirectLoginTenant,
-  readDirectLoginTenantMaterial,
-} from "../harness/direct-login-tenant";
 import { newPrimaryEnforcingLane } from "../harness/enforcing-lane";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { uniqueName } from "../support/naming";
@@ -100,10 +97,9 @@ export class CloudTarget implements TargetProfile {
     // Operator-lane assertions run through provisionPrivilegedScope
     // (stigmer#547) instead.
     clientReservedLabelWrites: false,
-    // The primary conformance user is a PlatformClient-minted token —
-    // the credential class the first-party gate excludes; the suite
-    // pins the create-gate refusal instead (see target.ts).
-    firstPartyMemoryCapture: false,
+    // The primary conformance user signs in through the environment's tenant
+    // as a console person does, so it passes the first-party gate.
+    firstPartyMemoryCapture: true,
     // The cloud channel runtime serves installs, conversation participation,
     // and proactive messaging for real — the OSS refusal pins are gated off
     // here (their full behavior needs live provider workspaces; see target.ts).
@@ -114,9 +110,9 @@ export class CloudTarget implements TargetProfile {
     orgOAuthAppConfiguration: true,
     // The composition's billing engine authorizes execution credits natively.
     billingGates: true,
-    // The whole cloud suite authenticates with PlatformClient-minted user
-    // tokens, and the minting client's contract is enforced on every
-    // serving-edge request by the composition's platform-client caller guard.
+    // The primary founds PlatformClients and mints their user tokens in the
+    // suites that test them; the minting client's contract is enforced on
+    // every serving-edge request by the platform-client caller guard.
     platformClientTokens: true,
     // Every non-public RPC needs a credential: the composition declares the
     // require-authentication registry point, with the same byte-pinned
@@ -154,6 +150,9 @@ export class CloudTarget implements TargetProfile {
   // this target made, without widening TenancyContext beyond the shape the
   // suites share with local targets.
   private readonly provisionedOrgIds = new Map<string, string>();
+  // The environment's direct-login tenant, which mints every person this
+  // target makes; set by setup().
+  private tenant: DirectLoginTenant | undefined;
 
   // Present only when the environment carries an operator credential — the
   // hermetic bootstrap always mints one; pre-provisioned/deployed endpoints
@@ -188,11 +187,12 @@ export class CloudTarget implements TargetProfile {
       this.provisionPrivilegedScope = () => this.createPrivilegedScope();
     }
 
-    const tenantMaterial = readDirectLoginTenantMaterial();
-    if (tenantMaterial !== undefined) {
-      const tenant = newDirectLoginTenant(tenantMaterial);
-      this.directLoginTenant = () => tenant;
-    }
+    // The target's people sign in through the environment's tenant, as a
+    // console person does (cloud-env.ts says why), so the tenant is
+    // required here, not only by the direct-login suite.
+    const tenant = requireDirectLoginTenant();
+    this.tenant = tenant;
+    this.directLoginTenant = () => tenant;
   }
 
   directLoginUnavailable(): string {
@@ -204,9 +204,9 @@ export class CloudTarget implements TargetProfile {
   }
 
   // The primary enforces, so the lane is a view over this target's own
-  // provisioning: the primary caller founds and owns every tenancy, its
-  // PlatformClient mints the people, and a person's exact role is set by
-  // the founder's ordinary grants (harness/enforcing-lane.ts).
+  // provisioning: the primary caller founds and owns every tenancy, the
+  // environment's tenant signs the people in, and a person's exact role is
+  // set by the founder's ordinary grants (harness/enforcing-lane.ts).
   async enforcingLane(): Promise<EnforcingLane> {
     const grpcBaseUrl = this.requireBaseUrl("enforcingLane");
     return newPrimaryEnforcingLane({
@@ -367,53 +367,34 @@ export class CloudTarget implements TargetProfile {
     return this.operatorClients;
   }
 
-  // Mints a brand-new user through the bootstrap PlatformClient. The fresh
-  // identity holds no grants on any org this run provisioned, making it the
-  // outsider for isolation assertions.
+  // A brand-new console person holding no grants on any org this run
+  // provisioned: the outsider for isolation assertions.
   async provisionIdentity(): Promise<ConformanceClients> {
-    if (this.grpcBaseUrl === undefined) {
-      throw new Error("CloudTarget.setup() must be called before provisionIdentity()");
-    }
-    const token = await mintCloudUserToken(
-      this.grpcBaseUrl,
-      {
-        clientId: requireEnv(CLOUD_ENV.platformClientId),
-        clientSecret: requireEnv(CLOUD_ENV.platformClientSecret),
-      },
-      uniqueName("conf-outsider"),
-    );
-    return makeClients(createTransport(this.grpcBaseUrl, { bearerToken: token }));
+    const person = await this.newPerson("provisionIdentity");
+    return makeClients(createTransport(this.requireBaseUrl("provisionIdentity"), { bearerToken: person.token }));
   }
 
-  // Mints a brand-new user and grants it exactly `member` on the tenancy, as
-  // the primary (the org's owner, through the ordinary IamPolicy create). The
-  // colleague for within-organization authorization assertions: past the
+  // A brand-new console person granted exactly `member` on the tenancy, as
+  // the primary (the org's owner, through the ordinary IamPolicy create).
+  // The colleague for within-organization authorization assertions: past the
   // organization-level checks, subject to every resource-level rule.
   async provisionMember(tenancy: TenancyContext): Promise<ConformanceClients> {
-    if (this.grpcBaseUrl === undefined) {
-      throw new Error("CloudTarget.setup() must be called before provisionMember()");
-    }
     const organizationId = this.provisionedOrgIds.get(tenancy.org);
     if (organizationId === undefined) {
       throw new Error(
         `provisionMember: tenancy "${tenancy.org}" was not provisioned by this target (provisionTenancy() first)`,
       );
     }
-    const token = await mintCloudUserToken(
-      this.grpcBaseUrl,
-      {
-        clientId: requireEnv(CLOUD_ENV.platformClientId),
-        clientSecret: requireEnv(CLOUD_ENV.platformClientSecret),
-      },
-      uniqueName("conf-member"),
-    );
-    const primaryTransport = createTransport(this.grpcBaseUrl, {
-      bearerToken: requireEnv(CLOUD_ENV.token),
-    });
-    await createClient(IamPolicyCommandController, primaryTransport).create(
-      organizationMemberGrant(organizationId, jwtSubject(token)),
-    );
-    return makeClients(createTransport(this.grpcBaseUrl, { bearerToken: token }));
+    const person = await this.newPerson("provisionMember");
+    await this.clients().iamPolicyCommand.create(organizationMemberGrant(organizationId, person.accountId));
+    return makeClients(createTransport(this.requireBaseUrl("provisionMember"), { bearerToken: person.token }));
+  }
+
+  private newPerson(caller: string): Promise<ConsolePerson> {
+    if (this.tenant === undefined) {
+      throw new Error(`CloudTarget.setup() must be called before ${caller}()`);
+    }
+    return provisionConsolePerson(this.requireBaseUrl(caller), this.tenant);
   }
 
   async teardown(): Promise<void> {
@@ -423,6 +404,7 @@ export class CloudTarget implements TargetProfile {
     this.conformanceClients = undefined;
     this.operatorClients = undefined;
     this.provisionPrivilegedScope = undefined;
+    this.tenant = undefined;
     this.provisionedOrgIds.clear();
   }
 }

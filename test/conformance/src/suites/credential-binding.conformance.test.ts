@@ -56,8 +56,11 @@ beforeAll(async () => {
   target = createTarget();
   await target.setup();
   const enforcing = await enforcingLaneOf(target);
-  lane = enforcing.lane;
-  laneReason = enforcing.reason;
+  if (enforcing.lane === undefined) {
+    laneReason = enforcing.reason;
+  } else {
+    lane = enforcing.lane;
+  }
 });
 
 afterEach(async () => {
