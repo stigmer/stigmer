@@ -934,7 +934,9 @@ const consumerSandboxDriver: SandboxProvisionerFactory = ({
  * idle sweep (the shape a hosted composition takes): it builds the driver
  * itself in its runner mode, leaves the open-source sweep unstarted, warms
  * the template, sleeps sandboxes through guards it answers from its own
- * records, runs the pass's upkeep over its own listing, keeps its windows
+ * records, deletes an orphan only if its guard still finds it unrecorded
+ * inside the sandbox's queue, runs the pass's upkeep over its own listing,
+ * keeps its windows
  * inside the in-place pause bound, and names a sandbox's queue for a
  * renewed token's push.
  */
@@ -974,9 +976,14 @@ const consumerSubstrateDriver: SandboxProvisionerFactory = ({
     // An orphan is a sandbox the composition's own records do not name.
     const recorded = (name: string): Promise<boolean> =>
       Promise.resolve(name !== "");
+    const orphanGuard: SubstrateSleepGuard = {
+      proceed: async (actor) => !(await recorded(actor.name)),
+    };
     for (const actor of await lifecycle.list()) {
       if (!(await recorded(actor.name))) {
-        await lifecycle.deleteByName(actor.name);
+        const deleted: Exclude<SubstrateSleepOutcome, "thawed"> =
+          await lifecycle.deleteByName(actor.name, orphanGuard);
+        void deleted;
       }
     }
   };
