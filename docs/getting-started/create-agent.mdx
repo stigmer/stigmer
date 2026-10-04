@@ -143,12 +143,8 @@ specific domain.
 
 ## Simplify your code
 
-Open the code from the previous guides. Two changes:
-
-1. Get your Agent by name — this returns its configuration including a default
-   reference for Session creation.
-2. Replace the `skillRefs` and `mcpServerRefs` with a single reference from your
-   Agent.
+Open the code from the previous guides. One change: replace the `skillRefs` and
+`mcpServerRefs` with a single reference to your Agent.
 
 <Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
 <Tab value="TypeScript">
@@ -156,36 +152,23 @@ Open the code from the previous guides. Two changes:
 Update `ask-agent.ts`:
 
 ```typescript
-const agent = await stigmer.agent.getByReference({
-  org: "my-org",
-  slug: "support-agent",
-});
-
 const session = await stigmer.session.create({
   name: `session-${Date.now()}`,
   org: "my-org",
-  agentInstanceId: agent.status!.defaultInstanceId,
+  agentRef: { org: "my-org", slug: "support-agent" },
 });
 ```
 
 </Tab>
 <Tab value="Go">
 
-Update `main.go`. Add `stigmer.ResourceRef` to your imports if needed:
+Update `main.go`:
 
 ```go
-agent, err := client.Agent.GetByReference(ctx, stigmer.ResourceRef{
-    Org:  "my-org",
-    Slug: "support-agent",
-})
-if err != nil {
-    log.Fatal(err)
-}
-
 session, err := client.Session.Create(ctx, &stigmer.SessionInput{
-    Name:            "session-" + ts,
-    Org:             "my-org",
-    AgentInstanceId: agent.GetStatus().GetDefaultInstanceId(),
+    Name:     "session-" + ts,
+    Org:      "my-org",
+    AgentRef: stigmer.ResourceRef{Org: "my-org", Slug: "support-agent"},
 })
 if err != nil {
     log.Fatal(err)
@@ -195,18 +178,13 @@ if err != nil {
 </Tab>
 <Tab value="Python">
 
-Update `ask_agent.py`. Add `ResourceRef` to your import if not already there:
+Update `ask_agent.py`:
 
 ```python
-agent = client.agents.get_by_reference(ResourceRef(
-    org="my-org",
-    slug="support-agent",
-))
-
 session = client.sessions.create(SessionInput(
     name=f"session-{ts}",
     org="my-org",
-    agent_instance_id=agent.status.default_instance_id,
+    agent_ref=ResourceRef(org="my-org", slug="support-agent"),
 ))
 ```
 
@@ -216,15 +194,11 @@ session = client.sessions.create(SessionInput(
 Update `src/main/java/AskAgent.java`:
 
 ```java
-var agent = client.agents().getByReference(
-    ResourceRef.of("my-org", "support-agent")
-);
-
 var session = client.sessions().create(
     SessionInput.builder()
         .name("session-" + ts)
         .org("my-org")
-        .agentInstanceId(agent.getStatus().getDefaultInstanceId())
+        .agentRef(ResourceRef.of("my-org", "support-agent"))
         .build()
 );
 ```
@@ -236,8 +210,9 @@ Replace `my-org` with your Organization slug and `support-agent` with the slug
 shown on your Agent's detail page.
 
 The Skills and MCP servers are gone from your Session code — they live on the
-Agent definition. Update the Agent in one place, and every Session picks up the
-change.
+Agent definition. Update the Agent in one place, and every new Session starts on
+the change. A Session already under way keeps the version it started on until
+you update it, so a conversation never changes under the person having it.
 
 </Step>
 <Step>
@@ -303,14 +278,14 @@ configuration.
 | ---------------------- | ---------------------------------- | -------------------------------------- |
 | **Configuration**      | Repeated in every Session          | Defined once, referenced by name       |
 | **Instructions**       | None — generic assistant prompt    | Custom role, tone, and behavior rules  |
-| **Maintenance**        | Update every Session creation call | Update the Agent, all Sessions follow  |
+| **Maintenance**        | Update every Session creation call | Update the Agent, new Sessions follow  |
 | **Team collaboration** | Copy-paste the right references    | Reference by name — everyone uses same |
 
 ## What just happened
 
 You created a reusable Agent definition that bundles instructions, Skills, and
-tools into one named resource. In your code, one lookup replaced a shopping list
-— get the Agent, pass its reference to the Session.
+tools into one named resource. In your code, one reference replaced a shopping
+list — the Session names the Agent, and the Agent brings the rest.
 
 This is the Stigmer resource model: Skills provide domain knowledge, MCP Servers
 provide tools, and the Agent ties them together with instructions that define

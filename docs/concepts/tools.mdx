@@ -116,27 +116,27 @@ remediation.
 
 The `env` map declares what the MCP Server needs at runtime — API keys, service
 URLs, configuration values. These are _schemas_, not values. The actual values
-come from [Environments](/docs/concepts/environments) attached to the Agent
-Instance at deployment time.
+come from [Environments](/docs/concepts/environments) and the other sources a
+run reads when it starts.
 
 Each declaration can be marked as `optional`. By default, every declared
 variable is required — the execution pipeline rejects a run if a required
 variable is missing. Optional variables let the MCP Server operate without that
 value.
 
-At runtime, variable values come from multiple sources that merge in priority
-order:
+At runtime, variable values come from several sources. A source further down the
+table fills only the keys the earlier ones left empty:
 
-| Source                          | What it provides                                   | Priority |
-| ------------------------------- | -------------------------------------------------- | -------- |
-| **OAuth managed Environment**   | Access tokens acquired through OAuth connect flows | Highest  |
-| **Personal Environment**        | API keys and credentials the user enters manually  |          |
-| **Agent Instance Environments** | Shared configuration attached at deployment time   | Lowest   |
+| Source                        | What it provides                                                                                                       |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **The run's Environments**    | Values bound to the Schedule, Workflow task or PlatformClient that started the run, and values passed for that one run |
+| **OAuth managed Environment** | Access tokens acquired through OAuth connect flows                                                                     |
+| **Personal Environment**      | API keys and credentials the person sending the message entered                                                        |
 
-When the same variable appears in multiple sources, the higher-priority value
-wins. This layering means an OAuth-managed token takes precedence over a
-manually entered key, and both take precedence over shared deployment
-configuration.
+So a credential bound for a Schedule or a Workflow is the one its runs use, and
+your own connections and keys fill what nothing else supplies.
+[Environments](/docs/concepts/environments#how-a-run-gets-its-values) explains
+the order in full.
 
 This separation means the MCP Server definition is portable. The same
 `order-management-api` works in development (pointing to a test API) and

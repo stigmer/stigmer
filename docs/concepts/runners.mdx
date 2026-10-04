@@ -27,20 +27,18 @@ back.
 <Mermaid
   chart={`
 graph LR
-  A["Agent<br/>(blueprint)"] --> AI["Agent Instance<br/>(deployment)"]
-  AI --> S["Session<br/>(conversation)"]
+  A["Agent<br/>(blueprint)"] --> S["Session<br/>(conversation)"]
   S --> AE["Execution<br/>(single run)"]
   AE --> R["Runner<br/>(compute)"]
 `}
 />
 
-| Resource            | What it represents             | Analogy                          |
-| ------------------- | ------------------------------ | -------------------------------- |
-| **Agent**           | Instructions, Skills, tools    | A recipe                         |
-| **Agent Instance**  | Agent bound to Environments    | A kitchen set up for that recipe |
-| **Session**         | Conversation with memory       | An ongoing order at that kitchen |
-| **Agent Execution** | One request-response cycle     | Preparing one dish               |
-| **Runner**          | The process that does the work | The cook                         |
+| Resource            | What it represents             | Analogy                         |
+| ------------------- | ------------------------------ | ------------------------------- |
+| **Agent**           | Instructions, Skills, tools    | A recipe                        |
+| **Session**         | Conversation with memory       | An order cooked from the recipe |
+| **Agent Execution** | One request-response cycle     | Preparing one dish              |
+| **Runner**          | The process that does the work | The cook                        |
 
 Unlike Agents and Skills, a Runner is not a resource. You don't write one in
 YAML, you can't `apply` one, and the server keeps no record of which runners

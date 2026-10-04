@@ -2,8 +2,8 @@
 title: Agents
 description:
   An Agent is a blueprint that defines what an Agent does — its instructions,
-  domain knowledge, and tool access. Learn how Agents are defined, deployed, and
-  executed.
+  domain knowledge, and tool access. Learn how Agents are defined, versioned,
+  and run.
 ---
 
 An Agent is the core resource in Stigmer. It defines _what_ an Agent does — its
@@ -11,9 +11,10 @@ role, its instructions, the domain knowledge it can access, and the tools it can
 use. Think of it as a job description: it describes the Agent's capabilities and
 responsibilities, but it's not a running process.
 
-When you want the Agent to actually handle requests, Stigmer creates runtime
-resources from the blueprint. This separation means you can update an Agent's
-definition without disrupting active conversations.
+When someone wants the Agent to handle a request, they start a conversation on
+it. Each conversation remembers the version of the Agent it started on, so you
+can update an Agent's definition without changing conversations already under
+way.
 
 ## Anatomy of an Agent
 
@@ -95,42 +96,30 @@ The runtime resources that bring an Agent to life form a chain:
 <Mermaid
   chart={`
 graph LR
-  A["Agent<br/>(blueprint)"] --> AI["Agent Instance<br/>(deployment)"]
-  AI --> S["Session<br/>(conversation)"]
+  A["Agent<br/>(blueprint)"] --> S["Session<br/>(conversation)"]
   S --> AE["Agent Execution<br/>(single run)"]
 `}
 />
 
-| Resource            | What it represents                                                            | Analogy                              |
-| ------------------- | ----------------------------------------------------------------------------- | ------------------------------------ |
-| **Agent**           | The definition — instructions, Skills, tools                                  | A recipe                             |
-| **Agent Instance**  | A deployed copy bound to specific [Environments](/docs/concepts/environments) | A kitchen set up to make that recipe |
-| **Session**         | A conversation context with memory                                            | An ongoing order at that kitchen     |
-| **Agent Execution** | One request-response cycle within a Session                                   | Preparing one dish for that order    |
+| Resource            | What it represents                                                     | Analogy                                    |
+| ------------------- | ---------------------------------------------------------------------- | ------------------------------------------ |
+| **Agent**           | The definition — instructions, Skills, tools                           | A recipe                                   |
+| **Session**         | A conversation on one Agent, at the version it started on, with memory | An order cooked from the recipe as written |
+| **Agent Execution** | One request-response cycle within a Session                            | Preparing one dish for that order          |
 
-### Agent Instance
+A Session names its Agent directly. There is no deployed copy in between: the
+person who starts the conversation picks the Agent, and every message in it runs
+that Agent.
 
-An Agent Instance binds an Agent blueprint to one or more Environments. This is
-where secrets and configuration values are resolved. You can have multiple
-instances of the same Agent — one for development with test credentials, another
-for production with real ones.
+### Where the secrets come from
 
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: AgentInstance
-metadata:
-  name: support-agent-production
-spec:
-  agent_id: agt-abc123
-  environment_refs:
-    - kind: environment
-      slug: production-secrets
-    - kind: environment
-      slug: shared-config
-```
-
-When an Agent Instance references multiple Environments, they merge in order —
-later Environments override earlier ones for the same variable name.
+The Agent's `env` map declares the keys it needs, never their values. Values
+reach a run when it starts: from the [Environments](/docs/concepts/environments)
+bound to whatever started it (a Schedule, a Workflow task, a PlatformClient),
+from values the request passes for that one run, and, for keys still missing,
+from the personal Environment of the person sending the message. The same Agent
+runs with test credentials from one Schedule and production credentials from
+another, and its definition never changes.
 
 ### Sessions and Executions
 
@@ -177,8 +166,12 @@ exactly what it was told. An Agent last saved before versions existed has none
 until it is next saved; until then its Executions record only the Agent and run
 it as it is.
 
-Schedules, channels, and shares run the Agent's current version. A reference
-from one of them that names a version is refused.
+A [Session](/docs/concepts/sessions#which-version-a-session-runs) runs the
+version it started on, so an author's later saves never change a conversation
+under the people in it; they reach an open conversation when someone updates it
+to the current version. Schedules, channels, and shares start each conversation
+on the version their reference names, or on the current version when it names
+none.
 
 ## The built-in assistant
 
@@ -197,8 +190,10 @@ Stigmer appears when you create Agents tailored to your domain, and a
 conversation can pick one up at any point: choosing an Agent binds the Session
 to it, and removing the Agent returns the Session to the assistant.
 
-Schedules, channels, and shares always name an Agent. The built-in assistant is
-for a person opening a conversation.
+Schedules, channels, shares and a Workflow's `agent_call` tasks always name an
+Agent. An `agent_call` task starts its conversation on the Agent it names, or
+fails saying why; it never falls back to the built-in assistant. The built-in
+assistant is for a person opening a conversation.
 
 ## Instructions matter
 
