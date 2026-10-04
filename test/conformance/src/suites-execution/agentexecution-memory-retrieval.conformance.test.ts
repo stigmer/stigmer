@@ -45,6 +45,12 @@ let clients: ConformanceClients;
 let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
 
+// Funds an org this file creates where the target gates executions on
+// credits (fundTenancy, targets/target.ts); elsewhere an org needs none.
+async function fund(org: string): Promise<void> {
+  await target.fundTenancy?.(org);
+}
+
 beforeAll(async () => {
   target = createTarget();
   await target.setup();
@@ -80,7 +86,7 @@ async function runExecution(org: string) {
 
 describe("AgentExecution memory retrieval (no-embedder posture)", () => {
   it.skipIf(!capabilities.firstPartyMemoryCapture)("injects wholesale below the threshold with an honest report and no embeddings attempt", async () => {
-    const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, 1);
+    const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, 1, fund);
     const settled = await runExecution(org);
 
     const snapshot = settled.spec?.recalledMemories;
@@ -99,7 +105,7 @@ describe("AgentExecution memory retrieval (no-embedder posture)", () => {
   });
 
   it.skipIf(!capabilities.firstPartyMemoryCapture)("degrades to wholesale above the threshold when no embedder is reachable — never a failed execution", async () => {
-    const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD + 1);
+    const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD + 1, fund);
     const settled = await runExecution(org);
 
     // The candidate set is intact on the spec — selection never rewrites
@@ -133,6 +139,7 @@ describe("AgentExecution memory retrieval (no-embedder posture)", () => {
       spec: { preferences: { memoryEnabled: false } },
     });
     fixtures.defer(() => clients.organizationCommand.delete({ value: org.metadata!.id }));
+    await fund(org.metadata!.slug);
 
     const settled = await runExecution(org.metadata!.slug);
 

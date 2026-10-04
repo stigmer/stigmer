@@ -48,6 +48,12 @@ let clients: ConformanceClients;
 let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
 
+// Funds an org this file creates where the target gates executions on
+// credits (fundTenancy, targets/target.ts); elsewhere an org needs none.
+async function fund(org: string): Promise<void> {
+  await target.fundTenancy?.(org);
+}
+
 beforeAll(async () => {
   target = createTarget();
   await target.setup();
@@ -91,7 +97,7 @@ describe.skipIf(!canSeedMemories)(
   "AgentExecution memory retrieval (embedder posture)",
   () => {
     it("at the threshold with an embedder present: wholesale, no embeddings call, selection_active false", async () => {
-      const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD);
+      const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD, fund);
       const settled = await runExecution(org);
 
       expect(settled.spec?.recalledMemories?.enabled).toBe(true);
@@ -105,7 +111,7 @@ describe.skipIf(!canSeedMemories)(
     });
 
     it("above the threshold: exactly one batched embeddings call, and the first k facts injected in snapshot order", async () => {
-      const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD + 1);
+      const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD + 1, fund);
       const settled = await runExecution(org);
 
       const snapshot = settled.spec?.recalledMemories?.facts ?? [];
