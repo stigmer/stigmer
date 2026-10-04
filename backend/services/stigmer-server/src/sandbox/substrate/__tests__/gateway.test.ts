@@ -436,6 +436,8 @@ describe("the live client", () => {
       apiCaFile: caFile,
       apiTokenFile: tokenFile,
       routerUrl: "http://127.0.0.1:2",
+      routerCaFile: "",
+      routerServerName: "",
       atespace: "stigmer",
       storageLocation: "gs://b/p",
       workerSelector: { workload: "stigmer" },
