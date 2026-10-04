@@ -13,6 +13,13 @@
  * and nothing is asked. An agent that declares no keys, or one the viewer
  * cannot read, renders nothing.
  *
+ * A conversation runs the version its session pinned, so when the host
+ * names that version (`versionHash`) the keys come from the spec that
+ * version stored, not from the agent's current one: an author's later
+ * save that adds a key is not what this conversation's next message
+ * runs. A version the history does not hold (an agent last written
+ * before agents were versioned) reads the current spec.
+ *
  * Pinned by `__tests__/PersonalKeyDisclosure.test.tsx`.
  */
 
@@ -20,11 +27,18 @@ import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useAgent } from "../agent/useAgent.js";
+import { useAgentVersions } from "../agent/useAgentVersions.js";
 
 /** Props for {@link PersonalKeyDisclosure}. */
 export interface PersonalKeyDisclosureProps {
   /** The agent the conversation is about to start on. */
   readonly agentRef: ResourceRef;
+  /**
+   * The version the conversation is pinned to, when it already has one:
+   * the keys are read from that version's spec. Omitted for a
+   * conversation not yet started, which pins the current version.
+   */
+  readonly versionHash?: string;
   /** Additional CSS classes for the line. */
   readonly className?: string;
 }
@@ -40,12 +54,19 @@ export interface PersonalKeyDisclosureProps {
  * // This agent can read these keys from your personal environment: GITHUB_TOKEN, LINEAR_API_KEY
  * ```
  */
-export function PersonalKeyDisclosure({ agentRef, className }: PersonalKeyDisclosureProps) {
+export function PersonalKeyDisclosure({
+  agentRef,
+  versionHash = "",
+  className,
+}: PersonalKeyDisclosureProps) {
   const { agent } = useAgent(agentRef.org || null, agentRef.slug || null);
-  const keys = useMemo(
-    () => Object.keys(agent?.spec?.env ?? {}).sort(),
-    [agent],
+  const pinned = versionHash !== "";
+  const { getSpec } = useAgentVersions(
+    pinned ? agentRef.org || null : null,
+    pinned ? agentRef.slug || null : null,
   );
+  const spec = (pinned ? getSpec(versionHash) : null) ?? agent?.spec;
+  const keys = useMemo(() => Object.keys(spec?.env ?? {}).sort(), [spec]);
 
   if (keys.length === 0) return null;
 

@@ -9,7 +9,11 @@
  * save never changes it under the person in it. This strip says so and
  * offers "Update", which moves the conversation to the current version
  * (an update of the session's agent reference to `latest`); until the
- * person presses it, nothing changes. `SessionViewer` renders it only
+ * person presses it, nothing changes. When the current version declares
+ * keys it reads from the person's personal environment, the notice names
+ * them, so the update hands over nothing unannounced (the line the
+ * composer shows before a conversation's first message, for the version
+ * the update moves to). `SessionViewer` renders it only
  * when `useSessionAgentVersion` reports the conversation outdated, and
  * never for a guest or an observer, who cannot change the session.
  *
@@ -22,6 +26,11 @@ import { getUserMessage } from "@stigmer/sdk";
 export interface AgentVersionNoticeProps {
   /** The agent's display name, as the notice names it. */
   readonly agentName: string;
+  /**
+   * The keys the current version reads from the person's personal
+   * environment; named beside the control when there are any.
+   */
+  readonly personalKeys?: readonly string[];
   /** Moves the conversation to the agent's current version. */
   readonly onUpdate: () => void;
   /** `true` while the update is in flight; the control is disabled. */
@@ -36,6 +45,7 @@ export interface AgentVersionNoticeProps {
  */
 export function AgentVersionNotice({
   agentName,
+  personalKeys = [],
   onUpdate,
   isUpdating = false,
   error = null,
@@ -47,6 +57,19 @@ export function AgentVersionNotice({
     >
       <span className="stg:min-w-0 stg:flex-1">
         This conversation runs an older version of {agentName || "its agent"}.
+        {personalKeys.length > 0 && (
+          <>
+            {" "}
+            The current version can read these keys from your personal
+            environment:{" "}
+            <span
+              data-testid="agent-version-personal-keys"
+              className="stg:font-mono"
+            >
+              {personalKeys.join(", ")}
+            </span>
+          </>
+        )}
       </span>
       {error && (
         <span role="alert" className="stg:text-destructive">

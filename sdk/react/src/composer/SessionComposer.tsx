@@ -406,6 +406,14 @@ export interface SessionComposerProps {
   readonly disclosePersonalKeys?: boolean;
 
   /**
+   * The agent version the conversation is pinned to, when the next
+   * message runs on the session's own agent: the personal-key line names
+   * the keys that version declares. Omitted when the next message starts
+   * the agent fresh (its current version).
+   */
+  readonly personalKeysVersionHash?: string;
+
+  /**
    * Lock the current agent: the Agent entry is removed from the
    * Configure menu so the user cannot swap or deselect it.
    *
@@ -613,6 +621,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   onAgentSetupErrorChange,
   initialAgentRef,
   disclosePersonalKeys = false,
+  personalKeysVersionHash,
   lockAgent = false,
   mcpServerUsages,
   onMcpServerUsagesChange,
@@ -1889,7 +1898,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         />
       </div>
       {disclosePersonalKeys && agentRef && (
-        <PersonalKeyDisclosure agentRef={agentRef} className="stg:mt-2 stg:px-1" />
+        <PersonalKeyDisclosure
+          agentRef={agentRef}
+          versionHash={personalKeysVersionHash}
+          className="stg:mt-2 stg:px-1"
+        />
       )}
     </div>
   );

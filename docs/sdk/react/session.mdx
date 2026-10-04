@@ -319,6 +319,7 @@ function useSessionAgentVersion(session: Session | null, options: UseSessionAgen
   type={{
     agentName: { type: "string", description: "The agent's display name (its name, else its slug); `\"\"` until it loads." },
     currentHash: { type: "string", description: "The agent's current version; `\"\"` until the agent loads, or when it cannot be read." },
+    currentPersonalKeys: { type: "readonly string[]", description: "The keys the agent's current version declares (`spec.env`), sorted: what an update hands the agent from the person's personal environment. Empty until the agent loads." },
     isOutdated: { type: "boolean", description: "`true` when the pin and the agent's current version are both known and differ: the conversation runs an older version than the agent's author last saved." },
     isUpdating: { type: "boolean", description: "`true` while update is in flight." },
     labelOf: { type: "(versionHash: string) => string", description: "How a version hash reads: its tag when it has one, else a short hash." },
@@ -1077,6 +1078,7 @@ control.
     error: { type: "Error | null", description: "The last update's failure, shown beside the control." },
     isUpdating: { type: "boolean", description: "`true` while the update is in flight; the control is disabled." },
     onUpdate: { type: "() => void", description: "Moves the conversation to the agent's current version.", required: true },
+    personalKeys: { type: "readonly string[]", description: "The keys the current version reads from the person's personal environment; named beside the control when there are any." },
   }}
 />
 

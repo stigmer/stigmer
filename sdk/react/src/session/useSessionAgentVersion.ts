@@ -53,6 +53,12 @@ export interface UseSessionAgentVersionReturn {
   /** The agent's display name (its name, else its slug); `""` until it loads. */
   readonly agentName: string;
   /**
+   * The keys the agent's current version declares (`spec.env`), sorted:
+   * what an update hands the agent from the person's personal
+   * environment. Empty until the agent loads.
+   */
+  readonly currentPersonalKeys: readonly string[];
+  /**
    * `true` when the pin and the agent's current version are both known and
    * differ: the conversation runs an older version than the agent's author
    * last saved.
@@ -115,6 +121,11 @@ export function useSessionAgentVersion(
 
   const currentHash = agent?.status?.versionHash ?? "";
   const agentName = agent?.metadata?.name || agent?.metadata?.slug || "";
+  const currentEnv = agent?.spec?.env;
+  const currentPersonalKeys = useMemo(
+    () => Object.keys(currentEnv ?? {}).sort(),
+    [currentEnv],
+  );
   const isOutdated =
     pinnedHash !== "" && currentHash !== "" && pinnedHash !== currentHash;
 
@@ -145,12 +156,23 @@ export function useSessionAgentVersion(
       pinnedHash,
       currentHash,
       agentName,
+      currentPersonalKeys,
       isOutdated,
       labelOf,
       update,
       isUpdating,
       updateError,
     }),
-    [pinnedHash, currentHash, agentName, isOutdated, labelOf, update, isUpdating, updateError],
+    [
+      pinnedHash,
+      currentHash,
+      agentName,
+      currentPersonalKeys,
+      isOutdated,
+      labelOf,
+      update,
+      isUpdating,
+      updateError,
+    ],
   );
 }

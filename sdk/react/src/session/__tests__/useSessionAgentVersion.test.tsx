@@ -15,7 +15,8 @@ import { useSessionAgentVersion } from "../useSessionAgentVersion";
 // by the id the session pinned, never by slug; a guest reads nothing; an
 // unreadable agent offers nothing; and labels read as a version's tag where
 // it has one, else a short hash. Update calls the move it is given and
-// reports a failure instead of throwing.
+// reports a failure instead of throwing. The current version's declared
+// keys are reported, sorted, for the notice to name before an update.
 // ---------------------------------------------------------------------------
 
 function session(pin: string): Session {
@@ -29,6 +30,7 @@ function session(pin: string): Session {
 function makeClient(current: string, get = vi.fn()) {
   get.mockResolvedValue({
     metadata: { id: "agt_1", org: "org_acme", slug: "reviewer", name: "PR Reviewer" },
+    spec: { env: { LINEAR_API_KEY: {}, GITHUB_TOKEN: {} } },
     status: { versionHash: current },
   });
   const listVersions = vi.fn().mockResolvedValue({
@@ -66,6 +68,7 @@ describe("useSessionAgentVersion", () => {
     await waitFor(() => expect(result.current.labelOf("h_new")).toBe("v3"));
     expect(result.current.labelOf("h_old")).toBe("h_old");
     expect(result.current.labelOf("0123456789abcdef0123")).toBe("0123456789ab");
+    expect(result.current.currentPersonalKeys).toEqual(["GITHUB_TOKEN", "LINEAR_API_KEY"]);
   });
 
   it("is not outdated when the session runs the agent's current version", async () => {

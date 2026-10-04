@@ -878,10 +878,13 @@ const ConversationColumn = memo(function ConversationColumn({
   // never send on their own agent choice.
   const hasTurns =
     conv.completedExecutions.length > 0 || conv.activeStreamExecution !== null;
-  const disclosePersonalKeys =
-    !isGuest &&
-    !isObserver &&
-    (!hasTurns || !isSameAgent(flow.agentRef, agentRefOfSession(conv.session)));
+  const runsSessionAgent = isSameAgent(flow.agentRef, agentRefOfSession(conv.session));
+  const disclosePersonalKeys = !isGuest && !isObserver && (!hasTurns || !runsSessionAgent);
+  // On the session's own agent the next message runs the session's pin,
+  // so the line names what that version declares.
+  const personalKeysVersionHash = runsSessionAgent
+    ? conv.session?.status?.agentVersionHash || undefined
+    : undefined;
 
   // Retry a terminal-failed execution by resending its originating message
   // through the full submit pipeline (agent override, runtime-env, workspace).
@@ -1038,6 +1041,7 @@ const ConversationColumn = memo(function ConversationColumn({
         {!isObserver && !isGuest && flow.agentVersion.isOutdated && (
           <AgentVersionNotice
             agentName={flow.agentVersion.agentName}
+            personalKeys={flow.agentVersion.currentPersonalKeys}
             onUpdate={() => void flow.agentVersion.update()}
             isUpdating={flow.agentVersion.isUpdating}
             error={flow.agentVersion.updateError}
@@ -1103,6 +1107,7 @@ const ConversationColumn = memo(function ConversationColumn({
             onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
             sessionVariables={isCurated ? undefined : flow.sessionVariables}
             disclosePersonalKeys={disclosePersonalKeys}
+            personalKeysVersionHash={personalKeysVersionHash}
             className="stg:px-4 stg:py-3"
           />
         )}

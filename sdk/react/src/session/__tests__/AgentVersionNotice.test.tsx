@@ -5,7 +5,8 @@ import { AgentVersionNotice } from "../AgentVersionNotice";
 // ---------------------------------------------------------------------------
 // The notice's words and its one control: it names the agent, and Update is
 // the only thing that moves the conversation (disabled while it runs, with
-// the failure shown beside it).
+// the failure shown beside it), and the keys the current version reads
+// from the person's personal environment are named before the update.
 // ---------------------------------------------------------------------------
 
 afterEach(cleanup);
@@ -21,6 +22,23 @@ describe("AgentVersionNotice", () => {
     expect(onUpdate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
     expect(onUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it("names the keys the current version reads from the personal environment, and none when it declares none", () => {
+    render(
+      <AgentVersionNotice
+        agentName="PR Reviewer"
+        personalKeys={["GITHUB_TOKEN", "LINEAR_API_KEY"]}
+        onUpdate={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("status").textContent).toContain(
+      "The current version can read these keys from your personal environment: GITHUB_TOKEN, LINEAR_API_KEY",
+    );
+    cleanup();
+
+    render(<AgentVersionNotice agentName="PR Reviewer" personalKeys={[]} onUpdate={vi.fn()} />);
+    expect(screen.queryByTestId("agent-version-personal-keys")).toBeNull();
   });
 
   it("disables the control while updating and shows a failure", () => {
