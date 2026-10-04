@@ -412,7 +412,8 @@ What the driver needs:
   MCP endpoint (`STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT`) isn't one of these lanes:
   an `http://` one gets its own rule, and an `https://` one, a public address
   such as your server's, is reached like any HTTPS site, so only while HTTPS
-  egress is on.
+  egress is on. With HTTPS egress off, the server logs a warning at boot that no
+  sandbox can reach it.
 
 What an Agent can reach: the server's endpoints, any extra cleartext `host:port`
 you list in `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTP`, and HTTPS to any name
