@@ -261,12 +261,14 @@ export async function buildAndPersistExecutionContext(
 
   // 2.–3. Load the instance (environment_refs + agent_id), then the
   // agent's spec (env declarations, MCP usages) — in-process, full chain
-  // traversal, at the version the turn recorded. Load failures keep the
-  // inner status code with Go's wrap prefix. Neither exists for the
-  // built-in assistant.
+  // traversal, at the version the turn recorded. The agent is the recorded
+  // one whenever the turn recorded one, even if the session has since been
+  // moved to the built-in assistant: the runner runs the recorded agent, so
+  // the context declares for it too. Load failures keep the inner status
+  // code with Go's wrap prefix. Neither exists for a turn of the built-in
+  // assistant.
   let instance: AgentInstance | undefined;
   let agentSpec: AgentSpec | undefined;
-  let agentId = "";
   if (agentInstanceId !== "") {
     try {
       instance = await deps.agentInstanceLoader().get(agentInstanceId);
@@ -279,7 +281,10 @@ export async function buildAndPersistExecutionContext(
       }
       chainError(`load agent instance ${agentInstanceId}`, error);
     }
-    agentId = execution.status?.agentId || (instance.spec?.agentId ?? "");
+  }
+  const agentId =
+    execution.status?.agentId || (instance?.spec?.agentId ?? "");
+  if (agentId !== "") {
     agentSpec = await loadRunAgentSpec(
       deps,
       agentId,

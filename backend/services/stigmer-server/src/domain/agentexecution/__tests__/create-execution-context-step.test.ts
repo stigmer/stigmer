@@ -1072,3 +1072,50 @@ it("keeps a head-load failure that is not a status as its message, for a turn th
   expect(failure).not.toBeInstanceOf(ConnectError);
   expect((failure as Error).message).toBe("load agent agt_rec: socket hang up");
 });
+
+it("declares for the recorded agent when the session has since moved to the built-in assistant", async () => {
+  const createdEcs: ExecutionContext[] = [];
+  const deps: ExecutionContextBuilderDeps = {
+    ...recordedAgentDeps(
+      async () =>
+        create(AgentVersionEntrySchema, {
+          versionHash: RECORDED_HASH,
+          specSnapshot: { env: { RECORDED_KEY: {} } },
+        }),
+      createdEcs,
+    ),
+    sessionLoader: () => ({
+      get: async (sessionId) =>
+        create(SessionSchema, {
+          metadata: { id: sessionId, org: "acme" },
+          spec: { agentInstanceId: "" },
+        }),
+    }),
+    agentInstanceLoader: () => ({
+      get: async () => {
+        throw new Error("a session with no instance loads none");
+      },
+    }),
+  };
+
+  const turn = create(AgentExecutionSchema, {
+    metadata: { id: "aex_moved", org: "acme" },
+    spec: {
+      sessionId: "ses_rec",
+      message: "hi",
+      runtimeEnv: {
+        RECORDED_KEY: { value: "kept" },
+        HEAD_KEY: { value: "dropped" },
+      },
+    },
+    status: { agentId: "agt_rec", agentVersionHash: RECORDED_HASH },
+  });
+
+  await buildAndPersistExecutionContext(deps, turn, "");
+
+  // The least-privilege filter keeps exactly what the recorded version
+  // declares; with no agent the run would declare nothing and keep neither.
+  const data = createdEcs[0]?.spec?.data ?? {};
+  expect(data["RECORDED_KEY"]?.value).toBe("kept");
+  expect(data["HEAD_KEY"]).toBeUndefined();
+});
