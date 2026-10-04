@@ -357,7 +357,12 @@ export interface ComposeOptions {
    * composes (the installed package's own manifest is the honest source).
    * A fact about the library the consumer installed, not about any
    * extension unit — which is why it lives here and not on
-   * ServerExtension beside `edition`.
+   * ServerExtension beside `edition`. When it is a release it is also the
+   * release every sandbox driver hands the runner layer's start script
+   * (SandboxDriverConfig.serverRelease), while the default runner image
+   * (defaultSandboxRunnerImage) follows SERVER_VERSION: a composition that
+   * states a release names its runner image too, or its sandboxes start on
+   * `runner:latest`, warned about or refused by that layer's release.
    */
   version?: string;
   /** Test seam forwarded to the model-registry upstream fetch. */

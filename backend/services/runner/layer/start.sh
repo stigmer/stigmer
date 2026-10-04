@@ -51,9 +51,11 @@
 # STIGMER_SERVER_RELEASE, only when the server is a release. Neither side's
 # version is parsed here: the server decides what is a release, and the
 # lane does for the layer. Two releases that differ are refused; a release
-# server over a development layer (a `latest` or `main-<sha>` image, or a
+# server over a layer that names no release (a development build, or a
 # reviewed emergency build) is warned about and starts; a development
-# server checks nothing.
+# server checks nothing. A v* tag's build also republishes its commit's
+# main-<sha> and moves latest, so until the next build of main those name
+# that release too, and are held to it.
 #
 # A refusal exits 78 (EX_CONFIG) with one line on stderr that lists every
 # problem found, so a pod's last-state message carries all of it at once.
