@@ -25,6 +25,7 @@
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { expectGrpcCode } from "../contract/errors";
@@ -86,12 +87,15 @@ async function tenancy(on: EnforcingLane): Promise<TenancyContext> {
   return context;
 }
 
-// An Environment the founder creates in `org`: a row of B the bound
-// credential must not read.
+// An Environment the founder creates in `org`, visible to the whole
+// organization: a row of B every member reads, so only the binding can be
+// what refuses a bound credential.
 async function founderEnvironment(on: EnforcingLane, org: string): Promise<string> {
-  const created = await on.clients.environmentCommand.create(
-    makeEnvironment({ org, name: uniqueName("binding-env") }),
-  );
+  const environment = makeEnvironment({ org, name: uniqueName("binding-env") });
+  const created = await on.clients.environmentCommand.create({
+    ...environment,
+    metadata: { ...environment.metadata, visibility: ApiResourceVisibility.visibility_org },
+  });
   const id = created.metadata?.id ?? "";
   fixtures.defer(() => on.clients.environmentCommand.delete({ resourceId: id }));
   return id;
