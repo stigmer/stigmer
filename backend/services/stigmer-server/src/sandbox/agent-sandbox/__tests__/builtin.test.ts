@@ -4,9 +4,9 @@
  *   - `agent-sandbox` is a built-in name; the removed `kubernetes` name is
  *     an unknown driver, refused with the list of the known ones;
  *   - the driver refuses to start without the server's and Temporal's
- *     in-cluster addresses, before it reads any kubeconfig, and otherwise
- *     builds over the kubeconfig the client resolves, with no background
- *     work.
+ *     in-cluster addresses, before it reads any kubeconfig, refuses a
+ *     malformed idle window, and otherwise builds over the kubeconfig the
+ *     client resolves, with the idle sweep as its background work.
  */
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -80,7 +80,7 @@ describe("selecting the agent-sandbox driver", () => {
     );
   });
 
-  it("builds the driver over the kubeconfig the client resolves, as kubectl would", () => {
+  it("builds the driver over the kubeconfig the client resolves, as kubectl would, with the idle sweep as its background work", async () => {
     const dir = mkdtempSync(join(tmpdir(), "agent-sandbox-kubeconfig-"));
     cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
     const path = join(dir, "config");
@@ -89,7 +89,8 @@ describe("selecting the agent-sandbox driver", () => {
       [
         "apiVersion: v1",
         "kind: Config",
-        "clusters: [{name: c, cluster: {server: 'https://127.0.0.1:6443'}}]",
+        // Port 1 on the loopback refuses at once: no real cluster is reached.
+        "clusters: [{name: c, cluster: {server: 'https://127.0.0.1:1'}}]",
         "users: [{name: u, user: {token: t}}]",
         "contexts: [{name: x, context: {cluster: c, user: u}}]",
         "current-context: x",
@@ -98,6 +99,35 @@ describe("selecting the agent-sandbox driver", () => {
     vi.stubEnv("KUBECONFIG", path);
     const provisioner = newAgentSandboxProvisioner({ config, logger });
     expect(typeof provisioner.ensureSessionSandbox).toBe("function");
-    expect(provisioner.startBackground).toBeUndefined();
+    expect(typeof provisioner.startBackground).toBe("function");
+    // Its sweep starts and stops; the kubeconfig names no reachable
+    // cluster, so the pass fails, is logged, and the sweep stays stoppable.
+    const lines: string[] = [];
+    const recording = createLogger({
+      level: "info",
+      pretty: false,
+      write: (line) => lines.push(line),
+    });
+    const handle = provisioner.startBackground?.({
+      sessions: {
+        activity: async () => ({ busy: false, lastActiveAt: undefined }),
+        recentActivity: async () => ({ busy: false, lastActiveAt: undefined }),
+        sessionIds: async function* () {},
+      },
+      logger: recording,
+    });
+    await vi.waitFor(() =>
+      expect(lines.join("\n")).toContain(
+        "agent-sandbox idle sweep pass failed",
+      ),
+    );
+    await handle?.stop();
+  });
+
+  it("refuses a malformed idle window at boot, naming the variable", () => {
+    vi.stubEnv("STIGMER_SANDBOX_AGENT_SANDBOX_SUSPEND_AFTER_SECONDS", "soon");
+    expect(() => newAgentSandboxProvisioner({ config, logger })).toThrowError(
+      "STIGMER_SANDBOX_AGENT_SANDBOX_SUSPEND_AFTER_SECONDS must be a positive whole number of seconds; got soon",
+    );
   });
 });

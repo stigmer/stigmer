@@ -9,12 +9,15 @@
  * operator guide tells operators to install.
  */
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
   AGENT_SANDBOX_VERSION,
   clusterListed,
+  interruptedBy,
+  isInterrupt,
   ownsAfterFailedCreate,
   shouldDiagnose,
   teardownAction,
@@ -115,11 +118,44 @@ test("an interrupted create's leftovers are the run's; a name another run took a
   assert.equal(ownsAfterFailedCreate({ interrupted: false, listedNow: true }), false);
 });
 
-test("the teardown deletes only a name the run owns, and keeps it for --keep", () => {
-  assert.equal(teardownAction({ owned: false, keep: false }), "none");
-  assert.equal(teardownAction({ owned: false, keep: true }), "none");
-  assert.equal(teardownAction({ owned: true, keep: true }), "keep");
-  assert.equal(teardownAction({ owned: true, keep: false }), "delete");
+test("the teardown deletes only a name the run owns, and keeps it for --keep once it came up", () => {
+  assert.equal(teardownAction({ owned: false, keep: false, ready: true }), "none");
+  assert.equal(teardownAction({ owned: false, keep: true, ready: true }), "none");
+  assert.equal(teardownAction({ owned: true, keep: true, ready: true }), "keep");
+  assert.equal(teardownAction({ owned: true, keep: true, ready: false }), "delete");
+  assert.equal(teardownAction({ owned: true, keep: false, ready: true }), "delete");
+});
+
+test("only an interrupt is an interrupt: SIGINT and SIGTERM, not the OOM killer's SIGKILL", () => {
+  assert.equal(isInterrupt("SIGINT"), true);
+  assert.equal(isInterrupt("SIGTERM"), true);
+  assert.equal(isInterrupt("SIGKILL"), false);
+  assert.equal(isInterrupt(null), false);
+  assert.equal(isInterrupt(undefined), false);
+});
+
+test("a failed child is an interrupt when a Ctrl-C or a stop ended it, never when Node's buffer cap did", () => {
+  assert.equal(interruptedBy({ signal: "SIGINT" }), true);
+  assert.equal(interruptedBy({ signal: "SIGTERM" }), true);
+  assert.equal(interruptedBy({ signal: "SIGTERM", code: "ENOBUFS" }), false);
+  assert.equal(interruptedBy({ signal: "SIGKILL" }), false);
+  assert.equal(interruptedBy({ status: 1, signal: null }), false);
+  assert.equal(interruptedBy(undefined), false);
+});
+
+test("Node really ends a child past the buffer cap with SIGTERM and ENOBUFS, which is not an interrupt", () => {
+  let error;
+  try {
+    // The child stays alive after its write, so it is Node's kill that ends it.
+    execFileSync(process.execPath, ["-e", "process.stdout.write('x'.repeat(4096)); setInterval(() => {}, 1000)"], {
+      maxBuffer: 16,
+    });
+  } catch (caught) {
+    error = caught;
+  }
+  assert.equal(error?.code, "ENOBUFS");
+  assert.equal(error?.signal, "SIGTERM");
+  assert.equal(interruptedBy(error), false);
 });
 
 test("a red run is diagnosed once its cluster answers, a setup step's included, but never after an interrupt", () => {

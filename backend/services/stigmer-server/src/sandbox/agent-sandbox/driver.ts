@@ -21,20 +21,27 @@
  *     template, so a woken sandbox runs this server's runner image and
  *     environment, never the one it was created with.
  *   - Running: rewrite the Secret's token and nothing else. Nothing
- *     restarts, so a turn in flight is never disturbed, and a runner the
- *     kubelet restarts later boots with a token that is still valid (a
- *     sandbox token lives for hours, lane.ts, and a pod can outlive it).
- *   - being deleted: wait, bounded, until it is gone (with its pod and
- *     claim: gateway.ts deletes in the foreground), then create it.
+ *     restarts, so a turn in flight is never disturbed. A runner the
+ *     kubelet restarts boots with the token of the latest ensure, which is
+ *     valid for hours after it (a sandbox token's lifetime, lane.ts). So
+ *     the one runner that can boot with an expired token is one restarted
+ *     longer than that after its session's last ensure. The idle sweep
+ *     (sweep.ts) suspends a session's sandbox long before that, so only a
+ *     session busy for longer, with no new turn to ensure it, reaches it.
+ *   - being deleted: wait, bounded by the turn's ScheduleToStart window,
+ *     until it is gone (with its pod and claim: gateway.ts deletes in the
+ *     foreground), then create it.
  *
  * No readiness wait after any arm: a sandbox that never polls its queue
  * surfaces as the activity's ScheduleToStartTimeout, and the ensure step's
  * error stamp names a provisioning failure (a missing agent-sandbox
  * install among them, gateway.ts).
  *
- * Every ensure and delete of one Sandbox runs through one in-process
- * queue, so two ensures of one sandbox in one server never interleave
- * their writes.
+ * Every ensure, suspend and delete of one Sandbox runs through one
+ * in-process queue, so a turn and the idle sweep never interleave their
+ * writes to one sandbox in one server. The sweep's suspend takes a guard
+ * it answers inside that queue, from fresh reads, right before the patch
+ * (sweep.ts).
  */
 import { sandboxBaseName } from "../naming.js";
 import type {
@@ -52,9 +59,17 @@ import {
 } from "./manifest.js";
 import type { AgentSandboxView } from "./resource.js";
 
-/** How often, and how many times, an ensure re-reads a Sandbox being deleted. */
-const DELETION_POLL_MS = 500;
-const DELETION_POLLS = 120;
+/**
+ * How often, and how many times, an ensure re-reads a Sandbox being
+ * deleted. A foreground delete lasts as long as its pod takes to stop (up
+ * to its 600-second grace period, manifest.ts), but the turn that asked for
+ * the ensure fails at its first activity's 5-minute ScheduleToStart window
+ * (temporal/agentexecution/workflows/invoke-agent-execution.ts), so waiting
+ * longer could not save it: the wait ends there, and the next message wakes
+ * the sandbox.
+ */
+const DELETION_POLL_MS = 2_000;
+const DELETION_POLLS = 150;
 
 /** The path an ensure took, logged so a wake is told apart from a create. */
 type EnsureArm = "created" | "suspended" | "running";
@@ -63,14 +78,51 @@ export interface AgentSandboxDriverLogger {
   info: (msg: string, fields?: Record<string, unknown>) => void;
 }
 
-export function newAgentSandboxProvisionerOverGateway(options: {
+/** What a suspend did: patched the Sandbox Suspended, or found nothing to do. */
+export type AgentSandboxSuspendOutcome = "done" | "skipped";
+
+/** What the idle sweep needs of the driver beside its provisioner. */
+export interface AgentSandboxDriverInternals {
+  readonly gateway: AgentSandboxGateway;
+  /** When this process last ensured the Sandbox, if it has. */
+  lastEnsuredAt(name: string): Date | undefined;
+  /**
+   * Suspends the Sandbox inside its queue, once `proceed` answers true for
+   * the Sandbox as read there; a Sandbox that is gone, being deleted or
+   * already Suspended is skipped without asking.
+   */
+  suspend(
+    name: string,
+    proceed: (fresh: AgentSandboxView) => Promise<boolean>,
+  ): Promise<AgentSandboxSuspendOutcome>;
+}
+
+export interface AgentSandboxDriverOptions {
   readonly gateway: AgentSandboxGateway;
   readonly config: SandboxDriverConfig;
   readonly logger: AgentSandboxDriverLogger;
   /** Waits between reads of a Sandbox being deleted; a test passes its own. */
   readonly sleep?: (ms: number) => Promise<void>;
-}): SandboxProvisioner {
+  readonly now?: () => number;
+}
+
+/** The driver's provisioner alone: the test seam for everything but the sweep. */
+export function newAgentSandboxProvisionerOverGateway(
+  options: AgentSandboxDriverOptions,
+): SandboxProvisioner {
+  return newAgentSandboxDriverOverGateway(options).provisioner;
+}
+
+/** The driver over an injected gateway: its provisioner and what its idle sweep needs. */
+export function newAgentSandboxDriverOverGateway(
+  options: AgentSandboxDriverOptions,
+): {
+  readonly provisioner: SandboxProvisioner;
+  readonly internals: AgentSandboxDriverInternals;
+} {
   const { gateway, config, logger } = options;
+  const now = options.now ?? Date.now;
+  const ensuredAt = new Map<string, number>();
   const sleep =
     options.sleep ??
     ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
@@ -133,6 +185,7 @@ export function newAgentSandboxProvisionerOverGateway(options: {
           podTemplate: buildAgentSandboxPodTemplate(scope, id, env, config),
         });
       }
+      ensuredAt.set(name, now());
       logger.info("agent-sandbox sandbox ensured", {
         scope,
         id,
@@ -146,6 +199,7 @@ export function newAgentSandboxProvisionerOverGateway(options: {
   async function deprovision(scope: SandboxScope, id: string): Promise<void> {
     const name = sandboxBaseName(scope, id);
     await serialize(name, () => gateway.deleteSandbox(name));
+    ensuredAt.delete(name);
     logger.info("agent-sandbox sandbox deprovisioned", {
       scope,
       id,
@@ -153,7 +207,29 @@ export function newAgentSandboxProvisionerOverGateway(options: {
     });
   }
 
-  return {
+  const internals: AgentSandboxDriverInternals = {
+    gateway,
+    lastEnsuredAt: (name) => {
+      const at = ensuredAt.get(name);
+      return at === undefined ? undefined : new Date(at);
+    },
+    suspend: (name, proceed) =>
+      serialize(name, async (): Promise<AgentSandboxSuspendOutcome> => {
+        const fresh = await gateway.getSandbox(name);
+        if (
+          fresh === undefined ||
+          fresh.deleting ||
+          fresh.operatingMode !== "Running" ||
+          !(await proceed(fresh))
+        ) {
+          return "skipped";
+        }
+        await gateway.patchSandbox(name, { operatingMode: "Suspended" });
+        return "done";
+      }),
+  };
+
+  const provisioner: SandboxProvisioner = {
     ensureSessionSandbox: (sessionId, env) => ensure("session", sessionId, env),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
     ensureWorkflowSandbox: (executionId, env) =>
@@ -171,4 +247,5 @@ export function newAgentSandboxProvisionerOverGateway(options: {
       return sandbox.operatingMode === "Running" ? "running" : "stopped";
     },
   };
+  return { provisioner, internals };
 }

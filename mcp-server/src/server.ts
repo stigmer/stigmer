@@ -5,20 +5,19 @@
 // (the credential, and thus the gRPC client) is derived from the transport's
 // auth context, so the registration is identical regardless of transport.
 //
-// One structural difference from Go: the TS McpServer
-// "assumes ownership" of a single transport, so `both` mode uses one McpServer
-// per transport rather than sharing a single instance across stdio + HTTP.
+// The TS McpServer "assumes ownership" of a single transport, so stdio binds
+// one server for the process while HTTP builds one per request from the route
+// factory (http-handler.ts); the rosters are logged when a server is built
+// for stdio, and once per route when the HTTP route factory is made.
 
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
 import type { Config } from "./config.js";
+import { createMcpHttpHandler, type McpHttpHandler } from "./http-handler.js";
 import { createReadinessCheck, type ReadinessResult } from "./readiness.js";
 import { registerAgentExecutionTools } from "./domains/agentexecutions/tools.js";
 import { registerAgentResources } from "./domains/agents/resources.js";
@@ -45,7 +44,6 @@ import { registerWorkflowResources } from "./domains/workflows/resources.js";
 import { registerWorkflowTools } from "./domains/workflows/tools.js";
 import { registerValidateWorkflowYamlTool } from "./domains/workflows/validate.js";
 import { log } from "./logger.js";
-import { trimTrailing } from "./trim.js";
 
 /**
  * Server version. Overridable at publish/build time; "dev" otherwise, matching
@@ -57,20 +55,13 @@ export const SERVER_VERSION = process.env.STIGMER_MCP_VERSION || "dev";
 const HTTP_SHUTDOWN_GRACE_MS = 5_000;
 
 /**
- * Well-known location (RFC 9728 §3.1) of the OAuth 2.0 Protected Resource
- * Metadata document. Served only when OAuth discovery is enabled.
- */
-const PROTECTED_RESOURCE_METADATA_PATH = "/.well-known/oauth-protected-resource";
-
-/**
  * Build a configured MCP server with every Stigmer tool registered. The backend
  * target (address + startup credential) is captured in each handler's closure.
  */
 export function createServer(target: BackendTarget): McpServer {
-  const server = new McpServer({ name: "mcp-server-stigmer", version: SERVER_VERSION });
-  registerTools(server, target);
-  registerResources(server, target);
-  return server;
+  const roster = buildFullRoster(target);
+  logRoster(roster);
+  return roster.server;
 }
 
 /**
@@ -82,10 +73,9 @@ export function createServer(target: BackendTarget): McpServer {
  * route and as the stdio roster when STIGMER_MCP_ROSTER=channels.
  */
 export function createChannelsServer(target: BackendTarget): McpServer {
-  const server = new McpServer({ name: "mcp-server-stigmer-channels", version: SERVER_VERSION });
-  const tools = registerChannelTools(server, target);
-  log.info("tools registered (channels roster)", { count: tools.length, tools });
-  return server;
+  const roster = buildChannelsRoster(target);
+  logRoster(roster);
+  return roster.server;
 }
 
 /**
@@ -104,13 +94,9 @@ export function createChannelsServer(target: BackendTarget): McpServer {
  * fail. Honest absence instead.
  */
 export function createConversationServer(target: BackendTarget): McpServer {
-  const server = new McpServer({
-    name: "mcp-server-stigmer-conversation",
-    version: SERVER_VERSION,
-  });
-  const tools = registerConversationTools(server, target);
-  log.info("tools registered (conversation roster)", { count: tools.length, tools });
-  return server;
+  const roster = buildConversationRoster(target);
+  logRoster(roster);
+  return roster.server;
 }
 
 /**
@@ -130,19 +116,63 @@ export function createMemoryServer(
   target: BackendTarget,
   startupContext: CaptureContext = loadCaptureContextFromEnv(),
 ): McpServer {
-  const server = new McpServer({ name: "mcp-server-stigmer-memory", version: SERVER_VERSION });
-  const tools = registerMemoryTools(server, target, startupContext);
-  log.info("tools registered (memory roster)", { count: tools.length, tools });
-  return server;
+  const roster = buildMemoryRoster(target, startupContext);
+  logRoster(roster);
+  return roster.server;
 }
 
 /**
- * Wire up every domain's tools. Each domain returns the names it registered so
- * the startup log's count and roster cannot drift from what is actually wired,
- * matching the Go server's startup log shape.
+ * A built roster: the server, and the names its domains registered, so the
+ * log's count and roster cannot drift from what is actually wired (the Go
+ * server's startup log shape).
  */
-function registerTools(server: McpServer, target: BackendTarget): void {
-  const tools = [
+interface BuiltRoster {
+  readonly server: McpServer;
+  /** The log label; "" for the full roster. */
+  readonly label: string;
+  readonly tools: readonly string[];
+  readonly resources: readonly string[];
+}
+
+function buildFullRoster(target: BackendTarget): BuiltRoster {
+  const server = new McpServer({ name: "mcp-server-stigmer", version: SERVER_VERSION });
+  return {
+    server,
+    label: "",
+    tools: registerTools(server, target),
+    resources: registerResources(server, target),
+  };
+}
+
+function buildChannelsRoster(target: BackendTarget): BuiltRoster {
+  const server = new McpServer({ name: "mcp-server-stigmer-channels", version: SERVER_VERSION });
+  return { server, label: "channels", tools: registerChannelTools(server, target), resources: [] };
+}
+
+function buildConversationRoster(target: BackendTarget): BuiltRoster {
+  const server = new McpServer({ name: "mcp-server-stigmer-conversation", version: SERVER_VERSION });
+  return { server, label: "conversation", tools: registerConversationTools(server, target), resources: [] };
+}
+
+function buildMemoryRoster(
+  target: BackendTarget,
+  startupContext: CaptureContext = loadCaptureContextFromEnv(),
+): BuiltRoster {
+  const server = new McpServer({ name: "mcp-server-stigmer-memory", version: SERVER_VERSION });
+  return { server, label: "memory", tools: registerMemoryTools(server, target, startupContext), resources: [] };
+}
+
+function logRoster(roster: BuiltRoster): void {
+  const suffix = roster.label === "" ? "" : ` (${roster.label} roster)`;
+  log.info(`tools registered${suffix}`, { count: roster.tools.length, tools: roster.tools });
+  if (roster.resources.length > 0) {
+    log.info(`resources registered${suffix}`, { count: roster.resources.length, resources: roster.resources });
+  }
+}
+
+/** Wire up every domain's tools; returns the names registered. */
+function registerTools(server: McpServer, target: BackendTarget): string[] {
+  return [
     ...registerSearchTools(server, target),
     ...registerAgentTools(server, target),
     ...registerAgentExecutionTools(server, target),
@@ -155,23 +185,20 @@ function registerTools(server: McpServer, target: BackendTarget): void {
     ...registerExecutionControlTools(server, target),
     ...registerEnvironmentTools(server, target),
   ];
-  log.info("tools registered", { count: tools.length, tools });
 }
 
 /**
- * Wire up every domain's resource templates (the discovery-to-read surface).
- * Like {@link registerTools}, each domain returns the names it registered so the
- * startup log stays accurate.
+ * Wire up every domain's resource templates (the discovery-to-read surface);
+ * returns the names registered.
  */
-function registerResources(server: McpServer, target: BackendTarget): void {
-  const resources = [
+function registerResources(server: McpServer, target: BackendTarget): string[] {
+  return [
     ...registerAgentResources(server, target),
     ...registerMcpServerResources(server, target),
     ...registerSkillResources(server, target),
     ...registerWorkflowResources(server, target),
     ...registerEnvironmentResources(server, target),
   ];
-  log.info("resources registered", { count: resources.length, resources });
 }
 
 /**
@@ -200,16 +227,10 @@ export async function serveStdio(server: McpServer, signal: AbortSignal): Promis
   });
 }
 
-/** Builds a fresh, fully-registered server. One is created per MCP session. */
-export type ServerFactory = () => McpServer;
-
 /**
- * Builds the server for an inbound HTTP `initialize` request, selected
- * by request path; `undefined` means the route is not recognized and the
- * request must be refused (404), never served a default roster. Only the
- * initialize request consults the path — an established session's
- * transport already carries the server it was built with, so follow-up
- * requests dispatch by Mcp-Session-Id alone.
+ * Builds the server for one inbound HTTP request, selected by request path;
+ * `undefined` means the route is not recognized and the request must be
+ * refused (404), never served a default roster.
  */
 export type RouteServerFactory = (path: string) => McpServer | undefined;
 
@@ -243,35 +264,29 @@ export const MEMORY_ROUTE = "/memory";
  * caller was never meant to see.
  */
 export function routedServerFactory(target: BackendTarget): RouteServerFactory {
+  const routes = new Map<string, (t: BackendTarget) => BuiltRoster>([
+    [FULL_ROUTE, buildFullRoster],
+    [CHANNELS_ROUTE, buildChannelsRoster],
+    [CONVERSATION_ROUTE, buildConversationRoster],
+    [MEMORY_ROUTE, (t) => buildMemoryRoster(t)],
+  ]);
+  // Servers are built per request, quietly; each roster is logged once, here.
+  for (const build of routes.values()) logRoster(build(target));
   return (path) => {
-    if (path === FULL_ROUTE) return createServer(target);
-    if (path === CHANNELS_ROUTE) return createChannelsServer(target);
-    if (path === CONVERSATION_ROUTE) return createConversationServer(target);
-    if (path === MEMORY_ROUTE) return createMemoryServer(target);
-    return undefined;
+    const build = routes.get(path);
+    return typeof build === "function" ? build(target).server : undefined;
   };
 }
 
 /**
- * Serve over Streamable HTTP until `signal` aborts.
- *
- * Each request carries its own credential via the Authorization header; the
- * (non-validating) auth layer extracts it onto `req.auth`, which the transport
- * surfaces to tool handlers as `extra.authInfo`. The application keeps no
- * per-user state.
- *
- * Spike A established the concurrency model: the TS SDK binds one McpServer to
- * one transport to one MCP session (a second `initialize` on a shared server
- * fails with "Server already initialized"). Unlike Go — whose SDK multiplexes
- * sessions over a single shared `*mcp.Server` — the TS server keeps a registry
- * of `sessionId → transport`, each built from `makeServer` on `initialize`. The
- * per-request Bearer passthrough is orthogonal and applies on every request.
+ * Serve over Streamable HTTP until `signal` aborts: this process's own
+ * listener, answering the liveness and readiness probes and handing every
+ * other request to `handler` (see http-handler.ts for the stateless MCP
+ * contract it serves).
  *
  * Each request is wrapped in access logging (16-hex request id, method, path,
- * status, duration) and, when OAuth discovery is enabled, RFC 9728 metadata is
- * served and a WWW-Authenticate challenge is attached to token-less requests.
- * DNS-rebinding allow-lists are intentionally out of parity scope (the Go server
- * has none).
+ * status, duration). DNS-rebinding allow-lists are intentionally out of
+ * parity scope (the Go server has none).
  *
  * `httpPort` "0" binds an ephemeral port; `onListening` is told the port the
  * listener got, once it accepts connections. A caller that needs a port must
@@ -279,17 +294,16 @@ export function routedServerFactory(target: BackendTarget): RouteServerFactory {
  * any other listener until this one binds it (stigmer#1469).
  */
 export async function serveHttp(
-  makeServer: RouteServerFactory,
+  handler: McpHttpHandler,
   cfg: Config,
   signal: AbortSignal,
   hooks: { readonly onListening?: (port: number) => void } = {},
 ): Promise<void> {
-  const sessions = new Map<string, StreamableHTTPServerTransport>();
   const checkReady = createReadinessCheck(cfg.stigmerServerAddress);
 
   const httpServer = createHttpServer((req, res) => {
     logAccess(req, res);
-    void routeRequest(req, res, sessions, makeServer, cfg, checkReady);
+    void serveProbeOr(req, res, handler, checkReady);
   });
 
   return new Promise<void>((resolve, reject) => {
@@ -308,8 +322,6 @@ export async function serveHttp(
         const force = setTimeout(() => httpServer.closeAllConnections?.(), HTTP_SHUTDOWN_GRACE_MS);
         httpServer.close((err) => {
           clearTimeout(force);
-          for (const transport of sessions.values()) void transport.close();
-          sessions.clear();
           if (err) reject(err);
           else resolve();
         });
@@ -321,7 +333,7 @@ export async function serveHttp(
 
 /**
  * Serve stdio and HTTP concurrently. stdio binds a single server; HTTP builds
- * one server per session via the factory. The first transport to settle aborts
+ * one server per request via the route factory. The first transport to settle aborts
  * the other, mirroring Go's serveBoth.
  */
 export async function serveBoth(target: BackendTarget, cfg: Config, signal: AbortSignal): Promise<void> {
@@ -331,7 +343,7 @@ export async function serveBoth(target: BackendTarget, cfg: Config, signal: Abor
 
   const tasks = [
     serveStdio(stdioServer(target, cfg), linked.signal),
-    serveHttp(routedServerFactory(target), cfg, linked.signal),
+    serveHttp(httpHandler(target, cfg), cfg, linked.signal),
   ];
 
   try {
@@ -344,24 +356,23 @@ export async function serveBoth(target: BackendTarget, cfg: Config, signal: Abor
 }
 
 /**
- * Route an inbound HTTP request: liveness/readiness probes, the non-validating
- * Bearer extraction, then delegation to the session's MCP transport (reusing an
- * existing session or creating one for an `initialize` request).
- *
- * The token is never validated here — presence is the only check, and it is
- * forwarded unchanged to stigmer-server which performs validation. This mirrors
- * the Go authMiddleware exactly (inventory §4.2).
- *
- * Every refusal is a JSON-RPC-framed error (the SDK transport's own
- * convention — see jsonRpcError), never text/plain: strict MCP clients parse
- * the body, and the spec keys session recovery on a recognizable 404.
+ * The standalone transport's MCP handler: the production route table, with
+ * the presence-only bearer check and OAuth discovery the configuration
+ * names. The bearer is never validated here; stigmer-server validates it on
+ * every tool call.
  */
-async function routeRequest(
-  req: IncomingMessage & { auth?: AuthInfo },
+export function httpHandler(target: BackendTarget, cfg: Config): McpHttpHandler {
+  return createMcpHttpHandler({ target, authRequired: cfg.httpAuthEnabled, oauth: cfg.oauth });
+}
+
+/**
+ * Answer the liveness and readiness probes, or hand the request to the MCP
+ * handler. Never rejects: a rejection here would exit the process.
+ */
+async function serveProbeOr(
+  req: IncomingMessage,
   res: ServerResponse,
-  sessions: Map<string, StreamableHTTPServerTransport>,
-  makeServer: RouteServerFactory,
-  cfg: Config,
+  handler: McpHttpHandler,
   checkReady: () => Promise<ReadinessResult>,
 ): Promise<void> {
   if (req.method === "GET" && req.url === "/health") {
@@ -374,6 +385,7 @@ async function routeRequest(
   // only the readiness probe may point here). Public like /health: Kubernetes
   // probes carry no bearer.
   if (req.method === "GET" && requestPath(req) === "/ready") {
+    // Never rejects: the check turns every failure into a verdict (readiness.ts).
     const result = await checkReady();
     if (result.ready) {
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -385,84 +397,7 @@ async function routeRequest(
     return;
   }
 
-  // RFC 9728 Protected Resource Metadata — public, unauthenticated, and served
-  // only when OAuth discovery is enabled. CORS-open so browser-based clients
-  // (e.g. Claude Desktop's connector GUI) can discover the authorization server.
-  if (cfg.oauth.enabled && requestPath(req) === PROTECTED_RESOURCE_METADATA_PATH) {
-    serveProtectedResourceMetadata(req, res, cfg);
-    return;
-  }
-
-  // Non-validating Bearer passthrough, applied to EVERY request so each call's
-  // gRPC client uses that request's own credential.
-  if (cfg.httpAuthEnabled) {
-    const token = extractBearerToken(req);
-    if (token === "") {
-      // RFC 9728 §5.1: point OAuth-capable clients at the metadata document.
-      const challenge = cfg.oauth.enabled
-        ? { "WWW-Authenticate": bearerChallenge(cfg) }
-        : undefined;
-      jsonRpcError(res, 401, -32000, "missing or malformed Authorization: Bearer header", challenge);
-      return;
-    }
-    req.auth = { token, clientId: "stigmer-mcp-passthrough", scopes: [] };
-  }
-
-  const path = requestPath(req);
-  const sessionId = headerValue(req, "mcp-session-id");
-
-  // Established session → dispatch to its transport.
-  if (sessionId !== undefined) {
-    const transport = sessions.get(sessionId);
-    if (transport === undefined) {
-      // 404 + code -32001 is the SDK transport's session-not-found shape, and
-      // the streamable-HTTP spec's recovery signal: on it, a client MUST open
-      // a new session with a fresh InitializeRequest. Losing sessions on pod
-      // restart is expected here — they are in-memory by design (single
-      // replica; see the deployment overlay).
-      jsonRpcError(res, 404, -32001, "Session not found: unknown or expired MCP session");
-      return;
-    }
-    await transport.handleRequest(req, res);
-    return;
-  }
-
-  // No session → only an initialize POST may open one.
-  if (req.method !== "POST") {
-    jsonRpcError(res, 400, -32000, "Bad Request: Mcp-Session-Id header is required");
-    return;
-  }
-
-  const body = await readJsonBody(req);
-  if (!isInitializeRequest(body)) {
-    jsonRpcError(res, 400, -32000, "Bad Request: an initialize request is required to open a session");
-    return;
-  }
-
-  // Route recognition happens exactly where the roster choice happens.
-  // An unknown route gets a 404, never a default roster — see
-  // routedServerFactory for the incident this prevents.
-  const server = makeServer(path);
-  if (server === undefined) {
-    jsonRpcError(res, 404, -32000, `unknown MCP route: ${path}`);
-    return;
-  }
-
-  const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => randomUUID(),
-    onsessioninitialized: (id) => {
-      sessions.set(id, transport);
-    },
-    onsessionclosed: (id) => {
-      sessions.delete(id);
-    },
-  });
-  transport.onclose = () => {
-    if (transport.sessionId !== undefined) sessions.delete(transport.sessionId);
-  };
-
-  await server.connect(transport);
-  await transport.handleRequest(req, res, body);
+  await handler(req, res);
 }
 
 /**
@@ -474,49 +409,6 @@ export function stdioServer(target: BackendTarget, cfg: Config): McpServer {
   if (cfg.roster === "channels") return createChannelsServer(target);
   if (cfg.roster === "memory") return createMemoryServer(target);
   return createServer(target);
-}
-
-/**
- * Write a JSON-RPC-framed refusal, byte-compatible with the SDK transport's
- * own createJsonErrorResponse: `{"jsonrpc":"2.0","error":{code,message},"id":null}`
- * with Content-Type application/json. The HTTP status stays authoritative (the
- * streamable-HTTP spec keys on it); the body exists for strict MCP clients
- * that parse refusals instead of surfacing an opaque content-type error
- * (stigmer/stigmer#316). Code -32001 is reserved for session-not-found; the
- * transport-level family uses -32000, both per the SDK's convention.
- */
-function jsonRpcError(
-  res: ServerResponse,
-  status: number,
-  code: number,
-  message: string,
-  headers?: Record<string, string>,
-): void {
-  res.writeHead(status, { "Content-Type": "application/json", ...headers });
-  res.end(JSON.stringify({ jsonrpc: "2.0", error: { code, message }, id: null }));
-}
-
-/** Return a single header value, collapsing the array form Node may produce. */
-function headerValue(req: IncomingMessage, name: string): string | undefined {
-  const v = req.headers[name];
-  return Array.isArray(v) ? v[0] : v;
-}
-
-/** Read and JSON-parse a request body (used to classify the initialize POST). */
-function readJsonBody(req: IncomingMessage): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    req.on("data", (chunk: Buffer) => chunks.push(chunk));
-    req.on("end", () => {
-      const raw = Buffer.concat(chunks).toString("utf8");
-      try {
-        resolve(raw === "" ? null : JSON.parse(raw));
-      } catch (err) {
-        reject(err);
-      }
-    });
-    req.on("error", reject);
-  });
 }
 
 /** Request path without the query string (mirrors Go's r.URL.Path). */
@@ -542,60 +434,6 @@ function logAccess(req: IncomingMessage, res: ServerResponse): void {
       duration_ms: Date.now() - start,
     });
   });
-}
-
-/**
- * Serve the OAuth 2.0 Protected Resource Metadata document (RFC 9728), answering
- * the CORS preflight (OPTIONS) and the GET. Mirrors the Go SDK's
- * ProtectedResourceMetadataHandler output shape.
- */
-function serveProtectedResourceMetadata(
-  req: IncomingMessage,
-  res: ServerResponse,
-  cfg: Config,
-): void {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "*");
-    res.writeHead(204);
-    res.end();
-    return;
-  }
-
-  const metadata: Record<string, unknown> = {
-    resource: cfg.oauth.resource,
-    authorization_servers: cfg.oauth.authorizationServers,
-    bearer_methods_supported: ["header"],
-    resource_name: "Stigmer MCP Server",
-  };
-  if (cfg.oauth.scopesSupported.length > 0) {
-    metadata.scopes_supported = cfg.oauth.scopesSupported;
-  }
-  res.writeHead(200, { "Content-Type": "application/json" });
-  res.end(JSON.stringify(metadata));
-}
-
-/**
- * Build the WWW-Authenticate challenge pointing OAuth clients at this server's
- * protected-resource-metadata document (RFC 9728 §5.1). Mirrors Go bearerChallenge.
- */
-function bearerChallenge(cfg: Config): string {
-  const metadataURL = trimTrailing(cfg.oauth.resource, "/") + PROTECTED_RESOURCE_METADATA_PATH;
-  const params = [`realm="stigmer"`, `resource_metadata="${metadataURL}"`];
-  if (cfg.oauth.scopesSupported.length > 0) {
-    params.push(`scope="${cfg.oauth.scopesSupported.join(" ")}"`);
-  }
-  return "Bearer " + params.join(", ");
-}
-
-/** Parse the "Authorization: Bearer <token>" header; "" when absent/malformed. */
-function extractBearerToken(req: IncomingMessage): string {
-  const header = req.headers.authorization;
-  if (!header) return "";
-  const prefix = "Bearer ";
-  if (!header.startsWith(prefix)) return "";
-  return header.slice(prefix.length).trim();
 }
 
 /**

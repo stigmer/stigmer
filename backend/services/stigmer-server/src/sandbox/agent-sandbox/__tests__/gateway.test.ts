@@ -12,7 +12,9 @@
  *     plain text), a 404 delete is success, a delete propagates in the
  *     foreground, and any other refusal is passed on;
  *   - a Secret that exists is replaced whole;
- *   - the view reads a Sandbox's uid, mode (unset is Running) and deletion.
+ *   - a list asks by label selector and follows the API server's pages;
+ *   - the view reads a Sandbox's uid, mode (unset is Running), deletion
+ *     and creation time.
  */
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -230,6 +232,57 @@ describe("the Sandbox calls", () => {
     await expect(gateway.createSandbox(sandboxResource)).rejects.toThrow(
       "check that the namespace exists (HTTP 404: 404 page not found)",
     );
+  });
+});
+
+describe("the list", () => {
+  it("lists by label selector, page by page, and reads each Sandbox's creation time", async () => {
+    const pages: Reply[] = [
+      {
+        status: 200,
+        body: {
+          items: [
+            {
+              metadata: {
+                name: "sbx-ses-1",
+                uid: "u1",
+                creationTimestamp: "2026-10-04T10:00:00Z",
+                labels: { "stigmer.ai/sandbox-id": "ses_1" },
+              },
+              spec: { operatingMode: "Running" },
+            },
+          ],
+          metadata: { continue: "page-2" },
+        },
+      },
+      {
+        status: 200,
+        body: {
+          items: [{ metadata: { name: "sbx-ses-2", uid: "u2" }, spec: {} }],
+          metadata: {},
+        },
+      },
+    ];
+    const { seen, kubeConfig } = await apiServer(
+      () => pages.shift() ?? status(500, "unexpected"),
+    );
+    const gateway = newAgentSandboxClientGateway(kubeConfig, "sbx");
+    const views = await gateway.listSandboxes(
+      "stigmer.ai/managed-by=stigmer-server,stigmer.ai/scope=session",
+    );
+    expect(views.map((view) => view.name)).toEqual(["sbx-ses-1", "sbx-ses-2"]);
+    expect(views[0]?.createdAt).toEqual(new Date("2026-10-04T10:00:00Z"));
+    expect(views[0]?.labels).toEqual({ "stigmer.ai/sandbox-id": "ses_1" });
+    expect(views[1]?.createdAt).toBeUndefined();
+    const first = new URL(`http://x${seen[0]?.url ?? ""}`);
+    expect(first.pathname).toBe(SANDBOXES);
+    expect(first.searchParams.get("labelSelector")).toBe(
+      "stigmer.ai/managed-by=stigmer-server,stigmer.ai/scope=session",
+    );
+    expect(first.searchParams.get("limit")).toBe("500");
+    expect(
+      new URL(`http://x${seen[1]?.url ?? ""}`).searchParams.get("continue"),
+    ).toBe("page-2");
   });
 });
 

@@ -63,5 +63,7 @@ export interface AgentSandboxView {
   readonly operatingMode: AgentSandboxOperatingMode;
   /** The Sandbox has a deletion timestamp: it is going away. */
   readonly deleting: boolean;
+  /** When the API server made it; undefined when the object does not say. */
+  readonly createdAt: Date | undefined;
   readonly labels: Readonly<Record<string, string>>;
 }

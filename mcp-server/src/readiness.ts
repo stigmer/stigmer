@@ -16,24 +16,24 @@
 // Only the READINESS probe should point here. Liveness and startup must stay
 // on /health: readiness failure drains traffic (correct for a backend
 // outage), while liveness/startup failures restart the pod — a restart loop
-// that cannot fix a broken backend and destroys every live MCP session.
+// that cannot fix a broken backend and drops every in-flight request.
 
 import { createClient } from "@connectrpc/connect";
 import { Health, HealthCheckResponse_ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { transportForToken } from "./domains/client.js";
 
 /**
- * Per-check RPC bound. Deliberately below the probe's HTTP timeout in the
- * deployment overlay (5 s) so a hung backend yields a clean 503 with a
- * reason, never a probe-level timeout that hides it.
+ * Per-check RPC bound. A deployment's readiness probe must allow more than
+ * this (5 s or above) so a hung backend yields a clean 503 with a reason,
+ * never a probe-level timeout that hides it.
  */
 export const READINESS_RPC_TIMEOUT_MS = 4_000;
 
 /**
  * How long a verdict is served without re-dialing the backend. Bounds probe
  * (and operator curl) traffic to at most one backend RPC per window without
- * meaningfully delaying either transition: at the overlay's 10 s readiness
- * period, every scheduled probe still lands on a fresh check.
+ * meaningfully delaying either transition: a readiness period above this
+ * (10 s is typical) still lands every scheduled probe on a fresh check.
  */
 export const READINESS_CACHE_TTL_MS = 5_000;
 
