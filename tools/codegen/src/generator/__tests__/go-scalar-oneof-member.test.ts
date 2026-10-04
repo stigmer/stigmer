@@ -23,9 +23,13 @@ describe("the Go generator's scalar oneof member", () => {
   let go: string;
 
   beforeAll(() => {
+    // The generator writes the package's re-export files two levels above
+    // its output (sdk/go/internal/gen → sdk/go), so the output nests inside
+    // the temporary root and nothing lands outside it.
     root = fs.mkdtempSync(path.join(os.tmpdir(), "codegen-go-oneof-"));
-    runSDKClientGeneration(SCHEMAS, root);
-    go = fs.readFileSync(path.join(root, "agentexecution.go"), "utf8");
+    const output = path.join(root, "internal", "gen");
+    runSDKClientGeneration(SCHEMAS, output);
+    go = fs.readFileSync(path.join(output, "agentexecution.go"), "utf8");
   });
 
   afterAll(() => {

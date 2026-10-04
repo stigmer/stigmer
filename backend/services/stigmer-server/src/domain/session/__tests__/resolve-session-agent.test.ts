@@ -31,6 +31,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import type { Authorizer } from "../../../extensions/authorizer.js";
 import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
@@ -43,6 +44,14 @@ import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 
 import { newResolveSessionAgentStep } from "../resolve-session-agent.js";
+
+/** Every caller may run every agent: the run gate is not this step's question. */
+const ALLOW: Authorizer = {
+  authorize: () => Promise.resolve({ kind: "allow" }),
+};
+const DENY: Authorizer = {
+  authorize: () => Promise.resolve({ kind: "deny", reason: "" }),
+};
 
 const silentLogger = createLogger({
   level: "error",
@@ -123,6 +132,7 @@ async function pin(
   options: {
     readonly stored?: Session;
     readonly targets?: ReferenceTargets;
+    readonly authorizer?: Authorizer;
     readonly store?: Store;
   } = {},
 ): Promise<Session> {
@@ -142,6 +152,7 @@ async function pin(
   await newResolveSessionAgentStep(
     options.store ?? store,
     silentLogger,
+    options.authorizer ?? ALLOW,
   ).execute(ctx);
   return ctx.newState;
 }
@@ -172,6 +183,29 @@ describe("ResolveSessionAgent", () => {
   it("pins the version a content hash names", async () => {
     await seedAgent("agt_1", "reviewer");
     const session = await pin(sessionNaming("reviewer", OLDER));
+    expect(session.status?.agentVersionHash).toBe(OLDER);
+  });
+
+  it("answers a caller who may not run the agent with the run gate's denial, not the version miss", async () => {
+    await seedAgent("agt_1", "reviewer");
+    const error = await refusal(
+      pin(sessionNaming("reviewer", "v9"), { authorizer: DENY }),
+    );
+    expect(error.code).toBe(Code.PermissionDenied);
+    expect(error.rawMessage).toBe("unauthorized to run agent 'agt_1'");
+  });
+
+  it("pins a new version of the stored agent by the id the row holds, with no targets recorded", async () => {
+    await seedAgent("agt_1", "reviewer");
+    const stored = sessionNaming("reviewer", "", {
+      agentId: "agt_1",
+      agentVersionHash: HEAD,
+    });
+    const session = await pin(sessionNaming("reviewer", "v1"), {
+      stored,
+      targets: targetsOf({}),
+    });
+    expect(session.status?.agentId).toBe("agt_1");
     expect(session.status?.agentVersionHash).toBe(OLDER);
   });
 

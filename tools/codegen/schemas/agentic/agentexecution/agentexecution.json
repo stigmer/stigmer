@@ -135,7 +135,7 @@
         "kind": "message",
         "messageType": "WorkflowParent"
       },
-      "description": "The workflow run this turn was started by (optional): set only by a\n workflow's agent_call step, which waits for the turn to finish.\n\n The server honours it only from the workflow run it names: a request\n the server composes itself, a runner whose credential is bound to that\n workflow run, or a caller holding the platform's\n can_write_reserved_labels. Any other caller that sets it is refused with\n INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn\n runs in the workflow run's sandbox, the parent is told about approval\n requests, and the waiting step is completed when the turn finishes.",
+      "description": "The workflow run this turn was started by (optional): set only by a\n workflow's agent_call step, which waits for the turn to finish.\n\n The server honours it only from the workflow run it names: a request\n the server composes itself, a runner whose credential is bound to that\n workflow run, or a caller holding the platform's\n can_write_reserved_labels. Any other caller that sets it is refused with\n INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn\n runs where the workflow run's own activities run (its sandbox, when the\n deployment gives each run one), the parent is told about approval\n requests, and the waiting step is completed when the turn finishes.",
       "required": false
     }
   ]

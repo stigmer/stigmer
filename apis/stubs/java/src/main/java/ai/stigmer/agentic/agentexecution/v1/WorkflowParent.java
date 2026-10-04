@@ -62,7 +62,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the workflow execution whose step started this turn. The turn's
-   * activities run on that workflow run's task queue, in its sandbox.
+   * activities run where that workflow run's own activities run.
    * </pre>
    *
    * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId", (.buf.validate.field) = { ... }</code>
@@ -84,7 +84,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the workflow execution whose step started this turn. The turn's
-   * activities run on that workflow run's task queue, in its sandbox.
+   * activities run where that workflow run's own activities run.
    * </pre>
    *
    * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId", (.buf.validate.field) = { ... }</code>
@@ -527,7 +527,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution whose step started this turn. The turn's
-     * activities run on that workflow run's task queue, in its sandbox.
+     * activities run where that workflow run's own activities run.
      * </pre>
      *
      * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId", (.buf.validate.field) = { ... }</code>
@@ -548,7 +548,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution whose step started this turn. The turn's
-     * activities run on that workflow run's task queue, in its sandbox.
+     * activities run where that workflow run's own activities run.
      * </pre>
      *
      * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId", (.buf.validate.field) = { ... }</code>
@@ -570,7 +570,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution whose step started this turn. The turn's
-     * activities run on that workflow run's task queue, in its sandbox.
+     * activities run where that workflow run's own activities run.
      * </pre>
      *
      * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId", (.buf.validate.field) = { ... }</code>
@@ -588,7 +588,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution whose step started this turn. The turn's
-     * activities run on that workflow run's task queue, in its sandbox.
+     * activities run where that workflow run's own activities run.
      * </pre>
      *
      * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId", (.buf.validate.field) = { ... }</code>
@@ -603,7 +603,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution whose step started this turn. The turn's
-     * activities run on that workflow run's task queue, in its sandbox.
+     * activities run where that workflow run's own activities run.
      * </pre>
      *
      * <code>string workflow_execution_id = 1 [json_name = "workflowExecutionId", (.buf.validate.field) = { ... }</code>

@@ -50,6 +50,7 @@ import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import type { Authorizer } from "../../../extensions/authorizer.js";
 import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import {
@@ -65,10 +66,19 @@ import type { Store } from "../../../store/interface.js";
 
 import { sessionAgentGoneMessage } from "../constants.js";
 import {
+  newAuthorizeRecoveredRunAgentStep,
   newResolveRunAgentStep,
   newStampRecoveredRunAgentStep,
 } from "../resolve-run-agent.js";
 import { STORED_SESSION_KEY } from "../session-binding.js";
+
+/** Every caller may run every agent: the run gate is not this step's question. */
+const ALLOW: Authorizer = {
+  authorize: () => Promise.resolve({ kind: "allow" }),
+};
+const DENY: Authorizer = {
+  authorize: () => Promise.resolve({ kind: "deny", reason: "" }),
+};
 
 const silentLogger = createLogger({
   level: "error",
@@ -151,7 +161,7 @@ async function stampInSession(
   if (stored !== undefined) {
     ctx.set(STORED_SESSION_KEY, stored);
   }
-  await newResolveRunAgentStep(run, silentLogger).execute(ctx);
+  await newResolveRunAgentStep(run, silentLogger, ALLOW).execute(ctx);
   return ctx.newState;
 }
 
@@ -160,6 +170,7 @@ async function stampNewConversation(
   slug: string,
   version: string,
   recordTargets = true,
+  authorizer: Authorizer = ALLOW,
 ): Promise<AgentExecution> {
   const ref = { kind: ApiResourceKind.agent, org: "test-org", slug, version };
   const ctx = turnContext({
@@ -172,7 +183,7 @@ async function stampNewConversation(
       await loadReferenceTargets(store, [ref]),
     );
   }
-  await newResolveRunAgentStep(store, silentLogger).execute(ctx);
+  await newResolveRunAgentStep(store, silentLogger, authorizer).execute(ctx);
   return ctx.newState;
 }
 
@@ -228,7 +239,7 @@ describe("ResolveRunAgent (create)", () => {
       agentVersionHash: HEAD,
     });
 
-    await newResolveRunAgentStep(store, silentLogger).execute(ctx);
+    await newResolveRunAgentStep(store, silentLogger, ALLOW).execute(ctx);
 
     expect(ctx.newState.status?.agentId).toBe("");
     expect(ctx.newState.status?.agentVersionHash).toBe("");
@@ -268,6 +279,17 @@ describe("ResolveRunAgent (create)", () => {
     expect(error.rawMessage).toContain("'no-such-tag'");
   });
 
+  it("answers a caller who may not run the agent with the run gate's denial, not the version miss", async () => {
+    await seedAgent("agt_v", HEAD);
+
+    const error = await refusal(
+      stampNewConversation("agt_v", "no-such-tag", true, DENY),
+    );
+
+    expect(error.code).toBe(Code.PermissionDenied);
+    expect(error.rawMessage).toBe("unauthorized to run agent 'agt_v'");
+  });
+
   it("is Internal when the reference rule recorded no targets", async () => {
     await seedAgent("agt_unrecorded", HEAD);
 
@@ -284,7 +306,7 @@ describe("ResolveRunAgent (create)", () => {
       agentId: "agt_forged",
     });
 
-    await newResolveRunAgentStep(store, silentLogger).execute(ctx);
+    await newResolveRunAgentStep(store, silentLogger, ALLOW).execute(ctx);
 
     expect(ctx.newState.status?.agentId).toBe("");
     expect(ctx.newState.status?.agentVersionHash).toBe("");
@@ -436,5 +458,57 @@ describe("ResolveRunAgent (recover)", () => {
 
     expect(error.code).toBe(Code.Internal);
     expect((await storedTurn("aex_down")).status?.agentId ?? "").toBe("");
+  });
+});
+
+describe("AuthorizeRunAgent (recover)", () => {
+  function recoverContext(
+    loaded: AgentExecution,
+  ): RequestContext<typeof RecoverAgentExecutionInputSchema> {
+    const ctx = new RequestContext(
+      RecoverAgentExecutionInputSchema,
+      create(RecoverAgentExecutionInputSchema, {
+        id: loaded.metadata?.id ?? "",
+      }),
+      testCallerIdentity(),
+      ApiResourceKind.agent_execution,
+    );
+    ctx.set(LOADED_EXECUTION_KEY, loaded);
+    return ctx;
+  }
+
+  function turnRunning(agentId: string): AgentExecution {
+    return create(AgentExecutionSchema, {
+      metadata: { id: "aex_rerun", org: "test-org" },
+      status: { agentId, agentVersionHash: HEAD },
+    });
+  }
+
+  it("refuses a rerun by a caller who may no longer run the turn's agent", async () => {
+    const error = await refusal(
+      newAuthorizeRecoveredRunAgentStep(DENY, () => false).execute(
+        recoverContext(turnRunning("agt_gated")),
+      ) as Promise<void>,
+    );
+    expect(error.code).toBe(Code.PermissionDenied);
+    expect(error.rawMessage).toBe("unauthorized to run agent 'agt_gated'");
+  });
+
+  it("admits a caller who may run it", async () => {
+    await newAuthorizeRecoveredRunAgentStep(ALLOW, () => false).execute(
+      recoverContext(turnRunning("agt_gated")),
+    );
+  });
+
+  it("asks nothing for a turn of the built-in assistant, or a skipped recover", async () => {
+    const untouched: Authorizer = {
+      authorize: () => Promise.reject(new Error("must not be asked")),
+    };
+    await newAuthorizeRecoveredRunAgentStep(untouched, () => false).execute(
+      recoverContext(turnRunning("")),
+    );
+    await newAuthorizeRecoveredRunAgentStep(untouched, () => true).execute(
+      recoverContext(turnRunning("agt_gated")),
+    );
   });
 });

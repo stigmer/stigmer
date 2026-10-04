@@ -218,7 +218,8 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * workflow run, or a caller holding the platform's
    * can_write_reserved_labels. Any other caller that sets it is refused with
    * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-   * runs in the workflow run's sandbox, the parent is told about approval
+   * runs where the workflow run's own activities run (its sandbox, when the
+   * deployment gives each run one), the parent is told about approval
    * requests, and the waiting step is completed when the turn finishes.
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17;
@@ -242,7 +243,7 @@ export const AgentExecutionSpecSchema: GenMessage<AgentExecutionSpec> = /*@__PUR
 export type WorkflowParent = Message<"ai.stigmer.agentic.agentexecution.v1.WorkflowParent"> & {
   /**
    * ID of the workflow execution whose step started this turn. The turn's
-   * activities run on that workflow run's task queue, in its sandbox.
+   * activities run where that workflow run's own activities run.
    *
    * @generated from field: string workflow_execution_id = 1;
    */

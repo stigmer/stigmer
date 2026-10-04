@@ -222,10 +222,14 @@ async function serveConnectLane(routes) {
     }
     const n = (calls.get(procedure) ?? 0) + 1;
     calls.set(procedure, n);
+    const handler = route;
     let raw = "";
     request.on("data", (chunk) => (raw += chunk));
     request.on("end", () => {
-      const answer = route(n, raw === "" ? {} : JSON.parse(raw));
+      // The check is repeated where the call is made: the path is the
+      // caller's, and only a function the table holds may answer it.
+      if (typeof handler !== "function") return;
+      const answer = handler(n, raw === "" ? {} : JSON.parse(raw));
       // A route answers a refusal as { refuse: { status, code, message } }.
       const refusal = answer?.refuse;
       response.writeHead(refusal?.status ?? 200, { "content-type": "application/json" });

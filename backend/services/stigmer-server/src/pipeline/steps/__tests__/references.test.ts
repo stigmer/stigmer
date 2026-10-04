@@ -15,7 +15,8 @@
  * message; the step over a real store loads each referenced kind once,
  * records the targets it resolved (RESOLVED_REFERENCE_TARGETS_KEY) for
  * every reference, and under `judge: "introduced"` judges only the
- * references the stored row does not already carry; and
+ * references the stored row does not already carry, loading nothing when
+ * the write introduces none; and
  * the escalation door asks the floor alone — a dependency that has left is
  * not its question — and only when the level is being raised.
  */
@@ -729,6 +730,44 @@ describe("the step over a store", () => {
       expect(targets?.idOf(ref(K.skill, "acme", "kept"))).toBe("skl_kept");
       expect(targets?.idOf(ref(K.skill, "acme", "added"))).toBe("skl_added");
       expect(targets?.idOf(ref(K.skill, "acme", "gone"))).toBeUndefined();
+    });
+
+    it("loads nothing and records nothing when the write introduces no reference", async () => {
+      const ctx = new RequestContext(
+        AgentSchema,
+        agentWith(V.visibility_org, [
+          { org: "acme", slug: "kept" },
+          { org: "acme", slug: "gone" },
+        ]),
+        testCallerIdentity(),
+        K.agent,
+      );
+      ctx.set(
+        EXISTING_RESOURCE_KEY,
+        agentWith(V.visibility_org, [
+          { org: "acme", slug: "kept" },
+          { org: "acme", slug: "gone" },
+        ]),
+      );
+      const listed: ApiResourceKind[] = [];
+      const counting = new Proxy(store, {
+        get(target, prop, receiver) {
+          if (prop === "listResources") {
+            return (kind: ApiResourceKind) => {
+              listed.push(kind);
+              return target.listResources(kind);
+            };
+          }
+          return Reflect.get(target, prop, receiver) as unknown;
+        },
+      });
+      await newValidateReferencesStep<typeof AgentSchema>(
+        counting,
+        newPermissiveSingleTeamAuthorizer(),
+        { judge: "introduced" },
+      ).execute(ctx);
+      expect(listed).toEqual([]);
+      expect(resolvedReferenceTargets(ctx)).toBeUndefined();
     });
 
     it("still refuses a newly added reference whose target is missing", async () => {

@@ -81,7 +81,10 @@ import { buildAndPersistExecutionContext } from "./create-execution-context-step
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError, EngineWorkflowNotFoundError } from "./engine.js";
-import { newStampRecoveredRunAgentStep } from "./resolve-run-agent.js";
+import {
+  newAuthorizeRecoveredRunAgentStep,
+  newStampRecoveredRunAgentStep,
+} from "./resolve-run-agent.js";
 import { notifyStatusObservers } from "./status-observers.js";
 import { sessionIdOf } from "./target.js";
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
@@ -741,6 +744,11 @@ function runRecoverPipeline(
       newStampRecoveredRunAgentStep(
         deps.store,
         deps.logger,
+        (ctx) => ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true,
+      ),
+      // A rerun runs the agent again: the caller must still be able to.
+      newAuthorizeRecoveredRunAgentStep(
+        deps.authorizer,
         (ctx) => ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true,
       ),
       newRecreateExecutionContextStep(deps),

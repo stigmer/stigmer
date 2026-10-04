@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "ID of the workflow execution whose step started this turn. The turn's\n activities run on that workflow run's task queue, in its sandbox.",
+      "description": "ID of the workflow execution whose step started this turn. The turn's\n activities run where that workflow run's own activities run.",
       "required": false,
       "validation": {
         "minLength": 1

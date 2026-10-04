@@ -23,9 +23,11 @@
  *     hash, refused when the agent holds no such version — or, with no
  *     version, the agent's current version.
  *
- * The agent's id is the one ValidateReferences resolved for this write
- * (RESOLVED_REFERENCE_TARGETS_KEY), so a write pays the one scan the
- * reference rule already paid; the version then resolves by point reads
+ * The agent's id is the one the stored row already pins under the same
+ * organization and slug — the conversation's agent, kept by id — else the
+ * one ValidateReferences resolved for this write
+ * (RESOLVED_REFERENCE_TARGETS_KEY), so a write pays at most the one scan
+ * the reference rule already paid; the version then resolves by point reads
  * (the agent row, and the audit row by tag or hash). resolveAgentPin is
  * that resolution alone, exported for the turn that starts a new
  * conversation (agent-execution's ResolveRunAgent), whose own reference
@@ -50,8 +52,12 @@ import type {
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import { authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
 import {
   failedPreconditionError,
   internalError,
@@ -68,13 +74,18 @@ import {
 } from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError, type Store } from "../../store/interface.js";
 import { agentVersionBinding } from "../agent/versions.js";
-import { agentGoneMessage, agentVersionNotFoundMessage } from "./constants.js";
+import {
+  agentGoneMessage,
+  agentVersionNotFoundMessage,
+  runAgentDeniedMessage,
+} from "./constants.js";
 
 type SessionDesc = typeof SessionSchema;
 
 export function newResolveSessionAgentStep(
   store: Store,
   logger: Logger,
+  authorizer: Authorizer,
 ): PipelineStep<SessionDesc> {
   return {
     name: "ResolveSessionAgent",
@@ -100,6 +111,11 @@ export function newResolveSessionAgentStep(
         store,
         resolvedReferenceTargets(ctx),
         ref,
+        {
+          authorizer,
+          caller: ctx.callerIdentity,
+          heldAgentId: heldAgentIdOf(stored, ref),
+        },
       );
       if (version === LATEST) {
         ref.version = "";
@@ -123,24 +139,44 @@ export interface AgentPin {
   readonly versionHash: string;
 }
 
+/** Who asks for a pin, and the agent the stored row already pins under the same name. */
+export interface PinAsker {
+  readonly authorizer: Authorizer;
+  readonly caller: CallerIdentity;
+  /**
+   * The agent id the stored session pins when the reference names the same
+   * organization and slug as the stored one: the conversation's agent, kept
+   * by id, never resolved by its slug again (so a slug taken by another
+   * agent never redirects it, and an unchanged name costs no scan).
+   */
+  readonly heldAgentId?: string;
+}
+
 /**
  * Resolves a reference the chain's ValidateReferences admitted to the agent
  * it names and the version hash its version names (the module header's
- * rule, without the echo): the id from the targets that step recorded, the
- * version by point reads. Refuses with FAILED_PRECONDITION an agent gone
- * since the scan or a version the agent does not hold; an id the targets do
- * not carry is a chain built out of order (Internal).
+ * rule, without the echo): the id the stored row holds under the same name,
+ * else the id from the targets that step recorded; the version by point
+ * reads. Refuses with FAILED_PRECONDITION an agent gone since the scan or a
+ * version the agent does not hold — the latter only to a caller who may run
+ * the agent, so a caller who may not learns nothing about its versions (the
+ * run gate's own denial answers them). An id neither source carries is a
+ * chain built out of order (Internal).
  */
 export async function resolveAgentPin(
   store: Store,
   targets: ReferenceTargets | undefined,
   ref: ApiResourceReference,
+  asker: PinAsker,
 ): Promise<AgentPin> {
-  const agentId = targets?.idOf({
-    kind: ApiResourceKind.agent,
-    org: ref.org,
-    slug: ref.slug,
-  });
+  const agentId =
+    asker.heldAgentId !== undefined && asker.heldAgentId !== ""
+      ? asker.heldAgentId
+      : targets?.idOf({
+          kind: ApiResourceKind.agent,
+          org: ref.org,
+          slug: ref.slug,
+        });
   if (agentId === undefined) {
     // ValidateReferences admitted the reference only if its scan found the
     // agent; an id it did not record is a chain built out of order.
@@ -163,11 +199,32 @@ export async function resolveAgentPin(
     version,
   );
   if (versionHash === undefined) {
+    await authorizeResolvedResource(
+      asker.authorizer,
+      asker.caller,
+      {
+        permission: IamPermission.can_execute,
+        resourceKind: ApiResourceKind.agent,
+        resourceId: agentId,
+      },
+      runAgentDeniedMessage(agentId),
+    );
     throw failedPreconditionError(
       agentVersionNotFoundMessage(ref.org, ref.slug, version),
     );
   }
   return { agentId, versionHash };
+}
+
+/** The agent the stored session pins under the reference's own name, if any. */
+export function heldAgentIdOf(
+  stored: Session | undefined,
+  ref: ApiResourceReference,
+): string | undefined {
+  const held = stored?.spec?.agentRef;
+  return held !== undefined && held.org === ref.org && held.slug === ref.slug
+    ? stored?.status?.agentId
+    : undefined;
 }
 
 /**

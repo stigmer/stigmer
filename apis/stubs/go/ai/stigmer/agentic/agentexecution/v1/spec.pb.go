@@ -143,7 +143,8 @@ type AgentExecutionSpec struct {
 	// workflow run, or a caller holding the platform's
 	// can_write_reserved_labels. Any other caller that sets it is refused with
 	// INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-	// runs in the workflow run's sandbox, the parent is told about approval
+	// runs where the workflow run's own activities run (its sandbox, when the
+	// deployment gives each run one), the parent is told about approval
 	// requests, and the waiting step is completed when the turn finishes.
 	Parent        *WorkflowParent `protobuf:"bytes,17,opt,name=parent,proto3" json:"parent,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -313,7 +314,7 @@ func (*AgentExecutionSpec_SessionSpec) isAgentExecutionSpec_Target() {}
 type WorkflowParent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the workflow execution whose step started this turn. The turn's
-	// activities run on that workflow run's task queue, in its sandbox.
+	// activities run where that workflow run's own activities run.
 	WorkflowExecutionId string `protobuf:"bytes,1,opt,name=workflow_execution_id,json=workflowExecutionId,proto3" json:"workflow_execution_id,omitempty"`
 	// Temporal workflow ID the agent-execution workflow signals about
 	// approval requests ("child_approval_required", carrying only this

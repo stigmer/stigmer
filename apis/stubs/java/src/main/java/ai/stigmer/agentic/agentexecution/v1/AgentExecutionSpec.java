@@ -914,7 +914,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * workflow run, or a caller holding the platform's
    * can_write_reserved_labels. Any other caller that sets it is refused with
    * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-   * runs in the workflow run's sandbox, the parent is told about approval
+   * runs where the workflow run's own activities run (its sandbox, when the
+   * deployment gives each run one), the parent is told about approval
    * requests, and the waiting step is completed when the turn finishes.
    * </pre>
    *
@@ -935,7 +936,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * workflow run, or a caller holding the platform's
    * can_write_reserved_labels. Any other caller that sets it is refused with
    * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-   * runs in the workflow run's sandbox, the parent is told about approval
+   * runs where the workflow run's own activities run (its sandbox, when the
+   * deployment gives each run one), the parent is told about approval
    * requests, and the waiting step is completed when the turn finishes.
    * </pre>
    *
@@ -956,7 +958,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * workflow run, or a caller holding the platform's
    * can_write_reserved_labels. Any other caller that sets it is refused with
    * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-   * runs in the workflow run's sandbox, the parent is told about approval
+   * runs where the workflow run's own activities run (its sandbox, when the
+   * deployment gives each run one), the parent is told about approval
    * requests, and the waiting step is completed when the turn finishes.
    * </pre>
    *
@@ -3982,7 +3985,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * workflow run, or a caller holding the platform's
      * can_write_reserved_labels. Any other caller that sets it is refused with
      * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs in the workflow run's sandbox, the parent is told about approval
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
      * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
@@ -4002,7 +4006,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * workflow run, or a caller holding the platform's
      * can_write_reserved_labels. Any other caller that sets it is refused with
      * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs in the workflow run's sandbox, the parent is told about approval
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
      * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
@@ -4026,7 +4031,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * workflow run, or a caller holding the platform's
      * can_write_reserved_labels. Any other caller that sets it is refused with
      * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs in the workflow run's sandbox, the parent is told about approval
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
      * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
@@ -4055,7 +4061,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * workflow run, or a caller holding the platform's
      * can_write_reserved_labels. Any other caller that sets it is refused with
      * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs in the workflow run's sandbox, the parent is told about approval
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
      * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
@@ -4082,7 +4089,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * workflow run, or a caller holding the platform's
      * can_write_reserved_labels. Any other caller that sets it is refused with
      * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs in the workflow run's sandbox, the parent is told about approval
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
      * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
@@ -4116,7 +4124,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * workflow run, or a caller holding the platform's
      * can_write_reserved_labels. Any other caller that sets it is refused with
      * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs in the workflow run's sandbox, the parent is told about approval
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
      * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
@@ -4142,7 +4151,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * workflow run, or a caller holding the platform's
      * can_write_reserved_labels. Any other caller that sets it is refused with
      * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs in the workflow run's sandbox, the parent is told about approval
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
      * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
@@ -4163,7 +4173,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * workflow run, or a caller holding the platform's
      * can_write_reserved_labels. Any other caller that sets it is refused with
      * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs in the workflow run's sandbox, the parent is told about approval
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
      * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
@@ -4187,7 +4198,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * workflow run, or a caller holding the platform's
      * can_write_reserved_labels. Any other caller that sets it is refused with
      * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs in the workflow run's sandbox, the parent is told about approval
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
      * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *

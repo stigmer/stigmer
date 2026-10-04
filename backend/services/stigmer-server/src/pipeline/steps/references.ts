@@ -733,7 +733,9 @@ export interface ValidateReferencesOptions {
  * request's caller against the stored row (EXISTING_RESOURCE_KEY on an
  * update; none on a create) — the module header's clauses and its writer
  * clause. Records the targets it resolved for every reference
- * (RESOLVED_REFERENCE_TARGETS_KEY), judged or not.
+ * (RESOLVED_REFERENCE_TARGETS_KEY), judged or not — and, under
+ * `introduced`, loads and records nothing when the write introduces no
+ * reference.
  */
 export function newValidateReferencesStep<Desc extends DescMessage>(
   store: Store,
@@ -771,6 +773,11 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
               (ref) => !stored.some((held) => sameReference(held, ref)),
             )
           : refs;
+      if (judged.length === 0 && options.judge === "introduced") {
+        // Nothing new to judge, and a reference the stored row carries is
+        // the later step's to read by the id the row already holds.
+        return;
+      }
       const targets = await loadReferenceTargets(store, refs);
       const refusal = await judgeReferences(targets, store, parent, judged, {
         authorizer,

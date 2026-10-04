@@ -222,7 +222,9 @@ async function createSession(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newResolveSessionAgentStep(deps.store, deps.logger))
+    .addStep(
+      newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
+    )
     .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget));
   // The pre-side-effect gate slot (see the create doc comment). Empty in
   // OSS.
@@ -287,7 +289,9 @@ async function update(
         judge: "introduced",
       }),
     )
-    .addStep(newResolveSessionAgentStep(deps.store, deps.logger))
+    .addStep(
+      newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
+    )
     .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
     .addStep(newRecordHarnessStateHistoryStep())
     .addStep(newPersistStep(deps.store))

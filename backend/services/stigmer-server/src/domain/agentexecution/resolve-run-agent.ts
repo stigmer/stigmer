@@ -31,6 +31,8 @@
  * name: a turn created before turns recorded their agent carries no stamp,
  * and recovering it records the session's pin as what the recovery runs,
  * persisted before the context is rebuilt and the workflow starts. Its
+ * AuthorizeRunAgent (newAuthorizeRecoveredRunAgentStep) then asks whether
+ * the caller may still run that agent, as every turn's create does. Its
  * creation history is never rewritten otherwise, and no reader keeps a
  * route of its own to the agent.
  *
@@ -51,6 +53,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import { authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
 import {
   failedPreconditionError,
   internalError,
@@ -66,6 +70,7 @@ import { resolveAgentPin } from "../session/resolve-session-agent.js";
 import type { AgentPin } from "../session/resolve-session-agent.js";
 
 import { sessionAgentGoneMessage } from "./constants.js";
+import { agentExecutionRunAgent } from "./run-target.js";
 import { storedSessionOf } from "./session-binding.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
 
@@ -75,6 +80,7 @@ type RecoverDesc = typeof AgentExecutionCommandController.method.recover.input;
 export function newResolveRunAgentStep(
   store: Store,
   logger: Logger,
+  authorizer: Authorizer,
 ): PipelineStep<CreateDesc> {
   return {
     name: "ResolveRunAgent",
@@ -112,6 +118,7 @@ export function newResolveRunAgentStep(
             store,
             resolvedReferenceTargets(ctx),
             ref,
+            { authorizer, caller: ctx.callerIdentity },
           );
         }
       }
@@ -205,6 +212,46 @@ export function newStampRecoveredRunAgentStep(
           agentId,
           versionHash: truncateHash(pin.versionHash),
         },
+      );
+    },
+  };
+}
+
+/**
+ * The recover chain's AuthorizeRunAgent: rerunning a turn runs its agent
+ * again, so the caller must still be able to run it — agent#can_execute on
+ * the turn's stamp, asked after newStampRecoveredRunAgentStep and before
+ * the context is rebuilt or the workflow starts. A turn of the built-in
+ * assistant asks nothing. The edition's lanes are admitted by its
+ * Authorizer as the create chain's are (RUN_GATE_CHECKS).
+ */
+export function newAuthorizeRecoveredRunAgentStep(
+  authorizer: Authorizer,
+  skip: (ctx: { get(key: string): unknown }) => boolean,
+): PipelineStep<RecoverDesc> {
+  return {
+    name: "AuthorizeRunAgent",
+    async execute(ctx) {
+      if (skip(ctx)) {
+        return;
+      }
+      const loaded = ctx.get(LOADED_EXECUTION_KEY) as
+        | AgentExecution
+        | undefined;
+      const target =
+        loaded === undefined ? undefined : agentExecutionRunAgent(loaded);
+      if (target === undefined) {
+        return;
+      }
+      await authorizeResolvedResource(
+        authorizer,
+        ctx.callerIdentity,
+        {
+          permission: target.permission,
+          resourceKind: target.resourceKind,
+          resourceId: target.resourceId,
+        },
+        target.deniedMessage,
       );
     },
   };

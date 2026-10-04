@@ -389,7 +389,7 @@ async function createExecution(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newResolveRunAgentStep(deps.store, deps.logger))
+    .addStep(newResolveRunAgentStep(deps.store, deps.logger, deps.authorizer))
     .addStep(
       newAuthorizeRunTargetStep(
         deps.authorizer,
