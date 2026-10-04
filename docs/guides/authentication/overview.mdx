@@ -35,8 +35,8 @@ Organization ID or slug. A limited key:
 
 - Works in that Organization only, and is refused with `PERMISSION_DENIED` in
   every other Organization, whatever roles its owner holds there
-- Cannot create an Organization, and can create only keys limited to the same
-  Organization
+- Cannot create an Organization, and can create, change or delete only keys
+  limited to the same Organization
 - Can only be limited to an Organization its owner can view, and keeps that
   limit for life: `bound_org` is fixed at create
 
@@ -96,11 +96,11 @@ The difference is where the JWT comes from:
 
 A federated token, a PlatformClient user token and a limited API key each name
 one Organization and work in that Organization only. A bound credential still
-reaches what belongs to no Organization (the person's own account and API keys)
-and can read and run Agents, Skills, Workflows, MCP Servers and Plugins shared
-at Platform visibility. It cannot create an Organization or accept an invitation
-to another one. A call it makes into another Organization fails with
-`PERMISSION_DENIED`.
+reaches the person's own account, and their API keys limited to the same
+Organization, and can read and run Agents, Skills, Workflows, MCP Servers and
+Plugins shared at Platform visibility. It cannot create an Organization or
+accept an invitation to another one. A call it makes into another Organization
+fails with `PERMISSION_DENIED`.
 
 A person who signs in at the Stigmer Console with their own Stigmer sign-in, not
 through an Identity Provider or a PlatformClient, is not bound: they move

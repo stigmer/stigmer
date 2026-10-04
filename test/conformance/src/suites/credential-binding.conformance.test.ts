@@ -273,6 +273,28 @@ describe("credential binding — a credential that names an organization works t
     );
   });
 
+  it("[rpc:ApiKeyCommandController.delete] a key limited to A manages only keys limited to A: never its owner's unlimited key", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    const a = await tenancy(on);
+    const person = await on.provisionMember(a);
+    const key = await keyOf(on, person, a.org);
+    const everywhere = await keyOf(on, person, "");
+    const sibling = await keyOf(on, person, a.org);
+
+    await expectGrpcCode(
+      () => key.clients.apiKeyCommand.delete({ value: everywhere.id }),
+      Code.PermissionDenied,
+      "delete the owner's unlimited key through a key limited to A",
+    );
+    await key.clients.apiKeyCommand.delete({ value: sibling.id });
+    await expectGrpcCode(
+      () => person.apiKeyQuery.get({ value: sibling.id }),
+      Code.NotFound,
+      "the key limited to A that the limited key deleted",
+    );
+  });
+
   it("[rpc:ApiKeyCommandController.create] a key can be limited only to an organization its owner can view", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;

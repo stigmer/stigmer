@@ -776,10 +776,10 @@ whatever roles its person holds elsewhere.
   runner holds for one run (bound to the run's Organization). A person signed in
   at the Stigmer Console with their own Stigmer sign-in is not bound and moves
   between all their Organizations.
-- **Reach**: its Organization's resources; what belongs to no Organization (the
-  person's own account and API keys); and reading and running Agents, Skills,
-  Workflows, MCP Servers and Plugins shared at Platform visibility. It cannot
-  create an Organization or accept an invitation to another one.
+- **Reach**: its Organization's resources; the person's own account, and their
+  API keys limited to the same Organization; and reading and running Agents,
+  Skills, Workflows, MCP Servers and Plugins shared at Platform visibility. It
+  cannot create an Organization or accept an invitation to another one.
 - **Context rule**: Use in authentication guides and reference. On the sales
   site, say "a key that works in one Organization." In quickstart, avoid unless
   the tutorial covers API keys, federation or PlatformClient.

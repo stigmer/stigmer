@@ -220,7 +220,6 @@ describe("the rule, for a caller bound to one organization", () => {
     const binding = newCredentialBinding(f.deps);
     const caller = boundTo(ALPHA);
     for (const kind of [
-      ApiResourceKind.api_key,
       ApiResourceKind.identity_account,
       ApiResourceKind.platform,
       ApiResourceKind.plan,
@@ -254,6 +253,26 @@ describe("the rule, for a caller bound to one organization", () => {
         entry("ectx_b", BETA),
       ),
     ).toBe(false);
+  });
+
+  it("decides an API key by the organization it is limited to: a bound credential manages only the keys limited where it is", async () => {
+    const f = fixture([
+      row("api_key", "key_a", "", { spec: { boundOrg: ALPHA } }),
+      row("api_key", "key_b", "", { spec: { boundOrg: BETA } }),
+      row("api_key", "key_everywhere", ""),
+    ]);
+    const binding = newCredentialBinding(f.deps);
+    const caller = boundTo(ALPHA);
+    const verdictOf = (id: string) =>
+      binding.verdict(caller, {
+        kind: ApiResourceKind.api_key,
+        id,
+        permission: EDIT,
+      });
+    expect(await verdictOf("key_a")).toBe("inside");
+    expect(await verdictOf("key_b")).toBe("outside");
+    expect(await verdictOf("key_everywhere")).toBe("outside");
+    expect(await verdictOf("key_missing")).toBe("missing");
   });
 
   it("answers missing for an id no row has, so the inner driver keeps its not-found", async () => {
@@ -582,6 +601,25 @@ describe("bindListReadScope", () => {
     );
     expect([...kept]).toEqual(["agt_a", "agt_shared"]);
     expect(f.reads).toHaveLength(before);
+  });
+
+  it("narrows an enumeration larger than one read batch, keeping every id inside", async () => {
+    const rows = Array.from({ length: 40 }, (_, i) =>
+      row("session", `ses_${i}`, i % 2 === 0 ? ALPHA : BETA),
+    );
+    const binding = newCredentialBinding(fixture(rows).deps);
+    const kept = await binding.narrowIds(
+      boundTo(ALPHA),
+      ApiResourceKind.session,
+      new Set(rows.map((r) => r.id)),
+      VIEW,
+    );
+    expect([...kept].sort()).toEqual(
+      rows
+        .filter((_, i) => i % 2 === 0)
+        .map((r) => r.id)
+        .sort(),
+    );
   });
 
   it("narrows the enumeration by each id's row", async () => {

@@ -26,9 +26,12 @@
  *     execution context whose `metadata.org` is: the kind is owner-only,
  *     but each row is its run's (or connect's) and holds that
  *     organization's resolved environment values;
+ *   - an API key limited to the bound organization (`spec.bound_org`): a
+ *     key is its owner's, but a bound credential manages only the keys
+ *     limited where it is, never an unlimited key or one limited elsewhere;
  *   - a kind that belongs to no organization: owner-only (the person's own
- *     account and keys) or unscoped (plans, the platform). These are
- *     nobody's organization data.
+ *     account) or unscoped (plans, the platform). These are nobody's
+ *     organization data.
  * It is ADMITTED OUTSIDE only along the model's one path across
  * organizations, and only for a permission that reads or runs: a
  * blueprint (agent, MCP server, plugin, skill, workflow) shared at
@@ -65,6 +68,7 @@ import type { Message } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
@@ -95,6 +99,9 @@ import type { Store } from "../store/interface.js";
 import { ResourceNotFoundError } from "../store/interface.js";
 import type { Model } from "./model/index.js";
 import { builtInModel } from "./model/index.js";
+
+/** How many target rows `narrowIds` reads at once. */
+const NARROW_BATCH = 16;
 
 /** The denial every bound caller meets outside its organization (deny reason; the Authorize step logs it). */
 export const BOUND_ELSEWHERE_DENY_REASON =
@@ -255,6 +262,27 @@ export function newCredentialBinding(
     );
   }
 
+  // A key is its owner's, but a bound credential manages only the keys
+  // limited to its own organization: an unlimited key, or one limited to
+  // another, would let it widen its reach (extend that key, or mint around
+  // its own limit).
+  async function keyVerdict(
+    caller: CallerIdentity,
+    id: string,
+    bound: string,
+  ): Promise<BindingVerdict> {
+    const found = await targetFacts(caller, ApiResourceKind.api_key, id);
+    if (found === UNREADABLE) {
+      return "outside";
+    }
+    if (found === undefined) {
+      return "missing";
+    }
+    return (found.row as ApiKey).spec?.boundOrg === bound
+      ? "inside"
+      : "outside";
+  }
+
   async function verdict(
     caller: CallerIdentity,
     target: BindingTarget,
@@ -265,6 +293,9 @@ export function newCredentialBinding(
     }
     if (target.kind === ApiResourceKind.organization) {
       return target.id === bound ? "inside" : "outside";
+    }
+    if (target.kind === ApiResourceKind.api_key) {
+      return keyVerdict(caller, target.id, bound);
     }
     if (!belongsToAnOrganization(target.kind)) {
       return "inside";
@@ -317,16 +348,24 @@ export function newCredentialBinding(
       if (boundOrgOf(caller) === undefined) {
         return ids;
       }
+      // One primary-key read per id, a bounded batch at a time: the
+      // enumeration a search hands over spans every organization the
+      // person belongs to.
+      const kept = new Set<string>();
       const ordered = [...ids];
-      const verdicts = await Promise.all(
-        ordered.map((id) => verdict(caller, { kind, id, permission })),
-      );
-      return new Set(
-        ordered.filter((_, index) => {
-          const verdict = verdicts[index];
-          return verdict === "inside" || verdict === "admitted";
-        }),
-      );
+      for (let start = 0; start < ordered.length; start += NARROW_BATCH) {
+        const batch = ordered.slice(start, start + NARROW_BATCH);
+        const verdicts = await Promise.all(
+          batch.map((id) => verdict(caller, { kind, id, permission })),
+        );
+        batch.forEach((id, index) => {
+          const answer = verdicts[index];
+          if (answer === "inside" || answer === "admitted") {
+            kept.add(id);
+          }
+        });
+      }
+      return kept;
     },
   };
 }

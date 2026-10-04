@@ -51,8 +51,13 @@ export interface CredentialBinding {
   admitsOrganization(caller: CallerIdentity, org: string): boolean;
   /**
    * Whether a list candidate may be shown to the caller, from the facts the
-   * candidate carries (no read). A candidate shared across organizations is
-   * kept for the inner scope to decide.
+   * candidate carries (no read). A blueprint shared across organizations is
+   * kept for the inner scope to decide. Two answers differ from `verdict`
+   * because they would need a row the candidate does not carry: the default
+   * instance of another organization's shared blueprint is left out of a
+   * bound caller's list (a get by id still admits it), and the owner's API
+   * keys are all listed (managing one still needs it limited where the
+   * caller is).
    */
   keepsEntry(
     caller: CallerIdentity,
