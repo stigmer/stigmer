@@ -83,8 +83,8 @@ export const FUTURE_STAMP_ALLOWANCE_MS = 60_000;
  */
 export const RECENT_LOOKBACK_MS = 120_000;
 
-/** A by-id read that failed other than by the row being gone. */
-const UNREADABLE = Symbol("unreadable");
+/** Raised inside the cheap read when only the full read can answer (module header). */
+class ReadInFull extends Error {}
 
 /** An entry no read has touched for this long is dropped (module header). */
 export const ENTRY_IDLE_EVICT_MS = 10 * 60_000;
@@ -186,14 +186,14 @@ export function newStoreSessionActivityReader(
   };
 
   /**
-   * The execution by id, undefined once it is deleted, or UNREADABLE when
-   * the read fails any other way (a row that will not decode, a store
-   * fault): never taken for a delete.
+   * The execution by id, or undefined once it is deleted. Any other
+   * failure (a row that will not decode, a store fault) is never taken
+   * for a delete: it raises ReadInFull.
    */
   const reread = async (
     sessionId: string,
     id: string,
-  ): Promise<AgentExecution | undefined | typeof UNREADABLE> => {
+  ): Promise<AgentExecution | undefined> => {
     try {
       return await store.getResource(
         ApiResourceKind.agent_execution,
@@ -209,8 +209,115 @@ export function newStoreSessionActivityReader(
         executionId: id,
         error: error instanceof Error ? error.message : String(error),
       });
-      return UNREADABLE;
+      throw new ReadInFull();
     }
+  };
+
+  /** The cheap read over an entry (module header); raises ReadInFull when only the full read can answer. */
+  const recent = async (
+    sessionId: string,
+    entry: SessionEntry,
+    readAtMs: number,
+  ): Promise<SessionActivity> => {
+    const rows = await store.queryResources(agentExecutionListIndex, {
+      anyKey: [{ name: "session", value: sessionId }],
+      createdAtOrAfter: listIndexInstantOfMillis(
+        entry.readAtMs - RECENT_LOOKBACK_MS,
+      ),
+    });
+    const nowMs = now();
+    const nextBound = listIndexInstantOfMillis(readAtMs - RECENT_LOOKBACK_MS);
+    // The execution holding the latest stamp is read on every pass:
+    // only its delete, its Recover or a late report rewriting its
+    // completion can make the full read's latest stamp earlier.
+    const latest = entry.lastActiveId;
+    const latestMs = entry.lastActiveMs;
+    let latestNow: AgentExecution | undefined;
+    let latestRead = false;
+    // An execution the entry holds (active, or holding the latest stamp)
+    // that cannot be read now is one only the full read answers for: it
+    // skips a row that will not decode, and fails on a store fault.
+    const held = (id: string): boolean =>
+      id === latest || entry.busyIds.has(id);
+    const present = new Set<string>();
+    /** Executions decoded on this read, so current as of it. */
+    const current = new Set<string>();
+    for (const row of rows) {
+      present.add(row.id);
+      if (entry.foldedIds.has(row.id) && row.id !== latest) {
+        continue;
+      }
+      const execution = decode(sessionId, row);
+      if (execution === undefined) {
+        if (held(row.id)) {
+          throw new ReadInFull();
+        }
+        continue;
+      }
+      if (row.id === latest) {
+        latestNow = execution;
+        latestRead = true;
+      }
+      current.add(row.id);
+      foldRow(entry, row, execution, nowMs, nextBound);
+    }
+    for (const id of [...entry.busyIds]) {
+      if (present.has(id)) {
+        continue;
+      }
+      const execution = await reread(sessionId, id);
+      if (id === latest) {
+        latestNow = execution;
+        latestRead = true;
+      }
+      if (execution === undefined) {
+        entry.busyIds.delete(id);
+        continue;
+      }
+      current.add(id);
+      foldExecution(entry, id, execution, nowMs);
+    }
+    if (latest !== undefined && !latestRead) {
+      latestNow = await reread(sessionId, latest);
+      if (latestNow !== undefined) {
+        current.add(latest);
+        foldExecution(entry, latest, latestNow, nowMs);
+      }
+    }
+    if (
+      latest !== undefined &&
+      latestMs !== undefined &&
+      (latestNow === undefined ||
+        (latestStampOf(latestNow, nowMs) ?? -Infinity) < latestMs)
+    ) {
+      throw new ReadInFull();
+    }
+    // A held-back stamp the clock has reached counts only through a
+    // fresh read of its execution, so a stamp it no longer carries never
+    // does.
+    const reachedIds = new Set(
+      entry.aheadStamps
+        .filter(
+          (ahead) => reached(ahead.stamp, nowMs) && !current.has(ahead.id),
+        )
+        .map((ahead) => ahead.id),
+    );
+    for (const id of reachedIds) {
+      const execution = await reread(sessionId, id);
+      if (execution === undefined) {
+        removeAheadStamps(entry, id);
+      } else {
+        foldExecution(entry, id, execution, nowMs);
+      }
+    }
+    for (const [id, instant] of entry.foldedIds) {
+      if (instant !== "" && instant < nextBound) {
+        entry.foldedIds.delete(id);
+      }
+    }
+    entry.readAtMs = readAtMs;
+    entry.touchedAtMs = nowMs;
+    return activityOfEntry(entry);
   };
 
   return {
@@ -223,117 +330,14 @@ export function newStoreSessionActivityReader(
       if (entry === undefined) {
         return activity(sessionId);
       }
-      const rows = await store.queryResources(agentExecutionListIndex, {
-        anyKey: [{ name: "session", value: sessionId }],
-        createdAtOrAfter: listIndexInstantOfMillis(
-          entry.readAtMs - RECENT_LOOKBACK_MS,
-        ),
-      });
-      const nowMs = now();
-      const nextBound = listIndexInstantOfMillis(readAtMs - RECENT_LOOKBACK_MS);
-      // The execution holding the latest stamp is read on every pass:
-      // only its delete, its Recover or a late report rewriting its
-      // completion can make the full read's latest stamp earlier.
-      const latest = entry.lastActiveId;
-      const latestMs = entry.lastActiveMs;
-      let latestNow: AgentExecution | undefined;
-      let latestRead = false;
-      // An execution the entry holds something of that cannot be read
-      // now is one only the full read answers for: it skips a row that
-      // will not decode, and fails on a store fault.
-      const held = (id: string): boolean =>
-        id === latest ||
-        entry.busyIds.has(id) ||
-        entry.aheadStamps.some((ahead) => ahead.id === id);
-      const present = new Set<string>();
-      /** Executions decoded on this read, so current as of it. */
-      const current = new Set<string>();
-      for (const row of rows) {
-        present.add(row.id);
-        if (entry.foldedIds.has(row.id) && row.id !== latest) {
-          continue;
-        }
-        const execution = decode(sessionId, row);
-        if (execution === undefined) {
-          if (held(row.id)) {
-            return activity(sessionId);
-          }
-          continue;
-        }
-        if (row.id === latest) {
-          latestNow = execution;
-          latestRead = true;
-        }
-        current.add(row.id);
-        foldRow(entry, row, execution, nowMs, nextBound);
-      }
-      for (const id of [...entry.busyIds]) {
-        if (present.has(id)) {
-          continue;
-        }
-        const execution = await reread(sessionId, id);
-        if (execution === UNREADABLE) {
+      try {
+        return await recent(sessionId, entry, readAtMs);
+      } catch (error) {
+        if (error instanceof ReadInFull) {
           return activity(sessionId);
         }
-        if (id === latest) {
-          latestNow = execution;
-          latestRead = true;
-        }
-        if (execution === undefined) {
-          entry.busyIds.delete(id);
-          continue;
-        }
-        current.add(id);
-        foldExecution(entry, id, execution, nowMs);
+        throw error;
       }
-      if (latest !== undefined && !latestRead) {
-        const execution = await reread(sessionId, latest);
-        if (execution === UNREADABLE) {
-          return activity(sessionId);
-        }
-        latestNow = execution;
-        if (latestNow !== undefined) {
-          current.add(latest);
-          foldExecution(entry, latest, latestNow, nowMs);
-        }
-      }
-      if (
-        latest !== undefined &&
-        latestMs !== undefined &&
-        (latestNow === undefined ||
-          (latestStampOf(latestNow, nowMs) ?? -Infinity) < latestMs)
-      ) {
-        return activity(sessionId);
-      }
-      // A held-back stamp the clock has reached counts only through a
-      // fresh read of its execution, so a stamp it no longer carries never
-      // does.
-      const reachedIds = new Set(
-        entry.aheadStamps
-          .filter(
-            (ahead) => reached(ahead.stamp, nowMs) && !current.has(ahead.id),
-          )
-          .map((ahead) => ahead.id),
-      );
-      for (const id of reachedIds) {
-        const execution = await reread(sessionId, id);
-        if (execution === UNREADABLE) {
-          return activity(sessionId);
-        }
-        if (execution === undefined) {
-          removeAheadStamps(entry, id);
-        } else {
-          foldExecution(entry, id, execution, nowMs);
-        }
-      }
-      for (const [id, instant] of entry.foldedIds) {
-        if (instant !== "" && instant < nextBound) {
-          entry.foldedIds.delete(id);
-        }
-      }
-      entry.readAtMs = readAtMs;
-      entry.touchedAtMs = nowMs;
-      return activityOfEntry(entry);
     },
 
     async *sessionIds(): AsyncIterable<string> {

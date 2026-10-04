@@ -779,6 +779,59 @@ describe("recentActivity(sessionId)", () => {
     );
   });
 
+  it("fails when the window's read fails, as the full read would", async () => {
+    const r = rig();
+    let queries = 0;
+    const failing = new Proxy(store, {
+      get(target, prop, receiver) {
+        if (prop === "queryResources") {
+          return (...args: Parameters<Store["queryResources"]>) => {
+            queries += 1;
+            return queries > 1
+              ? Promise.reject(new Error("database is locked"))
+              : target.queryResources(...args);
+          };
+        }
+        return Reflect.get(target, prop, receiver) as unknown;
+      },
+    });
+    const reader = newStoreSessionActivityReader(failing, silentLogger, r.now);
+    await reader.recentActivity("ses_a");
+    r.advance(PASS_MS);
+    await expect(reader.recentActivity("ses_a")).rejects.toThrow(
+      "database is locked",
+    );
+  });
+
+  it("skips a new run whose row will not decode, as the full read does", async () => {
+    const r = rig();
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(-60 * 60_000),
+        at(-59 * 60_000),
+      ),
+    );
+    await r.reader.recentActivity("ses_a");
+    r.advance(PASS_MS);
+    await save(
+      execution(
+        "aex_2",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        new Date(r.now()),
+      ),
+    );
+    r.corrupt.add("aex_2");
+    expect(await r.reader.recentActivity("ses_a")).toEqual({
+      busy: false,
+      lastActiveAt: at(-59 * 60_000),
+    });
+    expect(r.warnings).toEqual(["Failed to unmarshal execution, skipping"]);
+  });
+
   it("reads in full when an active run's row in the window will not decode, so a bad row never keeps the session busy", async () => {
     const r = rig();
     await save(
