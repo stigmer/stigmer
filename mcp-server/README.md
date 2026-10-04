@@ -167,7 +167,8 @@ Or mount the HTTP handler on a listener the host already runs, beside its own
 routes. The request must reach the handler unread (it reads the body itself,
 under its cap). The host answers its own probes; the handler serves the four MCP routes
 (`/`, `/channels`, `/conversation`, `/memory`) and the RFC 9728 metadata
-document, refuses any other path with `404`, and never rejects. The optional
+document, answers a POST to any other path `404` and any method but POST `405`,
+and never rejects. The optional
 `authenticate` check lets a host that can verify tokens refuse one at the door:
 `refused` answers `401` with the OAuth challenge, so clients refresh and retry,
 and `unavailable` answers `503`.

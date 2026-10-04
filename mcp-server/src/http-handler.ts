@@ -73,7 +73,11 @@ export interface McpHttpHandlerSettings {
   readonly authRequired: boolean;
   /** RFC 9728 discovery; when enabled, the metadata document is served and 401s carry the challenge. */
   readonly oauth: OAuthConfig;
-  /** Request-body cap in bytes; {@link DEFAULT_MAX_BODY_BYTES} when unset. */
+  /**
+   * Request-body cap in bytes; {@link DEFAULT_MAX_BODY_BYTES} when unset. A
+   * value that is not a positive finite number is refused when the handler
+   * is made: a NaN would compare false everywhere and turn the cap off.
+   */
   readonly maxBodyBytes?: number;
   /**
    * The host's door check, consulted on every request when auth is
@@ -113,6 +117,9 @@ export function createRoutedHandler(
   settings: McpHttpHandlerSettings,
 ): McpHttpHandler {
   const maxBodyBytes = settings.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
+  if (!Number.isFinite(maxBodyBytes) || maxBodyBytes <= 0) {
+    throw new Error(`maxBodyBytes must be a positive finite number of bytes, got ${String(settings.maxBodyBytes)}`);
+  }
 
   return async (req, res) => {
     try {

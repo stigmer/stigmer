@@ -193,6 +193,12 @@ describe("the body cap", () => {
     expect(res.status).toBe(413);
   });
 
+  it.each([Number.NaN, 0, -1, Number.POSITIVE_INFINITY])("refuses a cap of %s when the handler is made", (cap) => {
+    expect(() =>
+      createRoutedHandler(() => echoServer(), { authRequired: false, oauth: { ...OAUTH, enabled: false }, maxBodyBytes: cap }),
+    ).toThrow("maxBodyBytes must be a positive finite number");
+  });
+
   it("serves a body under the cap", async () => {
     const base = await mount(capped());
     const res = await fetch(`${base}/`, { method: "POST", headers: headers(), body: TOOLS_LIST });
