@@ -83,6 +83,7 @@ import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError, EngineWorkflowNotFoundError } from "./engine.js";
 import {
   newAuthorizeRecoveredRunAgentStep,
+  newResolveRecoveredRunAgentStep,
   newStampRecoveredRunAgentStep,
 } from "./resolve-run-agent.js";
 import { notifyStatusObservers } from "./status-observers.js";
@@ -692,6 +693,11 @@ export async function recoverExecution(
   );
 }
 
+/** Whether the recover found the execution already running (the idempotent arm). */
+function alreadyRecovered(ctx: { get(key: string): unknown }): boolean {
+  return ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true;
+}
+
 /** The recover chain itself, run inside the execution's turn. */
 function runRecoverPipeline(
   deps: LifecycleDeps,
@@ -716,6 +722,12 @@ function runRecoverPipeline(
           `cannot recover execution in phase ${phaseName(phase)}; only FAILED executions can be recovered`,
         logger: deps.logger,
       }),
+      // A rerun runs the agent again, so the caller must still be able
+      // to, asked before anything is terminated, charged or written: the
+      // agent the turn recorded, or its session's pin for a turn that
+      // recorded none (resolve-run-agent.ts).
+      newResolveRecoveredRunAgentStep(deps.store, alreadyRecovered),
+      newAuthorizeRecoveredRunAgentStep(deps.authorizer, alreadyRecovered),
       // TerminateExistingWorkflow: a FAILED execution's workflow has
       // normally already completed (NOT_FOUND = success); termination
       // matters for the rarer DB-says-FAILED-but-workflow-live state —
@@ -741,16 +753,7 @@ function runRecoverPipeline(
       // A turn created before turns recorded their agent records the
       // session's pin here, persisted before the context is rebuilt and
       // the fresh workflow's runner reads it (resolve-run-agent.ts).
-      newStampRecoveredRunAgentStep(
-        deps.store,
-        deps.logger,
-        (ctx) => ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true,
-      ),
-      // A rerun runs the agent again: the caller must still be able to.
-      newAuthorizeRecoveredRunAgentStep(
-        deps.authorizer,
-        (ctx) => ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true,
-      ),
+      newStampRecoveredRunAgentStep(deps.store, deps.logger, alreadyRecovered),
       newRecreateExecutionContextStep(deps),
       newStartFreshWorkflowStep(deps),
       // The session-lane sandbox ensure — same position and

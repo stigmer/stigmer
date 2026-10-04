@@ -18,7 +18,9 @@
  * version stored, not from the agent's current one: an author's later
  * save that adds a key is not what this conversation's next message
  * runs. A version the history does not hold (an agent last written
- * before agents were versioned) reads the current spec.
+ * before agents were versioned) reads the current spec; while the history
+ * loads, or when it cannot be read, the line says nothing rather than
+ * name another version's keys.
  *
  * Pinned by `__tests__/PersonalKeyDisclosure.test.tsx`.
  */
@@ -61,11 +63,14 @@ export function PersonalKeyDisclosure({
 }: PersonalKeyDisclosureProps) {
   const { agent } = useAgent(agentRef.org || null, agentRef.slug || null);
   const pinned = versionHash !== "";
-  const { getSpec } = useAgentVersions(
+  const history = useAgentVersions(
     pinned ? agentRef.org || null : null,
     pinned ? agentRef.slug || null : null,
   );
-  const spec = (pinned ? getSpec(versionHash) : null) ?? agent?.spec;
+  const historyUnknown = pinned && (history.isLoading || history.error !== null);
+  const spec = historyUnknown
+    ? undefined
+    : ((pinned ? history.getSpec(versionHash) : null) ?? agent?.spec);
   const keys = useMemo(() => Object.keys(spec?.env ?? {}).sort(), [spec]);
 
   if (keys.length === 0) return null;

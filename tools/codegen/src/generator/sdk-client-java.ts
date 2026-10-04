@@ -9,7 +9,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { goQuote, hasExplicitPresence, isEmptyType, isIDType, isSpecialType, searchListSupersedesMethod, tsClientFieldName } from "./gen-common.js";
+import { firstMemberWinsOrder, goQuote, hasExplicitPresence, isEmptyType, isIDType, isSpecialType, searchListSupersedesMethod, tsClientFieldName } from "./gen-common.js";
 import { javaCamel, javaCapCamel } from "./lang-names.js";
 import { apiResourceKindEnumNames } from "./resource-kind.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
@@ -1311,7 +1311,7 @@ function emitJavaToProto(buf: string[], cfg: SdkResourceConfig, spec: TaskConfig
   buf.push(`    ${resType} toProto() {\n`);
   buf.push(`        ${specType}.Builder spec = ${specType}.newBuilder();\n`);
 
-  for (const f of specFields) {
+  for (const f of firstMemberWinsOrder(specFields)) {
     emitJavaToProtoField(buf, f, "        ");
   }
 

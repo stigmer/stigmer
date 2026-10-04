@@ -296,9 +296,6 @@ func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error
 		},
 		Spec: &agentexecutionv1.AgentExecutionSpec{},
 	}
-	if i.SessionId != "" {
-		resource.Spec.Target = &agentexecutionv1.AgentExecutionSpec_SessionId{SessionId: i.SessionId}
-	}
 	if i.SessionSpec != nil {
 		m := &sessionv1.SessionSpec{}
 		if i.SessionSpec.AgentRef.Org != "" || i.SessionSpec.AgentRef.Slug != "" {
@@ -333,6 +330,9 @@ func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error
 		m.CursorMode = i.SessionSpec.CursorMode
 		m.ExecutionTarget = i.SessionSpec.ExecutionTarget
 		resource.Spec.Target = &agentexecutionv1.AgentExecutionSpec_SessionSpec{SessionSpec: m}
+	}
+	if i.SessionId != "" {
+		resource.Spec.Target = &agentexecutionv1.AgentExecutionSpec_SessionId{SessionId: i.SessionId}
 	}
 	resource.Spec.Message = i.Message
 	if i.ExecutionConfig != nil {

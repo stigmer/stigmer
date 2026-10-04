@@ -7,7 +7,10 @@
  * another agent never redirects it (the share's pin, for the same reason).
  *
  * The rule, on create, update and apply alike:
- *   - a write naming no agent clears the pin: the built-in assistant;
+ *   - a write naming no agent clears the pin: the built-in assistant. A
+ *     stored row that names none either keeps its pin (an echo): a
+ *     session the agent-instance migration left holding only the id of an
+ *     agent since deleted stays that agent's, and fails its next turn;
  *   - a version of `latest` pins the agent's current version now (the
  *     reference grammar's meaning), which is how a conversation moves to
  *     the version its author last saved. `latest` is an instruction, not a
@@ -63,6 +66,7 @@ import {
   internalError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
   resolvedReferenceTargets,
@@ -94,6 +98,16 @@ export function newResolveSessionAgentStep(
       const status = (session.status ??= create(SessionStatusSchema));
       const ref = session.spec?.agentRef;
       if (ref === undefined || ref.slug === "") {
+        const stored = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
+        if ((stored?.spec?.agentRef?.slug ?? "") === "") {
+          // Neither names an agent: an echo. The stored pin stands, which
+          // is the built-in assistant's empty pin, or a migrated session's
+          // agent that left before the migration could name it (its next
+          // turn fails naming the agent, as any deletion's does).
+          status.agentId = stored?.status?.agentId ?? "";
+          status.agentVersionHash = stored?.status?.agentVersionHash ?? "";
+          return;
+        }
         status.agentId = "";
         status.agentVersionHash = "";
         return;
@@ -147,7 +161,9 @@ export interface PinAsker {
    * The agent id the stored session pins when the reference names the same
    * organization and slug as the stored one: the conversation's agent, kept
    * by id, never resolved by its slug again (so a slug taken by another
-   * agent never redirects it, and an unchanged name costs no scan).
+   * agent never redirects it, and an unchanged name costs no scan). Only
+   * when that agent is gone does a write that names its slug again resolve
+   * the slug to the agent that holds it now.
    */
   readonly heldAgentId?: string;
 }
@@ -169,14 +185,13 @@ export async function resolveAgentPin(
   ref: ApiResourceReference,
   asker: PinAsker,
 ): Promise<AgentPin> {
-  const agentId =
-    asker.heldAgentId !== undefined && asker.heldAgentId !== ""
-      ? asker.heldAgentId
-      : targets?.idOf({
-          kind: ApiResourceKind.agent,
-          org: ref.org,
-          slug: ref.slug,
-        });
+  const held = asker.heldAgentId ?? "";
+  const named = targets?.idOf({
+    kind: ApiResourceKind.agent,
+    org: ref.org,
+    slug: ref.slug,
+  });
+  let agentId = held !== "" ? held : named;
   if (agentId === undefined) {
     // ValidateReferences admitted the reference only if its scan found the
     // agent; an id it did not record is a chain built out of order.
@@ -187,7 +202,28 @@ export async function resolveAgentPin(
       "failed to resolve the agent this conversation runs",
     );
   }
-  const agent = await readAgent(store, agentId);
+  let agent = await readAgent(store, agentId);
+  if (agent === undefined && held !== "") {
+    // The conversation's agent is gone. This write names its slug again
+    // and is no echo (an echo kept the pin before this), so it names
+    // whichever agent holds the slug now; the run gate then asks about
+    // that agent, whose id differs from the stored pin.
+    const now =
+      named ??
+      (
+        await findResourceBySlug(
+          store,
+          ApiResourceKind.agent,
+          AgentSchema,
+          ref.slug,
+          ref.org,
+        )
+      )?.metadata?.id;
+    if (now !== undefined && now !== "" && now !== held) {
+      agentId = now;
+      agent = await readAgent(store, now);
+    }
+  }
   if (agent === undefined) {
     throw failedPreconditionError(agentGoneMessage(ref.org, ref.slug));
   }

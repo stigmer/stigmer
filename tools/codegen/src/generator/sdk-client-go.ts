@@ -25,6 +25,7 @@ import {
   isEmptyType,
   isIDType,
   isSpecialType,
+  firstMemberWinsOrder,
   isSyntheticOneof,
   protoTypeToGoImportPath,
   protoTypeToPackageAlias,
@@ -653,7 +654,7 @@ function generateInputTypesV2(
     buf.push("\t}\n");
   }
 
-  for (const f of specFields) {
+  for (const f of firstMemberWinsOrder(specFields)) {
     emitToProtoField(buf, f, alias, typeMap, spec.name);
   }
 

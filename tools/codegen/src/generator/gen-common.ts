@@ -400,6 +400,35 @@ export function isSyntheticOneof(group: string): boolean {
   return group.startsWith("_");
 }
 
+/** Whether a field is a member of a real (declared) oneof. */
+export function isRealOneofMember(f: FieldSchema): boolean {
+  const group = f.oneofGroup ?? "";
+  return group !== "" && !isSyntheticOneof(group);
+}
+
+/**
+ * The order an emitter that assigns fields one after another (the last
+ * assignment to a oneof holds it) walks `fields` in, so that every SDK
+ * agrees with the TypeScript input on an input that sets several members
+ * of one oneof: the first-declared member the caller set wins. Each real
+ * oneof's members keep their positions among the other fields, in reverse
+ * declaration order; every other field keeps its place.
+ */
+export function firstMemberWinsOrder(fields: readonly FieldSchema[]): FieldSchema[] {
+  const membersByGroup = new Map<string, FieldSchema[]>();
+  for (const f of fields) {
+    if (isRealOneofMember(f)) {
+      const group = f.oneofGroup ?? "";
+      membersByGroup.set(group, [...(membersByGroup.get(group) ?? []), f]);
+    }
+  }
+  const reversed = new Map<string, FieldSchema[]>();
+  for (const [group, members] of membersByGroup) {
+    reversed.set(group, [...members].reverse());
+  }
+  return fields.map((f) => (isRealOneofMember(f) ? reversed.get(f.oneofGroup ?? "")!.shift()! : f));
+}
+
 /**
  * Whether a field is a proto3 `optional` scalar, one with explicit presence:
  * unset and zero differ on the wire (an absent limit is no limit, while a

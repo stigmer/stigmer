@@ -15,7 +15,9 @@
  *   - recover records the session's pin on a turn that recorded no agent,
  *     persisted before the context is rebuilt and handed to the fresh
  *     workflow; a turn that recorded its agent keeps it, and a session
- *     pinning none leaves the turn the built-in assistant's;
+ *     pinning none leaves the turn the built-in assistant's; a caller who
+ *     may no longer run the agent is refused before the previous workflow
+ *     is terminated, the pre-side-effect slot runs, or anything is written;
  *   - recover runs one at a time per execution (stigmer#1672): a second
  *     concurrent recover waits for the first and then takes the idempotent
  *     arm, a recover queued behind a failed one retries in full, and two
@@ -1181,6 +1183,70 @@ describe("lifecycle pipelines", () => {
         AgentExecutionSchema,
       );
       expect(persisted.status?.agentId).toBe("agt_lc");
+    });
+
+    it("refuses a caller who may no longer run the agent before anything is terminated, charged or written", async () => {
+      await storePinnedSession("ses_denied", "agt_lc");
+      const terminations: string[] = [];
+      const starts: string[] = [];
+      const slotRuns: string[] = [];
+      // Every check passes but running the agent the turn would rerun.
+      const permissive = newPermissiveSingleTeamAuthorizer();
+      const deps: LifecycleDeps = {
+        ...lifecycleDeps(
+          connected(
+            stubConnectedEngine({
+              terminateWorkflow: async (executionId) => {
+                terminations.push(executionId);
+              },
+              startInvokeWorkflow: async (params) => {
+                starts.push(params.executionId);
+              },
+            }),
+          ),
+        ),
+        authorizer: {
+          authorize: (caller, check) =>
+            check.resourceKind === ApiResourceKind.agent
+              ? Promise.resolve({ kind: "deny", reason: "" })
+              : permissive.authorize(caller, check),
+        },
+        gateSteps: new Map([
+          [
+            "agent-execution-recover:pre-side-effect-gate",
+            [
+              {
+                name: "RecordingSlotStep",
+                execute: (): void => {
+                  slotRuns.push("slot");
+                },
+              },
+            ],
+          ],
+        ]),
+      };
+      const id = await seedExecution({
+        phase: ExecutionPhase.EXECUTION_FAILED,
+        sessionId: "ses_denied",
+        error: "runner exploded",
+      });
+
+      const err = await expectCode(
+        () => recoverExecution(deps, recoverInput(id), testCallerIdentity()),
+        Code.PermissionDenied,
+      );
+
+      expect(err.rawMessage).toBe("unauthorized to run agent 'agt_lc'");
+      expect(terminations).toEqual([]);
+      expect(slotRuns).toEqual([]);
+      expect(starts).toEqual([]);
+      const persisted = await store.getResource(
+        ApiResourceKind.agent_execution,
+        id,
+        AgentExecutionSchema,
+      );
+      expect(persisted.status?.agentId ?? "").toBe("");
+      expect(persisted.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
     });
 
     it("keeps the agent a turn recorded, whatever its session pins now", async () => {

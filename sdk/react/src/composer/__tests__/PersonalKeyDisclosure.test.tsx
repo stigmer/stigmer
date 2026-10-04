@@ -85,6 +85,26 @@ describe("PersonalKeyDisclosure", () => {
     );
   });
 
+  it("says nothing while the history loads, or when it cannot be read", async () => {
+    const getByReference = vi.fn().mockResolvedValue({ spec: { env: { GITHUB_TOKEN: {} } } });
+    const pending = vi.fn().mockReturnValue(new Promise(() => {}));
+    render(<PersonalKeyDisclosure agentRef={REF} versionHash="h_old" />, {
+      wrapper: wrapperFor(getByReference, pending),
+    });
+    await waitFor(() => expect(getByReference).toHaveBeenCalled());
+    await waitFor(() => expect(pending).toHaveBeenCalled());
+    expect(screen.queryByTestId("personal-key-disclosure")).toBeNull();
+    cleanup();
+
+    const failing = vi.fn().mockRejectedValue(new Error("denied"));
+    render(<PersonalKeyDisclosure agentRef={REF} versionHash="h_old" />, {
+      wrapper: wrapperFor(getByReference, failing),
+    });
+    await waitFor(() => expect(failing).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByTestId("personal-key-disclosure")).toBeNull();
+  });
+
   it("reads no history for a conversation not yet started", async () => {
     const getByReference = vi.fn().mockResolvedValue({ spec: { env: { GITHUB_TOKEN: {} } } });
     const listVersions = vi.fn();

@@ -312,6 +312,51 @@ describe("ResolveSessionAgent", () => {
     expect(session.status?.agentVersionHash).toBe("");
   });
 
+  it("keeps the pin of a stored row that names no agent but holds one: a migrated session whose agent left", async () => {
+    const stored = sessionNaming("", "", {
+      agentId: "agt_gone",
+      agentVersionHash: "",
+    });
+    const session = await pin(
+      sessionNaming("", "", { agentId: "agt_gone", agentVersionHash: "" }),
+      { stored },
+    );
+    expect(session.status?.agentId).toBe("agt_gone");
+  });
+
+  it("moves a session whose agent was deleted to the agent re-created under the slug, when the write names it again", async () => {
+    await seedAgent("agt_new", "reviewer");
+    const stored = sessionNaming("reviewer", "", {
+      agentId: "agt_deleted",
+      agentVersionHash: OLDER,
+    });
+    // The update names latest; the targets were not loaded (the reference
+    // is no new one), so the slug is resolved by its own read.
+    const session = await pin(sessionNaming("reviewer", "latest"), {
+      stored,
+      targets: targetsOf({}),
+    });
+    expect(session.status?.agentId).toBe("agt_new");
+    expect(session.status?.agentVersionHash).toBe(HEAD);
+  });
+
+  it("refuses naming the slug again when no agent holds it any more", async () => {
+    const stored = sessionNaming("reviewer", "", {
+      agentId: "agt_deleted",
+      agentVersionHash: OLDER,
+    });
+    const error = await refusal(
+      pin(sessionNaming("reviewer", "latest"), {
+        stored,
+        targets: targetsOf({}),
+      }),
+    );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toBe(
+      `referenced agent '${ORG}/reviewer' no longer exists.`,
+    );
+  });
+
   it("writes the resolved pin over a status the client sent", async () => {
     await seedAgent("agt_1", "reviewer");
     const session = await pin(

@@ -2,9 +2,9 @@
  * Pins the session run-target resolver: a session's run target is the
  * agent it pins — agent#can_execute on status.agent_id, the id
  * ResolveSessionAgent wrote, with the domain's byte-pinned deny copy — and
- * only when the write introduces or changes that agent: a create naming
- * one, an update moving to another. An update that keeps the stored agent
- * (an echo, or another version of the same agent) is not re-asked, and a
+ * whenever the write changes the pin: a create naming an agent, an update
+ * moving to another agent or to another version of the same one. An
+ * update that keeps the stored pin (an echo) is not re-asked, and a
  * session with no agent (the built-in assistant) has no target.
  */
 import { describe, expect, it } from "vitest";
@@ -46,9 +46,16 @@ describe("sessionRunTarget", () => {
     );
   });
 
-  it("answers no target when an update keeps the stored agent, whichever version", () => {
+  it("targets the agent when an update moves it to another version", () => {
     expect(
-      sessionRunTarget(pinned("agt_01abc", "h2"), pinned("agt_01abc", "h1")),
+      sessionRunTarget(pinned("agt_01abc", "h2"), pinned("agt_01abc", "h1"))
+        ?.resourceId,
+    ).toBe("agt_01abc");
+  });
+
+  it("answers no target when an update keeps the stored pin", () => {
+    expect(
+      sessionRunTarget(pinned("agt_01abc", "h1"), pinned("agt_01abc", "h1")),
     ).toBeUndefined();
   });
 

@@ -194,13 +194,10 @@ class AgentExecutionInput:
 
     def _to_proto(self) -> api_pb2.AgentExecution:
         spec = spec_pb2.AgentExecutionSpec(
-            session_id=self.session_id,
             message=self.message,
             auto_approve_all=self.auto_approve_all,
             supersedes_execution_id=self.supersedes_execution_id,
         )
-        if self.session_spec is not None:
-            spec.session_spec.CopyFrom(self.session_spec._to_proto())
         if self.execution_config is not None:
             spec.execution_config.CopyFrom(self.execution_config._to_proto())
         for k, v in self.runtime_env.items():
@@ -215,6 +212,10 @@ class AgentExecutionInput:
             spec.conversation_catchup.CopyFrom(self.conversation_catchup._to_proto())
         if self.parent is not None:
             spec.parent.CopyFrom(self.parent._to_proto())
+        if self.session_spec is not None:
+            spec.session_spec.CopyFrom(self.session_spec._to_proto())
+        if self.session_id:
+            setattr(spec, "session_id", self.session_id)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

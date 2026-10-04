@@ -42,8 +42,10 @@
  * assistant is the case with no agent half, not an arm of its own. The
  * person's values reach what the agent's author wrote (its shell receives
  * exactly the keys it declares) as they reach MCP servers a session's
- * owner chose; the console names the keys an agent will read before the
- * first message. Around that rule: the workspace-provisioning
+ * owner chose, but only for an agent of the run's own organization: an
+ * agent another organization published reads none of the person's keys.
+ * The console names the keys an agent will read before the first
+ * message. Around that rule: the workspace-provisioning
  * re-injection, and the required-keys warning.
  *
  * Every personal read is the RUN'S PERSON'S (run-person.ts): the
@@ -351,6 +353,7 @@ export async function buildAndPersistExecutionContext(
     agentSpec,
     session,
   );
+  const oauthTargets = new Set<string>();
   try {
     filtered = await injectMcpOAuthFromManagedEnvironment(
       deps,
@@ -358,6 +361,7 @@ export async function buildAndPersistExecutionContext(
       mergedMcpUsages,
       executionOrg,
       executionId,
+      oauthTargets,
     );
   } catch (error) {
     throw failedPreconditionError(
@@ -367,14 +371,26 @@ export async function buildAndPersistExecutionContext(
 
   // 6.85 The run's declared variables the layers did not carry, the
   // agent's and the session servers' alike: the run's person's personal
-  // environment, by declared key, after every layer. Non-fatal — the run
-  // fails at the tool with a clearer error if a key is truly required, the
-  // posture of every fallback here.
+  // environment, by declared key, after every layer. Never an OAuth
+  // target of any server the run uses (the managed grant's alone), and
+  // never a key an agent of another organization declares. Non-fatal —
+  // the run fails at the tool with a clearer error if a key is truly
+  // required, the posture of every fallback here.
+  for (const server of sessionMcpServers) {
+    const target = server.spec?.auth?.targetEnvVar ?? "";
+    if (target !== "") {
+      oauthTargets.add(target);
+    }
+  }
   filtered = await injectDeclaredFromPersonalEnvironment(
     deps,
     filtered,
     declarations,
-    sessionMcpServers,
+    {
+      oauthTargets,
+      agentId,
+      agentEnv: agentSpec?.env ?? {},
+    },
     executionOrg,
     person,
     executionId,
@@ -568,33 +584,44 @@ function unionDeclarations(
   return union;
 }
 
+/** What the personal-environment fill must leave alone. */
+interface PersonalFillLimits {
+  /** Every OAuth target variable of a server the run uses: the managed grant's alone. */
+  readonly oauthTargets: ReadonlySet<string>;
+  /** The run's agent ("" for the built-in assistant). */
+  readonly agentId: string;
+  /** The keys that agent declares, at the version the run records. */
+  readonly agentEnv: { readonly [key: string]: EnvVarDeclaration };
+}
+
 /**
  * Resolves the run's declared variables still missing after every layer
  * and the OAuth injection — the agent's and its session servers' (the one
  * declared set, unionDeclarations) — from the run's person's personal
- * environment, by declared key. A session server's OAuth-target variable
- * is left to the managed grant (an absent grant is the sign-in the console
- * asks for, not a personal-environment lookup). A run with no person reads
- * none. Every failure is non-fatal here: a missing key is logged and the
- * run meets the tool's own error.
+ * environment, by declared key. Left alone:
+ *   - every OAuth-target variable of a server the run uses, the agent's
+ *     and the session's (an absent grant is the sign-in the console asks
+ *     for, not a personal-environment lookup);
+ *   - every key the agent declares when the agent belongs to another
+ *     organization than the run: a person's values reach an agent their
+ *     own organization holds, never one another organization published.
+ *     The agent's organization is read only when it declares a wanted key;
+ *     an agent that cannot be read counts as another organization's.
+ * A run with no person reads none. Every failure is non-fatal here: a
+ * missing key is logged and the run meets the tool's own error.
  */
 async function injectDeclaredFromPersonalEnvironment(
   deps: ExecutionContextBuilderDeps,
   filtered: Map<string, ExecutionValue>,
   declarations: { readonly [key: string]: EnvVarDeclaration },
-  sessionMcpServers: readonly McpServer[],
+  limits: PersonalFillLimits,
   executionOrg: string,
   person: string | undefined,
   executionId: string,
 ): Promise<Map<string, ExecutionValue>> {
-  const oauthKeys = new Set(
-    sessionMcpServers
-      .map((server) => server.spec?.auth?.targetEnvVar ?? "")
-      .filter((key) => key !== ""),
-  );
   const wanted: { [key: string]: EnvVarDeclaration } = {};
   for (const [key, decl] of Object.entries(declarations)) {
-    if (oauthKeys.has(key) || filtered.has(key)) {
+    if (limits.oauthTargets.has(key) || filtered.has(key)) {
       continue;
     }
     wanted[key] = decl;
@@ -605,6 +632,22 @@ async function injectDeclaredFromPersonalEnvironment(
     person === undefined
   ) {
     return filtered;
+  }
+  const agentKeys = Object.keys(limits.agentEnv).filter((key) => key in wanted);
+  if (
+    agentKeys.length > 0 &&
+    (await agentOrgOf(deps, limits.agentId)) !== executionOrg
+  ) {
+    for (const key of agentKeys) {
+      delete wanted[key];
+    }
+    deps.logger.info(
+      "The run's agent belongs to another organization; its declared keys are not read from the personal environment",
+      { executionId, agentId: limits.agentId, keys: agentKeys.sort() },
+    );
+    if (Object.keys(wanted).length === 0) {
+      return filtered;
+    }
   }
 
   let resolution: PersonalEnvironmentResolution;
@@ -653,6 +696,22 @@ async function injectDeclaredFromPersonalEnvironment(
     { executionId, keys: entries.map(([key]) => key).sort() },
   );
   return out;
+}
+
+/**
+ * The organization an agent belongs to, or "" when it cannot be read. Only
+ * asked for an agent that declares keys, so never for the built-in
+ * assistant.
+ */
+async function agentOrgOf(
+  deps: ExecutionContextBuilderDeps,
+  agentId: string,
+): Promise<string> {
+  try {
+    return (await deps.agentLoader().get(agentId)).metadata?.org ?? "";
+  } catch {
+    return "";
+  }
 }
 
 /**
@@ -1138,7 +1197,9 @@ export function mergeAgentAndSessionMcpUsages(
 
 /**
  * Reads OAuth-managed access tokens from managed environments for MCP
- * servers with spec.auth: grant lookup by (identity="", server_id, org) —
+ * servers with spec.auth (recording each such server's target variable in
+ * `oauthTargets`, grant or none, for the personal-environment fill to
+ * leave alone): grant lookup by (identity="", server_id, org) —
  * OSS single-user — then inline pre-flight refresh if expired, then the
  * token read. Refresh failures THROW (fatal; the caller maps to
  * FailedPrecondition); read failures are non-fatal skips (Go
@@ -1150,6 +1211,7 @@ async function injectMcpOAuthFromManagedEnvironment(
   mcpServerUsages: McpServerUsage[],
   executionOrg: string,
   executionId: string,
+  oauthTargets?: Set<string>,
 ): Promise<Map<string, ExecutionValue>> {
   if (mcpServerUsages.length === 0) {
     return filtered;
@@ -1185,6 +1247,10 @@ async function injectMcpOAuthFromManagedEnvironment(
     }
     if (mcpServer === undefined || mcpServer.spec?.auth === undefined) {
       continue;
+    }
+    const target = mcpServer.spec.auth.targetEnvVar;
+    if (target !== "") {
+      oauthTargets?.add(target);
     }
 
     const mcpServerId = mcpServer.metadata?.id ?? "";

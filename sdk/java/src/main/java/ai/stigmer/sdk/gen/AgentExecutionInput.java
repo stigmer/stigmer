@@ -72,11 +72,11 @@ public final class AgentExecutionInput {
 
     AgentExecution toProto() {
         AgentExecutionSpec.Builder spec = AgentExecutionSpec.newBuilder();
-        if (this.sessionId != null) {
-            spec.setSessionId(this.sessionId);
-        }
         if (this.sessionSpec != null) {
             spec.setSessionSpec(this.sessionSpec.toProto());
+        }
+        if (this.sessionId != null) {
+            spec.setSessionId(this.sessionId);
         }
         if (this.message != null) {
             spec.setMessage(this.message);

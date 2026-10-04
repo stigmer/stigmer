@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isSpecialType, searchListSupersedesMethod } from "./gen-common.js";
+import { firstMemberWinsOrder, goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isRealOneofMember, isSpecialType, searchListSupersedesMethod } from "./gen-common.js";
 import { isPythonKeyword, pyClientFieldName, pyFieldName, pyMethodName, pyProtoFileToModule, pyProtoImportLine, pyProtoModuleAlias, pyStubMethodName } from "./lang-names.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
@@ -802,8 +802,14 @@ function emitPyMainToProto(buf: string[], cfg: SdkResourceConfig, spec: TaskConf
   const kwScalars: FieldSchema[] = [];
   const complexFields: FieldSchema[] = [];
   const presenceScalars: FieldSchema[] = [];
+  // A real oneof's members are assigned last, in firstMemberWinsOrder, and
+  // a scalar member only when set: a zero value passed to the constructor
+  // would claim the oneof for that member.
+  const oneofMembers = firstMemberWinsOrder(specFields.filter(isRealOneofMember));
   for (const f of specFields) {
-    if (hasExplicitPresence(f)) {
+    if (isRealOneofMember(f)) {
+      continue;
+    } else if (hasExplicitPresence(f)) {
       presenceScalars.push(f);
     } else if (pyIsScalarKind(f.type.kind)) {
       if (isPythonKeyword(f.protoField)) kwScalars.push(f);
@@ -834,6 +840,14 @@ function emitPyMainToProto(buf: string[], cfg: SdkResourceConfig, spec: TaskConf
 
   for (const f of complexFields) {
     emitPyToProtoFieldAssign(buf, f, "spec", "self", "        ", imports);
+  }
+  for (const f of oneofMembers) {
+    if (pyIsScalarKind(f.type.kind)) {
+      buf.push(`        if self.${pyFieldName(f.protoField)}:\n`);
+      buf.push(`            setattr(spec, ${goQuote(f.protoField)}, self.${pyFieldName(f.protoField)})\n`);
+    } else {
+      emitPyToProtoFieldAssign(buf, f, "spec", "self", "        ", imports);
+    }
   }
 
   buf.push("        metadata = metadata_pb2.ApiResourceMetadata(\n");

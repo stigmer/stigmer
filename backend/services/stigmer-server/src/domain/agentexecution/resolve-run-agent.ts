@@ -27,19 +27,21 @@
  * A session id that names no row stamps nothing: the loading steps own
  * that refusal, with its own NotFound. A store fault is Internal.
  *
- * The recover chain runs newStampRecoveredRunAgentStep under the same
+ * The recover chain runs newResolveRecoveredRunAgentStep under the same
  * name: a turn created before turns recorded their agent carries no stamp,
- * and recovering it records the session's pin as what the recovery runs,
- * persisted before the context is rebuilt and the workflow starts. Its
- * AuthorizeRunAgent (newAuthorizeRecoveredRunAgentStep) then asks whether
- * the caller may still run that agent, as every turn's create does. Its
- * creation history is never rewritten otherwise, and no reader keeps a
- * route of its own to the agent.
+ * and recovering it takes the session's pin as what the recovery runs.
+ * Its AuthorizeRunAgent (newAuthorizeRecoveredRunAgentStep) then asks
+ * whether the caller may still run that agent, as every turn's create
+ * does, before the previous workflow is terminated or anything is
+ * written; RecordRunAgent (newStampRecoveredRunAgentStep) persists the
+ * pin before the context is rebuilt and the workflow starts. Its creation
+ * history is never rewritten otherwise, and no reader keeps a route of
+ * its own to the agent.
  *
  * Proven by __tests__/resolve-run-agent.test.ts and the agent and session
  * conformance suites' turn arms.
  */
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import {
@@ -141,16 +143,20 @@ export function stampRunAgent(execution: AgentExecution, pin: AgentPin): void {
   execution.status.agentVersionHash = pin.versionHash;
 }
 
+/** The pin recover resolved for a turn that recorded none, not yet written. */
+const RECOVERED_PIN_KEY = "agentexecution.recover.pendingRunAgent";
+
 /**
- * The recover chain's ResolveRunAgent (the module header): after the
- * execution is loaded and before its context is rebuilt, a turn that
- * recorded no agent records its session's pin, persisted on its own row so
- * the runner the fresh workflow starts reads it. A turn that recorded an
- * agent, or whose session pins none, is left as it is.
+ * The recover chain's ResolveRunAgent (the module header): right after the
+ * execution is loaded and its phase validated, before any side effect, a
+ * turn that recorded no agent takes its session's pin, held in memory
+ * (RECOVERED_PIN_KEY) for AuthorizeRunAgent to ask about and
+ * newStampRecoveredRunAgentStep to write once the question is answered.
+ * A turn that recorded an agent, one that names no session, and one whose
+ * session pins none are left as they are.
  */
-export function newStampRecoveredRunAgentStep(
+export function newResolveRecoveredRunAgentStep(
   store: Store,
-  logger: Logger,
   skip: (ctx: { get(key: string): unknown }) => boolean,
 ): PipelineStep<RecoverDesc> {
   return {
@@ -159,15 +165,7 @@ export function newStampRecoveredRunAgentStep(
       if (skip(ctx)) {
         return;
       }
-      const loaded = ctx.get(LOADED_EXECUTION_KEY) as
-        | AgentExecution
-        | undefined;
-      if (loaded === undefined) {
-        throw internalError(
-          new Error("ResolveRunAgent ran before the execution was loaded"),
-          "failed to resolve the agent this turn runs",
-        );
-      }
+      const loaded = loadedExecutionOf(ctx, "ResolveRunAgent");
       if ((loaded.status?.agentId ?? "") !== "") {
         return;
       }
@@ -189,6 +187,75 @@ export function newStampRecoveredRunAgentStep(
         agentId,
         versionHash: session?.status?.agentVersionHash ?? "",
       };
+      ctx.set(RECOVERED_PIN_KEY, pin);
+    },
+  };
+}
+
+/**
+ * The recover chain's AuthorizeRunAgent: rerunning a turn runs its agent
+ * again, so the caller must still be able to run it — agent#can_execute on
+ * the turn's stamp, or on the pin ResolveRunAgent holds for a turn that
+ * recorded none. It runs before the previous workflow is terminated, the
+ * pre-side-effect slot, and any write, so a refused caller changes
+ * nothing. A turn of the built-in assistant asks nothing. The edition's
+ * lanes are admitted by its Authorizer as the create chain's are
+ * (RUN_GATE_CHECKS).
+ */
+export function newAuthorizeRecoveredRunAgentStep(
+  authorizer: Authorizer,
+  skip: (ctx: { get(key: string): unknown }) => boolean,
+): PipelineStep<RecoverDesc> {
+  return {
+    name: "AuthorizeRunAgent",
+    async execute(ctx) {
+      if (skip(ctx)) {
+        return;
+      }
+      const loaded = loadedExecutionOf(ctx, "AuthorizeRunAgent");
+      const pending = ctx.get(RECOVERED_PIN_KEY) as AgentPin | undefined;
+      const runs =
+        pending === undefined ? loaded : stampedCopy(loaded, pending);
+      const target = agentExecutionRunAgent(runs);
+      if (target === undefined) {
+        return;
+      }
+      await authorizeResolvedResource(
+        authorizer,
+        ctx.callerIdentity,
+        {
+          permission: target.permission,
+          resourceKind: target.resourceKind,
+          resourceId: target.resourceId,
+        },
+        target.deniedMessage,
+      );
+    },
+  };
+}
+
+/**
+ * The recover chain's write of the pin ResolveRunAgent held: after the
+ * pre-side-effect slot and before the context is rebuilt, persisted on the
+ * turn's own row so the runner the fresh workflow starts reads it, and
+ * handed on as the loaded execution. Nothing to write is a no-op.
+ */
+export function newStampRecoveredRunAgentStep(
+  store: Store,
+  logger: Logger,
+  skip: (ctx: { get(key: string): unknown }) => boolean,
+): PipelineStep<RecoverDesc> {
+  return {
+    name: "RecordRunAgent",
+    async execute(ctx) {
+      if (skip(ctx)) {
+        return;
+      }
+      const pin = ctx.get(RECOVERED_PIN_KEY) as AgentPin | undefined;
+      if (pin === undefined) {
+        return;
+      }
+      const loaded = loadedExecutionOf(ctx, "RecordRunAgent");
       const executionId = loaded.metadata?.id ?? "";
       let updated: AgentExecution;
       try {
@@ -209,7 +276,7 @@ export function newStampRecoveredRunAgentStep(
         "Recorded the session's agent on a recovered turn that recorded none",
         {
           executionId,
-          agentId,
+          agentId: pin.agentId,
           versionHash: truncateHash(pin.versionHash),
         },
       );
@@ -217,44 +284,26 @@ export function newStampRecoveredRunAgentStep(
   };
 }
 
-/**
- * The recover chain's AuthorizeRunAgent: rerunning a turn runs its agent
- * again, so the caller must still be able to run it — agent#can_execute on
- * the turn's stamp, asked after newStampRecoveredRunAgentStep and before
- * the context is rebuilt or the workflow starts. A turn of the built-in
- * assistant asks nothing. The edition's lanes are admitted by its
- * Authorizer as the create chain's are (RUN_GATE_CHECKS).
- */
-export function newAuthorizeRecoveredRunAgentStep(
-  authorizer: Authorizer,
-  skip: (ctx: { get(key: string): unknown }) => boolean,
-): PipelineStep<RecoverDesc> {
-  return {
-    name: "AuthorizeRunAgent",
-    async execute(ctx) {
-      if (skip(ctx)) {
-        return;
-      }
-      const loaded = ctx.get(LOADED_EXECUTION_KEY) as
-        | AgentExecution
-        | undefined;
-      const target =
-        loaded === undefined ? undefined : agentExecutionRunAgent(loaded);
-      if (target === undefined) {
-        return;
-      }
-      await authorizeResolvedResource(
-        authorizer,
-        ctx.callerIdentity,
-        {
-          permission: target.permission,
-          resourceKind: target.resourceKind,
-          resourceId: target.resourceId,
-        },
-        target.deniedMessage,
-      );
-    },
-  };
+/** The loaded execution, or Internal when a step runs before the load. */
+function loadedExecutionOf(
+  ctx: { get(key: string): unknown },
+  step: string,
+): AgentExecution {
+  const loaded = ctx.get(LOADED_EXECUTION_KEY) as AgentExecution | undefined;
+  if (loaded === undefined) {
+    throw internalError(
+      new Error(`${step} ran before the execution was loaded`),
+      "failed to resolve the agent this turn runs",
+    );
+  }
+  return loaded;
+}
+
+/** A copy of `execution` carrying `pin` as its stamp; the original is untouched. */
+function stampedCopy(execution: AgentExecution, pin: AgentPin): AgentExecution {
+  const copy = clone(AgentExecutionSchema, execution);
+  stampRunAgent(copy, pin);
+  return copy;
 }
 
 /** A point read whose absence is a normal outcome here; a store fault is Internal. */

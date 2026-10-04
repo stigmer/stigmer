@@ -20,13 +20,18 @@
  *     that refusal);
  *   - a store fault is Internal.
  *
- * The recover twin (newStampRecoveredRunAgentStep):
+ * The recover twins (newResolveRecoveredRunAgentStep, then
+ * newStampRecoveredRunAgentStep):
  *   - a turn with no stamp records its session's pin, persisted on its row
  *     and handed on as the loaded execution;
- *   - a turn that recorded an agent, a session pinning none, and a skipped
- *     recover are left as they are;
+ *   - a turn that recorded an agent, one naming no session, a session
+ *     pinning none, and a skipped recover are left as they are;
  *   - running before the execution was loaded is Internal; a turn row gone
  *     before the stamp is written is NotFound, a failing write Internal.
+ * And recover's AuthorizeRunAgent asks agent#can_execute on the turn's
+ * stamp, or on the pin held for a turn that recorded none, before
+ * anything is written; the built-in assistant and a skipped recover ask
+ * nothing.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -67,6 +72,7 @@ import type { Store } from "../../../store/interface.js";
 import { sessionAgentGoneMessage } from "../constants.js";
 import {
   newAuthorizeRecoveredRunAgentStep,
+  newResolveRecoveredRunAgentStep,
   newResolveRunAgentStep,
   newStampRecoveredRunAgentStep,
 } from "../resolve-run-agent.js";
@@ -367,6 +373,7 @@ describe("ResolveRunAgent (recover)", () => {
     if (loaded !== undefined) {
       ctx.set(LOADED_EXECUTION_KEY, loaded);
     }
+    await newResolveRecoveredRunAgentStep(run, () => skip).execute(ctx);
     await newStampRecoveredRunAgentStep(run, silentLogger, () => skip).execute(
       ctx,
     );
@@ -443,6 +450,30 @@ describe("ResolveRunAgent (recover)", () => {
     await recover(turn, true);
 
     expect((await storedTurn("aex_skip")).status?.agentId ?? "").toBe("");
+  });
+
+  it("asks about the session's pin for a turn that recorded none, and a refusal writes nothing", async () => {
+    await seedSession(pinnedSession("ses_gated", "agt_gated", PINNED));
+    const turn = await seedTurn("aex_gated", "ses_gated");
+    const ctx = new RequestContext(
+      RecoverAgentExecutionInputSchema,
+      create(RecoverAgentExecutionInputSchema, { id: "aex_gated" }),
+      testCallerIdentity(),
+      ApiResourceKind.agent_execution,
+    );
+    ctx.set(LOADED_EXECUTION_KEY, turn);
+    await newResolveRecoveredRunAgentStep(store, () => false).execute(ctx);
+
+    const error = await refusal(
+      newAuthorizeRecoveredRunAgentStep(DENY, () => false).execute(
+        ctx,
+      ) as Promise<void>,
+    );
+
+    expect(error.code).toBe(Code.PermissionDenied);
+    expect(error.rawMessage).toBe("unauthorized to run agent 'agt_gated'");
+    expect((await storedTurn("aex_gated")).status?.agentId ?? "").toBe("");
+    expect(ctx.get(LOADED_EXECUTION_KEY)).toBe(turn);
   });
 
   it("is Internal when it runs before the execution was loaded", async () => {

@@ -4,12 +4,13 @@
  * ResolveSessionAgent pinned from spec.agent_ref (a slug cannot be checked
  * by a pure resolver; the resolved id is the mid-chain form).
  *
- * Asked only when the write introduces or changes the agent: a create that
- * names one, or an update whose pinned agent differs from the stored row's.
- * An update that keeps the agent (an echo, or a move to another version of
- * the same agent) is not re-asked; every turn asks it again anyway
- * (agent-execution's AuthorizeRunAgent), so a person who lost the agent
- * gains nothing by editing a session they still own.
+ * Asked whenever the write changes the pin: a create that names an agent,
+ * or an update whose pinned agent or version differs from the stored
+ * row's (a move to another version is answered only to a caller who may
+ * run the agent, so its versions are never probed through a session). An
+ * update that keeps the pin (an echo) is not re-asked; every turn asks it
+ * again anyway (agent-execution's AuthorizeRunAgent), so a person who lost
+ * the agent gains nothing by editing a session they still own.
  *
  * No agent is the built-in assistant (session/v1/spec.proto): there is no
  * blueprint to spend, so the answer is "no target" and the gate makes no
@@ -30,7 +31,12 @@ export function sessionRunTarget(
   stored: Session | undefined,
 ): RunTarget | undefined {
   const agentId = session.status?.agentId ?? "";
-  if (agentId === "" || agentId === (stored?.status?.agentId ?? "")) {
+  if (
+    agentId === "" ||
+    (agentId === (stored?.status?.agentId ?? "") &&
+      (session.status?.agentVersionHash ?? "") ===
+        (stored?.status?.agentVersionHash ?? ""))
+  ) {
     return undefined;
   }
   return {

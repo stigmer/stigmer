@@ -86,10 +86,10 @@ class ChannelAppInput:
 
     def _to_proto(self) -> api_pb2.ChannelApp:
         spec = spec_pb2.ChannelAppSpec()
-        if self.slack is not None:
-            spec.slack.CopyFrom(self.slack._to_proto())
         if self.whatsapp is not None:
             spec.whatsapp.CopyFrom(self.whatsapp._to_proto())
+        if self.slack is not None:
+            spec.slack.CopyFrom(self.slack._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

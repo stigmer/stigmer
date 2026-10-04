@@ -33,7 +33,7 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * Current classification:
  * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
  * private, org, platform
- * - Instance kinds (agent_instance, workflow_instance):
+ * - Instance kinds (workflow_instance):
  * private, org — platform is deliberately excluded to preserve
  * tenant isolation: each managed org instantiates shared blueprints
  * inside its own boundary. (System-managed DEFAULT instances opt out of
@@ -378,7 +378,7 @@ private static final long serialVersionUID = 0L;
    * Current classification:
    * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
    * private, org, platform
-   * - Instance kinds (agent_instance, workflow_instance):
+   * - Instance kinds (workflow_instance):
    * private, org — platform is deliberately excluded to preserve
    * tenant isolation: each managed org instantiates shared blueprints
    * inside its own boundary. (System-managed DEFAULT instances opt out of

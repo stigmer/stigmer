@@ -6,14 +6,19 @@
  * wrapper type — so toProto sets the wrapper only when the input carries a
  * value (a zero value leaves the oneof to the other member), and fromProto
  * reads the member through its getter, which answers the zero value when
- * the oneof holds the other member. The generator runs over the real
- * schemas and the test reads what it wrote.
+ * the oneof holds the other member. On an input that sets both, the
+ * first-declared member wins, as in the TypeScript input: `session_id` is
+ * assigned after `session_spec`, so a follow-up turn never silently starts
+ * a new conversation (firstMemberWinsOrder). The generator runs over the
+ * real schemas and the test reads what it wrote.
  */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { firstMemberWinsOrder } from "../gen-common.js";
+import type { FieldSchema } from "../schema.js";
 import { runSDKClientGeneration } from "../sdk-client-go.js";
 
 const SCHEMAS = path.resolve(__dirname, "../../../schemas");
@@ -43,7 +48,36 @@ describe("the Go generator's scalar oneof member", () => {
     expect(go).not.toContain("resource.Spec.SessionId =");
   });
 
+  it("assigns the first-declared member last, so it wins when both are set", () => {
+    const spec = go.indexOf(
+      "resource.Spec.Target = &agentexecutionv1.AgentExecutionSpec_SessionSpec{",
+    );
+    const id = go.indexOf(
+      "resource.Spec.Target = &agentexecutionv1.AgentExecutionSpec_SessionId{",
+    );
+    expect(spec).toBeGreaterThan(-1);
+    expect(id).toBeGreaterThan(spec);
+  });
+
   it("reads the member back through its getter", () => {
     expect(go).toContain("\t\tinput.SessionId = s.GetSessionId()\n");
+  });
+});
+
+describe("firstMemberWinsOrder", () => {
+  const field = (name: string, oneofGroup = ""): FieldSchema =>
+    ({ name, protoField: name, oneofGroup, type: { kind: "string" } }) as FieldSchema;
+
+  it("reverses each real oneof's members in their own positions and keeps every other field", () => {
+    const order = firstMemberWinsOrder([
+      field("a", "target"),
+      field("b", "target"),
+      field("message"),
+      field("x", "transport"),
+      field("limit", "_limit"),
+      field("y", "transport"),
+      field("z", "transport"),
+    ]).map((f) => f.name);
+    expect(order).toEqual(["b", "a", "message", "z", "limit", "y", "x"]);
   });
 });
