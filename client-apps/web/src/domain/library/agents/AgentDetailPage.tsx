@@ -1,6 +1,5 @@
 "use client";
 
-import { buildChatUrl } from "@stigmer/sdk";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -28,7 +27,7 @@ import {
 } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { getAgentSessionUrl } from "@/domain/session/session-url";
-import { getAppBaseUrl } from "@/config/env";
+import { shareUrlFor } from "@/domain/sharing/share-url";
 
 /**
  * Read the `?tab=` deep-link target once, at mount.
@@ -145,11 +144,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
     [router, org, slug],
   );
 
-  const buildShareUrl = useCallback(
-    (shareId: string) => buildChatUrl(getAppBaseUrl(), shareId),
-    [],
-  );
-
   const handleInstanceStartSession = useCallback(
     (instance: AgentInstance) => {
       const instanceId = instance.metadata?.id;
@@ -256,7 +250,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         editable
         primaryAction={primaryAction}
         actions={actions}
-        buildShareUrl={buildShareUrl}
+        buildShareUrl={shareUrlFor}
         viewerOrg={viewerOrg}
         additionalTabs={additionalTabs}
         activeTab={activeTab}

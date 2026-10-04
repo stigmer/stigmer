@@ -620,6 +620,35 @@ describe("getSharedProfile (anonymous lane)", () => {
     expect(err.rawMessage).toBe(`Agent not found: ${share.metadata!.id}`);
   });
 
+  it("a stored share whose agent is gone or was replaced fails closed, naming the share's id", async () => {
+    // An agent delete cascades its shares, so these rows are written
+    // straight to the store: one names an agent slug nothing holds, one
+    // pins an agent id the slug's current holder does not carry.
+    const agent = await createTestAgent(uniqueName("Rebound Agent"), ORG);
+    const rows = [
+      { id: "ash_stored_dangling", slug: "no-such-agent", pin: "" },
+      { id: "ash_stored_stale_pin", slug: agent.metadata!.slug, pin: "agt_replaced" },
+    ];
+    for (const row of rows) {
+      const stored = create(AgentShareSchema, {
+        apiVersion: API_VERSION,
+        kind: "AgentShare",
+        metadata: { id: row.id, name: row.id, slug: row.id, org: idOf(ORG) },
+        spec: {
+          agentRef: { kind: ApiResourceKind.agent, org: idOf(ORG), slug: row.slug },
+          enabled: true,
+          audience: AgentShareAudience.public,
+        },
+        status: { agentId: row.pin },
+      });
+      await server.store.saveResource(ApiResourceKind.agent_share, row.id, AgentShareSchema, stored);
+      const err = await grpcError(() => query.getSharedProfile({ shareId: row.id }));
+      expect(err.code, row.id).toBe(Code.NotFound);
+      expect(err.rawMessage, row.id).toBe(`Agent not found: ${row.id}`);
+      await server.store.deleteResource(ApiResourceKind.agent_share, row.id);
+    }
+  });
+
   it("another kind's id answers the same NotFound", async () => {
     const agent = await createTestAgent(uniqueName("Wrong Kind Agent"), ORG);
     const err = await grpcError(() =>
@@ -718,6 +747,19 @@ describe("audience and the member resolution lane", () => {
       value: share.metadata!.id,
     });
     expect(profile.slug).toBe(agent.metadata!.slug);
+  });
+
+  it("the member path refuses a disabled share with the missing share's NotFound", async () => {
+    const agent = await createTestAgent(uniqueName("Member Disabled Agent"), ORG);
+    const share = await shares.create({
+      ...shareFor(agent, false),
+      spec: { ...shareFor(agent, false).spec, audience: AgentShareAudience.org },
+    });
+    const err = await grpcError(() =>
+      query.getSharedProfileForMember({ value: share.metadata!.id }),
+    );
+    expect(err.code).toBe(Code.NotFound);
+    expect(err.rawMessage).toBe(`Agent not found: ${share.metadata!.id}`);
   });
 
   it("the ANONYMOUS path collapses an org-audience share to the uniform NotFound (the proto's audience contract)", async () => {

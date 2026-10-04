@@ -32,8 +32,9 @@ vi.mock("@/config/env", () => ({
   getApiBaseUrl: () => "https://api.example.com",
 }));
 
+const SHARE_ID = "ash_01j9z3k8f2q4m6n7p8r9s0t1v2";
 const route = vi.hoisted(() => ({
-  shareId: "ash_01j9z3k8f2q4m6n7p8r9s0t1v2",
+  shareId: "ash_01j9z3k8f2q4m6n7p8r9s0t1v2" as string | null,
   reads: [] as Array<[string, number]>,
 }));
 vi.mock("@/domain/_shared/hooks/useStaticRouteParam", () => ({
@@ -104,8 +105,9 @@ beforeEach(() => {
   stigmerConfigs.length = 0;
   guestAuthConfigs.length = 0;
   route.reads.length = 0;
+  route.shareId = SHARE_ID;
   getSharedProfileMock.mockReset();
-  window.history.replaceState(null, "", `/chat/${route.shareId}`);
+  window.history.replaceState(null, "", `/chat/${SHARE_ID}`);
   setAuth({
     isAuthenticated: false,
     isLoading: false,
@@ -117,6 +119,17 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("SharedAgentChatPage audience routing", () => {
+  it("renders nothing and asks nothing while the route has no share id (the static-export placeholder pass)", () => {
+    route.shareId = null;
+
+    const { container } = render(<SharedAgentChatPage />);
+
+    expect(container.innerHTML).toBe("");
+    expect(getSharedProfileMock).not.toHaveBeenCalled();
+    expect(guestAuthConfigs).toEqual([]);
+    expect(sharedAgentChatProps).toEqual([]);
+  });
+
   it("public share: probe resolves -> guest chat with the default (public) audience", async () => {
     getSharedProfileMock.mockResolvedValue({ org: "acme", slug: "support-bot" });
 
