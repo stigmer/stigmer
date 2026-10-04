@@ -16,7 +16,8 @@
  *     operator's plain settings as values;
  *   - every credential (the token, the Temporal connection settings, the
  *     operator's runner secrets) lives in the Secret and is only named by
- *     the pod template; the Secret is owned by its Sandbox.
+ *     the pod template, optionally, so a key the server stops setting never
+ *     blocks a container's start; the Secret is owned by its Sandbox.
  */
 import { describe, expect, it } from "vitest";
 
@@ -156,6 +157,7 @@ describe("the runner container", () => {
     expect(byName.get("STIGMER_TOKEN")?.valueFrom?.secretKeyRef).toEqual({
       name: `${base}-env`,
       key: "STIGMER_TOKEN",
+      optional: true,
     });
   });
 
@@ -220,6 +222,7 @@ describe("credentials live in the Secret", () => {
       expect(entry?.valueFrom?.secretKeyRef).toEqual({
         name: `${base}-env`,
         key: name,
+        optional: true,
       });
     }
   });
@@ -239,7 +242,11 @@ describe("credentials live in the Secret", () => {
     expect(containerEnv).toContainEqual({
       name: "ANTHROPIC_API_KEY",
       valueFrom: {
-        secretKeyRef: { name: `${base}-env`, key: "ANTHROPIC_API_KEY" },
+        secretKeyRef: {
+          name: `${base}-env`,
+          key: "ANTHROPIC_API_KEY",
+          optional: true,
+        },
       },
     });
     expect(JSON.stringify(sandbox)).not.toContain("sk-test");

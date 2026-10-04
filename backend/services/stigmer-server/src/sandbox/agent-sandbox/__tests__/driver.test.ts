@@ -14,7 +14,10 @@
  *     fails the ensure;
  *   - deprovision deletes the Sandbox alone (its pod, claim and Secret go
  *     by ownership); probe maps the mode onto absent/stopped/running;
- *   - two ensures of one sandbox never interleave their writes.
+ *   - every Secret reference in the template is optional, so a running
+ *     sandbox whose server stopped setting a key still starts its runner;
+ *   - two ensures of one sandbox never interleave their writes, and a
+ *     failed one leaves the queue usable.
  */
 import { describe, expect, it } from "vitest";
 
@@ -224,6 +227,57 @@ describe("the ensure", () => {
     }).ensureSessionSandbox("ses_1", env);
     expect(Date.now() - started).toBeGreaterThanOrEqual(450);
     expect(cluster.sandboxes.get(name)?.operatingMode).toBe("Running");
+  });
+
+  it("a running sandbox whose server stopped setting a secret keeps a template every rewritten Secret satisfies", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    const before: SandboxDriverConfig = {
+      ...config,
+      runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-test" },
+    };
+    await driverOver(cluster, { config: before }).ensureSessionSandbox(
+      "ses_1",
+      env,
+    );
+    // The server restarts without the secret, and the token goes empty.
+    await driverOver(cluster).ensureSessionSandbox("ses_1", {
+      ...env,
+      stigmerToken: "",
+    });
+    const secret = cluster.secrets.get(`${name}-env`);
+    expect(secret?.stringData).toEqual({});
+    const refs = (
+      cluster.sandboxes.get(name)?.podTemplate.spec.containers[0]?.env ?? []
+    ).flatMap((entry) =>
+      entry.valueFrom?.secretKeyRef ? [entry.valueFrom.secretKeyRef] : [],
+    );
+    expect(refs.map((ref) => ref.key).sort()).toEqual([
+      "ANTHROPIC_API_KEY",
+      "STIGMER_TOKEN",
+    ]);
+    // A key the Secret no longer holds leaves its variable unset rather
+    // than refusing the container's start.
+    for (const ref of refs) {
+      const present = Object.keys(secret?.stringData ?? {}).includes(ref.key);
+      expect(present || ref.optional === true, ref.key).toBe(true);
+    }
+  });
+
+  it("a failed ensure leaves the sandbox's queue usable and empty", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    const driver = driverOver(cluster);
+    const applySecret = cluster.applySecret.bind(cluster);
+    cluster.applySecret = async () => {
+      throw new Error("the API server refused");
+    };
+    await expect(driver.ensureSessionSandbox("ses_1", env)).rejects.toThrow(
+      "the API server refused",
+    );
+    cluster.applySecret = applySecret;
+    await driver.ensureSessionSandbox("ses_1", env);
+    expect(cluster.sandboxes.get(name)?.operatingMode).toBe("Running");
+    await driver.deprovisionSessionSandbox("ses_1");
+    expect(cluster.sandboxes.size).toBe(0);
   });
 
   it("a token-less sandbox still gets its Secret", async () => {

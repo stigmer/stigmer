@@ -30,6 +30,14 @@
  * claim. Values that carry credentials (the token, the server's Temporal
  * connection settings, the operator's runner secrets) live only there; the
  * pod template names them by secretKeyRef.
+ *
+ * Every such reference is optional. A running sandbox keeps the pod (and
+ * the template) it was woken with while each ensure rewrites its Secret
+ * with this server's keys, so a key the server no longer sets (a secret
+ * taken off the operator's list, a token no longer minted) would otherwise
+ * stop the runner container at its next restart in that pod, or its pod's
+ * next re-creation, until the sandbox slept. Optional, the variable is
+ * simply unset, as it would be in a sandbox started now.
  */
 import type { V1EnvVar, V1PodSpec, V1Secret } from "@kubernetes/client-node";
 
@@ -104,7 +112,9 @@ function runnerEnv(
   const secretName = agentSandboxSecretName(scope, id);
   const fromSecret = (name: string): V1EnvVar => ({
     name,
-    valueFrom: { secretKeyRef: { name: secretName, key: name } },
+    valueFrom: {
+      secretKeyRef: { name: secretName, key: name, optional: true },
+    },
   });
   const entries: V1EnvVar[] = [
     { name: "MODE", value: "local" },

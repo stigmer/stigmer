@@ -206,10 +206,12 @@ stopped sandbox starts again, it runs the server's current runner image and
 settings, not the ones it was created with.
 
 The server needs a Role in that namespace allowing `get`, `create`, `patch` and
-`delete` on `sandboxes.agents.x-k8s.io`, and `create` and `update` on `secrets`.
-It needs no rights on Deployments, pods or claims. Without agent-sandbox
-installed, a Session's first run fails, and the error names the resource and the
-manifest to install.
+`delete` on `sandboxes.agents.x-k8s.io`, and `create`, `update` and `delete` on
+`secrets`. The server never deletes a Secret itself. A cluster that enforces
+owner-reference permissions, such as OpenShift, asks for `delete` before it lets
+the server name a Secret's owner. The server needs no rights on Deployments,
+pods or claims. Without agent-sandbox installed, a Session's first run fails,
+and the error names the resource and the manifest to install.
 
 A runner outside Stigmer Cloud calls its model with its own key, so a sandboxed
 runner needs the keys the shared runner would have. Name them in two lists on
