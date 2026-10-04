@@ -80,7 +80,8 @@ import type { ResolvedBlueprint } from "../shared/blueprint-resolver.js";
 import type { SessionWorkspaceProvision } from "../shared/workspace/session-provision.js";
 import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
 import type { ChannelMessagingInfo } from "../shared/channel-attachment.js";
-import type { ActiveLeases, MergedToolPolicy } from "../shared/approval-policy.js";
+import type { ActiveLeases, McpApprovalDefault } from "../shared/approval-policy.js";
+import type { ToolScope } from "../shared/tool-lists.js";
 import type { SkillMetadata } from "../shared/skill-resolver.js";
 import type { ResolvedAttachment } from "../shared/attachment-resolver.js";
 import type { NotViewableEntry, VisionImage } from "../shared/attachment-vision.js";
@@ -195,14 +196,26 @@ export interface TurnWorkspace {
   readonly provision: SessionWorkspaceProvision;
 }
 
-/** The tool surface (phases 4 to 4b): the resolved servers with the attachments folded in, and the merged approval policies. */
+/** The tool surface (phases 4 to 4b): the resolved servers with the attachments folded in, the approval default's MCP half, and the agent's tool scope. */
 export interface TurnMcp {
   /** Every resolved server, synthesized attachments included; the harness projects its SDK config from this list. */
   readonly servers: readonly ResolvedMcpServer[];
   /** Serving proactive channels and their templates (the discovery read). */
   readonly channelMessaging: readonly ChannelMessagingInfo[];
   readonly leases: ActiveLeases;
-  readonly policies: ReadonlyMap<string, MergedToolPolicy>;
+  /** Which MCP tools ask (their server marks them destructive) and which servers a lease cleared. */
+  readonly mcpDefault: McpApprovalDefault;
+  /**
+   * The slugs of the synthesized attachments injected this turn: the
+   * platform's own servers, outside every tool list.
+   */
+  readonly platformServerSlugs: ReadonlySet<string>;
+  /**
+   * The main agent's tool scope, from its `tools` and `disallowed_tools`
+   * (`shared/tool-lists.ts`); unrestricted for an agent with no lists and for
+   * the built-in assistant. A sub-agent's scope narrows this one.
+   */
+  readonly toolScope: ToolScope;
 }
 
 /**

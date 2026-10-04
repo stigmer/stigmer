@@ -96,7 +96,8 @@ import { discoverChannelMessaging, synthesizeChannelAttachment } from "../shared
 import { readChannelConversationId, synthesizeConversationAttachment } from "../shared/conversation-attachment.js";
 import { synthesizeMemoryAttachment } from "../shared/memory-attachment.js";
 import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js";
-import { deriveActiveLeases, mergeApprovalPolicies } from "../shared/approval-policy.js";
+import { buildMcpApprovalDefault, deriveActiveLeases } from "../shared/approval-policy.js";
+import { ToolScope } from "../shared/tool-lists.js";
 import { resolveAttachments } from "../shared/attachment-resolver.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
 import { VisionBudget, type NotViewableEntry, type VisionProfile } from "../shared/attachment-vision.js";
@@ -666,14 +667,15 @@ export async function reconcileReinvocation(
  * refuses the ambient fallback safely), so a failed exchange must not kill
  * the run, unlike the env read, where secrets are load-bearing.
  *
- * Approval policies merge last, from all layers, with two bypasses shared
- * with the native harness (`shared/approval-policy.ts` `ActiveLeases`): the
- * pre-armed spec.auto_approve_all is the one whole-run global bypass; an
- * interactive APPROVE_ALL grants a run-lifetime lease scoped to that
- * action's class. Layer-3 overrides ride each resolved server from its
- * merged usage (issue #349). The harness projects its SDK config from
- * `servers` after this returns, exactly once, so every mutation is visible
- * by construction.
+ * The approval default's MCP half is built last (which tools their servers
+ * mark destructive), with two bypasses shared with the native harness
+ * (`shared/approval-policy.ts` `ActiveLeases`): the pre-armed
+ * spec.auto_approve_all is the one whole-run global bypass; an interactive
+ * APPROVE_ALL grants a run-lifetime lease scoped to that action's class. The
+ * agent's tool scope is resolved here too, from its two lists, so both
+ * harnesses enforce one reading of them. The harness projects its SDK config
+ * from `servers` after this returns, exactly once, so every mutation is
+ * visible by construction.
  */
 export async function resolveMcpServersAndPolicies(
   deps: ResolutionDeps,
@@ -700,6 +702,7 @@ export async function resolveMcpServersAndPolicies(
     ),
     sessionId,
   );
+  const platformServerSlugs = new Set<string>();
   let servers = (await resolveMcpServers(
     client, blueprint.mergedMcpServerUsages, mcpEnvVars, transportPosture, config,
   )).resolvedServers;
@@ -736,6 +739,7 @@ export async function resolveMcpServersAndPolicies(
     const attachment = synthesizeChannelAttachment(channelMessaging, attachmentEndpoints);
     if (attachment) {
       servers = injectSynthesizedAttachment(servers, attachment, "channel messaging");
+      platformServerSlugs.add(attachment.slug);
     }
   }
 
@@ -747,6 +751,7 @@ export async function resolveMcpServersAndPolicies(
   );
   if (conversationAttachment) {
     servers = injectSynthesizedAttachment(servers, conversationAttachment, "conversation participation");
+    platformServerSlugs.add(conversationAttachment.slug);
   }
 
   // Phase 4a5: the memory capture attachment. The capture context is
@@ -766,13 +771,21 @@ export async function resolveMcpServersAndPolicies(
   );
   if (memoryAttachment) {
     servers = injectSynthesizedAttachment(servers, memoryAttachment, "memory capture");
+    platformServerSlugs.add(memoryAttachment.slug);
   }
 
-  // Phase 4b: merge approval policies from all layers.
+  // Phase 4b: the approval default's MCP half, and the agent's tool scope.
   const leases = deriveActiveLeases(execution);
-  const policies = mergeApprovalPolicies(servers, leases);
+  const mcpDefault = buildMcpApprovalDefault(servers, leases);
+  const agentSpec = blueprint.agent?.spec;
+  const toolScope = agentSpec
+    ? ToolScope.of(`Agent "${blueprint.agent?.metadata?.slug || blueprint.agent?.metadata?.name || "agent"}"`, {
+        tools: agentSpec.tools,
+        disallowedTools: agentSpec.disallowedTools,
+      })
+    : ToolScope.unrestricted();
 
-  return { servers, channelMessaging, leases, policies };
+  return { servers, channelMessaging, leases, mcpDefault, platformServerSlugs, toolScope };
 }
 
 /**
