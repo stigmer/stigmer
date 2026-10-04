@@ -31,6 +31,7 @@ import {
 import { newPrimaryEnforcingLane } from "../harness/enforcing-lane";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { uniqueName } from "../support/naming";
+import { optInToMemory } from "../support/identityaccounts";
 import { createUniqueOrganization } from "../support/organizations";
 import type {
   CapabilityFlags,
@@ -98,7 +99,8 @@ export class CloudTarget implements TargetProfile {
     // (stigmer#547) instead.
     clientReservedLabelWrites: false,
     // The primary conformance user signs in through the environment's tenant
-    // as a console person does, so it passes the first-party gate.
+    // as a console person does, so it passes the first-party gate, and opts
+    // in to memory on its own account at setup.
     firstPartyMemoryCapture: true,
     // The cloud channel runtime serves installs, conversation participation,
     // and proactive messaging for real — the OSS refusal pins are gated off
@@ -193,6 +195,10 @@ export class CloudTarget implements TargetProfile {
     const tenant = requireDirectLoginTenant();
     this.tenant = tenant;
     this.directLoginTenant = () => tenant;
+    // The primary is that console person, and opts in to memory on their own
+    // account as such a person does, so the suites that capture memory run
+    // past the member half of the double opt-in (firstPartyMemoryCapture).
+    await optInToMemory(this.clients());
   }
 
   directLoginUnavailable(): string {
