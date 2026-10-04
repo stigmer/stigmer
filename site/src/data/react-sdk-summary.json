@@ -18,8 +18,8 @@
       "slug": "agent",
       "title": "Agent",
       "description": "Hooks and components for agent definitions, search, setup orchestration, and detail views.",
-      "hooks": 7,
-      "components": 4
+      "hooks": 8,
+      "components": 5
     },
     {
       "slug": "agent-instance",
