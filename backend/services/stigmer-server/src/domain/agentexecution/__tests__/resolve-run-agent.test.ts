@@ -414,6 +414,28 @@ describe("ResolveRunAgent (recover)", () => {
     expect((await storedTurn("aex_builtin")).status?.agentId ?? "").toBe("");
   });
 
+  it("leaves a turn that names no session as it is: there is no pin to record", async () => {
+    const turn = create(AgentExecutionSchema, {
+      metadata: {
+        id: "aex_no_session",
+        org: "test-org",
+        slug: "aex_no_session",
+      },
+      spec: {},
+    });
+    await store.saveResource(
+      ApiResourceKind.agent_execution,
+      "aex_no_session",
+      AgentExecutionSchema,
+      turn,
+    );
+
+    const ctx = await recover(turn);
+
+    expect((await storedTurn("aex_no_session")).status?.agentId ?? "").toBe("");
+    expect(ctx.get(LOADED_EXECUTION_KEY)).toBe(turn);
+  });
+
   it("does nothing when the recover is skipped", async () => {
     await seedSession(pinnedSession("ses_skip", "agt_skip", HEAD));
     const turn = await seedTurn("aex_skip", "ses_skip");
