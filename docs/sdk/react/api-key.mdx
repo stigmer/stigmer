@@ -208,7 +208,7 @@ Compact form for creating a new API key.
 Collects a **name** (required), an **expiry** choice (30 / 60 /
 90 days or never) and **This organization only** (checked by default,
 which limits the key to `org`: it is refused in every other organization;
-unchecked, the key works in every organization its owner belongs to),
+unchecked, the key works in every organization the owner's sign-in reaches),
 then creates the key via [`useCreateApiKey`](#usecreateapikey).
 On success it fires `onCreated` with the full `ApiKey`
 response, which includes the raw key in `spec.keyHash`.
