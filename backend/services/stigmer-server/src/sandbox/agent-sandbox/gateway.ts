@@ -109,14 +109,12 @@ export function agentSandboxViewOf(object: unknown): AgentSandboxView {
   };
 }
 
-function errorDetail(error: unknown): string {
-  if (error instanceof ApiException) {
-    const message = record(
-      typeof error.body === "string" ? safeJson(error.body) : error.body,
-    ).message;
-    return `HTTP ${error.code}${typeof message === "string" ? `: ${message}` : ""}`;
-  }
-  return error instanceof Error ? error.message : String(error);
+/** The API server's own words for a refusal: its Status message, else its text. */
+function errorDetail(error: ApiException<unknown>): string {
+  const text = typeof error.body === "string" ? error.body.trim() : "";
+  const message = record(text === "" ? error.body : safeJson(text)).message;
+  const detail = typeof message === "string" ? message : text;
+  return detail === "" ? `HTTP ${error.code}` : `HTTP ${error.code}: ${detail}`;
 }
 
 function safeJson(text: string): unknown {
@@ -163,7 +161,7 @@ export function newAgentSandboxClientGateway(
         return agentSandboxViewOf(object);
       } catch (error) {
         if (isStatus(error, 409)) return undefined;
-        if (isStatus(error, 404)) {
+        if (error instanceof ApiException && error.code === 404) {
           throw new AgentSandboxNotInstalledError(
             namespace,
             errorDetail(error),

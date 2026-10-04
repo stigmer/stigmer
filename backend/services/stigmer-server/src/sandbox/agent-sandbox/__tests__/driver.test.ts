@@ -10,7 +10,8 @@
  *   - a Sandbox being deleted is waited out, then created again; one that
  *     never goes fails loudly;
  *   - a Sandbox another server created between the read and the create is
- *     woken, not refused;
+ *     woken, not refused; one reported to exist that cannot then be read
+ *     fails the ensure;
  *   - deprovision deletes the Sandbox alone (its pod, claim and Secret go
  *     by ownership); probe maps the mode onto absent/stopped/running;
  *   - two ensures of one sandbox never interleave their writes.
@@ -197,6 +198,32 @@ describe("the ensure", () => {
     expect(
       cluster.secrets.get(`${name}-env`)?.metadata?.ownerReferences?.[0]?.uid,
     ).toBe(cluster.sandboxes.get(name)?.uid);
+  });
+
+  it("a Sandbox reported to exist that then cannot be read fails the ensure", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    cluster.createSandbox = async () => undefined;
+    await expect(
+      driverOver(cluster).ensureSessionSandbox("ses_1", env),
+    ).rejects.toThrow(
+      `agent-sandbox Sandbox '${name}' was reported to exist and then could not be read`,
+    );
+  });
+
+  it("waits out a deletion on the real clock when no sleep is given", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    cluster.seed(
+      buildAgentSandbox("session", "ses_1", env, config),
+      "Running",
+    ).deletingReads = 1;
+    const started = Date.now();
+    await newAgentSandboxProvisionerOverGateway({
+      gateway: cluster,
+      config,
+      logger: { info: () => {} },
+    }).ensureSessionSandbox("ses_1", env);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(450);
+    expect(cluster.sandboxes.get(name)?.operatingMode).toBe("Running");
   });
 
   it("a token-less sandbox still gets its Secret", async () => {

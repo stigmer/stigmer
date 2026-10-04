@@ -8,8 +8,9 @@
  *   - a patch is a JSON Patch, sent with its own content type, whose `add`
  *     operations replace the pod template whole and the operating mode;
  *   - a 404 read is "absent", a 409 create is "exists", a 404 create names
- *     the agent-sandbox install, a 404 delete is success, and a delete
- *     propagates in the background;
+ *     the agent-sandbox install (quoting the API server's message or its
+ *     plain text), a 404 delete is success, a delete propagates in the
+ *     background, and any other refusal is passed on;
  *   - a Secret that exists is replaced whole;
  *   - the view reads a Sandbox's uid, mode (unset is Running) and deletion.
  */
@@ -20,6 +21,7 @@ import { KubeConfig } from "@kubernetes/client-node";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  AgentSandboxNotInstalledError,
   agentSandboxViewOf,
   newAgentSandboxClientGateway,
 } from "../gateway.js";
@@ -32,7 +34,7 @@ interface Seen {
   readonly body: unknown;
 }
 
-type Reply = { status: number; body?: unknown };
+type Reply = { status: number; body?: unknown; text?: string };
 
 const servers: Server[] = [];
 
@@ -65,6 +67,11 @@ async function apiServer(
       };
       seen.push(entry);
       const answer = reply(entry);
+      if (answer.text !== undefined) {
+        response.writeHead(answer.status, { "content-type": "text/plain" });
+        response.end(answer.text);
+        return;
+      }
       response.writeHead(answer.status, { "content-type": "application/json" });
       response.end(JSON.stringify(answer.body ?? {}));
     });
@@ -85,6 +92,15 @@ async function apiServer(
 }
 
 const SANDBOXES = "/apis/agents.x-k8s.io/v1beta1/namespaces/sbx/sandboxes";
+const sandboxResource: AgentSandboxResource = {
+  apiVersion: "agents.x-k8s.io/v1beta1",
+  kind: "Sandbox",
+  metadata: { name: "sbx-ses-1", labels: {} },
+  spec: {
+    podTemplate: { metadata: { labels: {} }, spec: { containers: [] } },
+    operatingMode: "Suspended",
+  },
+};
 const status = (code: number, message: string): Reply => ({
   status: code,
   body: { kind: "Status", apiVersion: "v1", status: "Failure", message, code },
@@ -197,6 +213,23 @@ describe("the Sandbox calls", () => {
     const gateway = newAgentSandboxClientGateway(kubeConfig, "sbx");
     await expect(gateway.getSandbox("sbx-ses-1")).rejects.toThrow();
     await expect(gateway.deleteSandbox("sbx-ses-1")).rejects.toThrow();
+    const created = gateway.createSandbox(sandboxResource);
+    await expect(created).rejects.toThrow();
+    await expect(created).rejects.not.toThrow(AgentSandboxNotInstalledError);
+    await expect(
+      gateway.applySecret({ metadata: { name: "sbx-ses-1-env" } }),
+    ).rejects.toThrow();
+  });
+
+  it("names the API server's plain-text answer when a create finds no resource type", async () => {
+    const { kubeConfig } = await apiServer(() => ({
+      status: 404,
+      text: "404 page not found\n",
+    }));
+    const gateway = newAgentSandboxClientGateway(kubeConfig, "sbx");
+    await expect(gateway.createSandbox(sandboxResource)).rejects.toThrow(
+      "check that the namespace exists (HTTP 404: 404 page not found)",
+    );
   });
 });
 

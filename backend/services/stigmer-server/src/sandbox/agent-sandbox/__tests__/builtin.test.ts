@@ -4,9 +4,15 @@
  *   - `agent-sandbox` is a built-in name; the removed `kubernetes` name is
  *     an unknown driver, refused with the list of the known ones;
  *   - the driver refuses to start without the server's and Temporal's
- *     in-cluster addresses, before it reads any kubeconfig.
+ *     in-cluster addresses, before it reads any kubeconfig, and otherwise
+ *     builds over the kubeconfig the client resolves, with no background
+ *     work.
  */
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createLogger } from "../../../boot/logger.js";
 import { builtInSandboxProvisionerFactories } from "../../builtins.js";
@@ -31,6 +37,13 @@ const config: SandboxDriverConfig = {
   runnerSecretEnv: {},
   serverRelease: "",
 };
+
+const cleanups: Array<() => void> = [];
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  for (const cleanup of cleanups.splice(0)) cleanup();
+});
 
 describe("selecting the agent-sandbox driver", () => {
   it("is the built-in behind agent-sandbox, and kubernetes is refused as an unknown driver", () => {
@@ -65,5 +78,26 @@ describe("selecting the agent-sandbox driver", () => {
     ).toThrowError(
       "sandbox provisioner 'agent-sandbox' requires STIGMER_SANDBOX_TEMPORAL_ADDRESS (or TEMPORAL_HOST_PORT) reachable from inside the cluster",
     );
+  });
+
+  it("builds the driver over the kubeconfig the client resolves, as kubectl would", () => {
+    const dir = mkdtempSync(join(tmpdir(), "agent-sandbox-kubeconfig-"));
+    cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
+    const path = join(dir, "config");
+    writeFileSync(
+      path,
+      [
+        "apiVersion: v1",
+        "kind: Config",
+        "clusters: [{name: c, cluster: {server: 'https://127.0.0.1:6443'}}]",
+        "users: [{name: u, user: {token: t}}]",
+        "contexts: [{name: x, context: {cluster: c, user: u}}]",
+        "current-context: x",
+      ].join("\n"),
+    );
+    vi.stubEnv("KUBECONFIG", path);
+    const provisioner = newAgentSandboxProvisioner({ config, logger });
+    expect(typeof provisioner.ensureSessionSandbox).toBe("function");
+    expect(provisioner.startBackground).toBeUndefined();
   });
 });
