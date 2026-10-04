@@ -503,6 +503,40 @@ describe("a push that does not finish", () => {
     });
   });
 
+  it("fails a reply Node parses but a Response refuses (a control character in its status text) as a RouterReplyError", async () => {
+    const raw = net.createServer((socket) => {
+      socket.once("data", () =>
+        socket.end(
+          Buffer.from(
+            "HTTP/1.1 200 O\x01K\r\ncontent-length: 2\r\n\r\n{}",
+            "latin1",
+          ),
+        ),
+      );
+    });
+    await new Promise<void>((resolve) =>
+      raw.listen(0, "127.0.0.1", () => resolve()),
+    );
+    try {
+      const { port } = raw.address() as AddressInfo;
+      const routerUrl = `http://127.0.0.1:${port}`;
+      const fetch = newRouterFetch({
+        routerUrl,
+        routerCaFile: "",
+        routerServerName: "",
+      });
+      const failure = await fetch(`${routerUrl}/attach`).catch(
+        (e: unknown) => e,
+      );
+      expect(failure).toBeInstanceOf(RouterReplyError);
+      expect((failure as Error).message).toMatch(
+        /sent a reply no Response can carry: .*statusText/,
+      );
+    } finally {
+      await new Promise<void>((resolve) => raw.close(() => resolve()));
+    }
+  });
+
   it("rejects a 101 reply, whose body never ends, at once instead of hanging", async () => {
     const raw = net.createServer((socket) => {
       // Switches and keeps the connection, as an upgrade would.
