@@ -785,7 +785,7 @@ function AudienceSelector({
 }
 
 // ---------------------------------------------------------------------------
-// Who pays — cost attribution is always the org in the share URL
+// Who pays — cost attribution is always the share's own org (metadata.org)
 // ---------------------------------------------------------------------------
 
 function WhoPaysLine({

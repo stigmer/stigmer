@@ -627,7 +627,11 @@ describe("getSharedProfile (anonymous lane)", () => {
     const agent = await createTestAgent(uniqueName("Rebound Agent"), ORG);
     const rows = [
       { id: "ash_stored_dangling", slug: "no-such-agent", pin: "" },
-      { id: "ash_stored_stale_pin", slug: agent.metadata!.slug, pin: "agt_replaced" },
+      {
+        id: "ash_stored_stale_pin",
+        slug: agent.metadata!.slug,
+        pin: "agt_replaced",
+      },
     ];
     for (const row of rows) {
       const stored = create(AgentShareSchema, {
@@ -635,14 +639,25 @@ describe("getSharedProfile (anonymous lane)", () => {
         kind: "AgentShare",
         metadata: { id: row.id, name: row.id, slug: row.id, org: idOf(ORG) },
         spec: {
-          agentRef: { kind: ApiResourceKind.agent, org: idOf(ORG), slug: row.slug },
+          agentRef: {
+            kind: ApiResourceKind.agent,
+            org: idOf(ORG),
+            slug: row.slug,
+          },
           enabled: true,
           audience: AgentShareAudience.public,
         },
         status: { agentId: row.pin },
       });
-      await server.store.saveResource(ApiResourceKind.agent_share, row.id, AgentShareSchema, stored);
-      const err = await grpcError(() => query.getSharedProfile({ shareId: row.id }));
+      await server.store.saveResource(
+        ApiResourceKind.agent_share,
+        row.id,
+        AgentShareSchema,
+        stored,
+      );
+      const err = await grpcError(() =>
+        query.getSharedProfile({ shareId: row.id }),
+      );
       expect(err.code, row.id).toBe(Code.NotFound);
       expect(err.rawMessage, row.id).toBe(`Agent not found: ${row.id}`);
       await server.store.deleteResource(ApiResourceKind.agent_share, row.id);
@@ -659,14 +674,15 @@ describe("getSharedProfile (anonymous lane)", () => {
   });
 
   it("an empty share_id is INVALID_ARGUMENT", async () => {
-    const err = await grpcError(() =>
-      query.getSharedProfile({ shareId: "" }),
-    );
+    const err = await grpcError(() => query.getSharedProfile({ shareId: "" }));
     expect(err.code).toBe(Code.InvalidArgument);
   });
 
   it("a share whose organization is gone answers the same NotFound on both lanes", async () => {
-    const agent = await createTestAgent(uniqueName("Orphaned Share Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Orphaned Share Agent"),
+      ORG,
+    );
     const share = await shares.create(shareFor(agent, true));
     const ref = { shareId: share.metadata!.id };
     await query.getSharedProfile(ref);
@@ -750,10 +766,16 @@ describe("audience and the member resolution lane", () => {
   });
 
   it("the member path refuses a disabled share with the missing share's NotFound", async () => {
-    const agent = await createTestAgent(uniqueName("Member Disabled Agent"), ORG);
+    const agent = await createTestAgent(
+      uniqueName("Member Disabled Agent"),
+      ORG,
+    );
     const share = await shares.create({
       ...shareFor(agent, false),
-      spec: { ...shareFor(agent, false).spec, audience: AgentShareAudience.org },
+      spec: {
+        ...shareFor(agent, false).spec,
+        audience: AgentShareAudience.org,
+      },
     });
     const err = await grpcError(() =>
       query.getSharedProfileForMember({ value: share.metadata!.id }),

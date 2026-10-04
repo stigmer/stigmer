@@ -505,9 +505,10 @@ const consumerGuestTokenVerifier: IdentityVerifier = {
 };
 
 /**
- * The organization of each share the consumer serves: a mint names only the
- * share's id, so a consumer reads the share to learn whose guest it mints
- * (the cloud reads its own share row).
+ * Where a consumer learns whose guest it mints: a mint names only the
+ * share's id, so a real consumer reads the share's row for its organization
+ * (the cloud reads it in-process). This fake is only compiled, never run,
+ * so an empty map stands in for that read.
  */
 const consumerShareOrgs = new Map<string, string>();
 
