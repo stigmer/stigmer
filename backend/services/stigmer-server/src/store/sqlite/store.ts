@@ -1774,10 +1774,16 @@ class SqliteResourceNameStore implements ResourceNameStore {
           rename.id,
         );
       }
+      // `from` is current again unless a rename that overlapped this one
+      // made its own name current meanwhile (postgres/store.ts says why).
       db.prepare(
         `UPDATE resource_names SET state = 'current', expires_at = ''
-         WHERE kind = ? AND org = ? AND name = ? AND id = ?`,
-      ).run(rename.kind, rename.org, rename.from, rename.id);
+         WHERE kind = ? AND org = ? AND name = ? AND id = ?
+           AND NOT EXISTS (
+             SELECT 1 FROM resource_names
+             WHERE kind = ? AND org = ? AND id = ? AND state = 'current'
+           )`,
+      ).run(rename.kind, rename.org, rename.from, rename.id, rename.kind, rename.org, rename.id);
     });
   }
 

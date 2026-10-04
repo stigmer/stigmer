@@ -433,9 +433,11 @@ export interface ResourceNameStore {
    */
   rename(rename: ResourceNameRename): Promise<ResourceNameRenamed>;
   /**
-   * Undoes a rename whose resource write failed: `from` is current again,
-   * and `to` is let go, or, when the rename took it back (`takenBack`, from
-   * the rename's outcome), restored to that earlier state. Idempotent.
+   * Undoes a rename whose resource write failed: `to` is let go, or, when
+   * the rename took it back (`takenBack`, from the rename's outcome),
+   * restored to that earlier state; and `from` is current again, unless a
+   * rename that overlapped this one has made its own name current since,
+   * which stands. Idempotent.
    */
   revertRename(rename: ResourceNameRename, takenBack?: ResourceNameEntry): Promise<void>;
   /**

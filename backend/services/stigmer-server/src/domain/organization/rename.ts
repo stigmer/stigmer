@@ -100,7 +100,17 @@ export function newRenameOrganizationSlugStep(
           "failed to rename the organization",
         );
       }
-      if (metadata.slug === ctx.input.slug) {
+      // The name table, not the row, says what the organization is called:
+      // a row a failed settle left behind moves from the table's name.
+      let current;
+      try {
+        current = await store.resourceNames.current(ORGANIZATION_NAME_KIND, "", metadata.id);
+      } catch (error) {
+        throw internalError(error, "failed to rename the organization");
+      }
+      const from = current?.name ?? metadata.slug;
+      if (from === ctx.input.slug) {
+        metadata.slug = from;
         return;
       }
       const now = new Date();
@@ -108,7 +118,7 @@ export function newRenameOrganizationSlugStep(
         kind: ORGANIZATION_NAME_KIND,
         org: "",
         id: metadata.id,
-        from: metadata.slug,
+        from,
         to: ctx.input.slug,
         // The store holds a name equal to the id for good (an organization
         // from an earlier release, filed under its first slug).

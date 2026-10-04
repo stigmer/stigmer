@@ -1607,6 +1607,19 @@ export function describeStoreContract(
       expect(await names().resolve(key("acme-corp"), T2)).toBeUndefined();
     });
 
+    it("a move back after an overlapping rename leaves the later rename's name the one current name", async () => {
+      await names().claim(key("acme"), "org_a", T0);
+      const first = { ...ORG, id: "org_a", from: "acme", to: "acme-y", fromExpiresAt: T2, now: T1 };
+      await names().rename(first);
+      await names().rename({ ...ORG, id: "org_a", from: "acme", to: "acme-z", fromExpiresAt: T2, now: T1 });
+      // The first rename's row write fails: its names move back.
+      await names().revertRename(first);
+
+      expect(await names().resolve(key("acme-y"), T1)).toBeUndefined();
+      expect(await names().current("organization", "", "org_a")).toMatchObject({ name: "acme-z" });
+      expect(await names().resolve(key("acme"), T1)).toMatchObject({ state: "previous" });
+    });
+
     it("revertRename restores a name the rename took back, as it stood, instead of letting it go", async () => {
       await names().claim(key("acme"), "org_a", T0);
       await names().rename({ ...ORG, id: "org_a", from: "acme", to: "acme-corp", fromExpiresAt: T3, now: T1 });

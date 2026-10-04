@@ -692,6 +692,7 @@ describe("a rename whose row write fails", () => {
     let revertFails = false;
     const store = {
       resourceNames: {
+        current: async () => undefined,
         rename: async (move: ResourceNameRename) => {
           moves.push(move);
           return {
@@ -747,6 +748,7 @@ describe("a rename whose row write fails", () => {
     const reverts: Array<ResourceNameEntry | undefined> = [];
     const store = {
       resourceNames: {
+        current: async () => undefined,
         rename: async (move: ResourceNameRename) => ({
           claimed: true,
           entry: { ...takenBack, state: "current", claimedAt: move.now, expiresAt: "" },

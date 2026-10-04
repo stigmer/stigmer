@@ -127,7 +127,7 @@ describe("LoadOrganizationForRename", () => {
 describe("RenameOrganizationSlug", () => {
   it("refuses a row with no id or slug as a server fault, moving no name", async () => {
     const rename = vi.fn();
-    const store = { resourceNames: { rename } } as unknown as Store;
+    const store = { resourceNames: { rename, current: async () => undefined } } as unknown as Store;
     const noSlug = create(OrganizationSchema, { metadata: { id: ACME } });
 
     const fault = await refusalOf(() =>
@@ -135,6 +135,51 @@ describe("RenameOrganizationSlug", () => {
     );
     expect(fault.code).toBe(Code.Internal);
     expect(rename).not.toHaveBeenCalled();
+  });
+
+  it("moves from the name the table holds as current, not a row a failed settle left behind", async () => {
+    const entry = (name: string): ResourceNameEntry => ({
+      ...organizationNameKey(name),
+      id: ACME,
+      state: "current",
+      claimedAt: new Date().toISOString(),
+      expiresAt: "",
+    });
+    const moves: ResourceNameRename[] = [];
+    const behind = {
+      resourceNames: {
+        current: async () => entry("acme-new"),
+        rename: async (move: ResourceNameRename) => {
+          moves.push(move);
+          return { claimed: true, entry: entry(move.to) };
+        },
+      },
+    } as unknown as Store;
+    // The row still says acme-corp; the table moved on to acme-new: renaming
+    // back to acme-corp is a real move.
+    await newRenameOrganizationSlugStep(behind).execute(
+      renameRequest(create(OrganizationSchema, { metadata: { id: ACME, slug: "acme-corp" } })),
+    );
+    expect(moves.map((move) => [move.from, move.to])).toEqual([["acme-new", "acme-corp"]]);
+
+    // The table already holds the requested name: nothing moves, and the
+    // organization answered carries it.
+    const settled = create(OrganizationSchema, { metadata: { id: ACME, slug: "acme" } });
+    const already = {
+      resourceNames: { current: async () => entry("acme-corp"), rename: vi.fn() },
+    } as unknown as Store;
+    await newRenameOrganizationSlugStep(already).execute(renameRequest(settled));
+    expect(settled.metadata?.slug).toBe("acme-corp");
+
+    const faulting = {
+      resourceNames: {
+        current: async () => {
+          throw new Error("database locked");
+        },
+      },
+    } as unknown as Store;
+    const fault = await refusalOf(() => newRenameOrganizationSlugStep(faulting).execute(renameRequest(acme())));
+    expect(fault.code).toBe(Code.Internal);
   });
 
   it("takes a slug whose holder is gone: releases the holder's names and moves again", async () => {
@@ -146,6 +191,7 @@ describe("RenameOrganizationSlug", () => {
         throw new ResourceNotFoundError("organization");
       },
       resourceNames: {
+        current: async () => undefined,
         rename: async (move: ResourceNameRename): Promise<ResourceNameClaim> => {
           moves.push(move);
           return released.length === 0
@@ -179,6 +225,7 @@ describe("RenameOrganizationSlug", () => {
     const store = {
       getResource: async () => create(OrganizationSchema),
       resourceNames: {
+        current: async () => undefined,
         rename: async (move: ResourceNameRename): Promise<ResourceNameClaim> => ({
           claimed: false,
           entry: heldBy("org_01jhhhhhhhhhhhhhhhhhhhhhhh", move.to, ABANDONED_NAME_AFTER_MS + 1000),
@@ -202,6 +249,7 @@ describe("RenameOrganizationSlug", () => {
   it("answers Internal when the name table faults, and leaves the row's slug and nothing to persist", async () => {
     const store = {
       resourceNames: {
+        current: async () => undefined,
         rename: async () => {
           throw new Error("database locked");
         },
@@ -230,6 +278,7 @@ describe("IndexOrganizationAfterRename", () => {
   async function movedRequest(upsertSearchIndex: Store["upsertSearchIndex"]) {
     const store = {
       resourceNames: {
+        current: async () => undefined,
         rename: async (move: ResourceNameRename): Promise<ResourceNameClaim> => ({
           claimed: true,
           entry: { ...heldBy(ACME, move.to, 0), claimedAt: move.now },

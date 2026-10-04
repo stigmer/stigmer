@@ -1656,6 +1656,11 @@ class PostgresResourceNameStore implements ResourceNameStore {
     takenBack?: ResourceNameEntry,
   ): Promise<void> {
     await this.transaction(async (client) => {
+      // One at a time with the resource's renames (rename's lock).
+      await client.query(
+        `SELECT pg_advisory_xact_lock(hashtextextended($1 || '/' || $2 || '/' || $3, 0))`,
+        [rename.kind, rename.org, rename.id],
+      );
       if (takenBack === undefined) {
         await client.query(
           `DELETE FROM resource_names
@@ -1677,9 +1682,16 @@ class PostgresResourceNameStore implements ResourceNameStore {
           ],
         );
       }
+      // `from` is current again unless a rename that overlapped this one
+      // made its own name current meanwhile: that later rename stands, and
+      // the resource keeps exactly one current name.
       await client.query(
         `UPDATE resource_names SET state = 'current', expires_at = ''
-         WHERE kind = $1 AND org = $2 AND name = $3 AND id = $4`,
+         WHERE kind = $1 AND org = $2 AND name = $3 AND id = $4
+           AND NOT EXISTS (
+             SELECT 1 FROM resource_names
+             WHERE kind = $1 AND org = $2 AND id = $4 AND state = 'current'
+           )`,
         [rename.kind, rename.org, rename.from, rename.id],
       );
     });
