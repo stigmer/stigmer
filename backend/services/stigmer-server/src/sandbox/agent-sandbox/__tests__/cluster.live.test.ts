@@ -6,13 +6,15 @@
  * hands this file their addresses, and by the ci.agent-sandbox lane on every
  * change to the driver and weekly against upstream's newest release.
  *
- * One session's life, through the built-in factory and the cluster's own
- * controller:
+ * One session's life, through the driver, its idle sweep and the cluster's
+ * own controller:
  *
  *   - the ensure creates the Sandbox, its pod runs the runner image, and the
  *     runner polls the session's queue in Temporal (it booted with the
  *     driver's environment and reached Temporal from inside the cluster);
- *   - a file written to /workspace survives a suspend (the pod goes, the
+ *   - the idle sweep lists the Sandbox by its labels, reads its creation
+ *     time, and suspends it once its session is idle past the window;
+ *   - a file written to /workspace survives that suspend (the pod goes, the
  *     claim stays Bound) and the wake that follows, which brings the runner
  *     back to the queue with the fresh token the wake wrote before its pod
  *     started;
@@ -25,10 +27,20 @@ import { execFileSync } from "node:child_process";
 
 import { describe, expect, it } from "vitest";
 
+import { KubeConfig } from "@kubernetes/client-node";
+
 import { createLogger } from "../../../boot/logger.js";
 import { sandboxBaseName } from "../../naming.js";
-import type { SandboxDriverConfig } from "../../provisioner.js";
-import { newAgentSandboxProvisioner } from "../builtin.js";
+import type {
+  SandboxDriverConfig,
+  SessionActivityReader,
+} from "../../provisioner.js";
+import { newAgentSandboxDriverOverGateway } from "../driver.js";
+import { newAgentSandboxClientGateway } from "../gateway.js";
+import {
+  runAgentSandboxSweepPass,
+  SESSION_SANDBOX_SELECTOR,
+} from "../sweep.js";
 
 function required(name: string): string {
   const value = process.env[name];
@@ -141,7 +153,18 @@ describe("the agent-sandbox driver on a live cluster", () => {
   const name = sandboxBaseName("session", sessionId);
   const taskQueue = `session:${sessionId}`;
   const env = { taskQueue, stigmerToken: "tok-live", callerClass: "user" };
-  const driver = newAgentSandboxProvisioner({ config, logger });
+  const kubeConfig = new KubeConfig();
+  kubeConfig.loadFromDefault();
+  const gateway = newAgentSandboxClientGateway(kubeConfig, namespace);
+  // The sweep's clock, moved forward to make the session idle.
+  let offset = 0;
+  const now = () => Date.now() + offset;
+  const { provisioner: driver, internals } = newAgentSandboxDriverOverGateway({
+    gateway,
+    config,
+    logger,
+    now,
+  });
   const tokenInPod = () =>
     kubectl(
       "exec",
@@ -183,15 +206,30 @@ describe("the agent-sandbox driver on a live cluster", () => {
       "echo kept > /workspace/live-proof",
     );
 
-    kubectl(
-      "patch",
-      "sandbox",
-      name,
-      "--type",
-      "merge",
-      "-p",
-      '{"spec":{"operatingMode":"Suspended"}}',
-    );
+    // The idle sweep, against the real API: the label-selector list finds
+    // the Sandbox with its creation time, and the suspend patches it.
+    const listed = await gateway.listSandboxes(SESSION_SANDBOX_SELECTOR);
+    expect(
+      listed.find((sandbox) => sandbox.name === name)?.createdAt,
+    ).toBeInstanceOf(Date);
+    const idle: SessionActivityReader = {
+      activity: async () => ({ busy: false, lastActiveAt: new Date(created) }),
+      recentActivity: async () => ({
+        busy: false,
+        lastActiveAt: new Date(created),
+      }),
+      sessionIds: async function* () {
+        yield sessionId;
+      },
+    };
+    offset = 10 * 60_000;
+    await runAgentSandboxSweepPass({
+      driver: internals,
+      settings: { suspendAfterSeconds: 60, sweepIntervalSeconds: 10 },
+      sessions: idle,
+      logger,
+      now,
+    });
     expect(await driver.probe("session", sessionId)).toBe("stopped");
     await until("the pod to go", () => !exists("pod", name));
     expect(

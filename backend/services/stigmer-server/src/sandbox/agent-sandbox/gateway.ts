@@ -49,6 +49,9 @@ import {
   type AgentSandboxView,
 } from "./resource.js";
 
+/** How many Sandboxes one list call asks for; a longer list is paged. */
+const LIST_PAGE_SIZE = 500;
+
 /** The cluster does not serve agent-sandbox's Sandbox in the namespace. */
 export class AgentSandboxNotInstalledError extends Error {
   constructor(namespace: string, detail: string) {
@@ -68,6 +71,8 @@ export interface AgentSandboxChange {
 export interface AgentSandboxGateway {
   /** The named Sandbox; undefined when it does not exist. */
   getSandbox(name: string): Promise<AgentSandboxView | undefined>;
+  /** Every Sandbox in the namespace whose labels match `labelSelector` (`key=value,...`). */
+  listSandboxes(labelSelector: string): Promise<AgentSandboxView[]>;
   /** Creates the Sandbox; undefined when one of that name already exists. */
   createSandbox(
     sandbox: AgentSandboxResource,
@@ -112,6 +117,10 @@ export function agentSandboxViewOf(object: unknown): AgentSandboxView {
     // The resource defaults an unset mode to Running.
     operatingMode: spec.operatingMode === "Suspended" ? "Suspended" : "Running",
     deleting: typeof metadata.deletionTimestamp === "string",
+    createdAt:
+      typeof metadata.creationTimestamp === "string"
+        ? new Date(metadata.creationTimestamp)
+        : undefined,
     labels: stringRecord(metadata.labels),
   };
 }
@@ -158,6 +167,26 @@ export function newAgentSandboxClientGateway(
         if (isStatus(error, 404)) return undefined;
         throw error;
       }
+    },
+    async listSandboxes(labelSelector) {
+      const views: AgentSandboxView[] = [];
+      let continueToken: string | undefined;
+      do {
+        const page: unknown = await custom.listNamespacedCustomObject({
+          ...resource,
+          labelSelector,
+          limit: LIST_PAGE_SIZE,
+          ...(continueToken === undefined ? {} : { _continue: continueToken }),
+        });
+        const items = record(page).items;
+        for (const item of Array.isArray(items) ? items : []) {
+          views.push(agentSandboxViewOf(item));
+        }
+        const next = record(record(page).metadata).continue;
+        continueToken =
+          typeof next === "string" && next !== "" ? next : undefined;
+      } while (continueToken !== undefined);
+      return views;
     },
     async createSandbox(sandbox) {
       try {

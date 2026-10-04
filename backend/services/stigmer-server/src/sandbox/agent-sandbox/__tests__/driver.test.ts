@@ -17,7 +17,13 @@
  *   - every Secret reference in the template is optional, so a running
  *     sandbox whose server stopped setting a key still starts its runner;
  *   - two ensures of one sandbox never interleave their writes, and a
- *     failed one leaves the queue usable.
+ *     failed one leaves the queue usable;
+ *   - the sweep's suspend patches a Running Sandbox only when its guard,
+ *     asked inside the queue, agrees, and skips one that is gone, being
+ *     deleted or already Suspended without asking; a suspend and an ensure
+ *     of one Sandbox take turns in its queue, neither starting before the
+ *     other ends; the driver remembers its last ensure of each Sandbox
+ *     until it deprovisions it.
  */
 import { describe, expect, it } from "vitest";
 
@@ -27,7 +33,10 @@ import type {
   SandboxEnvironment,
 } from "../../provisioner.js";
 import { FakeAgentSandboxCluster } from "../__test-utils__/fake-gateway.js";
-import { newAgentSandboxProvisionerOverGateway } from "../driver.js";
+import {
+  newAgentSandboxDriverOverGateway,
+  newAgentSandboxProvisionerOverGateway,
+} from "../driver.js";
 import { buildAgentSandbox } from "../manifest.js";
 
 const config: SandboxDriverConfig = {
@@ -178,7 +187,7 @@ describe("the ensure", () => {
     await expect(
       driverOver(cluster).ensureSessionSandbox("ses_1", env),
     ).rejects.toThrow(
-      `agent-sandbox Sandbox '${name}' is still being deleted after 60s`,
+      `agent-sandbox Sandbox '${name}' is still being deleted after 300s`,
     );
   });
 
@@ -375,5 +384,113 @@ describe("deprovision and probe", () => {
     expect(await driver.probe("session", "ses_1")).toBe("running");
     sandbox.deletingReads = 5;
     expect(await driver.probe("session", "ses_1")).toBe("absent");
+  });
+});
+
+describe("the sweep's suspend and the ensure record", () => {
+  function driverWithInternals(cluster: FakeAgentSandboxCluster) {
+    let t = 1_000;
+    const driver = newAgentSandboxDriverOverGateway({
+      gateway: cluster,
+      config,
+      logger: { info: () => {} },
+      sleep: async () => {},
+      now: () => t,
+    });
+    return { ...driver, tick: (ms: number) => (t += ms) };
+  }
+
+  it("suspends a Running Sandbox once the guard agrees, and skips it when it does not", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    const { internals } = driverWithInternals(cluster);
+    cluster.seed(buildAgentSandbox("session", "ses_1", env, config), "Running");
+    expect(await internals.suspend(name, async () => false)).toBe("skipped");
+    expect(cluster.sandboxes.get(name)?.operatingMode).toBe("Running");
+    expect(await internals.suspend(name, async () => true)).toBe("done");
+    expect(cluster.sandboxes.get(name)?.operatingMode).toBe("Suspended");
+    expect(cluster.calls.at(-1)).toBe(`patch:${name}:Suspended`);
+  });
+
+  it("skips, without asking the guard, a Sandbox that is gone, being deleted or already Suspended", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    const { internals } = driverWithInternals(cluster);
+    let asked = 0;
+    const guard = async () => {
+      asked += 1;
+      return true;
+    };
+    expect(await internals.suspend(name, guard)).toBe("skipped");
+    const sandbox = cluster.seed(
+      buildAgentSandbox("session", "ses_1", env, config),
+      "Suspended",
+    );
+    expect(await internals.suspend(name, guard)).toBe("skipped");
+    sandbox.operatingMode = "Running";
+    sandbox.deletingReads = 5;
+    expect(await internals.suspend(name, guard)).toBe("skipped");
+    expect(asked).toBe(0);
+    expect(cluster.calls.filter((call) => call.startsWith("patch"))).toEqual(
+      [],
+    );
+  });
+
+  it("a suspend waits behind an ensure of the same Sandbox, and an ensure behind a suspend", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    const { provisioner, internals } = driverWithInternals(cluster);
+    cluster.seed(buildAgentSandbox("session", "ses_1", env, config), "Running");
+    let release: () => void = () => {};
+    const applySecret = cluster.applySecret.bind(cluster);
+    cluster.applySecret = async (secret) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return applySecret(secret);
+    };
+    const ensured = provisioner.ensureSessionSandbox("ses_1", env);
+    const suspended = internals.suspend(name, async () => true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // The ensure holds the queue (blocked writing its Secret): the suspend
+    // has not read the Sandbox yet.
+    expect(cluster.calls).toEqual([`get:${name}`]);
+    release();
+    await Promise.all([ensured, suspended]);
+    expect(cluster.calls).toEqual([
+      `get:${name}`,
+      `secret:${name}-env`,
+      `get:${name}`,
+      `patch:${name}:Suspended`,
+    ]);
+
+    cluster.calls.length = 0;
+    cluster.applySecret = applySecret;
+    let proceed: (answer: boolean) => void = () => {};
+    const suspending = internals.suspend(
+      name,
+      () => new Promise<boolean>((resolve) => (proceed = resolve)),
+    );
+    cluster.sandboxes.get(name)!.operatingMode = "Running";
+    const waking = provisioner.ensureSessionSandbox("ses_1", env);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(cluster.calls).toEqual([`get:${name}`]);
+    proceed(false);
+    await Promise.all([suspending, waking]);
+    expect(cluster.calls).toEqual([
+      `get:${name}`,
+      `get:${name}`,
+      `secret:${name}-env`,
+    ]);
+  });
+
+  it("remembers when it last ensured a Sandbox, and forgets it on deprovision", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    const { provisioner, internals, tick } = driverWithInternals(cluster);
+    expect(internals.lastEnsuredAt(name)).toBeUndefined();
+    await provisioner.ensureSessionSandbox("ses_1", env);
+    expect(internals.lastEnsuredAt(name)).toEqual(new Date(1_000));
+    tick(5_000);
+    await provisioner.ensureSessionSandbox("ses_1", env);
+    expect(internals.lastEnsuredAt(name)).toEqual(new Date(6_000));
+    await provisioner.deprovisionSessionSandbox("ses_1");
+    expect(internals.lastEnsuredAt(name)).toBeUndefined();
   });
 });
