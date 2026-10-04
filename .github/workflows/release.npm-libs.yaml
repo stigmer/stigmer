@@ -607,7 +607,10 @@ jobs:
   # installs are that job's artifact (compose-runner-cli, staged from the
   # dist/ it published — never the registry, which lost the replication
   # race on v3.15.2, v3.16.0 and v3.17.0; stigmer/stigmer#1158), and no
-  # image should exist for a version the registry never got.
+  # image should exist for a version the registry never got. Its runner
+  # layer records the release (/runner/RELEASE), as the sandbox lane's
+  # does, so the start script can hold it against the server's
+  # (stigmer/stigmer#1831).
   publish-runner-image-amd64:
     needs: [determine-version, publish]
     runs-on: ubuntu-latest
@@ -647,6 +650,7 @@ jobs:
             --platform linux/amd64 \
             --target compose-runner \
             --build-arg STIGMER_CLI_VERSION="${VERSION}" \
+            --build-arg RUNNER_LAYER_RELEASE="${VERSION}" \
             --file backend/services/runner/Dockerfile.sandbox \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-amd64" \
             --push \
@@ -692,6 +696,7 @@ jobs:
             --platform linux/arm64 \
             --target compose-runner \
             --build-arg STIGMER_CLI_VERSION="${VERSION}" \
+            --build-arg RUNNER_LAYER_RELEASE="${VERSION}" \
             --file backend/services/runner/Dockerfile.sandbox \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-arm64" \
             --push \

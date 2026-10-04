@@ -41,6 +41,7 @@
  */
 import type { Logger } from "../boot/logger.js";
 import type { CallerClass } from "../extensions/identity.js";
+import { SERVER_RELEASE_ENV } from "./runner-launch.js";
 
 /**
  * What is TRUE about one provisioning request, handed to a driver: which
@@ -235,6 +236,17 @@ export interface SandboxDriverConfig {
    * token, never argv or a plain manifest value.
    */
   readonly runnerSecretEnv: Readonly<Record<string, string>>;
+  /**
+   * The server's release when it is one (`isReleaseVersion` of the version
+   * getServerInfo reports, such as `3.42.0` or `3.42.0-rc.1`), else "". A
+   * driver that starts a runner image hands a non-empty value to the
+   * runner layer's start script as SERVER_RELEASE_ENV (runner-launch.ts),
+   * which refuses a layer built for another release; "" injects nothing,
+   * so a development server never refuses a layer and a re-pin between
+   * development builds changes no sandbox's definition. Required, so a
+   * construction site that forgets it fails to compile.
+   */
+  readonly serverRelease: string;
 }
 
 /**
@@ -272,11 +284,16 @@ export const SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE: readonly string[] = [
 
 /**
  * The runner variables a driver that starts a runner image sets itself
- * (runner-launch.ts: RUNNER_HOME), whatever the image's own ENV says, beside
- * SANDBOX_DRIVER_OWNED_RUNNER_ENV.
+ * (runner-launch.ts: RUNNER_HOME and SERVER_RELEASE_ENV), whatever the
+ * image's own ENV says, beside SANDBOX_DRIVER_OWNED_RUNNER_ENV. The
+ * built-in drivers set both; a composition's own image driver sets the
+ * release from SandboxDriverConfig.serverRelease, and until it does its
+ * sandboxes start unchecked. The names are reserved for every image driver
+ * either way, so an operator's list can never stand in for the server.
  */
 export const SANDBOX_IMAGE_DRIVER_OWNED_RUNNER_ENV: readonly string[] = [
   "HOME",
+  SERVER_RELEASE_ENV,
 ];
 
 /**

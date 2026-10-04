@@ -10,6 +10,14 @@
  * over them takes `provisioner` and `lifecycle` from
  * newSubstrateSandboxDriver and leaves `startIdleSweep` unused, so the two
  * sweeps never both run.
+ *
+ * Both paths push through the router's own transport (push.ts,
+ * newRouterFetch), which trusts the configured CA. A router reached over
+ * http:// is accepted, because a local install reaches it by port-forward,
+ * and logged once as a warning: the push carries the runner's secrets.
+ * An https:// public MCP endpoint with HTTPS egress off is accepted too
+ * (egress.ts), and logged once: no sandbox can reach it, which only a
+ * stdio MCP server that dials it would notice.
  */
 import type { Logger } from "../../boot/logger.js";
 import type {
@@ -29,6 +37,7 @@ import {
   type SubstrateSandboxLifecycle,
 } from "./driver.js";
 import { newSubstrateClientGateway } from "./gateway.js";
+import { newRouterFetch } from "./push.js";
 import { startSubstrateSweep } from "./sweep.js";
 import type { SubstrateRunnerMode } from "./template.js";
 
@@ -48,9 +57,26 @@ export function newSubstrateSandboxDriver(options: {
   readonly runnerMode?: SubstrateRunnerMode;
 }): SubstrateSandboxDriverHandle {
   validateSubstrateDriverConfig(options.config);
+  const fetch = newRouterFetch(options.settings);
+  if (!options.settings.routerUrl.startsWith("https://")) {
+    options.logger.warn(
+      "Substrate's router is reached over http://, so the attach push carries the runner's secrets and session token in cleartext; give STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL as https:// with STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE (and STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME when the router is reached by another name than its certificate's)",
+      { routerUrl: options.settings.routerUrl },
+    );
+  }
+  if (
+    options.settings.httpsEgress === "none" &&
+    options.config.mcpPublicEndpoint.startsWith("https://")
+  ) {
+    options.logger.warn(
+      "STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT is https:// while STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS is none, so no sandbox can reach it; a stdio MCP server that dials it will fail. Set STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS=all to carry it",
+      { mcpPublicEndpoint: options.config.mcpPublicEndpoint },
+    );
+  }
   const driver = newSubstrateSandboxDriverOverGateway({
     ...options,
     gateway: newSubstrateClientGateway(options.settings),
+    fetch,
   });
   return {
     provisioner: driver.provisioner,

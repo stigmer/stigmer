@@ -114,6 +114,7 @@ import {
   newSubstrateSettingsFromEnv,
   ROUTING_SESSION,
   sandboxTaskQueue,
+  SERVER_RELEASE_ENV,
   SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS,
   SYSTEM_SHARE_CLIENT_SLUG,
   TARGET_RESOURCE_KEY,
@@ -903,13 +904,20 @@ const consumerBlobDriver: ArtifactStorageDriverFactory =
  * teardown, the live-state probe. Selected at runtime through
  * SANDBOX_PROVISIONER_TYPE naming the registered key. Reads all three
  * environment facts, the caller's class included, so a driver that
- * decides workspace durability by who asked is proven compilable here.
+ * decides workspace durability by who asked is proven compilable here,
+ * and hands the runner layer the server's release under the barrel's name
+ * for it, as an image driver does.
  */
 const consumerSandboxDriver: SandboxProvisionerFactory = ({
   config,
   logger,
 }): SandboxProvisioner => {
   void config.backendEndpoint;
+  const releaseEnv: Record<string, string> =
+    config.serverRelease === ""
+      ? {}
+      : { [SERVER_RELEASE_ENV]: config.serverRelease };
+  void releaseEnv;
   void logger;
   return {
     ensureSessionSandbox: (sessionId, env) => {

@@ -14,6 +14,8 @@
  * across keyset pages; a scoped row it cannot decode fails the step and
  * leaves the database at v6 with no ledger. A step's starting database is
  * built by running the chain up to the step before it.
+ * Newer schemas are refused without writes or reconciliation; refusal
+ * releases the migration lock and closes a failed store's pool.
  *
  * Gated on TEST_DATABASE_URL (see support.ts): visible skips without a
  * database, always exercised in CI via the ci.stigmer-server service
@@ -33,8 +35,10 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
+import { CONTRACT_STORE_OPTIONS } from "../../__tests__/store-contract.js";
 import {
   CURRENT_SCHEMA_VERSION,
+  MIGRATION_LOCK_KEY,
   SCHEMA_VERSION_1,
   SCHEMA_VERSION_5,
   SCHEMA_VERSION_7,
@@ -71,6 +75,148 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
 
     afterEach(async () => {
       await db.drop();
+    });
+
+    it.each([CURRENT_SCHEMA_VERSION, CURRENT_SCHEMA_VERSION + 1])(
+      "rejects a newer schema without writes and releases the lock, even with target %i",
+      async (targetVersion) => {
+        const pool = new pg.Pool({ connectionString: db.databaseUrl, max: 1 });
+        const client = await pool.connect();
+        const observer = new pg.Client({ connectionString: db.databaseUrl });
+        await observer.connect();
+        try {
+          await runMigrations(client);
+          const newerVersion = CURRENT_SCHEMA_VERSION + 1;
+          await client.query(
+            `INSERT INTO schema_version (version) VALUES ($1)`,
+            [newerVersion],
+          );
+          await client.query(
+            `INSERT INTO bootstrap_state (key, value) VALUES ('preserved', 'before-reopen')`,
+          );
+          const versions = await client.query(
+            `SELECT * FROM schema_version ORDER BY version`,
+          );
+          const state = await client.query(`SELECT * FROM bootstrap_state`);
+          const tables = await client.query(
+            `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`,
+          );
+          const pid = await client.query<{ pid: number }>(
+            `SELECT pg_backend_pid() AS pid`,
+          );
+
+          await expect(runMigrations(client, targetVersion)).rejects.toThrow(
+            `Database schema version ${newerVersion} is newer than this server supports (maximum ${CURRENT_SCHEMA_VERSION}). Run a newer Stigmer release that supports this schema, or restore a backup from before the database upgrade.`,
+          );
+
+          expect(
+            (
+              await client.query(
+                `SELECT * FROM schema_version ORDER BY version`,
+              )
+            ).rows,
+          ).toEqual(versions.rows);
+          expect(
+            (await client.query(`SELECT * FROM bootstrap_state`)).rows,
+          ).toEqual(state.rows);
+          expect(
+            (
+              await client.query(
+                `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`,
+              )
+            ).rows,
+          ).toEqual(tables.rows);
+          const connection = await observer.query<{ state: string }>(
+            `SELECT state FROM pg_stat_activity WHERE pid = $1`,
+            [pid.rows[0]!.pid],
+          );
+          expect(connection.rows[0]!.state).toBe("idle");
+          const lock = await observer.query<{ locked: boolean }>(
+            `SELECT pg_try_advisory_lock($1) AS locked`,
+            [MIGRATION_LOCK_KEY],
+          );
+          expect(
+            lock.rows[0]!.locked,
+            "another session can migrate after refusal",
+          ).toBe(true);
+        } finally {
+          await observer.end();
+          client.release();
+          await pool.end();
+        }
+      },
+    );
+
+    it("rejects a newer schema before reconciliation and closes the failed store's pool", async () => {
+      await migrateTo(db.databaseUrl, CURRENT_SCHEMA_VERSION);
+      const client = new pg.Client({ connectionString: db.databaseUrl });
+      await client.connect();
+      let opened: PostgresStore | undefined;
+      try {
+        const newerVersion = CURRENT_SCHEMA_VERSION + 1;
+        await client.query(`INSERT INTO schema_version (version) VALUES ($1)`, [
+          newerVersion,
+        ]);
+        const session = create(SessionSchema, {
+          metadata: { id: "ses_preserved", org: "acme" },
+          spec: { agentInstanceId: "ain_preserved" },
+        });
+        await client.query(
+          `INSERT INTO resources (kind, id, data) VALUES ('session', 'ses_preserved', $1)`,
+          [Buffer.from(toBinary(SessionSchema, session))],
+        );
+        const row = await client.query(
+          `SELECT * FROM resources WHERE id = 'ses_preserved'`,
+        );
+
+        const opening = PostgresStore.open(
+          db.databaseUrl,
+          undefined,
+          CONTRACT_STORE_OPTIONS,
+        ).then((store) => {
+          opened = store;
+        });
+        await expect(opening).rejects.toThrow(
+          `Database schema version ${newerVersion} is newer than this server supports (maximum ${CURRENT_SCHEMA_VERSION})`,
+        );
+
+        expect(
+          (
+            await client.query(
+              `SELECT * FROM resources WHERE id = 'ses_preserved'`,
+            )
+          ).rows,
+        ).toEqual(row.rows);
+        await expect
+          .poll(async () => {
+            const connections = await client.query<{ n: number }>(
+              `SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND backend_type = 'client backend' AND pid <> pg_backend_pid()`,
+            );
+            return connections.rows[0]!.n;
+          })
+          .toBe(0);
+      } finally {
+        await opened?.close();
+        await client.end();
+      }
+    });
+
+    it("keeps a supported schema newer than a fixture target unchanged", async () => {
+      await migrateTo(db.databaseUrl, CURRENT_SCHEMA_VERSION);
+      await expect(
+        migrateTo(db.databaseUrl, SCHEMA_VERSION_1),
+      ).resolves.toBeUndefined();
+
+      const client = new pg.Client({ connectionString: db.databaseUrl });
+      await client.connect();
+      try {
+        const version = await client.query(
+          `SELECT MAX(version) AS version FROM schema_version`,
+        );
+        expect(Number(version.rows[0].version)).toBe(CURRENT_SCHEMA_VERSION);
+      } finally {
+        await client.end();
+      }
     });
 
     it("a fresh database replays the chain: all tables present, version recorded", async () => {

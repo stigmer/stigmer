@@ -77,6 +77,7 @@ const config: SandboxDriverConfig = {
   kubernetesNamespace: "unused",
   runnerEnv: { ANTHROPIC_BASE_URL: "http://fake-model.example:18555" },
   runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-test" },
+  serverRelease: "",
 };
 
 const settings: SubstrateDriverSettings = {
@@ -85,6 +86,8 @@ const settings: SubstrateDriverSettings = {
   apiCaFile: "",
   apiTokenFile: "/unused",
   routerUrl: "http://router.example:18200",
+  routerCaFile: "",
+  routerServerName: "",
   atespace: "stigmer",
   storageLocation: "gs://ate-snapshots/stigmer",
   workerSelector: { workload: "stigmer" },

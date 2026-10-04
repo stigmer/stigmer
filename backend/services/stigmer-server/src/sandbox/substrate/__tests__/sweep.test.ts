@@ -58,6 +58,7 @@ const config: SandboxDriverConfig = {
   kubernetesNamespace: "",
   runnerEnv: {},
   runnerSecretEnv: {},
+  serverRelease: "",
 };
 
 const settings: SubstrateDriverSettings = {
@@ -66,6 +67,8 @@ const settings: SubstrateDriverSettings = {
   apiCaFile: "",
   apiTokenFile: "/unused",
   routerUrl: "http://router.example:18200",
+  routerCaFile: "",
+  routerServerName: "",
   atespace: "stigmer",
   storageLocation: "gs://b/p",
   workerSelector: { workload: "stigmer" },
