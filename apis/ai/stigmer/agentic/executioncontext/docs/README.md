@@ -7,13 +7,14 @@ Comprehensive documentation for the `agentic.stigmer.ai/v1` ExecutionContext res
 An ExecutionContext is an **ephemeral, operator-managed collection of runtime configuration and secrets**. It is created by the execution engine at the start of a workflow or agent execution, holds the merged key-value pairs the runner needs during that execution, and is deleted when the execution completes.
 
 ```
-AgentInstance (environment_refs) ──► [merge at start] ──► ExecutionContext ──► AgentExecution runner
+Schedule / agent_call task / PlatformClient (environment_refs)
+  + runtime_env + personal environment ──► [merge at start] ──► ExecutionContext ──► AgentExecution runner
 WorkflowInstance (environment_refs) ──────────────────────────────────────────► WorkflowExecution runner
 ```
 
 | Resource | Lifecycle | Who creates it | Purpose |
 |---|---|---|---|
-| **Environment** | Persistent | Users | Stores named key-value pairs shared across many instances and executions |
+| **Environment** | Persistent | Users | Stores named key-value pairs shared across many runs |
 | **ExecutionContext** | Ephemeral — tied to one execution | Execution engine (operator-only) | Holds the resolved, merged runtime secrets for a single execution; deleted on completion |
 
 ExecutionContexts are not created by end users. They are produced by the Stigmer execution engine when it resolves and merges all referenced Environments (and any B2B runtime-injected secrets) for a specific execution run.

@@ -1,6 +1,6 @@
 # Async Workflow Integration
 
-How automated pipelines (Zigflow workflows) invoke agents and wait for completion without polling — the Temporal token handshake pattern.
+How a workflow's `agent_call` step invokes an agent and waits for the turn to finish without polling — the Temporal token handshake pattern, carried by the execution's `parent` link.
 
 ---
 
@@ -23,17 +23,17 @@ The token handshake pattern solves both problems: the calling activity pauses it
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Zigflow Workflow (Go)          │  Stigmer Agent (Java/Python)               │
+│  Workflow run (agent_call step) │  Agent turn (AgentExecution)               │
 │                                 │                                             │
 │  1. Activity starts             │                                             │
 │  2. Extract task token          │                                             │
 │  3. Create AgentExecution       │                                             │
-│     with callback_token=token   │                                             │
-│  4. Return ErrResultPending ────┼──► Activity paused, thread released        │
+│     with parent.callback_token  │                                             │
+│  4. Return a pending result ────┼──► Activity paused, thread released        │
 │     (thread freed immediately)  │                                             │
 │                                 │  5. Agent runs (seconds to hours)          │
 │                                 │  6. Agent completes                         │
-│                                 │  7. Agent calls ActivityCompletion          │
+│                                 │  7. Platform calls ActivityCompletion       │
 │                                 │     .complete(token, result)               │
 │  8. Temporal resumes  ◄─────────┼─────────────────────────────────────────── │
 │     the paused activity         │                                             │
@@ -49,56 +49,40 @@ The token handshake pattern solves both problems: the calling activity pauses it
 
 ---
 
-## `callback_token` — The Spec Field
+## `parent` — The Spec Field
 
-The `callback_token` field in `AgentExecutionSpec` carries the Temporal task token from the calling activity.
+`AgentExecutionSpec.parent` (`WorkflowParent`) links a turn to the workflow run whose `agent_call` step started it. It is the only way a turn names a workflow: there is no separate token, parent-workflow or task-queue field.
 
 | Field | Type | Description |
 |---|---|---|
-| `callback_token` | `bytes` | Opaque binary blob from the Temporal SDK (typically 100–200 bytes). Contains namespace, workflow ID, run ID, activity ID, and attempt. **Do not parse or modify.** Treat as an opaque handle. |
+| `parent.workflow_execution_id` | `string` | The workflow execution whose step started this turn. Required when `parent` is set. The turn's activities run on that workflow run's task queue, in its sandbox; the server derives the queue from this ID, so no caller names a queue. |
+| `parent.signal_workflow_id` | `string` | The Temporal workflow ID told about approval requests (`child_approval_required`). For a nested workflow this is a child workflow with its own ID, so it is named rather than derived. |
+| `parent.callback_token` | `bytes` | The Temporal task token of the waiting `agent_call` activity (typically 100–200 bytes). **Opaque: never parse or modify it.** The platform completes that activity with the turn's result when the turn finishes, on success and on failure. |
 
-**When empty or null:**
-- Fire-and-forget: execution proceeds normally, no callback is performed
-- Use case: CLI commands, direct API calls, interactive chat
+**Who may set it.** The server honours `parent` only from the workflow run it names:
 
-**When provided:**
-- The agent workflow **must** complete the external activity using this token — both on success and failure
-- Token uniquely identifies the external activity execution
+- a request the server composes itself;
+- a runner whose credential is bound to that workflow run;
+- a holder of the platform's `can_write_reserved_labels` permission.
+
+Any other caller that sets `parent` is refused with `INVALID_ARGUMENT`; the field is never silently dropped. When the execution also carries the `stigmer.ai/workflow-execution-id` lineage label, the two must name the same workflow run.
+
+**When `parent` is empty:** the turn is an ordinary conversation turn (CLI, API, chat); nothing is completed or signalled.
 
 ---
 
-## Go — Calling Activity (Zigflow)
+## The Calling Step
 
-```go
-// In a Zigflow workflow activity
-func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) (*AgentResult, error) {
-    // Step 1: Extract this activity's task token
-    taskToken := activity.GetInfo(ctx).TaskToken
+The runner's `agent_call` activity:
 
-    // Step 2: Create the AgentExecution with the token
-    execution := &agentexecutionv1.AgentExecution{
-        ApiVersion: "agentic.stigmer.ai/v1",
-        Kind:       "AgentExecution",
-        Spec: &agentexecutionv1.AgentExecutionSpec{
-            AgentId:       config.AgentId,
-            Message:       config.Message,
-            AutoApproveAll: config.AutoApproveAll,
-            CallbackToken: taskToken,  // 👈 Pass the token here
-        },
-    }
+1. Extracts its own Temporal task token.
+2. Applies a Session that names the called agent (`session_spec.agent_ref`), so the turn runs that agent at its current version and never the built-in assistant.
+3. Creates the AgentExecution in that session with `parent` set to the workflow execution ID, the workflow to signal, and the task token.
+4. Returns the pending-result error, so the activity is paused and its worker thread released.
 
-    _, err := client.AgentExecution.Create(ctx, execution)
-    if err != nil {
-        return nil, err
-    }
+A call with no workflow execution ID fails in the activity, because an unlinked turn could never complete the step.
 
-    // Step 3: Return ErrResultPending — activity is paused, thread released
-    // Temporal will resume this activity when the agent calls complete(token, result)
-    return nil, activity.ErrResultPending
-}
-```
-
-**Key behavior of `ErrResultPending`:**
+**Key behavior of a pending activity:**
 - The activity function returns immediately
 - The Temporal worker thread is freed for other work
 - The activity appears as "Running" in the Temporal UI
@@ -106,72 +90,27 @@ func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) (*Agent
 
 ---
 
-## Java — Agent Workflow Completion
+## Completion
 
-After the agent execution finishes, the agent workflow calls the `ActivityCompletionClient` with the token:
+When the turn reaches a terminal phase, the agent-execution workflow completes the waiting activity with the turn's result (execution ID, phase, final text, structured output). Both success and failure complete it; a failed turn completes it with an error result rather than leaving the caller to wait for its `StartToCloseTimeout`.
 
-```java
-// In the agent workflow (after execution completes)
-if (spec.getCallbackToken() != null && !spec.getCallbackToken().isEmpty()) {
-    // Complete the external Go activity using the token
-    systemActivities.completeZigflowToken(
-        spec.getCallbackToken(),
-        AgentExecutionResult.newBuilder()
-            .setExecutionId(execution.getMetadata().getId())
-            .setPhase(status.getPhase())
-            .setOutput(lastAiMessage)
-            .build()
-    );
-}
-```
-
-Both success and failure paths must call completion. If the agent fails, call the completion with an error result rather than silently not calling it (which would cause the caller to wait until the `StartToCloseTimeout`).
-
----
-
-## `callback_token` in Status
-
-The token is also stored in `AgentExecutionStatus.callback_token` for reference by the runner:
-
-| Location | Purpose |
-|---|---|
-| `spec.callback_token` | Set by the caller when creating the execution |
-| `status.callback_token` | Copied by the system into status for the runner to read during completion |
-
-The status field is system-managed. Never set it directly.
+`AgentExecutionStatus.callback_token` holds the token the runner reads during completion. It is system-managed; never set it.
 
 ---
 
 ## Events-Based Approval Notification
 
-When a pipeline-invoked agent enters `EXECUTION_WAITING_FOR_APPROVAL`, the parent workflow needs to know so it can surface the approval to users without polling.
-
-This is enabled via the `parent_workflow_id` field:
-
-```go
-// In the Go workflow activity
-execution := &agentexecutionv1.AgentExecution{
-    Spec: &agentexecutionv1.AgentExecutionSpec{
-        AgentId:          config.AgentId,
-        Message:          config.Message,
-        CallbackToken:    taskToken,
-        ParentWorkflowId: workflow.GetInfo(ctx).WorkflowExecution.ID,  // 👈 Pass parent ID
-    },
-}
-```
-
-**Signal flow:**
+When a workflow-invoked turn enters `EXECUTION_WAITING_FOR_APPROVAL`, the parent workflow needs to know so it can surface the approval to users without polling. The control plane signals `parent.signal_workflow_id`:
 
 ```
 Agent enters WAITING_FOR_APPROVAL
     │
     ├── The control plane (the Stigmer server, in either edition)
-    │   sends Temporal signal "child_approval_required" to parent workflow ID
+    │   sends Temporal signal "child_approval_required" to parent.signal_workflow_id
     │
     ├── Signal payload: the bare child execution id string, e.g. "aex_abc123"
-    │   (identity-only; the legacy ChildApprovalNotification full-payload
-    │   shape was retired because proto-encoded payloads poisoned the
-    │   receiving workflow task)
+    │   (identity-only: a proto-encoded payload poisoned the receiving
+    │   workflow task)
     │
     ├── The runner's call-agent orchestrator receives the signal
     ├── Derives the gate from the child's persisted pending_approvals
@@ -179,26 +118,13 @@ Agent enters WAITING_FOR_APPROVAL
     └── Populates WorkflowExecution.status.pending_approvals (per-child merge)
 ```
 
-The Go workflow then surfaces the approval to users. Once approved, it forwards the decision to the agent via `AgentExecution.submitApproval` RPC using the `child_agent_execution_id` from the pending approval.
-
-**Backward compatibility:** `parent_workflow_id` is optional. Agents invoked without it continue to work — approval can still be submitted directly via `AgentExecution.submitApproval`.
+The workflow then surfaces the approval to users. Once approved, it forwards the decision to the agent via the `AgentExecution.submitApproval` RPC using the `child_agent_execution_id` from the pending approval. Approval can always be submitted directly via `AgentExecution.submitApproval` as well.
 
 ---
 
 ## Timeout Considerations
 
-Set a `StartToCloseTimeout` on the calling activity that accounts for the maximum expected agent execution duration:
-
-```go
-ao := workflow.ActivityOptions{
-    StartToCloseTimeout: 24 * time.Hour,  // agents may run for a long time
-    // Do NOT set HeartbeatTimeout — the activity returns ErrResultPending immediately
-    // and cannot heartbeat while paused
-}
-ctx = workflow.WithActivityOptions(ctx, ao)
-```
-
-If the token callback never arrives (e.g., the agent workflow crashes before completing), the activity times out at `StartToCloseTimeout`. This prevents indefinite hangs.
+The calling activity's `StartToCloseTimeout` accounts for the maximum expected turn duration. It sets no `HeartbeatTimeout`: the activity returns a pending result immediately and cannot heartbeat while paused. If the completion never arrives (for example, the agent workflow crashes before completing), the activity times out at `StartToCloseTimeout`, which prevents indefinite hangs.
 
 ---
 
@@ -208,7 +134,7 @@ While the activity is paused, both workflows are visible in the Temporal UI:
 
 | Workflow | Status in Temporal UI |
 |---|---|
-| Caller (Zigflow) | Running — waiting for `child_approval_required` signal or activity completion |
+| Caller (workflow run) | Running — waiting for `child_approval_required` signal or activity completion |
 | Agent workflow | Running — executing the agent |
 
 The token is logged at creation time (Base64-encoded, first 20 characters only) for security. Full tokens are never logged.
@@ -217,7 +143,6 @@ The token is logged at creation time (Base64-encoded, first 20 characters only) 
 
 ## References
 
-- Proto definition: `spec.callback_token` in `ai/stigmer/agentic/agentexecution/v1/spec.proto`
+- Proto definition: `spec.parent` and `WorkflowParent` in `ai/stigmer/agentic/agentexecution/v1/spec.proto`
 - Status field: `status.callback_token` in `ai/stigmer/agentic/agentexecution/v1/api.proto`
-- Parent workflow notification: `status.parent_workflow_id`, `ChildApprovalNotification` in `api.proto`
 - Temporal docs: https://docs.temporal.io/activities#asynchronous-activity-completion

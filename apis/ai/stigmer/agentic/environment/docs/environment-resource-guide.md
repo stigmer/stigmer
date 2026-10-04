@@ -104,7 +104,7 @@ Environment uses Fine-Grained Authorization (FGA) for all operations.
 |---|---|---|
 | `create` | `can_create_environment` on the parent org | Environments are org-scoped resources. |
 | `update` | `can_edit` on the environment | Full state replacement — always provide the complete spec. |
-| `delete` | `can_edit` on the environment | Deleting an environment referenced by an active AgentInstance will cause future executions using that instance to fail. |
+| `delete` | `can_edit` on the environment | Deleting an environment that a schedule, workflow task or PlatformClient references causes the executions it starts to fail until the reference is removed or the environment is created again. |
 | `get` | `can_view` on the environment | Secret values are never returned in `get` responses — only keys and non-secret values. |
 | `getByReference` | Handled in handler | Resolves an environment by `ApiResourceReference`. Used internally by the execution runner. |
 
@@ -143,4 +143,4 @@ stigmer environment list --org acme-corp
 
 ### Notes on Secret Values
 
-Secret values (`is_secret: true`) are **never returned** in CLI output or API responses. The `get` command shows keys and non-secret values only. To rotate a secret, `update` the environment with the new value — the change takes effect on the next execution that references the environment, with no changes required to any AgentInstance.
+Secret values (`is_secret: true`) are **never returned** in CLI output or API responses. The `get` command shows keys and non-secret values only. To rotate a secret, `update` the environment with the new value — the change takes effect on the next execution that references the environment, with no changes required to any agent, schedule or workflow.

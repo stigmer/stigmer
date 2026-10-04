@@ -87,11 +87,13 @@ private static final long serialVersionUID = 0L;
    * when it was written, recorded in status.agent_id and
    * status.agent_version_hash, so an author saving a new version never
    * changes an open conversation under its people. A version names a tag or
-   * a content hash; `latest`, or none on a new reference, names the
-   * agent's current version. To move a conversation to the agent's current
-   * version, update the session with this reference's version set to
-   * `latest`; an update that sends the reference unchanged with no version
-   * keeps the version the conversation runs.
+   * a content hash; none, on a reference the session did not already hold,
+   * names the agent's current version. To move a conversation to the
+   * agent's current version, update the session with this reference's
+   * version set to `latest`: the server pins that version and stores the
+   * reference with no version. An update that sends the stored reference
+   * unchanged keeps the version the conversation runs, even when the tag it
+   * names has moved since.
    *
    * A session may gain an agent, change it or drop back to the built-in
    * assistant on update; the harness and execution target are the
@@ -117,11 +119,13 @@ private static final long serialVersionUID = 0L;
    * when it was written, recorded in status.agent_id and
    * status.agent_version_hash, so an author saving a new version never
    * changes an open conversation under its people. A version names a tag or
-   * a content hash; `latest`, or none on a new reference, names the
-   * agent's current version. To move a conversation to the agent's current
-   * version, update the session with this reference's version set to
-   * `latest`; an update that sends the reference unchanged with no version
-   * keeps the version the conversation runs.
+   * a content hash; none, on a reference the session did not already hold,
+   * names the agent's current version. To move a conversation to the
+   * agent's current version, update the session with this reference's
+   * version set to `latest`: the server pins that version and stores the
+   * reference with no version. An update that sends the stored reference
+   * unchanged keeps the version the conversation runs, even when the tag it
+   * names has moved since.
    *
    * A session may gain an agent, change it or drop back to the built-in
    * assistant on update; the harness and execution target are the
@@ -147,11 +151,13 @@ private static final long serialVersionUID = 0L;
    * when it was written, recorded in status.agent_id and
    * status.agent_version_hash, so an author saving a new version never
    * changes an open conversation under its people. A version names a tag or
-   * a content hash; `latest`, or none on a new reference, names the
-   * agent's current version. To move a conversation to the agent's current
-   * version, update the session with this reference's version set to
-   * `latest`; an update that sends the reference unchanged with no version
-   * keeps the version the conversation runs.
+   * a content hash; none, on a reference the session did not already hold,
+   * names the agent's current version. To move a conversation to the
+   * agent's current version, update the session with this reference's
+   * version set to `latest`: the server pins that version and stores the
+   * reference with no version. An update that sends the stored reference
+   * unchanged keeps the version the conversation runs, even when the tag it
+   * names has moved since.
    *
    * A session may gain an agent, change it or drop back to the built-in
    * assistant on update; the harness and execution target are the
@@ -1613,11 +1619,13 @@ java.lang.String defaultValue) {
      * when it was written, recorded in status.agent_id and
      * status.agent_version_hash, so an author saving a new version never
      * changes an open conversation under its people. A version names a tag or
-     * a content hash; `latest`, or none on a new reference, names the
-     * agent's current version. To move a conversation to the agent's current
-     * version, update the session with this reference's version set to
-     * `latest`; an update that sends the reference unchanged with no version
-     * keeps the version the conversation runs.
+     * a content hash; none, on a reference the session did not already hold,
+     * names the agent's current version. To move a conversation to the
+     * agent's current version, update the session with this reference's
+     * version set to `latest`: the server pins that version and stores the
+     * reference with no version. An update that sends the stored reference
+     * unchanged keeps the version the conversation runs, even when the tag it
+     * names has moved since.
      *
      * A session may gain an agent, change it or drop back to the built-in
      * assistant on update; the harness and execution target are the
@@ -1642,11 +1650,13 @@ java.lang.String defaultValue) {
      * when it was written, recorded in status.agent_id and
      * status.agent_version_hash, so an author saving a new version never
      * changes an open conversation under its people. A version names a tag or
-     * a content hash; `latest`, or none on a new reference, names the
-     * agent's current version. To move a conversation to the agent's current
-     * version, update the session with this reference's version set to
-     * `latest`; an update that sends the reference unchanged with no version
-     * keeps the version the conversation runs.
+     * a content hash; none, on a reference the session did not already hold,
+     * names the agent's current version. To move a conversation to the
+     * agent's current version, update the session with this reference's
+     * version set to `latest`: the server pins that version and stores the
+     * reference with no version. An update that sends the stored reference
+     * unchanged keeps the version the conversation runs, even when the tag it
+     * names has moved since.
      *
      * A session may gain an agent, change it or drop back to the built-in
      * assistant on update; the harness and execution target are the
@@ -1675,11 +1685,13 @@ java.lang.String defaultValue) {
      * when it was written, recorded in status.agent_id and
      * status.agent_version_hash, so an author saving a new version never
      * changes an open conversation under its people. A version names a tag or
-     * a content hash; `latest`, or none on a new reference, names the
-     * agent's current version. To move a conversation to the agent's current
-     * version, update the session with this reference's version set to
-     * `latest`; an update that sends the reference unchanged with no version
-     * keeps the version the conversation runs.
+     * a content hash; none, on a reference the session did not already hold,
+     * names the agent's current version. To move a conversation to the
+     * agent's current version, update the session with this reference's
+     * version set to `latest`: the server pins that version and stores the
+     * reference with no version. An update that sends the stored reference
+     * unchanged keeps the version the conversation runs, even when the tag it
+     * names has moved since.
      *
      * A session may gain an agent, change it or drop back to the built-in
      * assistant on update; the harness and execution target are the
@@ -1713,11 +1725,13 @@ java.lang.String defaultValue) {
      * when it was written, recorded in status.agent_id and
      * status.agent_version_hash, so an author saving a new version never
      * changes an open conversation under its people. A version names a tag or
-     * a content hash; `latest`, or none on a new reference, names the
-     * agent's current version. To move a conversation to the agent's current
-     * version, update the session with this reference's version set to
-     * `latest`; an update that sends the reference unchanged with no version
-     * keeps the version the conversation runs.
+     * a content hash; none, on a reference the session did not already hold,
+     * names the agent's current version. To move a conversation to the
+     * agent's current version, update the session with this reference's
+     * version set to `latest`: the server pins that version and stores the
+     * reference with no version. An update that sends the stored reference
+     * unchanged keeps the version the conversation runs, even when the tag it
+     * names has moved since.
      *
      * A session may gain an agent, change it or drop back to the built-in
      * assistant on update; the harness and execution target are the
@@ -1749,11 +1763,13 @@ java.lang.String defaultValue) {
      * when it was written, recorded in status.agent_id and
      * status.agent_version_hash, so an author saving a new version never
      * changes an open conversation under its people. A version names a tag or
-     * a content hash; `latest`, or none on a new reference, names the
-     * agent's current version. To move a conversation to the agent's current
-     * version, update the session with this reference's version set to
-     * `latest`; an update that sends the reference unchanged with no version
-     * keeps the version the conversation runs.
+     * a content hash; none, on a reference the session did not already hold,
+     * names the agent's current version. To move a conversation to the
+     * agent's current version, update the session with this reference's
+     * version set to `latest`: the server pins that version and stores the
+     * reference with no version. An update that sends the stored reference
+     * unchanged keeps the version the conversation runs, even when the tag it
+     * names has moved since.
      *
      * A session may gain an agent, change it or drop back to the built-in
      * assistant on update; the harness and execution target are the
@@ -1792,11 +1808,13 @@ java.lang.String defaultValue) {
      * when it was written, recorded in status.agent_id and
      * status.agent_version_hash, so an author saving a new version never
      * changes an open conversation under its people. A version names a tag or
-     * a content hash; `latest`, or none on a new reference, names the
-     * agent's current version. To move a conversation to the agent's current
-     * version, update the session with this reference's version set to
-     * `latest`; an update that sends the reference unchanged with no version
-     * keeps the version the conversation runs.
+     * a content hash; none, on a reference the session did not already hold,
+     * names the agent's current version. To move a conversation to the
+     * agent's current version, update the session with this reference's
+     * version set to `latest`: the server pins that version and stores the
+     * reference with no version. An update that sends the stored reference
+     * unchanged keeps the version the conversation runs, even when the tag it
+     * names has moved since.
      *
      * A session may gain an agent, change it or drop back to the built-in
      * assistant on update; the harness and execution target are the
@@ -1827,11 +1845,13 @@ java.lang.String defaultValue) {
      * when it was written, recorded in status.agent_id and
      * status.agent_version_hash, so an author saving a new version never
      * changes an open conversation under its people. A version names a tag or
-     * a content hash; `latest`, or none on a new reference, names the
-     * agent's current version. To move a conversation to the agent's current
-     * version, update the session with this reference's version set to
-     * `latest`; an update that sends the reference unchanged with no version
-     * keeps the version the conversation runs.
+     * a content hash; none, on a reference the session did not already hold,
+     * names the agent's current version. To move a conversation to the
+     * agent's current version, update the session with this reference's
+     * version set to `latest`: the server pins that version and stores the
+     * reference with no version. An update that sends the stored reference
+     * unchanged keeps the version the conversation runs, even when the tag it
+     * names has moved since.
      *
      * A session may gain an agent, change it or drop back to the built-in
      * assistant on update; the harness and execution target are the
@@ -1857,11 +1877,13 @@ java.lang.String defaultValue) {
      * when it was written, recorded in status.agent_id and
      * status.agent_version_hash, so an author saving a new version never
      * changes an open conversation under its people. A version names a tag or
-     * a content hash; `latest`, or none on a new reference, names the
-     * agent's current version. To move a conversation to the agent's current
-     * version, update the session with this reference's version set to
-     * `latest`; an update that sends the reference unchanged with no version
-     * keeps the version the conversation runs.
+     * a content hash; none, on a reference the session did not already hold,
+     * names the agent's current version. To move a conversation to the
+     * agent's current version, update the session with this reference's
+     * version set to `latest`: the server pins that version and stores the
+     * reference with no version. An update that sends the stored reference
+     * unchanged keeps the version the conversation runs, even when the tag it
+     * names has moved since.
      *
      * A session may gain an agent, change it or drop back to the built-in
      * assistant on update; the harness and execution target are the
@@ -1890,11 +1912,13 @@ java.lang.String defaultValue) {
      * when it was written, recorded in status.agent_id and
      * status.agent_version_hash, so an author saving a new version never
      * changes an open conversation under its people. A version names a tag or
-     * a content hash; `latest`, or none on a new reference, names the
-     * agent's current version. To move a conversation to the agent's current
-     * version, update the session with this reference's version set to
-     * `latest`; an update that sends the reference unchanged with no version
-     * keeps the version the conversation runs.
+     * a content hash; none, on a reference the session did not already hold,
+     * names the agent's current version. To move a conversation to the
+     * agent's current version, update the session with this reference's
+     * version set to `latest`: the server pins that version and stores the
+     * reference with no version. An update that sends the stored reference
+     * unchanged keeps the version the conversation runs, even when the tag it
+     * names has moved since.
      *
      * A session may gain an agent, change it or drop back to the built-in
      * assistant on update; the harness and execution target are the

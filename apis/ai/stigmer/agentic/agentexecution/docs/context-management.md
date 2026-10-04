@@ -49,7 +49,11 @@ Override context management behavior per execution via `spec.execution_config.co
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Short task that won't approach context limits"
   execution_config:
     model_name: "claude-sonnet-4.5"
@@ -63,7 +67,11 @@ spec:
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Long-running analysis task"
   execution_config:
     model_name: "claude-sonnet-4.5"
@@ -201,7 +209,11 @@ Multiple events indicate a very long-running conversation. If you see frequent s
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "What is 2 + 2?"
   execution_config:
     context_management:
@@ -214,7 +226,11 @@ Summarize earlier to keep costs low and avoid approaching the limit:
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Analyze all 500 files in this repository"
   execution_config:
     model_name: "claude-sonnet-4.5"

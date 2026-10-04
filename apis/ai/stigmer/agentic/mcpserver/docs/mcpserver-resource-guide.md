@@ -117,7 +117,7 @@ All spec fields are defined by `McpServerSpec` in `ai/stigmer/agentic/mcpserver/
 | `spec.stdio` | Conditionally required | Configuration for a subprocess-based server. Exactly one of `stdio` or `http` must be specified. See [server-types.md](server-types.md). |
 | `spec.http` | Conditionally required | Configuration for an HTTP-based server. Exactly one of `stdio` or `http` must be specified. See [server-types.md](server-types.md). |
 | `spec.default_enabled_tools` | No | Tools enabled from this server by default. Empty list = all tools are enabled. Agents can restrict further via `enabled_tools` in `mcp_server_usages`. Tool names must match exactly what the server reports via `tools/list`. **Only names from `discovered_capabilities.tools` are valid — never include names from `discovered_capabilities.resource_templates`.** |
-| `spec.env_spec` | No | Required environment variables (schema only). Actual values are provided at runtime via the AgentInstance's environment binding. See [Environment Specification](#environment-specification). |
+| `spec.env_spec` | No | Required environment variables (schema only). Actual values are provided when each run starts. See [Environment Specification](#environment-specification). |
 | `spec.default_tool_approvals` | No | Tools that require user approval by default for all agents using this server. The base layer of the approval policy chain. See [tool-approval-policies.md](tool-approval-policies.md). |
 
 ### Server Type (oneof — required)
@@ -164,7 +164,7 @@ An empty `default_enabled_tools` means all tools are available — agents then r
 
 ### Environment Specification
 
-`env_spec` declares the schema of environment variables the MCP server requires at runtime. This is documentation + validation, not actual values. Values are provided via the AgentInstance's environment binding.
+`env_spec` declares the schema of environment variables the MCP server requires at runtime. This is documentation + validation, not actual values. Values come from the run's resolved environment (the Environments bound to what started the run, `runtime_env`, then OAuth tokens and the personal environment of the person who sent the message for keys still missing).
 
 ```yaml
 spec:
@@ -182,9 +182,9 @@ spec:
 |---|---|
 | `value` | Actual value. Leave empty in the McpServer spec — values are provided at runtime. Can be pre-populated for non-secret, shared defaults. |
 | `is_secret` | `true`: encrypted at rest, redacted in logs, requires special permissions to read. `false`: stored as plaintext, visible in audit logs. |
-| `description` | Shown in the UI when configuring an AgentInstance. Be specific about the required format and permissions (e.g., "GitHub PAT with `repo` and `read:org` scopes"). |
+| `description` | Shown in the UI when a person supplies the value. Be specific about the required format and permissions (e.g., "GitHub PAT with `repo` and `read:org` scopes"). |
 
-The `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and are shared across McpServers, Agents, AgentInstances, and WorkflowInstances.
+The `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and are shared across McpServers, Agents, and WorkflowInstances.
 
 ## Status Fields
 

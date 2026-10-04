@@ -59,7 +59,11 @@ enum IamPermission {
 
   // Resource-level create permissions.
   can_create_execution_in = 13;
-  can_create_instance = 14;
+
+  // Value 14 was the permission to create an agent instance from an agent,
+  // removed with the instance kind.
+  reserved 14;
+  reserved "can_create_instance";
 
   // Execution permission.
   can_execute = 15;

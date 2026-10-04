@@ -154,7 +154,7 @@ spec:
 
 ## Staging vs. Production — Same Keys, Different Values
 
-Use separate environments for staging and production so the same AgentInstance can be promoted by swapping a single environment reference.
+Use separate environments for staging and production so the same agent runs with either by swapping a single environment reference on the schedule or workflow task that starts it.
 
 **Staging:**
 
@@ -262,7 +262,7 @@ stigmer environment apply env.yaml
 
 ## Rotating a Secret
 
-To rotate a secret, update the environment with the new value. All future executions referencing this environment will use the new secret immediately — no changes needed to any AgentInstance.
+To rotate a secret, update the environment with the new value. All future executions referencing this environment will use the new secret immediately — no changes needed to any agent, schedule or workflow.
 
 ```yaml
 # env-rotate.yaml — same structure, new secret value

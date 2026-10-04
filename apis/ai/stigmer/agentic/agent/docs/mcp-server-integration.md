@@ -109,8 +109,8 @@ Each layer can override the one below it. An agent can make a tool require appro
 At runtime, the Agent does not connect to MCP servers directly. The flow is:
 
 1. **Agent** declares `mcp_server_usages` (references only — no connections, no secrets)
-2. **AgentInstance** binds the Agent to an Environment (provides secrets/credentials needed by the MCP servers)
-3. **Agent Runner** resolves each McpServer reference, retrieves secrets from the Environment, and starts the actual MCP server process
+2. **The run** resolves the declared keys when it starts: from the Environments bound to the schedule, workflow task or PlatformClient that started it, from `runtime_env`, then OAuth tokens and the personal environment of the person who sent the message for keys still missing
+3. **Agent Runner** resolves each McpServer reference, passes each server the keys it declares, and starts the actual MCP server process
 4. The running MCP server's tools become available to the agent during the AgentExecution
 
-This separation means the Agent YAML is portable and contains no secrets. Different AgentInstances can bind the same Agent to different environments (e.g., staging vs production credentials).
+This separation means the Agent YAML is portable and contains no secrets. Different schedules or workflow tasks can bind the same Agent to different environments (e.g., staging vs production credentials).

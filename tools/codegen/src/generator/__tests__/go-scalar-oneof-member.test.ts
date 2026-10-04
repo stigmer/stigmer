@@ -1,0 +1,45 @@
+/**
+ * Pins how the Go generator carries a scalar member of a real oneof at the
+ * spec level: the agent execution spec's `session_id`, which shares the
+ * `target` oneof with the message member `session_spec`. The Go struct has
+ * no `SessionId` field of its own — the value is held by the oneof's
+ * wrapper type — so toProto sets the wrapper only when the input carries a
+ * value (a zero value leaves the oneof to the other member), and fromProto
+ * reads the member through its getter, which answers the zero value when
+ * the oneof holds the other member. The generator runs over the real
+ * schemas and the test reads what it wrote.
+ */
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { runSDKClientGeneration } from "../sdk-client-go.js";
+
+const SCHEMAS = path.resolve(__dirname, "../../../schemas");
+
+describe("the Go generator's scalar oneof member", () => {
+  let root: string;
+  let go: string;
+
+  beforeAll(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "codegen-go-oneof-"));
+    runSDKClientGeneration(SCHEMAS, root);
+    go = fs.readFileSync(path.join(root, "agentexecution.go"), "utf8");
+  });
+
+  afterAll(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("sets the oneof's wrapper only when the input carries a value", () => {
+    expect(go).toContain(
+      "\tif i.SessionId != \"\" {\n\t\tresource.Spec.Target = &agentexecutionv1.AgentExecutionSpec_SessionId{SessionId: i.SessionId}\n\t}\n",
+    );
+    expect(go).not.toContain("resource.Spec.SessionId =");
+  });
+
+  it("reads the member back through its getter", () => {
+    expect(go).toContain("\t\tinput.SessionId = s.GetSessionId()\n");
+  });
+});

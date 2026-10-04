@@ -296,7 +296,9 @@ func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error
 		},
 		Spec: &agentexecutionv1.AgentExecutionSpec{},
 	}
-	resource.Spec.SessionId = i.SessionId
+	if i.SessionId != "" {
+		resource.Spec.Target = &agentexecutionv1.AgentExecutionSpec_SessionId{SessionId: i.SessionId}
+	}
 	if i.SessionSpec != nil {
 		m := &sessionv1.SessionSpec{}
 		if i.SessionSpec.AgentRef.Org != "" || i.SessionSpec.AgentRef.Slug != "" {
@@ -507,6 +509,7 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 		input.SupersedesExecutionId = s.GetSupersedesExecutionId()
 		input.ConversationCatchup = conversationCatchupInputFromProto(s.GetConversationCatchup())
 		input.Parent = workflowParentInputFromProto(s.GetParent())
+		input.SessionId = s.GetSessionId()
 		if ov := s.GetSessionSpec(); ov != nil {
 			input.SessionSpec = sessionSpecInputFromProto(ov)
 		}

@@ -106,7 +106,7 @@ These two placeholder syntaxes look similar but are completely different:
 
 | Syntax | Where Used | Resolved By | When |
 |---|---|---|---|
-| `${VAR_NAME}` | HTTP `headers` and `query_params` values | Agent runner, from AgentInstance environment | At server startup/request time |
+| `${VAR_NAME}` | HTTP `headers` and `query_params` values | Agent runner, from the run's resolved environment | At server startup/request time |
 | `{{args.field}}` | `default_tool_approvals.message` and agent `tool_approval_overrides.message` | Approval engine, from tool call arguments | At tool invocation time |
 
 ```yaml
@@ -186,7 +186,7 @@ Mitigation: always run `stigmer discover mcp-server <slug>` and copy tool names 
 
 ### `env_spec` with values pre-filled for secrets
 
-Secret values should never be pre-filled in the McpServer spec — they belong in the AgentInstance's environment binding and should never be in version control.
+Secret values should never be pre-filled in the McpServer spec — they belong in an Environment bound to what starts the run, or in a person's personal environment, and should never be in version control.
 
 ```yaml
 # Wrong — secret value in spec
@@ -202,7 +202,7 @@ env_spec:
     GITHUB_TOKEN:
       description: "GitHub PAT with repo scope"
       is_secret: true
-      # value is empty — provided via AgentInstance environment at runtime
+      # value is empty — provided from the run's resolved environment
 ```
 
 ### Setting `status` fields in YAML

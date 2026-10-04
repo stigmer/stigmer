@@ -100,7 +100,7 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 
 ## Environment Specification
 
-Agents can declare required environment variables via `env_spec`. This defines the **schema** — actual values are provided at runtime via the AgentInstance's environment binding.
+Agents can declare required environment variables via `env_spec`. This defines the **schema** — actual values are provided at runtime: from the Environments bound to the schedule, workflow task or PlatformClient that started the run, from the execution's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message. Those keys reach the agent's tools and shell; the console names the keys an agent will read from a person's personal environment before their first message.
 
 ```yaml
 spec:
@@ -118,11 +118,11 @@ The `data` field is a map of variable name to `EnvironmentValue`:
 
 | Field | Description |
 |---|---|
-| `value` | The actual value. Typically left empty in the Agent spec — values are provided at runtime when creating an AgentInstance. Can be pre-populated for non-secret defaults. |
+| `value` | The actual value. Typically left empty in the Agent spec — values are provided at runtime from the sources above. Can be pre-populated for non-secret defaults. |
 | `is_secret` | `true`: encrypted at rest, redacted in logs, requires special permissions to read. `false`: stored as plaintext, visible in audit logs. |
-| `description` | Documentation for the variable. Shown in the UI when configuring an AgentInstance. |
+| `description` | Documentation for the variable. Shown in the UI when a person supplies the value. |
 
-The shared `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and reused across Agents, AgentInstances, and WorkflowInstances.
+The shared `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and reused across Agents, McpServers, and WorkflowInstances.
 
 ## Status Fields
 
@@ -130,7 +130,7 @@ Status is system-managed and must never be set by users in YAML.
 
 | Field | Description |
 |---|---|
-| `status.default_instance_id` | ID of the default AgentInstance created automatically for this agent. Every agent has exactly one default instance that requires no configuration. |
+| `status.version_hash` | Content hash of the agent's current version. A session that names the agent pins the version its reference resolved to; see the Session's `status.agent_version_hash`. |
 | `status.audit` | Standard audit information: `spec_audit` and `status_audit`, each containing `created_by`, `created_at`, `updated_by`, `updated_at`, and last `event` type. |
 
 ## CLI Commands

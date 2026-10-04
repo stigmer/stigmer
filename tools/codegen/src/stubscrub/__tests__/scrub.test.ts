@@ -216,7 +216,7 @@ describe("scrubJava", () => {
         "   * Resource metadata including name, organization, scope, and labels.\n" +
         "   *\n" +
         "   * &#64;internal\n" +
-        "   * AgentInstances can have platform, organization, or identity_account scope.\n" +
+        "   * Agents can have platform, organization, or identity_account scope.\n" +
         "   * </pre>\n" +
         "   *\n" +
         '   * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>\n' +
