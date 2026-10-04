@@ -100,10 +100,9 @@ export interface IdentityProviderInput {
   userinfoEndpoint?: string;
   isSsoProvider?: boolean;
   oidcClientId?: string;
-  autoProvisionAccounts?: boolean;
-  autoGrantOnOrg?: boolean;
-  autoGrantRole?: IamRole;
   tenantOrgClaim?: string;
+  createAccountsOnSignIn?: boolean;
+  signInRole?: IamRole;
 }
 
 export function buildIdentityProviderProto(input: IdentityProviderInput): IdentityProvider {
@@ -126,10 +125,9 @@ export function buildIdentityProviderProto(input: IdentityProviderInput): Identi
       userinfoEndpoint: input.userinfoEndpoint,
       isSsoProvider: input.isSsoProvider,
       oidcClientId: input.oidcClientId,
-      autoProvisionAccounts: input.autoProvisionAccounts,
-      autoGrantOnOrg: input.autoGrantOnOrg,
-      autoGrantRole: input.autoGrantRole,
       tenantOrgClaim: input.tenantOrgClaim,
+      createAccountsOnSignIn: input.createAccountsOnSignIn,
+      signInRole: input.signInRole,
     })),
   }) as IdentityProvider;
 }
@@ -166,9 +164,8 @@ export function toIdentityProviderUpdateInput(resource: IdentityProvider): Ident
     userinfoEndpoint: spec.userinfoEndpoint || undefined,
     isSsoProvider: spec.isSsoProvider || undefined,
     oidcClientId: spec.oidcClientId || undefined,
-    autoProvisionAccounts: spec.autoProvisionAccounts || undefined,
-    autoGrantOnOrg: spec.autoGrantOnOrg || undefined,
-    autoGrantRole: spec.autoGrantRole || undefined,
     tenantOrgClaim: spec.tenantOrgClaim || undefined,
+    createAccountsOnSignIn: spec.createAccountsOnSignIn || undefined,
+    signInRole: spec.signInRole || undefined,
   };
 }

@@ -5,7 +5,7 @@
  * self-host's shape), with the key ring supplied so the run is hermetic:
  *   - the founder creates a client; an anonymous mint answers a token; the
  *     token authenticates as the end user's derived account (its subject
- *     names the owning organization by id), which holds the auto-grant role
+ *     names the owning organization by id), which holds the sign-in role
  *     on that organization and sees that one alone;
  *   - the platform-client verifier sits ahead of the unit's verifier and
  *     claims only its lane: the founder's tokens still pass, and a TYPED
@@ -164,9 +164,8 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
         org: ORG,
       },
       spec: {
-        autoProvisionAccounts: true,
-        autoGrantOnOrg: true,
-        autoGrantRole: IamRole.member,
+        createAccountsOnSignIn: true,
+        signInRole: IamRole.member,
         allowedOrigins,
       },
     });

@@ -56,3 +56,45 @@ describe("CreateApiKeyForm initialName", () => {
     expect(nameInput().value).toBe("renamed-key");
   });
 });
+
+describe("CreateApiKeyForm organization limit", () => {
+  function renderWithCreate() {
+    const create = vi.fn(async (_input: Record<string, unknown>) => ({}));
+    const client = { apiKey: { create } } as unknown as Stigmer;
+    render(<CreateApiKeyForm org="org_acme" initialName="ci-key" />, {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <StigmerContext.Provider value={client}>
+          {children}
+        </StigmerContext.Provider>
+      ),
+    });
+    return create;
+  }
+
+  it("limits the key to the active organization by default", async () => {
+    const create = renderWithCreate();
+    const box = screen.getByLabelText(
+      "This organization only",
+    ) as HTMLInputElement;
+    expect(box.checked).toBe(true);
+
+    fireEvent.click(submitButton());
+    await vi.waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      org: "org_acme",
+      boundOrg: "org_acme",
+    });
+  });
+
+  it("creates a key for every organization when the box is cleared", async () => {
+    const create = renderWithCreate();
+    fireEvent.click(screen.getByLabelText("This organization only"));
+    expect(
+      screen.getByText("The key works in every organization you belong to."),
+    ).toBeTruthy();
+
+    fireEvent.click(submitButton());
+    await vi.waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("boundOrg");
+  });
+});

@@ -706,14 +706,17 @@ your authentication system.
 - **API surface**: `kind: identity_provider`, prefix `idp`. proto:
   `iam/identityprovider/v1/spec.proto`.
 - **Key fields**: `jwks_uri`, `allowed_issuers`, `expected_audience`,
-  `is_sso_provider`, `oidc_client_id`.
+  `is_sso_provider`, `oidc_client_id`, `create_accounts_on_sign_in`,
+  `sign_in_role`, `tenant_org_claim`.
 - **Context rule**: Do not use on the sales site. In quickstart, say "identity
   provider" in lowercase on first use with a brief gloss. In concepts and
   how-to, capitalize as "Identity Provider." In reference, use
   `IdentityProvider`.
 - **Note**: An Identity Provider is not a user database---it defines how Stigmer
   validates externally issued JWTs. It is owned by an Organization and can
-  authenticate users across multiple platform-managed Organizations.
+  authenticate users across multiple platform-managed Organizations. Each token
+  it vouches for is a **bound credential**: it works in the Organization
+  `tenant_org_claim` names, or in the provider's own.
 
 ---
 
@@ -733,8 +736,10 @@ Provider), Platform (created via PlatformClient), and Machine
   capitalize as "Identity Account." In reference, use `IdentityAccount`. In
   quickstart, avoid unless the tutorial covers federation or PlatformClient.
 - **Note**: Federated accounts can be provisioned via JIT (automatic on first
-  token) or explicitly via `createFederatedAccount`. Platform accounts are
-  always provisioned automatically via `mintUserToken`.
+  token, when the Identity Provider sets `create_accounts_on_sign_in`) or
+  explicitly via `createFederatedAccount`. Platform accounts are created by
+  `mintUserToken` when the PlatformClient sets `create_accounts_on_sign_in`, or
+  by the platform beforehand.
 
 ---
 
@@ -750,6 +755,32 @@ Stigmer without creating Stigmer-native accounts.
   site, say "your users sign in with their existing credentials" without naming
   the mechanism. In quickstart, avoid unless the tutorial covers federation
   setup.
+
+---
+
+#### Bound credential
+
+A credential that names one Organization and works in that Organization only,
+whatever roles its person holds elsewhere.
+
+- **Capitalize**: No. "Bound credential" is a property of a credential, not a
+  Stigmer resource type.
+- **Examples**: a PlatformClient user token (bound to the PlatformClient's
+  Organization), a federated token through an Identity Provider (bound to the
+  Organization `tenant_org_claim` names, or the provider's own), and an API key
+  limited to an Organization (`ApiKeySpec.bound_org`). A person signed in at the
+  Stigmer Console with their own Stigmer sign-in is not bound and moves between
+  all their Organizations.
+- **Reach**: its Organization's resources; what belongs to no Organization (the
+  person's own account and API keys); and reading and running Agents, Skills,
+  Workflows, MCP Servers and Plugins shared at Platform visibility. It cannot
+  create an Organization or accept an invitation to another one.
+- **Context rule**: Use in authentication guides and reference. On the sales
+  site, say "a key that works in one Organization." In quickstart, avoid unless
+  the tutorial covers API keys, federation or PlatformClient.
+- **Note**: a bound credential used in another Organization gets
+  `PERMISSION_DENIED`. A federated token whose tenant claim is missing or names
+  no known Organization gets `UNAUTHENTICATED`, on every sign-in.
 
 ---
 
@@ -788,8 +819,8 @@ mint Stigmer-signed user tokens for embedding Stigmer in your product.
   "Platform Client" in prose---the API surface uses the compound form.
 - **API surface**: `kind: platform_client`, prefix `pc`. proto:
   `iam/platformclient/v1/spec.proto`, `iam/platformclient/v1/token.proto`.
-- **Key fields**: `client_id`, `client_secret_hash`, `auto_provision_accounts`,
-  `auto_grant_on_org`, `auto_grant_role`, `allowed_origins`.
+- **Key fields**: `client_id`, `client_secret_hash`,
+  `create_accounts_on_sign_in`, `sign_in_role`, `allowed_origins`.
 - **Context rule**: Do not use on the sales site---say "embed Stigmer in your
   app" or "add Stigmer to your product." In quickstart, avoid unless the
   tutorial covers PlatformClient setup. In concepts and how-to, capitalize as
@@ -798,9 +829,10 @@ mint Stigmer-signed user tokens for embedding Stigmer in your product.
 <!-- vale Vale.Spelling = NO -->
 
 - **Note**: PlatformClient credentials authenticate your backend, not your
-  users. The backend calls `mintUserToken` to get user-scoped JWTs. This is the
-  same pattern used by Twilio (Access Tokens), Stream (User Tokens), and
-  Liveblocks (access tokens).
+  users. The backend calls `mintUserToken` to get user-scoped JWTs, each a
+  **bound credential** that works in the PlatformClient's Organization only.
+  This is the same pattern used by Twilio (Access Tokens), Stream (User Tokens),
+  and Liveblocks (access tokens).
 
 <!-- vale Vale.Spelling = YES -->
 

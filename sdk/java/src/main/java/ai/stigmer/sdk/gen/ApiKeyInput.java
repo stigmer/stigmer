@@ -20,6 +20,7 @@ public final class ApiKeyInput {
     private final String fingerprint;
     private final String expiresAt;
     private final boolean neverExpires;
+    private final String boundOrg;
 
     private ApiKeyInput(Builder builder) {
         this.id = builder.id;
@@ -32,6 +33,7 @@ public final class ApiKeyInput {
         this.fingerprint = builder.fingerprint;
         this.expiresAt = builder.expiresAt;
         this.neverExpires = builder.neverExpires;
+        this.boundOrg = builder.boundOrg;
     }
 
     ApiKey toProto() {
@@ -50,6 +52,9 @@ public final class ApiKeyInput {
                 .build());
         }
         spec.setNeverExpires(this.neverExpires);
+        if (this.boundOrg != null) {
+            spec.setBoundOrg(this.boundOrg);
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
         if (this.org != null) {
@@ -88,6 +93,7 @@ public final class ApiKeyInput {
         private String fingerprint;
         private String expiresAt;
         private boolean neverExpires;
+        private String boundOrg;
 
         private Builder() {}
 
@@ -106,6 +112,7 @@ public final class ApiKeyInput {
         public Builder fingerprint(String fingerprint) { this.fingerprint = fingerprint; return this; }
         public Builder expiresAt(String expiresAt) { this.expiresAt = expiresAt; return this; }
         public Builder neverExpires(boolean neverExpires) { this.neverExpires = neverExpires; return this; }
+        public Builder boundOrg(String boundOrg) { this.boundOrg = boundOrg; return this; }
 
         public ApiKeyInput build() { return new ApiKeyInput(this); }
     }

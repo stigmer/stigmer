@@ -72,14 +72,29 @@ export type {
   ServerExtension,
 } from "./extensions/registry.js";
 // What the composition hands a unit (ServerExtension.onComposed): its one
-// Authorizer, list read scope, policy check, tuple lifecycle and
-// in-process transport, whichever posture built them.
+// Authorizer and list read scope (bound by the credential binding), the
+// binding itself, the policy check, tuple lifecycle and in-process
+// transport, whichever posture built them.
 export type { ComposedServices } from "./extensions/composed-services.js";
 export type {
   CallerClass,
   CallerIdentity,
   IdentityVerifier,
 } from "./extensions/identity.js";
+// The organization a caller's credential is bound to (CallerIdentity
+// .boundOrg), read the one way every consumer shares: a composition's
+// verifier sets the field, and its own lanes read it through this.
+export { boundOrgOf } from "./extensions/identity.js";
+// The credential binding (ComposedServices.credentialBinding): the rule
+// that a credential naming an organization works there only, for a
+// composition's own lane that acts on an organization without asking the
+// Authorizer, and the denial the bound Authorizer answers with.
+export type {
+  BindingTarget,
+  BindingVerdict,
+  CredentialBinding,
+} from "./extensions/credential-binding.js";
+export { BOUND_ELSEWHERE_DENY_REASON } from "./authorization/credential-binding.js";
 // Post-authentication caller guards
 // (ServerExtension.callerGuards) — enforcement of the MINTING CLIENT's
 // contract, run by the serving chassis after the position-1 identity

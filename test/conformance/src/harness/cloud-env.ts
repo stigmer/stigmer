@@ -167,7 +167,7 @@ export async function bootstrapPrimaryIdentity(
     metadata: { name: uniqueName("conformance-pc"), org: FGA_SEEDED_ORG },
     // JIT-provision minted users: every conformance identity (primary and the
     // per-assertion outsiders) is a fresh user_id that must not pre-exist.
-    spec: { autoProvisionAccounts: true },
+    spec: { createAccountsOnSignIn: true },
   });
 
   const clientId = created.platformClient?.spec?.clientId;

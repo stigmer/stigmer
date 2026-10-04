@@ -51,7 +51,8 @@ sequenceDiagram
 1. Your backend authenticates the user (your auth, your session).
 2. Your backend calls `mintUserToken` with PlatformClient credentials + user
    identity.
-3. Stigmer returns a signed JWT scoped to that user.
+3. Stigmer returns a signed JWT scoped to that user and bound to the
+   PlatformClient's Organization: the token works in that Organization only.
 4. Your frontend passes the token to `StigmerProvider` via `getAccessToken`.
 
 <ScenarEmbed
@@ -200,19 +201,23 @@ function App() {
 ## Automatic account creation
 
 By default, `mintUserToken` fails with `FAILED_PRECONDITION` if the user doesn't
-have a Stigmer Identity Account. Enable automatic provisioning on the
-PlatformClient to create accounts on first encounter:
+have a Stigmer Identity Account. Two settings on the PlatformClient let Stigmer
+create accounts on first encounter:
 
-- **`auto_provision_accounts: true`** — creates an IdentityAccount on first
-  encounter.
-- **`auto_grant_on_org: true`** — grants a role on your organization
-  immediately.
-- **`auto_grant_role`** — the role to grant (default: `viewer`). `owner` is
-  refused: Organization ownership is always assigned explicitly.
+- **`create_accounts_on_sign_in: true`** — creates an IdentityAccount the first
+  time `mintUserToken` meets a `user_id` that has none.
+- **`sign_in_role`** — the role that new account receives on your Organization.
+  Unset grants nothing, so your backend grants roles with IAM Policies.
+  `sign_in_role` requires `create_accounts_on_sign_in`. `owner` is refused:
+  Organization ownership is always assigned explicitly.
 
-These settings apply when an account is first provisioned. An account that
-already exists keeps the roles and profile it has: changing the settings later,
-or passing a different email or name in a later mint, does not update it.
+For example, with `create_accounts_on_sign_in: true` and `sign_in_role: viewer`,
+the first token you mint for `user_123` creates their account and makes them a
+viewer of your Organization.
+
+These settings apply when an account is first created. An account that already
+exists keeps the roles and profile it has: changing the settings later, or
+passing a different email or name in a later mint, does not update it.
 
 Identity resolution is **org-scoped**: the same `user_id` presented via any
 PlatformClient in your organization resolves to a single Stigmer identity. If
@@ -251,15 +256,17 @@ their own Environments, not the PlatformClient's.
 
 All SDKs return structured errors with actionable messages:
 
-| Error code            | When                                                                                     | What to do                                                                                          |
-| --------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `UNAUTHENTICATED`     | Invalid `client_id` or `client_secret`                                                   | Verify `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET`. If rotated, the previous secret is invalid. |
-| `FAILED_PRECONDITION` | User doesn't exist, automatic provisioning off                                           | Enable `auto_provision_accounts` or pre-create the account.                                         |
-| `FAILED_PRECONDITION` | Client secret expired                                                                    | Extend or clear the PlatformClient's expiry in the Console; rotating alone does not extend it.      |
-| `FAILED_PRECONDITION` | The server trusts every request                                                          | Configure sign-in on the server (`STIGMER_OIDC_ISSUER`).                                            |
-| `INVALID_ARGUMENT`    | `org` names an Organization other than the PlatformClient's                              | Leave `org` empty, or pass the PlatformClient's own Organization.                                   |
-| `UNAUTHENTICATED`     | An API call bearing a token whose PlatformClient was deleted                             | Mint a new token from an active PlatformClient.                                                     |
-| `PERMISSION_DENIED`   | A browser API call bearing the minted token came from an origin not in `allowed_origins` | Add the requesting origin to the PlatformClient's `allowed_origins`.                                |
+| Error code            | When                                                                                                 | What to do                                                                                                     |
+| --------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `UNAUTHENTICATED`     | Invalid `client_id` or `client_secret`                                                               | Verify `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET`. If rotated, the previous secret is invalid.            |
+| `FAILED_PRECONDITION` | User doesn't exist, automatic account creation off                                                   | Enable `create_accounts_on_sign_in` or pre-create the account.                                                 |
+| `FAILED_PRECONDITION` | Client secret expired                                                                                | Extend or clear the PlatformClient's expiry in the Console; rotating alone does not extend it.                 |
+| `FAILED_PRECONDITION` | The server trusts every request                                                                      | Configure sign-in on the server (`STIGMER_OIDC_ISSUER`).                                                       |
+| `INVALID_ARGUMENT`    | `org` names an Organization other than the PlatformClient's                                          | Leave `org` empty, or pass the PlatformClient's own Organization.                                              |
+| `UNAUTHENTICATED`     | An API call bearing a token whose PlatformClient was deleted                                         | Mint a new token from an active PlatformClient.                                                                |
+| `UNAUTHENTICATED`     | An API call bearing a token whose `org` claim is missing or is not its PlatformClient's Organization | Use a token `mintUserToken` returned, unchanged.                                                               |
+| `PERMISSION_DENIED`   | An API call bearing the minted token targets another Organization than the PlatformClient's          | Minted tokens work in the PlatformClient's Organization only. Use a PlatformClient of the target Organization. |
+| `PERMISSION_DENIED`   | A browser API call bearing the minted token came from an origin not in `allowed_origins`             | Add the requesting origin to the PlatformClient's `allowed_origins`.                                           |
 
 ## Security notes
 
@@ -305,8 +312,8 @@ Stigmer Console. If you rotated the secret, the previous one is no longer valid.
 ### Check if the user exists
 
 `FAILED_PRECONDITION` naming the user means the user doesn't have a Stigmer
-Identity Account and automatic provisioning is disabled. Enable
-`auto_provision_accounts` on the PlatformClient or create the account before
+Identity Account and automatic account creation is off. Enable
+`create_accounts_on_sign_in` on the PlatformClient or create the account before
 calling `mintUserToken`.
 
 </Step>
@@ -327,6 +334,17 @@ user ID) across all PlatformClients in your Organization.
 `PERMISSION_DENIED` when the browser calls the Stigmer API usually means the
 requesting origin isn't in the PlatformClient's `allowed_origins` list. Add your
 app's origin (for example, `https://app.example.com`) in the Console.
+
+</Step>
+<Step>
+
+### Check the target Organization
+
+A minted token works only in the PlatformClient's own Organization, whatever
+roles the user holds elsewhere. `PERMISSION_DENIED` on a call that names another
+Organization's resource means the token is bound elsewhere. The token can still
+reach the user's own account and API keys, and read and run Agents, Skills,
+Workflows, MCP Servers and Plugins shared at Platform visibility.
 
 </Step>
 </Steps>

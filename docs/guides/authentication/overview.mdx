@@ -16,7 +16,8 @@ where the request comes from and who makes it.
 | **Who uses it**       | Your backend, CLI, CI/CD                  | Your end users (via their existing IdP)                      | Your end users (via your backend)                                   |
 | **Where it runs**     | Server-side only                          | Browser (user's JWT sent directly)                           | Browser (token fetched from your backend)                           |
 | **Setup effort**      | Create a key in the Console               | Register an Identity Provider, configure JWKS + issuer       | Create a PlatformClient in the Console, add one backend endpoint    |
-| **User provisioning** | Not applicable (server credential)        | JIT automatic, manual, or SSO                                | JIT automatic on first token mint                                   |
+| **User provisioning** | Not applicable (server credential)        | JIT automatic, manual, or SSO                                | Automatic on first token mint, or manual                            |
+| **Organizations**     | Every Organization of its owner, or one   | One per token                                                | The PlatformClient's Organization                                   |
 | **Best for**          | Server-to-server, scripts, internal tools | Apps where users already have an OIDC provider (Auth0, Okta) | Embedding Stigmer in your product without OIDC setup                |
 
 ## How to choose
@@ -25,6 +26,24 @@ where the request comes from and who makes it.
 an **API key**. Create one in the Console under Settings > API Keys, store it as
 a secret in your backend, and pass it to the SDK client. See
 [SDK Overview > Authentication](/docs/sdk/overview#authentication).
+
+A key speaks for the person who created it. The Console's API key form offers
+**This organization only**, checked by default, which limits the key to the
+Organization you create it in. With the CLI, pass `--bound-org` to
+`stigmer apikey create`; through the API, set the key's `bound_org` field to an
+Organization ID or slug. A limited key:
+
+- Works in that Organization only, and is refused with `PERMISSION_DENIED` in
+  every other Organization, whatever roles its owner holds there
+- Cannot create an Organization, and can create only keys limited to the same
+  Organization
+- Can only be limited to an Organization its owner can view, and keeps that
+  limit for life: `bound_org` is fixed at create
+
+Leave the box unchecked, or `bound_org` empty, for a key that works in every
+Organization its owner holds a role in. Prefer a limited key for a script or a
+CI job that serves one Organization: if it leaks, it exposes that Organization
+alone.
 
 **Your users already authenticate through an OIDC provider** (Auth0, Okta, Entra
 ID, Cognito, or any OIDC-compatible system). Use **identity federation**.
@@ -72,3 +91,17 @@ The difference is where the JWT comes from:
   endpoint.
 - **API key**: no JWT needed — the key authenticates the request directly
   (server-side only).
+
+## Credentials bound to one Organization
+
+A federated token, a PlatformClient user token and a limited API key each name
+one Organization and work in that Organization only. A bound credential still
+reaches what belongs to no Organization (the person's own account and API keys)
+and can read and run Agents, Skills, Workflows, MCP Servers and Plugins shared
+at Platform visibility. It cannot create an Organization or accept an invitation
+to another one. A call it makes into another Organization fails with
+`PERMISSION_DENIED`.
+
+A person who signs in at the Stigmer Console with their own Stigmer sign-in, not
+through an Identity Provider or a PlatformClient, is not bound: they move
+between all the Organizations they hold a role in.

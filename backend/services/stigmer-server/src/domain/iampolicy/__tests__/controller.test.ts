@@ -48,7 +48,10 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import {
+  ApiResourceRefSchema,
+  IamPolicySpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import {
   IamPermission,
@@ -63,6 +66,8 @@ import type {
   AuthzCheck,
   AuthzDecision,
 } from "../../../extensions/authorizer.js";
+import type { CredentialBinding } from "../../../extensions/credential-binding.js";
+import { boundOrgOf } from "../../../extensions/identity.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { PolicyGrantScope } from "../../../extensions/policy-grant-scope.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
@@ -197,9 +202,42 @@ interface Harness {
   readonly policies: ReturnType<typeof fakeIamPolicyStore>;
 }
 
+/**
+ * A binding that reads no row: every target outside the bound organization
+ * is outside, which is all the self-query lanes' arms need to show that a
+ * bound person's answers are narrowed (the rule itself is pinned in
+ * authorization/__tests__/credential-binding.test.ts).
+ */
+function stubCredentialBinding(
+  outsideIds: ReadonlySet<string>,
+): CredentialBinding {
+  return {
+    verdict(caller, target) {
+      if (boundOrgOf(caller) === undefined) {
+        return Promise.resolve("unbound");
+      }
+      return Promise.resolve(outsideIds.has(target.id) ? "outside" : "inside");
+    },
+    admitsOrganization: (caller, org) => {
+      const bound = boundOrgOf(caller);
+      return bound === undefined || bound === org;
+    },
+    keepsEntry: () => true,
+    narrowIds(caller, _kind, ids) {
+      if (boundOrgOf(caller) === undefined) {
+        return Promise.resolve(ids);
+      }
+      return Promise.resolve(
+        new Set([...ids].filter((id) => !outsideIds.has(id))),
+      );
+    },
+  };
+}
+
 async function harness(options: {
   caller: CallerIdentity;
   engine?: boolean;
+  outsideIds?: ReadonlySet<string>;
   edition?: ServerEdition;
   scope?: PolicyGrantScope;
   createGate?: PipelineStep<DescMessage>;
@@ -243,6 +281,9 @@ async function harness(options: {
         accounts,
         authorizer,
         grantScope: options.scope ?? newOrganizationOnlyGrantScope(),
+        credentialBinding: stubCredentialBinding(
+          options.outsideIds ?? new Set(),
+        ),
         queries: engine,
         principalDisplay: undefined,
         gateSteps: new Map(
@@ -364,7 +405,9 @@ describe("each lane hands the store its own door and its caller", () => {
     await h.command.create(member);
     await h.command.delete(member);
     const actor = { id: alice.identityId, callerClass: "user" };
-    expect(h.policies.changes.map((change) => [change.op, change.record])).toEqual([
+    expect(
+      h.policies.changes.map((change) => [change.op, change.record]),
+    ).toEqual([
       ["save", { actor, cause: "grant", organizationId: "acme" }],
       ["delete", { actor, cause: "revoke", organizationId: "acme" }],
     ]);
@@ -646,6 +689,42 @@ describe("checkAuthorization's principal-trust rule (the cloud's three refusals 
     expect(error.rawMessage).toContain(
       AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
     );
+  });
+});
+
+describe("the self-query lanes under a credential bound to one organization", () => {
+  const boundAlice: CallerIdentity = { ...alice, boundOrg: "acme" };
+
+  it("checkAuthorization answers false for a resource outside the binding, and never asks the engine", async () => {
+    const h = await harness({
+      caller: boundAlice,
+      engine: true,
+      outsideIds: new Set(["agt_elsewhere"]),
+    });
+    const result = await h.query.checkAuthorization({
+      policy: create(IamPolicySpecSchema, {
+        principal: ref("identity_account", ALICE_ID),
+        resource: ref("agent", "agt_elsewhere"),
+        relation: "can_view",
+      }),
+    });
+    expect(result.isAuthorized).toBe(false);
+    expect(h.engine?.calls).toEqual([]);
+  });
+
+  it("listAuthorizedResourceIds drops the ids outside the binding", async () => {
+    const h = await harness({
+      caller: boundAlice,
+      engine: true,
+      outsideIds: new Set(["r1"]),
+    });
+    const listed = await h.query.listAuthorizedResourceIds({
+      principal: ref("identity_account", ALICE_ID),
+      resourceKind: "agent",
+      relation: "can_view",
+    });
+    expect(listed.resourceIds).toEqual([]);
+    expect(h.engine?.calls).toHaveLength(1);
   });
 });
 
@@ -1003,10 +1082,15 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     const seen: string[] = [];
     const h = await harness({
       caller: alice,
-      createGate: { name: "RecordForTest", execute: () => void seen.push("gate") },
+      createGate: {
+        name: "RecordForTest",
+        execute: () => void seen.push("gate"),
+      },
     });
     h.authorizer.decision = adminOfAcme;
-    const error = await refusal(() => h.command.create(orgRole("ida_bob", "owner", "acme")));
+    const error = await refusal(() =>
+      h.command.create(orgRole("ida_bob", "owner", "acme")),
+    );
     expect(error.code).toBe(Code.PermissionDenied);
     expect(error.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
     expect(h.authorizer.checks.at(-1)).toEqual(assignRolesOnAcme);
@@ -1015,19 +1099,29 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
 
     // Every role up to admin is still hers to grant, and asks nothing more.
     await h.command.create(orgRole("ida_bob", "admin", "acme"));
-    expect(h.authorizer.checks.at(-1)?.permission).toBe(IamPermission.can_grant_access);
+    expect(h.authorizer.checks.at(-1)?.permission).toBe(
+      IamPermission.can_grant_access,
+    );
   });
 
   it("an admin is refused revoking owner and removing an owner, and neither row moves", async () => {
     const asAlice = await harness({ caller: alice });
-    await acmeWith(asAlice, [["ida_root", "owner"], ["ida_rhea", "owner"]]);
+    await acmeWith(asAlice, [
+      ["ida_root", "owner"],
+      ["ida_rhea", "owner"],
+    ]);
     asAlice.authorizer.decision = adminOfAcme;
 
-    const revoke = await refusal(() => asAlice.command.delete(orgRole("ida_rhea", "owner", "acme")));
+    const revoke = await refusal(() =>
+      asAlice.command.delete(orgRole("ida_rhea", "owner", "acme")),
+    );
     expect(revoke.code).toBe(Code.PermissionDenied);
     expect(revoke.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
     const remove = await refusal(() =>
-      asAlice.command.revokeOrgAccess({ identityAccountId: "ida_rhea", org: "acme" }),
+      asAlice.command.revokeOrgAccess({
+        identityAccountId: "ida_rhea",
+        org: "acme",
+      }),
     );
     expect(remove.code).toBe(Code.PermissionDenied);
     expect(remove.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
@@ -1041,14 +1135,24 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     await h.command.create(orgRole("ida_bob", "owner", "acme"));
     await h.command.delete(orgRole("ida_bob", "owner", "acme"));
     await h.command.create(orgRole("ida_bob", "owner", "acme"));
-    await h.command.revokeOrgAccess({ identityAccountId: "ida_bob", org: "acme" });
-    expect([...h.policies.rows.values()].map((row) => row.spec?.principal?.id)).toEqual(["ida_alice"]);
+    await h.command.revokeOrgAccess({
+      identityAccountId: "ida_bob",
+      org: "acme",
+    });
+    expect(
+      [...h.policies.rows.values()].map((row) => row.spec?.principal?.id),
+    ).toEqual(["ida_alice"]);
 
-    const revoke = await refusal(() => h.command.delete(orgRole("ida_alice", "owner", "acme")));
+    const revoke = await refusal(() =>
+      h.command.delete(orgRole("ida_alice", "owner", "acme")),
+    );
     expect(revoke.code).toBe(Code.FailedPrecondition);
     expect(revoke.rawMessage).toBe(LAST_OWNER_MESSAGE);
     const remove = await refusal(() =>
-      h.command.revokeOrgAccess({ identityAccountId: "ida_alice", org: "acme" }),
+      h.command.revokeOrgAccess({
+        identityAccountId: "ida_alice",
+        org: "acme",
+      }),
     );
     expect(remove.code).toBe(Code.FailedPrecondition);
     expect(remove.rawMessage).toBe(LAST_OWNER_MESSAGE);
@@ -1059,9 +1163,14 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     const h = await harness({ caller: machine });
     await acmeWith(h, [["ida_root", "owner"]]);
     h.authorizer.decision = adminOfAcme;
-    await h.command.bootstrapRevokeOrgAccess({ identityAccountId: "ida_root", org: "acme" });
+    await h.command.bootstrapRevokeOrgAccess({
+      identityAccountId: "ida_root",
+      org: "acme",
+    });
     expect(h.policies.rows.size).toBe(0);
-    expect(h.authorizer.checks.map((check) => check.permission)).not.toContain(IamPermission.can_assign_roles);
+    expect(h.authorizer.checks.map((check) => check.permission)).not.toContain(
+      IamPermission.can_assign_roles,
+    );
   });
 });
 

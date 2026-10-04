@@ -453,7 +453,7 @@ function IdentityProvidersSummary({ orgId }: { orgId: string }) {
               const displayName =
                 spec?.displayName || idp.metadata?.name || "Unnamed";
               const isSso = spec?.isSsoProvider;
-              const isJit = !isSso && spec?.autoProvisionAccounts;
+              const isJit = !isSso && spec?.createAccountsOnSignIn;
 
               return (
                 <div

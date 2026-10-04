@@ -139,6 +139,7 @@ import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/serve
 
 import type { Logger } from "../../boot/logger.js";
 import type { AuthorizationQueryEngine } from "../../extensions/authorization-queries.js";
+import type { CredentialBinding } from "../../extensions/credential-binding.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
@@ -221,6 +222,12 @@ export interface IamPolicyControllerDeps {
   readonly grantScope: PolicyGrantScope;
   /** The composed query engine — undefined = the tuple-half RPCs refuse UNIMPLEMENTED. */
   readonly queries: AuthorizationQueryEngine | undefined;
+  /**
+   * The credential binding (authorization/credential-binding.ts): the two
+   * self-query lanes ask the engine, which takes no caller, so a bound
+   * person's answers are narrowed here to what the credential may reach.
+   */
+  readonly credentialBinding: CredentialBinding;
   /** The composed principal display — undefined = a non-person grantee renders in the id fallback shape. */
   readonly principalDisplay: PrincipalDisplay | undefined;
   /** The merged gate steps; `create` splices `iam-policy-create:pre-side-effect-gate`. */
@@ -436,7 +443,9 @@ async function revokeOrgAccess(
   if (guardOwners) {
     const ownerRoleChange = orgAccessOwnerRoleChange(deps.policies);
     pipeline
-      .addStep(newAuthorizeOwnerAssignmentStep(deps.authorizer, ownerRoleChange))
+      .addStep(
+        newAuthorizeOwnerAssignmentStep(deps.authorizer, ownerRoleChange),
+      )
       .addStep(newKeepOneOwnerStep(deps.policies, ownerRoleChange));
   }
   await pipeline
@@ -592,8 +601,34 @@ async function checkAuthorization(
   await enforcePrincipalTrust(deps, caller, policy.principal);
   requireWellFormedTriple(policy);
   const engine = requireQueryEngine(deps);
+  if (!(await bindingReaches(deps, caller, policy))) {
+    return create(CheckAuthorizationResultSchema, { isAuthorized: false });
+  }
   const allowed = await engine.check(policy, input.contextualPolicies);
   return create(CheckAuthorizationResultSchema, { isAuthorized: allowed });
+}
+
+/**
+ * Whether the caller's credential may reach the policy's resource at all:
+ * always for an unbound caller; for a bound one, the binding's verdict
+ * (authorization/credential-binding.ts), so the engine is never asked about
+ * another organization's resource on a bound person's behalf.
+ */
+async function bindingReaches(
+  deps: IamPolicyControllerDeps,
+  caller: CallerIdentity,
+  policy: IamPolicySpec,
+): Promise<boolean> {
+  try {
+    const verdict = await deps.credentialBinding.verdict(caller, {
+      kind: kindByEnumName(policy.resource?.kind ?? ""),
+      id: policy.resource?.id ?? "",
+      permission: policy.relation,
+    });
+    return verdict !== "outside";
+  } catch (error) {
+    throw internalError(error, AUTHORIZATION_UNAVAILABLE_MESSAGE);
+  }
 }
 
 /** The skip lane with no resource: trust on the principal, then the engine. */
@@ -614,8 +649,19 @@ async function listAuthorizedResourceIds(
     input.resourceKind,
     input.contextualPolicies,
   );
+  let reachable: ReadonlySet<string>;
+  try {
+    reachable = await deps.credentialBinding.narrowIds(
+      caller,
+      kindByEnumName(input.resourceKind),
+      new Set(resourceIds),
+      input.relation,
+    );
+  } catch (error) {
+    throw internalError(error, AUTHORIZATION_UNAVAILABLE_MESSAGE);
+  }
   return create(AuthorizedResourceIdsListSchema, {
-    resourceIds: [...resourceIds],
+    resourceIds: resourceIds.filter((id) => reachable.has(id)),
   });
 }
 

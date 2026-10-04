@@ -180,7 +180,18 @@ describe("extension composition (composed server)", () => {
     requireAuthentication: true,
     identityVerifiers: [editionVerifier],
     authorizer: newPermissiveSingleTeamAuthorizer(),
-    drivers: { platformTokenKeys: EDITION_RING },
+    drivers: {
+      platformTokenKeys: EDITION_RING,
+      // The cloud edition serves the three Enterprise kinds; this unit
+      // keeps none of their rows, and says so to the credential binding.
+      resourceRowReaders: new Map(
+        [
+          ApiResourceKind.identity_provider,
+          ApiResourceKind.invitation,
+          ApiResourceKind.team,
+        ].map((kind) => [kind, { findById: () => Promise.resolve(undefined) }]),
+      ),
+    },
     services: [
       (router): void => {
         // Partial implementation is deliberate: the fake pins service
@@ -738,6 +749,45 @@ describe("extension composition (require-authentication posture)", () => {
         }),
       ).rejects.toThrowError(
         /serves edition 'enterprise' under the built-in authorizer but registers no row reader for 'identity_provider', 'invitation', 'team'/,
+      );
+    } finally {
+      rmSync(enterpriseDir, { recursive: true, force: true });
+    }
+  });
+
+  it("a wider edition with its own Authorizer and no row readers is a boot throw too: the credential binding reads every served kind's rows", async () => {
+    const enterpriseDir = mkdtempSync(
+      path.join(tmpdir(), "require-auth-edition-unit-authorizer-"),
+    );
+    try {
+      await expect(
+        composeServer({
+          config: loadConfig({
+            STIGMER_MODEL_REGISTRY_REFRESH: "off",
+            DB_PATH: path.join(enterpriseDir, "stigmer.db"),
+            ARTIFACT_LOCAL_BASE_PATH: path.join(enterpriseDir, "artifacts"),
+          }),
+          logger: createLogger({
+            level: "error",
+            pretty: false,
+            write: () => {},
+          }),
+          extensions: [
+            {
+              ...requiringExtension,
+              name: "enterprise-own-authorizer-without-readers",
+              edition: ServerEdition.enterprise,
+              authorizer: {
+                authorize: () => Promise.resolve({ kind: "allow" }),
+              },
+              drivers: { platformTokenKeys: EDITION_RING },
+            },
+          ],
+          portOverride: 0,
+          host: "127.0.0.1",
+        }),
+      ).rejects.toThrowError(
+        /serves edition 'enterprise' but registers no row reader for 'identity_provider', 'invitation', 'team' — the credential binding reads/,
       );
     } finally {
       rmSync(enterpriseDir, { recursive: true, force: true });

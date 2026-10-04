@@ -9,8 +9,9 @@ package ai.stigmer.iam.apikey.v1;
  * <pre>
  * ApiKeySpec defines the configuration for an API key.
  *
- * API keys provide programmatic access to the Stigmer API. Each key is
- * scoped to an identity account and can have an optional expiration time.
+ * API keys provide programmatic access to the Stigmer API. Each key speaks for
+ * the identity account that created it and can have an optional expiration
+ * time. A key may be limited to one organization (bound_org).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.apikey.v1.ApiKeySpec}
@@ -37,6 +38,7 @@ private static final long serialVersionUID = 0L;
   private ApiKeySpec() {
     keyHash_ = "";
     fingerprint_ = "";
+    boundOrg_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -207,6 +209,71 @@ private static final long serialVersionUID = 0L;
     return neverExpires_;
   }
 
+  public static final int BOUND_ORG_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object boundOrg_ = "";
+  /**
+   * <pre>
+   * The organization this key works in, by id or slug; the server stores the
+   * id. Empty means the key speaks for its owner in every organization they
+   * hold a role in.
+   *
+   * A limited key is refused in every other organization, whatever roles its
+   * owner holds there, and cannot create an organization or a key that is not
+   * limited to the same organization. Creating a key limited to an
+   * organization its owner cannot view is refused. A key created with a
+   * credential that is itself limited to one organization is limited to that
+   * organization: an empty value takes it, and any other value is refused.
+   * </pre>
+   *
+   * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
+   * @return The boundOrg.
+   */
+  @java.lang.Override
+  public java.lang.String getBoundOrg() {
+    java.lang.Object ref = boundOrg_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      boundOrg_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The organization this key works in, by id or slug; the server stores the
+   * id. Empty means the key speaks for its owner in every organization they
+   * hold a role in.
+   *
+   * A limited key is refused in every other organization, whatever roles its
+   * owner holds there, and cannot create an organization or a key that is not
+   * limited to the same organization. Creating a key limited to an
+   * organization its owner cannot view is refused. A key created with a
+   * credential that is itself limited to one organization is limited to that
+   * organization: an empty value takes it, and any other value is refused.
+   * </pre>
+   *
+   * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for boundOrg.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getBoundOrgBytes() {
+    java.lang.Object ref = boundOrg_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      boundOrg_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -233,6 +300,9 @@ private static final long serialVersionUID = 0L;
     if (neverExpires_ != false) {
       output.writeBool(4, neverExpires_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(boundOrg_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, boundOrg_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -255,6 +325,9 @@ private static final long serialVersionUID = 0L;
     if (neverExpires_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(4, neverExpires_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(boundOrg_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, boundOrg_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -282,6 +355,8 @@ private static final long serialVersionUID = 0L;
     }
     if (getNeverExpires()
         != other.getNeverExpires()) return false;
+    if (!getBoundOrg()
+        .equals(other.getBoundOrg())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -304,6 +379,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + NEVER_EXPIRES_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getNeverExpires());
+    hash = (37 * hash) + BOUND_ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getBoundOrg().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -405,8 +482,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ApiKeySpec defines the configuration for an API key.
    *
-   * API keys provide programmatic access to the Stigmer API. Each key is
-   * scoped to an identity account and can have an optional expiration time.
+   * API keys provide programmatic access to the Stigmer API. Each key speaks for
+   * the identity account that created it and can have an optional expiration
+   * time. A key may be limited to one organization (bound_org).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.apikey.v1.ApiKeySpec}
@@ -456,6 +534,7 @@ private static final long serialVersionUID = 0L;
         expiresAtBuilder_ = null;
       }
       neverExpires_ = false;
+      boundOrg_ = "";
       return this;
     }
 
@@ -505,6 +584,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.neverExpires_ = neverExpires_;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.boundOrg_ = boundOrg_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -535,6 +617,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getNeverExpires() != false) {
         setNeverExpires(other.getNeverExpires());
+      }
+      if (!other.getBoundOrg().isEmpty()) {
+        boundOrg_ = other.boundOrg_;
+        bitField0_ |= 0x00000010;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -584,6 +671,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
+            case 42: {
+              boundOrg_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -987,6 +1079,143 @@ private static final long serialVersionUID = 0L;
     public Builder clearNeverExpires() {
       bitField0_ = (bitField0_ & ~0x00000008);
       neverExpires_ = false;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object boundOrg_ = "";
+    /**
+     * <pre>
+     * The organization this key works in, by id or slug; the server stores the
+     * id. Empty means the key speaks for its owner in every organization they
+     * hold a role in.
+     *
+     * A limited key is refused in every other organization, whatever roles its
+     * owner holds there, and cannot create an organization or a key that is not
+     * limited to the same organization. Creating a key limited to an
+     * organization its owner cannot view is refused. A key created with a
+     * credential that is itself limited to one organization is limited to that
+     * organization: an empty value takes it, and any other value is refused.
+     * </pre>
+     *
+     * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
+     * @return The boundOrg.
+     */
+    public java.lang.String getBoundOrg() {
+      java.lang.Object ref = boundOrg_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        boundOrg_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The organization this key works in, by id or slug; the server stores the
+     * id. Empty means the key speaks for its owner in every organization they
+     * hold a role in.
+     *
+     * A limited key is refused in every other organization, whatever roles its
+     * owner holds there, and cannot create an organization or a key that is not
+     * limited to the same organization. Creating a key limited to an
+     * organization its owner cannot view is refused. A key created with a
+     * credential that is itself limited to one organization is limited to that
+     * organization: an empty value takes it, and any other value is refused.
+     * </pre>
+     *
+     * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for boundOrg.
+     */
+    public com.google.protobuf.ByteString
+        getBoundOrgBytes() {
+      java.lang.Object ref = boundOrg_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        boundOrg_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The organization this key works in, by id or slug; the server stores the
+     * id. Empty means the key speaks for its owner in every organization they
+     * hold a role in.
+     *
+     * A limited key is refused in every other organization, whatever roles its
+     * owner holds there, and cannot create an organization or a key that is not
+     * limited to the same organization. Creating a key limited to an
+     * organization its owner cannot view is refused. A key created with a
+     * credential that is itself limited to one organization is limited to that
+     * organization: an empty value takes it, and any other value is refused.
+     * </pre>
+     *
+     * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
+     * @param value The boundOrg to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBoundOrg(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      boundOrg_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The organization this key works in, by id or slug; the server stores the
+     * id. Empty means the key speaks for its owner in every organization they
+     * hold a role in.
+     *
+     * A limited key is refused in every other organization, whatever roles its
+     * owner holds there, and cannot create an organization or a key that is not
+     * limited to the same organization. Creating a key limited to an
+     * organization its owner cannot view is refused. A key created with a
+     * credential that is itself limited to one organization is limited to that
+     * organization: an empty value takes it, and any other value is refused.
+     * </pre>
+     *
+     * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearBoundOrg() {
+      boundOrg_ = getDefaultInstance().getBoundOrg();
+      bitField0_ = (bitField0_ & ~0x00000010);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The organization this key works in, by id or slug; the server stores the
+     * id. Empty means the key speaks for its owner in every organization they
+     * hold a role in.
+     *
+     * A limited key is refused in every other organization, whatever roles its
+     * owner holds there, and cannot create an organization or a key that is not
+     * limited to the same organization. Creating a key limited to an
+     * organization its owner cannot view is refused. A key created with a
+     * credential that is itself limited to one organization is limited to that
+     * organization: an empty value takes it, and any other value is refused.
+     * </pre>
+     *
+     * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for boundOrg to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBoundOrgBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      boundOrg_ = value;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }

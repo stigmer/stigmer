@@ -1,7 +1,7 @@
 {
   "name": "ApiKeySpec",
   "kind": "API_KEY_SPEC",
-  "description": "ApiKeySpec defines the configuration for an API key.\n\n API keys provide programmatic access to the Stigmer API. Each key is\n scoped to an identity account and can have an optional expiration time.",
+  "description": "ApiKeySpec defines the configuration for an API key.\n\n API keys provide programmatic access to the Stigmer API. Each key speaks for\n the identity account that created it and can have an optional expiration\n time. A key may be limited to one organization (bound_org).",
   "protoType": "ai.stigmer.iam.apikey.v1.ApiKeySpec",
   "protoFile": "apis/ai/stigmer/iam/apikey/v1/spec.proto",
   "fields": [
@@ -44,6 +44,19 @@
       },
       "description": "When true, the API key never expires regardless of expires_at.",
       "required": false
+    },
+    {
+      "name": "BoundOrg",
+      "jsonName": "boundOrg",
+      "protoField": "bound_org",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The organization this key works in, by id or slug; the server stores the\n id. Empty means the key speaks for its owner in every organization they\n hold a role in.\n\n A limited key is refused in every other organization, whatever roles its\n owner holds there, and cannot create an organization or a key that is not\n limited to the same organization. Creating a key limited to an\n organization its owner cannot view is refused. A key created with a\n credential that is itself limited to one organization is limited to that\n organization: an empty value takes it, and any other value is refused.",
+      "required": false,
+      "validation": {
+        "maxLength": 128
+      }
     }
   ]
 }

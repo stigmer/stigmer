@@ -81,11 +81,11 @@ export function organizationMismatchMessage(owningOrg: string): string {
 }
 
 export function noAccountMessage(externalUserId: string, org: string): string {
-  return `User '${externalUserId}' has no Stigmer account in organization '${org}'. Enable auto_provision_accounts on the PlatformClient or create the account first.`;
+  return `User '${externalUserId}' has no Stigmer account in organization '${org}'. Enable create_accounts_on_sign_in on the PlatformClient or create the account first.`;
 }
 
-export const OWNER_AUTO_GRANT_MESSAGE =
-  "auto_grant_role cannot be 'owner'; organization ownership must be assigned explicitly.";
+export const OWNER_SIGN_IN_ROLE_MESSAGE =
+  "sign_in_role cannot be 'owner'; organization ownership must be assigned explicitly.";
 
 export const PROVISIONING_FAILED_MESSAGE =
   "Account provisioning failed. No partial account was left behind; the request is safe to retry.";
@@ -121,6 +121,9 @@ export const GUEST_MINT_UNIMPLEMENTED_MESSAGE =
 
 export const TOKEN_NAMES_NO_CLIENT_MESSAGE =
   "platform token names no platform client";
+
+export const TOKEN_ORGANIZATION_MISMATCH_MESSAGE =
+  "platform token does not name its platform client's organization";
 
 export const DELETED_CLIENT_MESSAGE =
   "The platform client that minted this token has been deleted, so the token is no longer accepted. Mint a new user token from an active platform client.";

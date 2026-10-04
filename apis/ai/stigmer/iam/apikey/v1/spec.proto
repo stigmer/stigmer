@@ -3,12 +3,14 @@ syntax = "proto3";
 package ai.stigmer.iam.apikey.v1;
 
 import "ai/stigmer/commons/apiresource/field_options.proto";
+import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
 // ApiKeySpec defines the configuration for an API key.
 //
-// API keys provide programmatic access to the Stigmer API. Each key is
-// scoped to an identity account and can have an optional expiration time.
+// API keys provide programmatic access to the Stigmer API. Each key speaks for
+// the identity account that created it and can have an optional expiration
+// time. A key may be limited to one organization (bound_org).
 message ApiKeySpec {
   // Hash of the raw API key.
   // The actual key is returned only in the create response and never persisted.
@@ -26,4 +28,16 @@ message ApiKeySpec {
 
   // When true, the API key never expires regardless of expires_at.
   bool never_expires = 4;
+
+  // The organization this key works in, by id or slug; the server stores the
+  // id. Empty means the key speaks for its owner in every organization they
+  // hold a role in.
+  //
+  // A limited key is refused in every other organization, whatever roles its
+  // owner holds there, and cannot create an organization or a key that is not
+  // limited to the same organization. Creating a key limited to an
+  // organization its owner cannot view is refused. A key created with a
+  // credential that is itself limited to one organization is limited to that
+  // organization: an empty value takes it, and any other value is refused.
+  string bound_org = 5 [(buf.validate.field).string.max_len = 128];
 }

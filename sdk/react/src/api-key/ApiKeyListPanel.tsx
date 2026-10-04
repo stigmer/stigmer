@@ -5,6 +5,8 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { findOrgByRef, useOptionalOrg } from "../organization/OrgProvider.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useApiKeyList } from "./useApiKeyList.js";
 import { useDeleteApiKey } from "./useDeleteApiKey.js";
@@ -35,13 +37,16 @@ export interface ApiKeyListPanelProps {
  * Displays a list of {@link ApiKey} resources for the authenticated
  * identity with inline delete confirmation.
  *
- * Each key is rendered as a row showing name, fingerprint, creation
- * date, expiry, and last-used time. A delete button triggers an
- * inline confirmation — the row transforms to show confirm/cancel
+ * Each key is rendered as a row showing name, fingerprint, scope,
+ * creation date, expiry, and last-used time. A delete button triggers
+ * an inline confirmation — the row transforms to show confirm/cancel
  * actions.
  *
- * API keys are identity-scoped: the server returns all keys belonging
- * to the authenticated user, regardless of organization.
+ * API keys belong to the authenticated user: the server returns all of
+ * their keys, regardless of organization. A key's scope says where it
+ * works: in every organization its owner belongs to, or in the one
+ * organization it is limited to, named by its slug when the user's
+ * organization list (from an enclosing `OrgProvider`) holds it.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
@@ -60,6 +65,7 @@ export function ApiKeyListPanel({
   now,
 }: ApiKeyListPanelProps) {
   const { apiKeys, isLoading, error, refetch } = useApiKeyList();
+  const orgs = useOptionalOrg()?.orgs ?? NO_ORGS;
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   if (onRefetchRef) {
@@ -115,6 +121,7 @@ export function ApiKeyListPanel({
           <ApiKeyRow
             key={id}
             apiKey={key}
+            scope={describeKeyScope(key, orgs)}
             now={now}
             isConfirming={confirmingId === id}
             onConfirmDelete={() => setConfirmingId(id)}
@@ -136,6 +143,7 @@ export function ApiKeyListPanel({
 
 function ApiKeyRow({
   apiKey,
+  scope,
   now,
   isConfirming,
   onConfirmDelete,
@@ -143,6 +151,7 @@ function ApiKeyRow({
   onDeleted,
 }: {
   apiKey: ApiKey;
+  scope: string;
   now?: Date;
   isConfirming: boolean;
   onConfirmDelete: () => void;
@@ -240,6 +249,9 @@ function ApiKeyRow({
             …{fingerprint}
           </span>
         )}
+        <span className="stg:block stg:truncate stg:text-xs stg:text-muted-foreground">
+          {scope}
+        </span>
       </div>
 
       {/* Metadata columns */}
@@ -286,6 +298,25 @@ function ApiKeyRow({
 // ---------------------------------------------------------------------------
 // Formatting helpers
 // ---------------------------------------------------------------------------
+
+const NO_ORGS: readonly Organization[] = [];
+
+/**
+ * Where a key works, for its row: every organization when it names none,
+ * otherwise the one it names, by slug (or name) when the user's
+ * organization list holds it. A stored key names its organization by id,
+ * which is never shown.
+ */
+function describeKeyScope(
+  apiKey: ApiKey,
+  orgs: readonly Organization[],
+): string {
+  const ref = apiKey.spec?.boundOrg ?? "";
+  if (!ref) return "All your organizations";
+  const org = findOrgByRef(orgs, ref);
+  const label = org?.metadata?.slug || org?.metadata?.name;
+  return label ? `Only in ${label}` : "Limited to one organization";
+}
 
 function formatShortDate(date: Date): string {
   return date.toLocaleDateString(undefined, {

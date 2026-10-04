@@ -16,6 +16,7 @@
 import { toJsonString } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -50,8 +51,8 @@ describe("newSystemManagedPlatformClient", () => {
     expect(client.metadata?.visibility).not.toBe(
       ApiResourceVisibility.api_resource_visibility_unspecified,
     );
-    expect(client.spec?.autoProvisionAccounts).toBe(false);
-    expect(client.spec?.autoGrantOnOrg).toBe(false);
+    expect(client.spec?.createAccountsOnSignIn).toBe(false);
+    expect(client.spec?.signInRole).toBe(IamRole.iam_role_unspecified);
     expect(client.spec?.allowedOrigins).toEqual([]);
   });
 

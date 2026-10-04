@@ -59,7 +59,9 @@ export type CallOrigin = "wire" | "in-process";
  * The authenticated caller, produced by the verifier chain and read by the
  * Authorizer and the audit-actor seam. Org membership is DELIBERATELY not
  * carried: it is authorization data, resolved by the
- * Authorizer per check, never cached on the identity.
+ * Authorizer per check, never cached on the identity. `boundOrg` is not
+ * membership: it is a fact about the credential (which organization it
+ * names), and it only limits which of the person's memberships count.
  */
 export interface CallerIdentity {
   /** The principal the Authorizer sees (e.g. an identity-account id). */
@@ -95,6 +97,21 @@ export interface CallerIdentity {
    * `rawToken` (extensions/caller-guards.ts).
    */
   readonly platformClientId?: string;
+  /**
+   * The organization this credential works in; absent means the credential
+   * speaks for the person in every organization they hold a role in (a
+   * person signed in at a console, the trusted-local operator, runners, the
+   * server itself). Set by the verifier that vouched for a credential
+   * naming one organization: a PlatformClient user token (its `org` claim),
+   * an API key limited to one (`ApiKeySpec.org`), and a composition's own
+   * lanes that name one. Enforced once, where the composition resolves its
+   * decision drivers (authorization/credential-binding.ts), so every
+   * consumer of the composed Authorizer, list read scope and organization
+   * directory is bound by construction. Rides in-process propagation with
+   * the rest of the identity, so a request the server composes for a bound
+   * caller stays bound.
+   */
+  readonly boundOrg?: string;
   /**
    * The transport the request entered through.
    * Absent = the wire; the in-process interceptor stamps `in-process` on
@@ -158,6 +175,20 @@ export function isPlatformPipelineCaller(caller: CallerIdentity): boolean {
  */
 export function isServerComposedRequest(caller: CallerIdentity): boolean {
   return caller.callerClass === "internal" || caller.origin === "in-process";
+}
+
+/**
+ * The organization `caller`'s credential is bound to (`boundOrg`), or
+ * undefined for a credential that speaks for the person in every
+ * organization they hold a role in. An empty value is no binding: the one
+ * reading every consumer shares, so a blank never counts as an
+ * organization.
+ */
+export function boundOrgOf(
+  caller: CallerIdentity | undefined,
+): string | undefined {
+  const bound = caller?.boundOrg;
+  return bound === undefined || bound === "" ? undefined : bound;
 }
 
 /**

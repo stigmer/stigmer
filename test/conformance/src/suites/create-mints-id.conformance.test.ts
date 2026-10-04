@@ -703,7 +703,7 @@ const ROWS: readonly Row[] = [
         apiVersion: "iam.stigmer.ai/v1",
         kind: "PlatformClient",
         metadata: { id: chosenId, name, org },
-        spec: { autoProvisionAccounts: true, autoGrantOnOrg: false, allowedOrigins: [] },
+        spec: { createAccountsOnSignIn: true, allowedOrigins: [] },
       });
       // Create answers the client beside its one-time secret.
       const answer = answerOf(this.key, created.platformClient?.metadata);

@@ -22,7 +22,10 @@
  * read), whose actor row also carries the email/displayName the audit
  * seam wants. Expiry is "expires_at set and past"; never_expires is
  * deliberately not read — Java parity (never-expiring keys leave
- * expires_at unset).
+ * expires_at unset). A key limited to one organization (spec.bound_org) carries
+ * it as the identity's `boundOrg`, so it works in that organization only
+ * (authorization/credential-binding.ts); a key without one speaks for its
+ * owner everywhere.
  *
  * The stamp is then resolved to the owner's account through the
  * identity-account domain's `accountForStamp`
@@ -92,7 +95,10 @@ import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiKeySchema, ApiKeyStatusSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import {
+  ApiKeySchema,
+  ApiKeyStatusSchema,
+} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -191,11 +197,15 @@ export function newApiKeyIdentityVerifier(
         }
       }
       await recordKeyUse(store, logger, key, now);
+      const boundOrg = key.spec?.boundOrg ?? "";
       return {
         ...(account === undefined ? stamped : principalOf(account, stamped)),
         callerClass: "user",
         issuer: "",
         rawToken: token,
+        // A key limited to one organization works there only
+        // (authorization/credential-binding.ts).
+        ...(boundOrg !== "" ? { boundOrg } : {}),
       };
     },
   };
@@ -216,9 +226,14 @@ function recordKeyUse(
     now,
     logger,
     write: (stamp) =>
-      store.updateResource(ApiResourceKind.api_key, id, ApiKeySchema, (live) => {
-        live.status ??= create(ApiKeyStatusSchema);
-        stamp(live.status);
-      }),
+      store.updateResource(
+        ApiResourceKind.api_key,
+        id,
+        ApiKeySchema,
+        (live) => {
+          live.status ??= create(ApiKeyStatusSchema);
+          stamp(live.status);
+        },
+      ),
   });
 }

@@ -29,6 +29,12 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 
 import { newBuiltInAuthorizer } from "../authorization/authorizer.js";
+import {
+  bindAuthorizer,
+  bindListReadScope,
+  bindOrganizationDirectory,
+  newCredentialBinding,
+} from "../authorization/credential-binding.js";
 import { newBuiltInListReadScope } from "../authorization/list-read-scope.js";
 import { newBuiltInOrganizationDirectory } from "../authorization/organization-directory.js";
 import { newBuiltInPolicyCheck } from "../authorization/policy-check.js";
@@ -460,17 +466,24 @@ export async function composeServer(
   // read — never answers derived from rows that are not there. Refused at
   // boot, the same class as a misconfigured registry and the verifierless
   // posture below: caught before any side effect.
-  if (authorizationPosture === "built-in") {
-    const unreadable = kindsWithoutRows({
-      edition: extensions.edition,
-      model: builtInModel,
-      readers: extensions.drivers.resourceRowReaders,
-    });
-    if (unreadable.length > 0) {
-      throw new Error(
-        `the composition serves edition '${ServerEdition[extensions.edition]}' under the built-in authorizer but registers no row reader for ${quoteJoin(unreadable.map(kindEnumName))} — register a reader for each kind a unit serves (drivers.resourceRowReaders), or register an Authorizer`,
-      );
-    }
+  //
+  // The credential binding (below) reads a target's organization from its
+  // row in EVERY posture, a unit Authorizer's included, so a kind whose
+  // rows nothing can read is refused there too, with its own copy: a bound
+  // caller's check on it would otherwise be decided by a row that is not
+  // there. Trusted-local serves open source's edition only, whose kinds
+  // are the store's, so it never meets this.
+  const unreadable = kindsWithoutRows({
+    edition: extensions.edition,
+    model: builtInModel,
+    readers: extensions.drivers.resourceRowReaders,
+  });
+  if (unreadable.length > 0) {
+    throw new Error(
+      authorizationPosture === "built-in"
+        ? `the composition serves edition '${ServerEdition[extensions.edition]}' under the built-in authorizer but registers no row reader for ${quoteJoin(unreadable.map(kindEnumName))} — register a reader for each kind a unit serves (drivers.resourceRowReaders), or register an Authorizer`
+        : `the composition serves edition '${ServerEdition[extensions.edition]}' but registers no row reader for ${quoteJoin(unreadable.map(kindEnumName))} — the credential binding reads every served kind's organization from its row: register a reader for each kind a unit serves (drivers.resourceRowReaders)`,
+    );
   }
 
   // Stage: identity accounts — the first domain whose
@@ -601,7 +614,7 @@ export async function composeServer(
   // `findMyOrganizations` lists what a person may view and a scheduled run
   // belongs to the person who scheduled it — a fire the internal lane
   // would otherwise hand to nobody an enforcing evaluator recognizes.
-  const authorizer: Authorizer =
+  const postureAuthorizer: Authorizer =
     extensions.authorizer ??
     (authorizationPosture === "built-in"
       ? newBuiltInAuthorizer({
@@ -613,7 +626,7 @@ export async function composeServer(
           logger,
         })
       : newTrustedLocalAuthorizer({ store }));
-  const organizationDirectory: OrganizationDirectory | undefined =
+  const postureOrganizationDirectory: OrganizationDirectory | undefined =
     extensions.drivers.organizationDirectory ??
     (authorizationPosture === "built-in"
       ? newBuiltInOrganizationDirectory({
@@ -636,7 +649,7 @@ export async function composeServer(
   // model per candidate over the facts the candidate carries
   // (authorization/list-read-scope.ts); trusted-local composes none and
   // keeps the full scan.
-  const listReadScope: ListReadScope | undefined =
+  const postureListReadScope: ListReadScope | undefined =
     extensions.drivers.listReadScope ??
     (authorizationPosture === "built-in"
       ? newBuiltInListReadScope({
@@ -647,6 +660,36 @@ export async function composeServer(
           logger,
         })
       : undefined);
+  // The credential binding (authorization/credential-binding.ts): a
+  // credential that names an organization works in that organization
+  // only. The three decision drivers resolved above are wrapped with it
+  // HERE, whatever the posture chose, a unit's registration included, so
+  // every controller, every skip lane that calls the Authorizer and every
+  // unit's own consumer of the composed services is bound by
+  // construction; only the raw drivers above are unbound, and nothing
+  // past this point sees them. It reads a target's organization from the
+  // row where the built-in authorizer would (the IamPolicy and
+  // PlatformClient ports a composition may substitute, then the units'
+  // row readers, then the generic store), which is why every posture, not
+  // only the built-in one, refuses a served kind no reader can read.
+  const credentialBinding = newCredentialBinding({
+    store,
+    rowReaders: extensions.drivers.resourceRowReaders,
+    policies: iamPolicies,
+    platformClients,
+  });
+  const authorizer: Authorizer = bindAuthorizer(
+    postureAuthorizer,
+    credentialBinding,
+  );
+  const organizationDirectory: OrganizationDirectory | undefined =
+    postureOrganizationDirectory === undefined
+      ? undefined
+      : bindOrganizationDirectory(postureOrganizationDirectory);
+  const listReadScope: ListReadScope | undefined =
+    postureListReadScope === undefined
+      ? undefined
+      : bindListReadScope(postureListReadScope, credentialBinding);
   // The persons callers stand for (stigmer#1387): under the
   // require-authentication posture every caller is someone the
   // identity-account domain can name, so memory and the person's declared
@@ -1463,6 +1506,7 @@ export async function composeServer(
       grantScope:
         extensions.drivers.policyGrantScope ?? newOrganizationOnlyGrantScope(),
       queries: extensions.drivers.authorizationQueries,
+      credentialBinding,
       principalDisplay: extensions.drivers.principalDisplay,
       gateSteps: extensions.gateSteps,
       edition: extensions.edition,
@@ -1993,6 +2037,7 @@ export async function composeServer(
   const composedServices: ComposedServices = {
     authorizer,
     listReadScope,
+    credentialBinding,
     authorizationQueries:
       extensions.drivers.authorizationQueries ??
       (authorizationPosture === "built-in"

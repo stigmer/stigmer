@@ -12,7 +12,7 @@ import { StigmerContext } from "../../context";
 import { IdentityProviderDetailPanel } from "../IdentityProviderDetailPanel";
 
 /**
- * Pins two things about the detail panel:
+ * Pins three things about the detail panel:
  *
  *   - the save sends the whole spec: before the generated-mapper migration,
  *     this panel hand-built its update input, so a field it did not list
@@ -20,7 +20,11 @@ import { IdentityProviderDetailPanel } from "../IdentityProviderDetailPanel";
  *     `toIdentityProviderUpdateInput` and overrides only what it edits;
  *   - the Edit button is offered only to a caller the server says holds
  *     `can_edit` on the provider, so a member who may view a provider is
- *     never handed a form the server would refuse.
+ *     never handed a form the server would refuse;
+ *   - an SSO provider always creates accounts and grants a role: turning
+ *     SSO on locks account creation on and fills an unset sign-in role
+ *     with viewer, and the form will not save an SSO provider whose role
+ *     is None.
  */
 
 const IDP: IdentityProvider = create(IdentityProviderSchema, {
@@ -36,9 +40,8 @@ const IDP: IdentityProvider = create(IdentityProviderSchema, {
     allowedIssuers: ["https://acme.okta.example"],
     expectedAudience: "stigmer",
     isSsoProvider: false,
-    autoProvisionAccounts: true,
-    autoGrantOnOrg: true,
-    autoGrantRole: IamRole.admin,
+    createAccountsOnSignIn: true,
+    signInRole: IamRole.admin,
     tenantOrgClaim: "org_slug",
   },
 });
@@ -81,8 +84,9 @@ describe("IdentityProviderDetailPanel save payload", () => {
     expect(input.jwksUri).toBe("https://acme.okta.example/jwks");
     expect(input.allowedIssuers).toEqual(["https://acme.okta.example"]);
     expect(input.expectedAudience).toBe("stigmer");
-    // JIT settings round-trip from the edit state.
-    expect(input.autoGrantRole).toBe(IamRole.admin);
+    // Sign-in settings round-trip from the edit state.
+    expect(input.createAccountsOnSignIn).toBe(true);
+    expect(input.signInRole).toBe(IamRole.admin);
     expect(input.tenantOrgClaim).toBe("org_slug");
     // Addressing fields.
     expect(input.org).toBe("acme");
@@ -105,5 +109,68 @@ describe("IdentityProviderDetailPanel edit gate", () => {
     // The configuration stays readable; only the edit affordance is withheld.
     expect(screen.getByRole("heading", { name: "Acme Okta" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+  });
+});
+
+describe("IdentityProviderDetailPanel SSO sign-in settings", () => {
+  const PLAIN: IdentityProvider = create(IdentityProviderSchema, {
+    metadata: { id: "idp-2", name: "Acme Auth", slug: "acme-auth", org: "acme" },
+    spec: {
+      displayName: "Acme Auth",
+      jwksUri: "https://auth.acme.example/jwks",
+      allowedIssuers: ["https://auth.acme.example"],
+      expectedAudience: "stigmer",
+    },
+  });
+
+  function renderPlain(update: ReturnType<typeof vi.fn>) {
+    const client = {
+      identityProvider: { update },
+      iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+    } as never;
+    return render(
+      <StigmerContext.Provider value={client}>
+        <IdentityProviderDetailPanel identityProvider={PLAIN} />
+      </StigmerContext.Provider>,
+    );
+  }
+
+  it("turning SSO on creates accounts with viewer, and None refuses to save", async () => {
+    const update = vi.fn(async (_input: IdentityProviderInput) => PLAIN);
+    renderPlain(update);
+
+    expect(screen.getByText("None")).toBeTruthy();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    const createAccounts = screen.getByRole("switch", {
+      name: "Create accounts on sign-in",
+    });
+    const role = screen.getByLabelText("Sign-in role") as HTMLSelectElement;
+    expect(createAccounts.getAttribute("aria-checked")).toBe("false");
+    expect(role.value).toBe(String(IamRole.iam_role_unspecified));
+
+    // The SSO switch is the form's first.
+    fireEvent.click(screen.getAllByRole("switch")[0]!);
+    fireEvent.change(screen.getByLabelText("OIDC client ID"), {
+      target: { value: "client-1" },
+    });
+
+    expect(createAccounts.getAttribute("aria-checked")).toBe("true");
+    expect((createAccounts as HTMLButtonElement).disabled).toBe(true);
+    expect(role.value).toBe(String(IamRole.viewer));
+
+    const save = screen.getByRole("button", { name: "Save changes" }) as HTMLButtonElement;
+    fireEvent.change(role, { target: { value: String(IamRole.iam_role_unspecified) } });
+    expect(save.disabled).toBe(true);
+
+    fireEvent.change(role, { target: { value: String(IamRole.viewer) } });
+    expect(save.disabled).toBe(false);
+    fireEvent.click(save);
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    const input = update.mock.calls[0]![0];
+    expect(input.isSsoProvider).toBe(true);
+    expect(input.createAccountsOnSignIn).toBe(true);
+    expect(input.signInRole).toBe(IamRole.viewer);
   });
 });

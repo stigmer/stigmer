@@ -111,7 +111,8 @@ when registering the Identity Provider in Stigmer:
 
 Follow the standard
 [Register an Identity Provider](/docs/guides/authentication/federation/register-identity-provider)
-guide, but add two SSO-specific fields: `isSsoProvider` and `oidcClientId`.
+guide, but add the SSO fields: `isSsoProvider` and `oidcClientId`, plus
+`createAccountsOnSignIn` and `signInRole`, which every SSO provider sets.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -127,6 +128,8 @@ const idp = await stigmer.identityProvider.create({
   expectedAudience: "https://api.acme.com/stigmer",
   isSsoProvider: true,
   oidcClientId: "abc123def456",
+  createAccountsOnSignIn: true,
+  signInRole: "viewer",
 });
 ```
 
@@ -135,15 +138,17 @@ const idp = await stigmer.identityProvider.create({
 
 ```go
 idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
-  Name:             "Acme SSO",
-  Org:              "acme",
-  Slug:             "acme-sso",
-  DisplayName:      "Acme SSO",
-  JwksUri:          "https://acme.us.auth0.com/.well-known/jwks.json",
-  AllowedIssuers:   []string{"https://acme.us.auth0.com/"},
-  ExpectedAudience: "https://api.acme.com/stigmer",
-  IsSsoProvider:    true,
-  OidcClientId:     "abc123def456",
+  Name:                   "Acme SSO",
+  Org:                    "acme",
+  Slug:                   "acme-sso",
+  DisplayName:            "Acme SSO",
+  JwksUri:                "https://acme.us.auth0.com/.well-known/jwks.json",
+  AllowedIssuers:         []string{"https://acme.us.auth0.com/"},
+  ExpectedAudience:       "https://api.acme.com/stigmer",
+  IsSsoProvider:          true,
+  OidcClientId:           "abc123def456",
+  CreateAccountsOnSignIn: true,
+  SignInRole:             "viewer",
 })
 ```
 
@@ -161,6 +166,8 @@ idp = client.identity_providers.create(IdentityProviderInput(
     expected_audience="https://api.acme.com/stigmer",
     is_sso_provider=True,
     oidc_client_id="abc123def456",
+    create_accounts_on_sign_in=True,
+    sign_in_role="viewer",
 ))
 ```
 
@@ -178,16 +185,20 @@ IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.b
     .expectedAudience("https://api.acme.com/stigmer")
     .isSsoProvider(true)
     .oidcClientId("abc123def456")
+    .createAccountsOnSignIn(true)
+    .signInRole("viewer")
     .build());
 ```
 
 </Tab>
 </SDKTabs>
 
-| Field           | Purpose                                                                                            |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| `isSsoProvider` | Enables SSO automatic provisioning and makes the SSO login URL visible in the console              |
-| `oidcClientId`  | The client ID from your Identity Provider. The Stigmer login page uses this to start the OIDC flow |
+| Field                    | Purpose                                                                                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isSsoProvider`          | Makes the SSO login URL visible in the console                                                                                                     |
+| `oidcClientId`           | The client ID from your Identity Provider. The Stigmer login page uses this to start the OIDC flow                                                 |
+| `createAccountsOnSignIn` | Creates a team member's account at their first sign-in. Required, and `true`, for an SSO provider                                                  |
+| `signInRole`             | The role a team member receives at their first sign-in. Required for an SSO provider: `viewer`, `member` or `admin`. The console fills in `viewer` |
 
 You can also enable SSO on an existing Identity Provider by editing it in the
 Stigmer web console under **Settings > Identity Providers**.
@@ -232,28 +243,34 @@ When a team member signs in through SSO for the first time, Stigmer:
 2. Checks for an existing federated account matching the token's `sub` claim
 3. Finds no account, so creates one automatically using profile data from the
    token (`email`, `given_name` and `family_name` or `name`, `picture`)
-4. Grants the **viewer** role on the Organization
+4. Grants the Identity Provider's `signInRole` on the Organization
 
 On subsequent logins, Stigmer skips steps 3 and 4 --- it finds the existing
-account and proceeds.
+account and proceeds. The sign-in role is granted once: if an administrator
+later removes it, it stays removed.
 
-### Why viewer, not member
+A token from your SSO provider works in your Organization only, even for a team
+member who also belongs to other Organizations.
+
+### Why start with viewer
 
 The viewer role gives read-only access to the Organization's resources. It does
 **not** allow creating Agent Executions, which incur usage costs. This protects
-the Organization from unexpected charges when new users sign in.
+the Organization from unexpected charges when new users sign in, which is why
+the console fills in `viewer` as the sign-in role.
 
-To give a team member full access, an Organization admin must explicitly upgrade
-them to the **member** role. See
+To give a team member full access, an Organization admin upgrades them to the
+**member** role. See
 [Grant access](/docs/guides/authentication/federation/grant-access) for
-instructions.
+instructions. Choose `member` as the sign-in role only when every team member
+who can sign in through your Identity Provider should start with it.
 
 ## Manage SSO users
 
 ### Upgrade roles
 
-SSO users start as viewers. To upgrade a user to member or admin, use the IAM
-Policy API:
+SSO users start with the sign-in role, `viewer` unless you chose another. To
+upgrade a user to member or admin, use the IAM Policy API:
 
 ```typescript
 await stigmer.iamPolicy.create({
@@ -287,10 +304,10 @@ await stigmer.identityAccount.deprovisionFederatedAccount({
 
 Set `deleteAccount` to `false` to revoke access while keeping the account. This
 is the way to keep an SSO user out of your Organization: Stigmer grants the
-viewer role only when it creates an account, so a kept account can still sign in
-but holds no role in the Organization. To stop the user signing in at all, stop
-them at your Identity Provider. Set `deleteAccount` to `true` only when the user
-can no longer sign in to your Identity Provider.
+sign-in role only at an account's first sign-in, so a kept account can still
+sign in but holds no role in the Organization. To stop the user signing in at
+all, stop them at your Identity Provider. Set `deleteAccount` to `true` only
+when the user can no longer sign in to your Identity Provider.
 
 See
 [Revoke a federated account](/docs/guides/authentication/federation/provision-federated-accounts#revoke-a-federated-account)
@@ -298,7 +315,7 @@ for the full pattern in all SDK languages.
 
 <Callout type="warn">
   If you delete the account and SSO remains enabled, the user's next sign-in
-  through your Identity Provider creates a new account and grants it the viewer
+  through your Identity Provider creates a new account and grants it the sign-in
   role again. To keep a user out, revoke access and keep the account, or stop
   the user at your Identity Provider.
 </Callout>
@@ -357,8 +374,8 @@ Token validation failed. The most common cause is an audience mismatch.
 
 ### User is provisioned automatically but can't do anything
 
-This is expected. Automatically provisioned users get the viewer role, which is
-read-only. An Organization admin must upgrade them to member or admin.
+This is expected when the sign-in role is `viewer`, which is read-only. An
+Organization admin must upgrade them to member or admin.
 
 </Step>
 </Steps>

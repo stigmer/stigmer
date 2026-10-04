@@ -3,10 +3,12 @@
  * (extensions/composed-services.ts, boot/compose.ts):
  *
  *   - `onComposed` hands every unit the composition's own instances before
- *     `composeServer` returns: the very Authorizer a unit registered, its
- *     list scope, its engine's check and its lifecycle, and the one
- *     in-process transport; under open source's own authorization, the
- *     built-in Authorizer, list scope and policy check.
+ *     `composeServer` returns: the Authorizer and list scope a unit
+ *     registered, bound by the credential binding (an unbound caller
+ *     reaches the registered driver; a caller bound elsewhere is denied
+ *     before it), the binding itself, its engine's check and its
+ *     lifecycle, and the one in-process transport; under open source's own
+ *     authorization, the built-in Authorizer, list scope and policy check.
  *   - `start` runs in unit order, first in `start()`, before the server
  *     reports SERVING; a failing start fails `start()`, naming its unit.
  *   - An edition above open source with no sign-in is refused at boot,
@@ -29,9 +31,13 @@ import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../pipeline/steps/authorize.js";
 import { platformTokenKeyRingFromPem } from "../../platformtoken/key-ring.js";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+
+import { BOUND_ELSEWHERE_DENY_REASON } from "../../authorization/credential-binding.js";
 import type { AuthorizationQueryEngine } from "../authorization-queries.js";
+import type { Authorizer, AuthzCheck } from "../authorizer.js";
 import type { ComposedServices } from "../composed-services.js";
-import type { IdentityVerifier } from "../identity.js";
+import type { CallerIdentity, IdentityVerifier } from "../identity.js";
 import type { ListReadScope } from "../list-read-scope.js";
 import type { ServerExtension } from "../registry.js";
 import type { ResourceAuthorizationLifecycle } from "../resource-authorization.js";
@@ -112,10 +118,17 @@ afterEach(async () => {
 });
 
 describe("onComposed: a unit receives the composition's own instances", () => {
-  it("hands a unit the very Authorizer, list scope, check and lifecycle a unit registered, and the one in-process transport, before composeServer returns", async () => {
-    const authorizer = newPermissiveSingleTeamAuthorizer();
+  it("hands a unit the Authorizer and list scope a unit registered, bound, the very check and lifecycle, and the one in-process transport, before composeServer returns", async () => {
+    const permissive = newPermissiveSingleTeamAuthorizer();
+    const asked: AuthzCheck[] = [];
+    const authorizer: Authorizer = {
+      authorize(caller, check) {
+        asked.push(check);
+        return permissive.authorize(caller, check);
+      },
+    };
     const listReadScope: ListReadScope = {
-      authorizedResourceIds: () => Promise.resolve(new Set()),
+      authorizedResourceIds: () => Promise.resolve(new Set(["agt_listed"])),
       restrictListEntries: () => Promise.resolve(new Set()),
     };
     const queries: AuthorizationQueryEngine = {
@@ -141,6 +154,11 @@ describe("onComposed: a unit receives the composition's own instances", () => {
           listReadScope,
           authorizationQueries: queries,
           resourceAuthorizationLifecycle: lifecycle,
+          resourceRowReaders: new Map([
+            [ApiResourceKind.identity_provider, noRows],
+            [ApiResourceKind.invitation, noRows],
+            [ApiResourceKind.team, noRows],
+          ]),
         },
       },
       {
@@ -151,8 +169,37 @@ describe("onComposed: a unit receives the composition's own instances", () => {
       },
     ]);
     expect(received).toBeDefined();
-    expect(received?.authorizer).toBe(authorizer);
-    expect(received?.listReadScope).toBe(listReadScope);
+    const caller: CallerIdentity = {
+      identityId: "ida_alice",
+      callerClass: "user",
+      issuer: "",
+      rawToken: "token",
+    };
+    const elsewhere: AuthzCheck = {
+      permission: IamPermission.can_view,
+      resourceKind: ApiResourceKind.organization,
+      resourceId: "org_beta",
+    };
+    expect(await received?.authorizer.authorize(caller, elsewhere)).toEqual({
+      kind: "allow",
+    });
+    expect(asked).toEqual([elsewhere]);
+    expect(
+      await received?.authorizer.authorize(
+        { ...caller, boundOrg: "org_alpha" },
+        elsewhere,
+      ),
+    ).toEqual({ kind: "deny", reason: BOUND_ELSEWHERE_DENY_REASON });
+    expect(asked).toHaveLength(1);
+    expect([
+      ...((await received?.listReadScope?.authorizedResourceIds(
+        caller,
+        ApiResourceKind.agent,
+      )) ?? []),
+    ]).toEqual(["agt_listed"]);
+    expect(
+      received?.credentialBinding.admitsOrganization(caller, "org_beta"),
+    ).toBe(true);
     expect(received?.authorizationQueries).toBe(queries);
     expect(received?.resourceAuthorizationLifecycle).toBe(lifecycle);
     expect(received?.inProcessTransport).toBe(server.inProcessTransport);

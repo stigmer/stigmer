@@ -2,11 +2,16 @@
 
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js";
+import {
+  EMPTY_SIGN_IN_SETTINGS,
+  SignInSettingsSection,
+  signInSettingsComplete,
+  toSignInInput,
+  withSsoDefaults,
+} from "./SignInSettings.js";
 import { useCreateIdentityProvider } from "./useCreateIdentityProvider.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
@@ -28,7 +33,10 @@ export interface CreateIdentityProviderFormProps {
  * Collects the required OIDC trust configuration: **name** (display
  * name), **JWKS URI**, **allowed issuers**, and **expected audience**.
  * Optionally enables SSO by toggling the SSO switch and providing an
- * **OIDC client ID**.
+ * **OIDC client ID**, and sets what a sign-in does: whether it creates
+ * the person's account, the role granted on their first sign-in to the
+ * organization, and the claim that binds a token to an organization. An
+ * SSO provider starts with account creation on and the viewer role.
  *
  * On success it fires `onCreated` with the full {@link IdentityProvider}
  * response.
@@ -64,29 +72,13 @@ export function CreateIdentityProviderForm({
   const [isSso, setIsSso] = useState(false);
   const [oidcClientId, setOidcClientId] = useState("");
 
-  // JIT provisioning
-  const [autoProvision, setAutoProvision] = useState(false);
-  const [autoGrant, setAutoGrant] = useState(false);
-  const [autoGrantRole, setAutoGrantRole] = useState<IamRole>(IamRole.iam_role_unspecified);
-  const [tenantOrgClaim, setTenantOrgClaim] = useState("");
+  const [signIn, setSignIn] = useState(EMPTY_SIGN_IN_SETTINGS);
 
-  const handleAutoProvisionChange = useCallback((v: boolean) => {
-    setAutoProvision(v);
-    if (!v) {
-      setAutoGrant(false);
-      setAutoGrantRole(IamRole.iam_role_unspecified);
-      setTenantOrgClaim("");
-    }
-  }, []);
-
-  const handleAutoGrantChange = useCallback((v: boolean) => {
-    setAutoGrant(v);
-    if (v) setAutoProvision(true);
-    if (!v) {
-      setAutoGrantRole(IamRole.iam_role_unspecified);
-      setTenantOrgClaim("");
-    }
-  }, []);
+  const handleSsoToggle = useCallback(() => {
+    const next = !isSso;
+    setIsSso(next);
+    setSignIn((s) => withSsoDefaults(s, next));
+  }, [isSso]);
 
   const trimmedName = name.trim();
   const trimmedJwksUri = jwksUri.trim();
@@ -98,6 +90,7 @@ export function CreateIdentityProviderForm({
     trimmedIssuers !== "" &&
     trimmedAudience !== "" &&
     (!isSso || oidcClientId.trim() !== "") &&
+    signInSettingsComplete(signIn, isSso) &&
     !isCreating;
 
   const handleSubmit = useCallback(
@@ -120,16 +113,7 @@ export function CreateIdentityProviderForm({
             isSsoProvider: true,
             oidcClientId: oidcClientId.trim(),
           }),
-          ...(!isSso && {
-            autoProvisionAccounts: autoProvision,
-            autoGrantOnOrg: autoGrant,
-            ...(autoGrant && autoGrantRole !== IamRole.iam_role_unspecified && {
-              autoGrantRole,
-            }),
-            ...(autoGrant && tenantOrgClaim.trim() && {
-              tenantOrgClaim: tenantOrgClaim.trim(),
-            }),
-          }),
+          ...toSignInInput(signIn, isSso),
         });
         onCreated?.(idp);
       } catch {
@@ -145,10 +129,7 @@ export function CreateIdentityProviderForm({
       trimmedAudience,
       isSso,
       oidcClientId,
-      autoProvision,
-      autoGrant,
-      autoGrantRole,
-      tenantOrgClaim,
+      signIn,
       create,
       clearError,
       onCreated,
@@ -206,7 +187,7 @@ export function CreateIdentityProviderForm({
             type="button"
             role="switch"
             aria-checked={isSso}
-            onClick={() => setIsSso((v) => !v)}
+            onClick={handleSsoToggle}
             disabled={isCreating}
             className={cn(
               "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:cursor-pointer stg:rounded-full stg:border-2 stg:border-transparent stg:transition-colors",
@@ -239,17 +220,10 @@ export function CreateIdentityProviderForm({
           />
         )}
 
-        {/* JIT provisioning */}
-        <JitSection
+        <SignInSettingsSection
           isSso={isSso}
-          autoProvision={autoProvision}
-          onAutoProvisionChange={handleAutoProvisionChange}
-          autoGrant={autoGrant}
-          onAutoGrantChange={handleAutoGrantChange}
-          autoGrantRole={autoGrantRole}
-          onAutoGrantRoleChange={setAutoGrantRole}
-          tenantOrgClaim={tenantOrgClaim}
-          onTenantOrgClaimChange={setTenantOrgClaim}
+          value={signIn}
+          onChange={setSignIn}
           disabled={isCreating}
         />
       </div>
@@ -342,172 +316,3 @@ function FormField({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// JIT provisioning section
-// ---------------------------------------------------------------------------
-
-const JIT_ROLE_OPTIONS: readonly { readonly value: string; readonly label: string }[] = [
-  { value: String(IamRole.iam_role_unspecified), label: "Default (viewer)" },
-  { value: String(IamRole.viewer), label: "Viewer" },
-  { value: String(IamRole.member), label: "Member" },
-  { value: String(IamRole.admin), label: "Admin" },
-];
-
-function JitSection({
-  isSso,
-  autoProvision,
-  onAutoProvisionChange,
-  autoGrant,
-  onAutoGrantChange,
-  autoGrantRole,
-  onAutoGrantRoleChange,
-  tenantOrgClaim,
-  onTenantOrgClaimChange,
-  disabled,
-}: {
-  isSso: boolean;
-  autoProvision: boolean;
-  onAutoProvisionChange: (v: boolean) => void;
-  autoGrant: boolean;
-  onAutoGrantChange: (v: boolean) => void;
-  autoGrantRole: IamRole;
-  onAutoGrantRoleChange: (v: IamRole) => void;
-  tenantOrgClaim: string;
-  onTenantOrgClaimChange: (v: string) => void;
-  disabled: boolean;
-}) {
-  const baseId = useId();
-  if (isSso) {
-    return (
-      <div className="stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2">
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-          SSO providers automatically provision accounts and grant the{" "}
-          <span className="stg:font-medium stg:text-foreground">viewer</span> role on
-          the owning organization. JIT provisioning settings are not applicable.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")} disabled={disabled}>
-      <hr className="stg:border-border-muted" />
-      <legend className="stg:text-xs stg:font-medium stg:text-foreground">
-        JIT provisioning
-      </legend>
-      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-        Configure automatic account creation and role assignment for users
-        authenticating with this provider.
-      </p>
-
-      <ToggleSwitch
-        checked={autoProvision}
-        onChange={onAutoProvisionChange}
-        label="Auto-provision accounts"
-        hint="Create a federated account automatically on first authentication"
-        disabled={disabled}
-      />
-
-      <ToggleSwitch
-        checked={autoGrant}
-        onChange={onAutoGrantChange}
-        label="Auto-grant on organization"
-        hint="Grant a role on the owning organization when an account is provisioned"
-        disabled={disabled || !autoProvision}
-      />
-
-      {autoGrant && (
-        <>
-          <div className="stg:space-y-1">
-            <label
-              htmlFor={`${baseId}-grant-role`}
-              className="stg:text-xs stg:font-medium stg:text-foreground"
-            >
-              Auto-grant role
-            </label>
-            <select
-              id={`${baseId}-grant-role`}
-              value={String(autoGrantRole)}
-              onChange={(e) => onAutoGrantRoleChange(Number(e.target.value) as IamRole)}
-              disabled={disabled}
-              className={cn(
-                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
-              {JIT_ROLE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-              Role granted automatically — org admins can upgrade later
-            </p>
-          </div>
-
-          <FormField
-            id={`${baseId}-tenant-claim`}
-            label="Tenant org claim"
-            value={tenantOrgClaim}
-            onChange={onTenantOrgClaimChange}
-            placeholder="e.g., org_id"
-            hint="JWT claim name that maps to a platform-managed organization (max 256 chars)"
-            disabled={disabled}
-          />
-        </>
-      )}
-    </fieldset>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Toggle switch
-// ---------------------------------------------------------------------------
-
-function ToggleSwitch({
-  checked,
-  onChange,
-  label,
-  hint,
-  disabled,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-  hint?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="stg:space-y-0.5">
-      <div className="stg:flex stg:items-center stg:gap-2">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={checked}
-          onClick={() => onChange(!checked)}
-          disabled={disabled}
-          className={cn(
-            "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:cursor-pointer stg:rounded-full stg:border-2 stg:border-transparent stg:transition-colors",
-            checked ? "stg:bg-primary" : "stg:bg-muted",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
-          <span
-            className={cn(
-              "stg:pointer-events-none stg:inline-block stg:h-4 stg:w-4 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
-              checked ? "stg:translate-x-4" : "stg:translate-x-0",
-            )}
-          />
-        </button>
-        <span className="stg:text-xs stg:font-medium stg:text-foreground">{label}</span>
-      </div>
-      {hint && (
-        <p className="stg:pl-11 stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
-      )}
-    </div>
-  );
-}
-

@@ -39,8 +39,8 @@ const { create, isCreating, error } = useCreatePlatformClient();
 const response = await create({
   name: "my-saas-backend",
   org: "acme",
-  autoProvisionAccounts: true,
-  autoGrantOnOrg: true,
+  createAccountsOnSignIn: true,
+  signInRole: IamRole.viewer,
 });
 
 // response.clientSecret is the one-time raw secret
@@ -253,8 +253,8 @@ await update({
   name: "my-saas-backend",
   slug: "my-saas-backend",
   org: "acme",
-  autoProvisionAccounts: true,
-  autoGrantOnOrg: true,
+  createAccountsOnSignIn: true,
+  signInRole: IamRole.member,
 });
 refetch(); // refresh detail view
 ```
@@ -267,8 +267,8 @@ refetch(); // refresh detail view
 Form for creating a new platform client within an organization.
 
 Collects the required metadata (**name**) and optional spec fields:
-JIT provisioning toggles, expiry configuration, and allowed
-origins for CORS.
+sign-in settings (account creation and the sign-in role, which start
+on and viewer), expiry configuration, and allowed origins for CORS.
 
 On success it fires `onCreated` with the full
 `PlatformClientCreateResponse`, which includes the one-time
@@ -311,8 +311,8 @@ Delete. The organization's admins manage every client of the
 organization, whoever created it; someone granted viewer on a client sees
 it with no actions.
 
-In **edit mode**, mutable spec fields become editable: JIT
-provisioning toggles, expiry, auto-grant role, and allowed
+In **edit mode**, mutable spec fields become editable: the sign-in
+settings (account creation and the sign-in role), expiry, and allowed
 origins. Credential fields (`clientId`, `secretFingerprint`) are
 read-only. "Save" submits the update; "Cancel" discards changes.
 

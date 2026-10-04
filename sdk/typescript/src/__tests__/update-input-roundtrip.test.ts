@@ -593,10 +593,9 @@ describe("toIdentityProviderUpdateInput", () => {
         userinfoEndpoint: "https://acme.okta.example/userinfo",
         isSsoProvider: true,
         oidcClientId: "oidc-123",
-        autoProvisionAccounts: true,
-        autoGrantOnOrg: true,
-        autoGrantRole: IamRole.admin,
         tenantOrgClaim: "org_slug",
+        createAccountsOnSignIn: true,
+        signInRole: IamRole.admin,
       },
     });
 
@@ -759,9 +758,8 @@ describe("toPlatformClientUpdateInput", () => {
         secretFingerprint: "fp-1",
         expiresAt: timestampFromDate(new Date("2027-06-01T00:00:00Z")),
         neverExpires: true,
-        autoProvisionAccounts: true,
-        autoGrantOnOrg: true,
-        autoGrantRole: IamRole.owner,
+        createAccountsOnSignIn: true,
+        signInRole: IamRole.owner,
         allowedOrigins: ["https://embed.acme.example"],
         environmentRefs: [
           { org: "acme", slug: "prod", kind: ApiResourceKind.environment },

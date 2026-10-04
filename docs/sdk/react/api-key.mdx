@@ -169,13 +169,16 @@ All visual properties flow through `--stgm-*` design tokens.
 Displays a list of `ApiKey` resources for the authenticated
 identity with inline delete confirmation.
 
-Each key is rendered as a row showing name, fingerprint, creation
-date, expiry, and last-used time. A delete button triggers an
-inline confirmation — the row transforms to show confirm/cancel
+Each key is rendered as a row showing name, fingerprint, scope,
+creation date, expiry, and last-used time. A delete button triggers
+an inline confirmation — the row transforms to show confirm/cancel
 actions.
 
-API keys are identity-scoped: the server returns all keys belonging
-to the authenticated user, regardless of organization.
+API keys belong to the authenticated user: the server returns all of
+their keys, regardless of organization. A key's scope says where it
+works: in every organization its owner belongs to, or in the one
+organization it is limited to, named by its slug when the user's
+organization list (from an enclosing `OrgProvider`) holds it.
 
 All visual properties flow through `--stgm-*` design tokens.
 
@@ -202,8 +205,11 @@ All visual properties flow through `--stgm-*` design tokens.
 
 Compact form for creating a new API key.
 
-Collects a **name** (required) and an **expiry** choice (30 / 60 /
-90 days or never), then creates the key via [`useCreateApiKey`](#usecreateapikey).
+Collects a **name** (required), an **expiry** choice (30 / 60 /
+90 days or never) and **This organization only** (checked by default,
+which limits the key to `org`: it is refused in every other organization;
+unchecked, the key works in every organization its owner belongs to),
+then creates the key via [`useCreateApiKey`](#usecreateapikey).
 On success it fires `onCreated` with the full `ApiKey`
 response, which includes the raw key in `spec.keyHash`.
 
@@ -217,7 +223,7 @@ All visual properties flow through `--stgm-*` design tokens.
     initialName: { type: "string", description: "Seeds the name field on mount (e.g. a suggested key name, or a demo scenario depicting the form mid-fill). One-time: consumed on mount; subsequent changes are ignored. The field stays fully editable." },
     onCancel: { type: "() => void", description: "Fired when the user cancels creation." },
     onCreated: { type: "(apiKey: ApiKey) => void", description: "Fired with the newly created API key after successful creation. The `spec.keyHash` field of the returned key contains the raw key value — available only at this moment." },
-    org: { type: "string", description: "Organization id used as the `org` field when creating the key (a slug is also accepted).", required: true },
+    org: { type: "string", description: "The active organization's id (a slug is also accepted): the key's `metadata.org`, and the organization **This organization only** limits the key to (`spec.bound_org`).", required: true },
   }}
 />
 

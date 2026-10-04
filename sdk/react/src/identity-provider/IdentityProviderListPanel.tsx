@@ -167,7 +167,7 @@ function IdpRow({
     "Unnamed provider";
   const slug = identityProvider.metadata?.slug;
   const isSso = spec?.isSsoProvider;
-  const isJit = !isSso && spec?.autoProvisionAccounts;
+  const isJit = !isSso && spec?.createAccountsOnSignIn;
   const createdAt =
     identityProvider.status?.audit?.specAudit?.createdAt;
 

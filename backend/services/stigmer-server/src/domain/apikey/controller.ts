@@ -74,6 +74,7 @@ import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibil
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 import {
+  newBindApiKeyOrganizationStep,
   newGenerateApiKeyStep,
   newLoadByKeyHashStep,
   newPreserveKeyMaterialStep,
@@ -114,8 +115,9 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 
 /**
  * Create — the Java ApiKeyCreateHandler chain: the canonical create steps,
- * GenerateApiKey after BuildNewState, ReplaceHashWithPlainText after
- * Persist (the response's one plaintext look; the store keeps the hash).
+ * BindApiKeyOrganization and GenerateApiKey after BuildNewState,
+ * ReplaceHashWithPlainText after Persist (the response's one plaintext
+ * look; the store keeps the hash).
  */
 async function createApiKey(
   deps: ApiKeyControllerDeps,
@@ -137,6 +139,7 @@ async function createApiKey(
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
+    .addStep(newBindApiKeyOrganizationStep(deps.authorizer))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newGenerateApiKeyStep())
     .addStep(newPersistStep(deps.store))

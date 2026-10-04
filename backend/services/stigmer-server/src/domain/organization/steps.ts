@@ -11,6 +11,12 @@
  * name. An organization belongs to no organization, so its own
  * metadata.org must be empty.
  *
+ * Organization create is a skip lane by annotation (any signed-in person
+ * may found one), so it is also where a credential limited to one
+ * organization is refused (RefuseBoundCredential): such a credential works
+ * in its organization only and never founds another
+ * (authorization/credential-binding.ts).
+ *
  * The delete revokes the organization's policy rows BEFORE its row is
  * deleted, and fails the delete when it cannot, so nothing that grants on
  * the organization outlives it.
@@ -22,6 +28,9 @@ import type { OrganizationNameResolver } from "../../pipeline/interceptors/organ
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
+import { Code, ConnectError } from "@connectrpc/connect";
+
+import { boundOrgOf } from "../../extensions/identity.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
@@ -59,24 +68,61 @@ export function newCheckOrgDuplicateStep(
 ): PipelineStep<typeof OrganizationSchema> {
   return {
     name: "CheckDuplicate",
-    async execute(ctx: RequestContext<typeof OrganizationSchema>): Promise<void> {
+    async execute(
+      ctx: RequestContext<typeof OrganizationSchema>,
+    ): Promise<void> {
       const metadata = metadataOf(ctx.newState);
       if (metadata === undefined) {
-        throw internalError(new Error("organization metadata is nil"), "duplicate check");
+        throw internalError(
+          new Error("organization metadata is nil"),
+          "duplicate check",
+        );
       }
       // ResolveSlug runs before this step, so an empty slug here is a
       // server-side pipeline-ordering bug, not bad client input.
       if (metadata.slug === "") {
-        throw internalError(new Error("organization slug is empty"), "duplicate check");
+        throw internalError(
+          new Error("organization slug is empty"),
+          "duplicate check",
+        );
       }
       let entry;
       try {
         entry = await liveOrganizationName(store, metadata.slug, new Date());
       } catch (error) {
-        throw internalError(error, "failed to check for duplicate organization");
+        throw internalError(
+          error,
+          "failed to check for duplicate organization",
+        );
       }
       if (entry !== undefined) {
         throw refusalForHeldName(entry);
+      }
+    },
+  };
+}
+
+/** Organization create's refusal of a credential limited to one organization. */
+export const BOUND_CREDENTIAL_CREATES_NO_ORGANIZATION_MESSAGE =
+  "this credential is limited to one organization and cannot create another; sign in as yourself to create an organization";
+
+/**
+ * Refuses organization create for a caller whose credential is bound to
+ * one organization (a limited API key, a PlatformClient user token, a
+ * composition's bound lane). Runs first after the Authorize step, before
+ * anything reads the request.
+ */
+export function newRefuseBoundCredentialStep<
+  Desc extends DescMessage,
+>(): PipelineStep<Desc> {
+  return {
+    name: "RefuseBoundCredential",
+    execute(ctx: RequestContext<Desc>): void {
+      if (boundOrgOf(ctx.callerIdentity) !== undefined) {
+        throw new ConnectError(
+          BOUND_CREDENTIAL_CREATES_NO_ORGANIZATION_MESSAGE,
+          Code.PermissionDenied,
+        );
       }
     },
   };
@@ -99,7 +145,9 @@ export function newRefuseOrganizationOrgStep(
 ): PipelineStep<typeof OrganizationSchema> {
   return {
     name: "RefuseOrganizationOrg",
-    async execute(ctx: RequestContext<typeof OrganizationSchema>): Promise<void> {
+    async execute(
+      ctx: RequestContext<typeof OrganizationSchema>,
+    ): Promise<void> {
       const metadata = metadataOf(ctx.newState);
       const org = metadata?.org ?? "";
       if (
@@ -107,7 +155,8 @@ export function newRefuseOrganizationOrgStep(
         org !== "" &&
         (org === metadata.id ||
           org === metadata.slug ||
-          (metadata.slug !== "" && org === (await resolver.resolve(metadata.slug))))
+          (metadata.slug !== "" &&
+            org === (await resolver.resolve(metadata.slug))))
       ) {
         metadata.org = "";
         return;
@@ -131,7 +180,8 @@ async function findOrganization(
   id: string,
   slug: string,
 ): Promise<Organization | undefined> {
-  const byId = id !== "" ? id : (await liveOrganizationName(store, slug, new Date()))?.id;
+  const byId =
+    id !== "" ? id : (await liveOrganizationName(store, slug, new Date()))?.id;
   if (byId === undefined || byId === "") {
     return undefined;
   }
@@ -161,7 +211,9 @@ export function newLoadOrganizationForApplyStep(
 ): PipelineStep<typeof OrganizationSchema> {
   return {
     name: "LoadForApply",
-    async execute(ctx: RequestContext<typeof OrganizationSchema>): Promise<void> {
+    async execute(
+      ctx: RequestContext<typeof OrganizationSchema>,
+    ): Promise<void> {
       const metadata = metadataOf(ctx.newState);
       const existing =
         metadata === undefined
@@ -192,15 +244,26 @@ export function newLoadExistingOrganizationStep(
 ): PipelineStep<typeof OrganizationSchema> {
   return {
     name: "LoadExisting",
-    async execute(ctx: RequestContext<typeof OrganizationSchema>): Promise<void> {
+    async execute(
+      ctx: RequestContext<typeof OrganizationSchema>,
+    ): Promise<void> {
       const metadata = metadataOf(ctx.newState);
       if (metadata === undefined) {
-        throw internalError(new Error("resource metadata is nil"), "load existing");
+        throw internalError(
+          new Error("resource metadata is nil"),
+          "load existing",
+        );
       }
       if (metadata.id === "" && metadata.slug === "") {
-        throw invalidArgumentError("resource id or slug is required for update");
+        throw invalidArgumentError(
+          "resource id or slug is required for update",
+        );
       }
-      const existing = await findOrganization(store, metadata.id, metadata.slug);
+      const existing = await findOrganization(
+        store,
+        metadata.id,
+        metadata.slug,
+      );
       if (existing === undefined) {
         throw notFoundError(
           "Organization",
@@ -246,7 +309,9 @@ export function newRevokeOrganizationPoliciesStep<Desc extends DescMessage>(
       const id = organization?.metadata?.id ?? "";
       if (id === "") {
         throw internalError(
-          new Error("organization delete reached RevokeOrganizationPolicies without its loaded row"),
+          new Error(
+            "organization delete reached RevokeOrganizationPolicies without its loaded row",
+          ),
           "failed to remove the organization's access policies",
         );
       }

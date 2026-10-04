@@ -78,6 +78,7 @@ export interface ApiKeyInput {
   fingerprint?: string;
   expiresAt?: Date | string;
   neverExpires?: boolean;
+  boundOrg?: string;
 }
 
 export function buildApiKeyProto(input: ApiKeyInput): ApiKey {
@@ -98,6 +99,7 @@ export function buildApiKeyProto(input: ApiKeyInput): ApiKey {
       fingerprint: input.fingerprint,
       expiresAt,
       neverExpires: input.neverExpires,
+      boundOrg: input.boundOrg,
     })),
   }) as ApiKey;
 }
@@ -131,5 +133,6 @@ export function toApiKeyUpdateInput(resource: ApiKey): ApiKeyInput {
     fingerprint: spec.fingerprint || undefined,
     expiresAt: spec.expiresAt ? timestampDate(spec.expiresAt) : undefined,
     neverExpires: spec.neverExpires || undefined,
+    boundOrg: spec.boundOrg || undefined,
   };
 }

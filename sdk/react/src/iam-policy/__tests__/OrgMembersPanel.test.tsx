@@ -5,7 +5,7 @@
  *
  * Who is a member: the organization's access list also holds the accounts a
  * PlatformClient provisioned for the organization's own product, each with
- * its auto-grant role. The panel lists and counts the organization's people
+ * its sign-in role. The panel lists and counts the organization's people
  * only; those accounts sit apart in a collapsed group that names how many
  * there are, whose Remove says that signing in through the product again
  * does not restore the access. The count is read from the list itself, so
@@ -89,7 +89,7 @@ function member(id: string, name: string, role: string): PrincipalAccess {
   });
 }
 
-/** An account a PlatformClient provisioned, holding its auto-grant role. */
+/** An account a PlatformClient provisioned, holding its sign-in role. */
 function productUser(id: string, name: string, role = "viewer"): PrincipalAccess {
   return create(PrincipalAccessSchema, {
     principal: {

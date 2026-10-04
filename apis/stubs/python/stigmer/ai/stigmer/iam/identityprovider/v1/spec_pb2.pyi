@@ -9,7 +9,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class IdentityProviderSpec(_message.Message):
-    __slots__ = ("display_name", "jwks_uri", "allowed_issuers", "expected_audience", "userinfo_endpoint", "is_sso_provider", "oidc_client_id", "auto_provision_accounts", "auto_grant_on_org", "auto_grant_role", "tenant_org_claim")
+    __slots__ = ("display_name", "jwks_uri", "allowed_issuers", "expected_audience", "userinfo_endpoint", "is_sso_provider", "oidc_client_id", "tenant_org_claim", "create_accounts_on_sign_in", "sign_in_role")
     DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     JWKS_URI_FIELD_NUMBER: _ClassVar[int]
     ALLOWED_ISSUERS_FIELD_NUMBER: _ClassVar[int]
@@ -17,10 +17,9 @@ class IdentityProviderSpec(_message.Message):
     USERINFO_ENDPOINT_FIELD_NUMBER: _ClassVar[int]
     IS_SSO_PROVIDER_FIELD_NUMBER: _ClassVar[int]
     OIDC_CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
-    AUTO_PROVISION_ACCOUNTS_FIELD_NUMBER: _ClassVar[int]
-    AUTO_GRANT_ON_ORG_FIELD_NUMBER: _ClassVar[int]
-    AUTO_GRANT_ROLE_FIELD_NUMBER: _ClassVar[int]
     TENANT_ORG_CLAIM_FIELD_NUMBER: _ClassVar[int]
+    CREATE_ACCOUNTS_ON_SIGN_IN_FIELD_NUMBER: _ClassVar[int]
+    SIGN_IN_ROLE_FIELD_NUMBER: _ClassVar[int]
     display_name: str
     jwks_uri: str
     allowed_issuers: _containers.RepeatedScalarFieldContainer[str]
@@ -28,8 +27,7 @@ class IdentityProviderSpec(_message.Message):
     userinfo_endpoint: str
     is_sso_provider: bool
     oidc_client_id: str
-    auto_provision_accounts: bool
-    auto_grant_on_org: bool
-    auto_grant_role: _enum_pb2.IamRole
     tenant_org_claim: str
-    def __init__(self, display_name: _Optional[str] = ..., jwks_uri: _Optional[str] = ..., allowed_issuers: _Optional[_Iterable[str]] = ..., expected_audience: _Optional[str] = ..., userinfo_endpoint: _Optional[str] = ..., is_sso_provider: bool = ..., oidc_client_id: _Optional[str] = ..., auto_provision_accounts: bool = ..., auto_grant_on_org: bool = ..., auto_grant_role: _Optional[_Union[_enum_pb2.IamRole, str]] = ..., tenant_org_claim: _Optional[str] = ...) -> None: ...
+    create_accounts_on_sign_in: bool
+    sign_in_role: _enum_pb2.IamRole
+    def __init__(self, display_name: _Optional[str] = ..., jwks_uri: _Optional[str] = ..., allowed_issuers: _Optional[_Iterable[str]] = ..., expected_audience: _Optional[str] = ..., userinfo_endpoint: _Optional[str] = ..., is_sso_provider: bool = ..., oidc_client_id: _Optional[str] = ..., tenant_org_claim: _Optional[str] = ..., create_accounts_on_sign_in: bool = ..., sign_in_role: _Optional[_Union[_enum_pb2.IamRole, str]] = ...) -> None: ...

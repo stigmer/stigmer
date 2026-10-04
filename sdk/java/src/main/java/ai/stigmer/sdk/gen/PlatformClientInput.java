@@ -23,11 +23,10 @@ public final class PlatformClientInput {
     private final String secretFingerprint;
     private final String expiresAt;
     private final boolean neverExpires;
-    private final boolean autoProvisionAccounts;
-    private final boolean autoGrantOnOrg;
-    private final IamRole autoGrantRole;
     private final java.util.List<String> allowedOrigins;
     private final java.util.List<ResourceRef> environmentRefs;
+    private final boolean createAccountsOnSignIn;
+    private final IamRole signInRole;
 
     private PlatformClientInput(Builder builder) {
         this.id = builder.id;
@@ -41,11 +40,10 @@ public final class PlatformClientInput {
         this.secretFingerprint = builder.secretFingerprint;
         this.expiresAt = builder.expiresAt;
         this.neverExpires = builder.neverExpires;
-        this.autoProvisionAccounts = builder.autoProvisionAccounts;
-        this.autoGrantOnOrg = builder.autoGrantOnOrg;
-        this.autoGrantRole = builder.autoGrantRole;
         this.allowedOrigins = builder.allowedOrigins;
         this.environmentRefs = builder.environmentRefs;
+        this.createAccountsOnSignIn = builder.createAccountsOnSignIn;
+        this.signInRole = builder.signInRole;
     }
 
     PlatformClient toProto() {
@@ -67,11 +65,6 @@ public final class PlatformClientInput {
                 .build());
         }
         spec.setNeverExpires(this.neverExpires);
-        spec.setAutoProvisionAccounts(this.autoProvisionAccounts);
-        spec.setAutoGrantOnOrg(this.autoGrantOnOrg);
-        if (this.autoGrantRole != null) {
-            spec.setAutoGrantRole(this.autoGrantRole);
-        }
         if (this.allowedOrigins != null && !this.allowedOrigins.isEmpty()) {
             spec.addAllAllowedOrigins(this.allowedOrigins);
         }
@@ -80,6 +73,10 @@ public final class PlatformClientInput {
                 spec.addEnvironmentRefs(item.toProto().toBuilder()
                     .setKind(ApiResourceKind.environment).build());
             }
+        }
+        spec.setCreateAccountsOnSignIn(this.createAccountsOnSignIn);
+        if (this.signInRole != null) {
+            spec.setSignInRole(this.signInRole);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -120,11 +117,10 @@ public final class PlatformClientInput {
         private String secretFingerprint;
         private String expiresAt;
         private boolean neverExpires;
-        private boolean autoProvisionAccounts;
-        private boolean autoGrantOnOrg;
-        private IamRole autoGrantRole;
         private java.util.List<String> allowedOrigins;
         private java.util.List<ResourceRef> environmentRefs;
+        private boolean createAccountsOnSignIn;
+        private IamRole signInRole;
 
         private Builder() {}
 
@@ -144,11 +140,10 @@ public final class PlatformClientInput {
         public Builder secretFingerprint(String secretFingerprint) { this.secretFingerprint = secretFingerprint; return this; }
         public Builder expiresAt(String expiresAt) { this.expiresAt = expiresAt; return this; }
         public Builder neverExpires(boolean neverExpires) { this.neverExpires = neverExpires; return this; }
-        public Builder autoProvisionAccounts(boolean autoProvisionAccounts) { this.autoProvisionAccounts = autoProvisionAccounts; return this; }
-        public Builder autoGrantOnOrg(boolean autoGrantOnOrg) { this.autoGrantOnOrg = autoGrantOnOrg; return this; }
-        public Builder autoGrantRole(IamRole autoGrantRole) { this.autoGrantRole = autoGrantRole; return this; }
         public Builder allowedOrigins(java.util.List<String> allowedOrigins) { this.allowedOrigins = allowedOrigins; return this; }
         public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
+        public Builder createAccountsOnSignIn(boolean createAccountsOnSignIn) { this.createAccountsOnSignIn = createAccountsOnSignIn; return this; }
+        public Builder signInRole(IamRole signInRole) { this.signInRole = signInRole; return this; }
 
         public PlatformClientInput build() { return new PlatformClientInput(this); }
     }

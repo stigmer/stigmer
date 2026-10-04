@@ -33,8 +33,8 @@ export interface PlatformClientOptions {
   // The browser-context allowlist the origin arm enforces; omitted = open.
   readonly allowedOrigins?: readonly string[];
   // JIT provisioning: the arms mint fresh user_ids that must not pre-exist.
-  readonly autoProvisionAccounts?: boolean;
-  readonly autoGrantRole?: IamRole;
+  readonly createAccountsOnSignIn?: boolean;
+  readonly signInRole?: IamRole;
 }
 
 // Creates a PlatformClient in the org through `clients`, answering its id
@@ -48,10 +48,9 @@ export async function createPlatformClient(
     kind: "PlatformClient",
     metadata: { name: options.name, org: options.org },
     spec: {
-      autoProvisionAccounts: options.autoProvisionAccounts ?? true,
-      autoGrantOnOrg: options.autoGrantRole !== undefined,
-      ...(options.autoGrantRole !== undefined
-        ? { autoGrantRole: options.autoGrantRole }
+      createAccountsOnSignIn: options.createAccountsOnSignIn ?? true,
+      ...(options.signInRole !== undefined
+        ? { signInRole: options.signInRole }
         : {}),
       allowedOrigins: [...(options.allowedOrigins ?? [])],
     },

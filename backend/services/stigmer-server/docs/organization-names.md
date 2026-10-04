@@ -210,8 +210,8 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| ApiKeyCommandController.create | `metadata.org` |
-| ApiKeyCommandController.update | `metadata.org` |
+| ApiKeyCommandController.create | `metadata.org`, `spec.bound_org` |
+| ApiKeyCommandController.update | `metadata.org`, `spec.bound_org` |
 
 ## `ai.stigmer.iam.iampolicy.v1`
 

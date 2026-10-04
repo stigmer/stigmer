@@ -66,7 +66,7 @@ function platformClient(fields: {
       clientId: fields.clientId,
       clientSecretHash: `hash-of-${fields.clientId}`,
       secretFingerprint: "abcdef",
-      autoProvisionAccounts: true,
+      createAccountsOnSignIn: true,
       allowedOrigins: fields.allowedOrigins ?? [],
     },
   });
@@ -260,7 +260,11 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
         clientId: "stgm_cid_contract_acme_dashboard",
         allowedOrigins: ["https://app.acme.example"],
       });
-      assertSameClient(answered, expected, "modifyById must answer the persisted row");
+      assertSameClient(
+        answered,
+        expected,
+        "modifyById must answer the persisted row",
+      );
       assertSameClient(
         await store.findById("pcl_contract_acme_dashboard"),
         expected,
@@ -289,7 +293,11 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
         },
       );
       assert.equal(answered, undefined);
-      assert.equal(called, false, "modify must not run for a row that is not held");
+      assert.equal(
+        called,
+        false,
+        "modify must not run for a row that is not held",
+      );
       assert.equal(
         await store.findById("pcl_contract_acme_dashboard"),
         undefined,
