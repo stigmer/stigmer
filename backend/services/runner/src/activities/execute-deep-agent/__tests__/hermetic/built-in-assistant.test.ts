@@ -1,8 +1,8 @@
 /**
  * Hermetic pin: the BUILT-IN ASSISTANT through the whole `ExecuteDeepAgent`
- * activity — a session that names no agent instance, so the blueprint chain
- * stops at the session (`shared/blueprint-resolver.ts`), the control plane
- * is never asked for an instance or an agent, and the system prompt opens
+ * activity — a turn whose stamp names no agent, so the blueprint stops at
+ * the session (`shared/blueprint-resolver.ts`), the control plane is never
+ * asked for an agent or an agent version, and the system prompt opens
  * with the one built-in text (`shared/builtin-assistant-prompt.ts`).
  *
  * Invariant pinned: the agent-less record is a first-class turn, not an
@@ -60,7 +60,7 @@ describe("ExecuteDeepAgent hermetic — the built-in assistant", () => {
     clock.reset();
     const record = deepAgentExecutionRecord({ message: USER_MESSAGE, builtInAssistant: true });
     const systemPrompts: string[] = [];
-    const instanceRead = vi.fn(async () => {
+    const versionRead = vi.fn(async () => {
       throw new Error("must not be reached");
     });
     const agentRead = vi.fn(async () => {
@@ -70,7 +70,7 @@ describe("ExecuteDeepAgent hermetic — the built-in assistant", () => {
       env,
       clock,
       record,
-      clientOverrides: { getAgentInstance: instanceRead, getAgent: agentRead },
+      clientOverrides: { getAgentVersion: versionRead, getAgent: agentRead },
       script: (_tools, context) => {
         systemPrompts.push(context.systemPrompt);
         return { turns: [{ text: ASSISTANT_TEXT, usage: { inputTokens: 900, outputTokens: 20 } }] };
@@ -91,7 +91,7 @@ describe("ExecuteDeepAgent hermetic — the built-in assistant", () => {
 
     // The chain stopped at the session: the refusing reads were never
     // reached (they would have failed the resolve phase).
-    expect(instanceRead).not.toHaveBeenCalled();
+    expect(versionRead).not.toHaveBeenCalled();
     expect(agentRead).not.toHaveBeenCalled();
 
     // The model met the shared words, first.

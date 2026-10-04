@@ -100,7 +100,7 @@ import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import {
   registerWorkerShutdownSignal,
@@ -115,17 +115,17 @@ import { mockStigmerClient } from "./mock-client.js";
 // ---------------------------------------------------------------------------
 
 /**
- * The four resources the activity's blueprint chain reads
- * (`execution.spec.sessionId -> session.spec.agentInstanceId ->
- * agentInstance.spec.agentId -> agent`) plus the status the server would hold.
- * A record for the built-in assistant (the session names no instance) has
- * no instance and no agent: the chain must stop at the session, so the
- * client REFUSES those two reads instead of answering an empty message.
+ * The three resources the activity's blueprint reads (the execution, the
+ * session its target names, and the agent its status stamps at
+ * `agent_id` / `agent_version_hash`, read as that version) plus the status
+ * the server would hold. A record for the built-in assistant (the stamp
+ * names no agent) has no agent: the blueprint must stop at the session, so
+ * the client REFUSES every agent read instead of answering an empty
+ * message.
  */
 export interface ExecutionRecordInput {
   readonly execution: AgentExecution;
   readonly session: Session;
-  readonly agentInstance: AgentInstance | undefined;
   readonly agent: Agent | undefined;
   /**
    * What `UpdateStatus` answers for each FULL status write — the platform's
@@ -139,7 +139,7 @@ export interface ExecutionRecordInput {
 }
 
 /**
- * An in-memory stand-in for the server's execution row, with the TWO merge
+ * An in-memory stand-in for the server's execution row, with the THREE merge
  * rules and the ONE control lever the activity depends on, and no others:
  *
  *  - A status whose phase is UNSPECIFIED is a setup-progress report
@@ -149,6 +149,10 @@ export interface ExecutionRecordInput {
  *    writer of the transcript; the server's own field-ownership merge — approval
  *    fields it owns — is exercised by the test SETTING `approvalAction` on the
  *    record between invocations, exactly as `SubmitApproval` would).
+ *  - The fields the server stamps at create and the runner never sends — the
+ *    agent and version the turn runs, the declared preferences and recalled
+ *    memories — survive every runner write, as they do in the server's
+ *    field-by-field merge, so a reinvocation reads the same stamp.
  *  - Every `UpdateStatus` answers a control signal ({@link ExecutionRecordInput.controlSignal});
  *    the server's STOP is the one instruction that travels back to the runner
  *    on this channel, and it is a server decision, so it is modelled here and
@@ -160,7 +164,6 @@ export interface ExecutionRecordInput {
 export class ExecutionRecord {
   readonly execution: AgentExecution;
   readonly session: Session;
-  readonly agentInstance: AgentInstance | undefined;
   readonly agent: Agent | undefined;
   private readonly controlSignal: (status: AgentExecutionStatus) => ExecutionControlSignal;
   /** Every `updateStatus` payload, in order, snapshotted at write time. */
@@ -179,7 +182,6 @@ export class ExecutionRecord {
   constructor(input: ExecutionRecordInput) {
     this.execution = clone(AgentExecutionSchema, input.execution);
     this.session = input.session;
-    this.agentInstance = input.agentInstance;
     this.agent = input.agent;
     this.controlSignal = input.controlSignal ?? (() => ExecutionControlSignal.UNSPECIFIED);
   }
@@ -346,15 +348,27 @@ export class ExecutionRecord {
       }
       if (snapshot.messages.length > 0) {
         const heldPhase = this.execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-        this.execution.status = clone(AgentExecutionStatusSchema, snapshot);
+        this.execution.status = this.keepServerStamp(snapshot);
         this.execution.status.phase = heldPhase;
         for (const listener of [...this.persistListeners]) listener();
       }
       return ExecutionControlSignal.UNSPECIFIED;
     }
-    this.execution.status = clone(AgentExecutionStatusSchema, snapshot);
+    this.execution.status = this.keepServerStamp(snapshot);
     for (const listener of [...this.persistListeners]) listener();
     return this.controlSignal(snapshot);
+  }
+
+  /** The runner's write with the server-stamped fields of the held status carried over. */
+  private keepServerStamp(snapshot: AgentExecutionStatus): AgentExecutionStatus {
+    const next = clone(AgentExecutionStatusSchema, snapshot);
+    const held = this.execution.status;
+    if (held === undefined) return next;
+    next.agentId = held.agentId;
+    next.agentVersionHash = held.agentVersionHash;
+    next.declaredPreferences = held.declaredPreferences;
+    next.recalledMemories = held.recalledMemories;
+    return next;
   }
 
   /**
@@ -369,17 +383,20 @@ export class ExecutionRecord {
     return mockStigmerClient({
       getExecution: vi.fn(async () => clone(AgentExecutionSchema, this.execution)),
       getSession: vi.fn(async () => this.session),
-      getAgentInstance: vi.fn(async () => {
-        if (this.agentInstance === undefined) {
-          throw new Error("the built-in assistant's record has no agent instance to read");
-        }
-        return this.agentInstance;
-      }),
       getAgent: vi.fn(async () => {
         if (this.agent === undefined) {
           throw new Error("the built-in assistant's record has no agent to read");
         }
         return this.agent;
+      }),
+      getAgentVersion: vi.fn(async (agentId: string, versionHash: string) => {
+        if (this.agent === undefined) {
+          throw new Error("the built-in assistant's record has no agent version to read");
+        }
+        if (agentId !== this.agent.metadata?.id || versionHash !== this.execution.status?.agentVersionHash) {
+          throw new ConnectError(`agent version not found: ${agentId}@${versionHash}`, Code.NotFound);
+        }
+        return create(AgentVersionEntrySchema, { versionHash, specSnapshot: this.agent.spec });
       }),
       updateStatus: vi.fn(async (_id: string, status: AgentExecutionStatus) => {
         // The activity reads only `.signal`; UNSPECIFIED means "keep going".

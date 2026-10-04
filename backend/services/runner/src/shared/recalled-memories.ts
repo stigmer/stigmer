@@ -6,7 +6,7 @@
  *
  * The server composes the CONTENT at execution create: the create pipeline
  * snapshots the subject's CONFIRMED memory records (never proposed or
- * rejected — consent-gated) onto the execution spec's
+ * rejected — consent-gated) onto the execution status's
  * `recalled_memories` field, oldest-first, gated on the memory_enabled
  * preference flags. This module owns the PRESENTATION — the preamble and
  * the fact list — so the framing cannot drift between harnesses.
@@ -51,7 +51,7 @@ export interface RecalledMemoriesContent {
 }
 
 /**
- * Read the recalled memories from an execution spec's `recalled_memories`.
+ * Read the recalled memories from an execution status's `recalled_memories`.
  * Returns undefined when the field is absent (executions from before it),
  * disabled, or carries no facts — the caller renders no section. Blank
  * facts are dropped defensively (the server never stamps them: content has

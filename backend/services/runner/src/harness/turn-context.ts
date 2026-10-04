@@ -108,6 +108,7 @@ import { readContextBridge } from "../shared/context-bridge.js";
 import { readSenderIdentity } from "../shared/sender-identity.js";
 import { readSessionContext } from "../shared/session-context.js";
 import { readDeclaredPreferences } from "../shared/declared-preferences.js";
+import { sessionIdOf } from "../shared/execution-target.js";
 import { readConversationCatchup } from "../shared/conversation-catchup.js";
 import { selectRecalledFacts } from "../shared/memory-retrieval.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
@@ -410,7 +411,7 @@ export async function fetchExecution(deps: ResolutionDeps): Promise<{
   const execution = await deps.client.getExecution(deps.input.executionId);
   const spec = execution.spec!;
   deps.timing.mark("fetch_execution");
-  return { execution, spec, sessionId: spec.sessionId };
+  return { execution, spec, sessionId: sessionIdOf(spec) };
 }
 
 /**
@@ -758,7 +759,7 @@ export async function resolveMcpServersAndPolicies(
   // attribution the server verifies or trusts per edition; the subject is
   // never threaded, it derives from the credential.
   const memoryAttachment = synthesizeMemoryAttachment(
-    execution.spec?.recalledMemories,
+    execution.status?.recalledMemories,
     {
       org: session.metadata?.org ?? "",
       // Provenance, not scope: empty for the built-in assistant, and the
@@ -1004,7 +1005,7 @@ export function resolveStandingContext(
   const { execution, spec, blueprint } = args;
   let memorySelection: Promise<RecalledMemoriesContent | undefined> | undefined;
   const selectRecalledMemories = (): Promise<RecalledMemoriesContent | undefined> => {
-    memorySelection ??= selectRecalledFacts(spec.recalledMemories, spec.message, {
+    memorySelection ??= selectRecalledFacts(execution.status?.recalledMemories, spec.message, {
       proxyEndpoint: deps.config.proxyEndpoint,
       stigmerToken: deps.config.stigmerTokenRef.current,
       executionId: deps.input.executionId,
@@ -1021,7 +1022,7 @@ export function resolveStandingContext(
     contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
     senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
     sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
-    declaredPreferences: readDeclaredPreferences(spec.declaredPreferences),
+    declaredPreferences: readDeclaredPreferences(execution.status?.declaredPreferences),
     conversationCatchup: readConversationCatchup(spec.conversationCatchup),
     selectRecalledMemories,
   };

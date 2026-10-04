@@ -67,7 +67,7 @@ import { MIN_TOOL_ROUNDS, TOOL_CALL_LIMIT_ERROR_PREFIX, TOOL_CALL_LIMIT_USER_COP
 import type { FailureSurface } from "../../harness/types.js";
 import type { ExecuteActivityInput } from "../../shared/activity-input.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
-import { executionRecordFixture, type ExecutionRecordOptions } from "../execution-record-fixture.js";
+import { DEFAULT_RECORD_IDS, executionRecordFixture, type ExecutionRecordOptions } from "../execution-record-fixture.js";
 import { initGitWorkspace } from "../git-workspace-fixture.js";
 import {
   ExecutionRecord,
@@ -116,7 +116,7 @@ export interface RuntimeContractHarness {
 }
 
 export interface RuntimeTurnOptions {
-  /** Control-plane facets or faults over the record's everyday answers (a rejecting `getAgent` stages a resolution failure). */
+  /** Control-plane facets or faults over the record's everyday answers (a rejecting `getSession` stages a resolution failure). */
   readonly clientOverrides?: Partial<StigmerClient>;
   /** Runtime knobs over the subject's config for this invocation (the stall and lock windows); never an adapter field. */
   readonly config?: Partial<Config>;
@@ -166,9 +166,9 @@ export class RuntimeExecutionDriver {
         org: "kit-org",
         executionId: `aex-${label}`,
         sessionId: `ses-${label}`,
-        agentInstanceId: `ain-${label}`,
         agentId: `agt-${label}`,
         agentName: `agent-${label}`,
+        agentVersionHash: DEFAULT_RECORD_IDS.agentVersionHash,
       },
     });
     this.threadId = harness.subject.adapter.capabilities.stateIdSource === "deterministic" ? `thread-${this.sessionId}` : "";
@@ -868,8 +868,8 @@ export async function assertResolutionErrorFailsBeforeEngine(harness: RuntimeCon
 
   const invocation = await driver.turn([scenario.say(NEVER_SEEN)], {
     clientOverrides: {
-      getAgent: async () => {
-        throw new Error("runtime fault injected at getAgent");
+      getSession: async () => {
+        throw new Error("runtime fault injected at getSession");
       },
     },
   });
@@ -879,7 +879,7 @@ export async function assertResolutionErrorFailsBeforeEngine(harness: RuntimeCon
   const final = finalStatusOf(harness, driver);
   // One grammar for a FAILED `status.error` (stigmer#1122): the described
   // fault, unframed, exactly what the details row carries.
-  expect(final.error).toBe("[Error] runtime fault injected at getAgent");
+  expect(final.error).toBe("[Error] runtime fault injected at getSession");
   expect(systemMessages(final)).toEqual([TERMINAL_COPY.internalFailure.row, `Error details: ${final.error}`]);
   expect(driver.record.setupProgress).toEqual(["Fetching execution", "Resolving agent blueprint"]);
   expect(driver.record.sessionUpdates).toHaveLength(0);

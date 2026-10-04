@@ -26,7 +26,7 @@
  *
  * Network: the registry document and the `fetch` stub that serves it are
  * the runtime's fixtures (`src/__test-utils__/model-registry-fixture.ts`);
- * the record's four resources come from `execution-record-fixture.ts` with
+ * the record's three resources come from `execution-record-fixture.ts` with
  * this harness's ids and model laid over the defaults.
  *
  * The fixture model is `composer-2.5`, pinned (not Auto) on purpose: Auto short-
@@ -72,7 +72,11 @@ import {
   type HermeticEnvironment,
   type InvocationControls,
 } from "../../../__test-utils__/hermetic-activity.js";
-import { executionRecordFixture, type ExecutionRecordOptions } from "../../../__test-utils__/execution-record-fixture.js";
+import {
+  DEFAULT_RECORD_IDS,
+  executionRecordFixture,
+  type ExecutionRecordOptions,
+} from "../../../__test-utils__/execution-record-fixture.js";
 import { FIXTURE_MODEL } from "../../../__test-utils__/model-registry-fixture.js";
 import { _resetAgentSessionCacheForTests } from "../agent-session-cache.js";
 import { _resetPricingCache } from "../model-pricing-data.js";
@@ -88,9 +92,10 @@ export const FIXTURE = {
   org: "hermetic-org",
   executionId: "aex_hermetic_0001",
   sessionId: "ses_hermetic_0001",
-  agentInstanceId: "ain_hermetic_0001",
   agentId: "agt_hermetic_0001",
   agentName: "hermetic-agent",
+  /** The agent version every fixture turn is stamped with. */
+  agentVersionHash: DEFAULT_RECORD_IDS.agentVersionHash,
   /** The pinned model; in the registry fixture AND the SDK catalog below. */
   model: FIXTURE_MODEL,
   cursorApiKey: "hermetic-cursor-api-key",
@@ -103,7 +108,7 @@ export const FIXTURE = {
 /** The record's knobs; the ids and the default model are this harness's fixture. */
 export type CursorRecordOptions = Omit<ExecutionRecordOptions, "ids">;
 
-/** The four resources of one execution, wired by id into a chain, under the Cursor fixture ids. */
+/** The three resources of one execution, wired by id, under the Cursor fixture ids. */
 export function cursorExecutionRecord(options: CursorRecordOptions): ExecutionRecord {
   return executionRecordFixture({
     ...options,
@@ -112,9 +117,9 @@ export function cursorExecutionRecord(options: CursorRecordOptions): ExecutionRe
       org: FIXTURE.org,
       executionId: FIXTURE.executionId,
       sessionId: FIXTURE.sessionId,
-      agentInstanceId: FIXTURE.agentInstanceId,
       agentId: FIXTURE.agentId,
       agentName: FIXTURE.agentName,
+      agentVersionHash: FIXTURE.agentVersionHash,
     },
   });
 }

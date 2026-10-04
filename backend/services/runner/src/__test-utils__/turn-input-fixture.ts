@@ -88,7 +88,7 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     overrides.execution ??
     create(AgentExecutionSchema, {
       metadata: create(ApiResourceMetadataSchema, { id: executionId, org: TURN_INPUT_FIXTURE_IDS.org, name: executionId }),
-      spec: create(AgentExecutionSpecSchema, { sessionId, message: overrides.message ?? "" }),
+      spec: create(AgentExecutionSpecSchema, { target: { case: "sessionId", value: sessionId }, message: overrides.message ?? "" }),
       status: overrides.persistedStatus,
     });
   const agent: RunAgent = {

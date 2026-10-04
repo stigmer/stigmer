@@ -1,3 +1,22 @@
+/**
+ * The CallAgent activity (`activities/call-agent.ts`), the workflow
+ * `agent_call` step's half that starts the agent's turn. Pinned here, with
+ * the control-plane client mocked at the module seam:
+ *   - the task's agent string becomes an agent reference (bare slug in the
+ *     workflow's organization, "org/slug" in that one), and the child is
+ *     always created in the organization the workflow runs in;
+ *   - the session is applied on the RESOLVED agent's own reference (its
+ *     organization and slug, no version: the server pins the current one),
+ *     never on a stand-in, so a step naming an agent cannot silently run
+ *     the built-in assistant (stigmer#1770);
+ *   - the turn is created in that session and linked to the workflow run by
+ *     `parent` (execution id, the workflow to signal, the task token), and
+ *     is refused before anything is written when the workflow execution id
+ *     is missing;
+ *   - run_config, workspace entries, provenance labels and env forwarding
+ *     map onto the request as the module header describes.
+ */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -41,12 +60,15 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 // constructor above is what its refs resolve to).
 const appConfig = testConfig({ stigmerTokenRef: { current: "test-token" } });
 
+/** The workflow execution every step below runs in, unless a test says otherwise. */
+const WEX = "wex_test1";
+
+/** The agent every reference resolves to: its own organization (an id) and slug. */
+const RESOLVED_AGENT = { metadata: { id: "agt_test123", org: "org_agents", slug: "my-agent" } };
+
 describe("callAgentAction", () => {
   beforeEach(() => {
-    mockGetAgentByReference = vi.fn().mockResolvedValue({
-      metadata: { id: "agt_test123" },
-      status: { defaultInstanceId: "ain_default456" },
-    });
+    mockGetAgentByReference = vi.fn().mockResolvedValue(RESOLVED_AGENT);
     mockCreateSession = vi.fn().mockResolvedValue({
       metadata: { id: "ses_test789" },
     });
@@ -64,7 +86,7 @@ describe("callAgentAction", () => {
       await expect(
         callAgentAction(
           { agent: "notification-analyst", message: "Analyze data" },
-          { __stigmer_org_id: "tt-demo" },
+          { __stigmer_org_id: "tt-demo", __stigmer_execution_id: WEX },
           "wfl_parent123",
           appConfig,
         ),
@@ -81,7 +103,7 @@ describe("callAgentAction", () => {
       await expect(
         callAgentAction(
           { agent: "acme/my-agent", message: "Do something" },
-          { __stigmer_org_id: "default-org" },
+          { __stigmer_org_id: "default-org", __stigmer_execution_id: WEX },
           "wfl_parent456",
           appConfig,
         ),
@@ -98,7 +120,7 @@ describe("callAgentAction", () => {
       await expect(
         callAgentAction(
           { agent: "explicit-org/my-agent", message: "Hello" },
-          { __stigmer_org_id: "workflow-org" },
+          { __stigmer_org_id: "workflow-org", __stigmer_execution_id: WEX },
           "wfl_parent789",
           appConfig,
         ),
@@ -133,7 +155,7 @@ describe("callAgentAction", () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Hello" },
-          { __stigmer_org_id: "env-org" },
+          { __stigmer_org_id: "env-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -146,15 +168,12 @@ describe("callAgentAction", () => {
 
   describe("agent resolution failure", () => {
     it("throws when resolved agent has no metadata.id", async () => {
-      mockGetAgentByReference.mockResolvedValue({
-        metadata: {},
-        status: { defaultInstanceId: "ain_123" },
-      });
+      mockGetAgentByReference.mockResolvedValue({ metadata: {} });
 
       await expect(
         callAgentAction(
           { agent: "ghost-agent", message: "Hello" },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -167,7 +186,7 @@ describe("callAgentAction", () => {
       await expect(
         callAgentAction(
           { agent: "", message: "Hello" },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -178,7 +197,7 @@ describe("callAgentAction", () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "" },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -191,7 +210,7 @@ describe("callAgentAction", () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Hello", harness: "CURSOR" },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -203,14 +222,57 @@ describe("callAgentAction", () => {
       expect(session.kind).toBe("Session");
       expect(session.metadata.org).toBe("test-org");
       expect(session.metadata.name).toMatch(/^wf-my-agent-\d+$/);
-      expect(session.spec.agentInstanceId).toBe("ain_default456");
+      expect(session.spec.agentRef).toMatchObject({
+        kind: ApiResourceKind.agent,
+        org: "org_agents",
+        slug: "my-agent",
+        version: "",
+      });
+    });
+
+    it("names the agent the reference resolved to, in its own organization, never the reference's spelling", async () => {
+      mockGetAgentByReference.mockResolvedValue({
+        metadata: { id: "agt_shared", org: "org_acme_id", slug: "reviewer" },
+      });
+
+      await expect(
+        callAgentAction(
+          { agent: "acme/reviewer", message: "Hello" },
+          { __stigmer_org_id: "workflow-org", __stigmer_execution_id: WEX },
+          "wfl_parent",
+          appConfig,
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const session = mockCreateSession.mock.calls[0][0];
+      expect(session.metadata.org).toBe("workflow-org");
+      expect(session.spec.agentRef).toMatchObject({ org: "org_acme_id", slug: "reviewer", version: "" });
+    });
+
+    it("applies the session on the agent even when the agent has no other record of how to run (stigmer#1770)", async () => {
+      // An agent row carrying nothing but its identity: the step still
+      // starts a conversation on that agent, never the built-in assistant.
+      mockGetAgentByReference.mockResolvedValue({ metadata: { id: "agt_bare", org: "org_agents", slug: "bare" } });
+
+      await expect(
+        callAgentAction(
+          { agent: "bare", message: "Hello" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
+          "wfl_parent",
+          appConfig,
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const session = mockCreateSession.mock.calls[0][0];
+      expect(session.spec.agentRef?.slug).toBe("bare");
+      expect(session.spec.agentRef?.kind).toBe(ApiResourceKind.agent);
     });
 
     it("creates session with 'Auto-created session' sentinel subject", async () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Hello" },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -225,7 +287,7 @@ describe("callAgentAction", () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Review this" },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent_id",
           appConfig,
         ),
@@ -237,45 +299,39 @@ describe("callAgentAction", () => {
       expect(execution.kind).toBe("AgentExecution");
       expect(execution.metadata.org).toBe("test-org");
       expect(execution.metadata.name).toMatch(/^aex-wf-my-agent-\d+$/);
-      expect(execution.spec.agentId).toBe("agt_test123");
-      expect(execution.spec.sessionId).toBe("ses_test789");
+      expect(execution.spec.target).toEqual({ case: "sessionId", value: "ses_test789" });
       expect(execution.spec.message).toBe("Review this");
-      expect(execution.spec.parentWorkflowId).toBe("wfl_parent_id");
-      expect(execution.spec.callbackToken).toEqual(new Uint8Array([1, 2, 3]));
+      expect(execution.spec.parent?.workflowExecutionId).toBe(WEX);
+      expect(execution.spec.parent?.signalWorkflowId).toBe("wfl_parent_id");
+      expect(execution.spec.parent?.callbackToken).toEqual(new Uint8Array([1, 2, 3]));
     });
 
-    it("propagates sandbox queue affinity from parent", async () => {
+    it("links the turn by the task's workflow execution id over the environment's", async () => {
       await expect(
         callAgentAction(
-          { agent: "my-agent", message: "Hello" },
-          {
-            __stigmer_org_id: "test-org",
-            __stigmer_activity_task_queue: "wfexec:wex_abc123",
-          },
+          { agent: "my-agent", message: "Hello", __wfExecId: "wex_from_task", __taskName: "triage" } as never,
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: "wex_from_env" },
           "wfl_parent",
           appConfig,
         ),
       ).rejects.toThrow("CompleteAsyncError");
 
       const execution = mockCreateAgentExecution.mock.calls[0][0];
-      expect(execution.spec.activityTaskQueue).toBe("wfexec:wex_abc123");
+      expect(execution.spec.parent?.workflowExecutionId).toBe("wex_from_task");
     });
 
-    it("does not propagate non-wfexec queue", async () => {
+    it("refuses without a workflow execution id, before any session or turn is written", async () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Hello" },
-          {
-            __stigmer_org_id: "test-org",
-            __stigmer_activity_task_queue: "stigmer_runner",
-          },
+          { __stigmer_org_id: "test-org" },
           "wfl_parent",
           appConfig,
         ),
-      ).rejects.toThrow("CompleteAsyncError");
+      ).rejects.toThrow("has no workflow execution id");
 
-      const execution = mockCreateAgentExecution.mock.calls[0][0];
-      expect(execution.spec.activityTaskQueue).toBe("");
+      expect(mockCreateSession).not.toHaveBeenCalled();
+      expect(mockCreateAgentExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -292,7 +348,7 @@ describe("callAgentAction", () => {
               max_tool_rounds: 15,
             },
           },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -313,7 +369,7 @@ describe("callAgentAction", () => {
             message: "Hello",
             run_config: { service_tier: "SERVICE_TIER_FAST" },
           },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -335,7 +391,7 @@ describe("callAgentAction", () => {
             message: "Hello",
             run_config: { service_tier: "SERVICE_TIER_TURBO" },
           },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -348,7 +404,7 @@ describe("callAgentAction", () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Hello" },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -366,7 +422,7 @@ describe("callAgentAction", () => {
             message: "Hello",
             run_config: { model_name: "claude-sonnet-4-6", max_cost_usd: 0, max_tool_rounds: 0 },
           },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -394,7 +450,7 @@ describe("callAgentAction", () => {
               { source: { git_repo: { url: "https://github.com/acme/lib" } } },
             ],
           },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -414,7 +470,7 @@ describe("callAgentAction", () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Hello" },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -433,7 +489,7 @@ describe("callAgentAction", () => {
             __wfExecId: "wex_prov1",
             __taskName: "triage",
           } as any,
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -444,11 +500,11 @@ describe("callAgentAction", () => {
       expect(execution.metadata.labels["stigmer.ai/workflow-task"]).toBe("triage");
     });
 
-    it("stamps no provenance labels without workflow context", async () => {
+    it("stamps no provenance labels without the task's name", async () => {
       await expect(
         callAgentAction(
           { agent: "my-agent", message: "Hello" },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),
@@ -465,8 +521,7 @@ describe("callAgentAction", () => {
       // provides the value — the secret marking must survive (#358: the
       // override used to hardcode isSecret:false, a redaction downgrade).
       mockGetAgentByReference.mockResolvedValue({
-        metadata: { id: "agt_test123" },
-        status: { defaultInstanceId: "ain_default456" },
+        ...RESOLVED_AGENT,
         spec: {
           env: {
             API_TOKEN: { isSecret: true },
@@ -482,7 +537,7 @@ describe("callAgentAction", () => {
             message: "Hello",
             env: { API_TOKEN: "resolved-secret-value", REGION: "us-east-1", EXTRA: "plain" },
           },
-          { __stigmer_org_id: "test-org" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
           "wfl_parent",
           appConfig,
         ),

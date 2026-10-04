@@ -1,7 +1,8 @@
 /**
- * The four resources of one execution, wired by id into the chain the turn
- * runtime resolves (`execution.spec.sessionId` → `session.spec.
- * agentInstanceId` → `agentInstance.spec.agentId` → the agent), as an
+ * The three resources of one execution, wired by id the way the turn
+ * runtime reads them (the session the execution's target names; the agent
+ * and version its status stamps, as the server stamps every turn at
+ * create; the session naming the same agent by reference), as an
  * `ExecutionRecord` the hermetic client answers from.
  *
  * Harness-agnostic: the record is the control plane's, and the runtime's
@@ -13,37 +14,42 @@
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import {
+  AgentExecutionSchema,
+  AgentExecutionStatusSchema,
+  type AgentExecution,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSpecSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { AgentInstanceSchema, type AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { AgentInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { ExecutionRecord, type ExecutionRecordInput } from "./hermetic-activity.js";
 import { FIXTURE_MODEL } from "./model-registry-fixture.js";
 
-/** The ids a record's four resources carry. */
+/** The ids a record's three resources carry. */
 export interface ExecutionRecordIds {
   readonly org: string;
   readonly executionId: string;
   readonly sessionId: string;
-  readonly agentInstanceId: string;
   readonly agentId: string;
   readonly agentName: string;
+  /** The agent version the turn is stamped with (and the session pins). */
+  readonly agentVersionHash: string;
 }
 
 export const DEFAULT_RECORD_IDS: ExecutionRecordIds = {
   org: "hermetic-org",
   executionId: "aex_hermetic_0001",
   sessionId: "ses_hermetic_0001",
-  agentInstanceId: "ain_hermetic_0001",
   agentId: "agt_hermetic_0001",
   agentName: "hermetic-agent",
+  agentVersionHash: "0".repeat(64),
 };
 
 export interface ExecutionRecordOptions {
@@ -77,8 +83,8 @@ export interface ExecutionRecordOptions {
   /** The agent's declared sub-agents (`AgentSpec.sub_agents`). */
   readonly subAgents?: SubAgent[];
   /**
-   * The built-in assistant: the session names NO agent instance, so the
-   * record carries no instance and no agent and the activity must run on
+   * The built-in assistant: the session names NO agent and the turn's stamp
+   * is empty, so the record carries no agent and the activity must run on
    * the one built-in prompt with the session's own tools. `instructions`
    * and `subAgents` are ignored (there is no agent to declare them).
    */
@@ -90,10 +96,11 @@ export interface ExecutionRecordOptions {
 
 export function executionRecordFixture(options: ExecutionRecordOptions): ExecutionRecord {
   const ids = options.ids ?? DEFAULT_RECORD_IDS;
+  const builtIn = options.builtInAssistant === true;
   const execution: AgentExecution = create(AgentExecutionSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: ids.executionId, org: ids.org, name: ids.executionId }),
     spec: create(AgentExecutionSpecSchema, {
-      sessionId: ids.sessionId,
+      target: { case: "sessionId", value: ids.sessionId },
       message: options.message,
       autoApproveAll: options.autoApproveAll ?? false,
       executionConfig: create(ExecutionConfigSchema, {
@@ -104,34 +111,39 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
         structuredOutputSchema: options.structuredOutputSchema,
       }),
     }),
+    status: create(AgentExecutionStatusSchema, {
+      agentId: builtIn ? "" : ids.agentId,
+      agentVersionHash: builtIn ? "" : ids.agentVersionHash,
+    }),
   });
   const session: Session = create(SessionSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: ids.sessionId, org: ids.org, name: ids.sessionId }),
     spec: create(SessionSpecSchema, {
-      agentInstanceId: options.builtInAssistant === true ? "" : ids.agentInstanceId,
+      agentRef: builtIn
+        ? undefined
+        : create(ApiResourceReferenceSchema, { kind: ApiResourceKind.agent, org: ids.org, slug: ids.agentName }),
       workspaceEntries: options.workspaceEntries ?? [],
     }),
+    status: {
+      agentId: builtIn ? "" : ids.agentId,
+      agentVersionHash: builtIn ? "" : ids.agentVersionHash,
+    },
   });
-  if (options.builtInAssistant === true) {
+  if (builtIn) {
     return new ExecutionRecord({
       execution,
       session,
-      agentInstance: undefined,
       agent: undefined,
       controlSignal: options.controlSignal,
     });
   }
-  const agentInstance: AgentInstance = create(AgentInstanceSchema, {
-    metadata: create(ApiResourceMetadataSchema, { id: ids.agentInstanceId, org: ids.org, name: ids.agentInstanceId }),
-    spec: create(AgentInstanceSpecSchema, { agentId: ids.agentId }),
-  });
   const agent: Agent = create(AgentSchema, {
-    metadata: create(ApiResourceMetadataSchema, { id: ids.agentId, org: ids.org, name: ids.agentName }),
+    metadata: create(ApiResourceMetadataSchema, { id: ids.agentId, org: ids.org, name: ids.agentName, slug: ids.agentName }),
     spec: create(AgentSpecSchema, {
       description: "Hermetic fixture agent",
       instructions: options.instructions ?? "You are the hermetic fixture agent. Answer briefly.",
       subAgents: options.subAgents ?? [],
     }),
   });
-  return new ExecutionRecord({ execution, session, agentInstance, agent, controlSignal: options.controlSignal });
+  return new ExecutionRecord({ execution, session, agent, controlSignal: options.controlSignal });
 }

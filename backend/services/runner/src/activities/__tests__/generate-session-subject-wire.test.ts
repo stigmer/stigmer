@@ -55,16 +55,16 @@ function clientReadingExecution(): {
       reads.push(executionId);
       return {
         spec: {
-          sessionId: "ses_1",
-          agentId: "agt_1",
+          target: { case: "sessionId", value: "ses_1" },
           message: "How do indexes work?",
         },
+        status: { agentId: "agt_1" },
       } as never;
     }),
     getSession: vi.fn(
       async () =>
         ({
-          spec: { subject: AUTO_CREATED_SUBJECT, agentInstanceId: "" },
+          spec: { subject: AUTO_CREATED_SUBJECT },
         }) as never,
     ),
     getAgent: vi.fn(

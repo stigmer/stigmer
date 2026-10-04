@@ -5,10 +5,23 @@
  * Flow:
  * 1. Extract Temporal task token (for async completion callback)
  * 2. Resolve runtime placeholders (${.secrets.*}, ${.env_vars.*})
- * 3. Resolve agent by slug → get agent ID and default instance
- * 4. Apply Session (idempotent get-or-create by slug)
- * 5. Create AgentExecution (callback token, parent workflow ID)
+ * 3. Resolve the agent by reference, for its id and its env declarations
+ * 4. Apply the Session on the agent's reference (idempotent get-or-create
+ *    by name); the server pins the agent's current version on create and
+ *    keeps that pin when a retry re-applies the same reference
+ * 5. Create the AgentExecution in that session, linked to the workflow run
+ *    by `parent` (workflow execution id, the workflow to signal, the task
+ *    token)
  * 6. Throw CompleteAsyncError — worker thread released
+ *
+ * The session names the agent itself, never a stand-in: a step that names
+ * an agent runs that agent or fails, and never falls back to the built-in
+ * assistant. The `parent` link is what lets the platform complete this
+ * activity, and what the server derives the child's dispatch queue from
+ * (the workflow run's own sandbox), so a call with no workflow execution
+ * id fails here rather than creating a turn nothing would ever wait on.
+ * The server honours the link only from the runner it vouches for that
+ * workflow run.
  *
  * The platform completes this activity asynchronously via the token
  * when the agent execution workflow finishes.
@@ -27,7 +40,11 @@ import { resolveObjectPlaceholders } from "../workflow-engine/resolve.js";
 import type { AgentCallConfig } from "../workflow-engine/types.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { AgentExecutionSpecSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import {
+  AgentExecutionSpecSchema,
+  ExecutionConfigSchema,
+  WorkflowParentSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -85,17 +102,30 @@ export async function callAgentAction(
     );
   }
 
+  const wfExecId = (resolved as unknown as Record<string, unknown>).__wfExecId as string | undefined
+    || runtimeEnv["__stigmer_execution_id"] as string | undefined;
+  const taskName = (resolved as unknown as Record<string, unknown>).__taskName as string | undefined;
+
+  if (!wfExecId) {
+    throw new Error(
+      `call:agent '${resolved.agent}' has no workflow execution id ` +
+      `(neither the task's '__wfExecId' nor '__stigmer_execution_id' in the workflow environment): ` +
+      `the agent's turn must be linked to the workflow run that waits for it, ` +
+      `and an unlinked turn could never complete this step.`,
+    );
+  }
+
   const client = new StigmerClient({
     endpoint: appConfig.stigmerBackendEndpoint,
     tokenRef: appConfig.stigmerTokenRef,
     // The child-execution create must authenticate as the RUNNER, not the
-    // user: it stamps the workflow lineage labels, which cloud's
-    // reserved-label guard and environment composer accept only from
-    // runner-class callers. The client's credential-selection table routes
-    // exactly that create to this credential; null (OSS/local, no mint)
-    // falls through to the control-plane token unchanged. The refs are the
-    // runner's injected Config's (config.ts header), which is why the factory
-    // passes it in.
+    // user: it carries the `parent` link and stamps the workflow lineage
+    // labels, which the server's vouch and cloud's reserved-label guard and
+    // environment composer accept only from runner-class callers. The
+    // client's credential-selection table routes exactly that create to
+    // this credential; null (OSS/local, no mint) falls through to the
+    // control-plane token unchanged. The refs are the runner's injected
+    // Config's (config.ts header), which is why the factory passes it in.
     runnerTokenRef: appConfig.stigmerRunnerTokenRef,
   });
 
@@ -105,7 +135,6 @@ export async function callAgentAction(
   );
 
   const agentId = agent.metadata?.id ?? "";
-  const defaultInstanceId = agent.status?.defaultInstanceId ?? "";
   const agentEnvKeys = Object.keys(agent.spec?.env ?? {});
   const workflowEnvKeys = Object.keys(runtimeEnv).filter(k => !k.startsWith("__stigmer_"));
   console.log(
@@ -118,21 +147,16 @@ export async function callAgentAction(
     throw new Error(`Agent '${resolved.agent}' resolved but has no metadata.id`);
   }
 
-  const wfExecId = (resolved as unknown as Record<string, unknown>).__wfExecId as string | undefined
-    ?? runtimeEnv["__stigmer_execution_id"] as string | undefined;
-  const taskName = (resolved as unknown as Record<string, unknown>).__taskName as string | undefined;
-
   let sessionName: string;
   let executionName: string;
 
-  if (wfExecId && taskName) {
+  if (taskName) {
     const taskKey = `${wfExecId}-${taskName}`;
     sessionName = `ses-wf-${taskKey}`;
     executionName = `aex-wf-${taskKey}-${shortUniqueId()}`;
   } else {
     console.warn(
-      `[CallAgent] Missing workflow context for session naming: ` +
-      `wfExecId=${wfExecId ?? "(missing)"}, taskName=${taskName ?? "(missing)"}. ` +
+      `[CallAgent] Missing task name for session naming: wfExecId=${wfExecId}. ` +
       `Using timestamp-based names — session will NOT be reused on retry.`,
     );
     sessionName = `wf-${extractSlug(resolved.agent)}-${Math.floor(Date.now() / 1000)}`;
@@ -141,7 +165,7 @@ export async function callAgentAction(
 
   console.log(
     `[CallAgent] session=${sessionName}, execution=${executionName}, ` +
-    `wfExecId=${wfExecId ?? "(none)"}, task=${taskName ?? "(none)"}`,
+    `wfExecId=${wfExecId}, task=${taskName ?? "(none)"}`,
   );
 
   const harness = resolveHarness(resolved.harness);
@@ -158,7 +182,16 @@ export async function callAgentAction(
         org: orgId,
       }),
       spec: create(SessionSpecSchema, {
-        agentInstanceId: defaultInstanceId,
+        // The agent the reference resolved to, in its own organization:
+        // the task's grammar names no version, so the server pins the
+        // agent's current version when it creates the session and keeps
+        // that pin when a retry re-applies the same reference.
+        agentRef: create(ApiResourceReferenceSchema, {
+          kind: ApiResourceKind.agent,
+          org: agent.metadata?.org ?? "",
+          slug: agent.metadata?.slug ?? "",
+          version: "",
+        }),
         harness,
         executionTarget,
         subject: "Auto-created session",
@@ -221,9 +254,6 @@ export async function callAgentAction(
     });
   }
 
-  const parentQueue = runtimeEnv["__stigmer_activity_task_queue"] as string | undefined;
-  const activityTaskQueue = parentQueue?.startsWith("wfexec:") ? parentQueue : "";
-
   // Honest RunConfig → ExecutionConfig mapping (issue #358): every field
   // the author may set is forwarded to a field the runner enforces.
   // model_name replaces the agent's default outright; max_cost_usd feeds
@@ -276,16 +306,17 @@ export async function callAgentAction(
     `hasOutput=${resolved.output !== undefined}, ` +
     `outputKeys=${resolved.output ? JSON.stringify(Object.keys(resolved.output)) : "N/A"}, ` +
     `__taskName=${(resolved as any).__taskName ?? "MISSING"}, ` +
-    `wfExecId=${wfExecId ?? "MISSING"}`,
+    `wfExecId=${wfExecId}`,
   );
 
   const executionSpec = create(AgentExecutionSpecSchema, {
-    sessionId,
-    agentId,
+    target: { case: "sessionId", value: sessionId },
     message: resolved.message,
-    callbackToken: taskToken,
-    parentWorkflowId,
-    activityTaskQueue,
+    parent: create(WorkflowParentSchema, {
+      workflowExecutionId: wfExecId,
+      signalWorkflowId: parentWorkflowId,
+      callbackToken: taskToken,
+    }),
     runtimeEnv: runtimeEnvProto,
   });
 
@@ -306,9 +337,10 @@ export async function callAgentAction(
   // keys the agent_call environment_refs resolution on these (the
   // schedule-label lineage). The cloud edition additionally gates the
   // branch on the trusted runner caller identity, so the labels are only
-  // load-bearing inside that trust boundary.
+  // load-bearing inside that trust boundary. The execution-id label and
+  // the `parent` link carry the same id, which the server requires.
   const labels: Record<string, string> = {};
-  if (wfExecId && taskName) {
+  if (taskName) {
     labels["stigmer.ai/workflow-execution-id"] = wfExecId;
     labels["stigmer.ai/workflow-task"] = taskName;
   }
