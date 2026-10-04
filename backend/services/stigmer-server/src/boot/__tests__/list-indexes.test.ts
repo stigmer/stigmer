@@ -36,9 +36,9 @@ const PINNED: Readonly<
     fingerprint: "memory{subject=field:spec.subject_identity_account_id}",
   },
   session: {
-    revision: 1,
+    revision: 2,
     fingerprint:
-      "session{agent_instance=field:spec.agent_instance_id,channel=label:stigmer.ai/channel-id}",
+      "session{agent=field:status.agent_id,channel=label:stigmer.ai/channel-id}",
   },
   workflow_execution: {
     revision: 1,
