@@ -867,6 +867,42 @@ describe("Plugin push — refusals before any write", () => {
     );
   });
 
+  it("refuses a plugin whose main agent keeps none of its tools, naming the agent", async () => {
+    const name = uniqueName("emptied");
+    await expectCode(
+      plugins.push({
+        org: ORG,
+        artifact: archiveOf(
+          claudePlugin({
+            name,
+            settings: { agent: "lead" },
+            agents: [
+              {
+                file: "lead",
+                frontmatter: {
+                  description: "Leads.",
+                  tools: "mcp__claude_ai_Slack__post",
+                },
+              },
+            ],
+          }),
+        ),
+      }),
+      Code.InvalidArgument,
+      "main agent 'lead' keeps none of the tools its 'tools' list names",
+    );
+    await expectCode(
+      pluginQuery.getByReference(
+        createMessage(ApiResourceReferenceSchema, {
+          org: ORG,
+          kind: ApiResourceKind.plugin,
+          slug: name,
+        }),
+      ),
+      Code.NotFound,
+    );
+  });
+
   it("refuses an agent overlay with an unknown field, naming the document", async () => {
     const name = uniqueName("overlay");
     const fixture = withFile(

@@ -15,6 +15,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { PLUGIN_DOCUMENT_LIMITS } from "../files.js";
 import { isValidMatcher } from "../normalise/hooks.js";
 import { claudePlugin, codexPlugin, cursorPlugin, openPlugin, withFile } from "../testing.js";
 import { accepted, findingOf, kindsOf, read, refused } from "../__test-utils__/read.js";
@@ -220,6 +221,22 @@ describe("sources", () => {
     const files = withFile(claudePlugin(), "hooks/hooks.json", JSON.stringify({ hooks: {}, version: 1 }));
     expect(kindsOf(read(files))).toEqual({ errors: [], warnings: [] });
     expect(accepted(read(files)).hooks).toBeUndefined();
+  });
+
+  it("refuses an inline entry that is not a matcher group", () => {
+    const outcome = read(claudePlugin({ manifest: { hooks: { PreToolUse: [{ command: "x" }] } } }));
+    expect(findingOf(refused(outcome), "hooks-shape").detail).toBe("every entry on 'PreToolUse' must be a matcher group with a 'hooks' array");
+  });
+
+  it("skips an event with no entries beside one that has some", () => {
+    const files = withFile(claudePlugin(), "hooks/hooks.json", JSON.stringify({ hooks: { Stop: [], PreToolUse: [{ hooks: [command("x")] }] } }));
+    expect(kindsOf(read(files))).toEqual({ errors: [], warnings: [] });
+    expect(accepted(read(files)).hooks?.groups.map((g) => g.event)).toEqual(["PreToolUse"]);
+  });
+
+  it("refuses a hooks file over its cap before reading it", () => {
+    const files = withFile(claudePlugin(), "hooks/hooks.json", `{"hooks":{},"pad":"${"x".repeat(PLUGIN_DOCUMENT_LIMITS.hooks)}"}`);
+    expect(kindsOf(read(files))).toEqual({ errors: ["document-too-large"], warnings: [] });
   });
 
   it("leaves hooks/ unread and ignored under the open manifest alone", () => {

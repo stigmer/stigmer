@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { PLUGIN_DOCUMENT_LIMITS } from "../files.js";
 import { claudePlugin, codexPlugin, cursorPlugin, withFile } from "../testing.js";
 import { accepted, findingOf, kindsOf, read, refused } from "../__test-utils__/read.js";
 
@@ -53,6 +54,9 @@ describe("the main agent", () => {
   it("refuses inline settings that are not an object, and a settings.json that is not JSON", () => {
     expect(findingOf(refused(read(claudePlugin({ manifest: { settings: "x" } }))), "manifest-field-type")).toMatchObject({ subject: "settings" });
     expect(kindsOf(read(withFile(claudePlugin(), "settings.json", "[]"))).errors).toEqual(["settings-unreadable"]);
+    expect(kindsOf(read(withFile(claudePlugin(), "settings.json", `{"x":"${"y".repeat(PLUGIN_DOCUMENT_LIMITS.settings)}"}`))).errors).toEqual([
+      "document-too-large",
+    ]);
   });
 
   it("means nothing without a Claude manifest", () => {

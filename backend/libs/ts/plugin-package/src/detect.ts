@@ -55,7 +55,7 @@ export type ResolvedHookSource =
   | { readonly kind: "inline"; readonly manifest: string; readonly value: JsonObject; readonly format: HookFormat };
 
 /** The hook format a vendor dialect reads; Codex reads Claude Code's. */
-export function hookFormatOf(dialect: Exclude<PluginDialect, "agent-plugins">): HookFormat {
+export function hookFormatOf(dialect: PluginDialect): HookFormat {
   return dialect === "cursor" ? "cursor" : "claude-code";
 }
 
@@ -232,8 +232,8 @@ function resolveHookSources(index: PluginFileIndex, vendors: readonly DialectMan
     files.set(path, entry);
     sources.push({ kind: "file", path, formats: entry.formats, manifest });
   };
+  // Vendors only: the open manifest declares no hooks.
   for (const vendor of vendors) {
-    if (vendor.dialect === "agent-plugins") continue;
     const format = hookFormatOf(vendor.dialect);
     for (const source of vendor.hookSources) {
       if (source.kind === "inline") sources.push({ kind: "inline", manifest: source.manifest, value: source.value, format });
