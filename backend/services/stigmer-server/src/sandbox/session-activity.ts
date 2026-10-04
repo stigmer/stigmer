@@ -273,7 +273,9 @@ export function newStoreSessionActivityReader(
       // a stamp it no longer carries never does.
       const reachedIds = new Set(
         entry.aheadStamps
-          .filter((ahead) => reached(ahead.stamp, nowMs) && !current.has(ahead.id))
+          .filter(
+            (ahead) => reached(ahead.stamp, nowMs) && !current.has(ahead.id),
+          )
           .map((ahead) => ahead.id),
       );
       for (const id of reachedIds) {
@@ -322,7 +324,12 @@ export function sessionActivityOf(
 ): SessionActivity {
   const entry = newEntry(nowMs);
   executions.forEach((execution, index) => {
-    foldExecution(entry, execution.metadata?.id || `#${index}`, execution, nowMs);
+    foldExecution(
+      entry,
+      execution.metadata?.id || `#${index}`,
+      execution,
+      nowMs,
+    );
   });
   return activityOfEntry(entry);
 }
@@ -435,6 +442,8 @@ function activityOfEntry(entry: SessionEntry): SessionActivity {
   return {
     busy: entry.busyIds.size > 0,
     lastActiveAt:
-      entry.lastActiveMs === undefined ? undefined : new Date(entry.lastActiveMs),
+      entry.lastActiveMs === undefined
+        ? undefined
+        : new Date(entry.lastActiveMs),
   };
 }

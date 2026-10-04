@@ -381,28 +381,56 @@ describe("recentActivity(sessionId)", () => {
       [
         "a turn starts",
         () =>
-          save(execution("aex_1", "ses_a", ExecutionPhase.EXECUTION_IN_PROGRESS, at(0))),
+          save(
+            execution(
+              "aex_1",
+              "ses_a",
+              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              at(0),
+            ),
+          ),
       ],
       [
         "it ends",
         () =>
           save(
-            execution("aex_1", "ses_a", ExecutionPhase.EXECUTION_COMPLETED, at(0), at(40_000)),
+            execution(
+              "aex_1",
+              "ses_a",
+              ExecutionPhase.EXECUTION_COMPLETED,
+              at(0),
+              at(40_000),
+            ),
           ),
       ],
       [
         "another session's run changes nothing",
         () =>
-          save(execution("aex_x", "ses_b", ExecutionPhase.EXECUTION_IN_PROGRESS, at(60_000))),
+          save(
+            execution(
+              "aex_x",
+              "ses_b",
+              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              at(60_000),
+            ),
+          ),
       ],
       [
         "a second turn waits for approval",
         () =>
           save(
-            execution("aex_2", "ses_a", ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, at(90_000)),
+            execution(
+              "aex_2",
+              "ses_a",
+              ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+              at(90_000),
+            ),
           ),
       ],
-      ["time passes with the turn still waiting, past the look-back", async () => {}],
+      [
+        "time passes with the turn still waiting, past the look-back",
+        async () => {},
+      ],
       [
         "it ends, its completion stamped by a runner two minutes ahead",
         () =>
@@ -421,13 +449,26 @@ describe("recentActivity(sessionId)", () => {
         "a late report rewrites the latest completion earlier",
         () =>
           save(
-            execution("aex_2", "ses_a", ExecutionPhase.EXECUTION_FAILED, at(90_000), at(100_000)),
+            execution(
+              "aex_2",
+              "ses_a",
+              ExecutionPhase.EXECUTION_FAILED,
+              at(90_000),
+              at(100_000),
+            ),
           ),
       ],
       [
         "the run holding the latest stamp is recovered",
         () =>
-          save(execution("aex_2", "ses_a", ExecutionPhase.EXECUTION_IN_PROGRESS, at(90_000))),
+          save(
+            execution(
+              "aex_2",
+              "ses_a",
+              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              at(90_000),
+            ),
+          ),
       ],
       [
         "it fails again",
@@ -446,7 +487,12 @@ describe("recentActivity(sessionId)", () => {
         "a third turn is deleted while it runs",
         async () => {
           await save(
-            execution("aex_3", "ses_a", ExecutionPhase.EXECUTION_IN_PROGRESS, new Date(r.now())),
+            execution(
+              "aex_3",
+              "ses_a",
+              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              new Date(r.now()),
+            ),
           );
         },
       ],
@@ -467,7 +513,11 @@ describe("recentActivity(sessionId)", () => {
       await act();
       const cheap = await r.reader.recentActivity("ses_a");
       expect({ step, ...cheap }).toEqual({ step, ...(await r.truth()) });
-      r.advance(step.startsWith("time passes") ? 4 * PASS_MS + RECENT_LOOKBACK_MS : PASS_MS);
+      r.advance(
+        step.startsWith("time passes")
+          ? 4 * PASS_MS + RECENT_LOOKBACK_MS
+          : PASS_MS,
+      );
       if (step.startsWith("the clock reaches")) r.advance(60_000);
     }
   });
@@ -486,7 +536,12 @@ describe("recentActivity(sessionId)", () => {
       );
     }
     await save(
-      execution("aex_old", "ses_a", ExecutionPhase.EXECUTION_PAUSED, at(-90 * 60_000)),
+      execution(
+        "aex_old",
+        "ses_a",
+        ExecutionPhase.EXECUTION_PAUSED,
+        at(-90 * 60_000),
+      ),
     );
     await r.reader.recentActivity("ses_a");
     expect(r.counts).toEqual({ rows: 21, byId: 0 });
@@ -504,7 +559,13 @@ describe("recentActivity(sessionId)", () => {
   it("re-reads the run holding the latest stamp once it is older than the window", async () => {
     const r = rig();
     await save(
-      execution("aex_1", "ses_a", ExecutionPhase.EXECUTION_COMPLETED, at(-60 * 60_000), at(-50 * 60_000)),
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(-60 * 60_000),
+        at(-50 * 60_000),
+      ),
     );
     await r.reader.recentActivity("ses_a");
     r.advance(PASS_MS);
@@ -518,7 +579,14 @@ describe("recentActivity(sessionId)", () => {
       [
         "an old failed run recovered, not the one holding the latest stamp",
         () =>
-          save(execution("aex_1", "ses_a", ExecutionPhase.EXECUTION_IN_PROGRESS, at(-60 * 60_000))),
+          save(
+            execution(
+              "aex_1",
+              "ses_a",
+              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              at(-60 * 60_000),
+            ),
+          ),
       ],
       [
         "a run first seen long after its stamp",
@@ -536,8 +604,20 @@ describe("recentActivity(sessionId)", () => {
     for (const [name, act] of cases) {
       await store.deleteResourcesByKind(ApiResourceKind.agent_execution);
       await save(
-        execution("aex_1", "ses_a", ExecutionPhase.EXECUTION_FAILED, at(-60 * 60_000), at(-59 * 60_000)),
-        execution("aex_9", "ses_a", ExecutionPhase.EXECUTION_COMPLETED, at(-30 * 60_000), at(-29 * 60_000)),
+        execution(
+          "aex_1",
+          "ses_a",
+          ExecutionPhase.EXECUTION_FAILED,
+          at(-60 * 60_000),
+          at(-59 * 60_000),
+        ),
+        execution(
+          "aex_9",
+          "ses_a",
+          ExecutionPhase.EXECUTION_COMPLETED,
+          at(-30 * 60_000),
+          at(-29 * 60_000),
+        ),
       );
       const r = rig();
       await r.reader.recentActivity("ses_a");
@@ -560,14 +640,31 @@ describe("recentActivity(sessionId)", () => {
   it("catches a run stamped inside the look-back before one already seen, and decodes an ended run once", async () => {
     const r = rig();
     await save(
-      execution("aex_1", "ses_a", ExecutionPhase.EXECUTION_COMPLETED, at(0), at(10_000)),
-      execution("aex_2", "ses_a", ExecutionPhase.EXECUTION_COMPLETED, at(5_000), at(20_000)),
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(0),
+        at(10_000),
+      ),
+      execution(
+        "aex_2",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(5_000),
+        at(20_000),
+      ),
     );
     await r.reader.recentActivity("ses_a");
     r.advance(PASS_MS);
     // Stamped a minute before the runs already seen, saved only now.
     await save(
-      execution("aex_0", "ses_a", ExecutionPhase.EXECUTION_IN_PROGRESS, at(-60_000)),
+      execution(
+        "aex_0",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        at(-60_000),
+      ),
     );
     // aex_1 is ended and not the latest: were it decoded again, its bytes
     // would warn.
@@ -585,7 +682,13 @@ describe("recentActivity(sessionId)", () => {
         "a late report rewrote the completion",
         () =>
           save(
-            execution("aex_2", "ses_a", ExecutionPhase.EXECUTION_COMPLETED, at(-20 * 60_000), at(-19 * 60_000)),
+            execution(
+              "aex_2",
+              "ses_a",
+              ExecutionPhase.EXECUTION_COMPLETED,
+              at(-20 * 60_000),
+              at(-19 * 60_000),
+            ),
           ),
       ],
       [
@@ -596,9 +699,21 @@ describe("recentActivity(sessionId)", () => {
     for (const [name, act] of cases) {
       await store.deleteResourcesByKind(ApiResourceKind.agent_execution);
       await save(
-        execution("aex_1", "ses_a", ExecutionPhase.EXECUTION_COMPLETED, at(-10 * 60_000), at(-9 * 60_000)),
+        execution(
+          "aex_1",
+          "ses_a",
+          ExecutionPhase.EXECUTION_COMPLETED,
+          at(-10 * 60_000),
+          at(-9 * 60_000),
+        ),
         // A runner whose clock is five minutes ahead stamped its end.
-        execution("aex_2", "ses_a", ExecutionPhase.EXECUTION_COMPLETED, at(-20 * 60_000), at(5 * 60_000)),
+        execution(
+          "aex_2",
+          "ses_a",
+          ExecutionPhase.EXECUTION_COMPLETED,
+          at(-20 * 60_000),
+          at(5 * 60_000),
+        ),
       );
       const r = rig();
       await r.reader.recentActivity("ses_a");
@@ -606,7 +721,11 @@ describe("recentActivity(sessionId)", () => {
       for (let pass = 0; pass < 12; pass += 1) {
         r.advance(PASS_MS);
         const cheap = await r.reader.recentActivity("ses_a");
-        expect({ name, pass, ...cheap }).toEqual({ name, pass, ...(await r.truth()) });
+        expect({ name, pass, ...cheap }).toEqual({
+          name,
+          pass,
+          ...(await r.truth()),
+        });
       }
     }
   });
@@ -614,7 +733,13 @@ describe("recentActivity(sessionId)", () => {
   it("drops an entry no read has touched for ten minutes, so a stale memory is never read from", async () => {
     const r = rig();
     await save(
-      execution("aex_1", "ses_a", ExecutionPhase.EXECUTION_FAILED, at(-60 * 60_000), at(-59 * 60_000)),
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_FAILED,
+        at(-60 * 60_000),
+        at(-59 * 60_000),
+      ),
     );
     await r.reader.recentActivity("ses_a");
     r.advance(ENTRY_IDLE_EVICT_MS - 1);
@@ -622,7 +747,12 @@ describe("recentActivity(sessionId)", () => {
     r.advance(1);
     // A recover the cheap read would lag behind, were the entry still kept.
     await save(
-      execution("aex_1", "ses_a", ExecutionPhase.EXECUTION_IN_PROGRESS, at(-60 * 60_000)),
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        at(-60 * 60_000),
+      ),
     );
     expect((await r.reader.recentActivity("ses_a")).busy).toBe(true);
   });
