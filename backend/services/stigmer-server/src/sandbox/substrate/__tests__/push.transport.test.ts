@@ -302,6 +302,68 @@ describe("an https:// router", () => {
     // before the server's own 5 s keep-alive timeout would close it.
     await expect.poll(() => router.open.size, { timeout: 2_000 }).toBe(0);
   });
+
+  it("closes a connection made under the old CA once the push in flight across a rotation finishes", async () => {
+    let release = (): void => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let requests = 0;
+    const router = await httpsRouter(routerCertificate, (req, res) => {
+      requests += 1;
+      if (requests === 1) void held.then(() => attached(req, res));
+      else attached(req, res);
+    });
+    const file = caFile(routerCa.pem);
+    const fetch = newRouterFetch({
+      routerUrl: router.url,
+      routerCaFile: file,
+      routerServerName: ROUTER_NAME,
+    });
+
+    const inFlight = push(router.url, fetch);
+    await expect.poll(() => requests).toBe(1);
+    // The same CA, rotated beside another: a new bundle, so a new agent.
+    rotate(file, `${routerCa.pem}\n${otherCa.pem}`, 1);
+    expect(await push(router.url, fetch)).toEqual({ ok: true, started: true });
+    expect(router.open.size).toBe(2);
+    release();
+    expect(await inFlight).toEqual({ ok: true, started: true });
+    // Only the connection made under the current bundle stays open.
+    await expect.poll(() => router.open.size, { timeout: 2_000 }).toBe(1);
+  });
+
+  it("retries a CA file that became unusable after boot like an unreachable router, never as a TLS refusal", async () => {
+    const router = await httpsRouter(routerCertificate);
+    const file = caFile(routerCa.pem);
+    const fetch = newRouterFetch({
+      routerUrl: router.url,
+      routerCaFile: file,
+      routerServerName: ROUTER_NAME,
+    });
+    expect(await push(router.url, fetch)).toEqual({ ok: true, started: true });
+
+    rotate(file, "not a certificate", 1);
+    const corrupt = clock();
+    const unreadable = await push(router.url, fetch, corrupt).catch(
+      (e: unknown) => e,
+    );
+    expect(unreadable).not.toBeInstanceOf(RouterTlsError);
+    expect((unreadable as Error).message).toMatch(
+      /could not reach the router: .*holds no PEM certificate/,
+    );
+    expect(corrupt.elapsed()).toBeGreaterThanOrEqual(15_000);
+
+    rmSync(file);
+    const gone = await push(router.url, fetch).catch((e: unknown) => e);
+    expect((gone as Error).message).toMatch(
+      /could not reach the router: .*ENOENT/,
+    );
+
+    // Restored, it is trusted again from the next push.
+    rotate(file, routerCa.pem, 2);
+    expect(await push(router.url, fetch)).toEqual({ ok: true, started: true });
+  });
 });
 
 describe("an http:// router", () => {
@@ -350,6 +412,26 @@ describe("an http:// router", () => {
       /could not reach the router: connect ECONNREFUSED/,
     );
     expect(time.elapsed()).toBeGreaterThanOrEqual(15_000);
+  });
+
+  it("fails a push whose reply carries a status no Response can, instead of throwing out of the reply", async () => {
+    const router = await httpRouter((_req, res) => {
+      res.writeHead(999);
+      res.end();
+    });
+    const time = clock();
+    const failure = await push(
+      router.url,
+      newRouterFetch({
+        routerUrl: router.url,
+        routerCaFile: "",
+        routerServerName: "",
+      }),
+      time,
+    ).catch((e: unknown) => e);
+    expect((failure as Error).message).toMatch(
+      /could not reach the router: the router answered status 999/,
+    );
   });
 
   it("gives a reply with no body as one", async () => {

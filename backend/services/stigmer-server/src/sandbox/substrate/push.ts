@@ -36,6 +36,7 @@
 import { readFileSync, statSync } from "node:fs";
 import * as http from "node:http";
 import * as https from "node:https";
+import type { Socket } from "node:net";
 
 import type { SubstrateDriverSettings } from "./config.js";
 import { delay } from "./delay.js";
@@ -119,9 +120,9 @@ export function newRouterFetch(
   const secureAgent = (): https.Agent => {
     const ca = caPem?.();
     if (secure === undefined || secure.ca !== ca) {
-      // Requests in flight finish on the agent they started on; its idle
-      // connections, made under the old CA, are closed.
-      if (secure !== undefined) closeIdle(secure.agent);
+      // Requests in flight finish on the agent they started on; its
+      // connections, made under the old CA, are closed as each falls idle.
+      if (secure !== undefined) retire(secure.agent);
       secure = {
         agent: new https.Agent({
           keepAlive: true,
@@ -192,20 +193,36 @@ export function newRouterFetch(
         reply.on("end", () => {
           signal.removeEventListener("abort", onAbort);
           const status = reply.statusCode ?? 502;
-          const replyHeaders = new Headers();
-          for (let i = 0; i + 1 < reply.rawHeaders.length; i += 2) {
-            replyHeaders.append(reply.rawHeaders[i]!, reply.rawHeaders[i + 1]!);
+          // The reply is relayed from inside a sandbox, so it is built
+          // inside a catch: a status a Response cannot carry, or a header
+          // it refuses, fails this push instead of throwing out of an
+          // event listener and taking the server down.
+          try {
+            if (status < 200 || status > 599) {
+              throw new Error(
+                `the router answered status ${status}, which no reply carries`,
+              );
+            }
+            const replyHeaders = new Headers();
+            for (let i = 0; i + 1 < reply.rawHeaders.length; i += 2) {
+              replyHeaders.append(
+                reply.rawHeaders[i]!,
+                reply.rawHeaders[i + 1]!,
+              );
+            }
+            resolve(
+              new Response(
+                NULL_BODY_STATUSES.has(status) ? null : Buffer.concat(chunks),
+                {
+                  status,
+                  statusText: reply.statusMessage ?? "",
+                  headers: replyHeaders,
+                },
+              ),
+            );
+          } catch (error) {
+            fail(error);
           }
-          resolve(
-            new Response(
-              NULL_BODY_STATUSES.has(status) ? null : Buffer.concat(chunks),
-              {
-                status,
-                statusText: reply.statusMessage ?? "",
-                headers: replyHeaders,
-              },
-            ),
-          );
         });
       });
       outgoing.on("error", fail);
@@ -244,7 +261,12 @@ function caFromFile(path: string): () => string {
   };
 }
 
-function closeIdle(agent: https.Agent): void {
+/**
+ * Closes an agent's idle connections now, and each busy one as its
+ * request finishes, so nothing trusted under a replaced CA stays open.
+ */
+function retire(agent: https.Agent): void {
+  agent.on("free", (socket: Socket) => socket.destroy());
   for (const sockets of Object.values(agent.freeSockets)) {
     for (const socket of sockets ?? []) socket.destroy();
   }
