@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxItcFCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4AUoECAgQCUoECAkQClIHc2hhcmluZ1IQZGF0YXN0b3JlX3VzYWdlcyLbAgoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChI6CgptY3BfYWNjZXNzGAQgAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcEFjY2VzcxKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJItUBCg5NY3BTZXJ2ZXJVc2FnZRJYCg5tY3Bfc2VydmVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsLBIVCg1lbmFibGVkX3Rvb2xzGAIgAygJElIKF3Rvb2xfYXBwcm92YWxfb3ZlcnJpZGVzGAMgAygLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlRvb2xBcHByb3ZhbE92ZXJyaWRlIj4KCU1jcEFjY2VzcxIaCgptY3Bfc2VydmVyGAEgASgJQga6SAPIAQESFQoNZW5hYmxlZF90b29scxgCIAMoCSJeChRUb29sQXBwcm92YWxPdmVycmlkZRIaCgl0b29sX25hbWUYASABKAlCB7pIBHICEAESGQoRcmVxdWlyZXNfYXBwcm92YWwYAiABKAgSDwoHbWVzc2FnZRgDIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIu4HCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkSgwEKBXRvb2xzGAogAygJQnS6SHGSAW4ibHJqGIACMmVeKG1jcF9fXCp8bWNwX19bYS16XVthLXowLTktXSpbYS16MC05XShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJBKOAQoQZGlzYWxsb3dlZF90b29scxgLIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4AUoECAgQCUoECAkQClIHc2hhcmluZ1IQZGF0YXN0b3JlX3VzYWdlcyLIBAoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJEoMBCgV0b29scxgHIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQSjgEKEGRpc2FsbG93ZWRfdG9vbHMYCCADKAlCdLpIcZIBbiJscmoYgAIyZV4obWNwX19cKnxtY3BfX1thLXpdW2EtejAtOS1dKlthLXowLTldKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkSgQIBBAFUgptY3BfYWNjZXNzIp4BCg5NY3BTZXJ2ZXJVc2FnZRJYCg5tY3Bfc2VydmVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsLEoECAIQA0oECAMQBFINZW5hYmxlZF90b29sc1IXdG9vbF9hcHByb3ZhbF9vdmVycmlkZXNiBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentSpec defines the configurable properties of an agent.
@@ -63,7 +63,8 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
 
   /**
    * Sub-agents that can be delegated to.
-   * Sub-agents can access a subset of the parent's MCP servers and tools.
+   * A sub-agent starts from this agent's tools and may narrow them with its
+   * own tool lists, never widen them.
    *
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6;
    */
@@ -76,6 +77,29 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 7;
    */
   env: { [key: string]: EnvVarDeclaration };
+
+  /**
+   * Tools this agent may use; empty means every tool it has.
+   *
+   * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+   * Write, Edit, Glob, Agent or WebFetch; mcp__<server-slug> for every tool of
+   * one MCP server, mcp__<server-slug>__<tool> for one tool, and mcp__* for
+   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * accepted and governs the whole tool. Agent(explore, shell) also limits
+   * which sub-agents this agent may start. The lists hold on both engines,
+   * and under "approve everything" too.
+   *
+   * @generated from field: repeated string tools = 10;
+   */
+  tools: string[];
+
+  /**
+   * Tools this agent may never use, in the same names as tools.
+   * Applied before tools, so a tool named in both is excluded.
+   *
+   * @generated from field: repeated string disallowed_tools = 11;
+   */
+  disallowedTools: string[];
 };
 
 /**
@@ -88,9 +112,8 @@ export const AgentSpecSchema: GenMessage<AgentSpec> = /*@__PURE__*/
 /**
  * SubAgent defines a specialized agent that the parent can delegate to.
  *
- * A sub-agent can only access MCP servers that the parent has in
- * mcp_server_usages, and its tools must be a subset of the parent's
- * enabled tools. Skills are independent of the parent.
+ * A sub-agent starts from the parent's tools and may narrow them with its own
+ * tool lists, never widen them. Skills are independent of the parent.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.SubAgent
  */
@@ -117,15 +140,6 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
   instructions: string;
 
   /**
-   * MCP server access grants for this sub-agent.
-   * Each entry references a parent McpServerUsage by slug and optionally
-   * restricts which tools are available.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4;
-   */
-  mcpAccess: McpAccess[];
-
-  /**
    * Skill resources for this sub-agent.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5;
@@ -140,6 +154,22 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
    * @generated from field: string model_override = 6;
    */
   modelOverride: string;
+
+  /**
+   * Tools this sub-agent may use, from what the parent may use; empty means
+   * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+   * the type list of an Agent(...) entry is ignored, as in Claude Code.
+   *
+   * @generated from field: repeated string tools = 7;
+   */
+  tools: string[];
+
+  /**
+   * Tools this sub-agent may never use, in the same names as tools.
+   *
+   * @generated from field: repeated string disallowed_tools = 8;
+   */
+  disallowedTools: string[];
 };
 
 /**
@@ -152,8 +182,9 @@ export const SubAgentSchema: GenMessage<SubAgent> = /*@__PURE__*/
 /**
  * McpServerUsage declares that this agent uses a McpServer resource.
  *
- * The slug from mcp_server_ref identifies this server for SubAgent access
- * grants via McpAccess.
+ * Every tool of a used server is available to the agent unless its tool
+ * lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the
+ * server is named by its slug, as in mcp__<server-slug>.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.McpServerUsage
  */
@@ -164,27 +195,6 @@ export type McpServerUsage = Message<"ai.stigmer.agentic.agent.v1.McpServerUsage
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1;
    */
   mcpServerRef?: ApiResourceReference;
-
-  /**
-   * Tools to enable from this MCP server for this agent.
-   * Empty list uses the McpServer's default_enabled_tools.
-   * Sub-agents can only restrict this set further, not expand it.
-   *
-   * @generated from field: repeated string enabled_tools = 2;
-   */
-  enabledTools: string[];
-
-  /**
-   * Override approval requirements for specific tools.
-   * Takes precedence over McpServerSpec.pinned_tool_approvals and
-   * McpServerStatus.tool_approvals.
-   * Scoped to THIS usage's server: an override applies only to tools of
-   * the McpServer referenced by mcp_server_ref — a same-named tool on
-   * another server is unaffected.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3;
-   */
-  toolApprovalOverrides: ToolApprovalOverride[];
 };
 
 /**
@@ -193,82 +203,4 @@ export type McpServerUsage = Message<"ai.stigmer.agentic.agent.v1.McpServerUsage
  */
 export const McpServerUsageSchema: GenMessage<McpServerUsage> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
-
-/**
- * McpAccess grants a sub-agent access to one of the parent's MCP servers.
- *
- * @generated from message ai.stigmer.agentic.agent.v1.McpAccess
- */
-export type McpAccess = Message<"ai.stigmer.agentic.agent.v1.McpAccess"> & {
-  /**
-   * Slug of the McpServer to grant access to.
-   * Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
-   *
-   * @generated from field: string mcp_server = 1;
-   */
-  mcpServer: string;
-
-  /**
-   * Tools this sub-agent can use from this MCP server.
-   * Must be a subset of the parent's enabled_tools for this server.
-   * Empty list grants access to all tools the parent has enabled.
-   *
-   * @generated from field: repeated string enabled_tools = 2;
-   */
-  enabledTools: string[];
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agent.v1.McpAccess.
- * Use `create(McpAccessSchema)` to create a new message.
- */
-export const McpAccessSchema: GenMessage<McpAccess> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 3);
-
-/**
- * ToolApprovalOverride allows per-agent customization of approval requirements.
- *
- * Set requires_approval to true to require approval even when the McpServer
- * has no default, or to false to skip approval even when the McpServer
- * requires it. These overrides take precedence over
- * McpServerSpec.pinned_tool_approvals and McpServerStatus.tool_approvals,
- * but can be bypassed at execution time by AgentExecution.auto_approve_all.
- *
- * An override is scoped to the McpServer referenced by its parent usage:
- * it never affects a same-named tool on another server.
- *
- * @generated from message ai.stigmer.agentic.agent.v1.ToolApprovalOverride
- */
-export type ToolApprovalOverride = Message<"ai.stigmer.agentic.agent.v1.ToolApprovalOverride"> & {
-  /**
-   * Name of the tool to override.
-   *
-   * @generated from field: string tool_name = 1;
-   */
-  toolName: string;
-
-  /**
-   * Whether this tool requires approval for this agent.
-   *
-   * @generated from field: bool requires_approval = 2;
-   */
-  requiresApproval: boolean;
-
-  /**
-   * Custom approval message shown to the reviewer.
-   * Supports {{args.field}} placeholders.
-   * When empty, falls back to the McpServer default or auto-generates
-   * "Execute tool: {tool_name}".
-   *
-   * @generated from field: string message = 3;
-   */
-  message: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agent.v1.ToolApprovalOverride.
- * Use `create(ToolApprovalOverrideSchema)` to create a new message.
- */
-export const ToolApprovalOverrideSchema: GenMessage<ToolApprovalOverride> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 4);
 

@@ -70,12 +70,12 @@ McpServer mcpServer = client.mcpServers().get("mcp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing MCP server. |
 | [`delete`](#delete) | Delete an MCP server resource. |
 | [`completeOAuthConnect`](#completeoauthconnect) | Complete the OAuth authorization flow by exchanging the authorization code for tokens. |
-| [`connect`](#connect) | Connect to an MCP server: discover its tools and classify approval policies. |
+| [`connect`](#connect) | Connect to an MCP server and discover its tools. |
 | [`deleteOrgOAuthApp`](#deleteorgoauthapp) | Remove an org-level BYOA override for a resource. |
 | [`disconnectOAuth`](#disconnectoauth) | Disconnect the authenticated user's OAuth connection for a resource. |
 | [`initiateOAuthConnect`](#initiateoauthconnect) | Start the OAuth authorization flow for an MCP server. |
 | [`setOrgOAuthApp`](#setorgoauthapp) | Create or update an org-level BYOA OAuth app override for a resource. |
-| [`startConnect`](#startconnect) | Start a connect operation without waiting for it: discovery and classification run server-side, and the caller observes progress by polling the resource. |
+| [`startConnect`](#startconnect) | Start a connect operation without waiting for it: discovery runs server-side, and the caller observes progress by polling the resource. |
 
 ### get
 
@@ -276,9 +276,7 @@ const mcpServer = await stigmer.mcpServer.apply({
   tags: [],
   stdio: {},
   http: {},
-  defaultEnabledTools: [],
   env: {},
-  pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
   auth: {},
@@ -288,21 +286,19 @@ const mcpServer = await stigmer.mcpServer.apply({
 <Tab value="Go">
 ```go
 mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
-  Name:                "my-mcp-server",
-  Org:                 "acme",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  IconUrl:             "...",
-  Tags:                []string{},
-  Stdio:               &stigmer.StdioServerConfigInput{},
-  Http:                &stigmer.HttpServerConfigInput{},
-  DefaultEnabledTools: []string{},
-  Env:                 map[string]string{},
-  PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
-  RepositoryUrl:       "...",
-  GithubStars:         0,
-  Auth:                &stigmer.McpServerAuthInput{},
+  Name:          "my-mcp-server",
+  Org:           "acme",
+  Slug:          "...",
+  Labels:        map[string]string{},
+  Description:   "...",
+  IconUrl:       "...",
+  Tags:          []string{},
+  Stdio:         &stigmer.StdioServerConfigInput{},
+  Http:          &stigmer.HttpServerConfigInput{},
+  Env:           map[string]string{},
+  RepositoryUrl: "...",
+  GithubStars:   0,
+  Auth:          &stigmer.McpServerAuthInput{},
 })
 ```
 </Tab>
@@ -318,9 +314,7 @@ mcp_server = client.mcp_servers.apply(McpServerInput(
     tags=[],
     stdio=None,
     http=None,
-    default_enabled_tools=[],
     env={},
-    pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
     auth=None,
@@ -339,9 +333,7 @@ McpServer mcpServer = client.mcpServers().apply(McpServerInput.builder()
     .tags(List.of())
     .stdio(null)
     .http(null)
-    .defaultEnabledTools(List.of())
     .env(Map.of())
-    .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
     .auth(null)
@@ -373,9 +365,7 @@ const mcpServer = await stigmer.mcpServer.create({
   tags: [],
   stdio: {},
   http: {},
-  defaultEnabledTools: [],
   env: {},
-  pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
   auth: {},
@@ -385,21 +375,19 @@ const mcpServer = await stigmer.mcpServer.create({
 <Tab value="Go">
 ```go
 mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
-  Name:                "my-mcp-server",
-  Org:                 "acme",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  IconUrl:             "...",
-  Tags:                []string{},
-  Stdio:               &stigmer.StdioServerConfigInput{},
-  Http:                &stigmer.HttpServerConfigInput{},
-  DefaultEnabledTools: []string{},
-  Env:                 map[string]string{},
-  PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
-  RepositoryUrl:       "...",
-  GithubStars:         0,
-  Auth:                &stigmer.McpServerAuthInput{},
+  Name:          "my-mcp-server",
+  Org:           "acme",
+  Slug:          "...",
+  Labels:        map[string]string{},
+  Description:   "...",
+  IconUrl:       "...",
+  Tags:          []string{},
+  Stdio:         &stigmer.StdioServerConfigInput{},
+  Http:          &stigmer.HttpServerConfigInput{},
+  Env:           map[string]string{},
+  RepositoryUrl: "...",
+  GithubStars:   0,
+  Auth:          &stigmer.McpServerAuthInput{},
 })
 ```
 </Tab>
@@ -415,9 +403,7 @@ mcp_server = client.mcp_servers.create(McpServerInput(
     tags=[],
     stdio=None,
     http=None,
-    default_enabled_tools=[],
     env={},
-    pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
     auth=None,
@@ -436,9 +422,7 @@ McpServer mcpServer = client.mcpServers().create(McpServerInput.builder()
     .tags(List.of())
     .stdio(null)
     .http(null)
-    .defaultEnabledTools(List.of())
     .env(Map.of())
-    .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
     .auth(null)
@@ -468,9 +452,7 @@ const mcpServer = await stigmer.mcpServer.update({
   tags: [],
   stdio: {},
   http: {},
-  defaultEnabledTools: [],
   env: {},
-  pinnedToolApprovals: [],
   repositoryUrl: "...",
   githubStars: 0,
   auth: {},
@@ -480,21 +462,19 @@ const mcpServer = await stigmer.mcpServer.update({
 <Tab value="Go">
 ```go
 mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
-  Name:                "my-mcp-server",
-  Org:                 "acme",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  IconUrl:             "...",
-  Tags:                []string{},
-  Stdio:               &stigmer.StdioServerConfigInput{},
-  Http:                &stigmer.HttpServerConfigInput{},
-  DefaultEnabledTools: []string{},
-  Env:                 map[string]string{},
-  PinnedToolApprovals: []stigmer.ToolApprovalPolicyInput{},
-  RepositoryUrl:       "...",
-  GithubStars:         0,
-  Auth:                &stigmer.McpServerAuthInput{},
+  Name:          "my-mcp-server",
+  Org:           "acme",
+  Slug:          "...",
+  Labels:        map[string]string{},
+  Description:   "...",
+  IconUrl:       "...",
+  Tags:          []string{},
+  Stdio:         &stigmer.StdioServerConfigInput{},
+  Http:          &stigmer.HttpServerConfigInput{},
+  Env:           map[string]string{},
+  RepositoryUrl: "...",
+  GithubStars:   0,
+  Auth:          &stigmer.McpServerAuthInput{},
 })
 ```
 </Tab>
@@ -510,9 +490,7 @@ mcp_server = client.mcp_servers.update(McpServerInput(
     tags=[],
     stdio=None,
     http=None,
-    default_enabled_tools=[],
     env={},
-    pinned_tool_approvals=[],
     repository_url="...",
     github_stars=0,
     auth=None,
@@ -531,9 +509,7 @@ McpServer mcpServer = client.mcpServers().update(McpServerInput.builder()
     .tags(List.of())
     .stdio(null)
     .http(null)
-    .defaultEnabledTools(List.of())
     .env(Map.of())
-    .pinnedToolApprovals(List.of())
     .repositoryUrl("...")
     .githubStars(0)
     .auth(null)
@@ -687,9 +663,9 @@ CompleteOAuthConnectOutput completeOAuthConnectOutput = client.mcpServers().comp
 
 ### connect
 
-Connect to an MCP server: discover its tools and classify approval policies.
+Connect to an MCP server and discover its tools.
 
-Connects to the MCP server, enumerates tools and resource templates, classifies tool approval policies via a lightweight LLM, and stores the results in status.discovered_capabilities and status.tool_approvals. Blocks until the operation settles — legitimately minutes for heavy stdio servers (the server-side workflow ceiling is the bound) — and returns the updated McpServer.
+Connects to the MCP server, enumerates tools and resource templates, records which tools the server marks destructive, and stores the results in status.discovered_capabilities. Blocks until the operation settles — legitimately minutes for heavy stdio servers (the server-side workflow ceiling is the bound) — and returns the updated McpServer.
 
 Prefer startConnect for interactive clients: browsers can drop a no-bytes-yet unary response around ~300s, below the workflow ceiling, so a blocking connect can appear to fail while succeeding server-side. This RPC remains for callers that want synchronous semantics (and for backends that do not yet serve startConnect).
 
@@ -938,9 +914,9 @@ SetOrgOAuthAppOutput setOrgOAuthAppOutput = client.mcpServers().setOrgOAuthApp(S
 
 ### startConnect
 
-Start a connect operation without waiting for it: discovery and classification run server-side, and the caller observes progress by polling the resource.
+Start a connect operation without waiting for it: discovery runs server-side, and the caller observes progress by polling the resource.
 
-Returns the McpServer immediately with status.connect_status describing the accepted operation (phase CONNECTING, plus a warning when no runner appears to be polling the task queue). Poll get/getByReference until status.connect_status reaches a terminal phase; results land in status.discovered_capabilities and status.tool_approvals exactly as with the blocking connect.
+Returns the McpServer immediately with status.connect_status describing the accepted operation (phase CONNECTING, plus a warning when no runner appears to be polling the task queue). Poll get/getByReference until status.connect_status reaches a terminal phase; results land in status.discovered_capabilities exactly as with the blocking connect.
 
 Idempotent while an operation is in flight: a startConnect that finds a live CONNECTING operation attaches to it (the in-flight operation's runtime_env wins) instead of starting a second workflow. A CONNECTING entry orphaned by a backend restart is reconciled against Temporal before a new operation starts.
 
@@ -1004,9 +980,7 @@ Input for creating or updating a MCP Server.
     tags: { type: "string[]", description: "Categorization tags for discoverability in the marketplace." },
     stdio: { type: "StdioServerConfigInput", description: "stdio-based server (subprocess with stdin/stdout communication).", typeDescriptionLink: "#stdioserverconfiginput" },
     http: { type: "HttpServerConfigInput", description: "HTTP-based server (HTTP + Server-Sent Events communication).", typeDescriptionLink: "#httpserverconfiginput" },
-    defaultEnabledTools: { type: "string[]", description: "Default tools to enable from this MCP server." },
     env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this MCP server.", typeDescriptionLink: "#envvardeclarationinput" },
-    pinnedToolApprovals: { type: "ToolApprovalPolicyInput[]", description: "Tools pinned by the MCP server owner to always require approval.", typeDescriptionLink: "#toolapprovalpolicyinput" },
     repositoryUrl: { type: "string", description: "URL of the upstream source repository for this MCP server." },
     githubStars: { type: "number", description: "GitHub star count at the time of curation." },
     auth: { type: "McpServerAuthInput", description: "OAuth authentication configuration for automated credential acquisition.", typeDescriptionLink: "#mcpserverauthinput" },
@@ -1047,18 +1021,6 @@ EnvVarDeclaration declares an environment variable required (or optionally accep
     isSecret: { type: "boolean", description: "Whether the resolved value should be treated as a secret." },
     description: { type: "string", description: "Human-readable description shown in the UI credential form." },
     optional: { type: "boolean", description: "Whether this variable is optional." },
-  }}
-/>
-
-### ToolApprovalPolicyInput
-
-ToolApprovalPolicy defines approval requirements for a specific tool.
-
-<TypeTable
-  type={{
-    toolName: { type: "string", description: "Name of the tool (must match tools/list from MCP server exactly)." },
-    message: { type: "string", description: "Human-readable message shown to user when approval is requested." },
-    fromDestructiveHint: { type: "boolean", description: "True when the connect-time fail-closed tightener force-gated this tool because the server's own MCP annotation declared destructiveHint=true, rather than the classifier (or a human) gating it." },
   }}
 />
 
@@ -1297,9 +1259,8 @@ McpServerStatus represents the system-managed state of an MCP server definition.
     validationState: { type: "ValidationState", description: "Validation state of the MCP server definition.", typeDescriptionLink: "#validationstate" },
     validationMessage: { type: "string", description: "Human-readable validation message." },
     discoveredCapabilities: { type: "DiscoveredCapabilities", description: "Tools and resource templates discovered from the MCP server.", typeDescriptionLink: "#discoveredcapabilities" },
-    toolApprovals: { type: "ToolApprovalPolicy[]", description: "System-generated tool approval policies.", typeDescriptionLink: "#toolapprovalpolicy" },
     oauthStatus: { type: "OAuthStatus", description: "OAuth-related enrichment state, populated at query time by the backend.", typeDescriptionLink: "#oauthstatus" },
-    connectStatus: { type: "ConnectStatus", description: "State of the most recent connect (discovery + classification) operation.", typeDescriptionLink: "#connectstatus" },
+    connectStatus: { type: "ConnectStatus", description: "State of the most recent connect (discovery) operation.", typeDescriptionLink: "#connectstatus" },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}
 />
@@ -1354,6 +1315,7 @@ DiscoveredTool describes a single tool reported by an MCP server.
     name: { type: "string", description: "Unique tool name within the MCP server (case-sensitive)." },
     description: { type: "string", description: "Human-readable description of the tool's purpose." },
     inputSchema: { type: "object", description: "JSON Schema describing the tool's input parameters." },
+    destructiveHint: { type: "boolean", description: "True when the server's own MCP annotation marks the tool destructive (annotations.destructiveHint is exactly true), whatever readOnlyHint says." },
   }}
 />
 
@@ -1367,18 +1329,6 @@ OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
     vendorApprovalDocsUrl: { type: "string", description: "Documentation URL for users who want to bring their own OAuth app credentials while the platform's OAuth app is pending vendor approval." },
     effectiveOauthSource: { type: "OAuthAppSource", description: "NEVER POPULATED (see the message comment): the caller's active org is client-side context, so no backend can evaluate the resolution chain at read time.", typeDescriptionLink: "#oauthappsource" },
     effectiveOauthAppId: { type: "string", description: "NEVER POPULATED (see the message comment)." },
-  }}
-/>
-
-### ToolApprovalPolicy
-
-ToolApprovalPolicy defines approval requirements for a specific tool.
-
-<TypeTable
-  type={{
-    toolName: { type: "string", description: "Name of the tool (must match tools/list from MCP server exactly)." },
-    message: { type: "string", description: "Human-readable message shown to user when approval is requested." },
-    fromDestructiveHint: { type: "boolean", description: "True when the connect-time fail-closed tightener force-gated this tool because the server's own MCP annotation declared destructiveHint=true, rather than the classifier (or a human) gating it." },
   }}
 />
 
@@ -1409,7 +1359,7 @@ ConnectPhase is the lifecycle of a connect operation.
 | Value | Description |
 |-------|-------------|
 | `connect_phase_connecting` | A connect workflow is running (or was running when the backend last observed it — see ConnectStatus.workflow_id for how stale entries are reconciled). |
-| `connect_phase_succeeded` | The connect completed and its results were persisted to discovered_capabilities / tool_approvals. |
+| `connect_phase_succeeded` | The connect completed and its results were persisted to discovered_capabilities. |
 | `connect_phase_failed` | The connect settled without usable results. |
 
 ### VendorApprovalStatus

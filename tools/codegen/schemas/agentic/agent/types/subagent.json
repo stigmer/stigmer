@@ -1,6 +1,6 @@
 {
   "name": "SubAgent",
-  "description": "SubAgent defines a specialized agent that the parent can delegate to.\n\n A sub-agent can only access MCP servers that the parent has in\n mcp_server_usages, and its tools must be a subset of the parent's\n enabled tools. Skills are independent of the parent.",
+  "description": "SubAgent defines a specialized agent that the parent can delegate to.\n\n A sub-agent starts from the parent's tools and may narrow them with its own\n tool lists, never widen them. Skills are independent of the parent.",
   "protoType": "ai.stigmer.agentic.agent.v1.SubAgent",
   "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
   "fields": [
@@ -41,20 +41,6 @@
       }
     },
     {
-      "name": "McpAccess",
-      "jsonName": "mcpAccess",
-      "protoField": "mcp_access",
-      "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "message",
-          "messageType": "McpAccess"
-        }
-      },
-      "description": "MCP server access grants for this sub-agent.\n Each entry references a parent McpServerUsage by slug and optionally\n restricts which tools are available.",
-      "required": false
-    },
-    {
       "name": "SkillRefs",
       "jsonName": "skillRefs",
       "protoField": "skill_refs",
@@ -77,6 +63,32 @@
         "kind": "string"
       },
       "description": "Model override for this sub-agent.\n When set, uses this model instead of the parent's model.\n When empty, inherits the parent agent's model.",
+      "required": false
+    },
+    {
+      "name": "Tools",
+      "jsonName": "tools",
+      "protoField": "tools",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Tools this sub-agent may use, from what the parent may use; empty means\n all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,\n the type list of an Agent(...) entry is ignored, as in Claude Code.",
+      "required": false
+    },
+    {
+      "name": "DisallowedTools",
+      "jsonName": "disallowedTools",
+      "protoField": "disallowed_tools",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Tools this sub-agent may never use, in the same names as tools.",
       "required": false
     }
   ]

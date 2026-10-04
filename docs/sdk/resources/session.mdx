@@ -702,8 +702,6 @@ McpServerUsage declares that this agent uses a McpServer resource.
 <TypeTable
   type={{
     mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", typeDescriptionLink: "#resourceref", required: true },
-    enabledTools: { type: "string[]", description: "Tools to enable from this MCP server for this agent." },
-    toolApprovalOverrides: { type: "ToolApprovalOverrideInput[]", description: "Override approval requirements for specific tools.", typeDescriptionLink: "#toolapprovaloverrideinput" },
   }}
 />
 
@@ -717,18 +715,6 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
-  }}
-/>
-
-### ToolApprovalOverrideInput
-
-ToolApprovalOverride allows per-agent customization of approval requirements.
-
-<TypeTable
-  type={{
-    toolName: { type: "string", description: "Name of the tool to override." },
-    requiresApproval: { type: "boolean", description: "Whether this tool requires approval for this agent." },
-    message: { type: "string", description: "Custom approval message shown to the reviewer." },
   }}
 />
 

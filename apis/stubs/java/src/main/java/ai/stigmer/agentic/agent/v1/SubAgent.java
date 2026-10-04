@@ -9,9 +9,8 @@ package ai.stigmer.agentic.agent.v1;
  * <pre>
  * SubAgent defines a specialized agent that the parent can delegate to.
  *
- * A sub-agent can only access MCP servers that the parent has in
- * mcp_server_usages, and its tools must be a subset of the parent's
- * enabled tools. Skills are independent of the parent.
+ * A sub-agent starts from the parent's tools and may narrow them with its own
+ * tool lists, never widen them. Skills are independent of the parent.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.SubAgent}
@@ -39,9 +38,12 @@ private static final long serialVersionUID = 0L;
     name_ = "";
     description_ = "";
     instructions_ = "";
-    mcpAccess_ = java.util.Collections.emptyList();
     skillRefs_ = java.util.Collections.emptyList();
     modelOverride_ = "";
+    tools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    disallowedTools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -203,77 +205,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int MCP_ACCESS_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.agent.v1.McpAccess> mcpAccess_;
-  /**
-   * <pre>
-   * MCP server access grants for this sub-agent.
-   * Each entry references a parent McpServerUsage by slug and optionally
-   * restricts which tools are available.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.agent.v1.McpAccess> getMcpAccessList() {
-    return mcpAccess_;
-  }
-  /**
-   * <pre>
-   * MCP server access grants for this sub-agent.
-   * Each entry references a parent McpServerUsage by slug and optionally
-   * restricts which tools are available.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.agent.v1.McpAccessOrBuilder> 
-      getMcpAccessOrBuilderList() {
-    return mcpAccess_;
-  }
-  /**
-   * <pre>
-   * MCP server access grants for this sub-agent.
-   * Each entry references a parent McpServerUsage by slug and optionally
-   * restricts which tools are available.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-   */
-  @java.lang.Override
-  public int getMcpAccessCount() {
-    return mcpAccess_.size();
-  }
-  /**
-   * <pre>
-   * MCP server access grants for this sub-agent.
-   * Each entry references a parent McpServerUsage by slug and optionally
-   * restricts which tools are available.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agent.v1.McpAccess getMcpAccess(int index) {
-    return mcpAccess_.get(index);
-  }
-  /**
-   * <pre>
-   * MCP server access grants for this sub-agent.
-   * Each entry references a parent McpServerUsage by slug and optionally
-   * restricts which tools are available.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agent.v1.McpAccessOrBuilder getMcpAccessOrBuilder(
-      int index) {
-    return mcpAccess_.get(index);
-  }
-
   public static final int SKILL_REFS_FIELD_NUMBER = 5;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_;
@@ -386,6 +317,120 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int TOOLS_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList tools_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Tools this sub-agent may use, from what the parent may use; empty means
+   * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+   * the type list of an Agent(...) entry is ignored, as in Claude Code.
+   * </pre>
+   *
+   * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the tools.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getToolsList() {
+    return tools_;
+  }
+  /**
+   * <pre>
+   * Tools this sub-agent may use, from what the parent may use; empty means
+   * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+   * the type list of an Agent(...) entry is ignored, as in Claude Code.
+   * </pre>
+   *
+   * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return The count of tools.
+   */
+  public int getToolsCount() {
+    return tools_.size();
+  }
+  /**
+   * <pre>
+   * Tools this sub-agent may use, from what the parent may use; empty means
+   * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+   * the type list of an Agent(...) entry is ignored, as in Claude Code.
+   * </pre>
+   *
+   * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The tools at the given index.
+   */
+  public java.lang.String getTools(int index) {
+    return tools_.get(index);
+  }
+  /**
+   * <pre>
+   * Tools this sub-agent may use, from what the parent may use; empty means
+   * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+   * the type list of an Agent(...) entry is ignored, as in Claude Code.
+   * </pre>
+   *
+   * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the tools at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getToolsBytes(int index) {
+    return tools_.getByteString(index);
+  }
+
+  public static final int DISALLOWED_TOOLS_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList disallowedTools_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Tools this sub-agent may never use, in the same names as tools.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the disallowedTools.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getDisallowedToolsList() {
+    return disallowedTools_;
+  }
+  /**
+   * <pre>
+   * Tools this sub-agent may never use, in the same names as tools.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return The count of disallowedTools.
+   */
+  public int getDisallowedToolsCount() {
+    return disallowedTools_.size();
+  }
+  /**
+   * <pre>
+   * Tools this sub-agent may never use, in the same names as tools.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The disallowedTools at the given index.
+   */
+  public java.lang.String getDisallowedTools(int index) {
+    return disallowedTools_.get(index);
+  }
+  /**
+   * <pre>
+   * Tools this sub-agent may never use, in the same names as tools.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the disallowedTools at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getDisallowedToolsBytes(int index) {
+    return disallowedTools_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -409,14 +454,17 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(instructions_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, instructions_);
     }
-    for (int i = 0; i < mcpAccess_.size(); i++) {
-      output.writeMessage(4, mcpAccess_.get(i));
-    }
     for (int i = 0; i < skillRefs_.size(); i++) {
       output.writeMessage(5, skillRefs_.get(i));
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(modelOverride_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, modelOverride_);
+    }
+    for (int i = 0; i < tools_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, tools_.getRaw(i));
+    }
+    for (int i = 0; i < disallowedTools_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, disallowedTools_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -438,15 +486,6 @@ private static final long serialVersionUID = 0L;
     }
 
         {
-          final int count = mcpAccess_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(mcpAccess_.get(i));
-          }
-          size += 1 * count;
-        }
-
-        {
           final int count = skillRefs_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
@@ -456,6 +495,22 @@ private static final long serialVersionUID = 0L;
         }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(modelOverride_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, modelOverride_);
+    }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < tools_.size(); i++) {
+        dataSize += computeStringSizeNoTag(tools_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getToolsList().size();
+    }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < disallowedTools_.size(); i++) {
+        dataSize += computeStringSizeNoTag(disallowedTools_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getDisallowedToolsList().size();
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -478,12 +533,14 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDescription())) return false;
     if (!getInstructions()
         .equals(other.getInstructions())) return false;
-    if (!getMcpAccessList()
-        .equals(other.getMcpAccessList())) return false;
     if (!getSkillRefsList()
         .equals(other.getSkillRefsList())) return false;
     if (!getModelOverride()
         .equals(other.getModelOverride())) return false;
+    if (!getToolsList()
+        .equals(other.getToolsList())) return false;
+    if (!getDisallowedToolsList()
+        .equals(other.getDisallowedToolsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -501,16 +558,20 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getDescription().hashCode();
     hash = (37 * hash) + INSTRUCTIONS_FIELD_NUMBER;
     hash = (53 * hash) + getInstructions().hashCode();
-    if (getMcpAccessCount() > 0) {
-      hash = (37 * hash) + MCP_ACCESS_FIELD_NUMBER;
-      hash = (53 * hash) + getMcpAccessList().hashCode();
-    }
     if (getSkillRefsCount() > 0) {
       hash = (37 * hash) + SKILL_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getSkillRefsList().hashCode();
     }
     hash = (37 * hash) + MODEL_OVERRIDE_FIELD_NUMBER;
     hash = (53 * hash) + getModelOverride().hashCode();
+    if (getToolsCount() > 0) {
+      hash = (37 * hash) + TOOLS_FIELD_NUMBER;
+      hash = (53 * hash) + getToolsList().hashCode();
+    }
+    if (getDisallowedToolsCount() > 0) {
+      hash = (37 * hash) + DISALLOWED_TOOLS_FIELD_NUMBER;
+      hash = (53 * hash) + getDisallowedToolsList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -612,9 +673,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * SubAgent defines a specialized agent that the parent can delegate to.
    *
-   * A sub-agent can only access MCP servers that the parent has in
-   * mcp_server_usages, and its tools must be a subset of the parent's
-   * enabled tools. Skills are independent of the parent.
+   * A sub-agent starts from the parent's tools and may narrow them with its own
+   * tool lists, never widen them. Skills are independent of the parent.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.SubAgent}
@@ -653,21 +713,18 @@ private static final long serialVersionUID = 0L;
       name_ = "";
       description_ = "";
       instructions_ = "";
-      if (mcpAccessBuilder_ == null) {
-        mcpAccess_ = java.util.Collections.emptyList();
-      } else {
-        mcpAccess_ = null;
-        mcpAccessBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000008);
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
       } else {
         skillRefs_ = null;
         skillRefsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       modelOverride_ = "";
+      tools_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
+      disallowedTools_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -701,19 +758,10 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.agent.v1.SubAgent result) {
-      if (mcpAccessBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0)) {
-          mcpAccess_ = java.util.Collections.unmodifiableList(mcpAccess_);
-          bitField0_ = (bitField0_ & ~0x00000008);
-        }
-        result.mcpAccess_ = mcpAccess_;
-      } else {
-        result.mcpAccess_ = mcpAccessBuilder_.build();
-      }
       if (skillRefsBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0)) {
+        if (((bitField0_ & 0x00000008) != 0)) {
           skillRefs_ = java.util.Collections.unmodifiableList(skillRefs_);
-          bitField0_ = (bitField0_ & ~0x00000010);
+          bitField0_ = (bitField0_ & ~0x00000008);
         }
         result.skillRefs_ = skillRefs_;
       } else {
@@ -732,8 +780,16 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.instructions_ = instructions_;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.modelOverride_ = modelOverride_;
+      }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        tools_.makeImmutable();
+        result.tools_ = tools_;
+      }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        disallowedTools_.makeImmutable();
+        result.disallowedTools_ = disallowedTools_;
       }
     }
 
@@ -764,37 +820,11 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000004;
         onChanged();
       }
-      if (mcpAccessBuilder_ == null) {
-        if (!other.mcpAccess_.isEmpty()) {
-          if (mcpAccess_.isEmpty()) {
-            mcpAccess_ = other.mcpAccess_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-          } else {
-            ensureMcpAccessIsMutable();
-            mcpAccess_.addAll(other.mcpAccess_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.mcpAccess_.isEmpty()) {
-          if (mcpAccessBuilder_.isEmpty()) {
-            mcpAccessBuilder_.dispose();
-            mcpAccessBuilder_ = null;
-            mcpAccess_ = other.mcpAccess_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-            mcpAccessBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetMcpAccessFieldBuilder() : null;
-          } else {
-            mcpAccessBuilder_.addAllMessages(other.mcpAccess_);
-          }
-        }
-      }
       if (skillRefsBuilder_ == null) {
         if (!other.skillRefs_.isEmpty()) {
           if (skillRefs_.isEmpty()) {
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
           } else {
             ensureSkillRefsIsMutable();
             skillRefs_.addAll(other.skillRefs_);
@@ -807,7 +837,7 @@ private static final long serialVersionUID = 0L;
             skillRefsBuilder_.dispose();
             skillRefsBuilder_ = null;
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
             skillRefsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetSkillRefsFieldBuilder() : null;
@@ -818,7 +848,27 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getModelOverride().isEmpty()) {
         modelOverride_ = other.modelOverride_;
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
+        onChanged();
+      }
+      if (!other.tools_.isEmpty()) {
+        if (tools_.isEmpty()) {
+          tools_ = other.tools_;
+          bitField0_ |= 0x00000020;
+        } else {
+          ensureToolsIsMutable();
+          tools_.addAll(other.tools_);
+        }
+        onChanged();
+      }
+      if (!other.disallowedTools_.isEmpty()) {
+        if (disallowedTools_.isEmpty()) {
+          disallowedTools_ = other.disallowedTools_;
+          bitField0_ |= 0x00000040;
+        } else {
+          ensureDisallowedToolsIsMutable();
+          disallowedTools_.addAll(other.disallowedTools_);
+        }
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -862,19 +912,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 34: {
-              ai.stigmer.agentic.agent.v1.McpAccess m =
-                  input.readMessage(
-                      ai.stigmer.agentic.agent.v1.McpAccess.parser(),
-                      extensionRegistry);
-              if (mcpAccessBuilder_ == null) {
-                ensureMcpAccessIsMutable();
-                mcpAccess_.add(m);
-              } else {
-                mcpAccessBuilder_.addMessage(m);
-              }
-              break;
-            } // case 34
             case 42: {
               ai.stigmer.commons.apiresource.ApiResourceReference m =
                   input.readMessage(
@@ -890,9 +927,19 @@ private static final long serialVersionUID = 0L;
             } // case 42
             case 50: {
               modelOverride_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 50
+            case 58: {
+              ensureToolsIsMutable();
+              tools_.add(input.readStringRequireUtf8());
+              break;
+            } // case 58
+            case 66: {
+              ensureDisallowedToolsIsMutable();
+              disallowedTools_.add(input.readStringRequireUtf8());
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1186,360 +1233,12 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.util.List<ai.stigmer.agentic.agent.v1.McpAccess> mcpAccess_ =
-      java.util.Collections.emptyList();
-    private void ensureMcpAccessIsMutable() {
-      if (!((bitField0_ & 0x00000008) != 0)) {
-        mcpAccess_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.McpAccess>(mcpAccess_);
-        bitField0_ |= 0x00000008;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agent.v1.McpAccess, ai.stigmer.agentic.agent.v1.McpAccess.Builder, ai.stigmer.agentic.agent.v1.McpAccessOrBuilder> mcpAccessBuilder_;
-
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agent.v1.McpAccess> getMcpAccessList() {
-      if (mcpAccessBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(mcpAccess_);
-      } else {
-        return mcpAccessBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public int getMcpAccessCount() {
-      if (mcpAccessBuilder_ == null) {
-        return mcpAccess_.size();
-      } else {
-        return mcpAccessBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.McpAccess getMcpAccess(int index) {
-      if (mcpAccessBuilder_ == null) {
-        return mcpAccess_.get(index);
-      } else {
-        return mcpAccessBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public Builder setMcpAccess(
-        int index, ai.stigmer.agentic.agent.v1.McpAccess value) {
-      if (mcpAccessBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMcpAccessIsMutable();
-        mcpAccess_.set(index, value);
-        onChanged();
-      } else {
-        mcpAccessBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public Builder setMcpAccess(
-        int index, ai.stigmer.agentic.agent.v1.McpAccess.Builder builderForValue) {
-      if (mcpAccessBuilder_ == null) {
-        ensureMcpAccessIsMutable();
-        mcpAccess_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        mcpAccessBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public Builder addMcpAccess(ai.stigmer.agentic.agent.v1.McpAccess value) {
-      if (mcpAccessBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMcpAccessIsMutable();
-        mcpAccess_.add(value);
-        onChanged();
-      } else {
-        mcpAccessBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public Builder addMcpAccess(
-        int index, ai.stigmer.agentic.agent.v1.McpAccess value) {
-      if (mcpAccessBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMcpAccessIsMutable();
-        mcpAccess_.add(index, value);
-        onChanged();
-      } else {
-        mcpAccessBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public Builder addMcpAccess(
-        ai.stigmer.agentic.agent.v1.McpAccess.Builder builderForValue) {
-      if (mcpAccessBuilder_ == null) {
-        ensureMcpAccessIsMutable();
-        mcpAccess_.add(builderForValue.build());
-        onChanged();
-      } else {
-        mcpAccessBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public Builder addMcpAccess(
-        int index, ai.stigmer.agentic.agent.v1.McpAccess.Builder builderForValue) {
-      if (mcpAccessBuilder_ == null) {
-        ensureMcpAccessIsMutable();
-        mcpAccess_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        mcpAccessBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public Builder addAllMcpAccess(
-        java.lang.Iterable<? extends ai.stigmer.agentic.agent.v1.McpAccess> values) {
-      if (mcpAccessBuilder_ == null) {
-        ensureMcpAccessIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, mcpAccess_);
-        onChanged();
-      } else {
-        mcpAccessBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public Builder clearMcpAccess() {
-      if (mcpAccessBuilder_ == null) {
-        mcpAccess_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000008);
-        onChanged();
-      } else {
-        mcpAccessBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public Builder removeMcpAccess(int index) {
-      if (mcpAccessBuilder_ == null) {
-        ensureMcpAccessIsMutable();
-        mcpAccess_.remove(index);
-        onChanged();
-      } else {
-        mcpAccessBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.McpAccess.Builder getMcpAccessBuilder(
-        int index) {
-      return internalGetMcpAccessFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.McpAccessOrBuilder getMcpAccessOrBuilder(
-        int index) {
-      if (mcpAccessBuilder_ == null) {
-        return mcpAccess_.get(index);  } else {
-        return mcpAccessBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.agent.v1.McpAccessOrBuilder> 
-         getMcpAccessOrBuilderList() {
-      if (mcpAccessBuilder_ != null) {
-        return mcpAccessBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(mcpAccess_);
-      }
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.McpAccess.Builder addMcpAccessBuilder() {
-      return internalGetMcpAccessFieldBuilder().addBuilder(
-          ai.stigmer.agentic.agent.v1.McpAccess.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.McpAccess.Builder addMcpAccessBuilder(
-        int index) {
-      return internalGetMcpAccessFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.agent.v1.McpAccess.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * MCP server access grants for this sub-agent.
-     * Each entry references a parent McpServerUsage by slug and optionally
-     * restricts which tools are available.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agent.v1.McpAccess.Builder> 
-         getMcpAccessBuilderList() {
-      return internalGetMcpAccessFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agent.v1.McpAccess, ai.stigmer.agentic.agent.v1.McpAccess.Builder, ai.stigmer.agentic.agent.v1.McpAccessOrBuilder> 
-        internalGetMcpAccessFieldBuilder() {
-      if (mcpAccessBuilder_ == null) {
-        mcpAccessBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.agent.v1.McpAccess, ai.stigmer.agentic.agent.v1.McpAccess.Builder, ai.stigmer.agentic.agent.v1.McpAccessOrBuilder>(
-                mcpAccess_,
-                ((bitField0_ & 0x00000008) != 0),
-                getParentForChildren(),
-                isClean());
-        mcpAccess_ = null;
-      }
-      return mcpAccessBuilder_;
-    }
-
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_ =
       java.util.Collections.emptyList();
     private void ensureSkillRefsIsMutable() {
-      if (!((bitField0_ & 0x00000010) != 0)) {
+      if (!((bitField0_ & 0x00000008) != 0)) {
         skillRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(skillRefs_);
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
        }
     }
 
@@ -1733,7 +1432,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearSkillRefs() {
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000008);
         onChanged();
       } else {
         skillRefsBuilder_.clear();
@@ -1838,7 +1537,7 @@ private static final long serialVersionUID = 0L;
         skillRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 skillRefs_,
-                ((bitField0_ & 0x00000010) != 0),
+                ((bitField0_ & 0x00000008) != 0),
                 getParentForChildren(),
                 isClean());
         skillRefs_ = null;
@@ -1907,7 +1606,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       modelOverride_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1923,7 +1622,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearModelOverride() {
       modelOverride_ = getDefaultInstance().getModelOverride();
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       onChanged();
       return this;
     }
@@ -1943,7 +1642,319 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       modelOverride_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList tools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureToolsIsMutable() {
+      if (!tools_.isModifiable()) {
+        tools_ = new com.google.protobuf.LazyStringArrayList(tools_);
+      }
       bitField0_ |= 0x00000020;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may use, from what the parent may use; empty means
+     * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+     * the type list of an Agent(...) entry is ignored, as in Claude Code.
+     * </pre>
+     *
+     * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the tools.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getToolsList() {
+      tools_.makeImmutable();
+      return tools_;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may use, from what the parent may use; empty means
+     * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+     * the type list of an Agent(...) entry is ignored, as in Claude Code.
+     * </pre>
+     *
+     * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @return The count of tools.
+     */
+    public int getToolsCount() {
+      return tools_.size();
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may use, from what the parent may use; empty means
+     * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+     * the type list of an Agent(...) entry is ignored, as in Claude Code.
+     * </pre>
+     *
+     * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The tools at the given index.
+     */
+    public java.lang.String getTools(int index) {
+      return tools_.get(index);
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may use, from what the parent may use; empty means
+     * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+     * the type list of an Agent(...) entry is ignored, as in Claude Code.
+     * </pre>
+     *
+     * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the tools at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getToolsBytes(int index) {
+      return tools_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may use, from what the parent may use; empty means
+     * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+     * the type list of an Agent(...) entry is ignored, as in Claude Code.
+     * </pre>
+     *
+     * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The tools to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTools(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureToolsIsMutable();
+      tools_.set(index, value);
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may use, from what the parent may use; empty means
+     * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+     * the type list of an Agent(...) entry is ignored, as in Claude Code.
+     * </pre>
+     *
+     * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param value The tools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addTools(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureToolsIsMutable();
+      tools_.add(value);
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may use, from what the parent may use; empty means
+     * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+     * the type list of an Agent(...) entry is ignored, as in Claude Code.
+     * </pre>
+     *
+     * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param values The tools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllTools(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureToolsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, tools_);
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may use, from what the parent may use; empty means
+     * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+     * the type list of an Agent(...) entry is ignored, as in Claude Code.
+     * </pre>
+     *
+     * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTools() {
+      tools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000020);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may use, from what the parent may use; empty means
+     * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+     * the type list of an Agent(...) entry is ignored, as in Claude Code.
+     * </pre>
+     *
+     * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the tools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addToolsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureToolsIsMutable();
+      tools_.add(value);
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList disallowedTools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureDisallowedToolsIsMutable() {
+      if (!disallowedTools_.isModifiable()) {
+        disallowedTools_ = new com.google.protobuf.LazyStringArrayList(disallowedTools_);
+      }
+      bitField0_ |= 0x00000040;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may never use, in the same names as tools.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the disallowedTools.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getDisallowedToolsList() {
+      disallowedTools_.makeImmutable();
+      return disallowedTools_;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may never use, in the same names as tools.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @return The count of disallowedTools.
+     */
+    public int getDisallowedToolsCount() {
+      return disallowedTools_.size();
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may never use, in the same names as tools.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The disallowedTools at the given index.
+     */
+    public java.lang.String getDisallowedTools(int index) {
+      return disallowedTools_.get(index);
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may never use, in the same names as tools.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the disallowedTools at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getDisallowedToolsBytes(int index) {
+      return disallowedTools_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may never use, in the same names as tools.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The disallowedTools to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDisallowedTools(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureDisallowedToolsIsMutable();
+      disallowedTools_.set(index, value);
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may never use, in the same names as tools.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param value The disallowedTools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addDisallowedTools(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureDisallowedToolsIsMutable();
+      disallowedTools_.add(value);
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may never use, in the same names as tools.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param values The disallowedTools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllDisallowedTools(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureDisallowedToolsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, disallowedTools_);
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may never use, in the same names as tools.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDisallowedTools() {
+      disallowedTools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000040);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this sub-agent may never use, in the same names as tools.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the disallowedTools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addDisallowedToolsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureDisallowedToolsIsMutable();
+      disallowedTools_.add(value);
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }

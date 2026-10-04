@@ -42,7 +42,8 @@ message AgentSpec {
   ];
 
   // Sub-agents that can be delegated to.
-  // Sub-agents can access a subset of the parent's MCP servers and tools.
+  // A sub-agent starts from this agent's tools and may narrow them with its
+  // own tool lists, never widen them.
   repeated SubAgent sub_agents = 6;
 
   // Environment variable declarations for this agent.
@@ -61,16 +62,44 @@ message AgentSpec {
   // Datastore domain was removed platform-wide.
   reserved 9;
   reserved "datastore_usages";
+
+  // Tools this agent may use; empty means every tool it has.
+  //
+  // Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+  // Write, Edit, Glob, Agent or WebFetch; mcp__<server-slug> for every tool of
+  // one MCP server, mcp__<server-slug>__<tool> for one tool, and mcp__* for
+  // every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+  // accepted and governs the whole tool. Agent(explore, shell) also limits
+  // which sub-agents this agent may start. The lists hold on both engines,
+  // and under "approve everything" too.
+  //
+  // @internal
+  // Resolution follows Claude Code's sub-agent rules: disallowed_tools is
+  // applied first, then tools against what remains. An entry that names no
+  // tool the turn has is ignored with a log line; a non-empty list in which
+  // no entry resolves refuses the turn. The shape is checked at apply; names
+  // are resolved only at run time, so a portable plugin agent applies on any
+  // installation. The platform's own tools (think, channel messaging,
+  // conversation participation, memory) are outside both lists. With Read
+  // excluded, the agent still reads the platform's .stigmer/ content (its
+  // skills, inputs and plan) and its own offloaded tool outputs.
+  repeated string tools = 10 [(buf.validate.field).repeated.items.string = {
+    max_len: 256
+    pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
+  }];
+
+  // Tools this agent may never use, in the same names as tools.
+  // Applied before tools, so a tool named in both is excluded.
+  repeated string disallowed_tools = 11 [(buf.validate.field).repeated.items.string = {
+    max_len: 256
+    pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
+  }];
 }
 
 // SubAgent defines a specialized agent that the parent can delegate to.
 //
-// A sub-agent can only access MCP servers that the parent has in
-// mcp_server_usages, and its tools must be a subset of the parent's
-// enabled tools. Skills are independent of the parent.
-//
-// @internal
-// Permission model enforced at execution time by the delegation handler.
+// A sub-agent starts from the parent's tools and may narrow them with its own
+// tool lists, never widen them. Skills are independent of the parent.
 message SubAgent {
   // Unique name of the sub-agent within the parent agent.
   string name = 1 [(buf.validate.field).required = true];
@@ -80,11 +109,6 @@ message SubAgent {
 
   // System prompt for this sub-agent.
   string instructions = 3 [(buf.validate.field).string.min_len = 10];
-
-  // MCP server access grants for this sub-agent.
-  // Each entry references a parent McpServerUsage by slug and optionally
-  // restricts which tools are available.
-  repeated McpAccess mcp_access = 4;
 
   // Skill resources for this sub-agent.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [
@@ -100,16 +124,33 @@ message SubAgent {
   // When set, uses this model instead of the parent's model.
   // When empty, inherits the parent agent's model.
   string model_override = 6;
+
+  // Tools this sub-agent may use, from what the parent may use; empty means
+  // all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+  // the type list of an Agent(...) entry is ignored, as in Claude Code.
+  repeated string tools = 7 [(buf.validate.field).repeated.items.string = {
+    max_len: 256
+    pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
+  }];
+
+  // Tools this sub-agent may never use, in the same names as tools.
+  repeated string disallowed_tools = 8 [(buf.validate.field).repeated.items.string = {
+    max_len: 256
+    pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
+  }];
+
+  // Field 4 held mcp_access, per-sub-agent grants over the parent's MCP
+  // servers. A sub-agent now narrows the parent's tools with tools and
+  // disallowed_tools, mcp__<server-slug> entries included.
+  reserved 4;
+  reserved "mcp_access";
 }
 
 // McpServerUsage declares that this agent uses a McpServer resource.
 //
-// The slug from mcp_server_ref identifies this server for SubAgent access
-// grants via McpAccess.
-//
-// @internal
-// Design principle: Users already named their McpServer with a slug.
-// We use that slug as the identifier — no extra naming required.
+// Every tool of a used server is available to the agent unless its tool
+// lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the
+// server is named by its slug, as in mcp__<server-slug>.
 message McpServerUsage {
   // Reference to the McpServer resource.
   ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [
@@ -117,91 +158,10 @@ message McpServerUsage {
     (buf.validate.field).required = true
   ];
 
-  // Tools to enable from this MCP server for this agent.
-  // Empty list uses the McpServer's default_enabled_tools.
-  // Sub-agents can only restrict this set further, not expand it.
-  //
-  // @internal
-  // Tool names must match exactly what the MCP server reports via tools/list.
-  // Only names from discovered_capabilities.tools are valid here.
-  // Do NOT include names from discovered_capabilities.resource_templates —
-  // resource templates are read-only data endpoints, not callable tools.
-  //
-  // Enforcement is two-layered:
-  //   - Apply time: agent create/update/apply rejects (INVALID_ARGUMENT) any
-  //     name the referenced server's discovered_capabilities.tools does not
-  //     contain, with the valid names in the error. The check is skipped when
-  //     the server has no discovered capabilities yet (never connected) —
-  //     there is nothing authoritative to validate against in that window.
-  //   - Execution time: the runner enforces the INTERSECTION with the
-  //     server's live toolset — an unknown name (possible when the manifest
-  //     was applied before the server's first connect, or when the toolset
-  //     changed since) is warned in the runner log and ignored, so a stale
-  //     entry narrows the toolset but never widens it or fails the run.
-  //
-  // Per-harness runtime enforcement: the native (deep-agent) harness filters
-  // the discovered toolset before it reaches the model; the Cursor harness
-  // cannot hide a server's tools (its SDK config has no allow-list field),
-  // so its HITL hook permanently denies calls to non-enabled tools instead —
-  // the model may still see the tool listed, but every call is refused.
-  repeated string enabled_tools = 2;
-
-  // Override approval requirements for specific tools.
-  // Takes precedence over McpServerSpec.pinned_tool_approvals and
-  // McpServerStatus.tool_approvals.
-  // Scoped to THIS usage's server: an override applies only to tools of
-  // the McpServer referenced by mcp_server_ref — a same-named tool on
-  // another server is unaffected.
-  repeated ToolApprovalOverride tool_approval_overrides = 3;
-}
-
-// McpAccess grants a sub-agent access to one of the parent's MCP servers.
-//
-// @internal
-// Permission model enforced at execution time: sub-agent can only access
-// servers in the parent's mcp_server_usages, and tools must be a subset
-// of the parent's enabled_tools.
-message McpAccess {
-  // Slug of the McpServer to grant access to.
-  // Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
-  string mcp_server = 1 [(buf.validate.field).required = true];
-
-  // Tools this sub-agent can use from this MCP server.
-  // Must be a subset of the parent's enabled_tools for this server.
-  // Empty list grants access to all tools the parent has enabled.
-  repeated string enabled_tools = 2;
-}
-
-// ToolApprovalOverride allows per-agent customization of approval requirements.
-//
-// Set requires_approval to true to require approval even when the McpServer
-// has no default, or to false to skip approval even when the McpServer
-// requires it. These overrides take precedence over
-// McpServerSpec.pinned_tool_approvals and McpServerStatus.tool_approvals,
-// but can be bypassed at execution time by AgentExecution.auto_approve_all.
-//
-// An override is scoped to the McpServer referenced by its parent usage:
-// it never affects a same-named tool on another server.
-//
-// @internal
-// Policy chain (lowest to highest priority):
-// 1. McpServerStatus.tool_approvals — system-generated defaults
-// 2. McpServerSpec.pinned_tool_approvals — manual overrides
-// 3. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message)
-// 4. AgentExecution.auto_approve_all — runtime bypass
-//
-// Invalid tool names are silently ignored (no approval applied).
-// This allows forward-compatibility when MCP servers add/remove tools.
-message ToolApprovalOverride {
-  // Name of the tool to override.
-  string tool_name = 1 [(buf.validate.field).string.min_len = 1];
-
-  // Whether this tool requires approval for this agent.
-  bool requires_approval = 2;
-
-  // Custom approval message shown to the reviewer.
-  // Supports {{args.field}} placeholders.
-  // When empty, falls back to the McpServer default or auto-generates
-  // "Execute tool: {tool_name}".
-  string message = 3;
+  // Field 2 held enabled_tools, a per-server tool allow-list, and field 3
+  // tool_approval_overrides, per-tool approval settings. Both were removed
+  // with the approval-policy model: the agent's tool lists narrow its tools,
+  // and a tool asks before it runs when its server marks it destructive.
+  reserved 2, 3;
+  reserved "enabled_tools", "tool_approval_overrides";
 }

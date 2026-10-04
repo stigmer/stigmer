@@ -67,76 +67,73 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n,ai/stigmer/agentic/mcpserver/v1/status" +
       ".proto\022\037ai.stigmer.agentic.mcpserver.v1\032" +
-      "*ai/stigmer/agentic/mcpserver/v1/spec.pr" +
-      "oto\032+ai/stigmer/commons/apiresource/stat" +
-      "us.proto\032%ai/stigmer/iam/oauthapp/v1/spe" +
-      "c.proto\032\034google/protobuf/struct.proto\032\037g" +
-      "oogle/protobuf/timestamp.proto\"\333\004\n\017McpSe" +
-      "rverStatus\022[\n\020validation_state\030\001 \001(\01620.a" +
-      "i.stigmer.agentic.mcpserver.v1.Validatio" +
-      "nStateR\017validationState\022-\n\022validation_me" +
-      "ssage\030\002 \001(\tR\021validationMessage\022p\n\027discov" +
-      "ered_capabilities\030\003 \001(\01327.ai.stigmer.age" +
-      "ntic.mcpserver.v1.DiscoveredCapabilities" +
-      "R\026discoveredCapabilities\022Z\n\016tool_approva" +
-      "ls\030\004 \003(\01323.ai.stigmer.agentic.mcpserver." +
-      "v1.ToolApprovalPolicyR\rtoolApprovals\022O\n\014" +
-      "oauth_status\030\005 \001(\0132,.ai.stigmer.agentic." +
-      "mcpserver.v1.OAuthStatusR\013oauthStatus\022U\n" +
-      "\016connect_status\030\006 \001(\0132..ai.stigmer.agent" +
-      "ic.mcpserver.v1.ConnectStatusR\rconnectSt" +
-      "atus\022F\n\005audit\030c \001(\01320.ai.stigmer.commons" +
-      ".apiresource.ApiResourceAuditR\005audit\"\323\002\n" +
-      "\rConnectStatus\022C\n\005phase\030\001 \001(\0162-.ai.stigm" +
-      "er.agentic.mcpserver.v1.ConnectPhaseR\005ph" +
-      "ase\022\037\n\013workflow_id\030\002 \001(\tR\nworkflowId\0229\n\n" +
-      "started_at\030\003 \001(\0132\032.google.protobuf.Times" +
-      "tampR\tstartedAt\022;\n\013finished_at\030\004 \001(\0132\032.g" +
-      "oogle.protobuf.TimestampR\nfinishedAt\022!\n\014" +
-      "failure_code\030\005 \001(\tR\013failureCode\022\'\n\017failu" +
-      "re_message\030\006 \001(\tR\016failureMessage\022\030\n\007warn" +
-      "ing\030\007 \001(\tR\007warning\"\225\002\n\026DiscoveredCapabil" +
-      "ities\022E\n\005tools\030\001 \003(\0132/.ai.stigmer.agenti" +
-      "c.mcpserver.v1.DiscoveredToolR\005tools\022j\n\022" +
-      "resource_templates\030\002 \003(\0132;.ai.stigmer.ag" +
-      "entic.mcpserver.v1.DiscoveredResourceTem" +
-      "plateR\021resourceTemplates\022H\n\022last_discove" +
-      "red_at\030\003 \001(\0132\032.google.protobuf.Timestamp" +
-      "R\020lastDiscoveredAt\"\202\001\n\016DiscoveredTool\022\022\n" +
-      "\004name\030\001 \001(\tR\004name\022 \n\013description\030\002 \001(\tR\013" +
-      "description\022:\n\014input_schema\030\003 \001(\0132\027.goog" +
-      "le.protobuf.StructR\013inputSchema\"\222\001\n\032Disc" +
-      "overedResourceTemplate\022!\n\014uri_template\030\001" +
-      " \001(\tR\013uriTemplate\022\022\n\004name\030\002 \001(\tR\004name\022 \n" +
-      "\013description\030\003 \001(\tR\013description\022\033\n\tmime_" +
-      "type\030\004 \001(\tR\010mimeType\"\312\002\n\013OAuthStatus\022f\n\026" +
-      "vendor_approval_status\030\001 \001(\01620.ai.stigme" +
-      "r.iam.oauthapp.v1.VendorApprovalStatusR\024" +
-      "vendorApprovalStatus\0227\n\030vendor_approval_" +
-      "docs_url\030\002 \001(\tR\025vendorApprovalDocsUrl\022e\n" +
-      "\026effective_oauth_source\030\003 \001(\0162/.ai.stigm" +
-      "er.agentic.mcpserver.v1.OAuthAppSourceR\024" +
-      "effectiveOauthSource\0223\n\026effective_oauth_" +
-      "app_id\030\004 \001(\tR\023effectiveOauthAppId*\202\001\n\014Co" +
-      "nnectPhase\022\035\n\031connect_phase_unspecified\020" +
-      "\000\022\034\n\030connect_phase_connecting\020\001\022\033\n\027conne" +
-      "ct_phase_succeeded\020\002\022\030\n\024connect_phase_fa" +
-      "iled\020\003*K\n\017ValidationState\022 \n\034validation_" +
-      "state_unspecified\020\000\022\t\n\005valid\020\001\022\013\n\007invali" +
-      "d\020\002*\217\001\n\016OAuthAppSource\022 \n\034OAUTH_APP_SOUR" +
-      "CE_UNSPECIFIED\020\000\022\035\n\031OAUTH_APP_SOURCE_PLA" +
-      "TFORM\020\001\022!\n\035OAUTH_APP_SOURCE_ORG_OVERRIDE" +
-      "\020\002\022\031\n\025OAUTH_APP_SOURCE_NONE\020\003B\256\001B\013Status" +
-      "ProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcps" +
-      "erver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\" +
-      "V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPB" +
-      "Metadata\352\002#Ai::Stigmer::Agentic::Mcpserv" +
-      "er::V1b\006proto3"
+      "+ai/stigmer/commons/apiresource/status.p" +
+      "roto\032%ai/stigmer/iam/oauthapp/v1/spec.pr" +
+      "oto\032\034google/protobuf/struct.proto\032\037googl" +
+      "e/protobuf/timestamp.proto\"\225\004\n\017McpServer" +
+      "Status\022[\n\020validation_state\030\001 \001(\01620.ai.st" +
+      "igmer.agentic.mcpserver.v1.ValidationSta" +
+      "teR\017validationState\022-\n\022validation_messag" +
+      "e\030\002 \001(\tR\021validationMessage\022p\n\027discovered" +
+      "_capabilities\030\003 \001(\01327.ai.stigmer.agentic" +
+      ".mcpserver.v1.DiscoveredCapabilitiesR\026di" +
+      "scoveredCapabilities\022O\n\014oauth_status\030\005 \001" +
+      "(\0132,.ai.stigmer.agentic.mcpserver.v1.OAu" +
+      "thStatusR\013oauthStatus\022U\n\016connect_status\030" +
+      "\006 \001(\0132..ai.stigmer.agentic.mcpserver.v1." +
+      "ConnectStatusR\rconnectStatus\022F\n\005audit\030c " +
+      "\001(\01320.ai.stigmer.commons.apiresource.Api" +
+      "ResourceAuditR\005auditJ\004\010\004\020\005R\016tool_approva" +
+      "ls\"\323\002\n\rConnectStatus\022C\n\005phase\030\001 \001(\0162-.ai" +
+      ".stigmer.agentic.mcpserver.v1.ConnectPha" +
+      "seR\005phase\022\037\n\013workflow_id\030\002 \001(\tR\nworkflow" +
+      "Id\0229\n\nstarted_at\030\003 \001(\0132\032.google.protobuf" +
+      ".TimestampR\tstartedAt\022;\n\013finished_at\030\004 \001" +
+      "(\0132\032.google.protobuf.TimestampR\nfinished" +
+      "At\022!\n\014failure_code\030\005 \001(\tR\013failureCode\022\'\n" +
+      "\017failure_message\030\006 \001(\tR\016failureMessage\022\030" +
+      "\n\007warning\030\007 \001(\tR\007warning\"\225\002\n\026DiscoveredC" +
+      "apabilities\022E\n\005tools\030\001 \003(\0132/.ai.stigmer." +
+      "agentic.mcpserver.v1.DiscoveredToolR\005too" +
+      "ls\022j\n\022resource_templates\030\002 \003(\0132;.ai.stig" +
+      "mer.agentic.mcpserver.v1.DiscoveredResou" +
+      "rceTemplateR\021resourceTemplates\022H\n\022last_d" +
+      "iscovered_at\030\003 \001(\0132\032.google.protobuf.Tim" +
+      "estampR\020lastDiscoveredAt\"\255\001\n\016DiscoveredT" +
+      "ool\022\022\n\004name\030\001 \001(\tR\004name\022 \n\013description\030\002" +
+      " \001(\tR\013description\022:\n\014input_schema\030\003 \001(\0132" +
+      "\027.google.protobuf.StructR\013inputSchema\022)\n" +
+      "\020destructive_hint\030\004 \001(\010R\017destructiveHint" +
+      "\"\222\001\n\032DiscoveredResourceTemplate\022!\n\014uri_t" +
+      "emplate\030\001 \001(\tR\013uriTemplate\022\022\n\004name\030\002 \001(\t" +
+      "R\004name\022 \n\013description\030\003 \001(\tR\013description" +
+      "\022\033\n\tmime_type\030\004 \001(\tR\010mimeType\"\312\002\n\013OAuthS" +
+      "tatus\022f\n\026vendor_approval_status\030\001 \001(\01620." +
+      "ai.stigmer.iam.oauthapp.v1.VendorApprova" +
+      "lStatusR\024vendorApprovalStatus\0227\n\030vendor_" +
+      "approval_docs_url\030\002 \001(\tR\025vendorApprovalD" +
+      "ocsUrl\022e\n\026effective_oauth_source\030\003 \001(\0162/" +
+      ".ai.stigmer.agentic.mcpserver.v1.OAuthAp" +
+      "pSourceR\024effectiveOauthSource\0223\n\026effecti" +
+      "ve_oauth_app_id\030\004 \001(\tR\023effectiveOauthApp" +
+      "Id*\202\001\n\014ConnectPhase\022\035\n\031connect_phase_uns" +
+      "pecified\020\000\022\034\n\030connect_phase_connecting\020\001" +
+      "\022\033\n\027connect_phase_succeeded\020\002\022\030\n\024connect" +
+      "_phase_failed\020\003*K\n\017ValidationState\022 \n\034va" +
+      "lidation_state_unspecified\020\000\022\t\n\005valid\020\001\022" +
+      "\013\n\007invalid\020\002*\217\001\n\016OAuthAppSource\022 \n\034OAUTH" +
+      "_APP_SOURCE_UNSPECIFIED\020\000\022\035\n\031OAUTH_APP_S" +
+      "OURCE_PLATFORM\020\001\022!\n\035OAUTH_APP_SOURCE_ORG" +
+      "_OVERRIDE\020\002\022\031\n\025OAUTH_APP_SOURCE_NONE\020\003B\256" +
+      "\001B\013StatusProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Age" +
+      "ntic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\M" +
+      "cpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserv" +
+      "er\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic" +
+      "::Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.agentic.mcpserver.v1.SpecProto.getDescriptor(),
           ai.stigmer.commons.apiresource.StatusProto.getDescriptor(),
           ai.stigmer.iam.oauthapp.v1.SpecProto.getDescriptor(),
           com.google.protobuf.StructProto.getDescriptor(),
@@ -147,7 +144,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerStatus_descriptor,
-        new java.lang.String[] { "ValidationState", "ValidationMessage", "DiscoveredCapabilities", "ToolApprovals", "OauthStatus", "ConnectStatus", "Audit", });
+        new java.lang.String[] { "ValidationState", "ValidationMessage", "DiscoveredCapabilities", "OauthStatus", "ConnectStatus", "Audit", });
     internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectStatus_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_mcpserver_v1_ConnectStatus_fieldAccessorTable = new
@@ -165,7 +162,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoveredTool_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoveredTool_descriptor,
-        new java.lang.String[] { "Name", "Description", "InputSchema", });
+        new java.lang.String[] { "Name", "Description", "InputSchema", "DestructiveHint", });
     internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoveredResourceTemplate_descriptor =
       getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoveredResourceTemplate_fieldAccessorTable = new
@@ -179,7 +176,6 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthStatus_descriptor,
         new java.lang.String[] { "VendorApprovalStatus", "VendorApprovalDocsUrl", "EffectiveOauthSource", "EffectiveOauthAppId", });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.agentic.mcpserver.v1.SpecProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     ai.stigmer.iam.oauthapp.v1.SpecProto.getDescriptor();
     com.google.protobuf.StructProto.getDescriptor();

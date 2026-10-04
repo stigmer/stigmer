@@ -169,55 +169,6 @@ public interface McpServerSpecOrBuilder extends
 
   /**
    * <pre>
-   * Default tools to enable from this MCP server.
-   * Empty list means all tools are enabled by default.
-   * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   * </pre>
-   *
-   * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-   * @return A list containing the defaultEnabledTools.
-   */
-  java.util.List<java.lang.String>
-      getDefaultEnabledToolsList();
-  /**
-   * <pre>
-   * Default tools to enable from this MCP server.
-   * Empty list means all tools are enabled by default.
-   * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   * </pre>
-   *
-   * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-   * @return The count of defaultEnabledTools.
-   */
-  int getDefaultEnabledToolsCount();
-  /**
-   * <pre>
-   * Default tools to enable from this MCP server.
-   * Empty list means all tools are enabled by default.
-   * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   * </pre>
-   *
-   * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-   * @param index The index of the element to return.
-   * @return The defaultEnabledTools at the given index.
-   */
-  java.lang.String getDefaultEnabledTools(int index);
-  /**
-   * <pre>
-   * Default tools to enable from this MCP server.
-   * Empty list means all tools are enabled by default.
-   * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   * </pre>
-   *
-   * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-   * @param index The index of the value to return.
-   * @return The bytes of the defaultEnabledTools at the given index.
-   */
-  com.google.protobuf.ByteString
-      getDefaultEnabledToolsBytes(int index);
-
-  /**
-   * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
@@ -274,50 +225,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    */
   ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
       java.lang.String key);
-
-  /**
-   * <pre>
-   * Tools pinned by the MCP server owner to always require approval.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> 
-      getPinnedToolApprovalsList();
-  /**
-   * <pre>
-   * Tools pinned by the MCP server owner to always require approval.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-   */
-  ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy getPinnedToolApprovals(int index);
-  /**
-   * <pre>
-   * Tools pinned by the MCP server owner to always require approval.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-   */
-  int getPinnedToolApprovalsCount();
-  /**
-   * <pre>
-   * Tools pinned by the MCP server owner to always require approval.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> 
-      getPinnedToolApprovalsOrBuilderList();
-  /**
-   * <pre>
-   * Tools pinned by the MCP server owner to always require approval.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-   */
-  ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getPinnedToolApprovalsOrBuilder(
-      int index);
 
   /**
    * <pre>

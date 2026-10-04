@@ -84,14 +84,13 @@ message SessionSpec {
   //
   // Augments the agent's tool set for this specific conversation without
   // modifying the agent blueprint. Each usage references an McpServer
-  // resource.
+  // resource. The agent's tool lists govern these servers like its own: an
+  // agent whose tools list does not name a session server cannot use it.
   //
   // @internal
-  // Merge semantics: session-level usages are union'd with agent-level usages.
-  // If both reference the same MCP server slug, the session-level entry takes
-  // precedence (enables per-session tool restriction or expansion). The agent
-  // runner merges these with the agent's mcp_server_usages when constructing
-  // the execution graph.
+  // Merge semantics: session-level usages are union'd with agent-level usages,
+  // one entry per MCP server slug. The agent runner merges these with the
+  // agent's mcp_server_usages when constructing the execution graph.
   repeated ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [(buf.validate.field).repeated.items.cel = {
     id: "session_mcp_server_usages.kind"
     message: "mcp_server_usages must reference resources with kind=mcp_server"

@@ -7,7 +7,7 @@ import { generateSlug, enumFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -26,9 +26,7 @@ export const McpServerInputShape = {
   icon_url: z.string().optional().describe("Icon URL for UI display in marketplace and agent configuration screens. Should be a publicly accessible URL to an image (SVG, PNG, or JPEG). Example: 'https://github.githubassets.com/favicons/favicon.svg'"),
   stdio: z.lazy(() => StdioServerConfigInputSchema).optional().describe("stdio-based server (subprocess with stdin/stdout communication). Most common type - used for Node.js, Python, and other CLI-based MCP servers."),
   http: z.lazy(() => HttpServerConfigInputSchema).optional().describe("HTTP-based server (HTTP + Server-Sent Events communication). Used for remote/managed MCP services accessible over the network."),
-  default_enabled_tools: z.array(z.string()).optional().describe("Default tools to enable from this MCP server. Empty list means all tools are enabled by default. Applies whenever an agent's McpServerUsage.enabled_tools is empty."),
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this MCP server. Keys are variable names; values describe their metadata and optionality."),
-  pinned_tool_approvals: z.array(z.lazy(() => ToolApprovalPolicyInputSchema)).optional().describe("Tools pinned by the MCP server owner to always require approval."),
   repository_url: z.string().optional().describe("URL of the upstream source repository for this MCP server. Shown in the marketplace so users can inspect the implementation for trust and transparency. Example: 'https://github.com/modelcontextprotocol/servers'"),
   github_stars: z.number().optional().describe("GitHub star count at the time of curation. Used as a popularity signal in marketplace display. 0 if unknown or non-GitHub repository."),
   auth: z.lazy(() => McpServerAuthInputSchema).optional().describe("OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. The acquired access token is stored in a system-managed environment (identified by grant.environment_id) as the env var named by auth.target_env_var. That env var must also be declared in env so the execution pipeline knows about it."),
@@ -59,13 +57,6 @@ const EnvVarDeclarationInputSchema = z.object({
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 
-const ToolApprovalPolicyInputSchema = z.object({
-  tool_name: z.string().optional().describe("Name of the tool (must match tools/list from MCP server exactly). Case-sensitive matching against tool names reported by the MCP server. Example: 'delete_repository', 'send_email', 'execute_sql'"),
-  message: z.string().optional().describe("Human-readable message shown to user when approval is requested. Supports {{args.field}} placeholders for dynamic content. If empty, a default message is generated: 'Execute tool: {tool_name}' Guidelines for effective messages: - Be specific about what will happen - Include the most important argument values using placeholders - Keep under 100 characters for UI display - Use action verbs: 'Delete', 'Send', 'Execute', 'Create'"),
-  from_destructive_hint: z.boolean().optional().describe("True when the connect-time fail-closed tightener force-gated this tool because the server's own MCP annotation declared destructiveHint=true, rather than the classifier (or a human) gating it. Lets the runner attribute a tightened tool to its true provenance (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN) instead of collapsing it into the classifier default. Carries no enforcement weight — gating is decided by presence in this list — so an absent/false value simply means 'not attributed to the destructiveHint tightener'. Set only on entries written to McpServerStatus.tool_approvals (the classifier layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human pin is, by definition, a pinned override) and left false there."),
-});
-type ToolApprovalPolicyInput = z.infer<typeof ToolApprovalPolicyInputSchema>;
-
 const OauthAppRefInputSchema = z.object({
   org: z.string().optional().describe("Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is a platform that shares the resource with yours (visibility_platform)."),
   slug: z.string().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'code-reviewer'). Length: 2-63 characters."),
@@ -91,11 +82,9 @@ export function mcpServerInputToProto(input: McpServerInput): McpServer {
   if (input.icon_url !== undefined) spec.iconUrl = input.icon_url;
   if (input.stdio !== undefined) spec.serverType = { case: "stdio", value: stdioServerConfigInputToProto(input.stdio) };
   if (input.http !== undefined) spec.serverType = { case: "http", value: httpServerConfigInputToProto(input.http) };
-  if (input.default_enabled_tools !== undefined) spec.defaultEnabledTools = input.default_enabled_tools;
   if (input.env !== undefined) {
     for (const [k, v] of Object.entries(input.env)) spec.env[k] = envVarDeclarationInputToProto(v);
   }
-  if (input.pinned_tool_approvals !== undefined) spec.pinnedToolApprovals = input.pinned_tool_approvals.map(toolApprovalPolicyInputToProto);
   if (input.repository_url !== undefined) spec.repositoryUrl = input.repository_url;
   if (input.github_stars !== undefined) spec.githubStars = input.github_stars;
   if (input.auth !== undefined) spec.auth = mcpServerAuthInputToProto(input.auth);
@@ -136,14 +125,6 @@ function envVarDeclarationInputToProto(input: EnvVarDeclarationInput) {
   if (input.is_secret !== undefined) result.isSecret = input.is_secret;
   if (input.description !== undefined) result.description = input.description;
   if (input.optional !== undefined) result.optional = input.optional;
-  return result;
-}
-
-function toolApprovalPolicyInputToProto(input: ToolApprovalPolicyInput) {
-  const result = create(ToolApprovalPolicySchema);
-  if (input.tool_name !== undefined) result.toolName = input.tool_name;
-  if (input.message !== undefined) result.message = input.message;
-  if (input.from_destructive_hint !== undefined) result.fromDestructiveHint = input.from_destructive_hint;
   return result;
 }
 

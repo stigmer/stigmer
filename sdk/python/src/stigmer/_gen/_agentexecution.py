@@ -20,7 +20,7 @@ from ai.stigmer.agentic.session.v1 import workspace_pb2 as session_workspace_pb2
 
 from ._errors import wrap_error
 from ._types import EnvVarInput, ResourceRef
-from ._agent import McpServerUsageInput, ToolApprovalOverrideInput
+from ._agent import McpServerUsageInput
 
 
 class AgentExecutionClient:

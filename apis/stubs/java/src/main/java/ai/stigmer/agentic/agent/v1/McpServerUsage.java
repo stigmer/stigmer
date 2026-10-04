@@ -9,8 +9,9 @@ package ai.stigmer.agentic.agent.v1;
  * <pre>
  * McpServerUsage declares that this agent uses a McpServer resource.
  *
- * The slug from mcp_server_ref identifies this server for SubAgent access
- * grants via McpAccess.
+ * Every tool of a used server is available to the agent unless its tool
+ * lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the
+ * server is named by its slug, as in mcp__&lt;server-slug&gt;.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.McpServerUsage}
@@ -35,9 +36,6 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private McpServerUsage() {
-    enabledTools_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-    toolApprovalOverrides_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -97,153 +95,6 @@ private static final long serialVersionUID = 0L;
     return mcpServerRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : mcpServerRef_;
   }
 
-  public static final int ENABLED_TOOLS_FIELD_NUMBER = 2;
-  @SuppressWarnings("serial")
-  private com.google.protobuf.LazyStringArrayList enabledTools_ =
-      com.google.protobuf.LazyStringArrayList.emptyList();
-  /**
-   * <pre>
-   * Tools to enable from this MCP server for this agent.
-   * Empty list uses the McpServer's default_enabled_tools.
-   * Sub-agents can only restrict this set further, not expand it.
-   * </pre>
-   *
-   * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-   * @return A list containing the enabledTools.
-   */
-  public com.google.protobuf.ProtocolStringList
-      getEnabledToolsList() {
-    return enabledTools_;
-  }
-  /**
-   * <pre>
-   * Tools to enable from this MCP server for this agent.
-   * Empty list uses the McpServer's default_enabled_tools.
-   * Sub-agents can only restrict this set further, not expand it.
-   * </pre>
-   *
-   * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-   * @return The count of enabledTools.
-   */
-  public int getEnabledToolsCount() {
-    return enabledTools_.size();
-  }
-  /**
-   * <pre>
-   * Tools to enable from this MCP server for this agent.
-   * Empty list uses the McpServer's default_enabled_tools.
-   * Sub-agents can only restrict this set further, not expand it.
-   * </pre>
-   *
-   * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-   * @param index The index of the element to return.
-   * @return The enabledTools at the given index.
-   */
-  public java.lang.String getEnabledTools(int index) {
-    return enabledTools_.get(index);
-  }
-  /**
-   * <pre>
-   * Tools to enable from this MCP server for this agent.
-   * Empty list uses the McpServer's default_enabled_tools.
-   * Sub-agents can only restrict this set further, not expand it.
-   * </pre>
-   *
-   * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-   * @param index The index of the value to return.
-   * @return The bytes of the enabledTools at the given index.
-   */
-  public com.google.protobuf.ByteString
-      getEnabledToolsBytes(int index) {
-    return enabledTools_.getByteString(index);
-  }
-
-  public static final int TOOL_APPROVAL_OVERRIDES_FIELD_NUMBER = 3;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.agent.v1.ToolApprovalOverride> toolApprovalOverrides_;
-  /**
-   * <pre>
-   * Override approval requirements for specific tools.
-   * Takes precedence over McpServerSpec.pinned_tool_approvals and
-   * McpServerStatus.tool_approvals.
-   * Scoped to THIS usage's server: an override applies only to tools of
-   * the McpServer referenced by mcp_server_ref — a same-named tool on
-   * another server is unaffected.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.agent.v1.ToolApprovalOverride> getToolApprovalOverridesList() {
-    return toolApprovalOverrides_;
-  }
-  /**
-   * <pre>
-   * Override approval requirements for specific tools.
-   * Takes precedence over McpServerSpec.pinned_tool_approvals and
-   * McpServerStatus.tool_approvals.
-   * Scoped to THIS usage's server: an override applies only to tools of
-   * the McpServer referenced by mcp_server_ref — a same-named tool on
-   * another server is unaffected.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.agent.v1.ToolApprovalOverrideOrBuilder> 
-      getToolApprovalOverridesOrBuilderList() {
-    return toolApprovalOverrides_;
-  }
-  /**
-   * <pre>
-   * Override approval requirements for specific tools.
-   * Takes precedence over McpServerSpec.pinned_tool_approvals and
-   * McpServerStatus.tool_approvals.
-   * Scoped to THIS usage's server: an override applies only to tools of
-   * the McpServer referenced by mcp_server_ref — a same-named tool on
-   * another server is unaffected.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-   */
-  @java.lang.Override
-  public int getToolApprovalOverridesCount() {
-    return toolApprovalOverrides_.size();
-  }
-  /**
-   * <pre>
-   * Override approval requirements for specific tools.
-   * Takes precedence over McpServerSpec.pinned_tool_approvals and
-   * McpServerStatus.tool_approvals.
-   * Scoped to THIS usage's server: an override applies only to tools of
-   * the McpServer referenced by mcp_server_ref — a same-named tool on
-   * another server is unaffected.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agent.v1.ToolApprovalOverride getToolApprovalOverrides(int index) {
-    return toolApprovalOverrides_.get(index);
-  }
-  /**
-   * <pre>
-   * Override approval requirements for specific tools.
-   * Takes precedence over McpServerSpec.pinned_tool_approvals and
-   * McpServerStatus.tool_approvals.
-   * Scoped to THIS usage's server: an override applies only to tools of
-   * the McpServer referenced by mcp_server_ref — a same-named tool on
-   * another server is unaffected.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agent.v1.ToolApprovalOverrideOrBuilder getToolApprovalOverridesOrBuilder(
-      int index) {
-    return toolApprovalOverrides_.get(index);
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -261,12 +112,6 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(1, getMcpServerRef());
     }
-    for (int i = 0; i < enabledTools_.size(); i++) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, enabledTools_.getRaw(i));
-    }
-    for (int i = 0; i < toolApprovalOverrides_.size(); i++) {
-      output.writeMessage(3, toolApprovalOverrides_.get(i));
-    }
     getUnknownFields().writeTo(output);
   }
 
@@ -280,23 +125,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(1, getMcpServerRef());
     }
-    {
-      int dataSize = 0;
-      for (int i = 0; i < enabledTools_.size(); i++) {
-        dataSize += computeStringSizeNoTag(enabledTools_.getRaw(i));
-      }
-      size += dataSize;
-      size += 1 * getEnabledToolsList().size();
-    }
-
-        {
-          final int count = toolApprovalOverrides_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(toolApprovalOverrides_.get(i));
-          }
-          size += 1 * count;
-        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -317,10 +145,6 @@ private static final long serialVersionUID = 0L;
       if (!getMcpServerRef()
           .equals(other.getMcpServerRef())) return false;
     }
-    if (!getEnabledToolsList()
-        .equals(other.getEnabledToolsList())) return false;
-    if (!getToolApprovalOverridesList()
-        .equals(other.getToolApprovalOverridesList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -335,14 +159,6 @@ private static final long serialVersionUID = 0L;
     if (hasMcpServerRef()) {
       hash = (37 * hash) + MCP_SERVER_REF_FIELD_NUMBER;
       hash = (53 * hash) + getMcpServerRef().hashCode();
-    }
-    if (getEnabledToolsCount() > 0) {
-      hash = (37 * hash) + ENABLED_TOOLS_FIELD_NUMBER;
-      hash = (53 * hash) + getEnabledToolsList().hashCode();
-    }
-    if (getToolApprovalOverridesCount() > 0) {
-      hash = (37 * hash) + TOOL_APPROVAL_OVERRIDES_FIELD_NUMBER;
-      hash = (53 * hash) + getToolApprovalOverridesList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -445,8 +261,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * McpServerUsage declares that this agent uses a McpServer resource.
    *
-   * The slug from mcp_server_ref identifies this server for SubAgent access
-   * grants via McpAccess.
+   * Every tool of a used server is available to the agent unless its tool
+   * lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the
+   * server is named by its slug, as in mcp__&lt;server-slug&gt;.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.McpServerUsage}
@@ -482,7 +299,6 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetMcpServerRefFieldBuilder();
-        internalGetToolApprovalOverridesFieldBuilder();
       }
     }
     @java.lang.Override
@@ -494,15 +310,6 @@ private static final long serialVersionUID = 0L;
         mcpServerRefBuilder_.dispose();
         mcpServerRefBuilder_ = null;
       }
-      enabledTools_ =
-          com.google.protobuf.LazyStringArrayList.emptyList();
-      if (toolApprovalOverridesBuilder_ == null) {
-        toolApprovalOverrides_ = java.util.Collections.emptyList();
-      } else {
-        toolApprovalOverrides_ = null;
-        toolApprovalOverridesBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000004);
       return this;
     }
 
@@ -529,22 +336,9 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.agent.v1.McpServerUsage buildPartial() {
       ai.stigmer.agentic.agent.v1.McpServerUsage result = new ai.stigmer.agentic.agent.v1.McpServerUsage(this);
-      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
-    }
-
-    private void buildPartialRepeatedFields(ai.stigmer.agentic.agent.v1.McpServerUsage result) {
-      if (toolApprovalOverridesBuilder_ == null) {
-        if (((bitField0_ & 0x00000004) != 0)) {
-          toolApprovalOverrides_ = java.util.Collections.unmodifiableList(toolApprovalOverrides_);
-          bitField0_ = (bitField0_ & ~0x00000004);
-        }
-        result.toolApprovalOverrides_ = toolApprovalOverrides_;
-      } else {
-        result.toolApprovalOverrides_ = toolApprovalOverridesBuilder_.build();
-      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.agent.v1.McpServerUsage result) {
@@ -555,10 +349,6 @@ private static final long serialVersionUID = 0L;
             ? mcpServerRef_
             : mcpServerRefBuilder_.build();
         to_bitField0_ |= 0x00000001;
-      }
-      if (((from_bitField0_ & 0x00000002) != 0)) {
-        enabledTools_.makeImmutable();
-        result.enabledTools_ = enabledTools_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -577,42 +367,6 @@ private static final long serialVersionUID = 0L;
       if (other == ai.stigmer.agentic.agent.v1.McpServerUsage.getDefaultInstance()) return this;
       if (other.hasMcpServerRef()) {
         mergeMcpServerRef(other.getMcpServerRef());
-      }
-      if (!other.enabledTools_.isEmpty()) {
-        if (enabledTools_.isEmpty()) {
-          enabledTools_ = other.enabledTools_;
-          bitField0_ |= 0x00000002;
-        } else {
-          ensureEnabledToolsIsMutable();
-          enabledTools_.addAll(other.enabledTools_);
-        }
-        onChanged();
-      }
-      if (toolApprovalOverridesBuilder_ == null) {
-        if (!other.toolApprovalOverrides_.isEmpty()) {
-          if (toolApprovalOverrides_.isEmpty()) {
-            toolApprovalOverrides_ = other.toolApprovalOverrides_;
-            bitField0_ = (bitField0_ & ~0x00000004);
-          } else {
-            ensureToolApprovalOverridesIsMutable();
-            toolApprovalOverrides_.addAll(other.toolApprovalOverrides_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.toolApprovalOverrides_.isEmpty()) {
-          if (toolApprovalOverridesBuilder_.isEmpty()) {
-            toolApprovalOverridesBuilder_.dispose();
-            toolApprovalOverridesBuilder_ = null;
-            toolApprovalOverrides_ = other.toolApprovalOverrides_;
-            bitField0_ = (bitField0_ & ~0x00000004);
-            toolApprovalOverridesBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetToolApprovalOverridesFieldBuilder() : null;
-          } else {
-            toolApprovalOverridesBuilder_.addAllMessages(other.toolApprovalOverrides_);
-          }
-        }
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -647,24 +401,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 10
-            case 18: {
-              ensureEnabledToolsIsMutable();
-              enabledTools_.add(input.readStringRequireUtf8());
-              break;
-            } // case 18
-            case 26: {
-              ai.stigmer.agentic.agent.v1.ToolApprovalOverride m =
-                  input.readMessage(
-                      ai.stigmer.agentic.agent.v1.ToolApprovalOverride.parser(),
-                      extensionRegistry);
-              if (toolApprovalOverridesBuilder_ == null) {
-                ensureToolApprovalOverridesIsMutable();
-                toolApprovalOverrides_.add(m);
-              } else {
-                toolApprovalOverridesBuilder_.addMessage(m);
-              }
-              break;
-            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -837,573 +573,6 @@ private static final long serialVersionUID = 0L;
         mcpServerRef_ = null;
       }
       return mcpServerRefBuilder_;
-    }
-
-    private com.google.protobuf.LazyStringArrayList enabledTools_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-    private void ensureEnabledToolsIsMutable() {
-      if (!enabledTools_.isModifiable()) {
-        enabledTools_ = new com.google.protobuf.LazyStringArrayList(enabledTools_);
-      }
-      bitField0_ |= 0x00000002;
-    }
-    /**
-     * <pre>
-     * Tools to enable from this MCP server for this agent.
-     * Empty list uses the McpServer's default_enabled_tools.
-     * Sub-agents can only restrict this set further, not expand it.
-     * </pre>
-     *
-     * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-     * @return A list containing the enabledTools.
-     */
-    public com.google.protobuf.ProtocolStringList
-        getEnabledToolsList() {
-      enabledTools_.makeImmutable();
-      return enabledTools_;
-    }
-    /**
-     * <pre>
-     * Tools to enable from this MCP server for this agent.
-     * Empty list uses the McpServer's default_enabled_tools.
-     * Sub-agents can only restrict this set further, not expand it.
-     * </pre>
-     *
-     * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-     * @return The count of enabledTools.
-     */
-    public int getEnabledToolsCount() {
-      return enabledTools_.size();
-    }
-    /**
-     * <pre>
-     * Tools to enable from this MCP server for this agent.
-     * Empty list uses the McpServer's default_enabled_tools.
-     * Sub-agents can only restrict this set further, not expand it.
-     * </pre>
-     *
-     * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-     * @param index The index of the element to return.
-     * @return The enabledTools at the given index.
-     */
-    public java.lang.String getEnabledTools(int index) {
-      return enabledTools_.get(index);
-    }
-    /**
-     * <pre>
-     * Tools to enable from this MCP server for this agent.
-     * Empty list uses the McpServer's default_enabled_tools.
-     * Sub-agents can only restrict this set further, not expand it.
-     * </pre>
-     *
-     * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-     * @param index The index of the value to return.
-     * @return The bytes of the enabledTools at the given index.
-     */
-    public com.google.protobuf.ByteString
-        getEnabledToolsBytes(int index) {
-      return enabledTools_.getByteString(index);
-    }
-    /**
-     * <pre>
-     * Tools to enable from this MCP server for this agent.
-     * Empty list uses the McpServer's default_enabled_tools.
-     * Sub-agents can only restrict this set further, not expand it.
-     * </pre>
-     *
-     * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-     * @param index The index to set the value at.
-     * @param value The enabledTools to set.
-     * @return This builder for chaining.
-     */
-    public Builder setEnabledTools(
-        int index, java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      ensureEnabledToolsIsMutable();
-      enabledTools_.set(index, value);
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools to enable from this MCP server for this agent.
-     * Empty list uses the McpServer's default_enabled_tools.
-     * Sub-agents can only restrict this set further, not expand it.
-     * </pre>
-     *
-     * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-     * @param value The enabledTools to add.
-     * @return This builder for chaining.
-     */
-    public Builder addEnabledTools(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      ensureEnabledToolsIsMutable();
-      enabledTools_.add(value);
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools to enable from this MCP server for this agent.
-     * Empty list uses the McpServer's default_enabled_tools.
-     * Sub-agents can only restrict this set further, not expand it.
-     * </pre>
-     *
-     * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-     * @param values The enabledTools to add.
-     * @return This builder for chaining.
-     */
-    public Builder addAllEnabledTools(
-        java.lang.Iterable<java.lang.String> values) {
-      ensureEnabledToolsIsMutable();
-      com.google.protobuf.AbstractMessageLite.Builder.addAll(
-          values, enabledTools_);
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools to enable from this MCP server for this agent.
-     * Empty list uses the McpServer's default_enabled_tools.
-     * Sub-agents can only restrict this set further, not expand it.
-     * </pre>
-     *
-     * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearEnabledTools() {
-      enabledTools_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000002);;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools to enable from this MCP server for this agent.
-     * Empty list uses the McpServer's default_enabled_tools.
-     * Sub-agents can only restrict this set further, not expand it.
-     * </pre>
-     *
-     * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
-     * @param value The bytes of the enabledTools to add.
-     * @return This builder for chaining.
-     */
-    public Builder addEnabledToolsBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      ensureEnabledToolsIsMutable();
-      enabledTools_.add(value);
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-
-    private java.util.List<ai.stigmer.agentic.agent.v1.ToolApprovalOverride> toolApprovalOverrides_ =
-      java.util.Collections.emptyList();
-    private void ensureToolApprovalOverridesIsMutable() {
-      if (!((bitField0_ & 0x00000004) != 0)) {
-        toolApprovalOverrides_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.ToolApprovalOverride>(toolApprovalOverrides_);
-        bitField0_ |= 0x00000004;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agent.v1.ToolApprovalOverride, ai.stigmer.agentic.agent.v1.ToolApprovalOverride.Builder, ai.stigmer.agentic.agent.v1.ToolApprovalOverrideOrBuilder> toolApprovalOverridesBuilder_;
-
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agent.v1.ToolApprovalOverride> getToolApprovalOverridesList() {
-      if (toolApprovalOverridesBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(toolApprovalOverrides_);
-      } else {
-        return toolApprovalOverridesBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public int getToolApprovalOverridesCount() {
-      if (toolApprovalOverridesBuilder_ == null) {
-        return toolApprovalOverrides_.size();
-      } else {
-        return toolApprovalOverridesBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.ToolApprovalOverride getToolApprovalOverrides(int index) {
-      if (toolApprovalOverridesBuilder_ == null) {
-        return toolApprovalOverrides_.get(index);
-      } else {
-        return toolApprovalOverridesBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public Builder setToolApprovalOverrides(
-        int index, ai.stigmer.agentic.agent.v1.ToolApprovalOverride value) {
-      if (toolApprovalOverridesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureToolApprovalOverridesIsMutable();
-        toolApprovalOverrides_.set(index, value);
-        onChanged();
-      } else {
-        toolApprovalOverridesBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public Builder setToolApprovalOverrides(
-        int index, ai.stigmer.agentic.agent.v1.ToolApprovalOverride.Builder builderForValue) {
-      if (toolApprovalOverridesBuilder_ == null) {
-        ensureToolApprovalOverridesIsMutable();
-        toolApprovalOverrides_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        toolApprovalOverridesBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public Builder addToolApprovalOverrides(ai.stigmer.agentic.agent.v1.ToolApprovalOverride value) {
-      if (toolApprovalOverridesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureToolApprovalOverridesIsMutable();
-        toolApprovalOverrides_.add(value);
-        onChanged();
-      } else {
-        toolApprovalOverridesBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public Builder addToolApprovalOverrides(
-        int index, ai.stigmer.agentic.agent.v1.ToolApprovalOverride value) {
-      if (toolApprovalOverridesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureToolApprovalOverridesIsMutable();
-        toolApprovalOverrides_.add(index, value);
-        onChanged();
-      } else {
-        toolApprovalOverridesBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public Builder addToolApprovalOverrides(
-        ai.stigmer.agentic.agent.v1.ToolApprovalOverride.Builder builderForValue) {
-      if (toolApprovalOverridesBuilder_ == null) {
-        ensureToolApprovalOverridesIsMutable();
-        toolApprovalOverrides_.add(builderForValue.build());
-        onChanged();
-      } else {
-        toolApprovalOverridesBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public Builder addToolApprovalOverrides(
-        int index, ai.stigmer.agentic.agent.v1.ToolApprovalOverride.Builder builderForValue) {
-      if (toolApprovalOverridesBuilder_ == null) {
-        ensureToolApprovalOverridesIsMutable();
-        toolApprovalOverrides_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        toolApprovalOverridesBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public Builder addAllToolApprovalOverrides(
-        java.lang.Iterable<? extends ai.stigmer.agentic.agent.v1.ToolApprovalOverride> values) {
-      if (toolApprovalOverridesBuilder_ == null) {
-        ensureToolApprovalOverridesIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, toolApprovalOverrides_);
-        onChanged();
-      } else {
-        toolApprovalOverridesBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public Builder clearToolApprovalOverrides() {
-      if (toolApprovalOverridesBuilder_ == null) {
-        toolApprovalOverrides_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000004);
-        onChanged();
-      } else {
-        toolApprovalOverridesBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public Builder removeToolApprovalOverrides(int index) {
-      if (toolApprovalOverridesBuilder_ == null) {
-        ensureToolApprovalOverridesIsMutable();
-        toolApprovalOverrides_.remove(index);
-        onChanged();
-      } else {
-        toolApprovalOverridesBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.ToolApprovalOverride.Builder getToolApprovalOverridesBuilder(
-        int index) {
-      return internalGetToolApprovalOverridesFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.ToolApprovalOverrideOrBuilder getToolApprovalOverridesOrBuilder(
-        int index) {
-      if (toolApprovalOverridesBuilder_ == null) {
-        return toolApprovalOverrides_.get(index);  } else {
-        return toolApprovalOverridesBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.agent.v1.ToolApprovalOverrideOrBuilder> 
-         getToolApprovalOverridesOrBuilderList() {
-      if (toolApprovalOverridesBuilder_ != null) {
-        return toolApprovalOverridesBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(toolApprovalOverrides_);
-      }
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.ToolApprovalOverride.Builder addToolApprovalOverridesBuilder() {
-      return internalGetToolApprovalOverridesFieldBuilder().addBuilder(
-          ai.stigmer.agentic.agent.v1.ToolApprovalOverride.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.ToolApprovalOverride.Builder addToolApprovalOverridesBuilder(
-        int index) {
-      return internalGetToolApprovalOverridesFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.agent.v1.ToolApprovalOverride.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Override approval requirements for specific tools.
-     * Takes precedence over McpServerSpec.pinned_tool_approvals and
-     * McpServerStatus.tool_approvals.
-     * Scoped to THIS usage's server: an override applies only to tools of
-     * the McpServer referenced by mcp_server_ref — a same-named tool on
-     * another server is unaffected.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.ToolApprovalOverride tool_approval_overrides = 3 [json_name = "toolApprovalOverrides"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agent.v1.ToolApprovalOverride.Builder> 
-         getToolApprovalOverridesBuilderList() {
-      return internalGetToolApprovalOverridesFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agent.v1.ToolApprovalOverride, ai.stigmer.agentic.agent.v1.ToolApprovalOverride.Builder, ai.stigmer.agentic.agent.v1.ToolApprovalOverrideOrBuilder> 
-        internalGetToolApprovalOverridesFieldBuilder() {
-      if (toolApprovalOverridesBuilder_ == null) {
-        toolApprovalOverridesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.agent.v1.ToolApprovalOverride, ai.stigmer.agentic.agent.v1.ToolApprovalOverride.Builder, ai.stigmer.agentic.agent.v1.ToolApprovalOverrideOrBuilder>(
-                toolApprovalOverrides_,
-                ((bitField0_ & 0x00000004) != 0),
-                getParentForChildren(),
-                isClean());
-        toolApprovalOverrides_ = null;
-      }
-      return toolApprovalOverridesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.McpServerUsage)

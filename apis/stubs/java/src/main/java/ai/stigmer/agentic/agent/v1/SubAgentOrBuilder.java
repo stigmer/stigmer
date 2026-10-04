@@ -72,60 +72,6 @@ public interface SubAgentOrBuilder extends
 
   /**
    * <pre>
-   * MCP server access grants for this sub-agent.
-   * Each entry references a parent McpServerUsage by slug and optionally
-   * restricts which tools are available.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.agent.v1.McpAccess> 
-      getMcpAccessList();
-  /**
-   * <pre>
-   * MCP server access grants for this sub-agent.
-   * Each entry references a parent McpServerUsage by slug and optionally
-   * restricts which tools are available.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-   */
-  ai.stigmer.agentic.agent.v1.McpAccess getMcpAccess(int index);
-  /**
-   * <pre>
-   * MCP server access grants for this sub-agent.
-   * Each entry references a parent McpServerUsage by slug and optionally
-   * restricts which tools are available.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-   */
-  int getMcpAccessCount();
-  /**
-   * <pre>
-   * MCP server access grants for this sub-agent.
-   * Each entry references a parent McpServerUsage by slug and optionally
-   * restricts which tools are available.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.agent.v1.McpAccessOrBuilder> 
-      getMcpAccessOrBuilderList();
-  /**
-   * <pre>
-   * MCP server access grants for this sub-agent.
-   * Each entry references a parent McpServerUsage by slug and optionally
-   * restricts which tools are available.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
-   */
-  ai.stigmer.agentic.agent.v1.McpAccessOrBuilder getMcpAccessOrBuilder(
-      int index);
-
-  /**
-   * <pre>
    * Skill resources for this sub-agent.
    * </pre>
    *
@@ -191,4 +137,94 @@ public interface SubAgentOrBuilder extends
    */
   com.google.protobuf.ByteString
       getModelOverrideBytes();
+
+  /**
+   * <pre>
+   * Tools this sub-agent may use, from what the parent may use; empty means
+   * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+   * the type list of an Agent(...) entry is ignored, as in Claude Code.
+   * </pre>
+   *
+   * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the tools.
+   */
+  java.util.List<java.lang.String>
+      getToolsList();
+  /**
+   * <pre>
+   * Tools this sub-agent may use, from what the parent may use; empty means
+   * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+   * the type list of an Agent(...) entry is ignored, as in Claude Code.
+   * </pre>
+   *
+   * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return The count of tools.
+   */
+  int getToolsCount();
+  /**
+   * <pre>
+   * Tools this sub-agent may use, from what the parent may use; empty means
+   * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+   * the type list of an Agent(...) entry is ignored, as in Claude Code.
+   * </pre>
+   *
+   * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The tools at the given index.
+   */
+  java.lang.String getTools(int index);
+  /**
+   * <pre>
+   * Tools this sub-agent may use, from what the parent may use; empty means
+   * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+   * the type list of an Agent(...) entry is ignored, as in Claude Code.
+   * </pre>
+   *
+   * <code>repeated string tools = 7 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the tools at the given index.
+   */
+  com.google.protobuf.ByteString
+      getToolsBytes(int index);
+
+  /**
+   * <pre>
+   * Tools this sub-agent may never use, in the same names as tools.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the disallowedTools.
+   */
+  java.util.List<java.lang.String>
+      getDisallowedToolsList();
+  /**
+   * <pre>
+   * Tools this sub-agent may never use, in the same names as tools.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return The count of disallowedTools.
+   */
+  int getDisallowedToolsCount();
+  /**
+   * <pre>
+   * Tools this sub-agent may never use, in the same names as tools.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The disallowedTools at the given index.
+   */
+  java.lang.String getDisallowedTools(int index);
+  /**
+   * <pre>
+   * Tools this sub-agent may never use, in the same names as tools.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the disallowedTools at the given index.
+   */
+  com.google.protobuf.ByteString
+      getDisallowedToolsBytes(int index);
 }

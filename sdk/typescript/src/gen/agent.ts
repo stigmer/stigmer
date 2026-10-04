@@ -9,7 +9,7 @@ import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, type ToolApprovalOverride, type McpServerUsage, type McpAccess, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, McpServerUsageSchema, SubAgentSchema, type McpServerUsage, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -111,20 +111,13 @@ export interface AgentInput {
   skillRefs?: ResourceRef[];
   subAgents?: SubAgentInput[];
   env?: Record<string, EnvVarDeclarationInput>;
+  tools?: string[];
+  disallowedTools?: string[];
 }
 
 /** SDK input type for McpServerUsage. */
 export interface McpServerUsageInput {
   mcpServerRef: ResourceRef;
-  enabledTools?: string[];
-  toolApprovalOverrides?: ToolApprovalOverrideInput[];
-}
-
-/** SDK input type for ToolApprovalOverride. */
-export interface ToolApprovalOverrideInput {
-  toolName?: string;
-  requiresApproval?: boolean;
-  message?: string;
 }
 
 /** SDK input type for SubAgent. */
@@ -132,15 +125,10 @@ export interface SubAgentInput {
   name: string;
   description?: string;
   instructions?: string;
-  mcpAccess?: McpAccessInput[];
   skillRefs?: ResourceRef[];
   modelOverride?: string;
-}
-
-/** SDK input type for McpAccess. */
-export interface McpAccessInput {
-  mcpServer: string;
-  enabledTools?: string[];
+  tools?: string[];
+  disallowedTools?: string[];
 }
 
 /** SDK input type for EnvVarDeclaration. */
@@ -150,27 +138,10 @@ export interface EnvVarDeclarationInput {
   optional?: boolean;
 }
 
-function buildToolApprovalOverrideProto(input: ToolApprovalOverrideInput) {
-  return Object.assign(create(ToolApprovalOverrideSchema), stripUndefined({
-    toolName: input.toolName,
-    requiresApproval: input.requiresApproval,
-    message: input.message,
-  }));
-}
-
 function buildMcpServerUsageProto(input: McpServerUsageInput) {
   const msg = create(McpServerUsageSchema);
   if (input.mcpServerRef?.slug || input.mcpServerRef?.org) msg.mcpServerRef = create(ApiResourceReferenceSchema, { ...input.mcpServerRef, kind: 44 });
-  if (input.enabledTools) msg.enabledTools = input.enabledTools;
-  if (input.toolApprovalOverrides) msg.toolApprovalOverrides = input.toolApprovalOverrides.map(buildToolApprovalOverrideProto);
   return msg;
-}
-
-function buildMcpAccessProto(input: McpAccessInput) {
-  return Object.assign(create(McpAccessSchema), stripUndefined({
-    mcpServer: input.mcpServer,
-    enabledTools: input.enabledTools,
-  }));
 }
 
 function buildSubAgentProto(input: SubAgentInput) {
@@ -178,9 +149,10 @@ function buildSubAgentProto(input: SubAgentInput) {
   if (input.name !== undefined) msg.name = input.name;
   if (input.description !== undefined) msg.description = input.description;
   if (input.instructions !== undefined) msg.instructions = input.instructions;
-  if (input.mcpAccess) msg.mcpAccess = input.mcpAccess.map(buildMcpAccessProto);
   if (input.skillRefs) msg.skillRefs = input.skillRefs.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
   if (input.modelOverride !== undefined) msg.modelOverride = input.modelOverride;
+  if (input.tools) msg.tools = input.tools;
+  if (input.disallowedTools) msg.disallowedTools = input.disallowedTools;
   return msg;
 }
 
@@ -219,30 +191,15 @@ export function buildAgentProto(input: AgentInput): Agent {
       skillRefs,
       subAgents,
       env,
+      tools: input.tools,
+      disallowedTools: input.disallowedTools,
     })),
   }) as Agent;
-}
-
-function toToolApprovalOverrideInput(msg: ToolApprovalOverride): ToolApprovalOverrideInput {
-  return {
-    toolName: msg.toolName || undefined,
-    requiresApproval: msg.requiresApproval || undefined,
-    message: msg.message || undefined,
-  };
 }
 
 function toMcpServerUsageInput(msg: McpServerUsage): McpServerUsageInput {
   return {
     mcpServerRef: toResourceRefInput(msg.mcpServerRef) ?? { org: "", slug: "" },
-    enabledTools: msg.enabledTools?.length ? [...msg.enabledTools] : undefined,
-    toolApprovalOverrides: msg.toolApprovalOverrides?.length ? msg.toolApprovalOverrides.map(toToolApprovalOverrideInput) : undefined,
-  };
-}
-
-function toMcpAccessInput(msg: McpAccess): McpAccessInput {
-  return {
-    mcpServer: msg.mcpServer ?? "",
-    enabledTools: msg.enabledTools?.length ? [...msg.enabledTools] : undefined,
   };
 }
 
@@ -251,9 +208,10 @@ function toSubAgentInput(msg: SubAgent): SubAgentInput {
     name: msg.name ?? "",
     description: msg.description || undefined,
     instructions: msg.instructions || undefined,
-    mcpAccess: msg.mcpAccess?.length ? msg.mcpAccess.map(toMcpAccessInput) : undefined,
     skillRefs: toResourceRefInputs(msg.skillRefs),
     modelOverride: msg.modelOverride || undefined,
+    tools: msg.tools?.length ? [...msg.tools] : undefined,
+    disallowedTools: msg.disallowedTools?.length ? [...msg.disallowedTools] : undefined,
   };
 }
 
@@ -297,5 +255,7 @@ export function toAgentUpdateInput(resource: Agent): AgentInput {
     skillRefs: toResourceRefInputs(spec.skillRefs),
     subAgents: spec.subAgents?.length ? spec.subAgents.map(toSubAgentInput) : undefined,
     env: Object.keys(spec.env ?? {}).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
+    tools: spec.tools?.length ? [...spec.tools] : undefined,
+    disallowedTools: spec.disallowedTools?.length ? [...spec.disallowedTools] : undefined,
   };
 }

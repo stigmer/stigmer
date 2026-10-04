@@ -169,6 +169,8 @@ const agent = await stigmer.agent.apply({
   skillRefs: [],
   subAgents: [],
   env: {},
+  tools: [],
+  disallowedTools: [],
 });
 ```
 </Tab>
@@ -186,6 +188,8 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
+  Tools:           []string{},
+  DisallowedTools: []string{},
 })
 ```
 </Tab>
@@ -203,6 +207,8 @@ agent = client.agents.apply(AgentInput(
     skill_refs=[],
     sub_agents=[],
     env={},
+    tools=[],
+    disallowed_tools=[],
 ))
 ```
 </Tab>
@@ -220,6 +226,8 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
+    .tools(List.of())
+    .disallowedTools(List.of())
     .build());
 ```
 </Tab>
@@ -248,6 +256,8 @@ const agent = await stigmer.agent.create({
   skillRefs: [],
   subAgents: [],
   env: {},
+  tools: [],
+  disallowedTools: [],
 });
 ```
 </Tab>
@@ -265,6 +275,8 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
+  Tools:           []string{},
+  DisallowedTools: []string{},
 })
 ```
 </Tab>
@@ -282,6 +294,8 @@ agent = client.agents.create(AgentInput(
     skill_refs=[],
     sub_agents=[],
     env={},
+    tools=[],
+    disallowed_tools=[],
 ))
 ```
 </Tab>
@@ -299,6 +313,8 @@ Agent agent = client.agents().create(AgentInput.builder()
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
+    .tools(List.of())
+    .disallowedTools(List.of())
     .build());
 ```
 </Tab>
@@ -327,6 +343,8 @@ const agent = await stigmer.agent.update({
   skillRefs: [],
   subAgents: [],
   env: {},
+  tools: [],
+  disallowedTools: [],
 });
 ```
 </Tab>
@@ -344,6 +362,8 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
+  Tools:           []string{},
+  DisallowedTools: []string{},
 })
 ```
 </Tab>
@@ -361,6 +381,8 @@ agent = client.agents.update(AgentInput(
     skill_refs=[],
     sub_agents=[],
     env={},
+    tools=[],
+    disallowed_tools=[],
 ))
 ```
 </Tab>
@@ -378,6 +400,8 @@ Agent agent = client.agents().update(AgentInput.builder()
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
+    .tools(List.of())
+    .disallowedTools(List.of())
     .build());
 ```
 </Tab>
@@ -490,6 +514,8 @@ Input for creating or updating an Agent.
     skillRefs: { type: "ResourceRef[]", description: "Skill resources providing additional knowledge to the agent.", typeDescriptionLink: "#resourceref" },
     subAgents: { type: "SubAgentInput[]", description: "Sub-agents that can be delegated to.", typeDescriptionLink: "#subagentinput" },
     env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this agent.", typeDescriptionLink: "#envvardeclarationinput" },
+    tools: { type: "string[]", description: "Tools this agent may use; empty means every tool it has." },
+    disallowedTools: { type: "string[]", description: "Tools this agent may never use, in the same names as tools." },
   }}
 />
 
@@ -500,8 +526,6 @@ McpServerUsage declares that this agent uses a McpServer resource.
 <TypeTable
   type={{
     mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", typeDescriptionLink: "#resourceref", required: true },
-    enabledTools: { type: "string[]", description: "Tools to enable from this MCP server for this agent." },
-    toolApprovalOverrides: { type: "ToolApprovalOverrideInput[]", description: "Override approval requirements for specific tools.", typeDescriptionLink: "#toolapprovaloverrideinput" },
   }}
 />
 
@@ -518,18 +542,6 @@ Generic reference to any API resource by org and slug.
   }}
 />
 
-### ToolApprovalOverrideInput
-
-ToolApprovalOverride allows per-agent customization of approval requirements.
-
-<TypeTable
-  type={{
-    toolName: { type: "string", description: "Name of the tool to override." },
-    requiresApproval: { type: "boolean", description: "Whether this tool requires approval for this agent." },
-    message: { type: "string", description: "Custom approval message shown to the reviewer." },
-  }}
-/>
-
 ### SubAgentInput
 
 SubAgent defines a specialized agent that the parent can delegate to.
@@ -539,20 +551,10 @@ SubAgent defines a specialized agent that the parent can delegate to.
     name: { type: "string", description: "Unique name of the sub-agent within the parent agent.", required: true },
     description: { type: "string", description: "What this sub-agent specializes in." },
     instructions: { type: "string", description: "System prompt for this sub-agent." },
-    mcpAccess: { type: "McpAccessInput[]", description: "MCP server access grants for this sub-agent.", typeDescriptionLink: "#mcpaccessinput" },
     skillRefs: { type: "ResourceRef[]", description: "Skill resources for this sub-agent.", typeDescriptionLink: "#resourceref" },
     modelOverride: { type: "string", description: "Model override for this sub-agent." },
-  }}
-/>
-
-### McpAccessInput
-
-McpAccess grants a sub-agent access to one of the parent's MCP servers.
-
-<TypeTable
-  type={{
-    mcpServer: { type: "string", description: "Slug of the McpServer to grant access to.", required: true },
-    enabledTools: { type: "string[]", description: "Tools this sub-agent can use from this MCP server." },
+    tools: { type: "string[]", description: "Tools this sub-agent may use, from what the parent may use; empty means all of the parent's." },
+    disallowedTools: { type: "string[]", description: "Tools this sub-agent may never use, in the same names as tools." },
   }}
 />
 

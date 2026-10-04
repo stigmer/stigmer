@@ -152,23 +152,21 @@ type McpServerInput struct {
 	// set from a loaded resource. Required for updates to platform-scoped
 	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
 	// on create: the server assigns every new resource's id.
-	Id                  string
-	Name                string
-	Slug                string
-	Org                 string
-	Labels              map[string]string
-	Visibility          apiresource.ApiResourceVisibility
-	Description         string
-	IconUrl             string
-	Tags                []string
-	Stdio               *StdioServerConfigInput
-	Http                *HttpServerConfigInput
-	DefaultEnabledTools []string
-	Env                 map[string]*EnvVarDeclarationInput
-	PinnedToolApprovals []*ToolApprovalPolicyInput
-	RepositoryUrl       string
-	GithubStars         int32
-	Auth                *McpServerAuthInput
+	Id            string
+	Name          string
+	Slug          string
+	Org           string
+	Labels        map[string]string
+	Visibility    apiresource.ApiResourceVisibility
+	Description   string
+	IconUrl       string
+	Tags          []string
+	Stdio         *StdioServerConfigInput
+	Http          *HttpServerConfigInput
+	Env           map[string]*EnvVarDeclarationInput
+	RepositoryUrl string
+	GithubStars   int32
+	Auth          *McpServerAuthInput
 }
 
 // StdioServerConfigInput is the SDK input type for StdioServerConfig.
@@ -184,13 +182,6 @@ type HttpServerConfigInput struct {
 	Headers        map[string]string
 	QueryParams    map[string]string
 	TimeoutSeconds int32
-}
-
-// ToolApprovalPolicyInput is the SDK input type for ToolApprovalPolicy.
-type ToolApprovalPolicyInput struct {
-	ToolName            string
-	Message             string
-	FromDestructiveHint bool
 }
 
 // McpServerAuthInput is the SDK input type for McpServerAuth.
@@ -235,7 +226,6 @@ func (i *McpServerInput) toProto() (*mcpserverv1.McpServer, error) {
 		m.TimeoutSeconds = i.Http.TimeoutSeconds
 		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Http{Http: m}
 	}
-	resource.Spec.DefaultEnabledTools = i.DefaultEnabledTools
 	if len(i.Env) > 0 {
 		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
 		for k, val := range i.Env {
@@ -245,13 +235,6 @@ func (i *McpServerInput) toProto() (*mcpserverv1.McpServer, error) {
 			}
 			resource.Spec.Env[k] = pv
 		}
-	}
-	for idx, item := range i.PinnedToolApprovals {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("PinnedToolApprovals", idx, err)
-		}
-		resource.Spec.PinnedToolApprovals = append(resource.Spec.PinnedToolApprovals, v)
 	}
 	resource.Spec.RepositoryUrl = i.RepositoryUrl
 	resource.Spec.GithubStars = i.GithubStars
@@ -263,14 +246,6 @@ func (i *McpServerInput) toProto() (*mcpserverv1.McpServer, error) {
 		resource.Spec.Auth = v
 	}
 	return resource, nil
-}
-
-func (i *ToolApprovalPolicyInput) toProto() (*mcpserverv1.ToolApprovalPolicy, error) {
-	return &mcpserverv1.ToolApprovalPolicy{
-		ToolName:            i.ToolName,
-		Message:             i.Message,
-		FromDestructiveHint: i.FromDestructiveHint,
-	}, nil
 }
 
 func (i *McpServerAuthInput) toProto() (*mcpserverv1.McpServerAuth, error) {
@@ -306,15 +281,11 @@ func McpServerInputFromProto(p *mcpserverv1.McpServer) *McpServerInput {
 		input.Description = s.GetDescription()
 		input.IconUrl = s.GetIconUrl()
 		input.Tags = s.GetTags()
-		input.DefaultEnabledTools = s.GetDefaultEnabledTools()
 		if len(s.GetEnv()) > 0 {
 			input.Env = make(map[string]*EnvVarDeclarationInput, len(s.GetEnv()))
 			for k, v := range s.GetEnv() {
 				input.Env[k] = envVarDeclarationInputFromProto(v)
 			}
-		}
-		for _, item := range s.GetPinnedToolApprovals() {
-			input.PinnedToolApprovals = append(input.PinnedToolApprovals, toolApprovalPolicyInputFromProto(item))
 		}
 		input.RepositoryUrl = s.GetRepositoryUrl()
 		input.GithubStars = s.GetGithubStars()
@@ -349,17 +320,6 @@ func httpServerConfigInputFromProto(p *mcpserverv1.HttpServerConfig) *HttpServer
 	input.Headers = p.GetHeaders()
 	input.QueryParams = p.GetQueryParams()
 	input.TimeoutSeconds = p.GetTimeoutSeconds()
-	return input
-}
-
-func toolApprovalPolicyInputFromProto(p *mcpserverv1.ToolApprovalPolicy) *ToolApprovalPolicyInput {
-	if p == nil {
-		return nil
-	}
-	input := &ToolApprovalPolicyInput{}
-	input.ToolName = p.GetToolName()
-	input.Message = p.GetMessage()
-	input.FromDestructiveHint = p.GetFromDestructiveHint()
 	return input
 }
 

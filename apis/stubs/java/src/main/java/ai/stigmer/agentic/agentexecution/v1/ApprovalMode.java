@@ -9,10 +9,9 @@ package ai.stigmer.agentic.agentexecution.v1;
  * <pre>
  * ApprovalMode controls how an execution resolves HITL approval gates.
  *
- * The four-level approval policy chain (McpServerStatus.tool_approvals →
- * McpServerSpec.pinned_tool_approvals → Agent tool_approval_overrides →
- * AgentExecutionSpec.auto_approve_all) decides WHICH tools are gated; this
- * mode decides WHAT HAPPENS when a gate fires. It exists for surfaces where
+ * The approval default (shell commands, file writes and deletes, and MCP tools
+ * their server marks destructive) decides WHICH tools are gated; this mode
+ * decides WHAT HAPPENS when a gate fires. It exists for surfaces where
  * no approver is present at the conversation — messaging channels
  * (Slack/WhatsApp) and guest shares — where an interactive pause would park
  * the execution in EXECUTION_WAITING_FOR_APPROVAL forever.
@@ -28,8 +27,7 @@ package ai.stigmer.agentic.agentexecution.v1;
  * never delegated to an external user — a channel guest cannot authorize
  * the org's destructive operations.
  * - End-user intent confirmation ("book Monday 10 AM — shall I?") is
- * conversational, owned by the agent's instructions; the tool itself is
- * then un-gated per agent via tool_approval_overrides.
+ * conversational, owned by the agent's instructions.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.ApprovalMode}

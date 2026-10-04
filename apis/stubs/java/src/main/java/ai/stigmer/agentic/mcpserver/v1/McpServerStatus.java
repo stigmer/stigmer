@@ -34,7 +34,6 @@ private static final long serialVersionUID = 0L;
   private McpServerStatus() {
     validationState_ = 0;
     validationMessage_ = "";
-    toolApprovals_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -184,67 +183,6 @@ private static final long serialVersionUID = 0L;
     return discoveredCapabilities_ == null ? ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.getDefaultInstance() : discoveredCapabilities_;
   }
 
-  public static final int TOOL_APPROVALS_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> toolApprovals_;
-  /**
-   * <pre>
-   * System-generated tool approval policies.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> getToolApprovalsList() {
-    return toolApprovals_;
-  }
-  /**
-   * <pre>
-   * System-generated tool approval policies.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> 
-      getToolApprovalsOrBuilderList() {
-    return toolApprovals_;
-  }
-  /**
-   * <pre>
-   * System-generated tool approval policies.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-   */
-  @java.lang.Override
-  public int getToolApprovalsCount() {
-    return toolApprovals_.size();
-  }
-  /**
-   * <pre>
-   * System-generated tool approval policies.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy getToolApprovals(int index) {
-    return toolApprovals_.get(index);
-  }
-  /**
-   * <pre>
-   * System-generated tool approval policies.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getToolApprovalsOrBuilder(
-      int index) {
-    return toolApprovals_.get(index);
-  }
-
   public static final int OAUTH_STATUS_FIELD_NUMBER = 5;
   private ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauthStatus_;
   /**
@@ -296,7 +234,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.mcpserver.v1.ConnectStatus connectStatus_;
   /**
    * <pre>
-   * State of the most recent connect (discovery + classification) operation.
+   * State of the most recent connect (discovery) operation.
    *
    * Persisted (unlike oauth_status). Written by the backend when a connect
    * operation starts and again when it settles; clients poll it through the
@@ -313,7 +251,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * State of the most recent connect (discovery + classification) operation.
+   * State of the most recent connect (discovery) operation.
    *
    * Persisted (unlike oauth_status). Written by the backend when a connect
    * operation starts and again when it settles; clients poll it through the
@@ -330,7 +268,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * State of the most recent connect (discovery + classification) operation.
+   * State of the most recent connect (discovery) operation.
    *
    * Persisted (unlike oauth_status). Written by the backend when a connect
    * operation starts and again when it settles; clients poll it through the
@@ -406,9 +344,6 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(3, getDiscoveredCapabilities());
     }
-    for (int i = 0; i < toolApprovals_.size(); i++) {
-      output.writeMessage(4, toolApprovals_.get(i));
-    }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(5, getOauthStatus());
     }
@@ -438,15 +373,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, getDiscoveredCapabilities());
     }
-
-        {
-          final int count = toolApprovals_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(toolApprovals_.get(i));
-          }
-          size += 1 * count;
-        }
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getOauthStatus());
@@ -482,8 +408,6 @@ private static final long serialVersionUID = 0L;
       if (!getDiscoveredCapabilities()
           .equals(other.getDiscoveredCapabilities())) return false;
     }
-    if (!getToolApprovalsList()
-        .equals(other.getToolApprovalsList())) return false;
     if (hasOauthStatus() != other.hasOauthStatus()) return false;
     if (hasOauthStatus()) {
       if (!getOauthStatus()
@@ -517,10 +441,6 @@ private static final long serialVersionUID = 0L;
     if (hasDiscoveredCapabilities()) {
       hash = (37 * hash) + DISCOVERED_CAPABILITIES_FIELD_NUMBER;
       hash = (53 * hash) + getDiscoveredCapabilities().hashCode();
-    }
-    if (getToolApprovalsCount() > 0) {
-      hash = (37 * hash) + TOOL_APPROVALS_FIELD_NUMBER;
-      hash = (53 * hash) + getToolApprovalsList().hashCode();
     }
     if (hasOauthStatus()) {
       hash = (37 * hash) + OAUTH_STATUS_FIELD_NUMBER;
@@ -669,7 +589,6 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetDiscoveredCapabilitiesFieldBuilder();
-        internalGetToolApprovalsFieldBuilder();
         internalGetOauthStatusFieldBuilder();
         internalGetConnectStatusFieldBuilder();
         internalGetAuditFieldBuilder();
@@ -686,13 +605,6 @@ private static final long serialVersionUID = 0L;
         discoveredCapabilitiesBuilder_.dispose();
         discoveredCapabilitiesBuilder_ = null;
       }
-      if (toolApprovalsBuilder_ == null) {
-        toolApprovals_ = java.util.Collections.emptyList();
-      } else {
-        toolApprovals_ = null;
-        toolApprovalsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000008);
       oauthStatus_ = null;
       if (oauthStatusBuilder_ != null) {
         oauthStatusBuilder_.dispose();
@@ -734,22 +646,9 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.mcpserver.v1.McpServerStatus buildPartial() {
       ai.stigmer.agentic.mcpserver.v1.McpServerStatus result = new ai.stigmer.agentic.mcpserver.v1.McpServerStatus(this);
-      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
-    }
-
-    private void buildPartialRepeatedFields(ai.stigmer.agentic.mcpserver.v1.McpServerStatus result) {
-      if (toolApprovalsBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0)) {
-          toolApprovals_ = java.util.Collections.unmodifiableList(toolApprovals_);
-          bitField0_ = (bitField0_ & ~0x00000008);
-        }
-        result.toolApprovals_ = toolApprovals_;
-      } else {
-        result.toolApprovals_ = toolApprovalsBuilder_.build();
-      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.mcpserver.v1.McpServerStatus result) {
@@ -767,19 +666,19 @@ private static final long serialVersionUID = 0L;
             : discoveredCapabilitiesBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.oauthStatus_ = oauthStatusBuilder_ == null
             ? oauthStatus_
             : oauthStatusBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.connectStatus_ = connectStatusBuilder_ == null
             ? connectStatus_
             : connectStatusBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.audit_ = auditBuilder_ == null
             ? audit_
             : auditBuilder_.build();
@@ -810,32 +709,6 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasDiscoveredCapabilities()) {
         mergeDiscoveredCapabilities(other.getDiscoveredCapabilities());
-      }
-      if (toolApprovalsBuilder_ == null) {
-        if (!other.toolApprovals_.isEmpty()) {
-          if (toolApprovals_.isEmpty()) {
-            toolApprovals_ = other.toolApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-          } else {
-            ensureToolApprovalsIsMutable();
-            toolApprovals_.addAll(other.toolApprovals_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.toolApprovals_.isEmpty()) {
-          if (toolApprovalsBuilder_.isEmpty()) {
-            toolApprovalsBuilder_.dispose();
-            toolApprovalsBuilder_ = null;
-            toolApprovals_ = other.toolApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-            toolApprovalsBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetToolApprovalsFieldBuilder() : null;
-          } else {
-            toolApprovalsBuilder_.addAllMessages(other.toolApprovals_);
-          }
-        }
       }
       if (other.hasOauthStatus()) {
         mergeOauthStatus(other.getOauthStatus());
@@ -889,38 +762,25 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 34: {
-              ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy m =
-                  input.readMessage(
-                      ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.parser(),
-                      extensionRegistry);
-              if (toolApprovalsBuilder_ == null) {
-                ensureToolApprovalsIsMutable();
-                toolApprovals_.add(m);
-              } else {
-                toolApprovalsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 34
             case 42: {
               input.readMessage(
                   internalGetOauthStatusFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 42
             case 50: {
               input.readMessage(
                   internalGetConnectStatusFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 50
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 794
             default: {
@@ -1305,318 +1165,6 @@ private static final long serialVersionUID = 0L;
       return discoveredCapabilitiesBuilder_;
     }
 
-    private java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> toolApprovals_ =
-      java.util.Collections.emptyList();
-    private void ensureToolApprovalsIsMutable() {
-      if (!((bitField0_ & 0x00000008) != 0)) {
-        toolApprovals_ = new java.util.ArrayList<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy>(toolApprovals_);
-        bitField0_ |= 0x00000008;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> toolApprovalsBuilder_;
-
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> getToolApprovalsList() {
-      if (toolApprovalsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(toolApprovals_);
-      } else {
-        return toolApprovalsBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public int getToolApprovalsCount() {
-      if (toolApprovalsBuilder_ == null) {
-        return toolApprovals_.size();
-      } else {
-        return toolApprovalsBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy getToolApprovals(int index) {
-      if (toolApprovalsBuilder_ == null) {
-        return toolApprovals_.get(index);
-      } else {
-        return toolApprovalsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public Builder setToolApprovals(
-        int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy value) {
-      if (toolApprovalsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureToolApprovalsIsMutable();
-        toolApprovals_.set(index, value);
-        onChanged();
-      } else {
-        toolApprovalsBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public Builder setToolApprovals(
-        int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder builderForValue) {
-      if (toolApprovalsBuilder_ == null) {
-        ensureToolApprovalsIsMutable();
-        toolApprovals_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        toolApprovalsBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public Builder addToolApprovals(ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy value) {
-      if (toolApprovalsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureToolApprovalsIsMutable();
-        toolApprovals_.add(value);
-        onChanged();
-      } else {
-        toolApprovalsBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public Builder addToolApprovals(
-        int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy value) {
-      if (toolApprovalsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureToolApprovalsIsMutable();
-        toolApprovals_.add(index, value);
-        onChanged();
-      } else {
-        toolApprovalsBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public Builder addToolApprovals(
-        ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder builderForValue) {
-      if (toolApprovalsBuilder_ == null) {
-        ensureToolApprovalsIsMutable();
-        toolApprovals_.add(builderForValue.build());
-        onChanged();
-      } else {
-        toolApprovalsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public Builder addToolApprovals(
-        int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder builderForValue) {
-      if (toolApprovalsBuilder_ == null) {
-        ensureToolApprovalsIsMutable();
-        toolApprovals_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        toolApprovalsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public Builder addAllToolApprovals(
-        java.lang.Iterable<? extends ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> values) {
-      if (toolApprovalsBuilder_ == null) {
-        ensureToolApprovalsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, toolApprovals_);
-        onChanged();
-      } else {
-        toolApprovalsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public Builder clearToolApprovals() {
-      if (toolApprovalsBuilder_ == null) {
-        toolApprovals_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000008);
-        onChanged();
-      } else {
-        toolApprovalsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public Builder removeToolApprovals(int index) {
-      if (toolApprovalsBuilder_ == null) {
-        ensureToolApprovalsIsMutable();
-        toolApprovals_.remove(index);
-        onChanged();
-      } else {
-        toolApprovalsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder getToolApprovalsBuilder(
-        int index) {
-      return internalGetToolApprovalsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getToolApprovalsOrBuilder(
-        int index) {
-      if (toolApprovalsBuilder_ == null) {
-        return toolApprovals_.get(index);  } else {
-        return toolApprovalsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> 
-         getToolApprovalsOrBuilderList() {
-      if (toolApprovalsBuilder_ != null) {
-        return toolApprovalsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(toolApprovals_);
-      }
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder addToolApprovalsBuilder() {
-      return internalGetToolApprovalsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder addToolApprovalsBuilder(
-        int index) {
-      return internalGetToolApprovalsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * System-generated tool approval policies.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder> 
-         getToolApprovalsBuilderList() {
-      return internalGetToolApprovalsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> 
-        internalGetToolApprovalsFieldBuilder() {
-      if (toolApprovalsBuilder_ == null) {
-        toolApprovalsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder>(
-                toolApprovals_,
-                ((bitField0_ & 0x00000008) != 0),
-                getParentForChildren(),
-                isClean());
-        toolApprovals_ = null;
-      }
-      return toolApprovalsBuilder_;
-    }
-
     private ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauthStatus_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.mcpserver.v1.OAuthStatus, ai.stigmer.agentic.mcpserver.v1.OAuthStatus.Builder, ai.stigmer.agentic.mcpserver.v1.OAuthStatusOrBuilder> oauthStatusBuilder_;
@@ -1632,7 +1180,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the oauthStatus field is set.
      */
     public boolean hasOauthStatus() {
-      return ((bitField0_ & 0x00000010) != 0);
+      return ((bitField0_ & 0x00000008) != 0);
     }
     /**
      * <pre>
@@ -1671,7 +1219,7 @@ private static final long serialVersionUID = 0L;
       } else {
         oauthStatusBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1692,7 +1240,7 @@ private static final long serialVersionUID = 0L;
       } else {
         oauthStatusBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1708,7 +1256,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeOauthStatus(ai.stigmer.agentic.mcpserver.v1.OAuthStatus value) {
       if (oauthStatusBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0) &&
+        if (((bitField0_ & 0x00000008) != 0) &&
           oauthStatus_ != null &&
           oauthStatus_ != ai.stigmer.agentic.mcpserver.v1.OAuthStatus.getDefaultInstance()) {
           getOauthStatusBuilder().mergeFrom(value);
@@ -1719,7 +1267,7 @@ private static final long serialVersionUID = 0L;
         oauthStatusBuilder_.mergeFrom(value);
       }
       if (oauthStatus_ != null) {
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       return this;
@@ -1735,7 +1283,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
      */
     public Builder clearOauthStatus() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       oauthStatus_ = null;
       if (oauthStatusBuilder_ != null) {
         oauthStatusBuilder_.dispose();
@@ -1755,7 +1303,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.mcpserver.v1.OAuthStatus oauth_status = 5 [json_name = "oauthStatus"];</code>
      */
     public ai.stigmer.agentic.mcpserver.v1.OAuthStatus.Builder getOauthStatusBuilder() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return internalGetOauthStatusFieldBuilder().getBuilder();
     }
@@ -1806,7 +1354,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.mcpserver.v1.ConnectStatus, ai.stigmer.agentic.mcpserver.v1.ConnectStatus.Builder, ai.stigmer.agentic.mcpserver.v1.ConnectStatusOrBuilder> connectStatusBuilder_;
     /**
      * <pre>
-     * State of the most recent connect (discovery + classification) operation.
+     * State of the most recent connect (discovery) operation.
      *
      * Persisted (unlike oauth_status). Written by the backend when a connect
      * operation starts and again when it settles; clients poll it through the
@@ -1818,11 +1366,11 @@ private static final long serialVersionUID = 0L;
      * @return Whether the connectStatus field is set.
      */
     public boolean hasConnectStatus() {
-      return ((bitField0_ & 0x00000020) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <pre>
-     * State of the most recent connect (discovery + classification) operation.
+     * State of the most recent connect (discovery) operation.
      *
      * Persisted (unlike oauth_status). Written by the backend when a connect
      * operation starts and again when it settles; clients poll it through the
@@ -1842,7 +1390,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * State of the most recent connect (discovery + classification) operation.
+     * State of the most recent connect (discovery) operation.
      *
      * Persisted (unlike oauth_status). Written by the backend when a connect
      * operation starts and again when it settles; clients poll it through the
@@ -1861,13 +1409,13 @@ private static final long serialVersionUID = 0L;
       } else {
         connectStatusBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * State of the most recent connect (discovery + classification) operation.
+     * State of the most recent connect (discovery) operation.
      *
      * Persisted (unlike oauth_status). Written by the backend when a connect
      * operation starts and again when it settles; clients poll it through the
@@ -1884,13 +1432,13 @@ private static final long serialVersionUID = 0L;
       } else {
         connectStatusBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * State of the most recent connect (discovery + classification) operation.
+     * State of the most recent connect (discovery) operation.
      *
      * Persisted (unlike oauth_status). Written by the backend when a connect
      * operation starts and again when it settles; clients poll it through the
@@ -1902,7 +1450,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeConnectStatus(ai.stigmer.agentic.mcpserver.v1.ConnectStatus value) {
       if (connectStatusBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0) &&
+        if (((bitField0_ & 0x00000010) != 0) &&
           connectStatus_ != null &&
           connectStatus_ != ai.stigmer.agentic.mcpserver.v1.ConnectStatus.getDefaultInstance()) {
           getConnectStatusBuilder().mergeFrom(value);
@@ -1913,14 +1461,14 @@ private static final long serialVersionUID = 0L;
         connectStatusBuilder_.mergeFrom(value);
       }
       if (connectStatus_ != null) {
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       return this;
     }
     /**
      * <pre>
-     * State of the most recent connect (discovery + classification) operation.
+     * State of the most recent connect (discovery) operation.
      *
      * Persisted (unlike oauth_status). Written by the backend when a connect
      * operation starts and again when it settles; clients poll it through the
@@ -1931,7 +1479,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.mcpserver.v1.ConnectStatus connect_status = 6 [json_name = "connectStatus"];</code>
      */
     public Builder clearConnectStatus() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       connectStatus_ = null;
       if (connectStatusBuilder_ != null) {
         connectStatusBuilder_.dispose();
@@ -1942,7 +1490,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * State of the most recent connect (discovery + classification) operation.
+     * State of the most recent connect (discovery) operation.
      *
      * Persisted (unlike oauth_status). Written by the backend when a connect
      * operation starts and again when it settles; clients poll it through the
@@ -1953,13 +1501,13 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.mcpserver.v1.ConnectStatus connect_status = 6 [json_name = "connectStatus"];</code>
      */
     public ai.stigmer.agentic.mcpserver.v1.ConnectStatus.Builder getConnectStatusBuilder() {
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return internalGetConnectStatusFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * State of the most recent connect (discovery + classification) operation.
+     * State of the most recent connect (discovery) operation.
      *
      * Persisted (unlike oauth_status). Written by the backend when a connect
      * operation starts and again when it settles; clients poll it through the
@@ -1979,7 +1527,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * State of the most recent connect (discovery + classification) operation.
+     * State of the most recent connect (discovery) operation.
      *
      * Persisted (unlike oauth_status). Written by the backend when a connect
      * operation starts and again when it settles; clients poll it through the
@@ -2015,7 +1563,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the audit field is set.
      */
     public boolean hasAudit() {
-      return ((bitField0_ & 0x00000040) != 0);
+      return ((bitField0_ & 0x00000020) != 0);
     }
     /**
      * <pre>
@@ -2048,7 +1596,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2066,7 +1614,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2079,7 +1627,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeAudit(ai.stigmer.commons.apiresource.ApiResourceAudit value) {
       if (auditBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0) &&
+        if (((bitField0_ & 0x00000020) != 0) &&
           audit_ != null &&
           audit_ != ai.stigmer.commons.apiresource.ApiResourceAudit.getDefaultInstance()) {
           getAuditBuilder().mergeFrom(value);
@@ -2090,7 +1638,7 @@ private static final long serialVersionUID = 0L;
         auditBuilder_.mergeFrom(value);
       }
       if (audit_ != null) {
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       return this;
@@ -2103,7 +1651,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public Builder clearAudit() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -2120,7 +1668,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceAudit.Builder getAuditBuilder() {
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return internalGetAuditFieldBuilder().getBuilder();
     }

@@ -36,9 +36,6 @@ private static final long serialVersionUID = 0L;
     iconUrl_ = "";
     tags_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-    defaultEnabledTools_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-    pinnedToolApprovals_ = java.util.Collections.emptyList();
     repositoryUrl_ = "";
   }
 
@@ -370,67 +367,6 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.getDefaultInstance();
   }
 
-  public static final int DEFAULT_ENABLED_TOOLS_FIELD_NUMBER = 7;
-  @SuppressWarnings("serial")
-  private com.google.protobuf.LazyStringArrayList defaultEnabledTools_ =
-      com.google.protobuf.LazyStringArrayList.emptyList();
-  /**
-   * <pre>
-   * Default tools to enable from this MCP server.
-   * Empty list means all tools are enabled by default.
-   * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   * </pre>
-   *
-   * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-   * @return A list containing the defaultEnabledTools.
-   */
-  public com.google.protobuf.ProtocolStringList
-      getDefaultEnabledToolsList() {
-    return defaultEnabledTools_;
-  }
-  /**
-   * <pre>
-   * Default tools to enable from this MCP server.
-   * Empty list means all tools are enabled by default.
-   * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   * </pre>
-   *
-   * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-   * @return The count of defaultEnabledTools.
-   */
-  public int getDefaultEnabledToolsCount() {
-    return defaultEnabledTools_.size();
-  }
-  /**
-   * <pre>
-   * Default tools to enable from this MCP server.
-   * Empty list means all tools are enabled by default.
-   * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   * </pre>
-   *
-   * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-   * @param index The index of the element to return.
-   * @return The defaultEnabledTools at the given index.
-   */
-  public java.lang.String getDefaultEnabledTools(int index) {
-    return defaultEnabledTools_.get(index);
-  }
-  /**
-   * <pre>
-   * Default tools to enable from this MCP server.
-   * Empty list means all tools are enabled by default.
-   * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   * </pre>
-   *
-   * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-   * @param index The index of the value to return.
-   * @return The bytes of the defaultEnabledTools at the given index.
-   */
-  public com.google.protobuf.ByteString
-      getDefaultEnabledToolsBytes(int index) {
-    return defaultEnabledTools_.getByteString(index);
-  }
-
   public static final int ENV_FIELD_NUMBER = 8;
   private static final class EnvDefaultEntryHolder {
     static final com.google.protobuf.MapEntry<
@@ -528,67 +464,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       throw new java.lang.IllegalArgumentException();
     }
     return map.get(key);
-  }
-
-  public static final int PINNED_TOOL_APPROVALS_FIELD_NUMBER = 11;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> pinnedToolApprovals_;
-  /**
-   * <pre>
-   * Tools pinned by the MCP server owner to always require approval.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> getPinnedToolApprovalsList() {
-    return pinnedToolApprovals_;
-  }
-  /**
-   * <pre>
-   * Tools pinned by the MCP server owner to always require approval.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> 
-      getPinnedToolApprovalsOrBuilderList() {
-    return pinnedToolApprovals_;
-  }
-  /**
-   * <pre>
-   * Tools pinned by the MCP server owner to always require approval.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-   */
-  @java.lang.Override
-  public int getPinnedToolApprovalsCount() {
-    return pinnedToolApprovals_.size();
-  }
-  /**
-   * <pre>
-   * Tools pinned by the MCP server owner to always require approval.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy getPinnedToolApprovals(int index) {
-    return pinnedToolApprovals_.get(index);
-  }
-  /**
-   * <pre>
-   * Tools pinned by the MCP server owner to always require approval.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getPinnedToolApprovalsOrBuilder(
-      int index) {
-    return pinnedToolApprovals_.get(index);
   }
 
   public static final int REPOSITORY_URL_FIELD_NUMBER = 12;
@@ -749,18 +624,12 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     if (serverTypeCase_ == 5) {
       output.writeMessage(5, (ai.stigmer.agentic.mcpserver.v1.HttpServerConfig) serverType_);
     }
-    for (int i = 0; i < defaultEnabledTools_.size(); i++) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 7, defaultEnabledTools_.getRaw(i));
-    }
     com.google.protobuf.GeneratedMessage
       .serializeStringMapTo(
         output,
         internalGetEnv(),
         EnvDefaultEntryHolder.defaultEntry,
         8);
-    for (int i = 0; i < pinnedToolApprovals_.size(); i++) {
-      output.writeMessage(11, pinnedToolApprovals_.get(i));
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(repositoryUrl_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 12, repositoryUrl_);
     }
@@ -801,14 +670,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, (ai.stigmer.agentic.mcpserver.v1.HttpServerConfig) serverType_);
     }
-    {
-      int dataSize = 0;
-      for (int i = 0; i < defaultEnabledTools_.size(); i++) {
-        dataSize += computeStringSizeNoTag(defaultEnabledTools_.getRaw(i));
-      }
-      size += dataSize;
-      size += 1 * getDefaultEnabledToolsList().size();
-    }
     for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> entry
          : internalGetEnv().getMap().entrySet()) {
       com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
@@ -819,15 +680,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(8, env__);
     }
-
-        {
-          final int count = pinnedToolApprovals_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(pinnedToolApprovals_.get(i));
-          }
-          size += 1 * count;
-        }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(repositoryUrl_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(12, repositoryUrl_);
     }
@@ -860,12 +712,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         .equals(other.getIconUrl())) return false;
     if (!getTagsList()
         .equals(other.getTagsList())) return false;
-    if (!getDefaultEnabledToolsList()
-        .equals(other.getDefaultEnabledToolsList())) return false;
     if (!internalGetEnv().equals(
         other.internalGetEnv())) return false;
-    if (!getPinnedToolApprovalsList()
-        .equals(other.getPinnedToolApprovalsList())) return false;
     if (!getRepositoryUrl()
         .equals(other.getRepositoryUrl())) return false;
     if (getGithubStars()
@@ -907,17 +755,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       hash = (37 * hash) + TAGS_FIELD_NUMBER;
       hash = (53 * hash) + getTagsList().hashCode();
     }
-    if (getDefaultEnabledToolsCount() > 0) {
-      hash = (37 * hash) + DEFAULT_ENABLED_TOOLS_FIELD_NUMBER;
-      hash = (53 * hash) + getDefaultEnabledToolsList().hashCode();
-    }
     if (!internalGetEnv().getMap().isEmpty()) {
       hash = (37 * hash) + ENV_FIELD_NUMBER;
       hash = (53 * hash) + internalGetEnv().hashCode();
-    }
-    if (getPinnedToolApprovalsCount() > 0) {
-      hash = (37 * hash) + PINNED_TOOL_APPROVALS_FIELD_NUMBER;
-      hash = (53 * hash) + getPinnedToolApprovalsList().hashCode();
     }
     hash = (37 * hash) + REPOSITORY_URL_FIELD_NUMBER;
     hash = (53 * hash) + getRepositoryUrl().hashCode();
@@ -1095,7 +935,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     private void maybeForceBuilderInitialization() {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
-        internalGetPinnedToolApprovalsFieldBuilder();
         internalGetAuthFieldBuilder();
       }
     }
@@ -1113,16 +952,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       if (httpBuilder_ != null) {
         httpBuilder_.clear();
       }
-      defaultEnabledTools_ =
-          com.google.protobuf.LazyStringArrayList.emptyList();
       internalGetMutableEnv().clear();
-      if (pinnedToolApprovalsBuilder_ == null) {
-        pinnedToolApprovals_ = java.util.Collections.emptyList();
-      } else {
-        pinnedToolApprovals_ = null;
-        pinnedToolApprovalsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000080);
       repositoryUrl_ = "";
       githubStars_ = 0;
       auth_ = null;
@@ -1158,23 +988,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     @java.lang.Override
     public ai.stigmer.agentic.mcpserver.v1.McpServerSpec buildPartial() {
       ai.stigmer.agentic.mcpserver.v1.McpServerSpec result = new ai.stigmer.agentic.mcpserver.v1.McpServerSpec(this);
-      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       buildPartialOneofs(result);
       onBuilt();
       return result;
-    }
-
-    private void buildPartialRepeatedFields(ai.stigmer.agentic.mcpserver.v1.McpServerSpec result) {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0)) {
-          pinnedToolApprovals_ = java.util.Collections.unmodifiableList(pinnedToolApprovals_);
-          bitField0_ = (bitField0_ & ~0x00000080);
-        }
-        result.pinnedToolApprovals_ = pinnedToolApprovals_;
-      } else {
-        result.pinnedToolApprovals_ = pinnedToolApprovalsBuilder_.build();
-      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.mcpserver.v1.McpServerSpec result) {
@@ -1190,20 +1007,16 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         result.tags_ = tags_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        defaultEnabledTools_.makeImmutable();
-        result.defaultEnabledTools_ = defaultEnabledTools_;
-      }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.env_ = internalGetEnv().build(EnvDefaultEntryHolder.defaultEntry);
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.repositoryUrl_ = repositoryUrl_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.githubStars_ = githubStars_;
       }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.auth_ = authBuilder_ == null
             ? auth_
             : authBuilder_.build();
@@ -1257,48 +1070,12 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         }
         onChanged();
       }
-      if (!other.defaultEnabledTools_.isEmpty()) {
-        if (defaultEnabledTools_.isEmpty()) {
-          defaultEnabledTools_ = other.defaultEnabledTools_;
-          bitField0_ |= 0x00000020;
-        } else {
-          ensureDefaultEnabledToolsIsMutable();
-          defaultEnabledTools_.addAll(other.defaultEnabledTools_);
-        }
-        onChanged();
-      }
       internalGetMutableEnv().mergeFrom(
           other.internalGetEnv());
-      bitField0_ |= 0x00000040;
-      if (pinnedToolApprovalsBuilder_ == null) {
-        if (!other.pinnedToolApprovals_.isEmpty()) {
-          if (pinnedToolApprovals_.isEmpty()) {
-            pinnedToolApprovals_ = other.pinnedToolApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000080);
-          } else {
-            ensurePinnedToolApprovalsIsMutable();
-            pinnedToolApprovals_.addAll(other.pinnedToolApprovals_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.pinnedToolApprovals_.isEmpty()) {
-          if (pinnedToolApprovalsBuilder_.isEmpty()) {
-            pinnedToolApprovalsBuilder_.dispose();
-            pinnedToolApprovalsBuilder_ = null;
-            pinnedToolApprovals_ = other.pinnedToolApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000080);
-            pinnedToolApprovalsBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetPinnedToolApprovalsFieldBuilder() : null;
-          } else {
-            pinnedToolApprovalsBuilder_.addAllMessages(other.pinnedToolApprovals_);
-          }
-        }
-      }
+      bitField0_ |= 0x00000020;
       if (!other.getRepositoryUrl().isEmpty()) {
         repositoryUrl_ = other.repositoryUrl_;
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       if (other.getGithubStars() != 0) {
@@ -1375,48 +1152,30 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               serverTypeCase_ = 5;
               break;
             } // case 42
-            case 58: {
-              ensureDefaultEnabledToolsIsMutable();
-              defaultEnabledTools_.add(input.readStringRequireUtf8());
-              break;
-            } // case 58
             case 66: {
               com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
               env__ = input.readMessage(
                   EnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableEnv().ensureBuilderMap().put(
                   env__.getKey(), env__.getValue());
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 66
-            case 90: {
-              ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy m =
-                  input.readMessage(
-                      ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.parser(),
-                      extensionRegistry);
-              if (pinnedToolApprovalsBuilder_ == null) {
-                ensurePinnedToolApprovalsIsMutable();
-                pinnedToolApprovals_.add(m);
-              } else {
-                pinnedToolApprovalsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 90
             case 98: {
               repositoryUrl_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000040;
               break;
             } // case 98
             case 104: {
               githubStars_ = input.readInt32();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000080;
               break;
             } // case 104
             case 114: {
               input.readMessage(
                   internalGetAuthFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000100;
               break;
             } // case 114
             default: {
@@ -2194,171 +1953,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       return httpBuilder_;
     }
 
-    private com.google.protobuf.LazyStringArrayList defaultEnabledTools_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-    private void ensureDefaultEnabledToolsIsMutable() {
-      if (!defaultEnabledTools_.isModifiable()) {
-        defaultEnabledTools_ = new com.google.protobuf.LazyStringArrayList(defaultEnabledTools_);
-      }
-      bitField0_ |= 0x00000020;
-    }
-    /**
-     * <pre>
-     * Default tools to enable from this MCP server.
-     * Empty list means all tools are enabled by default.
-     * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-     * </pre>
-     *
-     * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-     * @return A list containing the defaultEnabledTools.
-     */
-    public com.google.protobuf.ProtocolStringList
-        getDefaultEnabledToolsList() {
-      defaultEnabledTools_.makeImmutable();
-      return defaultEnabledTools_;
-    }
-    /**
-     * <pre>
-     * Default tools to enable from this MCP server.
-     * Empty list means all tools are enabled by default.
-     * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-     * </pre>
-     *
-     * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-     * @return The count of defaultEnabledTools.
-     */
-    public int getDefaultEnabledToolsCount() {
-      return defaultEnabledTools_.size();
-    }
-    /**
-     * <pre>
-     * Default tools to enable from this MCP server.
-     * Empty list means all tools are enabled by default.
-     * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-     * </pre>
-     *
-     * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-     * @param index The index of the element to return.
-     * @return The defaultEnabledTools at the given index.
-     */
-    public java.lang.String getDefaultEnabledTools(int index) {
-      return defaultEnabledTools_.get(index);
-    }
-    /**
-     * <pre>
-     * Default tools to enable from this MCP server.
-     * Empty list means all tools are enabled by default.
-     * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-     * </pre>
-     *
-     * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-     * @param index The index of the value to return.
-     * @return The bytes of the defaultEnabledTools at the given index.
-     */
-    public com.google.protobuf.ByteString
-        getDefaultEnabledToolsBytes(int index) {
-      return defaultEnabledTools_.getByteString(index);
-    }
-    /**
-     * <pre>
-     * Default tools to enable from this MCP server.
-     * Empty list means all tools are enabled by default.
-     * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-     * </pre>
-     *
-     * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-     * @param index The index to set the value at.
-     * @param value The defaultEnabledTools to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDefaultEnabledTools(
-        int index, java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      ensureDefaultEnabledToolsIsMutable();
-      defaultEnabledTools_.set(index, value);
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Default tools to enable from this MCP server.
-     * Empty list means all tools are enabled by default.
-     * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-     * </pre>
-     *
-     * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-     * @param value The defaultEnabledTools to add.
-     * @return This builder for chaining.
-     */
-    public Builder addDefaultEnabledTools(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      ensureDefaultEnabledToolsIsMutable();
-      defaultEnabledTools_.add(value);
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Default tools to enable from this MCP server.
-     * Empty list means all tools are enabled by default.
-     * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-     * </pre>
-     *
-     * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-     * @param values The defaultEnabledTools to add.
-     * @return This builder for chaining.
-     */
-    public Builder addAllDefaultEnabledTools(
-        java.lang.Iterable<java.lang.String> values) {
-      ensureDefaultEnabledToolsIsMutable();
-      com.google.protobuf.AbstractMessageLite.Builder.addAll(
-          values, defaultEnabledTools_);
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Default tools to enable from this MCP server.
-     * Empty list means all tools are enabled by default.
-     * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-     * </pre>
-     *
-     * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearDefaultEnabledTools() {
-      defaultEnabledTools_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000020);;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Default tools to enable from this MCP server.
-     * Empty list means all tools are enabled by default.
-     * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-     * </pre>
-     *
-     * <code>repeated string default_enabled_tools = 7 [json_name = "defaultEnabledTools"];</code>
-     * @param value The bytes of the defaultEnabledTools to add.
-     * @return This builder for chaining.
-     */
-    public Builder addDefaultEnabledToolsBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      ensureDefaultEnabledToolsIsMutable();
-      defaultEnabledTools_.add(value);
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-
     private static final class EnvConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> {
       @java.lang.Override
       public ai.stigmer.agentic.environment.v1.EnvVarDeclaration build(ai.stigmer.agentic.environment.v1.EnvVarDeclarationOrBuilder val) {
@@ -2387,7 +1981,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       if (env_ == null) {
         env_ = new com.google.protobuf.MapFieldBuilder<>(envConverter);
       }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return env_;
     }
@@ -2465,7 +2059,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       return envConverter.build(map.get(key));
     }
     public Builder clearEnv() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       internalGetMutableEnv().clear();
       return this;
     }
@@ -2490,7 +2084,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
         getMutableEnv() {
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       return internalGetMutableEnv().ensureMessageMap();
     }
     /**
@@ -2508,7 +2102,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableEnv().ensureBuilderMap()
           .put(key, value);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       return this;
     }
     /**
@@ -2528,7 +2122,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       }
       internalGetMutableEnv().ensureBuilderMap()
           .putAll(values);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       return this;
     }
     /**
@@ -2552,318 +2146,6 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         builderMap.put(key, entry);
       }
       return (ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder) entry;
-    }
-
-    private java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> pinnedToolApprovals_ =
-      java.util.Collections.emptyList();
-    private void ensurePinnedToolApprovalsIsMutable() {
-      if (!((bitField0_ & 0x00000080) != 0)) {
-        pinnedToolApprovals_ = new java.util.ArrayList<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy>(pinnedToolApprovals_);
-        bitField0_ |= 0x00000080;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> pinnedToolApprovalsBuilder_;
-
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> getPinnedToolApprovalsList() {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(pinnedToolApprovals_);
-      } else {
-        return pinnedToolApprovalsBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public int getPinnedToolApprovalsCount() {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        return pinnedToolApprovals_.size();
-      } else {
-        return pinnedToolApprovalsBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy getPinnedToolApprovals(int index) {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        return pinnedToolApprovals_.get(index);
-      } else {
-        return pinnedToolApprovalsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public Builder setPinnedToolApprovals(
-        int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy value) {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensurePinnedToolApprovalsIsMutable();
-        pinnedToolApprovals_.set(index, value);
-        onChanged();
-      } else {
-        pinnedToolApprovalsBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public Builder setPinnedToolApprovals(
-        int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder builderForValue) {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        ensurePinnedToolApprovalsIsMutable();
-        pinnedToolApprovals_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        pinnedToolApprovalsBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public Builder addPinnedToolApprovals(ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy value) {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensurePinnedToolApprovalsIsMutable();
-        pinnedToolApprovals_.add(value);
-        onChanged();
-      } else {
-        pinnedToolApprovalsBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public Builder addPinnedToolApprovals(
-        int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy value) {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensurePinnedToolApprovalsIsMutable();
-        pinnedToolApprovals_.add(index, value);
-        onChanged();
-      } else {
-        pinnedToolApprovalsBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public Builder addPinnedToolApprovals(
-        ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder builderForValue) {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        ensurePinnedToolApprovalsIsMutable();
-        pinnedToolApprovals_.add(builderForValue.build());
-        onChanged();
-      } else {
-        pinnedToolApprovalsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public Builder addPinnedToolApprovals(
-        int index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder builderForValue) {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        ensurePinnedToolApprovalsIsMutable();
-        pinnedToolApprovals_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        pinnedToolApprovalsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public Builder addAllPinnedToolApprovals(
-        java.lang.Iterable<? extends ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> values) {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        ensurePinnedToolApprovalsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, pinnedToolApprovals_);
-        onChanged();
-      } else {
-        pinnedToolApprovalsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public Builder clearPinnedToolApprovals() {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        pinnedToolApprovals_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000080);
-        onChanged();
-      } else {
-        pinnedToolApprovalsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public Builder removePinnedToolApprovals(int index) {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        ensurePinnedToolApprovalsIsMutable();
-        pinnedToolApprovals_.remove(index);
-        onChanged();
-      } else {
-        pinnedToolApprovalsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder getPinnedToolApprovalsBuilder(
-        int index) {
-      return internalGetPinnedToolApprovalsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getPinnedToolApprovalsOrBuilder(
-        int index) {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        return pinnedToolApprovals_.get(index);  } else {
-        return pinnedToolApprovalsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> 
-         getPinnedToolApprovalsOrBuilderList() {
-      if (pinnedToolApprovalsBuilder_ != null) {
-        return pinnedToolApprovalsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(pinnedToolApprovals_);
-      }
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder addPinnedToolApprovalsBuilder() {
-      return internalGetPinnedToolApprovalsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder addPinnedToolApprovalsBuilder(
-        int index) {
-      return internalGetPinnedToolApprovalsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Tools pinned by the MCP server owner to always require approval.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11 [json_name = "pinnedToolApprovals"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder> 
-         getPinnedToolApprovalsBuilderList() {
-      return internalGetPinnedToolApprovalsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> 
-        internalGetPinnedToolApprovalsFieldBuilder() {
-      if (pinnedToolApprovalsBuilder_ == null) {
-        pinnedToolApprovalsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.Builder, ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder>(
-                pinnedToolApprovals_,
-                ((bitField0_ & 0x00000080) != 0),
-                getParentForChildren(),
-                isClean());
-        pinnedToolApprovals_ = null;
-      }
-      return pinnedToolApprovalsBuilder_;
     }
 
     private java.lang.Object repositoryUrl_ = "";
@@ -2930,7 +2212,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       repositoryUrl_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2947,7 +2229,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      */
     public Builder clearRepositoryUrl() {
       repositoryUrl_ = getDefaultInstance().getRepositoryUrl();
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
@@ -2968,7 +2250,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       repositoryUrl_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3002,7 +2284,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     public Builder setGithubStars(int value) {
 
       githubStars_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -3017,7 +2299,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearGithubStars() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000080);
       githubStars_ = 0;
       onChanged();
       return this;
@@ -3042,7 +2324,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * @return Whether the auth field is set.
      */
     public boolean hasAuth() {
-      return ((bitField0_ & 0x00000400) != 0);
+      return ((bitField0_ & 0x00000100) != 0);
     }
     /**
      * <pre>
@@ -3089,7 +2371,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       } else {
         authBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -3114,7 +2396,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       } else {
         authBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -3134,7 +2416,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      */
     public Builder mergeAuth(ai.stigmer.agentic.mcpserver.v1.McpServerAuth value) {
       if (authBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0) &&
+        if (((bitField0_ & 0x00000100) != 0) &&
           auth_ != null &&
           auth_ != ai.stigmer.agentic.mcpserver.v1.McpServerAuth.getDefaultInstance()) {
           getAuthBuilder().mergeFrom(value);
@@ -3145,7 +2427,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         authBuilder_.mergeFrom(value);
       }
       if (auth_ != null) {
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       return this;
@@ -3165,7 +2447,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
      */
     public Builder clearAuth() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000100);
       auth_ = null;
       if (authBuilder_ != null) {
         authBuilder_.dispose();
@@ -3189,7 +2471,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServerAuth.Builder getAuthBuilder() {
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000100;
       onChanged();
       return internalGetAuthFieldBuilder().getBuilder();
     }

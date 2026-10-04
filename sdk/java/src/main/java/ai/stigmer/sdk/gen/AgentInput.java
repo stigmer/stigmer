@@ -4,10 +4,8 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentSpec;
-import ai.stigmer.agentic.agent.v1.McpAccess;
 import ai.stigmer.agentic.agent.v1.McpServerUsage;
 import ai.stigmer.agentic.agent.v1.SubAgent;
-import ai.stigmer.agentic.agent.v1.ToolApprovalOverride;
 import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
@@ -28,6 +26,8 @@ public final class AgentInput {
     private final java.util.List<ResourceRef> skillRefs;
     private final java.util.List<SubAgentInput> subAgents;
     private final java.util.Map<String, EnvVarDeclarationInput> env;
+    private final java.util.List<String> tools;
+    private final java.util.List<String> disallowedTools;
 
     private AgentInput(Builder builder) {
         this.id = builder.id;
@@ -43,6 +43,8 @@ public final class AgentInput {
         this.skillRefs = builder.skillRefs;
         this.subAgents = builder.subAgents;
         this.env = builder.env;
+        this.tools = builder.tools;
+        this.disallowedTools = builder.disallowedTools;
     }
 
     Agent toProto() {
@@ -76,6 +78,12 @@ public final class AgentInput {
             for (java.util.Map.Entry<String, EnvVarDeclarationInput> entry : this.env.entrySet()) {
                 spec.putEnv(entry.getKey(), entry.getValue().toProto());
             }
+        }
+        if (this.tools != null && !this.tools.isEmpty()) {
+            spec.addAllTools(this.tools);
+        }
+        if (this.disallowedTools != null && !this.disallowedTools.isEmpty()) {
+            spec.addAllDisallowedTools(this.disallowedTools);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -118,6 +126,8 @@ public final class AgentInput {
         private java.util.List<ResourceRef> skillRefs;
         private java.util.List<SubAgentInput> subAgents;
         private java.util.Map<String, EnvVarDeclarationInput> env;
+        private java.util.List<String> tools;
+        private java.util.List<String> disallowedTools;
 
         private Builder() {}
 
@@ -139,6 +149,8 @@ public final class AgentInput {
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
         public Builder subAgents(java.util.List<SubAgentInput> subAgents) { this.subAgents = subAgents; return this; }
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
+        public Builder tools(java.util.List<String> tools) { this.tools = tools; return this; }
+        public Builder disallowedTools(java.util.List<String> disallowedTools) { this.disallowedTools = disallowedTools; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
     }
@@ -146,13 +158,9 @@ public final class AgentInput {
     /** SDK input type for McpServerUsage. */
     public static final class McpServerUsageInput {
         private final ResourceRef mcpServerRef;
-        private final java.util.List<String> enabledTools;
-        private final java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides;
 
         private McpServerUsageInput(Builder builder) {
             this.mcpServerRef = builder.mcpServerRef;
-            this.enabledTools = builder.enabledTools;
-            this.toolApprovalOverrides = builder.toolApprovalOverrides;
         }
 
         McpServerUsage toProto() {
@@ -161,14 +169,6 @@ public final class AgentInput {
                 builder.setMcpServerRef(this.mcpServerRef.toProto().toBuilder()
                     .setKind(ApiResourceKind.mcp_server).build());
             }
-            if (this.enabledTools != null) {
-                builder.addAllEnabledTools(this.enabledTools);
-            }
-            if (this.toolApprovalOverrides != null) {
-                for (ToolApprovalOverrideInput item : this.toolApprovalOverrides) {
-                    builder.addToolApprovalOverrides(item.toProto());
-                }
-            }
             return builder.build();
         }
 
@@ -176,57 +176,12 @@ public final class AgentInput {
 
         public static final class Builder {
             private ResourceRef mcpServerRef;
-            private java.util.List<String> enabledTools;
-            private java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides;
 
             private Builder() {}
 
             public Builder mcpServerRef(ResourceRef mcpServerRef) { this.mcpServerRef = mcpServerRef; return this; }
-            public Builder enabledTools(java.util.List<String> enabledTools) { this.enabledTools = enabledTools; return this; }
-            public Builder toolApprovalOverrides(java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides) { this.toolApprovalOverrides = toolApprovalOverrides; return this; }
 
             public McpServerUsageInput build() { return new McpServerUsageInput(this); }
-        }
-    }
-
-    /** SDK input type for ToolApprovalOverride. */
-    public static final class ToolApprovalOverrideInput {
-        private final String toolName;
-        private final boolean requiresApproval;
-        private final String message;
-
-        private ToolApprovalOverrideInput(Builder builder) {
-            this.toolName = builder.toolName;
-            this.requiresApproval = builder.requiresApproval;
-            this.message = builder.message;
-        }
-
-        ToolApprovalOverride toProto() {
-            ToolApprovalOverride.Builder builder = ToolApprovalOverride.newBuilder();
-            if (this.toolName != null) {
-                builder.setToolName(this.toolName);
-            }
-            builder.setRequiresApproval(this.requiresApproval);
-            if (this.message != null) {
-                builder.setMessage(this.message);
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String toolName;
-            private boolean requiresApproval;
-            private String message;
-
-            private Builder() {}
-
-            public Builder toolName(String toolName) { this.toolName = toolName; return this; }
-            public Builder requiresApproval(boolean requiresApproval) { this.requiresApproval = requiresApproval; return this; }
-            public Builder message(String message) { this.message = message; return this; }
-
-            public ToolApprovalOverrideInput build() { return new ToolApprovalOverrideInput(this); }
         }
     }
 
@@ -235,17 +190,19 @@ public final class AgentInput {
         private final String name;
         private final String description;
         private final String instructions;
-        private final java.util.List<McpAccessInput> mcpAccess;
         private final java.util.List<ResourceRef> skillRefs;
         private final String modelOverride;
+        private final java.util.List<String> tools;
+        private final java.util.List<String> disallowedTools;
 
         private SubAgentInput(Builder builder) {
             this.name = builder.name;
             this.description = builder.description;
             this.instructions = builder.instructions;
-            this.mcpAccess = builder.mcpAccess;
             this.skillRefs = builder.skillRefs;
             this.modelOverride = builder.modelOverride;
+            this.tools = builder.tools;
+            this.disallowedTools = builder.disallowedTools;
         }
 
         SubAgent toProto() {
@@ -259,11 +216,6 @@ public final class AgentInput {
             if (this.instructions != null) {
                 builder.setInstructions(this.instructions);
             }
-            if (this.mcpAccess != null) {
-                for (McpAccessInput item : this.mcpAccess) {
-                    builder.addMcpAccess(item.toProto());
-                }
-            }
             if (this.skillRefs != null) {
                 for (ResourceRef item : this.skillRefs) {
                     builder.addSkillRefs(item.toProto().toBuilder()
@@ -272,6 +224,12 @@ public final class AgentInput {
             }
             if (this.modelOverride != null) {
                 builder.setModelOverride(this.modelOverride);
+            }
+            if (this.tools != null) {
+                builder.addAllTools(this.tools);
+            }
+            if (this.disallowedTools != null) {
+                builder.addAllDisallowedTools(this.disallowedTools);
             }
             return builder.build();
         }
@@ -282,56 +240,22 @@ public final class AgentInput {
             private String name;
             private String description;
             private String instructions;
-            private java.util.List<McpAccessInput> mcpAccess;
             private java.util.List<ResourceRef> skillRefs;
             private String modelOverride;
+            private java.util.List<String> tools;
+            private java.util.List<String> disallowedTools;
 
             private Builder() {}
 
             public Builder name(String name) { this.name = name; return this; }
             public Builder description(String description) { this.description = description; return this; }
             public Builder instructions(String instructions) { this.instructions = instructions; return this; }
-            public Builder mcpAccess(java.util.List<McpAccessInput> mcpAccess) { this.mcpAccess = mcpAccess; return this; }
             public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
             public Builder modelOverride(String modelOverride) { this.modelOverride = modelOverride; return this; }
+            public Builder tools(java.util.List<String> tools) { this.tools = tools; return this; }
+            public Builder disallowedTools(java.util.List<String> disallowedTools) { this.disallowedTools = disallowedTools; return this; }
 
             public SubAgentInput build() { return new SubAgentInput(this); }
-        }
-    }
-
-    /** SDK input type for McpAccess. */
-    public static final class McpAccessInput {
-        private final String mcpServer;
-        private final java.util.List<String> enabledTools;
-
-        private McpAccessInput(Builder builder) {
-            this.mcpServer = builder.mcpServer;
-            this.enabledTools = builder.enabledTools;
-        }
-
-        McpAccess toProto() {
-            McpAccess.Builder builder = McpAccess.newBuilder();
-            if (this.mcpServer != null) {
-                builder.setMcpServer(this.mcpServer);
-            }
-            if (this.enabledTools != null) {
-                builder.addAllEnabledTools(this.enabledTools);
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String mcpServer;
-            private java.util.List<String> enabledTools;
-
-            private Builder() {}
-
-            public Builder mcpServer(String mcpServer) { this.mcpServer = mcpServer; return this; }
-            public Builder enabledTools(java.util.List<String> enabledTools) { this.enabledTools = enabledTools; return this; }
-
-            public McpAccessInput build() { return new McpAccessInput(this); }
         }
     }
 
