@@ -131,7 +131,10 @@ describe("validateWindows", () => {
       validateWindows({ pauseAfterSeconds: 300, suspendAfterSeconds: 330 }),
     ).not.toThrow();
     expect(() =>
-      validateWindows({ pauseAfterSeconds: 300, suspendAfterSeconds: 300 + 30 * 60 }),
+      validateWindows({
+        pauseAfterSeconds: 300,
+        suspendAfterSeconds: 300 + 30 * 60,
+      }),
     ).not.toThrow();
     expect(() =>
       validateWindows({ pauseAfterSeconds: 60, suspendAfterSeconds: 180 }),
