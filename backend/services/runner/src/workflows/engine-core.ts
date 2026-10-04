@@ -337,9 +337,11 @@ export async function runWorkflowEngine(
       orchestrateAgentCall({
         config,
         runtimeEnv,
-        parentWorkflowId: agentMeta.parentWorkflowId || workflowInfo().workflowId,
+        // The child's link to this run is always this run's own: the
+        // workflow the server signals and the execution it belongs to.
+        parentWorkflowId: workflowInfo().workflowId,
         taskName: agentMeta.taskName,
-        workflowExecutionId: agentMeta.workflowExecutionId || executionId,
+        workflowExecutionId: executionId,
         nextEventSequence,
       }),
     promoteTaskOutput: (taskOutput: unknown, wexId: string, taskName: string, displayName?: string) =>

@@ -222,11 +222,11 @@ public final class SessionInput {
 
         WorkspaceSource toProto() {
             WorkspaceSource.Builder builder = WorkspaceSource.newBuilder();
-            if (this.gitRepo != null) {
-                builder.setGitRepo(this.gitRepo.toProto());
-            }
             if (this.localPath != null) {
                 builder.setLocalPath(this.localPath.toProto());
+            }
+            if (this.gitRepo != null) {
+                builder.setGitRepo(this.gitRepo.toProto());
             }
             return builder.build();
         }

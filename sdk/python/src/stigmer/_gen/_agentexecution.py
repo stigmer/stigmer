@@ -304,10 +304,10 @@ class WorkspaceSourceInput:
 
     def _to_proto(self) -> session_workspace_pb2.WorkspaceSource:
         msg = session_workspace_pb2.WorkspaceSource()
-        if self.git_repo is not None:
-            msg.git_repo.CopyFrom(self.git_repo._to_proto())
         if self.local_path is not None:
             msg.local_path.CopyFrom(self.local_path._to_proto())
+        if self.git_repo is not None:
+            msg.git_repo.CopyFrom(self.git_repo._to_proto())
         return msg
 
 

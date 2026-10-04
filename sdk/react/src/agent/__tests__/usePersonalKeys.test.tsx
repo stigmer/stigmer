@@ -12,9 +12,9 @@ import { useOrganizationId, usePersonalKeys } from "../usePersonalKeys";
 // The keys a run reads from the person's personal environment, as the
 // server fills them: the declared keys minus the agent's servers' OAuth
 // variables, none for an agent of another organization. Not ready while
-// the servers load; a server that cannot be read leaves its variables
-// named. Without an organization list, an organization reference is taken
-// as the id it names.
+// the servers load; a usage that names no server is skipped, and a server
+// that cannot be read leaves its variables named. Without an organization
+// list, an organization reference is taken as the id it names.
 // ---------------------------------------------------------------------------
 
 const ORG = "org_acme";
@@ -47,6 +47,20 @@ describe("usePersonalKeys", () => {
       wrapper: wrapperFor(vi.fn().mockReturnValue(new Promise(() => {}))),
     });
     expect(result.current).toEqual({ keys: [], isReady: false });
+  });
+
+  it("skips a server usage that names no server", async () => {
+    const agent = create(AgentSchema, {
+      metadata: { id: "agt_1", org: ORG, slug: "reviewer" },
+      spec: { env: { GITHUB_TOKEN: {} }, mcpServerUsages: [{}] },
+    });
+    const getServer = vi.fn();
+    const { result } = renderHook(() => usePersonalKeys(agent, agent.spec, ORG), {
+      wrapper: wrapperFor(getServer),
+    });
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+    expect(result.current.keys).toEqual(["GITHUB_TOKEN"]);
+    expect(getServer).not.toHaveBeenCalled();
   });
 
   it("names a variable of a server that cannot be read", async () => {

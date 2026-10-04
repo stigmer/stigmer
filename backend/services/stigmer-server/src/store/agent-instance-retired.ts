@@ -31,6 +31,17 @@
  *   - a session that named no instance (the built-in assistant) is left
  *     byte for byte as it is.
  *
+ * What leaves with the instances. Every instance's `environment_refs`
+ * are dropped with it, a person's personal instance included: no row the
+ * step writes carries them anywhere. A conversation that got keys from its
+ * instance reads them from then on from the person's personal environment
+ * (when the agent belongs to the run's own organization) or from the
+ * layers a schedule, a workflow task or a PlatformClient caller supplies.
+ * Every IamPolicy row whose resource or principal is an instance leaves too
+ * (`policyNamesRetiredInstance`): a grant on an object that no longer
+ * exists would only linger in grant listings. Such a row leaves the way the
+ * store deletes a policy, with its list keys and with its history kept.
+ *
  * Agent rows and agent executions are not rewritten: an agent's retired
  * default-instance pointer rides as an unknown field no reader decodes, and
  * a turn keeps the history it was created with (recover records a session's
@@ -46,6 +57,7 @@ import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { BinaryReader, WireType } from "@bufbuild/protobuf/wire";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
@@ -58,6 +70,8 @@ import { FrozenAgentInstanceEnvelopeSchema } from "./frozen-agent-instance.js";
 export const RETIRED_INSTANCE_KIND = "agent_instance";
 export const SESSION_KIND = "session";
 export const AGENT_KIND = "agent";
+/** The `kind` column value of the grant rows the step reads. */
+export const POLICY_KIND = "iam_policy";
 
 /** How many session rows the step decodes per page. */
 export const RETIREMENT_PAGE_SIZE = 500;
@@ -152,6 +166,21 @@ export function migrateSessionRow(
     }
   }
   return toBinary(SessionSchema, session);
+}
+
+/**
+ * Whether a stored IamPolicy row names an agent instance as its resource
+ * or its principal (an `ApiResourceRef.kind` is the enum member name, the
+ * string the instance kind's rows were stored under). Read through the
+ * live schema: the policy's own fields are unchanged. Throws when the
+ * bytes do not decode.
+ */
+export function policyNamesRetiredInstance(data: Uint8Array): boolean {
+  const spec = fromBinary(IamPolicySchema, data).spec;
+  return (
+    spec?.resource?.kind === RETIRED_INSTANCE_KIND ||
+    spec?.principal?.kind === RETIRED_INSTANCE_KIND
+  );
 }
 
 /** The step's failure for a row it cannot read (the module header). */

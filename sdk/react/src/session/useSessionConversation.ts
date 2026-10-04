@@ -879,12 +879,15 @@ const LATEST_AGENT_VERSION = "latest";
  * clears the collection — normalized to absent, the mappers' canonical
  * shape).
  *
- * The agent reference is the one field an echo could move: the server
- * re-pins a stored `latest` to the agent's newest version on every write
- * that carries it. An unchanged agent is therefore echoed without that
- * version, which keeps the session's pin, so editing the workspace or
- * the tools never changes the agent version a conversation runs. An
- * override of `null` clears the agent (the built-in assistant).
+ * The agent reference is the one field an echo could move: a write that
+ * names `latest` re-pins the session to the agent's newest version. The
+ * server never stores `latest` (it applies the instruction and drops
+ * it), and an unchanged agent is echoed exactly as stored — no version,
+ * a tag or a hash — so the server keeps the pin; a reference in hand
+ * that carries `latest` is echoed without it for the same reason. So
+ * editing the workspace or the tools never changes the agent version a
+ * conversation runs. An override of `null` clears the agent (the
+ * built-in assistant).
  */
 function buildUpdateInput(
   session: Session,

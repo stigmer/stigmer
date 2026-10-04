@@ -59,6 +59,14 @@ describe("the Go generator's scalar oneof member", () => {
     expect(id).toBeGreaterThan(spec);
   });
 
+  it("orders a nested oneof the same way: the first-declared member, git_repo, wins", () => {
+    const fn = go.slice(go.indexOf("func (i *WorkspaceSourceInput) toProto()"));
+    const local = fn.indexOf("p.Source = &sessionv1.WorkspaceSource_LocalPath{");
+    const git = fn.indexOf("p.Source = &sessionv1.WorkspaceSource_GitRepo{");
+    expect(local).toBeGreaterThan(-1);
+    expect(git).toBeGreaterThan(local);
+  });
+
   it("reads the member back through its getter", () => {
     expect(go).toContain("\t\tinput.SessionId = s.GetSessionId()\n");
   });

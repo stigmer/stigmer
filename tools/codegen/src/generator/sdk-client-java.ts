@@ -1272,7 +1272,7 @@ function emitJavaNestedTypes(
 
   buf.push(`        ${protoType} toProto() {\n`);
   buf.push(`            ${protoType}.Builder builder = ${protoType}.newBuilder();\n`);
-  for (const field of ts.fields) {
+  for (const field of firstMemberWinsOrder(ts.fields)) {
     emitJavaNestedToProtoField(buf, field, "            ");
   }
   buf.push("            return builder.build();\n");
@@ -1351,6 +1351,21 @@ function emitJavaToProto(buf: string[], cfg: SdkResourceConfig, spec: TaskConfig
   buf.push("    }\n");
 }
 
+/**
+ * A plain string field, set on `target` when the caller set it. A member of
+ * a real oneof is set only when non-empty: a member claims the oneof when
+ * set, so an empty string is unset, as in every other SDK's input.
+ */
+function emitJavaStringField(buf: string[], target: string, f: FieldSchema, indent: string): void {
+  const fieldName = javaCamel(f.protoField);
+  const set = isRealOneofMember(f)
+    ? `this.${fieldName} != null && !this.${fieldName}.isEmpty()`
+    : `this.${fieldName} != null`;
+  buf.push(`${indent}if (${set}) {\n`);
+  buf.push(`${indent}    ${target}.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
+  buf.push(`${indent}}\n`);
+}
+
 function emitJavaToProtoField(buf: string[], f: FieldSchema, indent: string): void {
   const fieldName = javaCamel(f.protoField);
   const t = f.type;
@@ -1376,16 +1391,8 @@ function emitJavaToProtoField(buf: string[], f: FieldSchema, indent: string): vo
     buf.push(`${indent}if (this.${fieldName} != null) {\n`);
     buf.push(`${indent}    spec.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
     buf.push(`${indent}}\n`);
-  } else if (t.kind === "string" && isRealOneofMember(f)) {
-    // A oneof member claims the oneof when set, so an empty string is
-    // unset here, as in every other SDK's input.
-    buf.push(`${indent}if (this.${fieldName} != null && !this.${fieldName}.isEmpty()) {\n`);
-    buf.push(`${indent}    spec.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
-    buf.push(`${indent}}\n`);
   } else if (t.kind === "string") {
-    buf.push(`${indent}if (this.${fieldName} != null) {\n`);
-    buf.push(`${indent}    spec.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
-    buf.push(`${indent}}\n`);
+    emitJavaStringField(buf, "spec", f, indent);
   } else if (hasExplicitPresence(f)) {
     buf.push(`${indent}if (this.${fieldName} != null) {\n`);
     buf.push(`${indent}    spec.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
@@ -1492,9 +1499,7 @@ function emitJavaNestedToProtoField(buf: string[], f: FieldSchema, indent: strin
     buf.push(`${indent}    builder.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
     buf.push(`${indent}}\n`);
   } else if (t.kind === "string") {
-    buf.push(`${indent}if (this.${fieldName} != null) {\n`);
-    buf.push(`${indent}    builder.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
-    buf.push(`${indent}}\n`);
+    emitJavaStringField(buf, "builder", f, indent);
   } else if (t.kind === "bytes") {
     buf.push(`${indent}if (this.${fieldName} != null) {\n`);
     buf.push(`${indent}    builder.${javaSetterName(f.protoField)}(com.google.protobuf.ByteString.copyFrom(this.${fieldName}));\n`);

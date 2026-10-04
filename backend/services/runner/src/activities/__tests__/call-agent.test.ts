@@ -12,9 +12,10 @@
  *     organization or slug is refused before anything is written, since an
  *     empty reference would name that assistant;
  *   - the turn is created in that session and linked to the workflow run by
- *     `parent` (execution id, the workflow to signal, the task token), and
- *     is refused before anything is written when the workflow execution id
- *     is missing;
+ *     `parent` (execution id, the workflow to signal, the task token); the
+ *     task's execution id wins over the environment's unless it is empty,
+ *     and the turn is refused before anything is written when neither has
+ *     one;
  *   - run_config, workspace entries, provenance labels and env forwarding
  *     map onto the request as the module header describes.
  */
@@ -342,6 +343,21 @@ describe("callAgentAction", () => {
 
       const execution = mockCreateAgentExecution.mock.calls[0][0];
       expect(execution.spec.parent?.workflowExecutionId).toBe("wex_from_task");
+    });
+
+    it("links the turn by the environment's execution id when the task's is empty", async () => {
+      // An empty id is no id: it falls back rather than linking the turn to "".
+      await expect(
+        callAgentAction(
+          { agent: "my-agent", message: "Hello", __wfExecId: "", __taskName: "triage" } as never,
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: "wex_from_env" },
+          "wfl_parent",
+          appConfig,
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const execution = mockCreateAgentExecution.mock.calls[0][0];
+      expect(execution.spec.parent?.workflowExecutionId).toBe("wex_from_env");
     });
 
     it("refuses without a workflow execution id, before any session or turn is written", async () => {

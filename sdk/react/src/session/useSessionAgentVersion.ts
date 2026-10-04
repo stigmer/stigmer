@@ -57,8 +57,9 @@ export interface UseSessionAgentVersionReturn {
    * The keys the agent's current version reads from the person's personal
    * environment (usePersonalKeys: its declared keys, minus its servers'
    * OAuth variables, and none for an agent of another organization than
-   * the session's), sorted: what an update hands the agent. Empty until the
-   * agent and its servers load.
+   * the session's), sorted: what an update hands the agent. Empty while
+   * the conversation is current (no update to name them for), and until
+   * the agent and its servers load.
    */
   readonly currentPersonalKeys: readonly string[];
   /**
@@ -124,13 +125,15 @@ export function useSessionAgentVersion(
 
   const currentHash = agent?.status?.versionHash ?? "";
   const agentName = agent?.metadata?.name || agent?.metadata?.slug || "";
+  const isOutdated =
+    pinnedHash !== "" && currentHash !== "" && pinnedHash !== currentHash;
+  // The keys are named only beside the update control, so the agent's
+  // servers are read only while the conversation is outdated.
   const { keys: currentPersonalKeys } = usePersonalKeys(
-    agent ?? null,
+    isOutdated ? (agent ?? null) : null,
     agent?.spec,
     session?.metadata?.org ?? "",
   );
-  const isOutdated =
-    pinnedHash !== "" && currentHash !== "" && pinnedHash !== currentHash;
 
   const labelOf = useCallback(
     (versionHash: string) => agentVersionLabel(versions, versionHash),

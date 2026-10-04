@@ -41,12 +41,14 @@ import type { PoolClient } from "pg";
 
 import {
   AGENT_KIND,
+  POLICY_KIND,
   RETIRED_INSTANCE_KIND,
   RETIREMENT_PAGE_SIZE,
   SESSION_KIND,
   agentFactsOf,
   instanceAgentIdOf,
   migrateSessionRow,
+  policyNamesRetiredInstance,
   unreadableRowError,
 } from "../agent-instance-retired.js";
 import type { InstanceAgent } from "../agent-instance-retired.js";
@@ -593,6 +595,9 @@ async function migrateToV8(client: PoolClient): Promise<void> {
  *   instance, with `updated_at` bumped the way the store's writes bump it,
  *   so the list index re-derives the row (its key changed with the
  *   session's revision) the way it re-derives any unproven row.
+ * - Every IamPolicy row is read in keyset pages, and the ones naming an
+ *   instance as resource or principal are deleted with their list keys,
+ *   their history kept, as the store deletes a policy.
  * - The instance rows, their history and their list keys are then
  *   deleted; the search index is left to boot's RebuildIndex, which
  *   re-indexes only the registered kinds (the v4 precedent). The chain's advisory lock keeps a second
@@ -613,22 +618,31 @@ async function migrateToV9(client: PoolClient): Promise<void> {
         [kind, after, RETIREMENT_PAGE_SIZE],
       )
     ).rows;
+  /** Every row of a kind, in keyset pages, in id order. */
+  const forEachRow = async (
+    kind: string,
+    visit: (row: { id: string; data: Buffer }) => Promise<void> | void,
+  ): Promise<void> => {
+    for (let after = ""; ; ) {
+      const rows = await pageOf(kind, after);
+      for (const row of rows) {
+        await visit(row);
+      }
+      if (rows.length < RETIREMENT_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
 
   const instanceAgents = new Map<string, string>();
-  for (let after = ""; ; ) {
-    const rows = await pageOf(RETIRED_INSTANCE_KIND, after);
-    for (const row of rows) {
-      try {
-        instanceAgents.set(row.id, instanceAgentIdOf(new Uint8Array(row.data)));
-      } catch (error) {
-        throw unreadableRowError(RETIRED_INSTANCE_KIND, row.id, error);
-      }
+  await forEachRow(RETIRED_INSTANCE_KIND, (row) => {
+    try {
+      instanceAgents.set(row.id, instanceAgentIdOf(new Uint8Array(row.data)));
+    } catch (error) {
+      throw unreadableRowError(RETIRED_INSTANCE_KIND, row.id, error);
     }
-    if (rows.length < RETIREMENT_PAGE_SIZE) {
-      break;
-    }
-    after = rows[rows.length - 1]!.id;
-  }
+  });
 
   const agents = new Map<string, InstanceAgent>();
   for (const agentId of new Set(instanceAgents.values())) {
@@ -658,26 +672,36 @@ async function migrateToV9(client: PoolClient): Promise<void> {
       : agents.get(agentId);
   };
 
-  for (let after = ""; ; ) {
-    const rows = await pageOf(SESSION_KIND, after);
-    for (const row of rows) {
-      let migrated: Uint8Array | undefined;
-      try {
-        migrated = migrateSessionRow(new Uint8Array(row.data), agentOf);
-      } catch (error) {
-        throw unreadableRowError(SESSION_KIND, row.id, error);
-      }
-      if (migrated !== undefined) {
-        await client.query(
-          `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`,
-          [Buffer.from(migrated), SESSION_KIND, row.id],
-        );
-      }
+  await forEachRow(SESSION_KIND, async (row) => {
+    let migrated: Uint8Array | undefined;
+    try {
+      migrated = migrateSessionRow(new Uint8Array(row.data), agentOf);
+    } catch (error) {
+      throw unreadableRowError(SESSION_KIND, row.id, error);
     }
-    if (rows.length < RETIREMENT_PAGE_SIZE) {
-      break;
+    if (migrated !== undefined) {
+      await client.query(
+        `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`,
+        [Buffer.from(migrated), SESSION_KIND, row.id],
+      );
     }
-    after = rows[rows.length - 1]!.id;
+  });
+
+  const retiredPolicies: string[] = [];
+  await forEachRow(POLICY_KIND, (row) => {
+    try {
+      if (policyNamesRetiredInstance(new Uint8Array(row.data))) {
+        retiredPolicies.push(row.id);
+      }
+    } catch (error) {
+      throw unreadableRowError(POLICY_KIND, row.id, error);
+    }
+  });
+  for (const table of ["resource_list_keys", "resources"]) {
+    await client.query(
+      `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
+      [POLICY_KIND, retiredPolicies],
+    );
   }
 
   await client.query(`DELETE FROM resource_audit WHERE kind = $1`, [

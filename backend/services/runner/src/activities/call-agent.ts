@@ -21,8 +21,11 @@
  * activity, and what the server derives the child's dispatch queue from
  * (the workflow run's own sandbox), so a call with no workflow execution
  * id fails here rather than creating a turn nothing would ever wait on.
- * The server honours the link only from the runner it vouches for that
- * workflow run.
+ * The link's three values come from the runner's own run, never from
+ * workflow data: the workflow execution id and the workflow to signal
+ * are the engine's own (its execution id and its Temporal workflow id),
+ * and the callback token is this activity's own task token. The server
+ * honours the link only from the runner it vouches for that workflow run.
  *
  * The platform completes this activity asynchronously via the token
  * when the agent execution workflow finishes.

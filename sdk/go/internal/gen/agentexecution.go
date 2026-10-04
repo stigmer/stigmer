@@ -390,6 +390,11 @@ func (i *WorkspaceEntryInput) toProto() (*sessionv1.WorkspaceEntry, error) {
 
 func (i *WorkspaceSourceInput) toProto() (*sessionv1.WorkspaceSource, error) {
 	p := &sessionv1.WorkspaceSource{}
+	if i.LocalPath != nil {
+		m := &sessionv1.LocalPathSource{}
+		m.Path = i.LocalPath.Path
+		p.Source = &sessionv1.WorkspaceSource_LocalPath{LocalPath: m}
+	}
 	if i.GitRepo != nil {
 		m := &sessionv1.GitRepoSource{}
 		m.Url = i.GitRepo.Url
@@ -401,11 +406,6 @@ func (i *WorkspaceSourceInput) toProto() (*sessionv1.WorkspaceSource, error) {
 		}
 		m.WriteBackMode = i.GitRepo.WriteBackMode
 		p.Source = &sessionv1.WorkspaceSource_GitRepo{GitRepo: m}
-	}
-	if i.LocalPath != nil {
-		m := &sessionv1.LocalPathSource{}
-		m.Path = i.LocalPath.Path
-		p.Source = &sessionv1.WorkspaceSource_LocalPath{LocalPath: m}
 	}
 	return p, nil
 }

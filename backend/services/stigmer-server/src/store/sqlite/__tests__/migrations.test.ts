@@ -22,8 +22,11 @@
  * gone, or names no agent), across keyset pages, and the instance rows
  * leave every table; the store opened on the migrated database finds each
  * moved session through the session list index's `agent` key, the one
- * listByAgent reads; a session, instance or agent row it cannot decode
- * fails the step, naming the row, and leaves the database at v13.
+ * listByAgent reads; every IamPolicy row naming an instance as resource
+ * or principal leaves with its list keys (its history kept) while a grant
+ * on another kind stays; a session, instance, agent or policy row it
+ * cannot decode fails the step, naming the row, and leaves the database at
+ * v13.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -58,6 +61,7 @@ import {
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
 import {
+  policyRow,
   retiredInstanceRow,
   retiredSessionRow,
   sessionBytes,
@@ -1042,6 +1046,60 @@ describe("v14: sessions name their agent and the agent instance rows leave", () 
     expect(await byAgent("agt_gone")).toEqual(["ses_agent_gone"]);
   });
 
+  it("removes every grant naming an instance and keeps a grant on another kind", () => {
+    const { dbPath, db: setup } = v13Database();
+    seedInstances(setup);
+    const onAgent = {
+      id: "iam_on_agent",
+      principal: "identity_account:ida_1",
+      relation: "viewer",
+      resource: "agent:agt_1",
+    };
+    for (const policy of [
+      {
+        id: "iam_on_instance",
+        principal: "identity_account:ida_1",
+        relation: "viewer",
+        resource: "agent_instance:ain_1",
+      },
+      {
+        id: "iam_from_instance",
+        principal: "agent_instance:ain_1",
+        relation: "agent_instance",
+        resource: "session:ses_1",
+      },
+      onAgent,
+    ]) {
+      insert(setup, "iam_policy", policy.id, policyRow(policy));
+      setup
+        .prepare(
+          `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
+        )
+        .run(policy.id, policy.principal.split(":")[1] ?? "");
+    }
+    setup
+      .prepare(
+        `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iam_on_instance', ?, '', '')`,
+      )
+      .run(new Uint8Array([0x00]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_14);
+
+    const ids = (table: string) =>
+      (
+        db
+          .prepare(`SELECT id FROM ${table} WHERE kind = 'iam_policy' ORDER BY id`)
+          .all() as Array<{ id: string }>
+      ).map((row) => row.id);
+    expect(ids("resources")).toEqual(["iam_on_agent"]);
+    expect(ids("resource_list_keys")).toEqual(["iam_on_agent"]);
+    expect(data(db, "iam_policy", "iam_on_agent")).toEqual(policyRow(onAgent));
+    expect(count(db, "resource_audit", "iam_policy")).toBe(1);
+  });
+
   it("reads sessions across keyset pages, missing none past the first page", () => {
     const { dbPath, db: setup } = v13Database();
     seedInstances(setup);
@@ -1126,6 +1184,7 @@ describe("v14: sessions name their agent and the agent instance rows leave", () 
     { kind: "agent_instance", id: "ain_broken" },
     // ain_orphan names agt_gone: the step reads it as the agent.
     { kind: "agent", id: "agt_gone" },
+    { kind: "iam_policy", id: "iam_broken" },
   ])(
     "a $kind row that does not decode fails the step, names the row, and leaves the database at v13",
     (broken) => {

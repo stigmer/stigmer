@@ -47,7 +47,8 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
             "Existing session ID to continue a conversation (from a previous execution's " +
               "spec.session_id). Omit to start a new session. A turn in a session runs the agent " +
               "the session started on and belongs to that session's organization, which the server " +
-              "applies; `org` and `agent` are not sent with it.",
+              "applies. `agent` (and `org`, when given) must name the session's agent, or the call " +
+              "is refused; neither is sent with the turn.",
           ),
         runtime_env: z
           .record(z.string())

@@ -578,6 +578,41 @@ describe("SessionViewer — the agent version notice and the personal-key disclo
     expect(lastComposerProps().disclosePersonalKeys).toBe(false);
   });
 
+  it("names the keys of the session's pinned version while the next message runs the session's own agent", () => {
+    const pinnedSession = {
+      spec: { agentRef: { org: "acme", slug: "support-bot" } },
+      status: { agentId: "agt_1", agentVersionHash: "h_pinned" },
+    };
+    // A conversation with no turn yet, on its own agent: disclosed, from the pin.
+    mockUseSessionPageFlow.mockImplementation(() => ({
+      ...stubSessionPageFlow,
+      conv: { ...stubConv, session: pinnedSession },
+    }));
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(lastComposerProps().disclosePersonalKeys).toBe(true);
+    expect(lastComposerProps().personalKeysVersionHash).toBe("h_pinned");
+    cleanup();
+
+    // Turns already ran on that agent: nothing new to disclose.
+    mockUseSessionPageFlow.mockImplementation(() => ({
+      ...stubSessionPageFlow,
+      conv: { ...stubConv, session: pinnedSession, completedExecutions: [{}] as never[] },
+    }));
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(lastComposerProps().disclosePersonalKeys).toBe(false);
+    cleanup();
+
+    // The person picked another agent: disclosed, from that agent's current version.
+    mockUseSessionPageFlow.mockImplementation(() => ({
+      ...stubSessionPageFlow,
+      agentRef: { org: "acme", slug: "other-bot" },
+      conv: { ...stubConv, session: pinnedSession, completedExecutions: [{}] as never[] },
+    }));
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(lastComposerProps().disclosePersonalKeys).toBe(true);
+    expect(lastComposerProps().personalKeysVersionHash).toBeUndefined();
+  });
+
   it("the launcher discloses the personal keys for a signed-in person", () => {
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
     expect(lastComposerProps().disclosePersonalKeys).toBe(true);

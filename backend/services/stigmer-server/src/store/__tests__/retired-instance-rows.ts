@@ -5,14 +5,16 @@
  * (api_version 1, kind 2, metadata 3, spec 4 { agent_id 1, description 2 },
  * status 5) and a Session row whose spec carries the retired
  * agent_instance_id (SessionSpec field 1), with or without the status (its
- * audit) the session had gained by then. Shared by the module's unit test,
- * the frozen-envelope test and both drivers' migration tests, so every one
- * reads the same old shape.
+ * audit) the session had gained by then; and an IamPolicy row, in the live
+ * schema, naming whatever principal and resource a test gives it. Shared
+ * by the module's unit test, the frozen-envelope test and both drivers'
+ * migration tests, so every one reads the same old shape.
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
@@ -105,6 +107,32 @@ export function sessionBytes(
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Session",
       ...init,
+    }),
+  );
+}
+
+/** A stored IamPolicy row: `principal` -relation-> `resource`, each "kind:id". */
+export function policyRow(options: {
+  readonly id: string;
+  readonly principal: string;
+  readonly relation: string;
+  readonly resource: string;
+}): Uint8Array {
+  const ref = (text: string) => {
+    const [kind = "", id = ""] = text.split(":");
+    return { kind, id };
+  };
+  return toBinary(
+    IamPolicySchema,
+    create(IamPolicySchema, {
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "IamPolicy",
+      metadata: { id: options.id },
+      spec: {
+        principal: ref(options.principal),
+        resource: ref(options.resource),
+        relation: options.relation,
+      },
     }),
   );
 }

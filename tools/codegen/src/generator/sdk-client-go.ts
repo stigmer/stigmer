@@ -1078,7 +1078,7 @@ function emitNestedToProto(
   if (needsImperative) {
     buf.push(`func (i *${inputName}) toProto() (*${protoAlias}.${msgName}, error) {\n`);
     buf.push(`\tp := &${protoAlias}.${msgName}{}\n`);
-    for (const field of ts.fields) {
+    for (const field of firstMemberWinsOrder(ts.fields)) {
       const pf = goProtoFieldName(field.protoField);
       if (hasExplicitPresence(field)) {
         // The input's field is a plain value, so its zero reads as unset,

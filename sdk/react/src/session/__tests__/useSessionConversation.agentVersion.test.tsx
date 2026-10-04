@@ -127,7 +127,7 @@ describe("useSessionConversation — the agent version a session runs", () => {
     expect(sessionUpdate).not.toHaveBeenCalled();
   });
 
-  it("a follow-up that rewrites the session echoes a stored latest without its version, keeping the pin", async () => {
+  it("a follow-up that rewrites the session echoes a latest in hand without its version, never re-pinning", async () => {
     sessionGet.mockResolvedValue(sessionOnAgent("latest"));
     const { result } = await loaded();
 

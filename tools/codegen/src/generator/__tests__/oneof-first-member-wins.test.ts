@@ -4,9 +4,11 @@
  * as in the TypeScript input (firstMemberWinsOrder). For the agent
  * execution's `target` oneof, `session_id` wins over `session_spec`, so a
  * follow-up turn never silently starts a new conversation; and an empty
- * `session_id` is unset, never a member that claims the oneof. Checked on
- * what the Java and Python generators write over the real schemas (the Go
- * generator's output is pinned by go-scalar-oneof-member.test.ts).
+ * `session_id` is unset, never a member that claims the oneof. A nested
+ * oneof (the workspace source inside a session spec) follows the same
+ * rule: `git_repo` wins over `local_path`. Checked on what the Java and
+ * Python generators write over the real schemas (the Go generator's output
+ * is pinned by go-scalar-oneof-member.test.ts).
  */
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -43,6 +45,19 @@ describe("the Java input's target oneof", () => {
     const id = java.indexOf(guard);
     expect(spec).toBeGreaterThan(-1);
     expect(id).toBeGreaterThan(spec);
+  });
+});
+
+describe("a nested oneof", () => {
+  it("assigns git_repo after local_path in Java and Python, so it wins", () => {
+    const javaSource = java.slice(java.indexOf("class WorkspaceSourceInput"));
+    const javaLocal = javaSource.indexOf("builder.setLocalPath(");
+    expect(javaLocal).toBeGreaterThan(-1);
+    expect(javaSource.indexOf("builder.setGitRepo(")).toBeGreaterThan(javaLocal);
+    const pySource = python.slice(python.indexOf("class WorkspaceSourceInput"));
+    const pyLocal = pySource.indexOf("msg.local_path.CopyFrom(");
+    expect(pyLocal).toBeGreaterThan(-1);
+    expect(pySource.indexOf("msg.git_repo.CopyFrom(")).toBeGreaterThan(pyLocal);
   });
 });
 

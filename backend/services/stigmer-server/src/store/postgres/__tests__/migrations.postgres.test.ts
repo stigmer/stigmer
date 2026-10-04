@@ -19,9 +19,11 @@
  * no agent), reading instances and sessions across keyset pages, and the
  * instance rows leave every table; the store opened on the migrated
  * database finds each moved session through the session list index's
- * `agent` key, the one listByAgent reads; a session, instance or agent row
- * it cannot decode fails the step, naming the row, and leaves the database
- * at v8. A step's
+ * `agent` key, the one listByAgent reads; every IamPolicy row naming an
+ * instance as resource or principal leaves with its list keys (its history
+ * kept) while a grant on another kind stays; a session, instance, agent or
+ * policy row it cannot decode fails the step, naming the row, and leaves
+ * the database at v8. A step's
  * starting database is built by running the chain up to the step before it.
  * Newer schemas are refused without writes or reconciliation; refusal
  * releases the migration lock and closes a failed store's pool.
@@ -57,6 +59,7 @@ import {
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
 import {
+  policyRow,
   retiredInstanceRow,
   retiredSessionRow,
   sessionBytes,
@@ -933,6 +936,61 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         }
       });
 
+      it("removes every grant naming an instance and keeps a grant on another kind", async () => {
+        const client = await v8Client();
+        try {
+          await seedInstances(client);
+          const onAgent = {
+            id: "iam_on_agent",
+            principal: "identity_account:ida_1",
+            relation: "viewer",
+            resource: "agent:agt_1",
+          };
+          for (const policy of [
+            {
+              id: "iam_on_instance",
+              principal: "identity_account:ida_1",
+              relation: "viewer",
+              resource: "agent_instance:ain_1",
+            },
+            {
+              id: "iam_from_instance",
+              principal: "agent_instance:ain_1",
+              relation: "agent_instance",
+              resource: "session:ses_1",
+            },
+            onAgent,
+          ]) {
+            await insert(client, "iam_policy", policy.id, policyRow(policy));
+            await client.query(
+              `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', $1, 'principal', $2, '')`,
+              [policy.id, policy.principal.split(":")[1] ?? ""],
+            );
+          }
+          await client.query(
+            `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iam_on_instance', $1, '', '')`,
+            [Buffer.from([0x00])],
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_9);
+
+          const ids = async (table: string): Promise<string[]> =>
+            (
+              await client.query<{ id: string }>(
+                `SELECT id FROM ${table} WHERE kind = 'iam_policy' ORDER BY id`,
+              )
+            ).rows.map((row) => row.id);
+          expect(await ids("resources")).toEqual(["iam_on_agent"]);
+          expect(await ids("resource_list_keys")).toEqual(["iam_on_agent"]);
+          expect(await data(client, "iam_policy", "iam_on_agent")).toEqual(
+            policyRow(onAgent),
+          );
+          expect(await count(client, "resource_audit", "iam_policy")).toBe(1);
+        } finally {
+          await client.end();
+        }
+      });
+
       it("reads sessions across keyset pages, missing none past the first page", async () => {
         const client = await v8Client();
         try {
@@ -1065,6 +1123,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         { kind: "agent_instance", id: "ain_broken" },
         // ain_orphan names agt_gone: the step reads it as the agent.
         { kind: "agent", id: "agt_gone" },
+        { kind: "iam_policy", id: "iam_broken" },
       ])(
         "a $kind row that does not decode fails the step, names the row, and leaves the database at v8",
         async (broken) => {

@@ -37,12 +37,14 @@ import type { DatabaseSync } from "node:sqlite";
 
 import {
   AGENT_KIND,
+  POLICY_KIND,
   RETIRED_INSTANCE_KIND,
   RETIREMENT_PAGE_SIZE,
   SESSION_KIND,
   agentFactsOf,
   instanceAgentIdOf,
   migrateSessionRow,
+  policyNamesRetiredInstance,
   unreadableRowError,
 } from "../agent-instance-retired.js";
 import type { InstanceAgent } from "../agent-instance-retired.js";
@@ -610,8 +612,11 @@ function migrateToV13(db: DatabaseSync): void {
  * read in keyset pages for the agent it names, each named agent once by
  * point read, then every session in keyset pages, rewritten when it names
  * an instance with `updated_at` bumped (the list index re-derives a row
- * whose stamp no longer matches, at open). The instance rows, their
- * history and their list keys are then deleted; the search index is left
+ * whose stamp no longer matches, at open). Every IamPolicy row naming an
+ * instance as resource or principal is found in keyset pages and deleted
+ * with its list keys, its history kept, as the store deletes a policy. The
+ * instance rows, their history and their list keys are then deleted; the
+ * search index is left
  * to boot's RebuildIndex, which re-indexes only the registered kinds (the
  * v9 precedent).
  * Runs inside applyInTransaction's BEGIN, so a throw rolls the whole step
@@ -687,6 +692,25 @@ function migrateToV14(db: DatabaseSync): void {
     }
     if (migrated !== undefined) {
       update.run(migrated, SESSION_KIND, row.id);
+    }
+  }
+
+  const retiredPolicies: string[] = [];
+  for (const row of pages(POLICY_KIND)) {
+    try {
+      if (policyNamesRetiredInstance(row.data)) {
+        retiredPolicies.push(row.id);
+      }
+    } catch (error) {
+      throw unreadableRowError(POLICY_KIND, row.id, error);
+    }
+  }
+  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
+  );
+  for (const id of retiredPolicies) {
+    for (const statement of deletePolicy) {
+      statement.run(POLICY_KIND, id);
     }
   }
 

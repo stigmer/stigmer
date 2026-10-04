@@ -6,7 +6,8 @@
 // stubbed controllers, the MCP server driven through an in-memory client. The
 // stubs capture requests so the tests assert the exact protos the tools send
 // (slug→reference resolution and a missing agent's not-found, the turn's
-// target, runtime-env conversion, approval enum mapping) and
+// target, a follow-up refused when it names another agent or organization
+// than the session's, runtime-env conversion, approval enum mapping) and
 // script execution state (running vs terminal, long message histories) to
 // exercise the compact projection and the cancel short-circuit.
 
@@ -36,6 +37,11 @@ import {
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import {
+  SessionSchema,
+  type Session,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import {
@@ -96,6 +102,14 @@ function workflowExecutionFixture(phase: WorkflowExecutionPhase): WorkflowExecut
   });
 }
 
+/** A session on code-reviewer, its reference holding the agent's organization id. */
+function sessionFixture(agentRef?: { org: string; slug: string }): Session {
+  return create(SessionSchema, {
+    metadata: { org: "acme", id: "ses_42" },
+    spec: agentRef === undefined ? {} : { agentRef: { kind: ApiResourceKind.agent, ...agentRef } },
+  });
+}
+
 const pendingApprovals = create(PendingApprovalsListSchema, {
   entries: [{ executionId: "wex_1", workflowName: "Release", taskName: "sign-off" }],
   totalCount: 1,
@@ -109,6 +123,7 @@ const openSessions = new Set<ServerHttp2Session>();
 let createdAgentExecution: AgentExecution | undefined;
 let createdWorkflowExecution: WorkflowExecution | undefined;
 let agentExecutionState: AgentExecution;
+let sessionState: Session;
 let workflowExecutionState: WorkflowExecution;
 let lastAgentApproval: SubmitApprovalInput | undefined;
 let lastWorkflowApproval: SubmitWorkflowTaskApprovalInput | undefined;
@@ -136,6 +151,9 @@ beforeAll(async () => {
     router.service(AgentQueryController, {
       getByReference: (req) => {
         agentLookups++;
+        if (req.org === "org-down") {
+          throw new ConnectError("agents hidden", Code.PermissionDenied);
+        }
         if (req.slug !== knownAgent.metadata?.slug) {
           throw new ConnectError(`agent ${req.slug} not found`, Code.NotFound);
         }
@@ -144,6 +162,14 @@ beforeAll(async () => {
     });
     router.service(AgentExecutionQueryController, {
       get: () => agentExecutionState,
+    });
+    router.service(SessionQueryController, {
+      get: (req) => {
+        if (req.value === "ses_gone") {
+          throw new ConnectError("session ses_gone not found", Code.NotFound);
+        }
+        return sessionState;
+      },
     });
     router.service(AgentExecutionCommandController, {
       create: (req) => {
@@ -205,6 +231,7 @@ beforeEach(() => {
   createdAgentExecution = undefined;
   createdWorkflowExecution = undefined;
   agentExecutionState = agentExecutionFixture(ExecutionPhase.EXECUTION_IN_PROGRESS);
+  sessionState = sessionFixture({ org: "acme", slug: "code-reviewer" });
   workflowExecutionState = workflowExecutionFixture(WorkflowExecutionPhase.EXECUTION_IN_PROGRESS);
   lastAgentApproval = undefined;
   lastWorkflowApproval = undefined;
@@ -288,12 +315,103 @@ describe("execution tools integration", () => {
       session_id: "ses_42",
     });
     // The session id alone: the session runs the agent it started on, so the
-    // tool neither looks the agent up nor names it.
+    // turn does not name it, and an org equal to the session's reference
+    // needs no lookup.
     expect(createdAgentExecution?.spec?.target).toEqual({ case: "sessionId", value: "ses_42" });
     expect(agentLookups).toBe(0);
     // The follow-up names no organization: the server files it under the
     // session's, which may differ from the agent's (stigmer/stigmer#1580).
     expect(createdAgentExecution?.metadata?.org).toBe("");
+  });
+
+  it("run_agent refuses a follow-up naming another agent than the session's", async () => {
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "release-bot",
+      message: "and the tests?",
+      session_id: "ses_42",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain(
+      'session "ses_42" runs agent "code-reviewer" in org "acme", not agent "release-bot" in org "acme"',
+    );
+    expect(createdAgentExecution).toBeUndefined();
+  });
+
+  it("run_agent refuses a follow-up naming an agent in a session on the built-in assistant", async () => {
+    sessionState = sessionFixture();
+    const result = await callTool("run_agent", {
+      org: "",
+      agent: "code-reviewer",
+      message: "and the tests?",
+      session_id: "ses_42",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain(
+      'session "ses_42" runs the built-in assistant, not agent "code-reviewer"',
+    );
+    expect(createdAgentExecution).toBeUndefined();
+  });
+
+  it("run_agent resolves an org given as a slug against the id the session's reference holds", async () => {
+    sessionState = sessionFixture({ org: "acme", slug: "code-reviewer" });
+    const result = await callTool("run_agent", {
+      org: "acme-corp",
+      agent: "code-reviewer",
+      message: "and the tests?",
+      session_id: "ses_42",
+    });
+
+    // "acme-corp" is not the reference's text; the stub resolves the named
+    // agent to organization "acme", the one the reference holds.
+    expect(result.isError).toBeFalsy();
+    expect(agentLookups).toBe(1);
+    expect(createdAgentExecution?.spec?.target).toEqual({ case: "sessionId", value: "ses_42" });
+  });
+
+  it("run_agent refuses a follow-up whose org names another organization's agent", async () => {
+    sessionState = sessionFixture({ org: "org_other", slug: "code-reviewer" });
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "code-reviewer",
+      message: "and the tests?",
+      session_id: "ses_42",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain(
+      'session "ses_42" runs agent "code-reviewer" in org "org_other", not agent "code-reviewer" in org "acme"',
+    );
+    expect(createdAgentExecution).toBeUndefined();
+  });
+
+  it("run_agent reports a session it cannot read and starts nothing", async () => {
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "code-reviewer",
+      message: "and the tests?",
+      session_id: "ses_gone",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('session "ses_gone"');
+    expect(createdAgentExecution).toBeUndefined();
+  });
+
+  it("run_agent reports an agent it cannot read while checking a follow-up's org, and starts nothing", async () => {
+    sessionState = sessionFixture({ org: "acme", slug: "code-reviewer" });
+    const result = await callTool("run_agent", {
+      org: "org-down",
+      agent: "code-reviewer",
+      message: "and the tests?",
+      session_id: "ses_42",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('agent "code-reviewer" in org "org-down"');
+    expect(createdAgentExecution).toBeUndefined();
   });
 
   it("run_workflow creates the execution with the org env injected", async () => {
