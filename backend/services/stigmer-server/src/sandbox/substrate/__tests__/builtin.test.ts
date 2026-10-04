@@ -70,6 +70,7 @@ describe("the built-in factory", () => {
     const handle = provisioner.startBackground?.({
       sessions: {
         activity: async () => ({ busy: false, lastActiveAt: undefined }),
+        recentActivity: async () => ({ busy: false, lastActiveAt: undefined }),
         async *sessionIds() {},
       },
       logger: silentLogger,

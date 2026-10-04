@@ -27,7 +27,11 @@
  *
  * Each action is decided twice: once from the pass's reads, then again
  * inside the driver's per-actor queue right before the call, from fresh
- * reads. A pause is followed by one more busy check: every turn's
+ * reads. The pass reads only what changed in the session since its last
+ * look (SessionActivityReader.recentActivity), which may lag a recovered
+ * run but never makes a session look busier or later than it is; the
+ * second decision reads the session's every execution, so a lag can only
+ * cost an act that the second decision refuses. A pause is followed by one more busy check: every turn's
  * execution is saved before its ensure runs (the create chain persists,
  * starts the workflow, then ensures), so a turn that began while the
  * pause was in flight shows as busy here and the sweep resumes the
@@ -169,7 +173,7 @@ export async function runSweepPass(
       }
       const action = decide(
         actor,
-        await sessions.activity(sessionId),
+        await sessions.recentActivity(sessionId),
         driver,
         now(),
       );
