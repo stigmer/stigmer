@@ -272,13 +272,11 @@ export function newCredentialBinding(
     bound: string,
   ): Promise<BindingVerdict> {
     const found = await targetFacts(caller, ApiResourceKind.api_key, id);
-    if (found === UNREADABLE) {
-      return "outside";
-    }
     if (found === undefined) {
       return "missing";
     }
-    return (found.row as ApiKey).spec?.boundOrg === bound
+    return found !== UNREADABLE &&
+      (found.row as ApiKey).spec?.boundOrg === bound
       ? "inside"
       : "outside";
   }
