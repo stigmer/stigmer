@@ -68,36 +68,36 @@ public final class TokenProto extends com.google.protobuf.GeneratedFile {
       "\n\025MintUserTokenResponse\022!\n\014access_token\030" +
       "\001 \001(\tR\013accessToken\022\035\n\ntoken_type\030\002 \001(\tR\t" +
       "tokenType\022\035\n\nexpires_in\030\003 \001(\005R\texpiresIn" +
-      "\"\376\003\n\025MintGuestTokenRequest\022\"\n\010share_id\030\006" +
-      " \001(\tB\007\272H\004r\002\020\001R\007shareId\022&\n\017guest_cookie_i" +
-      "d\030\003 \001(\tR\rguestCookieId\022\330\002\n\014embed_origin\030" +
-      "\004 \001(\tB\264\002\272H\260\002\272\001\254\002\n\023embed_origin.format\022we" +
-      "mbed_origin must be empty, \"null\", or an" +
-      " exact web origin like https://example.c" +
-      "om (no path, query, or trailing slash)\032\233" +
-      "\001this == \'\' || this == \'null\' || this.ma" +
-      "tches(\'^https?://[A-Za-z0-9]([A-Za-z0-9-" +
-      "]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-" +
-      "9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$\')R\013em" +
-      "bedOrigin\022\'\n\nlink_token\030\005 \001(\tB\010\272H\005r\003\030\200\001R" +
-      "\tlinkTokenJ\004\010\001\020\002J\004\010\002\020\003R\003orgR\004slug\"\241\001\n\026Mi" +
-      "ntGuestTokenResponse\022!\n\014access_token\030\001 \001" +
-      "(\tR\013accessToken\022\035\n\ntoken_type\030\002 \001(\tR\ttok" +
-      "enType\022\035\n\nexpires_in\030\003 \001(\005R\texpiresIn\022&\n" +
-      "\017guest_cookie_id\030\004 \001(\tR\rguestCookieId2\264\002" +
-      "\n\035PlatformClientTokenController\022\206\001\n\rmint" +
-      "UserToken\0226.ai.stigmer.iam.platformclien" +
-      "t.v1.MintUserTokenRequest\0327.ai.stigmer.i" +
-      "am.platformclient.v1.MintUserTokenRespon" +
-      "se\"\004\310\270\030\001\022\211\001\n\016mintGuestToken\0227.ai.stigmer" +
-      ".iam.platformclient.v1.MintGuestTokenReq" +
-      "uest\0328.ai.stigmer.iam.platformclient.v1." +
-      "MintGuestTokenResponse\"\004\310\270\030\001B\261\001B\nTokenPr" +
-      "otoP\001\242\002\004ASIP\252\002 Ai.Stigmer.Iam.Platformcl" +
-      "ient.V1\312\002 Ai\\Stigmer\\Iam\\Platformclient\\" +
-      "V1\342\002,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GP" +
-      "BMetadata\352\002$Ai::Stigmer::Iam::Platformcl" +
-      "ient::V1b\006proto3"
+      "\"\201\004\n\025MintGuestTokenRequest\022%\n\010share_id\030\006" +
+      " \001(\tB\n\272H\007r\005\020\001\030\200\001R\007shareId\022&\n\017guest_cooki" +
+      "e_id\030\003 \001(\tR\rguestCookieId\022\330\002\n\014embed_orig" +
+      "in\030\004 \001(\tB\264\002\272H\260\002\272\001\254\002\n\023embed_origin.format" +
+      "\022wembed_origin must be empty, \"null\", or" +
+      " an exact web origin like https://exampl" +
+      "e.com (no path, query, or trailing slash" +
+      ")\032\233\001this == \'\' || this == \'null\' || this" +
+      ".matches(\'^https?://[A-Za-z0-9]([A-Za-z0" +
+      "-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-" +
+      "z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$\')R" +
+      "\013embedOrigin\022\'\n\nlink_token\030\005 \001(\tB\010\272H\005r\003\030" +
+      "\200\001R\tlinkTokenJ\004\010\001\020\002J\004\010\002\020\003R\003orgR\004slug\"\241\001\n" +
+      "\026MintGuestTokenResponse\022!\n\014access_token\030" +
+      "\001 \001(\tR\013accessToken\022\035\n\ntoken_type\030\002 \001(\tR\t" +
+      "tokenType\022\035\n\nexpires_in\030\003 \001(\005R\texpiresIn" +
+      "\022&\n\017guest_cookie_id\030\004 \001(\tR\rguestCookieId" +
+      "2\264\002\n\035PlatformClientTokenController\022\206\001\n\rm" +
+      "intUserToken\0226.ai.stigmer.iam.platformcl" +
+      "ient.v1.MintUserTokenRequest\0327.ai.stigme" +
+      "r.iam.platformclient.v1.MintUserTokenRes" +
+      "ponse\"\004\310\270\030\001\022\211\001\n\016mintGuestToken\0227.ai.stig" +
+      "mer.iam.platformclient.v1.MintGuestToken" +
+      "Request\0328.ai.stigmer.iam.platformclient." +
+      "v1.MintGuestTokenResponse\"\004\310\270\030\001B\261\001B\nToke" +
+      "nProtoP\001\242\002\004ASIP\252\002 Ai.Stigmer.Iam.Platfor" +
+      "mclient.V1\312\002 Ai\\Stigmer\\Iam\\Platformclie" +
+      "nt\\V1\342\002,Ai\\Stigmer\\Iam\\Platformclient\\V1" +
+      "\\GPBMetadata\352\002$Ai::Stigmer::Iam::Platfor" +
+      "mclient::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

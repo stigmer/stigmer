@@ -283,11 +283,25 @@ describe("AgentShare conformance — the anonymous resolution lane", () => {
     expect(profile.defaultInstanceId).toBe(agent.status?.defaultInstanceId);
   });
 
-  it("[rpc:AgentShareQueryController.getSharedProfile] requires share_id (InvalidArgument)", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfile] [rpc:PlatformClientTokenController.mintGuestToken] require a share_id of at most 128 characters (InvalidArgument)", async () => {
     await expectGrpcCode(
       () => clients.agentShareQuery.getSharedProfile({ shareId: "" }),
       Code.InvalidArgument,
       "getSharedProfile without share_id",
+    );
+    // The bound is checked before anything is read, so an oversized id is
+    // never echoed in the uniform refusal; both editions validate the mint's
+    // request before its capability is reached.
+    const oversized = `ash_${"x".repeat(125)}`;
+    await expectGrpcCode(
+      () => clients.agentShareQuery.getSharedProfile({ shareId: oversized }),
+      Code.InvalidArgument,
+      "getSharedProfile with a 129-character share_id",
+    );
+    await expectGrpcCode(
+      () => clients.platformClientToken.mintGuestToken({ shareId: oversized }),
+      Code.InvalidArgument,
+      "mintGuestToken with a 129-character share_id",
     );
   });
 

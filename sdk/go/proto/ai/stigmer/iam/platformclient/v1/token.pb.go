@@ -384,9 +384,10 @@ const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
 	"\n" +
 	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n" +
 	"\n" +
-	"expires_in\x18\x03 \x01(\x05R\texpiresIn\"\xfe\x03\n" +
-	"\x15MintGuestTokenRequest\x12\"\n" +
-	"\bshare_id\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\ashareId\x12&\n" +
+	"expires_in\x18\x03 \x01(\x05R\texpiresIn\"\x81\x04\n" +
+	"\x15MintGuestTokenRequest\x12%\n" +
+	"\bshare_id\x18\x06 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\ashareId\x12&\n" +
 	"\x0fguest_cookie_id\x18\x03 \x01(\tR\rguestCookieId\x12\xd8\x02\n" +
 	"\fembed_origin\x18\x04 \x01(\tB\xb4\x02\xbaH\xb0\x02\xba\x01\xac\x02\n" +
 	"\x13embed_origin.format\x12wembed_origin must be empty, \"null\", or an exact web origin like https://example.com (no path, query, or trailing slash)\x1a\x9b\x01this == '' || this == 'null' || this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\vembedOrigin\x12'\n" +

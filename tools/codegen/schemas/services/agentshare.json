@@ -362,7 +362,8 @@
           "description": "Id of the share, from the hosted chat link.",
           "required": true,
           "validation": {
-            "required": true
+            "required": true,
+            "maxLength": 128
           }
         },
         {

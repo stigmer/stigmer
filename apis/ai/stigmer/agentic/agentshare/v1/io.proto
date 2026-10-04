@@ -78,7 +78,10 @@ message GetSharedProfileRequest {
   reserved "org", "slug";
 
   // Id of the share, from the hosted chat link.
-  string share_id = 4 [(buf.validate.field).required = true];
+  string share_id = 4 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 128
+  ];
 
   // Link token from the share link's `?k=` parameter.
   //

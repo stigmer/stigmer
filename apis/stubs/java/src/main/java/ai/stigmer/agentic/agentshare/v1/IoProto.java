@@ -96,19 +96,19 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002" +
       " \001(\tR\005value:\0028\001\"?\n\024RotateShareLinkInput\022" +
       "\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId" +
-      "\"|\n\027GetSharedProfileRequest\022!\n\010share_id\030" +
-      "\004 \001(\tB\006\272H\003\310\001\001R\007shareId\022\'\n\nlink_token\030\003 \001" +
-      "(\tB\010\272H\005r\003\030\200\001R\tlinkTokenJ\004\010\001\020\002J\004\010\002\020\003R\003org" +
-      "R\004slug\"\273\001\n\022SharedAgentProfile\022\020\n\003org\030\001 \001" +
-      "(\tR\003org\022\022\n\004slug\030\002 \001(\tR\004slug\022\022\n\004name\030\003 \001(" +
-      "\tR\004name\022 \n\013description\030\004 \001(\tR\013descriptio" +
-      "n\022\031\n\010icon_url\030\005 \001(\tR\007iconUrl\022.\n\023default_" +
-      "instance_id\030\006 \001(\tR\021defaultInstanceIdB\256\001B" +
-      "\007IoProtoP\001\242\002\004ASAA\252\002 Ai.Stigmer.Agentic.A" +
-      "gentshare.V1\312\002 Ai\\Stigmer\\Agentic\\Agents" +
-      "hare\\V1\342\002,Ai\\Stigmer\\Agentic\\Agentshare\\" +
-      "V1\\GPBMetadata\352\002$Ai::Stigmer::Agentic::A" +
-      "gentshare::V1b\006proto3"
+      "\"\201\001\n\027GetSharedProfileRequest\022&\n\010share_id" +
+      "\030\004 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\007shareId\022\'\n\nlink_tok" +
+      "en\030\003 \001(\tB\010\272H\005r\003\030\200\001R\tlinkTokenJ\004\010\001\020\002J\004\010\002\020" +
+      "\003R\003orgR\004slug\"\273\001\n\022SharedAgentProfile\022\020\n\003o" +
+      "rg\030\001 \001(\tR\003org\022\022\n\004slug\030\002 \001(\tR\004slug\022\022\n\004nam" +
+      "e\030\003 \001(\tR\004name\022 \n\013description\030\004 \001(\tR\013desc" +
+      "ription\022\031\n\010icon_url\030\005 \001(\tR\007iconUrl\022.\n\023de" +
+      "fault_instance_id\030\006 \001(\tR\021defaultInstance" +
+      "IdB\256\001B\007IoProtoP\001\242\002\004ASAA\252\002 Ai.Stigmer.Age" +
+      "ntic.Agentshare.V1\312\002 Ai\\Stigmer\\Agentic\\" +
+      "Agentshare\\V1\342\002,Ai\\Stigmer\\Agentic\\Agent" +
+      "share\\V1\\GPBMetadata\352\002$Ai::Stigmer::Agen" +
+      "tic::Agentshare::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

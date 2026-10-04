@@ -404,7 +404,8 @@
           "description": "Id of the share, from the hosted chat link (required).",
           "required": false,
           "validation": {
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 128
           }
         },
         {

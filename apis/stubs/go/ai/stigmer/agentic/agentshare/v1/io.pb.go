@@ -498,9 +498,9 @@ const file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"?\n" +
 	"\x14RotateShareLinkInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"resourceId\"|\n" +
-	"\x17GetSharedProfileRequest\x12!\n" +
-	"\bshare_id\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\ashareId\x12'\n" +
+	"resourceId\"\x81\x01\n" +
+	"\x17GetSharedProfileRequest\x12&\n" +
+	"\bshare_id\x18\x04 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\ashareId\x12'\n" +
 	"\n" +
 	"link_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkTokenJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x03orgR\x04slug\"\xbb\x01\n" +
 	"\x12SharedAgentProfile\x12\x10\n" +
