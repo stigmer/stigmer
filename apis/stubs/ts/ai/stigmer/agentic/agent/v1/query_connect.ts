@@ -7,6 +7,7 @@ import { AgentId } from "./io_pbjs";
 import { Agent } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
+import { AgentVersionEntry, GetAgentVersionInput, ListAgentVersionsInput, ListAgentVersionsResponse } from "./version_pbjs";
 
 /**
  * AgentQueryController handles read operations for AI agents.
@@ -28,8 +29,13 @@ export const AgentQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get an agent by its organization-scoped reference (org/slug).
+     * Get an agent by its organization-scoped reference (org/slug) with version support.
      * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+     *
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      *
      * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getByReference
      */
@@ -37,6 +43,36 @@ export const AgentQueryController = {
       name: "getByReference",
       I: ApiResourceReference,
       O: Agent,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List version history for an agent.
+     *
+     * Returns all historical versions, newest first. Each entry carries the
+     * version hash, when and by whom it was applied, its tag, its message and
+     * the full spec of that version.
+     *
+     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.listVersions
+     */
+    listVersions: {
+      name: "listVersions",
+      I: ListAgentVersionsInput,
+      O: ListAgentVersionsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get a specific version of an agent by its content hash.
+     *
+     * Used by the runner and the server to run a turn on the version it
+     * recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+     * show what a past version said.
+     *
+     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getVersion
+     */
+    getVersion: {
+      name: "getVersion",
+      I: GetAgentVersionInput,
+      O: AgentVersionEntry,
       kind: MethodKind.Unary,
     },
   }

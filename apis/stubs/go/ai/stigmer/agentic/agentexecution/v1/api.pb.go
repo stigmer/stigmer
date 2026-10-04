@@ -233,8 +233,24 @@ type AgentExecutionStatus struct {
 	// Absent, or present with selection_active=false, means wholesale: every
 	// fact in the spec.recalled_memories snapshot was injected.
 	RecalledMemoriesReport *RecalledMemoriesReport `protobuf:"bytes,26,opt,name=recalled_memories_report,json=recalledMemoriesReport,proto3" json:"recalled_memories_report,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// ID of the agent this turn ran. Empty when the turn ran the built-in
+	// assistant, which is not a stored agent.
+	//
+	// The pair with agent_version_hash: a version hash is unique only within
+	// its agent, and the session's route to its agent can change after the
+	// turn, so the id is recorded beside the version.
+	AgentId string `protobuf:"bytes,27,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	// Content hash of the agent version this turn ran (AgentStatus.version_hash
+	// at create; resolvable through AgentQueryController.getVersion with
+	// agent_id).
+	//
+	// Empty when agent_id is empty, or when the agent had no recorded version
+	// at create (an agent last written before agents were versioned, or one
+	// whose last version failed to archive); such a turn runs the agent as
+	// it is when the turn starts.
+	AgentVersionHash string `protobuf:"bytes,28,opt,name=agent_version_hash,json=agentVersionHash,proto3" json:"agent_version_hash,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *AgentExecutionStatus) Reset() {
@@ -414,6 +430,20 @@ func (x *AgentExecutionStatus) GetRecalledMemoriesReport() *RecalledMemoriesRepo
 	return nil
 }
 
+func (x *AgentExecutionStatus) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *AgentExecutionStatus) GetAgentVersionHash() string {
+	if x != nil {
+		return x.AgentVersionHash
+	}
+	return ""
+}
+
 // Setup progress reported during the EXECUTION_PENDING phase.
 type SetupProgress struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -544,7 +574,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xfc\x0e\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xc5\x0f\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -568,7 +598,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x10file_change_sets\x18\x17 \x03(\v23.ai.stigmer.agentic.agentexecution.v1.FileChangeSetR\x0efileChangeSets\x12t\n" +
 	"\x18file_review_event_stream\x18\x18 \x01(\v2;.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStreamR\x15fileReviewEventStream\x12j\n" +
 	"\x14file_change_progress\x18\x19 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.FileChangeProgressR\x12fileChangeProgress\x12v\n" +
-	"\x18recalled_memories_report\x18\x1a \x01(\v2<.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReportR\x16recalledMemoriesReport\x1ah\n" +
+	"\x18recalled_memories_report\x18\x1a \x01(\v2<.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReportR\x16recalledMemoriesReport\x12\x19\n" +
+	"\bagent_id\x18\x1b \x01(\tR\aagentId\x12,\n" +
+	"\x12agent_version_hash\x18\x1c \x01(\tR\x10agentVersionHash\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +

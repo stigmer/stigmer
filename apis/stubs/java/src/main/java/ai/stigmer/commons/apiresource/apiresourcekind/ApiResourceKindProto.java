@@ -79,7 +79,7 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "ier_unspecified\020\000\022\017\n\013open_source\020\001\022\016\n\ncl" +
       "oud_only\020\002\022\016\n\nenterprise\020\003*A\n\017PlatformId" +
       "Value\022!\n\035platform_id_value_unspecified\020\000" +
-      "\022\013\n\007stigmer\020\001*\216\024\n\017ApiResourceKind\022\035\n\031api" +
+      "\022\013\n\007stigmer\020\001*\220\024\n\017ApiResourceKind\022\035\n\031api" +
       "_resource_kind_unknown\020\000\022[\n\024api_resource" +
       "_version\020\001\032A\252\377+=\010\001\020\001\032\022ApiResourceVersion" +
       "\"\024API Resource Version*\003ver8\001@\002J\004\010\005\020\004\022?\n" +
@@ -100,60 +100,60 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "tion\020\036\0327\252\377+3\010\003\020\001\032\014Organization\"\014Organiza" +
       "tion*\003org@\001J\n\010\004\020\001:\004\001\002\003\004\0229\n\010platform\020\037\032+\252" +
       "\377+\'\010\003\020\001\032\010Platform\"\010Platform*\003plt8\001@\003J\004\010\005" +
-      "\020\004\022?\n\005agent\020(\0324\252\377+0\010\001\020\001\032\005Agent\"\005Agent*\003a" +
-      "gt@\001J\025\010\002\020\001*\006\020\001\030\001 \001:\003\001\006\004B\002\006\004\022k\n\017agent_exe" +
-      "cution\020)\032V\252\377+R\010\001\020\001\032\016AgentExecution\"\017Agen" +
-      "t Execution*\003aex@\001J$\010\003\020\002\032\036\n\007session\022\007ses" +
-      "sion\032\nsession_id\0228\n\007session\020*\032+\252\377+\'\010\001\020\001\032" +
-      "\007Session\"\007Session*\003ses@\001J\010\010\002\020\001:\002\001\004\022?\n\005sk" +
-      "ill\020+\0324\252\377+0\010\001\020\001\032\005Skill\"\005Skill*\003skl0\001@\001J\023" +
-      "\010\002\020\001*\006\020\001\030\001 \001:\002\001\004B\001\004\022M\n\nmcp_server\020,\032=\252\377+" +
-      "9\010\001\020\001\032\tMcpServer\"\nMCP Server*\003mcp@\001J\025\010\002\020" +
-      "\001*\006\020\001\030\001 \001:\003\001\006\004B\002\006\004\022m\n\016agent_instance\020-\032Y" +
-      "\252\377+U\010\001\020\001\032\rAgentInstance\"\016Agent Instance*" +
-      "\003ain@\001J)\010\002\020\001\"\030\n\005agent\022\005agent\032\010agent_id*\002" +
-      "\030\001:\002\001\004B\001\004\022E\n\013agent_share\020.\0324\252\377+0\010\001\020\001\032\nAg" +
-      "entShare\"\013Agent Share*\003ash8\001@\001J\010\010\002\020\001:\002\001\004" +
-      "\022P\n\ragent_channel\020/\032=\252\377+9\010\001\020\001\032\014AgentChan" +
-      "nel\"\rAgent Channel*\003ach8\001@\001J\r\010\002\020\001:\003\001\004\005B\002" +
-      "\004\005\022F\n\013channel_app\0200\0325\252\377+1\010\001\020\001\032\nChannelAp" +
-      "p\"\013Channel App*\005chapp8\001@\001J\007\010\002\020\004:\001\004\022J\n\010wo" +
-      "rkflow\0202\032<\252\377+8\010\001\020\001\032\010Workflow\"\010Workflow*\003" +
-      "wfl0\001@\001J\025\010\002\020\001*\006\020\001\030\001 \001:\003\001\006\004B\002\006\004\022\177\n\021workfl" +
-      "ow_instance\0203\032h\252\377+d\010\001\020\001\032\020WorkflowInstanc" +
-      "e\"\021Workflow Instance*\003win@\001J2\010\002\020\001\"!\n\010wor" +
-      "kflow\022\010workflow\032\013workflow_id*\002\030\001:\002\001\004B\001\004\022" +
-      "\232\001\n\022workflow_execution\0204\032\201\001\252\377+}\010\001\020\001\032\021Wor" +
-      "kflowExecution\"\022Workflow Execution*\003wex@" +
-      "\001JI\010\002\020\001\"<\n\021workflow_instance\022\021workflow_i" +
-      "nstance\032\024workflow_instance_id:\002\001\004B\001\004\022J\n\013" +
-      "environment\0205\0329\252\377+5\010\001\020\001\032\013Environment\"\013En" +
-      "vironment*\003env@\001J\016\010\002\020\001*\002\030\0010\001:\002\001\004\022=\n\010arti" +
-      "fact\0207\032/\252\377++\010\001\020\001\032\010Artifact\"\010Artifact*\003ar" +
-      "t8\001@\001J\010\010\002\020\001:\002\001\004\022R\n\021execution_context\0206\032;" +
-      "\252\377+7\010\001\020\001\032\020ExecutionContext\"\021Execution Co" +
-      "ntext*\004ectx@\001J\004\010\004\020\001\022@\n\010schedule\0208\0322\252\377+.\010" +
-      "\001\020\001\032\010Schedule\"\010Schedule*\003sch8\001@\001J\013\010\002\020\001:\002" +
-      "\001\004B\001\004\022m\n\006memory\0209\032a\252\377+]\010\001\020\001\032\006Memory\"\006Mem" +
-      "ory*\003mem8\001@\001J>\010\002\020\004\"8\n\020identity_account\022\007" +
-      "subject\032\033subject_identity_account_id\022B\n\006" +
-      "plugin\020:\0326\252\377+2\010\001\020\001\032\006Plugin\"\006Plugin*\003plg0" +
-      "\001@\001J\023\010\002\020\001*\006\020\001\030\001 \001:\002\001\004B\001\004\022-\n\004plan\020F\032#\252\377+\037" +
-      "\010\004\020\001\032\004Plan\"\004Plan*\003pln8\001@\002J\004\010\005\020\004\022E\n\014subsc" +
-      "ription\020G\0323\252\377+/\010\004\020\001\032\014Subscription\"\014Subsc" +
-      "ription*\003sub8\001@\002J\004\010\002\020\004\0226\n\007license\020H\032)\252\377+" +
-      "%\010\004\020\001\032\007License\"\007License*\003lic8\001@\002J\004\010\005\020\004\"\004" +
-      "\0101\0201\"\004\010<\020<*\tdatastore*\007project:\205\001\n\tkind_" +
-      "meta\022!.google.protobuf.EnumValueOptions\030" +
-      "\365\277\005 \001(\0132C.ai.stigmer.commons.apiresource" +
-      ".apiresourcekind.ApiResourceKindMetaR\010ki" +
-      "ndMetaB\364\001B\024ApiResourceKindProtoP\001\242\002\005ASCA" +
-      "A\252\002.Ai.Stigmer.Commons.Apiresource.Apire" +
-      "sourcekind\312\002.Ai\\Stigmer\\Commons\\Apiresou" +
-      "rce\\Apiresourcekind\342\002:Ai\\Stigmer\\Commons" +
-      "\\Apiresource\\Apiresourcekind\\GPBMetadata" +
-      "\352\0022Ai::Stigmer::Commons::Apiresource::Ap" +
-      "iresourcekindb\006proto3"
+      "\020\004\022A\n\005agent\020(\0326\252\377+2\010\001\020\001\032\005Agent\"\005Agent*\003a" +
+      "gt0\001@\001J\025\010\002\020\001*\006\020\001\030\001 \001:\003\001\006\004B\002\006\004\022k\n\017agent_e" +
+      "xecution\020)\032V\252\377+R\010\001\020\001\032\016AgentExecution\"\017Ag" +
+      "ent Execution*\003aex@\001J$\010\003\020\002\032\036\n\007session\022\007s" +
+      "ession\032\nsession_id\0228\n\007session\020*\032+\252\377+\'\010\001\020" +
+      "\001\032\007Session\"\007Session*\003ses@\001J\010\010\002\020\001:\002\001\004\022?\n\005" +
+      "skill\020+\0324\252\377+0\010\001\020\001\032\005Skill\"\005Skill*\003skl0\001@\001" +
+      "J\023\010\002\020\001*\006\020\001\030\001 \001:\002\001\004B\001\004\022M\n\nmcp_server\020,\032=\252" +
+      "\377+9\010\001\020\001\032\tMcpServer\"\nMCP Server*\003mcp@\001J\025\010" +
+      "\002\020\001*\006\020\001\030\001 \001:\003\001\006\004B\002\006\004\022m\n\016agent_instance\020-" +
+      "\032Y\252\377+U\010\001\020\001\032\rAgentInstance\"\016Agent Instanc" +
+      "e*\003ain@\001J)\010\002\020\001\"\030\n\005agent\022\005agent\032\010agent_id" +
+      "*\002\030\001:\002\001\004B\001\004\022E\n\013agent_share\020.\0324\252\377+0\010\001\020\001\032\n" +
+      "AgentShare\"\013Agent Share*\003ash8\001@\001J\010\010\002\020\001:\002" +
+      "\001\004\022P\n\ragent_channel\020/\032=\252\377+9\010\001\020\001\032\014AgentCh" +
+      "annel\"\rAgent Channel*\003ach8\001@\001J\r\010\002\020\001:\003\001\004\005" +
+      "B\002\004\005\022F\n\013channel_app\0200\0325\252\377+1\010\001\020\001\032\nChannel" +
+      "App\"\013Channel App*\005chapp8\001@\001J\007\010\002\020\004:\001\004\022J\n\010" +
+      "workflow\0202\032<\252\377+8\010\001\020\001\032\010Workflow\"\010Workflow" +
+      "*\003wfl0\001@\001J\025\010\002\020\001*\006\020\001\030\001 \001:\003\001\006\004B\002\006\004\022\177\n\021work" +
+      "flow_instance\0203\032h\252\377+d\010\001\020\001\032\020WorkflowInsta" +
+      "nce\"\021Workflow Instance*\003win@\001J2\010\002\020\001\"!\n\010w" +
+      "orkflow\022\010workflow\032\013workflow_id*\002\030\001:\002\001\004B\001" +
+      "\004\022\232\001\n\022workflow_execution\0204\032\201\001\252\377+}\010\001\020\001\032\021W" +
+      "orkflowExecution\"\022Workflow Execution*\003we" +
+      "x@\001JI\010\002\020\001\"<\n\021workflow_instance\022\021workflow" +
+      "_instance\032\024workflow_instance_id:\002\001\004B\001\004\022J" +
+      "\n\013environment\0205\0329\252\377+5\010\001\020\001\032\013Environment\"\013" +
+      "Environment*\003env@\001J\016\010\002\020\001*\002\030\0010\001:\002\001\004\022=\n\010ar" +
+      "tifact\0207\032/\252\377++\010\001\020\001\032\010Artifact\"\010Artifact*\003" +
+      "art8\001@\001J\010\010\002\020\001:\002\001\004\022R\n\021execution_context\0206" +
+      "\032;\252\377+7\010\001\020\001\032\020ExecutionContext\"\021Execution " +
+      "Context*\004ectx@\001J\004\010\004\020\001\022@\n\010schedule\0208\0322\252\377+" +
+      ".\010\001\020\001\032\010Schedule\"\010Schedule*\003sch8\001@\001J\013\010\002\020\001" +
+      ":\002\001\004B\001\004\022m\n\006memory\0209\032a\252\377+]\010\001\020\001\032\006Memory\"\006M" +
+      "emory*\003mem8\001@\001J>\010\002\020\004\"8\n\020identity_account" +
+      "\022\007subject\032\033subject_identity_account_id\022B" +
+      "\n\006plugin\020:\0326\252\377+2\010\001\020\001\032\006Plugin\"\006Plugin*\003pl" +
+      "g0\001@\001J\023\010\002\020\001*\006\020\001\030\001 \001:\002\001\004B\001\004\022-\n\004plan\020F\032#\252\377" +
+      "+\037\010\004\020\001\032\004Plan\"\004Plan*\003pln8\001@\002J\004\010\005\020\004\022E\n\014sub" +
+      "scription\020G\0323\252\377+/\010\004\020\001\032\014Subscription\"\014Sub" +
+      "scription*\003sub8\001@\002J\004\010\002\020\004\0226\n\007license\020H\032)\252" +
+      "\377+%\010\004\020\001\032\007License\"\007License*\003lic8\001@\002J\004\010\005\020\004" +
+      "\"\004\0101\0201\"\004\010<\020<*\tdatastore*\007project:\205\001\n\tkin" +
+      "d_meta\022!.google.protobuf.EnumValueOption" +
+      "s\030\365\277\005 \001(\0132C.ai.stigmer.commons.apiresour" +
+      "ce.apiresourcekind.ApiResourceKindMetaR\010" +
+      "kindMetaB\364\001B\024ApiResourceKindProtoP\001\242\002\005AS" +
+      "CAA\252\002.Ai.Stigmer.Commons.Apiresource.Api" +
+      "resourcekind\312\002.Ai\\Stigmer\\Commons\\Apires" +
+      "ource\\Apiresourcekind\342\002:Ai\\Stigmer\\Commo" +
+      "ns\\Apiresource\\Apiresourcekind\\GPBMetada" +
+      "ta\352\0022Ai::Stigmer::Commons::Apiresource::" +
+      "Apiresourcekindb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -393,6 +393,38 @@ message AgentExecutionStatus {
   //
   // Field 26: appended after file_change_progress (25), the prior maximum.
   RecalledMemoriesReport recalled_memories_report = 26;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // The Agent This Turn Ran
+  //
+  // The agent and the exact agent version this turn ran, stamped once by the
+  // server when the execution is created and read by every later reader:
+  // the runner hydrates the agent from this version, and a recovered
+  // execution rebuilds its context from it, so an author saving a new
+  // version while the turn is queued or running never changes what runs.
+  //
+  // Server-only, like approval_event_stream: a client-sent value is
+  // discarded at create, and the runner's status writes never touch either
+  // field.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // ID of the agent this turn ran. Empty when the turn ran the built-in
+  // assistant, which is not a stored agent.
+  //
+  // The pair with agent_version_hash: a version hash is unique only within
+  // its agent, and the session's route to its agent can change after the
+  // turn, so the id is recorded beside the version.
+  string agent_id = 27;
+
+  // Content hash of the agent version this turn ran (AgentStatus.version_hash
+  // at create; resolvable through AgentQueryController.getVersion with
+  // agent_id).
+  //
+  // Empty when agent_id is empty, or when the agent had no recorded version
+  // at create (an agent last written before agents were versioned, or one
+  // whose last version failed to archive); such a turn runs the agent as
+  // it is when the turn starts.
+  string agent_version_hash = 28;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.

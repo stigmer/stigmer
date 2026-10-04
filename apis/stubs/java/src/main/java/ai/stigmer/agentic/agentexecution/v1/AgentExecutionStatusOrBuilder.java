@@ -927,4 +927,68 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReportOrBuilder getRecalledMemoriesReportOrBuilder();
+
+  /**
+   * <pre>
+   * ID of the agent this turn ran. Empty when the turn ran the built-in
+   * assistant, which is not a stored agent.
+   *
+   * The pair with agent_version_hash: a version hash is unique only within
+   * its agent, and the session's route to its agent can change after the
+   * turn, so the id is recorded beside the version.
+   * </pre>
+   *
+   * <code>string agent_id = 27 [json_name = "agentId"];</code>
+   * @return The agentId.
+   */
+  java.lang.String getAgentId();
+  /**
+   * <pre>
+   * ID of the agent this turn ran. Empty when the turn ran the built-in
+   * assistant, which is not a stored agent.
+   *
+   * The pair with agent_version_hash: a version hash is unique only within
+   * its agent, and the session's route to its agent can change after the
+   * turn, so the id is recorded beside the version.
+   * </pre>
+   *
+   * <code>string agent_id = 27 [json_name = "agentId"];</code>
+   * @return The bytes for agentId.
+   */
+  com.google.protobuf.ByteString
+      getAgentIdBytes();
+
+  /**
+   * <pre>
+   * Content hash of the agent version this turn ran (AgentStatus.version_hash
+   * at create; resolvable through AgentQueryController.getVersion with
+   * agent_id).
+   *
+   * Empty when agent_id is empty, or when the agent had no recorded version
+   * at create (an agent last written before agents were versioned, or one
+   * whose last version failed to archive); such a turn runs the agent as
+   * it is when the turn starts.
+   * </pre>
+   *
+   * <code>string agent_version_hash = 28 [json_name = "agentVersionHash"];</code>
+   * @return The agentVersionHash.
+   */
+  java.lang.String getAgentVersionHash();
+  /**
+   * <pre>
+   * Content hash of the agent version this turn ran (AgentStatus.version_hash
+   * at create; resolvable through AgentQueryController.getVersion with
+   * agent_id).
+   *
+   * Empty when agent_id is empty, or when the agent had no recorded version
+   * at create (an agent last written before agents were versioned, or one
+   * whose last version failed to archive); such a turn runs the agent as
+   * it is when the turn starts.
+   * </pre>
+   *
+   * <code>string agent_version_hash = 28 [json_name = "agentVersionHash"];</code>
+   * @return The bytes for agentVersionHash.
+   */
+  com.google.protobuf.ByteString
+      getAgentVersionHashBytes();
 }

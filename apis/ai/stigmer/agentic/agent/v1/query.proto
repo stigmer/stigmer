@@ -4,6 +4,7 @@ package ai.stigmer.agentic.agent.v1;
 
 import "ai/stigmer/agentic/agent/v1/api.proto";
 import "ai/stigmer/agentic/agent/v1/io.proto";
+import "ai/stigmer/agentic/agent/v1/version.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
@@ -20,14 +21,47 @@ service AgentQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get agent";
   }
 
-  // Get an agent by its organization-scoped reference (org/slug).
+  // Get an agent by its organization-scoped reference (org/slug) with version support.
   // Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+  //
+  // Version resolution (via ApiResourceReference.version field):
+  // - Empty/"latest" → Returns the current version
+  // - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+  // - SHA256 hash (64 hex chars) → Returns the exact immutable version
   //
   // @internal
   // Custom authorization in handler — checks both direct resource access
   // and organization-level visibility permissions.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Agent) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List version history for an agent.
+  //
+  // Returns all historical versions, newest first. Each entry carries the
+  // version hash, when and by whom it was applied, its tag, its message and
+  // the full spec of that version.
+  //
+  // @internal
+  // Authorization is handled in the handler after resolving the agent.
+  // (Input uses org+slug, not agent ID, so proto-level auth cannot work)
+  rpc listVersions(ListAgentVersionsInput) returns (ListAgentVersionsResponse) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Get a specific version of an agent by its content hash.
+  //
+  // Used by the runner and the server to run a turn on the version it
+  // recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+  // show what a past version said.
+  //
+  // @internal
+  // Authorization uses can_view on the agent resource.
+  rpc getVersion(GetAgentVersionInput) returns (AgentVersionEntry) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "agent_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get agent version";
   }
 
   // No rpc finds a stored "default agent": a Session or AgentExecution

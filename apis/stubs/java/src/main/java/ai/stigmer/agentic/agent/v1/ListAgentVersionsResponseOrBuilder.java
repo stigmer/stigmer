@@ -11,35 +11,63 @@ public interface ListAgentVersionsResponseOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Ordered list of versions (newest first).
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
    */
   java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> 
       getVersionsList();
   /**
+   * <pre>
+   * Ordered list of versions (newest first).
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
    */
   ai.stigmer.agentic.agent.v1.AgentVersionEntry getVersions(int index);
   /**
+   * <pre>
+   * Ordered list of versions (newest first).
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
    */
   int getVersionsCount();
   /**
+   * <pre>
+   * Ordered list of versions (newest first).
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
    */
   java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder> 
       getVersionsOrBuilderList();
   /**
+   * <pre>
+   * Ordered list of versions (newest first).
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
    */
   ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder getVersionsOrBuilder(
       int index);
 
   /**
+   * <pre>
+   * Token for fetching the next page. Empty when no more pages exist.
+   * </pre>
+   *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
    * @return The nextPageToken.
    */
   java.lang.String getNextPageToken();
   /**
+   * <pre>
+   * Token for fetching the next page. Empty when no more pages exist.
+   * </pre>
+   *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
    * @return The bytes for nextPageToken.
    */
@@ -47,6 +75,10 @@ public interface ListAgentVersionsResponseOrBuilder extends
       getNextPageTokenBytes();
 
   /**
+   * <pre>
+   * Total number of versions across all pages.
+   * </pre>
+   *
    * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
    * @return The totalCount.
    */

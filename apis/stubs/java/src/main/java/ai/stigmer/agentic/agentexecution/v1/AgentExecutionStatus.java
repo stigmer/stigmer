@@ -44,6 +44,8 @@ private static final long serialVersionUID = 0L;
     artifacts_ = java.util.Collections.emptyList();
     workspaceWriteBacks_ = java.util.Collections.emptyList();
     fileChangeSets_ = java.util.Collections.emptyList();
+    agentId_ = "";
+    agentVersionHash_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1327,6 +1329,124 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     return recalledMemoriesReport_ == null ? ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport.getDefaultInstance() : recalledMemoriesReport_;
   }
 
+  public static final int AGENT_ID_FIELD_NUMBER = 27;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object agentId_ = "";
+  /**
+   * <pre>
+   * ID of the agent this turn ran. Empty when the turn ran the built-in
+   * assistant, which is not a stored agent.
+   *
+   * The pair with agent_version_hash: a version hash is unique only within
+   * its agent, and the session's route to its agent can change after the
+   * turn, so the id is recorded beside the version.
+   * </pre>
+   *
+   * <code>string agent_id = 27 [json_name = "agentId"];</code>
+   * @return The agentId.
+   */
+  @java.lang.Override
+  public java.lang.String getAgentId() {
+    java.lang.Object ref = agentId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      agentId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * ID of the agent this turn ran. Empty when the turn ran the built-in
+   * assistant, which is not a stored agent.
+   *
+   * The pair with agent_version_hash: a version hash is unique only within
+   * its agent, and the session's route to its agent can change after the
+   * turn, so the id is recorded beside the version.
+   * </pre>
+   *
+   * <code>string agent_id = 27 [json_name = "agentId"];</code>
+   * @return The bytes for agentId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getAgentIdBytes() {
+    java.lang.Object ref = agentId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      agentId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int AGENT_VERSION_HASH_FIELD_NUMBER = 28;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object agentVersionHash_ = "";
+  /**
+   * <pre>
+   * Content hash of the agent version this turn ran (AgentStatus.version_hash
+   * at create; resolvable through AgentQueryController.getVersion with
+   * agent_id).
+   *
+   * Empty when agent_id is empty, or when the agent had no recorded version
+   * at create (an agent last written before agents were versioned, or one
+   * whose last version failed to archive); such a turn runs the agent as
+   * it is when the turn starts.
+   * </pre>
+   *
+   * <code>string agent_version_hash = 28 [json_name = "agentVersionHash"];</code>
+   * @return The agentVersionHash.
+   */
+  @java.lang.Override
+  public java.lang.String getAgentVersionHash() {
+    java.lang.Object ref = agentVersionHash_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      agentVersionHash_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Content hash of the agent version this turn ran (AgentStatus.version_hash
+   * at create; resolvable through AgentQueryController.getVersion with
+   * agent_id).
+   *
+   * Empty when agent_id is empty, or when the agent had no recorded version
+   * at create (an agent last written before agents were versioned, or one
+   * whose last version failed to archive); such a turn runs the agent as
+   * it is when the turn starts.
+   * </pre>
+   *
+   * <code>string agent_version_hash = 28 [json_name = "agentVersionHash"];</code>
+   * @return The bytes for agentVersionHash.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getAgentVersionHashBytes() {
+    java.lang.Object ref = agentVersionHash_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      agentVersionHash_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1403,6 +1523,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     if (((bitField0_ & 0x00000100) != 0)) {
       output.writeMessage(26, getRecalledMemoriesReport());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 27, agentId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentVersionHash_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 28, agentVersionHash_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1529,6 +1655,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(26, getRecalledMemoriesReport());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(27, agentId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentVersionHash_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(28, agentVersionHash_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1616,6 +1748,10 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (!getRecalledMemoriesReport()
           .equals(other.getRecalledMemoriesReport())) return false;
     }
+    if (!getAgentId()
+        .equals(other.getAgentId())) return false;
+    if (!getAgentVersionHash()
+        .equals(other.getAgentVersionHash())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1701,6 +1837,10 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       hash = (37 * hash) + RECALLED_MEMORIES_REPORT_FIELD_NUMBER;
       hash = (53 * hash) + getRecalledMemoriesReport().hashCode();
     }
+    hash = (37 * hash) + AGENT_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getAgentId().hashCode();
+    hash = (37 * hash) + AGENT_VERSION_HASH_FIELD_NUMBER;
+    hash = (53 * hash) + getAgentVersionHash().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1972,6 +2112,8 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         recalledMemoriesReportBuilder_.dispose();
         recalledMemoriesReportBuilder_ = null;
       }
+      agentId_ = "";
+      agentVersionHash_ = "";
       return this;
     }
 
@@ -2135,6 +2277,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
             ? recalledMemoriesReport_
             : recalledMemoriesReportBuilder_.build();
         to_bitField0_ |= 0x00000100;
+      }
+      if (((from_bitField0_ & 0x00200000) != 0)) {
+        result.agentId_ = agentId_;
+      }
+      if (((from_bitField0_ & 0x00400000) != 0)) {
+        result.agentVersionHash_ = agentVersionHash_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -2358,6 +2506,16 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (other.hasRecalledMemoriesReport()) {
         mergeRecalledMemoriesReport(other.getRecalledMemoriesReport());
       }
+      if (!other.getAgentId().isEmpty()) {
+        agentId_ = other.agentId_;
+        bitField0_ |= 0x00200000;
+        onChanged();
+      }
+      if (!other.getAgentVersionHash().isEmpty()) {
+        agentVersionHash_ = other.agentVersionHash_;
+        bitField0_ |= 0x00400000;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2552,6 +2710,16 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               bitField0_ |= 0x00100000;
               break;
             } // case 210
+            case 218: {
+              agentId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00200000;
+              break;
+            } // case 218
+            case 226: {
+              agentVersionHash_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00400000;
+              break;
+            } // case 226
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -7297,6 +7465,250 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         recalledMemoriesReport_ = null;
       }
       return recalledMemoriesReportBuilder_;
+    }
+
+    private java.lang.Object agentId_ = "";
+    /**
+     * <pre>
+     * ID of the agent this turn ran. Empty when the turn ran the built-in
+     * assistant, which is not a stored agent.
+     *
+     * The pair with agent_version_hash: a version hash is unique only within
+     * its agent, and the session's route to its agent can change after the
+     * turn, so the id is recorded beside the version.
+     * </pre>
+     *
+     * <code>string agent_id = 27 [json_name = "agentId"];</code>
+     * @return The agentId.
+     */
+    public java.lang.String getAgentId() {
+      java.lang.Object ref = agentId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        agentId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ID of the agent this turn ran. Empty when the turn ran the built-in
+     * assistant, which is not a stored agent.
+     *
+     * The pair with agent_version_hash: a version hash is unique only within
+     * its agent, and the session's route to its agent can change after the
+     * turn, so the id is recorded beside the version.
+     * </pre>
+     *
+     * <code>string agent_id = 27 [json_name = "agentId"];</code>
+     * @return The bytes for agentId.
+     */
+    public com.google.protobuf.ByteString
+        getAgentIdBytes() {
+      java.lang.Object ref = agentId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        agentId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ID of the agent this turn ran. Empty when the turn ran the built-in
+     * assistant, which is not a stored agent.
+     *
+     * The pair with agent_version_hash: a version hash is unique only within
+     * its agent, and the session's route to its agent can change after the
+     * turn, so the id is recorded beside the version.
+     * </pre>
+     *
+     * <code>string agent_id = 27 [json_name = "agentId"];</code>
+     * @param value The agentId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      agentId_ = value;
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ID of the agent this turn ran. Empty when the turn ran the built-in
+     * assistant, which is not a stored agent.
+     *
+     * The pair with agent_version_hash: a version hash is unique only within
+     * its agent, and the session's route to its agent can change after the
+     * turn, so the id is recorded beside the version.
+     * </pre>
+     *
+     * <code>string agent_id = 27 [json_name = "agentId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAgentId() {
+      agentId_ = getDefaultInstance().getAgentId();
+      bitField0_ = (bitField0_ & ~0x00200000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ID of the agent this turn ran. Empty when the turn ran the built-in
+     * assistant, which is not a stored agent.
+     *
+     * The pair with agent_version_hash: a version hash is unique only within
+     * its agent, and the session's route to its agent can change after the
+     * turn, so the id is recorded beside the version.
+     * </pre>
+     *
+     * <code>string agent_id = 27 [json_name = "agentId"];</code>
+     * @param value The bytes for agentId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      agentId_ = value;
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object agentVersionHash_ = "";
+    /**
+     * <pre>
+     * Content hash of the agent version this turn ran (AgentStatus.version_hash
+     * at create; resolvable through AgentQueryController.getVersion with
+     * agent_id).
+     *
+     * Empty when agent_id is empty, or when the agent had no recorded version
+     * at create (an agent last written before agents were versioned, or one
+     * whose last version failed to archive); such a turn runs the agent as
+     * it is when the turn starts.
+     * </pre>
+     *
+     * <code>string agent_version_hash = 28 [json_name = "agentVersionHash"];</code>
+     * @return The agentVersionHash.
+     */
+    public java.lang.String getAgentVersionHash() {
+      java.lang.Object ref = agentVersionHash_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        agentVersionHash_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Content hash of the agent version this turn ran (AgentStatus.version_hash
+     * at create; resolvable through AgentQueryController.getVersion with
+     * agent_id).
+     *
+     * Empty when agent_id is empty, or when the agent had no recorded version
+     * at create (an agent last written before agents were versioned, or one
+     * whose last version failed to archive); such a turn runs the agent as
+     * it is when the turn starts.
+     * </pre>
+     *
+     * <code>string agent_version_hash = 28 [json_name = "agentVersionHash"];</code>
+     * @return The bytes for agentVersionHash.
+     */
+    public com.google.protobuf.ByteString
+        getAgentVersionHashBytes() {
+      java.lang.Object ref = agentVersionHash_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        agentVersionHash_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Content hash of the agent version this turn ran (AgentStatus.version_hash
+     * at create; resolvable through AgentQueryController.getVersion with
+     * agent_id).
+     *
+     * Empty when agent_id is empty, or when the agent had no recorded version
+     * at create (an agent last written before agents were versioned, or one
+     * whose last version failed to archive); such a turn runs the agent as
+     * it is when the turn starts.
+     * </pre>
+     *
+     * <code>string agent_version_hash = 28 [json_name = "agentVersionHash"];</code>
+     * @param value The agentVersionHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentVersionHash(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      agentVersionHash_ = value;
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Content hash of the agent version this turn ran (AgentStatus.version_hash
+     * at create; resolvable through AgentQueryController.getVersion with
+     * agent_id).
+     *
+     * Empty when agent_id is empty, or when the agent had no recorded version
+     * at create (an agent last written before agents were versioned, or one
+     * whose last version failed to archive); such a turn runs the agent as
+     * it is when the turn starts.
+     * </pre>
+     *
+     * <code>string agent_version_hash = 28 [json_name = "agentVersionHash"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAgentVersionHash() {
+      agentVersionHash_ = getDefaultInstance().getAgentVersionHash();
+      bitField0_ = (bitField0_ & ~0x00400000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Content hash of the agent version this turn ran (AgentStatus.version_hash
+     * at create; resolvable through AgentQueryController.getVersion with
+     * agent_id).
+     *
+     * Empty when agent_id is empty, or when the agent had no recorded version
+     * at create (an agent last written before agents were versioned, or one
+     * whose last version failed to archive); such a turn runs the agent as
+     * it is when the turn starts.
+     * </pre>
+     *
+     * <code>string agent_version_hash = 28 [json_name = "agentVersionHash"];</code>
+     * @param value The bytes for agentVersionHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentVersionHashBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      agentVersionHash_ = value;
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus)
