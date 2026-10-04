@@ -229,14 +229,28 @@ SANDBOX_PROVISIONER_TYPE='docker' requires a per-queue routing mode — set STIG
 On [Agent Substrate](https://github.com/agent-substrate/substrate), each
 Session's runner lives in a gVisor actor. After
 `STIGMER_SANDBOX_SUBSTRATE_PAUSE_AFTER_SECONDS` idle (300 by default) the server
-pauses it in place, keeping its memory, and after
-`STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS` (1800) it suspends it,
-committing the Session's files to storage and releasing its memory. The next
-message wakes it with its files intact and a fresh runner. A Session with a run
-in progress, waiting for approval or paused is never put to sleep. These two
-windows are a first estimate, not a measurement yet; a paused runner may sleep
-at most 30 minutes, so the server refuses windows that would keep it paused
-longer. Workflow and connect sandboxes don't sleep; they end with their run.
+pauses it in place, and after `STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS`
+(330) it suspends it, committing the Session's files to storage and releasing
+its memory. The next message wakes it with its files intact and a fresh runner.
+A Session with a run in progress, waiting for approval or paused is never put to
+sleep. Workflow and connect sandboxes don't sleep; they end with their run.
+
+The defaults come from measurements on a local Agent Substrate cluster (kind,
+Substrate v0.3.0, 2026-10-03), timed from the server accepting a message to the
+runner starting work on it, at the ninety-fifth percentile:
+
+| The Session when the message arrives | Wait             |
+| ------------------------------------ | ---------------- |
+| Awake                                | 0.01 s           |
+| Paused for less than a minute        | 0.9 s            |
+| Paused for 1 to 25 minutes           | 3.8 s, once 12 s |
+| In storage                           | 1.7 s            |
+| New                                  | 1.8 s            |
+
+A pause of minutes wakes slower than storage, so a Session stays paused only
+briefly. Storage in a cloud bucket adds its download time to a wake from
+storage. A paused runner may sleep at most 30 minutes, so the server refuses
+windows that would keep it paused longer.
 
 A new value for one of the runner's secrets, a model key for one, takes effect
 when the server restarts with it, and reaches each sandbox at its next fresh

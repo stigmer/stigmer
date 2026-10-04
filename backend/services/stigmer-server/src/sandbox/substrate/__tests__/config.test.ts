@@ -32,7 +32,7 @@ describe("newSubstrateSettingsFromEnv", () => {
       httpsEgress: "all",
       extraHttpEgress: [],
       pauseAfterSeconds: 300,
-      suspendAfterSeconds: 1800,
+      suspendAfterSeconds: 330,
       sweepIntervalSeconds: 60,
     });
   });
