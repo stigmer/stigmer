@@ -189,6 +189,25 @@ private static final long serialVersionUID = 0L;
     return inputSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : inputSchema_;
   }
 
+  public static final int DESTRUCTIVE_HINT_FIELD_NUMBER = 4;
+  private boolean destructiveHint_ = false;
+  /**
+   * <pre>
+   * True when the server's own MCP annotation marks the tool destructive
+   * (annotations.destructiveHint is exactly true), whatever readOnlyHint says.
+   * A destructive tool asks for approval before it runs. An absent annotation
+   * reads as false: Stigmer acts only on an explicit declaration, so a server
+   * that annotates nothing gates nothing.
+   * </pre>
+   *
+   * <code>bool destructive_hint = 4 [json_name = "destructiveHint"];</code>
+   * @return The destructiveHint.
+   */
+  @java.lang.Override
+  public boolean getDestructiveHint() {
+    return destructiveHint_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -212,6 +231,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(3, getInputSchema());
     }
+    if (destructiveHint_ != false) {
+      output.writeBool(4, destructiveHint_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -230,6 +252,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, getInputSchema());
+    }
+    if (destructiveHint_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(4, destructiveHint_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -255,6 +281,8 @@ private static final long serialVersionUID = 0L;
       if (!getInputSchema()
           .equals(other.getInputSchema())) return false;
     }
+    if (getDestructiveHint()
+        != other.getDestructiveHint()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -274,6 +302,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + INPUT_SCHEMA_FIELD_NUMBER;
       hash = (53 * hash) + getInputSchema().hashCode();
     }
+    hash = (37 * hash) + DESTRUCTIVE_HINT_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getDestructiveHint());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -422,6 +453,7 @@ private static final long serialVersionUID = 0L;
         inputSchemaBuilder_.dispose();
         inputSchemaBuilder_ = null;
       }
+      destructiveHint_ = false;
       return this;
     }
 
@@ -468,6 +500,9 @@ private static final long serialVersionUID = 0L;
             : inputSchemaBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.destructiveHint_ = destructiveHint_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -495,6 +530,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasInputSchema()) {
         mergeInputSchema(other.getInputSchema());
+      }
+      if (other.getDestructiveHint() != false) {
+        setDestructiveHint(other.getDestructiveHint());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -539,6 +577,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 32: {
+              destructiveHint_ = input.readBool();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -900,6 +943,62 @@ private static final long serialVersionUID = 0L;
         inputSchema_ = null;
       }
       return inputSchemaBuilder_;
+    }
+
+    private boolean destructiveHint_ ;
+    /**
+     * <pre>
+     * True when the server's own MCP annotation marks the tool destructive
+     * (annotations.destructiveHint is exactly true), whatever readOnlyHint says.
+     * A destructive tool asks for approval before it runs. An absent annotation
+     * reads as false: Stigmer acts only on an explicit declaration, so a server
+     * that annotates nothing gates nothing.
+     * </pre>
+     *
+     * <code>bool destructive_hint = 4 [json_name = "destructiveHint"];</code>
+     * @return The destructiveHint.
+     */
+    @java.lang.Override
+    public boolean getDestructiveHint() {
+      return destructiveHint_;
+    }
+    /**
+     * <pre>
+     * True when the server's own MCP annotation marks the tool destructive
+     * (annotations.destructiveHint is exactly true), whatever readOnlyHint says.
+     * A destructive tool asks for approval before it runs. An absent annotation
+     * reads as false: Stigmer acts only on an explicit declaration, so a server
+     * that annotates nothing gates nothing.
+     * </pre>
+     *
+     * <code>bool destructive_hint = 4 [json_name = "destructiveHint"];</code>
+     * @param value The destructiveHint to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDestructiveHint(boolean value) {
+
+      destructiveHint_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * True when the server's own MCP annotation marks the tool destructive
+     * (annotations.destructiveHint is exactly true), whatever readOnlyHint says.
+     * A destructive tool asks for approval before it runs. An absent annotation
+     * reads as false: Stigmer acts only on an explicit declaration, so a server
+     * that annotates nothing gates nothing.
+     * </pre>
+     *
+     * <code>bool destructive_hint = 4 [json_name = "destructiveHint"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDestructiveHint() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      destructiveHint_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.mcpserver.v1.DiscoveredTool)

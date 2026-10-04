@@ -24,40 +24,14 @@ public enum ApprovalPolicySource
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Default — the execution predates this field, or the tool was never evaluated
-   * by the approval gate (e.g. a read-only built-in). Clients show no provenance.
+   * Default — the execution predates this field, or no approval was required
+   * (a read-only built-in, or an MCP tool its server does not mark
+   * destructive). Clients show no provenance.
    * </pre>
    *
    * <code>APPROVAL_POLICY_SOURCE_UNSPECIFIED = 0;</code>
    */
   APPROVAL_POLICY_SOURCE_UNSPECIFIED(0),
-  /**
-   * <pre>
-   * Layer 1: the connect-time classifier's default for an MCP tool
-   * (McpServerStatus.tool_approvals).
-   * </pre>
-   *
-   * <code>APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT = 1;</code>
-   */
-  APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT(1),
-  /**
-   * <pre>
-   * Layer 2: an operator's pinned override on the MCP server blueprint
-   * (McpServerSpec.pinned_tool_approvals).
-   * </pre>
-   *
-   * <code>APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE = 2;</code>
-   */
-  APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE(2),
-  /**
-   * <pre>
-   * Layer 3: an agent-level override for an MCP tool
-   * (Agent McpServerUsage.tool_approval_overrides).
-   * </pre>
-   *
-   * <code>APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE = 3;</code>
-   */
-  APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE(3),
   /**
    * <pre>
    * Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global
@@ -79,7 +53,7 @@ public enum ApprovalPolicySource
   APPROVAL_POLICY_SOURCE_APPROVAL_LEASE(5),
   /**
    * <pre>
-   * A non-MCP built-in tool gated by the shared tool taxonomy
+   * The default asked for a built-in tool of an approval class
    * (write / delete / shell).
    * </pre>
    *
@@ -88,10 +62,9 @@ public enum ApprovalPolicySource
   APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY(6),
   /**
    * <pre>
-   * The connect-time MCP destructiveHint tightener forced this tool to require
-   * approval, overriding a more permissive classifier verdict. First-class
-   * provenance so a tightened tool is distinguishable from a plain classifier
-   * default. See applyDestructiveHintTightener.
+   * The default asked for an MCP tool because its server marks it destructive
+   * (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint
+   * annotation).
    * </pre>
    *
    * <code>APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;</code>
@@ -127,40 +100,14 @@ public enum ApprovalPolicySource
   }
   /**
    * <pre>
-   * Default — the execution predates this field, or the tool was never evaluated
-   * by the approval gate (e.g. a read-only built-in). Clients show no provenance.
+   * Default — the execution predates this field, or no approval was required
+   * (a read-only built-in, or an MCP tool its server does not mark
+   * destructive). Clients show no provenance.
    * </pre>
    *
    * <code>APPROVAL_POLICY_SOURCE_UNSPECIFIED = 0;</code>
    */
   public static final int APPROVAL_POLICY_SOURCE_UNSPECIFIED_VALUE = 0;
-  /**
-   * <pre>
-   * Layer 1: the connect-time classifier's default for an MCP tool
-   * (McpServerStatus.tool_approvals).
-   * </pre>
-   *
-   * <code>APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT = 1;</code>
-   */
-  public static final int APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT_VALUE = 1;
-  /**
-   * <pre>
-   * Layer 2: an operator's pinned override on the MCP server blueprint
-   * (McpServerSpec.pinned_tool_approvals).
-   * </pre>
-   *
-   * <code>APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE = 2;</code>
-   */
-  public static final int APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE_VALUE = 2;
-  /**
-   * <pre>
-   * Layer 3: an agent-level override for an MCP tool
-   * (Agent McpServerUsage.tool_approval_overrides).
-   * </pre>
-   *
-   * <code>APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE = 3;</code>
-   */
-  public static final int APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE_VALUE = 3;
   /**
    * <pre>
    * Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global
@@ -182,7 +129,7 @@ public enum ApprovalPolicySource
   public static final int APPROVAL_POLICY_SOURCE_APPROVAL_LEASE_VALUE = 5;
   /**
    * <pre>
-   * A non-MCP built-in tool gated by the shared tool taxonomy
+   * The default asked for a built-in tool of an approval class
    * (write / delete / shell).
    * </pre>
    *
@@ -191,10 +138,9 @@ public enum ApprovalPolicySource
   public static final int APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY_VALUE = 6;
   /**
    * <pre>
-   * The connect-time MCP destructiveHint tightener forced this tool to require
-   * approval, overriding a more permissive classifier verdict. First-class
-   * provenance so a tightened tool is distinguishable from a plain classifier
-   * default. See applyDestructiveHintTightener.
+   * The default asked for an MCP tool because its server marks it destructive
+   * (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint
+   * annotation).
    * </pre>
    *
    * <code>APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;</code>
@@ -243,9 +189,6 @@ public enum ApprovalPolicySource
   public static ApprovalPolicySource forNumber(int value) {
     switch (value) {
       case 0: return APPROVAL_POLICY_SOURCE_UNSPECIFIED;
-      case 1: return APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT;
-      case 2: return APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE;
-      case 3: return APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE;
       case 4: return APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL;
       case 5: return APPROVAL_POLICY_SOURCE_APPROVAL_LEASE;
       case 6: return APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY;

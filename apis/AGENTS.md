@@ -35,6 +35,10 @@ the truth.
   (`config`, `is_public`, `is_skip_authorization`); the server's
   `backend/services/stigmer-server/docs/authorization-coverage.md` inventories
   the result and changes with it.
+- The contract stays as small as it can be, so a reader needs no explanation of
+  why a field exists. A field lands with its first reader, never ahead of it. A
+  field that governs what an agent's tools may do exists only if a Claude Code
+  or Cursor plugin can express it; Stigmer adds no tool-policy knob of its own.
 - Validation is protovalidate rules on the message, not prose in a comment.
 - Comments are generated surface. The first sentence of an RPC comment is a
   standalone summary, verb first, naming the resource; the first sentence of a

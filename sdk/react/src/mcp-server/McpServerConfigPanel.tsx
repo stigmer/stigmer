@@ -7,14 +7,13 @@ import type { EnvVarInput } from "@stigmer/sdk";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import {
   EnvVarForm,
   type EnvVarFormVariable,
   type EnvVarFormSubmitOptions,
 } from "../environment/EnvVarForm.js";
-import { McpToolSelector } from "./McpToolSelector.js";
 import { VendorApprovalBlockedNotice } from "./VendorApprovalBlockedNotice.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
   getOAuthConnectErrorMessage,
   type OAuthConnectPhase,
@@ -176,12 +175,8 @@ export interface McpServerConfigPanelProps {
   /** The MCP server resource — used for header display (name, icon, description). */
   readonly mcpServer: McpServer;
   /**
-   * When provided, the credentials form is shown above the tool selector.
+   * When provided, the credentials form is shown above the tool list.
    * Omit when no credentials are needed or they have already been provided.
-   *
-   * While credentials are pending, the tool selector is rendered in a
-   * disabled state so the user completes step 1 (credentials) before
-   * step 2 (tool customization).
    */
   readonly credentials?: McpServerCredentialsProps;
   /**
@@ -192,14 +187,12 @@ export interface McpServerConfigPanelProps {
    * both OAuth and manual env vars, or on its own for OAuth-only servers.
    */
   readonly oauthSignIn?: McpServerOAuthSignInProps;
-  /** Discovered tools from `status.discovered_capabilities.tools`. */
+  /**
+   * Discovered tools from `status.discovered_capabilities.tools`, listed
+   * read-only: attaching a server attaches all of it, and the agent's own
+   * tool lists decide which of these tools it may call.
+   */
   readonly discoveredTools: DiscoveredTool[];
-  /** Approval policies from `status.tool_approvals` and `spec.pinned_tool_approvals`. */
-  readonly toolApprovals: ToolApprovalPolicy[];
-  /** Currently enabled tool names (controlled). */
-  readonly enabledTools: string[];
-  /** Called when tool selection changes. */
-  readonly onEnabledToolsChange: (enabledTools: string[]) => void;
   /** Called when the user clicks "Back" to return to the picker list. */
   readonly onBack: () => void;
   /**
@@ -224,7 +217,7 @@ export interface McpServerConfigPanelProps {
 
 /**
  * Per-server configuration panel composing a credentials form
- * ({@link EnvVarForm}) and a tool selector ({@link McpToolSelector}).
+ * ({@link EnvVarForm}) and a read-only list of the server's tools.
  *
  * Designed to render inside the same popover container as
  * {@link McpServerPicker}: the picker list transitions to this panel
@@ -232,10 +225,8 @@ export interface McpServerConfigPanelProps {
  *
  * The panel's content is driven by the `credentials` prop:
  * - **Present** (server needs setup) — the credentials form is shown
- *   above the tool selector. The tool selector renders disabled as a
- *   preview of what tools the server provides.
- * - **Absent** (server is ready) — only the tool selector is shown,
- *   fully interactive for customizing which tools to enable.
+ *   above the tool list, a preview of what the server provides.
+ * - **Absent** (server is ready) — only the tool list is shown.
  *
  * This is a **pure presentational component** with no knowledge of
  * the setup hook, personal environments, or session creation. All
@@ -254,19 +245,13 @@ export interface McpServerConfigPanelProps {
  *     onSubmit: (values, opts) => submitEnvVars(ref, values, opts),
  *   }}
  *   discoveredTools={tools}
- *   toolApprovals={approvals}
- *   enabledTools={defaultEnabledTools}
- *   onEnabledToolsChange={(t) => setEnabledTools(ref, t)}
  *   onBack={() => setView("list")}
  * />
  *
- * // Server that is ready (tool customization only):
+ * // Server that is ready (tool list only):
  * <McpServerConfigPanel
  *   mcpServer={server}
  *   discoveredTools={tools}
- *   toolApprovals={approvals}
- *   enabledTools={entry.enabledTools}
- *   onEnabledToolsChange={(t) => setEnabledTools(ref, t)}
  *   onBack={() => setView("list")}
  * />
  * ```
@@ -276,9 +261,6 @@ export function McpServerConfigPanel({
   credentials,
   oauthSignIn,
   discoveredTools,
-  toolApprovals,
-  enabledTools,
-  onEnabledToolsChange,
   onBack,
   onSwitchToManual,
   onSwitchToOAuth,
@@ -289,7 +271,6 @@ export function McpServerConfigPanel({
   const serverName = mcpServer.metadata?.name ?? mcpServer.metadata?.slug ?? "MCP Server";
   const iconUrl = mcpServer.spec?.iconUrl;
   const description = mcpServer.spec?.description;
-  const isDisabled = disabled || credentials?.isSubmitting;
 
   const isOAuthBusy = oauthSignIn
     ? oauthSignIn.phase === "initiating" ||
@@ -416,14 +397,55 @@ export function McpServerConfigPanel({
         </div>
       )}
 
-      {/* Tool selector — always shown, disabled while credentials are pending */}
-      <McpToolSelector
-        tools={discoveredTools}
-        toolApprovals={toolApprovals}
-        enabledTools={enabledTools}
-        onChange={onEnabledToolsChange}
-        disabled={!!isDisabled || !!credentials || isOAuthBusy}
-      />
+      <McpServerToolList tools={discoveredTools} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Read-only tool list
+// ---------------------------------------------------------------------------
+
+/**
+ * What the server offers, by name and one-line description. Read-only:
+ * attaching a server attaches every tool it has, and narrowing is the
+ * agent's `tools` / `disallowedTools` lists' job, not the picker's.
+ */
+function McpServerToolList({ tools }: { readonly tools: readonly DiscoveredTool[] }) {
+  if (tools.length === 0) {
+    return (
+      <div className="stg:space-y-1">
+        <div className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+          Tools
+        </div>
+        <div className="stg:rounded-md stg:border stg:border-border stg:px-3 stg:py-4 stg:text-center">
+          <p className="stg:text-xs stg:text-muted-foreground">
+            Tools have not been discovered yet.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="stg:space-y-1.5">
+      <div className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+        Tools ({tools.length})
+      </div>
+      <ul className={cn(UNSTYLED_LIST, "stg:max-h-56 stg:space-y-0.5 stg:overflow-y-auto")}>
+        {tools.map((tool) => (
+          <li key={tool.name} className="stg:rounded-md stg:px-2 stg:py-1">
+            <span className="stg:block stg:truncate stg:font-mono stg:text-xs stg:text-foreground">
+              {tool.name}
+            </span>
+            {tool.description && (
+              <span className="stg:block stg:truncate stg:text-[0.65rem] stg:text-muted-foreground">
+                {tool.description}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

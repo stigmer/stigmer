@@ -68,6 +68,7 @@ import type { RecalledMemoriesContent } from "../../../shared/recalled-memories.
 import type { ProvisionResult } from "../../../shared/workspace/types.js";
 import { buildEnhancedSystemPrompt } from "../prompt-builder.js";
 import { composeSystemPrompt, composeTurnMessage } from "../turn-setup.js";
+import { ToolScope } from "../../../shared/tool-lists.js";
 
 // ---------------------------------------------------------------------------
 // Fixtures — every value is a plain fact a golden can name.
@@ -198,7 +199,9 @@ function everythingInput(shape: EverythingShape): TurnInput {
       servers: [],
       channelMessaging: CHANNEL_MESSAGING,
       leases: { global: false, categories: new Set(), servers: new Set() },
-      policies: new Map(),
+      mcpDefault: { destructive: new Set(), leasedServers: new Set() },
+      platformServerSlugs: new Set(),
+      toolScope: ToolScope.unrestricted(),
     },
     attachments: {
       results: [...(shape.inputFiles ?? INPUT_FILES)],

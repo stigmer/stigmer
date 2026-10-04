@@ -75,7 +75,6 @@ const DETAIL_CONTENT: CSSProperties = {
 function detailPropsFor(data: McpServerConnectTourStep): {
   key: string;
   state: UseMcpServerReturn;
-  tab: "tools" | "policies";
   showCredentialForm: boolean;
   poolValues?: (key: string) => EnvVarInput | undefined;
 } {
@@ -83,21 +82,19 @@ function detailPropsFor(data: McpServerConnectTourStep): {
     return {
       key: `credentials-${data.form}`,
       state: REGISTERED,
-      tab: "tools",
       showCredentialForm: true,
       poolValues: data.form === "filled" ? credentialPoolLookup : undefined,
     };
   }
   return {
-    key: `${data.phase}-${data.tab}`,
+    key: data.phase,
     state: data.phase === "connected" ? CONNECTED : REGISTERED,
-    tab: data.tab,
     showCredentialForm: false,
   };
 }
 
 export function renderStep(data: McpServerConnectTourStep): ReactNode {
-  const { key, state, tab, showCredentialForm, poolValues } =
+  const { key, state, showCredentialForm, poolValues } =
     detailPropsFor(data);
 
   return (
@@ -117,7 +114,7 @@ export function renderStep(data: McpServerConnectTourStep): ReactNode {
               activeOrg={DEMO_ORG}
               editable
               mcpServerState={state}
-              defaultCapabilityTab={tab}
+              defaultCapabilityTab="tools"
               defaultShowCredentialForm={showCredentialForm}
               credentialPoolValues={poolValues}
             />

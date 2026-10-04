@@ -30,16 +30,18 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 ### MCP Server Usages
 
 - [ ] MCP server slugs are unique within `mcp_server_usages` (no duplicate references)
-- [ ] `enabled_tools` contain tool names that actually exist on the referenced MCP server — **server-enforced at apply time**: once the referenced server has discovered capabilities, apply rejects unknown names with `INVALID_ARGUMENT` listing the valid tools; before the server's first connect, the check is skipped and the runner warns-and-ignores unknown names at execution instead
-- [ ] `enabled_tools` contain **only** names from `discovered_capabilities.tools` — never from `discovered_capabilities.resource_templates` (resource templates are data endpoints, not callable tools; also server-enforced at apply time, with a targeted error)
-- [ ] `tool_approval_overrides` use exact, case-sensitive tool names matching the MCP server's `tools/list`
+
+### Tool Lists
+
+- [ ] `tools` and `disallowed_tools` entries use Claude Code's names: `Read`, `Grep`, `Bash(git push *)`, `Agent(explore)`, `mcp__<server-slug>`, `mcp__<server-slug>__<tool>`, `mcp__*`. The shape is checked at apply; a malformed entry is rejected
+- [ ] Each `mcp__<server-slug>` uses the slug from `mcp_server_usages`, and each tool part an exact, case-sensitive name from the server's `discovered_capabilities.tools`. Names are resolved only at run time: a misspelled entry is ignored there, and a `tools` list in which nothing resolves refuses the run
+- [ ] A `tools` list names everything the agent needs, `Agent` included when it delegates to sub-agents: "only these" is exact
 
 ### Sub-Agents
 
 - [ ] Sub-agent names are unique within `sub_agents`
 - [ ] Sub-agent `instructions` are at least 10 characters
-- [ ] Sub-agent `mcp_access[*].mcp_server` references only slugs from the parent's `mcp_server_usages`
-- [ ] Sub-agent `mcp_access[*].enabled_tools` are subsets of the parent's enabled tools for each MCP server
+- [ ] Sub-agent `tools` name only tools the parent keeps: a sub-agent narrows the parent's tools and never widens them
 
 ### YAML Syntax
 
@@ -103,25 +105,22 @@ instructions: "You are a helpful assistant that answers questions clearly."
 
 ### Sub-agent tools exceeding parent's tools
 
-Sub-agent `enabled_tools` must be a strict subset of the parent's enabled tools for each MCP server.
+A sub-agent starts from the parent's resolved tools. Naming a tool the parent excluded does not give it back.
 
 ```yaml
-# Wrong — parent only enabled search_code and get_file
+# Wrong — the parent cannot delete repositories, so neither can the reviewer
+disallowed_tools: [mcp__github__delete_repository]
 sub_agents:
   - name: reviewer
-    mcp_access:
-      - mcp_server: github
-        enabled_tools:
-          - search_code
-          - delete_repo  # NOT in parent's enabled_tools
+    instructions: "Review pull requests for correctness."
+    tools: [Read, mcp__github__delete_repository]
 
-# Correct
+# Correct — narrow the parent's tools
+disallowed_tools: [mcp__github__delete_repository]
 sub_agents:
   - name: reviewer
-    mcp_access:
-      - mcp_server: github
-        enabled_tools:
-          - search_code  # subset of parent's tools
+    instructions: "Review pull requests for correctness."
+    tools: [Read, mcp__github__search_code]
 ```
 
 ### Duplicate MCP server slugs in one agent
@@ -134,34 +133,30 @@ mcp_server_usages:
   - mcp_server_ref:
       kind: mcp_server
       slug: github
-    enabled_tools: [search_code]
   - mcp_server_ref:
       kind: mcp_server
       slug: github
-    enabled_tools: [create_pr]
 
-# Correct — single entry with all tools
+# Correct — one entry; narrow its tools with the tool lists
 mcp_server_usages:
   - mcp_server_ref:
       kind: mcp_server
       slug: github
-    enabled_tools: [search_code, create_pr]
+tools: [mcp__github__search_code, mcp__github__create_pull_request]
 ```
 
-### Putting MCP resource templates in `enabled_tools`
+### Naming MCP resource templates in a tool list
 
-MCP servers expose two types of capabilities: **tools** (callable actions) and **resource templates** (read-only data endpoints). Only tool names belong in `enabled_tools`. Resource template names (from `discovered_capabilities.resource_templates`) must never be included — once the server has been connected, apply rejects them with a targeted `INVALID_ARGUMENT` error; if the manifest slips through before the first connect, the runner warns and ignores the entry at execution (the run proceeds without it).
+MCP servers expose two types of capabilities: **tools** (callable actions) and **resource templates** (read-only data endpoints). Only tool names belong in an `mcp__<server-slug>__<tool>` entry. A resource template name never matches a tool, so the runner ignores the entry.
 
 ```yaml
 # Wrong — cloud_resource_schema is a resource template, not a tool
-enabled_tools:
-  - search_code
-  - cloud_resource_schema   # rejected at apply time (or ignored at runtime pre-connect)
+tools:
+  - mcp__planton__cloud_resource_schema
 
 # Correct — only tool names from discovered_capabilities.tools
-enabled_tools:
-  - search_code
-  - get_cloud_resource
+tools:
+  - mcp__planton__get_cloud_resource
 ```
 
 When inspecting `stigmer get mcp-server <slug> -oyaml`, check `status.discovered_capabilities` carefully — `tools` and `resource_templates` are separate lists. Only use names from the `tools` list.
@@ -197,43 +192,19 @@ skill_refs:
     slug: my-skill
 ```
 
-### Sub-agent `mcp_access` referencing nonexistent parent MCP server
+### Misspelled tool names
 
-The `mcp_server` field in `mcp_access` must match a `slug` from the parent's `mcp_server_usages`.
-
-```yaml
-# Wrong — parent has no slug: slack in mcp_server_usages
-sub_agents:
-  - name: notifier
-    mcp_access:
-      - mcp_server: slack  # parent doesn't have this
-
-# Correct — only reference MCP servers the parent declares
-sub_agents:
-  - name: notifier
-    mcp_access:
-      - mcp_server: github  # must exist in parent's mcp_server_usages
-```
-
-### Silent failure from typos in tool approval overrides
-
-If a `tool_name` in `tool_approval_overrides` does not match any tool in the MCP server's `tools/list`, the override is **silently ignored**. No error, no warning — the approval policy simply does not apply.
+Tool lists are resolved at run time, against the tools the run has. A misspelled entry names no tool and is ignored, with a log line. In `tools`, that means the tool you meant is not available; if no entry resolves at all, the run is refused, naming the entries.
 
 ```yaml
-# Dangerous — typo means no approval is enforced
-tool_approval_overrides:
-  - tool_name: delet_repository  # typo: missing 'e'
-    requires_approval: true
-    message: "Delete repository: {{args.repo_name}}"
+# Wrong — typo: the agent loses search_code instead of gaining it
+tools: [Read, mcp__github__serach_code]
 
 # Correct
-tool_approval_overrides:
-  - tool_name: delete_repository
-    requires_approval: true
-    message: "Delete repository: {{args.repo_name}}"
+tools: [Read, mcp__github__search_code]
 ```
 
-Always verify tool names against the MCP server before writing overrides.
+Always verify tool names against the MCP server before writing a list.
 
 ### Missing `metadata.org`
 

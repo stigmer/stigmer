@@ -3,7 +3,7 @@
  * "Connect your tools": the real `McpServerDetailView` going from a freshly
  * registered server (no tools) through the shipped two-click connect flow
  * (Connect opens the credential form *without* connecting; Save connects) to
- * discovered tools and an auto-classified approval policy.
+ * discovered tools, one of which the server marks destructive.
  *
  * Continuity: this tour picks up exactly where `mcp-server-creation-tour`
  * leaves off ("Next, connect it…") — same server, same org, same env var,
@@ -43,8 +43,6 @@ export type McpServerConnectTourStep =
       view: "detail";
       /** Which snapshot the detail view renders: pre- or post-discovery. */
       phase: "registered" | "connected";
-      /** The capability tab the beat lands on. */
-      tab: "tools" | "policies";
     }
   | { view: "credentials"; form: CredentialFormPhase };
 
@@ -56,7 +54,7 @@ export type McpServerConnectTourStep =
  * Cursor choreography: each pointing step sets its cursor mid-step and
  * clears it before the step ends, so every step is self-contained. Cursor
  * targets inside the real component (`connect-button`, `credential-form`,
- * `env-form-submit`, `tab-policies`) are the `data-cursor-target` hooks
+ * `env-form-submit`) are the `data-cursor-target` hooks
  * @stigmer/react ships; the cursor auto-scrolls its target into view.
  * Beats without a cursor open with a `scroll_to` instead, because a `key`
  * remount resets the frame's scroll position to the top.
@@ -64,7 +62,7 @@ export type McpServerConnectTourStep =
 export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[] = [
   {
     delayMs: 0,
-    data: { view: "detail", phase: "registered", tab: "tools" },
+    data: { view: "detail", phase: "registered" },
     narration:
       "Here's the server you just created. It's registered, but Stigmer hasn't talked to it yet — the Tools tab is empty until you connect.",
     // No interactions here: the embed arms step-0 interactions at mount
@@ -73,9 +71,9 @@ export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[]
   },
   {
     delayMs: 2500,
-    data: { view: "detail", phase: "registered", tab: "tools" },
+    data: { view: "detail", phase: "registered" },
     narration:
-      "Connecting reaches the live server, catalogs every tool it offers, and classifies each one for approval. It all starts from this one button.",
+      "Connecting reaches the live server and catalogs every tool it offers. It all starts from this one button.",
     interactions: [
       { atPercent: 0.35, type: "set_cursor", target: "connect-button" },
       { atPercent: 0.92, type: "clear_cursor" },
@@ -104,26 +102,16 @@ export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[]
   },
   {
     delayMs: 3000,
-    data: { view: "detail", phase: "connected", tab: "tools" },
+    data: { view: "detail", phase: "connected" },
     narration:
       "Connected. Stigmer found three tools — get order, list orders, and process return — and the header now shows when discovery last ran.",
     interactions: [{ atPercent: 0.2, type: "scroll_to", target: "mcp-capabilities" }],
   },
   {
-    delayMs: 2800,
-    data: { view: "detail", phase: "connected", tab: "tools" },
-    narration:
-      "Discovery also classified each tool. Read-only lookups pass through automatically — check the Policies tab for the one that doesn't.",
-    interactions: [
-      { atPercent: 0.4, type: "set_cursor", target: "tab-policies" },
-      { atPercent: 0.92, type: "clear_cursor" },
-    ],
-  },
-  {
     delayMs: 3000,
-    data: { view: "detail", phase: "connected", tab: "policies" },
+    data: { view: "detail", phase: "connected" },
     narration:
-      "process return moves money, so it was auto-classified to require human approval. Your agent will pause and ask before any refund goes out — no extra code, the policy lives on the server.",
+      "Process return moves money, so the server marks it destructive, and Stigmer asks before any tool so marked. Your agent will pause before any refund goes out — no extra code. The two lookups run on their own.",
     interactions: [{ atPercent: 0.15, type: "scroll_to", target: "mcp-capabilities" }],
   },
 ];

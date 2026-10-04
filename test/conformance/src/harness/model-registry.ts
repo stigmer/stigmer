@@ -99,8 +99,9 @@ export function requireNativeRow(document: ModelRegistryDocument, id: string): M
 // The row the runner's economy-tier pick lands on for `provider` (runner
 // shared/model-registry.ts getEconomyModel: the FIRST row with that provider,
 // costTier "economy" and harness "native"; the cross-provider fallback is any
-// such row). Mirrors the runner's order so the classifier and summarization
-// arms assert the model the runner actually chose, read off the same document.
+// such row). Mirrors the runner's order so an arm on the runner's economy-tier
+// call (the structured-output extraction fallback) asserts the model the
+// runner actually chose, read off the same document.
 export function economyRowFor(document: ModelRegistryDocument, provider: string): ModelRegistryRow {
   const economy = (row: ModelRegistryRow): boolean => row.costTier === "economy" && row.harness === "native";
   const row =

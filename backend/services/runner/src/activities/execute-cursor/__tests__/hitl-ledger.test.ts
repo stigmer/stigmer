@@ -70,11 +70,13 @@ import {
   HOOK_BLOCK_ERROR_MARKERS,
 } from "../boundary-rows.js";
 import { builderOver } from "../__test-utils__/fold.js";
-import { toolCallIdentityToken } from "../approval-state.js";
+import { scopeRefusalToken, toolCallIdentityToken } from "../approval-state.js";
+import { scopeKey } from "../hook-scope.js";
+import { CURSOR_HOOK_TOOL_COVERS } from "../../../shared/tool-lists.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 import { generateHookScript } from "../hook-script.js";
-import type { MergedToolPolicy } from "../approval-policy.js";
+import type { McpApprovalDefault } from "../approval-policy.js";
 
 const tempDirs: string[] = [];
 
@@ -265,7 +267,7 @@ describe("reconcileDeniedToolCalls", () => {
     expect(tc.error).toBe("");
   });
 
-  it("resolves the MCP policy message for a denied MCP tool", async () => {
+  it("resolves the destructive-tool message for a denied MCP tool", async () => {
     const tc = toolCall({
       id: "c1",
       name: "apply_x",
@@ -273,15 +275,7 @@ describe("reconcileDeniedToolCalls", () => {
       status: ToolCallStatus.TOOL_CALL_COMPLETED,
     });
     const messages = [aiMessageWith([tc])];
-    const policies = new Map<string, MergedToolPolicy>([
-      ["planton/apply_x", {
-        toolName: "apply_x",
-        mcpServerSlug: "planton",
-        requiresApproval: true,
-        approvalMessage: "Apply infrastructure change",
-        source: "classifier_default",
-      }],
-    ]);
+    const policies: McpApprovalDefault = { destructive: new Set(["planton/apply_x"]), leasedServers: new Set() };
 
     // MCP tools are keyed name-only (their name is consistent across layers).
     await reconcileDeniedToolCalls(messages, builderOver(messages), [
@@ -289,7 +283,7 @@ describe("reconcileDeniedToolCalls", () => {
     ], policies);
 
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
-    expect(tc.approvalMessage).toBe("Apply infrastructure change");
+    expect(tc.approvalMessage).toBe("Execute apply_x");
   });
 
   it("leaves non-denied tool calls untouched while overlaying the denied one", async () => {
@@ -1697,6 +1691,24 @@ describe("detectUnattributedHookBlocks (issue #205)", () => {
     const shell = failedShell("s1", "rm -rf build");
     const ledger = [{ toolName: "Shell", token: toolCallIdentityToken(shell), kind: "approval" }];
     expect(detectUnattributedHookBlocks([aiMessageWith([shell])], 0, ledger)).toEqual([]);
+  });
+
+  it("attributes a tool-list refusal by the TOOL's scope token, across the hook's and the stream's names — not reported", () => {
+    // The hook refused `Read` / `SemanticSearch` / a sub-agent start as out of
+    // scope and recorded the tool's scope token; the stream names the same
+    // calls `read` / `semSearch` / `task`, with whatever args.
+    const read = toolCall({ id: "r1", name: "read", status: ToolCallStatus.TOOL_CALL_FAILED, error: HOOK_BLOCK, args: { path: "src/a.ts" } });
+    const search = toolCall({ id: "q1", name: "semSearch", status: ToolCallStatus.TOOL_CALL_FAILED, error: HOOK_BLOCK, args: { query: "x" } });
+    const task = toolCall({ id: "t1", name: "task", status: ToolCallStatus.TOOL_CALL_FAILED, error: HOOK_BLOCK, args: { subagentType: "writer" } });
+    const ledger = ["Read", "SemanticSearch", "Task"].map((hookName) => ({
+      toolName: hookName,
+      token: scopeRefusalToken(scopeKey(hookName, CURSOR_HOOK_TOOL_COVERS)),
+      kind: "disabled",
+    }));
+    expect(detectUnattributedHookBlocks([aiMessageWith([read, search, task])], 0, ledger)).toEqual([]);
+    // A refusal of one tool never vouches for a block of another.
+    const shell = failedShell("s1", "ls");
+    expect(detectUnattributedHookBlocks([aiMessageWith([shell])], 0, ledger)).toHaveLength(1);
   });
 
   it("attributes a secret hard-block via its kind:'secret' entry — not reported", () => {

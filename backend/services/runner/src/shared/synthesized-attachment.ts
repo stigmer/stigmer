@@ -7,11 +7,12 @@
  * A synthesized attachment is a first-party MCP server entry the runner
  * builds itself (no McpServer resource, no Environment, no credential in
  * any manifest) on a RESERVED slug. Approval-freedom is structural, not
- * configured: empty toolApprovals + pinnedToolApprovals mean
- * mergeApprovalPolicies emits no entries, and discoveredCapabilitiesEmpty
- * false + no McpServerUsage keep the connect backfill's destructiveHint
- * tightener structurally unable to touch it. Callers must still inject
- * AFTER resolve + backfill; every harness call site does.
+ * configured: an empty `destructiveTools` means the approval default asks
+ * for none of its tools, and discoveredCapabilitiesEmpty false + no
+ * McpServerUsage keep the connect backfill's discovery from touching it.
+ * Its tools are the platform's, outside every agent tool list (the turn
+ * records its slug in `TurnMcp.platformServerSlugs`). Callers must still
+ * inject AFTER resolve + backfill; every harness call site does.
  */
 
 import type { ResolvedMcpServer } from "./mcp-resolver.js";

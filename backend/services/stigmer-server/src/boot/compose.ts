@@ -173,7 +173,7 @@ import {
   metricsExportPosture,
 } from "../observability/rpc-metrics.js";
 import { kindEnumName } from "../pipeline/apiresource-meta.js";
-import { quoteJoin } from "../domain/mcpserver/enabledtools/enabledtools.js";
+import { quoteJoin } from "../pipeline/errors.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { KeyedSerializer } from "../pipeline/keyed-serializer.js";
 import {

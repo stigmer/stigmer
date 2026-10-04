@@ -3,7 +3,6 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.agent.v1.McpServerUsage;
-import ai.stigmer.agentic.agent.v1.ToolApprovalOverride;
 import ai.stigmer.agentic.session.v1.CursorMode;
 import ai.stigmer.agentic.session.v1.ExecutionTarget;
 import ai.stigmer.agentic.session.v1.GitRepoSource;
@@ -335,13 +334,9 @@ public final class SessionInput {
     /** SDK input type for McpServerUsage. */
     public static final class McpServerUsageInput {
         private final ResourceRef mcpServerRef;
-        private final java.util.List<String> enabledTools;
-        private final java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides;
 
         private McpServerUsageInput(Builder builder) {
             this.mcpServerRef = builder.mcpServerRef;
-            this.enabledTools = builder.enabledTools;
-            this.toolApprovalOverrides = builder.toolApprovalOverrides;
         }
 
         McpServerUsage toProto() {
@@ -350,14 +345,6 @@ public final class SessionInput {
                 builder.setMcpServerRef(this.mcpServerRef.toProto().toBuilder()
                     .setKind(ApiResourceKind.mcp_server).build());
             }
-            if (this.enabledTools != null) {
-                builder.addAllEnabledTools(this.enabledTools);
-            }
-            if (this.toolApprovalOverrides != null) {
-                for (ToolApprovalOverrideInput item : this.toolApprovalOverrides) {
-                    builder.addToolApprovalOverrides(item.toProto());
-                }
-            }
             return builder.build();
         }
 
@@ -365,57 +352,12 @@ public final class SessionInput {
 
         public static final class Builder {
             private ResourceRef mcpServerRef;
-            private java.util.List<String> enabledTools;
-            private java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides;
 
             private Builder() {}
 
             public Builder mcpServerRef(ResourceRef mcpServerRef) { this.mcpServerRef = mcpServerRef; return this; }
-            public Builder enabledTools(java.util.List<String> enabledTools) { this.enabledTools = enabledTools; return this; }
-            public Builder toolApprovalOverrides(java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides) { this.toolApprovalOverrides = toolApprovalOverrides; return this; }
 
             public McpServerUsageInput build() { return new McpServerUsageInput(this); }
-        }
-    }
-
-    /** SDK input type for ToolApprovalOverride. */
-    public static final class ToolApprovalOverrideInput {
-        private final String toolName;
-        private final boolean requiresApproval;
-        private final String message;
-
-        private ToolApprovalOverrideInput(Builder builder) {
-            this.toolName = builder.toolName;
-            this.requiresApproval = builder.requiresApproval;
-            this.message = builder.message;
-        }
-
-        ToolApprovalOverride toProto() {
-            ToolApprovalOverride.Builder builder = ToolApprovalOverride.newBuilder();
-            if (this.toolName != null) {
-                builder.setToolName(this.toolName);
-            }
-            builder.setRequiresApproval(this.requiresApproval);
-            if (this.message != null) {
-                builder.setMessage(this.message);
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String toolName;
-            private boolean requiresApproval;
-            private String message;
-
-            private Builder() {}
-
-            public Builder toolName(String toolName) { this.toolName = toolName; return this; }
-            public Builder requiresApproval(boolean requiresApproval) { this.requiresApproval = requiresApproval; return this; }
-            public Builder message(String message) { this.message = message; return this; }
-
-            public ToolApprovalOverrideInput build() { return new ToolApprovalOverrideInput(this); }
         }
     }
 }

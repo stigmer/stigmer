@@ -7,14 +7,19 @@
  * makes blueprint sub-agents actually invokable on the Cursor harness — parity
  * with the native deepagents harness, which compiles them into the graph.
  *
- * Known limitations (Cursor SDK, not Stigmer):
- * - Per-sub-agent MCP tool filtering is NOT supported: custom sub-agents
- *   inherit the parent agent's MCP config (`SDKCustomSubagentDefinition` has no
- *   `mcpServers` field). A blueprint's `mcp_access` is therefore surfaced only
- *   as advisory prompt context, not enforced as an isolation boundary.
- * - Built-in kinds (`explore`, `shell`, `generalPurpose`) are provided by
- *   Cursor's own runtime and must NOT be registered here — doing so would
- *   shadow the native ones. They are encouraged via prompt guidance instead.
+ * Tool lists: an `AgentDefinition` carries no tool list, and the hook cannot
+ * tell which sub-agent made a call, so a sub-agent with lists of its own is
+ * refused at setup (`turn-setup.ts` `checkToolScope`); every registered
+ * sub-agent runs within the main agent's scope, which the hook enforces. A
+ * main agent's `Agent(type, …)` type list is refused at setup on this engine:
+ * Cursor's built-in sub-agent types start through a `task` call that fires no
+ * hook on the 1.0.31 local runtime (live probe, 2026-10-05), so nothing could
+ * hold them back. {@link subAgentsInScope} still keeps a custom type the list
+ * does not allow unregistered, for the turns that pass that check.
+ *
+ * Built-in kinds (`explore`, `shell`, `generalPurpose`) are provided by
+ * Cursor's own runtime and must NOT be registered here — doing so would
+ * shadow the native ones. They are encouraged via prompt guidance instead.
  *
  * Because the SDK does not persist agent configuration across `Agent.resume()`
  * (the same constraint that applies to `mcpServers`), the result of this
@@ -24,6 +29,15 @@
 
 import type { AgentDefinition } from "@cursor/sdk";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { ToolScope } from "../../shared/tool-lists.js";
+
+/**
+ * The blueprint sub-agents the main agent may start under its `Agent(type, …)`
+ * list: the ones registered with the SDK and named in the prompt.
+ */
+export function subAgentsInScope(subAgents: readonly SubAgent[], scope: ToolScope): SubAgent[] {
+  return subAgents.filter((sa) => scope.allowsSubAgentType(sa.name));
+}
 
 /**
  * Build the Cursor SDK `agents` map from blueprint sub-agents.

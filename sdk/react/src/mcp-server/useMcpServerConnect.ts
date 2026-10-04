@@ -11,8 +11,8 @@ import { toError } from "../internal/toError.js";
 /** Return value of {@link useMcpServerConnect}. */
 export interface UseMcpServerConnectReturn {
   /**
-   * Connect to an MCP server: discover its tools, resource templates,
-   * and classify tool approval policies via a lightweight LLM call.
+   * Connect to an MCP server: discover its tools (with each tool's
+   * destructive hint) and resource templates.
    *
    * Uses the async connect lane (`startConnect` + polling via the SDK's
    * `connectAndWait`, stigmer/stigmer#425): the promise still resolves
@@ -34,8 +34,8 @@ export interface UseMcpServerConnectReturn {
    * @param org - The caller's active organization id (a slug is also accepted). Required for
    *   OAuth grant lookup and personal environment resolution.
    * @param runtimeEnv - Optional one-time values for this connect.
-   * @returns The updated McpServer with populated status.discovered_capabilities
-   *          and status.tool_approvals.
+   * @returns The updated McpServer with populated status.discovered_capabilities,
+   *          each tool carrying its destructive hint.
    */
   readonly connect: (
     mcpServerId: string,

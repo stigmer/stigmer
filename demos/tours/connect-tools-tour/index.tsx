@@ -91,9 +91,8 @@ const pendingToolCall = create(ToolCallSchema, {
 const pendingApproval = create(PendingApprovalSchema, {
   toolCallId: RETURN_TOOL_CALL_ID,
   toolName: "process_return",
-  // The server's classified policy template, rendered — the same policy the
-  // detail beat shows on the Policies tab.
-  message: "Process return for order 'ORD-4821' — refund $79.99 to original_payment",
+  // The runner's message for an MCP tool its server marks destructive.
+  message: "Execute process_return",
   argsPreview: JSON.stringify(
     {
       order_id: "ORD-4821",
@@ -186,12 +185,10 @@ export function renderStep(data: ConnectToolsTourStep): ReactNode {
         "mcp-detail",
         `/library/mcp-servers/${ORDER_MGMT_MCP.slug}`,
         // Stable contentKey: both detail beats show one page, so AppShell
-        // must not replay its navigation transition between them. The inner
-        // key remounts the view exactly when defaultCapabilityTab changes
-        // (the `key` reset idiom); step 1's scroll_to
-        // re-establishes scroll after the remount.
+        // must not replay its navigation transition between them; step 1's
+        // scroll_to moves within the same mounted view.
         <AppShell activeNav="library" contentKey="mcp-detail">
-          <div key={`detail-${data.tab}`} style={DETAIL_SCROLL} inert>
+          <div style={DETAIL_SCROLL} inert>
             <div style={DETAIL_CONTENT}>
               <McpServerDetailView
                 org={DEMO_ORG}
@@ -199,7 +196,7 @@ export function renderStep(data: ConnectToolsTourStep): ReactNode {
                 activeOrg={DEMO_ORG}
                 editable
                 mcpServerState={ORDER_MGMT_CONNECTED}
-                defaultCapabilityTab={data.tab}
+                defaultCapabilityTab="tools"
               />
             </div>
           </div>

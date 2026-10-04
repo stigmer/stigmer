@@ -18,20 +18,17 @@
 //    managed-env service runs here. (The wiring gap is disclosed, not pinned:
 //    pinning it would force the TS port to reproduce a composition artifact.)
 //
-// Classification scripting note: the connect workflow's tool classifier
-// calls the LLM through the runner's proxy (the MockLlmProxy), using
-// LangChain's structured output — on the wire, a forced Anthropic tool call
-// named "extract" whose input is the classifier's { approvals: [...] }
-// schema. Every test that triggers a FIRST connect enqueues exactly one such
-// turn (scriptClassifierVerdict below), which makes classification instant
-// and lets the suite pin the persistence semantics both ways: a gated
-// verdict must surface in status.tool_approvals, and an ungated verdict must
-// be DROPPED (presence in the persisted list is what "gated" means).
-// Re-connects must not consume any turn at all — the content-addressed
-// carry-forward is asserted through the mock's own request log. The
-// classifier's LLM-outage fallback (fail closed) is runner-internal behavior
-// covered by the runner's unit tests, not re-proven here.
+// What discovery stores about each tool: its name, its schema, and
+// destructive_hint, true exactly when the server's MCP annotations declare
+// `destructiveHint: true` (the mark the approval default asks before). The
+// suite pins the stored hint per tool on a surface that mixes the fixture's
+// destructive echo with tools that declare nothing, both on a first connect
+// and across a re-connect. A connect asks no model: discovery is the server's
+// own tool list, so the mock LLM's request log stays empty, which the suite
+// also pins. How the runner treats a `readOnlyHint` beside the destructive
+// mark is the runner's unit arm, not re-proven here.
 import { Code } from "@connectrpc/connect";
+import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { TokenEndpointAuthMethod } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
@@ -41,9 +38,14 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { economyRowFor, wireModelIdOf } from "../harness/model-registry";
-import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
-import { connectClassifierVerdict, type MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import {
+  DESTRUCTIVE_ECHO_TOOL_NAME,
+  ECHO_TOOL_NAME,
+  FAIL_TOOL_NAME,
+  type FixtureTool,
+  type McpToolFixture,
+} from "../harness/mcp-server";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { MockOAuthAuthorizationServer } from "@stigmer/test-support/oauth-authorization-server";
 import { HERMETIC_OAUTH_REDIRECT_URI } from "@stigmer/test-support/server-process";
 import { requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
@@ -90,8 +92,7 @@ afterAll(async () => {
 const TARGET_ENV_VAR = "CONF_OAUTH_TOKEN";
 
 // How long to poll for an async connect to settle. Discovery against the
-// in-process fixture is fast; the budget covers the classifier's outage
-// fallback (client-side retries against the mock's 500) with headroom.
+// in-process fixture is fast; the budget is headroom for a loaded runner.
 const CONNECT_SETTLE_TIMEOUT_MS = 90_000;
 const CONNECT_SETTLE_POLL_MS = 500;
 
@@ -133,12 +134,20 @@ async function completeDcrHandshake(org: string, name: string, opts: { url?: str
   return { server, initiated, completed };
 }
 
-// Enqueues one classifier verdict for the next first connect (see the
-// header's classification scripting note; the wire shape is the mock's
-// `connectClassifierVerdict`, shared with the enforcing-lane suite).
-function scriptClassifierVerdict(requiresApproval: boolean) {
-  mockLlm.enqueue(connectClassifierVerdict(ECHO_TOOL_NAME, requiresApproval));
+// The mixed surface the hint arms connect: one tool marked destructive, two
+// that declare no annotations.
+const MIXED_SURFACE: readonly FixtureTool[] = [ECHO_TOOL_NAME, DESTRUCTIVE_ECHO_TOOL_NAME, FAIL_TOOL_NAME];
+
+// The stored hint per discovered tool, keyed by name.
+function storedHints(server: McpServer): Record<string, boolean> {
+  return Object.fromEntries((server.status?.discoveredCapabilities?.tools ?? []).map((t) => [t.name, t.destructiveHint]));
 }
+
+const MIXED_SURFACE_HINTS = {
+  [ECHO_TOOL_NAME]: false,
+  [DESTRUCTIVE_ECHO_TOOL_NAME]: true,
+  [FAIL_TOOL_NAME]: false,
+};
 
 // Polls the resource until its connect_status reaches the wanted phase —
 // the poll-don't-sleep core for the async connect lane.
@@ -512,13 +521,12 @@ describe("McpServer connect conformance — blocking connect", () => {
     expect(err.rawMessage).toBe("mcp_server not found: mcp_doesnotexist");
   });
 
-  it("[rpc:McpServerCommandController.connect] discovers the fixture's tools and persists SUCCEEDED with the classifier's gated verdict", async () => {
+  it("[rpc:McpServerCommandController.connect] discovers the fixture's tools and persists SUCCEEDED with each tool's destructive hint, asking no model", async () => {
     const { org } = await target.provisionTenancy();
     const server = await clients.mcpServerCommand.create(
-      makeHttpMcpServer({ org, name: uniqueName("connect"), url: mcpTools.url() }),
+      makeHttpMcpServer({ org, name: uniqueName("connect"), url: mcpTools.url(MIXED_SURFACE) }),
     );
     fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
-    scriptClassifierVerdict(true);
 
     const connected = await clients.mcpServerCommand.connect({
       mcpServerId: server.metadata!.id,
@@ -529,48 +537,21 @@ describe("McpServer connect conformance — blocking connect", () => {
     expect(connected.status?.connectStatus?.workflowId).toBe(
       `stigmer/mcp-server/connect/${server.metadata!.id}`,
     );
-    const tools = connected.status?.discoveredCapabilities?.tools ?? [];
-    expect(tools.map((t) => t.name)).toEqual([ECHO_TOOL_NAME]);
-
-    // The classifier gated echo, so it must surface in the persisted list.
-    // ToolApprovalPolicy carries no boolean — PRESENCE in the persisted list
-    // is what "gated" means (the conversion drops ungated entries; the
-    // ungated arm is pinned in the startConnect test below).
-    const approvals = connected.status?.toolApprovals ?? [];
-    expect(approvals.map((a) => a.toolName)).toEqual([ECHO_TOOL_NAME]);
-
-    // Classification is a cheap task, so the runner runs it on the registry's
-    // economy tier for the primary model's provider — resolved through the
-    // control plane's registry to the provider's api id (the Go offline
-    // suite's classify arm pinned the same wire id). Asserted against the row
-    // the runner itself picks from the same document, not a pinned string.
-    if (target.modelRegistryDocument === undefined) {
-      throw new Error(`target ${target.name} exposes no model registry document; execution targets must`);
-    }
-    const economy = economyRowFor(await target.modelRegistryDocument(), "anthropic");
-    expect(mockLlm.requestModels(), "the classifier called the economy-tier model, resolved").toEqual([
-      wireModelIdOf(economy),
-    ]);
+    // The hint is stored per tool: true for the tool whose annotations say
+    // destructive, false for the tools that declare nothing.
+    expect(storedHints(connected), "the stored destructive_hint per tool").toEqual(MIXED_SURFACE_HINTS);
+    // And it is what a later read returns, not only the connect response.
+    const read = await clients.mcpServerQuery.get({ value: server.metadata!.id });
+    expect(storedHints(read), "the persisted destructive_hint per tool").toEqual(MIXED_SURFACE_HINTS);
+    expect(mockLlm.requests(), "a connect asks no model").toEqual([]);
   });
 
-  it("[rpc:McpServerCommandController.connect] re-connect keeps capabilities and the gated approval stable", async () => {
+  it("[rpc:McpServerCommandController.connect] re-connect keeps capabilities and the stored hints stable", async () => {
     const { org } = await target.provisionTenancy();
     const server = await clients.mcpServerCommand.create(
-      makeHttpMcpServer({ org, name: uniqueName("reconnect"), url: mcpTools.url() }),
+      makeHttpMcpServer({ org, name: uniqueName("reconnect"), url: mcpTools.url(MIXED_SURFACE) }),
     );
     fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
-    scriptClassifierVerdict(true);
-    // A second identical verdict for the re-connect. The runner's
-    // content-addressed carry-forward SHOULD make this turn unnecessary (an
-    // unchanged tool is not re-classified) — but today it re-classifies:
-    // the persisted input_schema round-trips through Go's structpb, whose
-    // JSON marshaling sorts object keys, while toolSignature() stringifies
-    // the live SDK object in insertion order, so byte-identical schemas
-    // never match. Discovered by this suite's first run (the re-connect
-    // consumed a full classification); filed as stigmer/stigmer#862.
-    // When fixed, tighten this test: drop the second verdict and
-    // assert the re-connect adds ZERO LLM traffic (mockLlm.requests()).
-    scriptClassifierVerdict(true);
 
     await clients.mcpServerCommand.connect({ mcpServerId: server.metadata!.id, org });
 
@@ -580,11 +561,8 @@ describe("McpServer connect conformance — blocking connect", () => {
     });
 
     expect(again.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
-    expect((again.status?.discoveredCapabilities?.tools ?? []).map((t) => t.name)).toEqual([
-      ECHO_TOOL_NAME,
-    ]);
-    const approvals = again.status?.toolApprovals ?? [];
-    expect(approvals.map((a) => a.toolName)).toEqual([ECHO_TOOL_NAME]);
+    expect(storedHints(again), "the re-connect's stored destructive_hint per tool").toEqual(MIXED_SURFACE_HINTS);
+    expect(mockLlm.requests(), "neither connect asks a model").toEqual([]);
   });
 
   it("[rpc:McpServerCommandController.connect] classifies an unreachable http server as FailedPrecondition with the reachability guidance", async () => {
@@ -659,7 +637,6 @@ describe("McpServer connect conformance — blocking connect", () => {
       }),
     );
     fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
-    scriptClassifierVerdict(false);
 
     const connected = await clients.mcpServerCommand.connect({
       mcpServerId: server.metadata!.id,
@@ -686,10 +663,7 @@ describe("McpServer connect conformance — async startConnect", () => {
     fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
 
     // Hold the fixture so the discovery blocks and the CONNECTING window is
-    // observable instead of a race. The scripted verdict is UNGATED — the
-    // drop-ungated arm of the persistence contract (an auto-approved tool
-    // never appears in status.tool_approvals).
-    scriptClassifierVerdict(false);
+    // observable instead of a race.
     mcpTools.holdRequests();
 
     const started = await clients.mcpServerCommand.startConnect({
@@ -722,7 +696,7 @@ describe("McpServer connect conformance — async startConnect", () => {
     expect((settled.status?.discoveredCapabilities?.tools ?? []).map((t) => t.name)).toEqual([
       ECHO_TOOL_NAME,
     ]);
-    expect(settled.status?.toolApprovals ?? [], "an ungated verdict must not persist").toEqual([]);
+    expect(storedHints(settled), "echo declares nothing, so its stored hint is false").toEqual({ [ECHO_TOOL_NAME]: false });
   });
 });
 
@@ -738,7 +712,6 @@ describe("McpServer connect conformance — refresh-on-connect pre-flight", () =
     });
     // The refreshed token should be born healthy.
     mockAs.tokenExpiresIn = 3600;
-    scriptClassifierVerdict(true);
 
     const connected = await clients.mcpServerCommand.connect({
       mcpServerId: server.metadata!.id,
@@ -792,7 +765,6 @@ describe("McpServer connect conformance — refresh-on-connect pre-flight", () =
       url: mcpTools.url(),
     });
     const exchangesBeforeConnect = mockAs.capturedTokenRequests().length;
-    scriptClassifierVerdict(true);
 
     // TWO-ARMED implementation-lag pin (stigmer/stigmer#863; multiTenant is
     // only the edition discriminant, not a tenancy semantic):

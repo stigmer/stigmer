@@ -38,9 +38,9 @@ import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { mergeMcpServerUsages } from "./mcp-resolver.js";
 
-// Both harnesses must merge agent + session usages identically (session wins
-// per slug — the usage whose enabled_tools the enforcement honors), so the
-// merge lives in shared/mcp-resolver.ts. Re-exported here for its historical
+// Both harnesses must merge agent + session usages identically (one usage
+// per slug, the session's when both name it), so the merge lives in
+// shared/mcp-resolver.ts. Re-exported here for its historical
 // home alongside mergeSkillRefs.
 export { mergeMcpServerUsages } from "./mcp-resolver.js";
 

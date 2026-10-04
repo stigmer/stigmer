@@ -57,11 +57,6 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_mcpserver_v1_HttpServerConfig_QueryParamsEntry_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_mcpserver_v1_ToolApprovalPolicy_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_mcpserver_v1_ToolApprovalPolicy_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerAuth_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -81,58 +76,52 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "oto\0322ai/stigmer/commons/apiresource/fiel" +
       "d_options.proto\032\'ai/stigmer/commons/apir" +
       "esource/io.proto\032\033buf/validate/validate." +
-      "proto\"\357\005\n\rMcpServerSpec\022 \n\013description\030\001" +
+      "proto\"\214\005\n\rMcpServerSpec\022 \n\013description\030\001" +
       " \001(\tR\013description\022\031\n\010icon_url\030\002 \001(\tR\007ico" +
       "nUrl\022\022\n\004tags\030\003 \003(\tR\004tags\022J\n\005stdio\030\004 \001(\0132" +
       "2.ai.stigmer.agentic.mcpserver.v1.StdioS" +
       "erverConfigH\000R\005stdio\022G\n\004http\030\005 \001(\01321.ai." +
       "stigmer.agentic.mcpserver.v1.HttpServerC" +
-      "onfigH\000R\004http\0222\n\025default_enabled_tools\030\007" +
-      " \003(\tR\023defaultEnabledTools\022I\n\003env\030\010 \003(\01327" +
-      ".ai.stigmer.agentic.mcpserver.v1.McpServ" +
-      "erSpec.EnvEntryR\003env\022g\n\025pinned_tool_appr" +
-      "ovals\030\013 \003(\01323.ai.stigmer.agentic.mcpserv" +
-      "er.v1.ToolApprovalPolicyR\023pinnedToolAppr" +
-      "ovals\022%\n\016repository_url\030\014 \001(\tR\rrepositor" +
-      "yUrl\022!\n\014github_stars\030\r \001(\005R\013githubStars\022" +
-      "B\n\004auth\030\016 \001(\0132..ai.stigmer.agentic.mcpse" +
-      "rver.v1.McpServerAuthR\004auth\032l\n\010EnvEntry\022" +
-      "\020\n\003key\030\001 \001(\tR\003key\022J\n\005value\030\002 \001(\01324.ai.st" +
-      "igmer.agentic.environment.v1.EnvVarDecla" +
-      "rationR\005value:\0028\001B\024\n\013server_type\022\005\272H\002\010\001\"" +
-      "j\n\021StdioServerConfig\022 \n\007command\030\001 \001(\tB\006\272" +
-      "H\003\310\001\001R\007command\022\022\n\004args\030\002 \003(\tR\004args\022\037\n\013wo" +
-      "rking_dir\030\003 \001(\tR\nworkingDir\"\243\003\n\020HttpServ" +
-      "erConfig\022\035\n\003url\030\001 \001(\tB\013\272H\010r\003\210\001\001\310\001\001R\003url\022" +
-      "X\n\007headers\030\002 \003(\0132>.ai.stigmer.agentic.mc" +
-      "pserver.v1.HttpServerConfig.HeadersEntry" +
-      "R\007headers\022e\n\014query_params\030\003 \003(\0132B.ai.sti" +
-      "gmer.agentic.mcpserver.v1.HttpServerConf" +
-      "ig.QueryParamsEntryR\013queryParams\0223\n\017time" +
-      "out_seconds\030\004 \001(\005B\n\272H\007\032\005\030\254\002(\000R\016timeoutSe" +
-      "conds\032:\n\014HeadersEntry\022\020\n\003key\030\001 \001(\tR\003key\022" +
-      "\024\n\005value\030\002 \001(\tR\005value:\0028\001\032>\n\020QueryParams" +
-      "Entry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005" +
-      "value:\0028\001\"\210\001\n\022ToolApprovalPolicy\022$\n\ttool" +
-      "_name\030\001 \001(\tB\007\272H\004r\002\020\001R\010toolName\022\030\n\007messag" +
-      "e\030\002 \001(\tR\007message\0222\n\025from_destructive_hin" +
-      "t\030\003 \001(\010R\023fromDestructiveHint\"\307\003\n\rMcpServ" +
-      "erAuth\022\331\001\n\roauth_app_ref\030\001 \001(\01324.ai.stig" +
-      "mer.commons.apiresource.ApiResourceRefer" +
-      "enceB\177\272Hx\272\001u\n\022oauth_app_ref.kind\022;oauth_" +
-      "app_ref must reference a resource with k" +
-      "ind=oauth_app\032\"this.slug == \'\' || this.k" +
-      "ind == 22\340\205,\026R\013oauthAppRef\022-\n\016target_env" +
-      "_var\030\002 \001(\tB\007\272H\004r\002\020\001R\014targetEnvVar\022.\n\023tok" +
-      "en_lifetime_hint\030\003 \001(\tR\021tokenLifetimeHin" +
-      "t\022\037\n\013scope_hints\030\004 \003(\tR\nscopeHints\022#\n\rdi" +
-      "scovery_url\030\007 \001(\tR\014discoveryUrl\022\035\n\noauth" +
-      "_only\030\n \001(\010R\toauthOnlyJ\004\010\005\020\006J\004\010\006\020\007J\004\010\010\020\t" +
-      "J\004\010\t\020\nB\254\001B\tSpecProtoP\001\242\002\004ASAM\252\002\037Ai.Stigm" +
-      "er.Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Age" +
-      "ntic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\M" +
-      "cpserver\\V1\\GPBMetadata\352\002#Ai::Stigmer::A" +
-      "gentic::Mcpserver::V1b\006proto3"
+      "onfigH\000R\004http\022I\n\003env\030\010 \003(\01327.ai.stigmer." +
+      "agentic.mcpserver.v1.McpServerSpec.EnvEn" +
+      "tryR\003env\022%\n\016repository_url\030\014 \001(\tR\rreposi" +
+      "toryUrl\022!\n\014github_stars\030\r \001(\005R\013githubSta" +
+      "rs\022B\n\004auth\030\016 \001(\0132..ai.stigmer.agentic.mc" +
+      "pserver.v1.McpServerAuthR\004auth\032l\n\010EnvEnt" +
+      "ry\022\020\n\003key\030\001 \001(\tR\003key\022J\n\005value\030\002 \001(\01324.ai" +
+      ".stigmer.agentic.environment.v1.EnvVarDe" +
+      "clarationR\005value:\0028\001B\024\n\013server_type\022\005\272H\002" +
+      "\010\001J\004\010\007\020\010J\004\010\013\020\014R\025default_enabled_toolsR\025p" +
+      "inned_tool_approvals\"j\n\021StdioServerConfi" +
+      "g\022 \n\007command\030\001 \001(\tB\006\272H\003\310\001\001R\007command\022\022\n\004a" +
+      "rgs\030\002 \003(\tR\004args\022\037\n\013working_dir\030\003 \001(\tR\nwo" +
+      "rkingDir\"\243\003\n\020HttpServerConfig\022\035\n\003url\030\001 \001" +
+      "(\tB\013\272H\010r\003\210\001\001\310\001\001R\003url\022X\n\007headers\030\002 \003(\0132>." +
+      "ai.stigmer.agentic.mcpserver.v1.HttpServ" +
+      "erConfig.HeadersEntryR\007headers\022e\n\014query_" +
+      "params\030\003 \003(\0132B.ai.stigmer.agentic.mcpser" +
+      "ver.v1.HttpServerConfig.QueryParamsEntry" +
+      "R\013queryParams\0223\n\017timeout_seconds\030\004 \001(\005B\n" +
+      "\272H\007\032\005\030\254\002(\000R\016timeoutSeconds\032:\n\014HeadersEnt" +
+      "ry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005val" +
+      "ue:\0028\001\032>\n\020QueryParamsEntry\022\020\n\003key\030\001 \001(\tR" +
+      "\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"\307\003\n\rMcpSe" +
+      "rverAuth\022\331\001\n\roauth_app_ref\030\001 \001(\01324.ai.st" +
+      "igmer.commons.apiresource.ApiResourceRef" +
+      "erenceB\177\272Hx\272\001u\n\022oauth_app_ref.kind\022;oaut" +
+      "h_app_ref must reference a resource with" +
+      " kind=oauth_app\032\"this.slug == \'\' || this" +
+      ".kind == 22\340\205,\026R\013oauthAppRef\022-\n\016target_e" +
+      "nv_var\030\002 \001(\tB\007\272H\004r\002\020\001R\014targetEnvVar\022.\n\023t" +
+      "oken_lifetime_hint\030\003 \001(\tR\021tokenLifetimeH" +
+      "int\022\037\n\013scope_hints\030\004 \003(\tR\nscopeHints\022#\n\r" +
+      "discovery_url\030\007 \001(\tR\014discoveryUrl\022\035\n\noau" +
+      "th_only\030\n \001(\010R\toauthOnlyJ\004\010\005\020\006J\004\010\006\020\007J\004\010\010" +
+      "\020\tJ\004\010\t\020\nB\254\001B\tSpecProtoP\001\242\002\004ASAM\252\002\037Ai.Sti" +
+      "gmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer\\A" +
+      "gentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic" +
+      "\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Stigmer:" +
+      ":Agentic::Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -147,7 +136,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_descriptor,
-        new java.lang.String[] { "Description", "IconUrl", "Tags", "Stdio", "Http", "DefaultEnabledTools", "Env", "PinnedToolApprovals", "RepositoryUrl", "GithubStars", "Auth", "ServerType", });
+        new java.lang.String[] { "Description", "IconUrl", "Tags", "Stdio", "Http", "Env", "RepositoryUrl", "GithubStars", "Auth", "ServerType", });
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_EnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_EnvEntry_fieldAccessorTable = new
@@ -178,14 +167,8 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_HttpServerConfig_QueryParamsEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
-    internal_static_ai_stigmer_agentic_mcpserver_v1_ToolApprovalPolicy_descriptor =
-      getDescriptor().getMessageType(3);
-    internal_static_ai_stigmer_agentic_mcpserver_v1_ToolApprovalPolicy_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_mcpserver_v1_ToolApprovalPolicy_descriptor,
-        new java.lang.String[] { "ToolName", "Message", "FromDestructiveHint", });
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerAuth_descriptor =
-      getDescriptor().getMessageType(4);
+      getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerAuth_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerAuth_descriptor,

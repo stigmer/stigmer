@@ -2,9 +2,9 @@
  * Connect tour for "Connect an MCP Server" (the scenario id keeps
  * its historical name; the docs inventory keys the embed by it).
  *
- * 6-step sequence: the Library's MCP Servers grid → cursor selects
- * Neon → detail view → cursor clicks Connect → tools
- * discovered → policies tab showing approval classifications.
+ * 5-step sequence: the Library's MCP Servers grid → cursor selects
+ * Neon → detail view → cursor clicks Connect → tools discovered, one of
+ * them marked destructive by the server.
  *
  * Fixture data modeled after real public MCP servers, so the
  * Library reads like one an Organization would hold. Every
@@ -16,7 +16,6 @@ import { create } from "@bufbuild/protobuf";
 import {
   McpServerSpecSchema,
   HttpServerConfigSchema,
-  ToolApprovalPolicySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import {
   McpServerStatusSchema,
@@ -196,16 +195,10 @@ function buildNeonConnected(): McpServer {
           name: "run_sql",
           description:
             "Execute a SQL statement (including INSERT, UPDATE, DELETE, DDL) against a database.",
+          destructiveHint: true,
         }),
       ],
     }),
-    toolApprovals: [
-      create(ToolApprovalPolicySchema, {
-        toolName: "run_sql",
-        message:
-          "Run SQL: {{args.sql}}",
-      }),
-    ],
   });
 
   return server;
@@ -224,8 +217,7 @@ export type MarketplaceConnectStep =
     }
   | { view: "detail-view"; server: McpServer }
   | { view: "click-connect"; server: McpServer }
-  | { view: "connected-tools"; server: McpServer }
-  | { view: "connected-policies"; server: McpServer };
+  | { view: "connected-tools"; server: McpServer };
 
 const baseServer = buildNeonBase();
 const connectedServer = buildNeonConnected();
@@ -266,15 +258,9 @@ export const marketplaceConnectSteps: ScenarioStep<MarketplaceConnectStep>[] = [
     delayMs: 3000,
     data: { view: "connected-tools", server: connectedServer },
     narration:
-      "Stigmer connected to the server, discovered five tools, and classified each one. Read operations like list_projects and describe_table_schema pass through automatically.",
+      "Stigmer connected to the server and discovered five tools. A tool the server marks destructive, like run_sql here, makes the agent pause and ask first; the read operations run on their own.",
     interactions: [
       { atPercent: 0.3, type: "scroll_to", target: "capabilities-bottom" },
     ],
-  },
-  {
-    delayMs: 3500,
-    data: { view: "connected-policies", server: connectedServer },
-    narration:
-      "Write operations get flagged for human approval. The agent will pause and ask before running any SQL that modifies your database.",
   },
 ];

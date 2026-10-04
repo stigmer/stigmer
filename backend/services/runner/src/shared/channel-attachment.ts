@@ -27,8 +27,9 @@
  * Approval-free by construction, and FORCED, not convenient: both
  * calling surfaces run APPROVAL_MODE_UNATTENDED, where a
  * gated tool resolves as skip-and-adapt — a gated send tool would mean
- * reminders never send. Empty approval maps + no McpServerUsage keep
- * the connect backfill structurally unable to gate it (see
+ * reminders never send. An empty destructive set + no McpServerUsage keep
+ * the approval default and the connect backfill structurally unable to
+ * gate it, and its tools sit outside every tool list (see
  * synthesized-attachment.ts). Callers inject AFTER resolve + backfill.
  *
  * Failure posture: every discovery failure — OSS's empty
@@ -132,9 +133,8 @@ export function synthesizeChannelAttachment(
   // Approval-free by construction + backfill-proof: see file header.
   const base = {
     slug: CHANNEL_ATTACHMENT_SLUG,
-    toolApprovals: [],
-    pinnedToolApprovals: [],
-    toolApprovalOverrides: [],
+    destructiveTools: [],
+    discoveredToolNames: null,
     declaredEnvKeys: [],
     discoveredCapabilitiesEmpty: false,
   };

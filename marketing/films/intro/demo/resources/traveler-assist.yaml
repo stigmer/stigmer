@@ -2,7 +2,8 @@
 #
 # This file is also the film's scene-3 hero shot: the camera walks it
 # top-to-bottom in narration order — instructions, then skills, then
-# tools with the approval policy, then sub-agents. Keep that order.
+# tools (the server marks rebooking destructive, so it asks), then
+# sub-agents. Keep that order.
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
@@ -38,12 +39,12 @@ spec:
       version: stable
 
   # What the agent can do: Meridian's operations tools. Rebooking is
-  # gated — it stops and asks a human before money moves.
+  # gated — the server marks it destructive, so it stops and asks a human
+  # before money moves.
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server
         slug: meridian-ops
-      enabled_tools: [get_booking, search_flights, rebook_booking]
 
   # Who the agent can delegate to: a fare-search specialist with just
   # the tools it needs.
@@ -54,6 +55,4 @@ spec:
         You are a fare-search specialist. Given a route and a date range,
         search the schedule and return the strongest options, cheapest
         first, with times and per-class prices. You never modify bookings.
-      mcp_access:
-        - mcp_server: meridian-ops
-          enabled_tools: [search_flights]
+      tools: [mcp__meridian-ops__search_flights]

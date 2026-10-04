@@ -143,7 +143,7 @@ describe("detectPendingInterrupts", () => {
         {
           id: "task-1",
           interrupts: [{
-            value: { tool_call_id: "call-1", tool_name: "shell", mcp_server_slug: "", message: "Run it?", policy_source: "classifier_default" },
+            value: { tool_call_id: "call-1", tool_name: "shell", mcp_server_slug: "", message: "Run it?", policy_source: "builtin_category" },
           }],
         },
         {
@@ -154,7 +154,7 @@ describe("detectPendingInterrupts", () => {
     };
 
     expect(detectPendingInterrupts(state)).toEqual([
-      { toolCallId: "call-1", toolName: "shell", mcpServerSlug: "", message: "Run it?", policySource: "classifier_default" },
+      { toolCallId: "call-1", toolName: "shell", mcpServerSlug: "", message: "Run it?", policySource: "builtin_category" },
     ]);
   });
 

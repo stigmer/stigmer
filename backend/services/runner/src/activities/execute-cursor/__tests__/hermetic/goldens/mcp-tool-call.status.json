@@ -17,9 +17,7 @@
           "completedAt": "2026-01-01T00:00:04.000Z",
           "mcpServerSlug": "hermetic-docs",
           "argsPreview": "{\"query\":\"fixture\"}",
-          "toolKind": "TOOL_KIND_MCP",
-          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT",
-          "policyEngineVersion": "phase-7"
+          "toolKind": "TOOL_KIND_MCP"
         }
       ]
     },

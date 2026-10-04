@@ -11,7 +11,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class McpServerSpec(_message.Message):
-    __slots__ = ("description", "icon_url", "tags", "stdio", "http", "default_enabled_tools", "env", "pinned_tool_approvals", "repository_url", "github_stars", "auth")
+    __slots__ = ("description", "icon_url", "tags", "stdio", "http", "env", "repository_url", "github_stars", "auth")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -24,9 +24,7 @@ class McpServerSpec(_message.Message):
     TAGS_FIELD_NUMBER: _ClassVar[int]
     STDIO_FIELD_NUMBER: _ClassVar[int]
     HTTP_FIELD_NUMBER: _ClassVar[int]
-    DEFAULT_ENABLED_TOOLS_FIELD_NUMBER: _ClassVar[int]
     ENV_FIELD_NUMBER: _ClassVar[int]
-    PINNED_TOOL_APPROVALS_FIELD_NUMBER: _ClassVar[int]
     REPOSITORY_URL_FIELD_NUMBER: _ClassVar[int]
     GITHUB_STARS_FIELD_NUMBER: _ClassVar[int]
     AUTH_FIELD_NUMBER: _ClassVar[int]
@@ -35,13 +33,11 @@ class McpServerSpec(_message.Message):
     tags: _containers.RepeatedScalarFieldContainer[str]
     stdio: StdioServerConfig
     http: HttpServerConfig
-    default_enabled_tools: _containers.RepeatedScalarFieldContainer[str]
     env: _containers.MessageMap[str, _spec_pb2.EnvVarDeclaration]
-    pinned_tool_approvals: _containers.RepeatedCompositeFieldContainer[ToolApprovalPolicy]
     repository_url: str
     github_stars: int
     auth: McpServerAuth
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., stdio: _Optional[_Union[StdioServerConfig, _Mapping]] = ..., http: _Optional[_Union[HttpServerConfig, _Mapping]] = ..., default_enabled_tools: _Optional[_Iterable[str]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., pinned_tool_approvals: _Optional[_Iterable[_Union[ToolApprovalPolicy, _Mapping]]] = ..., repository_url: _Optional[str] = ..., github_stars: _Optional[int] = ..., auth: _Optional[_Union[McpServerAuth, _Mapping]] = ...) -> None: ...
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., stdio: _Optional[_Union[StdioServerConfig, _Mapping]] = ..., http: _Optional[_Union[HttpServerConfig, _Mapping]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., repository_url: _Optional[str] = ..., github_stars: _Optional[int] = ..., auth: _Optional[_Union[McpServerAuth, _Mapping]] = ...) -> None: ...
 
 class StdioServerConfig(_message.Message):
     __slots__ = ("command", "args", "working_dir")
@@ -78,16 +74,6 @@ class HttpServerConfig(_message.Message):
     query_params: _containers.ScalarMap[str, str]
     timeout_seconds: int
     def __init__(self, url: _Optional[str] = ..., headers: _Optional[_Mapping[str, str]] = ..., query_params: _Optional[_Mapping[str, str]] = ..., timeout_seconds: _Optional[int] = ...) -> None: ...
-
-class ToolApprovalPolicy(_message.Message):
-    __slots__ = ("tool_name", "message", "from_destructive_hint")
-    TOOL_NAME_FIELD_NUMBER: _ClassVar[int]
-    MESSAGE_FIELD_NUMBER: _ClassVar[int]
-    FROM_DESTRUCTIVE_HINT_FIELD_NUMBER: _ClassVar[int]
-    tool_name: str
-    message: str
-    from_destructive_hint: bool
-    def __init__(self, tool_name: _Optional[str] = ..., message: _Optional[str] = ..., from_destructive_hint: bool = ...) -> None: ...
 
 class McpServerAuth(_message.Message):
     __slots__ = ("oauth_app_ref", "target_env_var", "token_lifetime_hint", "scope_hints", "discovery_url", "oauth_only")

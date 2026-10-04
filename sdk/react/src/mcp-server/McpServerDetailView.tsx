@@ -10,7 +10,7 @@ import type {
   DiscoveredTool,
   DiscoveredResourceTemplate,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import type { ToolApprovalPolicy, McpServerSpec } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import type { McpServerSpec } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { useMcpServer } from "./useMcpServer.js";
@@ -54,7 +54,7 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 
 /** Tab identifier for the MCP server capability panel. */
-export type CapabilityTab = "tools" | "policies" | "resources";
+export type CapabilityTab = "tools" | "resources";
 
 /** Props for {@link McpServerDetailView}. */
 export interface McpServerDetailViewProps {
@@ -163,13 +163,12 @@ export interface McpServerDetailViewProps {
  * from hoisted state when the caller passes `mcpServerState` — and shows
  * its full configuration: validation banner (if invalid), header,
  * a **Connect bar** with a single Connect/Reconnect action, and a
- * **tabbed capabilities panel** (Tools, Policies, and optionally
- * Resources) showing read-only discovered data.
+ * **tabbed capabilities panel** (Tools, and optionally Resources)
+ * showing read-only discovered data.
  *
  * The Connect bar above the tabs is the single entry point for
- * capability discovery and tool approval classification. It handles
- * credential gating inline — when credentials are missing, the form
- * slides in below the bar.
+ * capability discovery. It handles credential gating inline — when
+ * credentials are missing, the form slides in below the bar.
  *
  * Handles loading, error, and not-found states automatically.
  * Zero Console dependencies — safe for platform builder embedding.
@@ -387,9 +386,6 @@ export function McpServerDetailView({
   const hasSource = spec && (spec.repositoryUrl || spec.githubStars > 0);
   const specAudit = status?.audit?.specAudit;
   const capabilities = status?.discoveredCapabilities;
-  const pinnedPolicies = spec?.pinnedToolApprovals ?? [];
-  const classifiedPolicies = status?.toolApprovals ?? [];
-  const totalPolicyCount = pinnedPolicies.length + classifiedPolicies.length;
   const tools = capabilities?.tools ?? [];
   const resourceTemplates = capabilities?.resourceTemplates ?? [];
   const hasDiscoveredTools = tools.length > 0;
@@ -411,7 +407,6 @@ export function McpServerDetailView({
   const capabilityTabs: TabItem[] = useMemo(() => {
     const items: TabItem[] = [
       { id: "tools", label: "Tools", badge: tools.length },
-      { id: "policies", label: "Policies", badge: totalPolicyCount },
     ];
     if (resourceTemplates.length > 0) {
       items.push({
@@ -421,7 +416,7 @@ export function McpServerDetailView({
       });
     }
     return items;
-  }, [tools.length, totalPolicyCount, resourceTemplates.length]);
+  }, [tools.length, resourceTemplates.length]);
 
   const combinedError = connection.error ?? oauth.error;
   // OAuth-chain errors compose through the phase-aware helper so a
@@ -696,15 +691,6 @@ export function McpServerDetailView({
               isOAuthStranded={isOAuthStranded}
               onDiscover={handleConnectClick}
               isDiscovering={connection.isConnecting || oauth.isInProgress}
-            />
-          )}
-
-          {capabilityTab === "policies" && (
-            <PoliciesTabContent
-              pinnedPolicies={pinnedPolicies}
-              classifiedPolicies={classifiedPolicies}
-              hasDiscoveredTools={hasDiscoveredTools}
-              isOAuthStranded={isOAuthStranded}
             />
           )}
 
@@ -2030,162 +2016,6 @@ function ToolsTabContent({
   );
 }
 
-function PoliciesTabContent({
-  pinnedPolicies,
-  classifiedPolicies,
-  hasDiscoveredTools,
-  isOAuthStranded,
-}: {
-  readonly pinnedPolicies: readonly ToolApprovalPolicy[];
-  readonly classifiedPolicies: readonly ToolApprovalPolicy[];
-  readonly hasDiscoveredTools: boolean;
-  /** OAuth grant is healthy but discovery never landed — adjusts the empty-state copy. */
-  readonly isOAuthStranded: boolean;
-}) {
-  const [search, setSearch] = useState("");
-
-  const totalCount = pinnedPolicies.length + classifiedPolicies.length;
-  const hasAnyPolicies = totalCount > 0;
-
-  const filteredPinned = useMemo(() => {
-    if (!search.trim()) return pinnedPolicies;
-    const q = search.toLowerCase();
-    return pinnedPolicies.filter(
-      (p) =>
-        p.toolName.toLowerCase().includes(q) ||
-        p.message?.toLowerCase().includes(q),
-    );
-  }, [pinnedPolicies, search]);
-
-  const filteredClassified = useMemo(() => {
-    if (!search.trim()) return classifiedPolicies;
-    const q = search.toLowerCase();
-    return classifiedPolicies.filter(
-      (p) =>
-        p.toolName.toLowerCase().includes(q) ||
-        p.message?.toLowerCase().includes(q),
-    );
-  }, [classifiedPolicies, search]);
-
-  const filteredTotal = filteredPinned.length + filteredClassified.length;
-  const isFiltered = search.trim().length > 0;
-
-  if (!hasAnyPolicies) {
-    return (
-      <div className="stg:px-3 stg:py-8 stg:text-center">
-        <ShieldIcon className="stg:mx-auto stg:mb-2 stg:size-6 stg:text-muted-foreground-faint" />
-        <p className="stg:text-xs stg:text-muted-foreground">
-          {hasDiscoveredTools
-            ? "No approval policies yet. Reconnect to reclassify tools."
-            : isOAuthStranded
-              ? "Signed in \u2014 discover tools to auto-classify approval policies."
-              : "Connect to discover tools and auto-classify approval policies."}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="stg:flex stg:flex-col">
-      <div className="stg:flex stg:items-center stg:gap-2 stg:px-3 stg:pb-2">
-        <div className="stg:relative stg:flex-1">
-          <SearchIcon className="stg:pointer-events-none stg:absolute stg:left-2 stg:top-1/2 stg:size-3.5 stg:-translate-y-1/2 stg:text-muted-foreground" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search policies…"
-            aria-label="Search policies"
-            className="stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-background stg:py-1.5 stg:pl-7 stg:pr-7 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring"
-          />
-          {isFiltered && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              aria-label="Clear search"
-              className="stg:absolute stg:right-2 stg:top-1/2 stg:-translate-y-1/2 stg:text-muted-foreground stg:hover:text-foreground"
-            >
-              <CloseIcon className="stg:size-3" />
-            </button>
-          )}
-        </div>
-        <span className="stg:shrink-0 stg:text-[10px] stg:text-muted-foreground">
-          {isFiltered ? `${filteredTotal} of ${totalCount}` : totalCount}
-        </span>
-      </div>
-
-      {filteredTotal === 0 ? (
-        <div className="stg:px-3 stg:py-6 stg:text-center">
-          <p className="stg:text-xs stg:text-muted-foreground">
-            No policies matching &ldquo;{search}&rdquo;
-          </p>
-        </div>
-      ) : (
-        <div className="stg:max-h-96 stg:overflow-y-auto">
-          {filteredPinned.length > 0 && (
-            <PolicyGroup
-              icon={<PinIcon className="stg:size-3.5" />}
-              label="Pinned"
-              policies={filteredPinned}
-            />
-          )}
-          {filteredClassified.length > 0 && (
-            <PolicyGroup
-              icon={<SparklesIcon className="stg:size-3.5" />}
-              label="Auto-classified"
-              policies={filteredClassified}
-            />
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PolicyGroup({
-  icon,
-  label,
-  policies,
-}: {
-  readonly icon: React.ReactNode;
-  readonly label: string;
-  readonly policies: readonly ToolApprovalPolicy[];
-}) {
-  return (
-    <div className="stg:flex stg:flex-col">
-      <div className="stg:flex stg:items-center stg:gap-1.5 stg:border-b stg:border-border stg:bg-muted-faint stg:px-3 stg:py-1.5">
-        <span className="stg:text-muted-foreground">{icon}</span>
-        <span className="stg:text-[10px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
-          {label}
-        </span>
-        <span className="stg:text-[10px] stg:text-muted-foreground">
-          ({policies.length})
-        </span>
-      </div>
-      <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
-        {policies.map((policy) => (
-          <div key={policy.toolName} className="stg:px-3 stg:py-2.5">
-            <div className="stg:flex stg:items-baseline stg:gap-2">
-              <code className="stg:font-mono stg:text-sm stg:font-medium stg:text-foreground">
-                {policy.toolName}
-              </code>
-              <span className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded stg:bg-amber-500/10 stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-amber-600 stg:dark:text-amber-400">
-                <ShieldIcon className="stg:size-2.5" />
-                requires approval
-              </span>
-            </div>
-            {policy.message && (
-              <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-                {policy.message}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Shared layout primitives
 // ---------------------------------------------------------------------------
@@ -2360,59 +2190,6 @@ function RefreshIcon({ className }: { readonly className?: string }) {
       <path d="M13.5 8a5.5 5.5 0 0 1-9.36 3.92" />
       <path d="M12 2v3h-3" />
       <path d="M4 14v-3h3" />
-    </svg>
-  );
-}
-
-function ShieldIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M8 1.5 2.5 4v4c0 3.31 2.35 6.4 5.5 7 3.15-.6 5.5-3.69 5.5-7V4L8 1.5Z" />
-    </svg>
-  );
-}
-
-function PinIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M9.5 2.5 13.5 6.5" />
-      <path d="M5 7 3 14l7-2" />
-      <path d="m5 7 2-2 4.5-1 1.5 1.5-1 4.5-2 2z" />
-    </svg>
-  );
-}
-
-function SparklesIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" />
     </svg>
   );
 }

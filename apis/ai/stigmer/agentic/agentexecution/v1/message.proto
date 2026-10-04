@@ -88,7 +88,7 @@ message ToolCall {
   bool requires_approval = 10;
 
   // Human-readable message explaining what approval is being requested.
-  // Populated from ToolApprovalPolicy.message with argument placeholders resolved.
+  // Written by the approval default from the tool's name and arguments.
   //
   // Examples:
   //   - "Delete repository: my-important-repo"
@@ -252,8 +252,8 @@ message ToolCall {
   ApprovalPolicySource approval_policy_source = 23;
 
   // Identifier of the policy-engine logic that produced approval_policy_source,
-  // bumped when the merge/classification semantics change so decisions made by
-  // different engine versions stay distinguishable in audits.
+  // bumped when the approval semantics change so decisions made by different
+  // engine versions stay distinguishable in audits.
   //
   // @internal
   // Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).

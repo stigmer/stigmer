@@ -380,9 +380,6 @@ describe("McpServerConfigPanel — oauth_only + vendor-blocked", () => {
           ...oauthSignInOverrides,
         }}
         discoveredTools={[]}
-        toolApprovals={[]}
-        enabledTools={[]}
-        onEnabledToolsChange={() => {}}
         onBack={() => {}}
         error={null}
         {...panelOverrides}

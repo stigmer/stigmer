@@ -64,17 +64,17 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { McpToolFixture } from "../harness/mcp-server";
-import { ECHO_TOOL_NAME } from "../harness/mcp-server";
+import { DESTRUCTIVE_ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUses } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
 import {
+  createConnectedMcpServer,
   decidedByOf,
   requireLlmProxy,
   requireMcpFixture,
   submitApprovalPerContract,
 } from "../support/agentexecutions";
-import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import {
   awaitParentPendingApproval,
@@ -254,23 +254,16 @@ describe.skipIf(!forwarderEnabled)(
     it("[rpc:WorkflowExecutionCommandController.submitApproval] forwards a child agent's approval; the child resumes and the workflow completes", async () => {
       const { org } = await target.provisionTenancy();
 
-      // An agent that uses the MCP fixture with `echo` gated for approval — the
-      // same recipe the AgentExecution HITL suite uses to reach a tool gate.
-      const server = await clients.mcpServerCommand.create(
-        makeHttpMcpServer({ org, name: uniqueName("mcp"), url: mcp.url() }),
-      );
-      fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+      // An agent whose tool the approval default asks before: the fixture's
+      // destructive echo on a connected server — the same recipe the
+      // AgentExecution HITL suite uses to reach a tool gate.
+      const server = await createConnectedMcpServer(clients, mcp, fixtures, {
+        org,
+        name: uniqueName("mcp"),
+        tools: [DESTRUCTIVE_ECHO_TOOL_NAME],
+      });
       const agent = await clients.agentCommand.create(
-        makeAgent({
-          org,
-          name: uniqueName("agent-child"),
-          mcpServerUsages: [
-            {
-              slug: server.metadata!.slug,
-              toolApprovalOverrides: [{ toolName: ECHO_TOOL_NAME, requiresApproval: true }],
-            },
-          ],
-        }),
+        makeAgent({ org, name: uniqueName("agent-child"), mcpServerRefs: [server.metadata!.slug] }),
       );
       fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
@@ -288,7 +281,7 @@ describe.skipIf(!forwarderEnabled)(
       // Script the child: one echo tool_use turn drives it to the gate; a
       // terminating text turn lets it finish once the approval is forwarded.
       mock.enqueue(
-        anthropicToolUses([{ toolCallId: "call_child_echo", toolName: ECHO_TOOL_NAME, toolInput: { text: "hello" } }]),
+        anthropicToolUses([{ toolCallId: "call_child_echo", toolName: DESTRUCTIVE_ECHO_TOOL_NAME, toolInput: { text: "hello" } }]),
       );
       mock.enqueue(anthropicText("Done."));
 
@@ -303,7 +296,7 @@ describe.skipIf(!forwarderEnabled)(
       const pending = gated.status!.pendingApprovals[0]!;
       expect(pending.childAgentExecutionId, "the parent gate carries the child execution id").toBeTruthy();
       expect(pending.approval?.toolCallId, "the parent gate carries the tool call id").toBeTruthy();
-      expect(pending.approval?.toolName, "the parent gate names the gated tool").toBe(ECHO_TOOL_NAME);
+      expect(pending.approval?.toolName, "the parent gate names the gated tool").toBe(DESTRUCTIVE_ECHO_TOOL_NAME);
 
       // Forward the decision through the parent; the handler routes it to the child.
       // Through the seam: the forwarder's own response is the PARENT, loaded before

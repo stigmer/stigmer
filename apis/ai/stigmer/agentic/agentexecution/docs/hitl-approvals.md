@@ -19,39 +19,19 @@ When an agent is about to invoke a tool that requires approval:
 
 ---
 
-## Configuring Approval Policies
+## What Asks for Approval
 
-Approval policies are configured on the **Agent** (not on the AgentExecution). They are part of `spec.mcp_server_usages[].tool_approval_overrides`.
+There is nothing to configure. Stigmer asks before:
 
-```yaml
-# In your Agent YAML (not AgentExecution)
-spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: github
-      tool_approval_overrides:
-        - tool_name: delete_repository
-          requires_approval: true
-          message: "Delete repository: {{args.repository}}"
-        - tool_name: force_push
-          requires_approval: true
-          message: "Force push to branch: {{args.branch}} in {{args.repository}}"
-        - tool_name: search_code
-          requires_approval: false  # explicitly disable approval for this tool
-```
+- shell commands;
+- file writes and deletes;
+- any MCP tool whose server marks it destructive (`destructiveHint: true` in the tool's MCP annotations, recorded at connect on `DiscoveredTool.destructive_hint`).
 
-### Approval Policy Chain
+Nothing else asks. An MCP tool's approval card reads `Execute <tool>`.
 
-Policies resolve in order of increasing priority:
+To keep an agent away from a tool rather than asking about it, leave the tool out with the agent's `tools` and `disallowed_tools` lists (see the Agent resource's `mcp-server-integration.md`). The lists hold under every bypass below: a run that approves everything still cannot call a tool its lists exclude.
 
-| Priority | Source | Description |
-|---|---|---|
-| 1 (lowest) | `McpServer.default_tool_approvals` | Platform or org defaults set on the MCP server resource |
-| 2 | `Agent.McpServerUsage.tool_approval_overrides` | Per-agent overrides — can enable or disable approval for specific tools |
-| 3 (highest) | `AgentExecution.auto_approve_all` | Runtime bypass — when `true`, all approval gates are skipped for this execution |
-
-Each layer overrides the one below it. An agent can require approval for a tool even if the platform default says it does not, and a specific execution can bypass all approvals entirely.
+`AgentExecution.auto_approve_all`, a lease, and the unattended mode decide only how a required approval is resolved, never which tools ask.
 
 ---
 
@@ -66,14 +46,14 @@ Agent is IN_PROGRESS
     │
     ├── Agent calls delete_repository(repository="acme/important-repo")
     │
-    ├── delete_repository.requires_approval = true
+    ├── the github server marks delete_repository destructive
     │
     ├── ToolCall.status → TOOL_CALL_WAITING_APPROVAL
     ├── AgentExecution.status.phase → EXECUTION_WAITING_FOR_APPROVAL
     ├── status.pending_approvals populated with:
     │   - tool_call_id: "call_abc123"
     │   - tool_name: "delete_repository"
-    │   - message: "Delete repository: acme/important-repo"
+    │   - message: "Execute delete_repository"
     │   - args_preview: {"repository": "acme/important-repo"}
     │   - requested_at: "2026-02-28T10:00:00Z"
     │
@@ -117,7 +97,7 @@ Each entry in `status.pending_approvals` is a `PendingApproval` message:
 | `requested_at` | `string` | ISO 8601 timestamp when approval was requested. |
 | `from_sub_agent` | `bool` | `true` if this approval originates from a sub-agent tool call. |
 | `sub_agent_name` | `string` | Name of the sub-agent when `from_sub_agent == true`. |
-| `approval_policy_source` | `ApprovalPolicySource` | **Why-gated provenance:** which policy layer is holding this call for approval. Projected from the tool call so a client can explain the gate (e.g. "required by agent override") while the tool is still waiting. See [Why a Tool Is Gated](#why-a-tool-is-gated-authorization-provenance). |
+| `approval_policy_source` | `ApprovalPolicySource` | **Why-gated provenance:** what is holding this call for approval. Projected from the tool call so a client can explain the gate (e.g. "required: marked destructive by the server") while the tool is still waiting. See [Why a Tool Is Gated](#why-a-tool-is-gated-authorization-provenance). |
 | `interrupt_id` | `string` | LangGraph interrupt ID for targeted resume. Used internally — do not modify. |
 | `child_agent_execution_id` | `string` | Set when this `PendingApproval` is surfaced at a `WorkflowExecution` level, enabling approval forwarding. |
 
@@ -125,11 +105,11 @@ Each entry in `status.pending_approvals` is a `PendingApproval` message:
 
 ## Why a Tool Is Gated (Authorization Provenance)
 
-Every tool call the approval gate evaluates carries its **authorization provenance** — *which policy layer decided its approval requirement* — on two flat `ToolCall` fields, runner-written and persisted through `update_status` (no preserver involvement):
+Every tool call the approval gate evaluates carries its **authorization provenance** — *what decided its approval requirement* — on two flat `ToolCall` fields, runner-written and persisted through `update_status` (no preserver involvement):
 
 | Field | Type | Description |
 |---|---|---|
-| `approval_policy_source` | `ApprovalPolicySource` | The policy layer that decided this call: the tool's classifier default, a pinned override, an agent override, a built-in category, a destructive-hint tightener, or a run-wide bypass / lease that cleared it. |
+| `approval_policy_source` | `ApprovalPolicySource` | What decided this call: the default for a built-in category, the server's destructive annotation, or a run-wide bypass, lease or unattended skip that resolved it. |
 | `policy_engine_version` | `string` | The version of the policy-evaluation logic that produced the decision, for auditing changes across releases. |
 
 `approval_policy_source` is also projected onto each `PendingApproval` (exactly as `tool_kind` is), so an approval surface can answer **"why is this gated?"** before any decision is made. The `@stigmer/react` `ApprovalCard` and `@stigmer/ink` approval prompt render this as a short "why" line; the tool-call detail view shows it as post-execution provenance. The mapping from source to human phrase lives in `@stigmer/sdk`'s `describeApprovalPolicySource`, shared across web, desktop, and CLI.
@@ -138,17 +118,14 @@ Every tool call the approval gate evaluates carries its **authorization provenan
 
 | Value | Meaning |
 |---|---|
-| `UNSPECIFIED` | Legacy execution, or a tool the gate never evaluated (e.g. a read-only built-in). Clients render no provenance. |
-| `CLASSIFIER_DEFAULT` | The connect-time classifier's default for an MCP tool. |
-| `PINNED_OVERRIDE` | An operator's pinned override on the MCP server blueprint. |
-| `AGENT_OVERRIDE` | An agent-level override for an MCP tool. |
+| `UNSPECIFIED` | Legacy execution, or no approval was required (a read-only built-in, or an MCP tool its server does not mark destructive). Clients render no provenance. |
 | `AUTO_APPROVE_ALL` | The pre-armed `AgentExecutionSpec.auto_approve_all` whole-run bypass cleared the call. |
 | `APPROVAL_LEASE` | A run-lifetime scoped lease (the successor to a global "approve all") cleared the call. |
-| `BUILTIN_CATEGORY` | A non-MCP built-in tool gated by the shared write / delete / shell taxonomy. |
-| `ANNOTATION_DESTRUCTIVE_TIGHTEN` | The connect-time MCP `destructiveHint` tightener forced approval, overriding a more permissive classifier verdict. |
+| `BUILTIN_CATEGORY` | The default asked for a built-in tool of the write / delete / shell categories. |
+| `ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (`destructiveHint: true`). |
 | `UNATTENDED_SKIP` | The unattended approval mode auto-skipped this gated call — no approver exists on the creating surface (a channel, a guest share). See [Unattended Surfaces](#unattended-surfaces-channels-and-guest-shares). |
 
-The field is purely additive and data-compatible: old executions carry `UNSPECIFIED`, and clients fall back exactly as they do for `tool_kind`.
+Values 1 to 3 are reserved and never reused. The field is data-compatible: old executions carry `UNSPECIFIED`, and clients fall back exactly as they do for `tool_kind`.
 
 ---
 
@@ -200,7 +177,7 @@ Every approval decision is recorded in the `ToolCall` fields:
 | `approval_decided_at` | When the decision was submitted |
 | `approved_by` | User ID who made the decision (from authentication context) |
 | `approval_action` | The action taken (APPROVE, SKIP, REJECT, APPROVE_ALL) |
-| `approval_policy_source` | Which policy layer authorized the call — see [Why a Tool Is Gated](#why-a-tool-is-gated-authorization-provenance) |
+| `approval_policy_source` | What decided or resolved the call's approval — see [Why a Tool Is Gated](#why-a-tool-is-gated-authorization-provenance) |
 | `policy_engine_version` | Version of the policy-evaluation logic that produced the decision |
 
 When a user chooses **Approve all**, the co-pending tool calls that are auto-resolved carry `approval_action = APPROVAL_ACTION_APPROVE`, while the tool the user actually clicked carries `APPROVAL_ACTION_APPROVE_ALL`. This keeps the trail honest: every executed tool shows an explicit decision, and the single APPROVE_ALL entry marks where the user opted into trusting the rest of the run.
@@ -226,7 +203,7 @@ Or via CLI:
 stigmer run my-agent "Run automated deployment" --auto-approve
 ```
 
-`auto_approve_all` is the highest-priority override in the policy chain. When set, all tools that would normally pause for approval execute immediately without waiting.
+When `auto_approve_all` is set, all tools that would normally pause for approval execute immediately without waiting. The agent's tool lists still apply: a tool they exclude stays unavailable.
 
 **Security considerations:**
 - Restrict access to `auto_approve_all` with appropriate IAM policies
@@ -281,13 +258,13 @@ Some surfaces have **no approver present at the conversation**: a WhatsApp or Sl
 
 These surfaces stamp `ExecutionConfig.approval_mode = APPROVAL_MODE_UNATTENDED` when they create the execution (the channel session broker, the guest execution scope step — never the external user). In unattended mode:
 
-- **What is gated is unchanged.** The four-layer policy chain evaluates identically; only the *resolution* differs.
+- **What is gated is unchanged.** The same default decides which tools ask; only the *resolution* differs.
 - A gated tool is resolved as an **automatic SKIP**: the tool does not run, the model is told the action requires an approval that is not available in this conversation, and the turn continues to normal completion. The user gets a plain-language explanation — never tool or approval vocabulary.
 - The skipped call is stamped `TOOL_CALL_SKIPPED` with `approval_policy_source = APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP`. `approval_action` and `approved_by` stay unset — those record **human** decisions only. No approval-request event is authored, so `pending_approvals` stays empty by construction.
 
 The principle behind the design is that there are **two different consents**:
 
 1. **Operator consent** — the HITL gate. It protects the org's tools and data, and is never delegated to an external user: a channel customer cannot authorize the org's destructive operations.
-2. **End-user intent confirmation** — "book Monday 10 AM — shall I?". This is conversational, owned by the agent's instructions. Once the instructions confirm intent in-conversation, un-gate that specific tool for the agent with `tool_approval_overrides: requires_approval: false`.
+2. **End-user intent confirmation** — "book Monday 10 AM — shall I?". This is conversational, owned by the agent's instructions. A tool a channel customer should be able to trigger after confirming in-conversation must be one that runs without approval: an MCP tool its server does not mark destructive.
 
 A future "park the turn and notify an org approver asynchronously" behavior would be a new `ApprovalMode` value, not a reinterpretation of unattended.

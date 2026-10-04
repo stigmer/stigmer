@@ -1,6 +1,6 @@
 /**
- * LLM proxy routing utilities — shared between ExecuteDeepAgent and
- * ClassifyToolApprovals (and any future LLM-calling activities).
+ * LLM proxy routing utilities — shared by every runner activity that calls
+ * a model (ExecuteDeepAgent, session titling, structured extraction).
  *
  * Responsibilities:
  * 1. Infer the LLM provider from a model name string (prefix heuristics).

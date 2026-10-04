@@ -16,7 +16,6 @@ import {
   McpServerSpecSchema,
   HttpServerConfigSchema,
   McpServerAuthSchema,
-  ToolApprovalPolicySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import {
   McpServerStatusSchema,
@@ -152,16 +151,6 @@ function buildSlackConnected(): McpServer {
         }),
       ],
     }),
-    toolApprovals: [
-      create(ToolApprovalPolicySchema, {
-        toolName: "send_message",
-        message: "Send message to {{args.channel}}",
-      }),
-      create(ToolApprovalPolicySchema, {
-        toolName: "add_reaction",
-        message: "React with :{{args.emoji}}: in {{args.channel}}",
-      }),
-    ],
     oauthStatus: create(OAuthStatusSchema, {
       vendorApprovalStatus: VendorApprovalStatus.APPROVED,
     }),
@@ -294,7 +283,7 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
       orgApp: HAS_ORG_OVERRIDE,
     },
     narration:
-      "After signing in with your own app, Stigmer connects to Slack, discovers its tools, and classifies approval policies. Read-only operations like searching and listing pass through automatically.",
+      "After signing in with your own app, Stigmer connects to Slack and discovers its tools. Only a tool the server marks destructive will ask for approval before it runs.",
     interactions: [
       { atPercent: 0.35, type: "scroll_to", target: "capabilities-bottom" },
     ],

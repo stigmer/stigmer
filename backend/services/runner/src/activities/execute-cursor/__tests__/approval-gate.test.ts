@@ -27,7 +27,9 @@ import {
   getBuiltInGatedCategories,
   extractArgKey,
 } from "../approval-policy.js";
-import type { MergedToolPolicy } from "../approval-policy.js";
+import type { McpApprovalDefault } from "../approval-policy.js";
+import { ToolScope } from "../../../shared/tool-lists.js";
+import { compileHookToolScope, decodeHookToolScope, UNRESTRICTED_HOOK_SCOPE } from "../hook-scope.js";
 import {
   buildApprovalGrants,
   buildApprovalState,
@@ -178,35 +180,40 @@ describe("buildApprovalGrants", () => {
 });
 
 describe("buildApprovalState", () => {
-  const mcpPolicies = new Map<string, MergedToolPolicy>([
-    ["planton/apply_x", { toolName: "apply_x", mcpServerSlug: "planton", requiresApproval: true, approvalMessage: "Apply X", source: "classifier_default" }],
-  ]);
+  const mcpPolicies: McpApprovalDefault = {
+    destructive: new Set(["planton/apply_x", "leased/drop_y"]),
+    leasedServers: new Set(["leased"]),
+  };
 
-  it("carries MCP policies and exact-resource grant tokens (gated set is baked into the hook, not the state)", () => {
+  it("carries the destructive MCP tools by server and tool, leased servers left out, and exact-resource grant tokens", () => {
     const grants = [{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: "", sourceToolCallId: "consent-1" }];
     const state = buildApprovalState(mcpPolicies, false, new Set(), grants);
 
     expect(state.autoApproveAll).toBe(false);
     expect(state.leasedCategories).toEqual([]);
-    expect(state.mcpToolPolicies.apply_x).toEqual({ requiresApproval: true, message: "Apply X" });
+    expect(state.mcpDestructiveTools).toEqual({ "planton/apply_x": { message: "Execute apply_x" } });
     // No digest -> the primary token degrades to the coarse grant token.
     expect(state.approvedGrantTokens).toEqual([grantToken("write", "/x/gated.txt")]);
     // builtInGatedList is no longer part of the state file (baked into the hook).
     expect((state as unknown as Record<string, unknown>).builtInGatedList).toBeUndefined();
   });
 
-  it("carries the enabled_tools manifest (issue #350) and defaults it to empty", () => {
-    // Default: no restriction — the hook's disabled arm is inert.
+  it("carries the compiled tool scope, unrestricted by default", () => {
+    // Default: no lists — the hook's scope arm is inert.
     const bare = buildApprovalState(mcpPolicies, false, new Set());
-    expect(bare.mcpServerEnabledTools).toEqual({});
+    expect(bare.toolListsRestricted).toBe(false);
+    expect(decodeHookToolScope(bare.toolScope)).toEqual(UNRESTRICTED_HOOK_SCOPE);
 
-    // Restricted servers ride through verbatim for the hook's server-scoped
-    // membership check.
-    const restricted = buildApprovalState(
-      mcpPolicies, false, new Set(), undefined, false, false, true, false,
-      { planton: ["get_cloud_resource"] },
-    );
-    expect(restricted.mcpServerEnabledTools).toEqual({ planton: ["get_cloud_resource"] });
+    const scope = compileHookToolScope({
+      scope: ToolScope.of('Agent "a"', { tools: ["Read", "mcp__planton__get_cloud_resource"], disallowedTools: [] }),
+      servers: [{ slug: "planton", discoveredToolNames: ["get_cloud_resource", "apply_x"] }],
+      platformServerSlugs: new Set(),
+      readRoot: "/platform",
+      subAgentTypes: [],
+    });
+    const restricted = buildApprovalState(mcpPolicies, false, new Set(), undefined, false, false, true, false, scope);
+    expect(restricted.toolListsRestricted).toBe(true);
+    expect(decodeHookToolScope(restricted.toolScope).mcp.servers.planton.tools).toEqual({ get_cloud_resource: true, apply_x: false });
   });
 
   it("emits the CONTENT token when a grant carries a content digest", () => {

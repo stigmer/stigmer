@@ -12,7 +12,7 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import { RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 
-import { mergeApprovalPolicies, type ActiveLeases } from "../approval-policy.js";
+import { buildMcpApprovalDefault, type ActiveLeases } from "../approval-policy.js";
 import { needsBackfill } from "../connect-backfill.js";
 import {
   MEMORY_AGENT_ID_ENV,
@@ -167,16 +167,16 @@ describe("synthesizeMemoryAttachment", () => {
     expect(MEMORY_EXECUTION_ID_ENV).toBe("STIGMER_MEMORY_EXECUTION_ID");
   });
 
-  it("is approval-free by construction: zero entries in the merged approval map", () => {
+  it("is approval-free by construction: the approval default marks none of its tools destructive", () => {
     // Consent is the confirm RPC, not tool approval: the
     // tool only creates a proposal, so gating it would stack a second
     // consent gate in front of the real one.
     const attachment = synthesizeMemoryAttachment(enabled, context, cloudOptions)!;
-    const merged = mergeApprovalPolicies([attachment as ResolvedMcpServer], noLeases);
-    expect(merged.size).toBe(0);
+    const mcpDefault = buildMcpApprovalDefault([attachment as ResolvedMcpServer], noLeases);
+    expect(mcpDefault.destructive.size).toBe(0);
   });
 
-  it("is structurally immune to the connect backfill (destructiveHint tightener)", () => {
+  it("is structurally immune to the connect backfill", () => {
     const attachment = synthesizeMemoryAttachment(enabled, context, cloudOptions)!;
     expect(attachment.discoveredCapabilitiesEmpty).toBe(false);
     expect(needsBackfill(attachment)).toBe(false);

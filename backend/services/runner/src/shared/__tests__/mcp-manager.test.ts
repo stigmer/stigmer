@@ -1,3 +1,9 @@
+/**
+ * Pins the deep-agent MCP connection manager: the stdio env contract (only
+ * declared variables, never the runner's credentials), the HTTP reconnect
+ * shape, that every listed tool binds with its server's identity kept as the
+ * tool object, and the unicode-pattern sanitization (issue #420).
+ */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import type { Connection } from "@langchain/mcp-adapters";
 import { connectMcpServers, toMcpClientConfig } from "../mcp-manager.js";
@@ -24,9 +30,8 @@ function makeServer(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
   return {
     slug: "test-server",
     connectionType: "stdio",
-    toolApprovals: [],
-    pinnedToolApprovals: [],
-    toolApprovalOverrides: [],
+    destructiveTools: [],
+    discoveredToolNames: null,
     declaredEnvKeys: [],
     discoveredCapabilitiesEmpty: false,
     ...overrides,
@@ -182,7 +187,7 @@ describe("toMcpClientConfig — stdio env isolation (oss#256)", () => {
   });
 });
 
-describe("connectMcpServers — enabled_tools enforcement (issue #350)", () => {
+describe("connectMcpServers — every tool binds, attributed by object", () => {
   const tool = (name: string) => ({ name }) as any;
 
   beforeEach(() => {
@@ -195,55 +200,28 @@ describe("connectMcpServers — enabled_tools enforcement (issue #350)", () => {
     vi.restoreAllMocks();
   });
 
-  it("filters a restricted server's discovered tools down to the allow-list, in BOTH the flat list and the per-server map", async () => {
+  it("binds every tool a server lists: the tool lists apply per call, not at connect", async () => {
     mockMcpClient.toolMap = { planton: [tool("get"), tool("apply"), tool("destroy")] };
 
-    const result = await connectMcpServers([
-      makeServer({ slug: "planton", command: "npx", enabledTools: ["get"] }),
-    ]);
+    const result = await connectMcpServers([makeServer({ slug: "planton", command: "npx" })]);
 
-    // Both result shapes must narrow together: `tools` feeds the model and
-    // the built-in general-purpose sub-agent, `serverToolMap` feeds the
-    // approval gate's toolServerMap and the sub-agent McpAccess subset check.
-    expect(result.tools.map((t) => t.name)).toEqual(["get"]);
-    expect(result.serverToolMap.planton.map((t) => t.name)).toEqual(["get"]);
+    expect(result.tools.map((t) => t.name)).toEqual(["get", "apply", "destroy"]);
+    expect(result.serverToolMap.planton.map((t) => t.name)).toEqual(["get", "apply", "destroy"]);
   });
 
-  it("leaves an unrestricted server (enabledTools absent — e.g. a synthesized attachment) untouched", async () => {
-    mockMcpClient.toolMap = { open: [tool("a"), tool("b")] };
+  it("keeps two servers' same-named tools apart as distinct objects in the per-server map", async () => {
+    const aGet = tool("get");
+    const bGet = tool("get");
+    mockMcpClient.toolMap = { a: [aGet], b: [bGet] };
 
     const result = await connectMcpServers([
-      makeServer({ slug: "open", command: "npx" }),
+      makeServer({ slug: "a", command: "npx" }),
+      makeServer({ slug: "b", command: "npx" }),
     ]);
 
-    expect(result.tools.map((t) => t.name)).toEqual(["a", "b"]);
-  });
-
-  it("restricts per server: one restricted server never narrows its unrestricted sibling", async () => {
-    mockMcpClient.toolMap = {
-      restricted: [tool("get"), tool("apply")],
-      open: [tool("get"), tool("apply")],
-    };
-
-    const result = await connectMcpServers([
-      makeServer({ slug: "restricted", command: "npx", enabledTools: ["get"] }),
-      makeServer({ slug: "open", command: "npx" }),
-    ]);
-
-    expect(result.serverToolMap.restricted.map((t) => t.name)).toEqual(["get"]);
-    expect(result.serverToolMap.open.map((t) => t.name)).toEqual(["get", "apply"]);
-  });
-
-  it("warns and intersects an allow-list naming a tool the server does not expose", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    mockMcpClient.toolMap = { planton: [tool("get")] };
-
-    const result = await connectMcpServers([
-      makeServer({ slug: "planton", command: "npx", enabledTools: ["get", "ghost"] }),
-    ]);
-
-    expect(result.tools.map((t) => t.name)).toEqual(["get"]);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("ghost"));
+    expect(result.serverToolMap.a[0]).toBe(aGet);
+    expect(result.serverToolMap.b[0]).toBe(bGet);
+    expect(result.tools).toEqual([aGet, bGet]);
   });
 });
 

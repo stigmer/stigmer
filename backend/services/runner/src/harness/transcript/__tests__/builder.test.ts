@@ -369,7 +369,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
     expect(row.args).toEqual({ command: "rm -rf build" });
     expect(row.argsPreview).toBe(JSON.stringify({ command: "rm -rf build" }));
     expect(row.approvalPolicySource).toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
-    expect(row.policyEngineVersion).toBe("phase-7");
+    expect(row.policyEngineVersion).toBe("default-1");
     expect(row.toolKind).toBe(ToolKind.SHELL);
     expect(sb.awaitingApproval, "the fact the caller reads").toBe(true);
   });
@@ -382,13 +382,13 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
 
   it("carries the MCP server, and the digest when the harness has one", () => {
     const { status } = feed(builder(), [
-      proposal("mcp-1", { name: "create_issue", mcpServerSlug: "github", provenance: "agent_override", contentDigest: "sha-1" }),
+      proposal("mcp-1", { name: "create_issue", mcpServerSlug: "github", provenance: "annotation_destructive_tighten", contentDigest: "sha-1" }),
     ]);
     const row = rowOf(status, "mcp-1");
     expect(row.mcpServerSlug).toBe("github");
     expect(row.toolKind).toBe(ToolKind.MCP);
     expect(row.approvalContentDigest).toBe("sha-1");
-    expect(row.approvalPolicySource).toBe(ApprovalPolicySource.AGENT_OVERRIDE);
+    expect(row.approvalPolicySource).toBe(ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN);
   });
 
   it("a known row REOPENS: WAITING, the outcome fields cleared, approvalRequestedAt stamped once (Cursor's denial overlay)", () => {
@@ -771,7 +771,7 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
       { kind: "tool_started", callId: "b", name: "read_file", input: { path: "/x" }, mcpServerSlug: "" },
     ]);
     expect(rowOf(status, "a").approvalPolicySource).toBe(ApprovalPolicySource.APPROVAL_LEASE);
-    expect(rowOf(status, "a").policyEngineVersion).toBe("phase-7");
+    expect(rowOf(status, "a").policyEngineVersion).toBe("default-1");
     expect(rowOf(status, "b").approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
     expect(rowOf(status, "b").policyEngineVersion).toBe("");
   });

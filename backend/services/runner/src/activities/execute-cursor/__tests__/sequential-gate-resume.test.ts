@@ -55,6 +55,7 @@ import {
   hasBash,
   hookWrite,
   hookShell,
+  NO_MCP_DEFAULT,
 } from "../__test-utils__/cursor-hook-harness.js";
 
 const GATE_A_ID = "tool_edit_a";
@@ -175,7 +176,7 @@ describe("Cursor sequential gates A->B across resume", () => {
     // reads. Gate B has no grant yet (it gates for the first time this turn).
     const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(approvedGateA());
     const grants = buildApprovalGrants(pendingApprovals, decisions);
-    const state = buildApprovalState(new Map(), false, new Set(), grants);
+    const state = buildApprovalState(NO_MCP_DEFAULT, false, new Set(), grants);
 
     const harness = setupCursorHookHarness({ grants: state.approvedGrants });
     expect(harness.decide(hookWrite(GATE_A_PATH)).permission).toBe("allow");

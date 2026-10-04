@@ -11,9 +11,9 @@
  *
  * The shapes (`buildPrompt`'s four, plus the two per-execution directives):
  * the enhanced prompt on a first execution with every section populated
- * (three skills, two sub-agents — one with advisory MCP access and a model
- * override —, two workspace dirs plus one runner-internal dir the sanitizer
- * drops, referenced files, three input files with a rename and a download
+ * (three skills, two sub-agents — one with a model override —, two
+ * workspace dirs plus one runner-internal dir the sanitizer drops,
+ * referenced files, three input files with a rename and a download
  * URL, the vision disclosure, channel templates, all five standing sections,
  * the catchup); the enhanced prompt with no instructions (the built-in
  * assistant's words in this harness's framing, with the response rules);
@@ -32,13 +32,18 @@
  *    builder rendered from had dropped `sizeBytes`; the shared line
  *    (`shared/prompt-sections.ts` `inputFileLines`) carries it for both
  *    harnesses, as the field's own doc says a prompt should.
+ *  - 2026-10-04. The sub-agent section lost the `MCP access (advisory)` line
+ *    and the caveat bullet under the delegation rules, in the three goldens
+ *    that carry sub-agents (`enhanced.everything`, `enhanced.plan-mode`,
+ *    `hitl.recovery`): `SubAgent.mcp_access` is reserved, and a sub-agent's
+ *    tools are its tool lists' business, enforced rather than prompted.
  *
  * Regenerate with `npx vitest run -u <this file>` only under such a ruling.
  */
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { McpAccessSchema, SubAgentSchema, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { SubAgentSchema, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { PendingApprovalSchema, type PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
@@ -76,15 +81,14 @@ const SKILLS: readonly SkillMetadata[] = [
   skill("payments-domain", "Payments service domain knowledge and ledger invariants"),
 ];
 
-function subAgent(name: string, description: string, extra: { mcpServers?: string[]; modelOverride?: string } = {}): SubAgent {
+function subAgent(name: string, description: string, extra: { modelOverride?: string } = {}): SubAgent {
   const sa = create(SubAgentSchema, { name, description, instructions: "Do the thing thoroughly." });
-  if (extra.mcpServers) sa.mcpAccess = extra.mcpServers.map((s) => create(McpAccessSchema, { mcpServer: s }));
   if (extra.modelOverride) sa.modelOverride = extra.modelOverride;
   return sa;
 }
 
 const SUB_AGENTS: SubAgent[] = [
-  subAgent("researcher", "Reads the codebase and reports how a feature works", { mcpServers: ["github"], modelOverride: "claude-sonnet" }),
+  subAgent("researcher", "Reads the codebase and reports how a feature works", { modelOverride: "claude-sonnet" }),
   subAgent("writer", "Drafts release notes from a change list"),
 ];
 

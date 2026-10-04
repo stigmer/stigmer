@@ -98,19 +98,18 @@ export interface ConnectBudget {
 
 /**
  * The connect workflow's WorkflowRunTimeout — the total budget for
- * discovery + tool-approval classification. Sized from the runner's own
- * bounds (issue #243): the 270s stdio init allowance (STDIO_INIT_TIMEOUT_MS
- * in activities/discover-mcp-server.ts — a first run may download and
- * compile packages via npx/uvx/go run) + the 120s classification floor
- * (classifyWithTimeout in workflows/connect-mcp-server.ts) + margin for
- * tool listing and persistence. Anything smaller makes the runner's
+ * discovery. Sized from the runner's own bounds (issue #243): the 270s
+ * stdio init allowance (STDIO_INIT_TIMEOUT_MS in
+ * activities/discover-mcp-server.ts — a first run may download and
+ * compile packages via npx/uvx/go run) + margin for tool listing and
+ * persistence. Anything smaller makes the runner's
  * cold-start allowance — and its actionable timeout error — unreachable by
  * construction, which is exactly how the pre-#243 45s value killed every
  * heavy stdio connect.
  *
- * Deliberately NOT sized for classification retries (maximumAttempts: 2)
- * or >~160-tool stdio servers, whose budgets scale past any flat ceiling —
- * async/pollable discovery is the cure for those, not a longer wait.
+ * Deliberately NOT sized for the 600s discovery hard cap: a stdio server
+ * slow enough to need it belongs on the async lane, where pollable
+ * discovery is the cure, not a longer blocking wait.
  *
  * Trade-off, accepted: this is also the bound on "no runner ever picked up
  * the task", so a connect against a dead runner now waits the full budget
@@ -129,13 +128,9 @@ export const CONNECT_TIMEOUT: ConnectBudget = {
  * a backstop rather than anyone's wait.
  *
  * Sized generously above the activity budgets that do the real
- * budget-keeping (discovery hard-bounded at 600s; classification scales
- * max(120, (n/40+1)*60)s with up to 2 attempts): one hour covers the
- * discovery bound plus two classification attempts for servers up to
- * ~800 tools — well past anything in the wild. Beyond that a flat
- * backstop becomes the limiting factor again; if such a server ever
- * exists, the ceiling should turn into a value derived from the
- * discovered tool count, not a bigger constant.
+ * budget-keeping (discovery hard-bounded at 600s by the activity's
+ * startToCloseTimeout): one hour is a backstop several times that bound,
+ * so it never fires before the runner's own, actionable timeout does.
  *
  * The dead-runner concern that shaped CONNECT_TIMEOUT does not apply
  * here: the async lane surfaces "no worker is polling" as a start-time
@@ -246,14 +241,14 @@ interface PreparedConnect {
 }
 
 /**
- * Connect — triggers server-side MCP discovery and tool approval
- * classification via the runner's Temporal workflow, blocking until the
+ * Connect — triggers server-side MCP discovery via the runner's Temporal
+ * workflow, blocking until the
  * operation settles (Go Connect, connect.go:165).
  *
  * Lifecycle: prepareConnect → start-or-attach → record CONNECTING (the
  * same bookkeeping the async lane does, so observers see one consistent
  * record regardless of which lane ran) → block on the result → persist
- * capabilities + classifier output + terminal phase atomically → delete
+ * capabilities + terminal phase atomically → delete
  * the ExecutionContext. Prefer startConnect for interactive clients: this
  * RPC's response can outlive browser transport limits.
  */
@@ -383,18 +378,17 @@ export async function connect(
       throw failure;
     }
 
-    // Persist discovered capabilities + the connect-time classifier
-    // output (layer 1 of the approval policy chain) atomically. The
+    // Persist discovered capabilities (each tool's destructive_hint
+    // included) and the terminal phase atomically. The
     // freshly-read, updated resource is returned to the caller.
     let persisted: McpServer;
-    let toolApprovalCount: number;
     try {
-      ({ persisted, toolApprovalCount } = await persistConnectResult(
+      persisted = await persistConnectResult(
         deps.store,
         mcpServerId,
         run.workflowId,
         outcome.output,
-      ));
+      );
     } catch (error) {
       throw internalError(error, "failed to save mcp server after connect");
     }
@@ -404,7 +398,6 @@ export async function connect(
       tools: persisted.status?.discoveredCapabilities?.tools.length ?? 0,
       resource_templates:
         persisted.status?.discoveredCapabilities?.resourceTemplates.length ?? 0,
-      tool_approvals: toolApprovalCount,
     });
 
     return persisted;
@@ -1167,7 +1160,7 @@ export function tokenAuthMethodFromSpec(
 
 /**
  * Runs the connect workflow for a freshly applied MCP server and persists
- * its discovered capabilities + classifier tool-approvals (Go
+ * its discovered capabilities (Go
  * StartBestEffortConnect). Apply launches it fire-and-forget: every
  * failure is logged, never propagated. Persistence is shared with the
  * synchronous connect path via persistConnectResult, so auto-connect and
@@ -1328,14 +1321,13 @@ async function runBestEffortConnect(
   }
 
   let persisted: McpServer;
-  let toolApprovalCount: number;
   try {
-    ({ persisted, toolApprovalCount } = await persistConnectResult(
+    persisted = await persistConnectResult(
       deps.store,
       mcpServerId,
       run.workflowId,
       outcome.output,
-    ));
+    );
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
       deps.logger.info(
@@ -1360,6 +1352,5 @@ async function runBestEffortConnect(
     tools: persisted.status?.discoveredCapabilities?.tools.length ?? 0,
     resource_templates:
       persisted.status?.discoveredCapabilities?.resourceTemplates.length ?? 0,
-    tool_approvals: toolApprovalCount,
   });
 }

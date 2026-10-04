@@ -12,8 +12,11 @@
  *  - No system prompt: instructions ride the first user message
  *    (`prompt-builder.ts`).
  *  - Sub-agents through the SDK's `agents` option (`subagent-config.ts`).
- *  - No tool restriction in the SDK config: the hook's "disabled" arm
- *    enforces `enabledTools` at call time (issue #350).
+ *  - Tool lists in two places: the SDK's `tools` / `disallowedTools` hide
+ *    the main loop's excluded built-ins (`session-lifecycle.ts`), and the
+ *    hook's scope arm refuses every out-of-scope call, sub-agents' and MCP
+ *    tools' included (`hook-scope.ts`). The SDK options cannot narrow MCP
+ *    below all-or-nothing nor reach a sub-agent, which is why the hook binds.
  *  - PNG and JPEG inline; the transport re-sniffs (`shared/attachment-vision.ts`).
  *  - File review under the `cursor` harness id, with the two files the gate
  *    writes into the repo excluded from the mid-run progress diff

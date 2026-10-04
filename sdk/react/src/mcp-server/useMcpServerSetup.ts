@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { create } from "@bufbuild/protobuf";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { GetOAuthGrantStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks.js";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
@@ -63,8 +61,7 @@ export interface UseMcpServerSetupReturn {
    * Fetches the full server resource, checks `env` declarations against
    * the personal environment, and resolves the entry to either `ready`
    * (no credentials needed or all present) or `needsSetup` (missing
-   * variables). Also extracts discovered tools and approval policies
-   * for the tool selector.
+   * variables). Also extracts the server's discovered tools.
    *
    * If the server is already in entries, its entry is reset to
    * `loading` and re-evaluated.
@@ -95,14 +92,6 @@ export interface UseMcpServerSetupReturn {
     values: Record<string, EnvVarInput>,
     options?: SubmitMcpEnvVarsOptions,
   ) => Promise<void>;
-
-  /**
-   * Update the enabled tools for a server in `ready` status.
-   *
-   * Dispatches directly to the reducer. Safe to call frequently
-   * (e.g., from tool selector checkboxes).
-   */
-  readonly setEnabledTools: (ref: ResourceRef, tools: string[]) => void;
 
   /** Clear the error on a specific server entry without changing its phase. */
   readonly clearError: (ref: ResourceRef) => void;
@@ -137,32 +126,10 @@ export interface UseMcpServerSetupReturn {
   /**
    * Ready servers as `McpServerUsageInput[]` for session creation.
    *
-   * Derived from entries: only `ready` entries are included. When a
-   * server's `enabledTools` matches all discovered tools, `enabledTools`
-   * is omitted (API convention for "all tools").
+   * Derived from entries: only `ready` entries are included. Each usage
+   * attaches the whole server; the agent's tool lists narrow it.
    */
   readonly usageInputs: McpServerUsageInput[];
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Compute the initial enabled tools for a server based on its spec
- * defaults and discovered capabilities.
- *
- * If `default_enabled_tools` is non-empty, uses that subset. Otherwise,
- * enables all discovered tools (empty array when nothing is discovered —
- * equivalent to "all" at runtime).
- */
-function computeDefaultEnabledTools(
-  mcpServer: McpServer,
-  discoveredTools: DiscoveredTool[],
-): string[] {
-  const defaults = mcpServer.spec?.defaultEnabledTools;
-  if (defaults && defaults.length > 0) return [...defaults];
-  return discoveredTools.map(t => t.name);
 }
 
 // ---------------------------------------------------------------------------
@@ -176,8 +143,7 @@ function computeDefaultEnabledTools(
  * When a user toggles an MCP server ON, this hook fetches the server's
  * full resource, checks its `env` declarations against the personal
  * environment (via {@link diffEnv}), and determines whether credentials are
- * needed. It also extracts discovered tools and approval policies for
- * the tool selector UI.
+ * needed. It also extracts the server's discovered tools for display.
  *
  * The hook supports two credential delivery paths via the `saveForFuture`
  * option on {@link submitEnvVars}:
@@ -212,7 +178,6 @@ function computeDefaultEnabledTools(
  *   entries,
  *   addServer,
  *   submitEnvVars,
- *   setEnabledTools,
  *   allReady,
  *   usageInputs,
  * } = useMcpServerSetup("acme", pool.availableKeys);
@@ -222,9 +187,6 @@ function computeDefaultEnabledTools(
  *
  * // If the entry resolves to "needsSetup":
  * await submitEnvVars(ref, { GITHUB_TOKEN: { value: "ghp_...", isSecret: true } });
- *
- * // Customize tools for a ready server:
- * setEnabledTools(ref, ["create_issue", "list_issues"]);
  *
  * // At session creation:
  * const session = await createSession({ mcpServerUsages: usageInputs });
@@ -266,7 +228,6 @@ export function useMcpServerSetup(
 
         const discoveredTools =
           mcpServer.status?.discoveredCapabilities?.tools ?? [];
-        const toolApprovals = mcpServer.spec?.pinnedToolApprovals ?? [];
         const envDeclarations = mcpServer.spec?.env;
 
         if (!envDeclarations || Object.keys(envDeclarations).length === 0) {
@@ -275,11 +236,6 @@ export function useMcpServerSetup(
             key,
             mcpServer,
             discoveredTools,
-            toolApprovals,
-            enabledTools: computeDefaultEnabledTools(
-              mcpServer,
-              discoveredTools,
-            ),
           });
           return;
         }
@@ -321,11 +277,6 @@ export function useMcpServerSetup(
             key,
             mcpServer,
             discoveredTools,
-            toolApprovals,
-            enabledTools: computeDefaultEnabledTools(
-              mcpServer,
-              discoveredTools,
-            ),
             oauthConnectionHealth,
           });
           return;
@@ -337,7 +288,6 @@ export function useMcpServerSetup(
           mcpServer,
           missingVariables: requiredMissing,
           discoveredTools,
-          toolApprovals,
           oauthConnectionHealth,
         });
       } catch (err) {
@@ -383,45 +333,25 @@ export function useMcpServerSetup(
         );
       }
 
-      const { mcpServer, discoveredTools } = entry;
-      const enabledTools = computeDefaultEnabledTools(
-        mcpServer,
-        discoveredTools,
-      );
       const saveForFuture = options?.saveForFuture ?? true;
 
       dispatch({ type: "SUBMIT_START", key });
 
       if (!saveForFuture) {
         Object.assign(runtimeEnvRef.current, values);
-        dispatch({ type: "SUBMIT_DONE", key, enabledTools });
+        dispatch({ type: "SUBMIT_DONE", key });
         return;
       }
 
       try {
         await personalEnv.getOrCreate();
         await personalEnv.addVariables(values);
-        dispatch({ type: "SUBMIT_DONE", key, enabledTools });
+        dispatch({ type: "SUBMIT_DONE", key });
       } catch (err) {
         dispatch({ type: "SUBMIT_FAIL", key, error: toError(err) });
       }
     },
     [org, entries, personalEnv],
-  );
-
-  // -------------------------------------------------------------------------
-  // setEnabledTools
-  // -------------------------------------------------------------------------
-
-  const setEnabledTools = useCallback(
-    (ref: ResourceRef, tools: string[]): void => {
-      dispatch({
-        type: "SET_ENABLED_TOOLS",
-        key: toServerKey(ref),
-        enabledTools: tools,
-      });
-    },
-    [],
   );
 
   // -------------------------------------------------------------------------
@@ -456,11 +386,7 @@ export function useMcpServerSetup(
 
       const allMissing = diffEnv(envDeclarations, personalKeys, poolKeys);
       const requiredMissing = allMissing.filter((v) => !v.optional);
-      const enabledTools = computeDefaultEnabledTools(
-        entry.mcpServer,
-        entry.discoveredTools,
-      );
-      dispatch({ type: "POOL_RESOLVE", key, missingVariables: requiredMissing, enabledTools });
+      dispatch({ type: "POOL_RESOLVE", key, missingVariables: requiredMissing });
     }
   }, [poolKeys, personalEnv.environment]);
 
@@ -485,12 +411,6 @@ export function useMcpServerSetup(
     for (const [serverKey, entry] of Object.entries(entries)) {
       if (entry.status !== "ready") continue;
 
-      const allNames = entry.discoveredTools.map(t => t.name);
-      const isAllEnabled =
-        allNames.length === 0 ||
-        (entry.enabledTools.length === allNames.length &&
-          entry.enabledTools.every(name => allNames.includes(name)));
-
       const separatorIdx = serverKey.indexOf("/");
       result.push({
         mcpServerRef: {
@@ -498,7 +418,6 @@ export function useMcpServerSetup(
           slug: serverKey.slice(separatorIdx + 1),
           kind: ApiResourceKind.mcp_server,
         },
-        enabledTools: isAllEnabled ? undefined : [...entry.enabledTools],
       });
     }
 
@@ -510,7 +429,6 @@ export function useMcpServerSetup(
     addServer,
     removeServer,
     submitEnvVars,
-    setEnabledTools,
     clearError,
     reset,
     allReady,

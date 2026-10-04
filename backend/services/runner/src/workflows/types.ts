@@ -3,9 +3,10 @@
  *
  * These types define the Temporal wire contract between the Java/Go
  * backend (which starts and reads the workflow) and the TypeScript
- * workflow implementation. All field names use snake_case to match
- * the Java `Map<String, Object>` keys exactly — Temporal's TS SDK
- * does plain JSON serialization with no name transformation.
+ * workflow implementation. Field names use snake_case to match the
+ * server's keys exactly — Temporal's TS SDK does plain JSON
+ * serialization with no name transformation. The one camelCase key,
+ * `WireToolResult.destructiveHint`, is pinned as spelled on both sides.
  *
  * IMPORTANT: This file MUST contain only plain TypeScript interfaces
  * with zero runtime imports. It is imported by the workflow file
@@ -37,13 +38,19 @@ export interface ConnectMcpServerWorkflowInput {
 export interface ConnectMcpServerWorkflowOutput {
   tools: WireToolResult[];
   resource_templates: WireResourceTemplateResult[];
-  tool_approvals: WireToolApproval[];
 }
 
 export interface WireToolResult {
   name: string;
   description: string;
   input_schema?: Record<string, unknown> | null;
+  /**
+   * True only when the tool's MCP annotations carry an explicit
+   * `destructiveHint: true`, whatever `readOnlyHint` says. camelCase, unlike
+   * its siblings: the server reads this exact key and persists it as
+   * `DiscoveredTool.destructive_hint`. Pinned bytes on both sides.
+   */
+  destructiveHint: boolean;
 }
 
 export interface WireResourceTemplateResult {
@@ -53,28 +60,9 @@ export interface WireResourceTemplateResult {
   mime_type: string;
 }
 
-export interface WireToolApproval {
-  tool_name: string;
-  requires_approval: boolean;
-  message: string;
-  /**
-   * True when the connect-time destructiveHint tightener force-gated this tool
-   * (see applyDestructiveHintTightener). Persisted to
-   * ToolApprovalPolicy.from_destructive_hint so the runner attributes the gate to
-   * the annotation rather than the classifier. Omitted on classifier/pinned
-   * entries.
-   */
-  from_destructive_hint?: boolean;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Legacy Discover-only Workflow Output
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface DiscoverMcpServerWorkflowOutput {
-  tools: WireToolResult[];
-  resource_templates: WireResourceTemplateResult[];
-  previous_tools_fingerprint: string;
-  previous_tool_approvals: WireToolApproval[];
-  new_tools_fingerprint: string;
-}
+/** The legacy workflow's result: the same discovery, in the same shape. */
+export type DiscoverMcpServerWorkflowOutput = ConnectMcpServerWorkflowOutput;

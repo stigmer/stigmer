@@ -54,7 +54,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.ConnectInput",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Connect to an MCP server: discover its tools and classify approval policies.\n\n Connects to the MCP server, enumerates tools and resource templates,\n classifies tool approval policies via a lightweight LLM, and stores the\n results in status.discovered_capabilities and status.tool_approvals.\n Blocks until the operation settles — legitimately minutes for heavy\n stdio servers (the server-side workflow ceiling is the bound) — and\n returns the updated McpServer.\n\n Prefer startConnect for interactive clients: browsers can drop a\n no-bytes-yet unary response around ~300s, below the workflow ceiling,\n so a blocking connect can appear to fail while succeeding server-side.\n This RPC remains for callers that want synchronous semantics (and for\n backends that do not yet serve startConnect)."
+          "description": "Connect to an MCP server and discover its tools.\n\n Connects to the MCP server, enumerates tools and resource templates,\n records which tools the server marks destructive, and stores the\n results in status.discovered_capabilities.\n Blocks until the operation settles — legitimately minutes for heavy\n stdio servers (the server-side workflow ceiling is the bound) — and\n returns the updated McpServer.\n\n Prefer startConnect for interactive clients: browsers can drop a\n no-bytes-yet unary response around ~300s, below the workflow ceiling,\n so a blocking connect can appear to fail while succeeding server-side.\n This RPC remains for callers that want synchronous semantics (and for\n backends that do not yet serve startConnect)."
         },
         {
           "name": "StartConnect",
@@ -62,7 +62,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.ConnectInput",
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
-          "description": "Start a connect operation without waiting for it: discovery and\n classification run server-side, and the caller observes progress by\n polling the resource.\n\n Returns the McpServer immediately with status.connect_status describing\n the accepted operation (phase CONNECTING, plus a warning when no runner\n appears to be polling the task queue). Poll get/getByReference until\n status.connect_status reaches a terminal phase; results land in\n status.discovered_capabilities and status.tool_approvals exactly as with\n the blocking connect.\n\n Idempotent while an operation is in flight: a startConnect that finds a\n live CONNECTING operation attaches to it (the in-flight operation's\n runtime_env wins) instead of starting a second workflow. A CONNECTING\n entry orphaned by a backend restart is reconciled against Temporal\n before a new operation starts."
+          "description": "Start a connect operation without waiting for it: discovery runs\n server-side, and the caller observes progress by\n polling the resource.\n\n Returns the McpServer immediately with status.connect_status describing\n the accepted operation (phase CONNECTING, plus a warning when no runner\n appears to be polling the task queue). Poll get/getByReference until\n status.connect_status reaches a terminal phase; results land in\n status.discovered_capabilities exactly as with the blocking connect.\n\n Idempotent while an operation is in flight: a startConnect that finds a\n live CONNECTING operation attaches to it (the in-flight operation's\n runtime_env wins) instead of starting a second workflow. A CONNECTING\n entry orphaned by a backend restart is reconciled against Temporal\n before a new operation starts."
         },
         {
           "name": "InitiateOAuthConnect",
@@ -1109,7 +1109,7 @@
         {
           "name": "connect_phase_succeeded",
           "number": 2,
-          "description": "The connect completed and its results were persisted to\n discovered_capabilities / tool_approvals."
+          "description": "The connect completed and its results were persisted to\n discovered_capabilities."
         },
         {
           "name": "connect_phase_failed",
@@ -1207,20 +1207,6 @@
         "required": false
       },
       {
-        "name": "ToolApprovals",
-        "jsonName": "toolApprovals",
-        "protoField": "tool_approvals",
-        "type": {
-          "kind": "array",
-          "elementType": {
-            "kind": "message",
-            "messageType": "ToolApprovalPolicy"
-          }
-        },
-        "description": "System-generated tool approval policies.",
-        "required": false
-      },
-      {
         "name": "OauthStatus",
         "jsonName": "oauthStatus",
         "protoField": "oauth_status",
@@ -1239,7 +1225,7 @@
           "kind": "message",
           "messageType": "ConnectStatus"
         },
-        "description": "State of the most recent connect (discovery + classification) operation.\n\n Persisted (unlike oauth_status). Written by the backend when a connect\n operation starts and again when it settles; clients poll it through the\n ordinary get/getByReference queries after startConnect returns.\n Absent until the first connect is attempted.",
+        "description": "State of the most recent connect (discovery) operation.\n\n Persisted (unlike oauth_status). Written by the backend when a connect\n operation starts and again when it settles; clients poll it through the\n ordinary get/getByReference queries after startConnect returns.\n Absent until the first connect is attempted.",
         "required": false
       },
       {
@@ -1617,6 +1603,16 @@
           },
           "description": "JSON Schema describing the tool's input parameters.",
           "required": false
+        },
+        {
+          "name": "DestructiveHint",
+          "jsonName": "destructiveHint",
+          "protoField": "destructive_hint",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True when the server's own MCP annotation marks the tool destructive\n (annotations.destructiveHint is exactly true), whatever readOnlyHint says.\n A destructive tool asks for approval before it runs. An absent annotation\n reads as false: Stigmer acts only on an explicit declaration, so a server\n that annotates nothing gates nothing.",
+          "required": false
         }
       ]
     },
@@ -1676,47 +1672,6 @@
             "kind": "string"
           },
           "description": "NEVER POPULATED (see the message comment). The override's OAuthApp ID\n is available from the getOrgOAuthApp RPC (GetOrgOAuthAppOutput.oauth_app_id).",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "ToolApprovalPolicy",
-      "description": "ToolApprovalPolicy defines approval requirements for a specific tool.",
-      "protoType": "ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy",
-      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
-      "fields": [
-        {
-          "name": "ToolName",
-          "jsonName": "toolName",
-          "protoField": "tool_name",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Name of the tool (must match tools/list from MCP server exactly).\n Case-sensitive matching against tool names reported by the MCP server.\n Example: \"delete_repository\", \"send_email\", \"execute_sql\"",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        },
-        {
-          "name": "Message",
-          "jsonName": "message",
-          "protoField": "message",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Human-readable message shown to user when approval is requested.\n Supports {{args.field}} placeholders for dynamic content.\n\n If empty, a default message is generated: \"Execute tool: {tool_name}\"\n\n Guidelines for effective messages:\n   - Be specific about what will happen\n   - Include the most important argument values using placeholders\n   - Keep under 100 characters for UI display\n   - Use action verbs: \"Delete\", \"Send\", \"Execute\", \"Create\"",
-          "required": false
-        },
-        {
-          "name": "FromDestructiveHint",
-          "jsonName": "fromDestructiveHint",
-          "protoField": "from_destructive_hint",
-          "type": {
-            "kind": "bool"
-          },
-          "description": "True when the connect-time fail-closed tightener force-gated this tool\n because the server's own MCP annotation declared destructiveHint=true,\n rather than the classifier (or a human) gating it. Lets the runner attribute\n a tightened tool to its true provenance\n (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN)\n instead of collapsing it into the classifier default. Carries no enforcement\n weight — gating is decided by presence in this list — so an absent/false\n value simply means \"not attributed to the destructiveHint tightener\".\n\n Set only on entries written to McpServerStatus.tool_approvals (the classifier\n layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human\n pin is, by definition, a pinned override) and left false there.",
           "required": false
         }
       ]

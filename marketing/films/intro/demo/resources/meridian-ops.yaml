@@ -18,7 +18,6 @@ spec:
     args: [meridian-ops.mjs]
     working_dir: __MERIDIAN_DEMO_DIR__/mcp
 
-  # Rebooking moves real money, so it always stops for a human.
-  pinned_tool_approvals:
-    - tool_name: rebook_booking
-      message: "Rebook {{args.booking_id}} onto flight {{args.flight_number}} on {{args.date}}"
+# Rebooking moves real money, so it always stops for a human: the server
+# marks rebook_booking destructive (MCP annotation destructiveHint: true,
+# mcp/meridian-ops.mjs), and Stigmer asks before any tool so marked.

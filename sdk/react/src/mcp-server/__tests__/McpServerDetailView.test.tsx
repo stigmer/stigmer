@@ -15,7 +15,6 @@ import {
   McpServerSpecSchema,
   McpServerAuthSchema,
   HttpServerConfigSchema,
-  ToolApprovalPolicySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import {
   McpServerStatusSchema,
@@ -69,7 +68,7 @@ function buildBaseServer(): McpServer {
   return server;
 }
 
-/** The same server after Connect: 3 discovered tools, 1 classified policy. */
+/** The same server after Connect: 3 discovered tools. */
 function buildConnectedServer(): McpServer {
   const server = buildBaseServer();
   server.status = create(McpServerStatusSchema, {
@@ -82,12 +81,6 @@ function buildConnectedServer(): McpServer {
         create(DiscoveredToolSchema, { name: "process_return", description: "Initiate a return and refund." }),
       ],
     }),
-    toolApprovals: [
-      create(ToolApprovalPolicySchema, {
-        toolName: "process_return",
-        message: "Process return for order '{{args.order_id}}'",
-      }),
-    ],
   });
   return server;
 }
@@ -299,23 +292,18 @@ describe("McpServerDetailView — connect bar and capability tabs", () => {
     expect(screen.getByText("process_return")).toBeTruthy();
   });
 
-  it("groups the classified policy under Auto-classified with a badge of 1, not 3", () => {
+  it("offers no per-tool approval tab: tools are the only capability tab without resources", () => {
     renderView(
       <McpServerDetailView
         org={ORG}
         slug={SLUG}
-        defaultCapabilityTab="policies"
         mcpServerState={loadedState(buildConnectedServer())}
       />,
     );
-    const policiesTab = screen.getByRole("tab", { name: /Policies/ });
-    expect(policiesTab.textContent).toContain("1");
-    expect(policiesTab.textContent).not.toContain("3");
-
-    const panel = screen.getByRole("tabpanel");
-    expect(within(panel).getByText(/Auto-classified/)).toBeTruthy();
-    expect(within(panel).getByText("process_return")).toBeTruthy();
-    expect(within(panel).getByText("requires approval")).toBeTruthy();
+    const tabs = screen.getAllByRole("tab").map((t) => t.textContent ?? "");
+    expect(tabs).toHaveLength(1);
+    expect(tabs[0]).toContain("Tools");
+    expect(screen.queryByRole("tab", { name: /Policies/ })).toBeNull();
   });
 });
 
@@ -396,30 +384,6 @@ describe("McpServerDetailView — signed in but undiscovered (oss#229)", () => {
 
     await waitFor(() => expect(connect).toHaveBeenCalledTimes(1));
     expect(initiateOAuthConnect).not.toHaveBeenCalled();
-  });
-
-  it("adjusts the Policies tab empty copy in the stranded state", async () => {
-    renderView(
-      <McpServerDetailView
-        org={ORG}
-        slug={SLUG}
-        defaultCapabilityTab="policies"
-        mcpServerState={loadedState(buildOAuthServer())}
-      />,
-      (router) => {
-        router.service(McpServerQueryController, {
-          getOAuthGrantStatus: grantStatus(
-            OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY,
-          ),
-        });
-      },
-    );
-
-    expect(
-      await screen.findByText(
-        "Signed in \u2014 discover tools to auto-classify approval policies.",
-      ),
-    ).toBeTruthy();
   });
 
   it("keeps re-auth ahead of discovery when the token is expired", async () => {

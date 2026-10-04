@@ -61,13 +61,17 @@ const RUNNER_OWNED_HOOK_FILE_PREFIX = "stigmer-";
 const TOOL_APPROVAL_RULE_FILE = "stigmer-tool-approval.mdc";
 
 /**
- * Cursor hook events the gate registers, both pointing at the same script (which
+ * Cursor hook events the gate registers, all pointing at the same script (which
  * branches on `hook_event_name`). `preToolUse` gates built-in tools
  * (Write/Shell/Delete); `beforeMCPExecution` is the only event Cursor enforces
- * for MCP tool calls.
+ * for MCP tool calls; `subagentStart` answers the agent's `Agent(type, …)` list
+ * on a runtime that fires it, a second line only: the 1.0.31 local runtime
+ * does not fire it for a `task` call (live probe, 2026-10-05), so a type list
+ * is refused at setup (`turn-setup.ts` `checkToolScope`).
  */
 const PRE_TOOL_USE_EVENT = "preToolUse";
 const BEFORE_MCP_EVENT = "beforeMCPExecution";
+const SUBAGENT_START_EVENT = "subagentStart";
 
 /** One (event -> script) registration in `.cursor/hooks.json`. */
 interface HookRegistration {
@@ -105,7 +109,8 @@ export interface HitlGateHandle {
   gateDir: string;
   /**
    * Commands of FOREIGN (non-Stigmer) hooks registered on the gating events
-   * (preToolUse/beforeMCPExecution) in the workspace's pre-existing hooks.json.
+   * (preToolUse/beforeMCPExecution/subagentStart) in the workspace's
+   * pre-existing hooks.json.
    * The merge deliberately PRESERVES them (they are the user's own config), but
    * because Cursor runs every configured hook and a deny from ANY of them blocks
    * the tool, a foreign hook can deny the runner's tools without writing our
@@ -157,12 +162,15 @@ export async function installHitlGate(params: {
     approvalState,
     runnerPid,
   );
-  // One script, two events: preToolUse gates built-ins; beforeMCPExecution is
-  // the only event Cursor enforces for MCP tools. The script branches internally
-  // on hook_event_name so MCP is gated in exactly one place.
+  // One script, three events: preToolUse gates built-ins; beforeMCPExecution
+  // is the only event Cursor enforces for MCP tools; subagentStart answers the
+  // agent's sub-agent types where the runtime fires it (a second line; see
+  // SUBAGENT_START_EVENT). The script branches internally on hook_event_name
+  // so MCP is gated in exactly one place.
   const hookHandle = await installWorkspaceHook(workspaceRoot, [
     { event: PRE_TOOL_USE_EVENT, scriptPath: approvalScriptPath },
     { event: BEFORE_MCP_EVENT, scriptPath: approvalScriptPath },
+    { event: SUBAGENT_START_EVENT, scriptPath: approvalScriptPath },
   ]);
 
   // Install the always-applied tool-approval rule. The deny-based gate surfaces

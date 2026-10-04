@@ -62,7 +62,7 @@ function mockRun(events: SDKMessage[]): MockRun {
 }
 
 function translatorFor(sink: RecordingTurnSink): CursorTranslator {
-  return new CursorTranslator({ policies: new Map(), leases: { global: false, categories: new Set() }, seeded: sink.status.messages });
+  return new CursorTranslator({ mcpDefault: { destructive: new Set(), leasedServers: new Set() }, leases: { global: false, categories: new Set() }, seeded: sink.status.messages });
 }
 
 /** Prices nothing: hands the counts back as a delta with a stated cost, so the sink sees a priced delta. */

@@ -250,15 +250,9 @@ function McpSection({
       {mcpServerUsages.length > 0 ? (
         mcpServerUsages.map((usage) => {
           const slug = usage.mcpServerRef.slug;
-          const enabledCount = usage.enabledTools?.length;
           return (
             <FacetRow
               key={`${usage.mcpServerRef.org}/${slug}`}
-              meta={
-                enabledCount != null && enabledCount > 0
-                  ? `${enabledCount} tool${enabledCount !== 1 ? "s" : ""}`
-                  : undefined
-              }
               actions={
                 onRemove ? (
                   <FacetRemoveButton

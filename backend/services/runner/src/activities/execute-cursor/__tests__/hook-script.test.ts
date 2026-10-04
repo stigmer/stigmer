@@ -16,12 +16,15 @@
 
 import { describe, it, expect, onTestFinished } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { generateHookScript } from "../hook-script.js";
-import { buildApprovalState, grantToken, primaryToken, toolIdentity } from "../approval-state.js";
+import { buildApprovalState, grantToken, primaryToken, scopeRefusalToken, toolIdentity } from "../approval-state.js";
+import { AGENT_SCOPE_KEY, READ_SCOPE_KEY, compileHookToolScope, scopeKey } from "../hook-scope.js";
+import { CURSOR_SDK_TOOL_COVERS, ToolScope } from "../../../shared/tool-lists.js";
+import { mcpToolKey } from "../../../shared/approval-policy.js";
 import { contentDigest } from "../../../shared/file-tools.js";
 import {
   setupCursorHookHarness as setup,
@@ -32,6 +35,10 @@ import {
   hookDelete,
   hookRead,
   hookMcp,
+  hookMcpPreToolUse,
+  hookSubagentStart,
+  hookBuiltin,
+  NO_MCP_DEFAULT,
 } from "../__test-utils__/cursor-hook-harness.js";
 
 /** Decode the base64(JSON(tool_input)) the hook records on a denial. */
@@ -127,7 +134,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     it("denies a require-approval MCP tool with kind 'unattended'", () => {
       const h = setup({
         unattendedSkip: true,
-        mcpPolicies: { drop_table: { requiresApproval: true, message: "Drop table?" } },
+        destructiveMcpTools: ["drop_table"],
       });
       const res = h.decide(hookMcp("drop_table", { table: "users" }));
       expect(res.permission).toBe("deny");
@@ -141,7 +148,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     it("still allows auto-approved MCP tools and read-only built-ins (gating is unchanged)", () => {
       const h = setup({
         unattendedSkip: true,
-        mcpPolicies: { drop_table: { requiresApproval: true } },
+        destructiveMcpTools: ["drop_table"],
       });
       expect(h.decide(hookMcp("list_tables")).permission).toBe("allow");
       expect(h.decide(hookRead("/x/a.txt")).permission).toBe("allow");
@@ -163,18 +170,18 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
   // name-only (base64("<tool>\n")) because the bare tool name is identical on the
   // hook input and the runner's stream event.
   describe("MCP tools (beforeMCPExecution event)", () => {
-    it("denies a require-approval MCP tool and surfaces its policy message", () => {
-      const h = setup({ mcpPolicies: { click: { requiresApproval: true, message: "Approve click?" } } });
+    it("denies a destructive MCP tool and surfaces its approval message", () => {
+      const h = setup({ destructiveMcpTools: ["click"] });
       const res = h.decide(hookMcp("click", { app: "Slack", element_index: "59" }));
       expect(res.permission).toBe("deny");
-      expect(res.raw).toContain("Approve click?");
+      expect(res.raw).toContain("Execute click");
       expect(h.ledger()).toHaveLength(1);
       expect(h.ledger()[0].token).toBe(grantToken("click", ""));
       expect(h.ledger()[0].kind).toBe("approval");
     });
 
     it("denial agent_message frames approval as automatic and never trains ask-in-prose", () => {
-      const h = setup({ mcpPolicies: { click: { requiresApproval: true, message: "Approve click?" } } });
+      const h = setup({ destructiveMcpTools: ["click"] });
       const res = h.decide(hookMcp("click"));
       // The agent_message must tell the model approval is handled automatically
       // and that it should continue, NOT stop and wait or ask for permission.
@@ -192,26 +199,21 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
 
     it("allows a require-approval MCP tool once it has been granted (reinvocation)", () => {
       const h = setup({
-        mcpPolicies: { click: { requiresApproval: true } },
+        destructiveMcpTools: ["click"],
         grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
       });
       expect(h.decide(hookMcp("click")).permission).toBe("allow");
       expect(h.ledger()).toEqual([]);
     });
 
-    it("allows an auto-approved MCP tool (absent from mcpToolPolicies)", () => {
-      const h = setup({ mcpPolicies: { click: { requiresApproval: true } } });
+    it("allows an MCP tool its server does not mark destructive", () => {
+      const h = setup({ destructiveMcpTools: ["click"] });
       expect(h.decide(hookMcp("list_apps")).permission).toBe("allow");
       expect(h.ledger()).toEqual([]);
     });
 
-    it("allows an MCP tool whose policy is explicitly requiresApproval:false", () => {
-      const h = setup({ mcpPolicies: { click: { requiresApproval: false } } });
-      expect(h.decide(hookMcp("click")).permission).toBe("allow");
-    });
-
     it("auto-approve-all allows a require-approval MCP tool", () => {
-      const h = setup({ autoApproveAll: true, mcpPolicies: { click: { requiresApproval: true } } });
+      const h = setup({ autoApproveAll: true, destructiveMcpTools: ["click"] });
       expect(h.decide(hookMcp("click")).permission).toBe("allow");
     });
 
@@ -228,17 +230,29 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
 
     it("does NOT gate the same MCP tool delivered on preToolUse (no double-gating)", () => {
-      const h = setup({ mcpPolicies: { click: { requiresApproval: true } } });
+      const h = setup({ destructiveMcpTools: ["click"] });
       // preToolUse must fall through to allow for MCP — gating belongs to
       // beforeMCPExecution alone, so the denial is never recorded twice.
-      const res = h.decide({ tool_name: "click", tool_input: "{}", hook_event_name: "preToolUse" });
-      expect(res.permission).toBe("allow");
+      expect(h.decide(hookMcpPreToolUse("click")).permission).toBe("allow");
+      expect(h.decide({ tool_name: "click", tool_input: "{}", hook_event_name: "preToolUse" }).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("keys the destructive set by server: the same tool name on another server passes", () => {
+      const h = setup({ destructiveMcpTools: ["click"] });
+      expect(h.decide(hookMcp("click", {}, "other")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("a leased server's destructive tool passes", () => {
+      const h = setup({ destructiveMcpTools: ["click"], leasedMcpServers: ["srv"] });
+      expect(h.decide(hookMcp("click")).permission).toBe("allow");
       expect(h.ledger()).toEqual([]);
     });
 
     it("scope guard: a foreign MCP invocation is allowed and never recorded", () => {
       const h = setup({
-        mcpPolicies: { click: { requiresApproval: true } },
+        destructiveMcpTools: ["click"],
         runnerPid: 2_147_483_600,
       });
       expect(h.decide(hookMcp("click")).permission).toBe("allow");
@@ -246,95 +260,229 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
-  // The enabled_tools capability manifest (issue #350): mcpServerEnabledTools
-  // holds ONLY restricted servers; the hook denies a listed server's
-  // non-listed tool with the non-pausing, permanent "disabled" kind — BEFORE
-  // autoApproveAll and the grant checks, because a manifest is not an
-  // approval gate (nothing may resurrect a disabled tool). hookMcp payloads
-  // carry mcp_server_name "srv".
-  describe("MCP enabled_tools manifest (beforeMCPExecution, issue #350)", () => {
-    it("denies a non-enabled tool with kind disabled (content-free, single record) and the manifest message", () => {
-      const h = setup({ mcpServerEnabledTools: { srv: ["list_apps"] } });
+  // The agent's tool lists (scope arm 1a): compiled by the runner
+  // (hook-scope.ts) and only looked up here. A refusal is kind "disabled":
+  // non-pausing, permanent, and placed BEFORE the capture arms,
+  // autoApproveAll and every grant, because a list is not an approval gate.
+  describe("tool lists (scope arm)", () => {
+    const READ_ONLY = { tools: ["Read", "Grep", "mcp__srv"], disallowedTools: [] };
 
-      const res = h.decide(hookMcp("click", { app: "Slack" }));
-
+    it("refuses a built-in outside an allow-list with the lists' message, recorded under the tool's scope token", () => {
+      const h = setup({ lists: READ_ONLY });
+      const res = h.decide(hookShell("ls"));
       expect(res.permission).toBe("deny");
-      // Permanent-denial framing, never the approval promise: the model must
-      // adapt, not wait for a resume that will never come.
-      expect(res.raw).toContain("not enabled for this agent");
+      expect(res.raw).toContain("Shell is not available to this agent");
+      expect(res.raw).toContain('tools [Read, Grep, mcp__srv]');
       expect(res.raw).not.toContain("submitted to the user for approval");
       const ledger = h.ledger();
       expect(ledger).toHaveLength(1);
       expect(ledger[0].kind).toBe("disabled");
-      // Attributable under the MCP name-token (the identity the stream row
-      // computes), content-free like every non-approval kind.
-      expect(ledger[0].token).toBe(grantToken("click", ""));
+      expect(ledger[0].token).toBe(scopeRefusalToken(scopeKey("shell", CURSOR_SDK_TOOL_COVERS)));
       expect(ledger[0]).not.toHaveProperty("input");
+      // The refusal text rides the ledger (base64) for the boundary to stamp on the row.
+      expect(Buffer.from(String(ledger[0].message), "base64").toString("utf-8")).toBe(JSON.parse(res.raw).agent_message);
     });
 
-    it("allows an enabled tool on a restricted server", () => {
-      const h = setup({ mcpServerEnabledTools: { srv: ["list_apps"] } });
-      expect(h.decide(hookMcp("list_apps")).permission).toBe("allow");
-      expect(h.ledger()).toEqual([]);
-    });
-
-    it("denies even under autoApproveAll (a manifest is not an approval gate)", () => {
-      const h = setup({
-        autoApproveAll: true,
-        mcpServerEnabledTools: { srv: ["list_apps"] },
-      });
-      const res = h.decide(hookMcp("click"));
-      expect(res.permission).toBe("deny");
+    it("refuses a built-in a deny-list names and leaves the rest to the approval gate", () => {
+      const h = setup({ lists: { tools: [], disallowedTools: ["Bash(git push *)"] } });
+      expect(h.decide(hookShell("git status")).permission).toBe("deny");
       expect(h.ledger()[0].kind).toBe("disabled");
-    });
-
-    it("denies even when the tool holds a reinvocation grant (no approval may resurrect it)", () => {
-      const h = setup({
-        mcpServerEnabledTools: { srv: ["list_apps"] },
-        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
-      });
-      const res = h.decide(hookMcp("click"));
-      expect(res.permission).toBe("deny");
-      expect(h.ledger()[0].kind).toBe("disabled");
-    });
-
-    it("stays kind disabled under unattended mode (mode-independent, like secret)", () => {
-      const h = setup({
-        unattendedSkip: true,
-        mcpServerEnabledTools: { srv: ["list_apps"] },
-      });
-      const res = h.decide(hookMcp("click"));
-      expect(res.permission).toBe("deny");
-      expect(h.ledger()[0].kind).toBe("disabled");
-    });
-
-    it("an enabled tool still flows into the normal approval arm (manifest and gate compose)", () => {
-      const h = setup({
-        mcpPolicies: { click: { requiresApproval: true, message: "Approve click?" } },
-        mcpServerEnabledTools: { srv: ["click"] },
-      });
-      const res = h.decide(hookMcp("click"));
-      expect(res.permission).toBe("deny");
-      expect(res.raw).toContain("Approve click?");
+      h.resetLedger();
+      // Write is not denied by the list, so it reaches the ordinary approval gate.
+      expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("deny");
       expect(h.ledger()[0].kind).toBe("approval");
     });
 
-    it("a restriction on ANOTHER server never narrows this one (server-scoped matching)", () => {
-      const h = setup({ mcpServerEnabledTools: { other: ["something_else"] } });
-      expect(h.decide(hookMcp("click")).permission).toBe("allow");
-      expect(h.ledger()).toEqual([]);
+    it("a hook tool covering a denied Claude tool is refused: never Write refuses Delete and the hook's Write, not StrReplace", () => {
+      const h = setup({ lists: { tools: [], disallowedTools: ["Write"] } });
+      expect(h.decide(hookDelete("/x/a.txt")).permission).toBe("deny");
+      expect(h.decide(hookWrite("/x/b.txt")).permission).toBe("deny");
+      // StrReplace covers Edit alone, so it reaches the ordinary approval gate.
+      expect(h.decide(hookEdit("/x/a.txt")).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled", "disabled", "approval"]);
     });
 
-    it("quoted-name matching is exact — an enabled name never allows its prefix-sibling", () => {
-      const h = setup({ mcpServerEnabledTools: { srv: ["list_apps_extended"] } });
-      const res = h.decide(hookMcp("list_apps"));
-      expect(res.permission).toBe("deny");
+    it("an engine extra is refused only under an allow-list", () => {
+      const allow = setup({ lists: READ_ONLY });
+      expect(allow.decide(hookBuiltin("GenerateImage", { prompt: "a cat" })).permission).toBe("deny");
+      const deny = setup({ lists: { tools: [], disallowedTools: ["Bash"] } });
+      expect(deny.decide(hookBuiltin("GenerateImage", { prompt: "a cat" })).permission).toBe("allow");
+    });
+
+    it("binds under autoApproveAll, a category lease and a grant (no approval posture resurrects an excluded tool)", () => {
+      const h = setup({
+        lists: READ_ONLY,
+        autoApproveAll: true,
+        leasedCategories: ["shell"],
+        grants: [{ toolName: "shell", mcpServerSlug: "", key: "shell", salient: "ls", contentDigest: "", sourceToolCallId: "consent-1" }],
+      });
+      expect(h.decide(hookShell("ls")).permission).toBe("deny");
       expect(h.ledger()[0].kind).toBe("disabled");
     });
 
-    it("never gates a preToolUse (built-in) payload — the manifest arm is MCP-event-scoped", () => {
-      const h = setup({ mcpServerEnabledTools: { srv: ["list_apps"] } });
-      expect(h.decide(hookRead("/x/a.txt")).permission).toBe("allow");
+    it("binds ahead of capture mode: an excluded write is refused, not staged", () => {
+      const h = setup({ lists: READ_ONLY, captureMode: true, gitignored: [] });
+      expect(h.decide(hookWrite(join(h.root, "a.txt"))).permission).toBe("deny");
+      expect(h.ledger()[0].kind).toBe("disabled");
+    });
+
+    it("stays kind disabled under unattended mode (mode-independent)", () => {
+      const h = setup({ lists: READ_ONLY, unattendedSkip: true });
+      expect(h.decide(hookShell("ls")).permission).toBe("deny");
+      expect(h.ledger()[0].kind).toBe("disabled");
+    });
+
+    it("Read excluded: a real platform file read through the turn's .stigmer link passes; anything else is refused", () => {
+      const h = setup({ lists: { tools: ["Grep"], disallowedTools: [] } });
+      mkdirSync(join(h.platformDir, "skills/a"), { recursive: true });
+      mkdirSync(join(h.platformDir, "inputs"), { recursive: true });
+      writeFileSync(join(h.platformDir, "skills/a/SKILL.md"), "# skill", "utf-8");
+      writeFileSync(join(h.platformDir, "inputs/spec.pdf"), "pdf", "utf-8");
+      mkdirSync(join(h.root, "src"), { recursive: true });
+      writeFileSync(join(h.root, "src/main.ts"), "code", "utf-8");
+      writeFileSync(join(h.root, "secrets.txt"), "secret", "utf-8");
+      // A link inside platform content pointing out of it, into the workspace.
+      symlinkSync(h.root, join(h.platformDir, "inputs/escape"), "dir");
+
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/skills/a/SKILL.md") })).permission).toBe("allow");
+      expect(h.decide(hookBuiltin("Read", { file_path: ".stigmer/inputs/spec.pdf" }, h.root)).permission).toBe("allow");
+      expect(h.ledger(), "an admitted read records nothing").toEqual([]);
+
+      const refused = [
+        join(h.root, "src/main.ts"),
+        // ".." is resolved before the real path is taken.
+        join(h.root, ".stigmer/../secrets.txt"),
+        // Through the platform link, out through a link inside the content.
+        join(h.root, ".stigmer/inputs/escape/secrets.txt"),
+        // A file that does not exist has no real path to admit.
+        join(h.root, ".stigmer/inputs/missing.pdf"),
+      ];
+      for (const file of refused) expect(h.decide(hookBuiltin("Read", { file_path: file })).permission, file).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled", "disabled", "disabled", "disabled"]);
+      // A Read refusal names the call: the path as given.
+      expect(h.ledger()[0].token).toBe(scopeRefusalToken(READ_SCOPE_KEY, join(h.root, "src/main.ts")));
+    });
+
+    it("Read excluded on an unlinked turn: a repository's own .stigmer symlink admits nothing", () => {
+      const h = setup({ lists: { tools: ["Grep"], disallowedTools: [] }, stigmerLink: "repo" });
+      writeFileSync(join(h.root, "repo-state/notes.md"), "repo file", "utf-8");
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/notes.md") })).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled"]);
+    });
+
+    it("refuses an MCP tool by server AND tool, recorded under its server/tool scope token", () => {
+      const h = setup({
+        lists: { tools: ["mcp__srv__list_apps"], disallowedTools: [] },
+        mcpServers: [{ slug: "srv", discoveredToolNames: ["list_apps", "click"] }, { slug: "other", discoveredToolNames: ["list_apps"] }],
+      });
+      expect(h.decide(hookMcp("list_apps")).permission).toBe("allow");
+      const res = h.decide(hookMcp("click", { app: "Slack" }));
+      expect(res.permission).toBe("deny");
+      expect(res.raw).toContain("click is not available to this agent");
+      // The same tool name on another server is a different tool.
+      expect(h.decide(hookMcp("list_apps", {}, "other")).permission).toBe("deny");
+      const ledger = h.ledger();
+      expect(ledger.map((e) => e.kind)).toEqual(["disabled", "disabled"]);
+      expect(ledger[0].token).toBe(scopeRefusalToken(mcpToolKey("srv", "click")));
+      expect(ledger[1].token).toBe(scopeRefusalToken(mcpToolKey("other", "list_apps")));
+    });
+
+    it("answers an MCP tool discovery never saw by its server's family entry", () => {
+      const h = setup({
+        lists: { tools: ["mcp__srv"], disallowedTools: ["mcp__srv__drop_all"] },
+        mcpServers: [{ slug: "srv", discoveredToolNames: null }],
+      });
+      expect(h.decide(hookMcp("brand_new")).permission).toBe("allow");
+      expect(h.decide(hookMcp("drop_all")).permission).toBe("deny");
+      expect(h.decide(hookMcp("anything", {}, "unknown_server")).permission).toBe("deny");
+    });
+
+    it("keeps the platform's attachment servers in scope under any allow-list", () => {
+      const h = setup({ lists: READ_ONLY, platformServerSlugs: ["stigmer-memory"], mcpServers: [{ slug: "stigmer-memory", discoveredToolNames: null }] });
+      expect(h.decide(hookMcp("remember", {}, "stigmer-memory")).permission).toBe("allow");
+    });
+
+    it("an excluded MCP tool is refused under autoApproveAll and ahead of its grant", () => {
+      const h = setup({
+        lists: { tools: [], disallowedTools: ["mcp__srv__click"] },
+        autoApproveAll: true,
+        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
+      });
+      expect(h.decide(hookMcp("click")).permission).toBe("deny");
+      expect(h.ledger()[0].kind).toBe("disabled");
+    });
+
+    it("an in-scope destructive MCP tool still reaches the approval gate (lists and approvals compose)", () => {
+      const h = setup({ lists: { tools: ["mcp__srv"], disallowedTools: [] }, destructiveMcpTools: ["click"] });
+      const res = h.decide(hookMcp("click"));
+      expect(res.permission).toBe("deny");
+      expect(h.ledger()[0].kind).toBe("approval");
+    });
+
+    it("subagentStart: refuses a type outside Agent(type, …), Cursor's built-in types included, and allows a listed one", () => {
+      const h = setup({ lists: { tools: ["Read", "Agent(researcher, Explore)"], disallowedTools: [] }, subAgentTypes: ["researcher", "writer"] });
+      expect(h.decide(hookSubagentStart("researcher")).permission).toBe("allow");
+      expect(h.decide(hookSubagentStart("explore")).permission).toBe("allow");
+      const writer = h.decide(hookSubagentStart("writer"));
+      expect(writer.permission).toBe("deny");
+      expect(writer.raw).toContain("Agent(writer) is not available to this agent");
+      expect(h.decide(hookSubagentStart("generalPurpose")).permission).toBe("deny");
+      const ledger = h.ledger();
+      expect(ledger.map((e) => e.kind)).toEqual(["disabled", "disabled"]);
+      // A sub-agent start's refusal names the call: the normalized type.
+      expect(ledger[0].token).toBe(scopeRefusalToken(AGENT_SCOPE_KEY, "writer"));
+    });
+
+    it("subagentStart: Cursor's generalPurpose is the general-purpose type a list names", () => {
+      const gp = setup({ lists: { tools: ["Read", "Agent(general-purpose)"], disallowedTools: [] } });
+      expect(gp.decide(hookSubagentStart("generalPurpose")).permission).toBe("allow");
+      const explore = setup({ lists: { tools: ["Read", "Agent(explore)"], disallowedTools: [] } });
+      expect(explore.decide(hookSubagentStart("generalPurpose")).permission).toBe("deny");
+      expect(explore.decide(hookSubagentStart("Explore")).permission).toBe("allow");
+      expect(explore.ledger().map((e) => e.kind)).toEqual(["disabled"]);
+    });
+
+    it("preToolUse Task: a subagent_type outside Agent(type, …) is refused at the call, recorded with its type", () => {
+      const h = setup({ lists: { tools: ["Read", "Agent(explore)"], disallowedTools: [] } });
+      const res = h.decide(hookBuiltin("Task", { subagent_type: "generalPurpose", description: "Do", prompt: "Do it." }));
+      expect(res.permission).toBe("deny");
+      expect(res.raw).toContain("Agent(generalPurpose) is not available to this agent");
+      expect(h.decide(hookBuiltin("Task", { subagent_type: "Explore", prompt: "Look." })).permission).toBe("allow");
+      // A Task naming no type keeps the subagentStart path.
+      expect(h.decide(hookBuiltin("Task", { prompt: "Something." })).permission).toBe("allow");
+      const ledger = h.ledger();
+      expect(ledger.map((e) => e.kind)).toEqual(["disabled"]);
+      expect(ledger[0].token).toBe(scopeRefusalToken(AGENT_SCOPE_KEY, "generalpurpose"));
+    });
+
+    it("subagentStart: allowed with no lists, and refused when the lists exclude Agent", () => {
+      expect(setup({}).decide(hookSubagentStart("explore")).permission).toBe("allow");
+      const h = setup({ lists: { tools: [], disallowedTools: ["Agent"] } });
+      expect(h.decide(hookSubagentStart("explore")).permission).toBe("deny");
+    });
+
+    it("an agent with no lists is never refused by the scope arm", () => {
+      const h = setup({ autoApproveAll: true });
+      expect(h.decide(hookBuiltin("GenerateImage", {})).permission).toBe("allow");
+      expect(h.decide(hookMcp("anything", {}, "any")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("an MCP tool named like a state flag cannot switch the flag on (the scope rides the state opaque)", () => {
+      // A deny-list leaves these tools in scope, so the compiled table holds
+      // `"autoApproveAll":true` and `"captureMode":true` as answers. In scope,
+      // a write must still reach the approval gate and be held there.
+      const h = setup({
+        lists: { tools: [], disallowedTools: ["Bash"] },
+        mcpServers: [{ slug: "srv", discoveredToolNames: ["autoApproveAll", "captureMode", "unattendedSkip"] }],
+      });
+      expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["approval"]);
+    });
+
+    it("scope guard: a foreign invocation is allowed and never recorded, lists or not", () => {
+      const h = setup({ lists: READ_ONLY, runnerPid: 2_147_483_600 });
+      expect(h.decide(hookShell("ls")).permission).toBe("allow");
       expect(h.ledger()).toEqual([]);
     });
   });
@@ -369,7 +517,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     it("parses and records the MCP JSON-STRING tool_input", () => {
       // Cursor delivers MCP tool_input as a JSON string, not an object — the
       // extractor must parse it so the captured input is the same object shape.
-      const h = setup({ mcpPolicies: { click: { requiresApproval: true } } });
+      const h = setup({ destructiveMcpTools: ["click"] });
       expect(h.decide(hookMcp("click", { app: "Slack", element_index: "59" })).permission).toBe("deny");
       expect(decodeInput(h.ledger()[0].input)).toEqual({ app: "Slack", element_index: "59" });
     });
@@ -467,7 +615,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
         //    side it sees) and writes it into the real state file via
         //    buildApprovalState — the exact path index.ts takes on resume.
         const id = toolIdentity(streamName, "", streamArgs);
-        const state = buildApprovalState(new Map(), false, new Set(), [
+        const state = buildApprovalState(NO_MCP_DEFAULT, false, new Set(), [
           { toolName: streamName, mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: contentDigest(streamArgs), sourceToolCallId: "consent-1" },
         ]);
 
@@ -490,7 +638,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     const path = "/work/notes.md";
     const renameArgs = { path, content: "Planton" };
     const id = toolIdentity("edit", "", renameArgs);
-    const state = buildApprovalState(new Map(), false, new Set(), [
+    const state = buildApprovalState(NO_MCP_DEFAULT, false, new Set(), [
       { toolName: "edit", mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: contentDigest(renameArgs), sourceToolCallId: "consent-1" },
     ]);
     const h = setup({ grants: state.approvedGrants });
@@ -564,7 +712,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
 
     it("still gates require-approval MCP tools", () => {
-      const h = setup({ captureMode: true, mcpPolicies: { click: { requiresApproval: true } } });
+      const h = setup({ captureMode: true, destructiveMcpTools: ["click"] });
       expect(h.decide(hookMcp("click")).permission).toBe("deny");
     });
 
@@ -876,7 +1024,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
         captureMode: true,
         captureIgnored: true,
         gitWorkspace: false,
-        mcpPolicies: { click: { requiresApproval: true } },
+        destructiveMcpTools: ["click"],
       });
       expect(h.decide(hookMcp("click")).permission).toBe("deny");
     });
@@ -901,7 +1049,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       JSON.stringify({ stateFile: statePath, ledgerFile: ledgerPath, runnerPid: process.pid }),
       "utf-8",
     );
-    writeFileSync(statePath, JSON.stringify(buildApprovalState(new Map(), false, new Set())), "utf-8");
+    writeFileSync(statePath, JSON.stringify(buildApprovalState(NO_MCP_DEFAULT, false, new Set())), "utf-8");
 
     const raw = execFileSync("bash", [scriptPath], {
       input: JSON.stringify(hookWrite("/x/a.txt")),
@@ -912,5 +1060,43 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     expect(ledger[0].token).toBe(grantToken("write", "/x/a.txt"));
     // record_denial is pure bash, so the kind tag survives the Node outage too.
     expect(ledger[0].kind).toBe("approval");
+  });
+
+  it("refuses every call when the agent has tool lists the hook cannot evaluate (Node unavailable)", () => {
+    const ws = mkdtempSync(join(tmpdir(), "hook-script-fallback-"));
+    onTestFinished(() => rmSync(ws, { recursive: true, force: true }));
+    const dir = join(ws, ".cursor", "hooks");
+    mkdirSync(dir, { recursive: true });
+    const statePath = join(dir, "state.json");
+    const ledgerPath = join(dir, "denials.jsonl");
+    const pointerPath = join(dir, "active.json");
+    const scriptPath = join(dir, "hook.sh");
+    const script = generateHookScript(pointerPath)
+      .replace(`NODE_BIN="${process.execPath}"`, 'NODE_BIN="/nonexistent/node"');
+    writeFileSync(scriptPath, script, "utf-8");
+    writeFileSync(
+      pointerPath,
+      JSON.stringify({ stateFile: statePath, ledgerFile: ledgerPath, runnerPid: process.pid }),
+      "utf-8",
+    );
+    const toolScope = compileHookToolScope({
+      scope: ToolScope.of('Agent "a"', { tools: ["Read"], disallowedTools: [] }),
+      servers: [],
+      platformServerSlugs: new Set(),
+      readRoot: "",
+      subAgentTypes: [],
+    });
+    writeFileSync(
+      statePath,
+      JSON.stringify(buildApprovalState(NO_MCP_DEFAULT, true, new Set(), undefined, false, false, true, false, toolScope)),
+      "utf-8",
+    );
+
+    // Even a read, in scope, is refused: the hook cannot tell, and a list it
+    // cannot read must not widen to every tool. autoApproveAll does not help.
+    const raw = execFileSync("bash", [scriptPath], { input: JSON.stringify(hookRead("/x/a.txt")) }).toString();
+    expect(raw).toContain('"permission":"deny"');
+    const ledger = readFileSync(ledgerPath, "utf-8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    expect(ledger.map((e: { kind: string }) => e.kind)).toEqual(["fail-closed"]);
   });
 });

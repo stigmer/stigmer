@@ -78,7 +78,7 @@ function boundaryOpts(status: AgentExecutionStatus, overrides?: Partial<TurnBoun
     hitlDir,
     primaryWorkspaceDir: repo,
     turnStartMessageIndex: 0,
-    mergedPolicies: new Map(),
+    mcpDefault: { destructive: new Set(), leasedServers: new Set() },
     ...overrides,
   };
 }

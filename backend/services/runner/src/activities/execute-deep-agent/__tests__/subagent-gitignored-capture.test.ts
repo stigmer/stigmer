@@ -32,6 +32,7 @@ import { resolveWorkspacePath } from "../../../shared/file-change.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
 import { compileSubagents, type TransformedSubagent } from "../subagent-transformer.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptSelector } from "../__test-utils__/scripted-model.js";
+import { ToolScope } from "../../../shared/tool-lists.js";
 
 /** Only `src/**` is git-tracked (capturable); everything else is gitignored. */
 const isTracked = (relPath: string): boolean => relPath.startsWith("src/");
@@ -64,7 +65,7 @@ describe("sub-agent gitignored capture", () => {
    */
   function captureGate(observer: CasCaptureObserver): ApprovalGateConfig {
     return {
-      policies: new Map(),
+      mcpDefault: { destructive: new Set(), leasedServers: new Set() },
       toolServerMap: new Map(),
       fileCaptureMode: true,
       isCapturablePath: async (raw: string) =>
@@ -84,7 +85,7 @@ describe("sub-agent gitignored capture", () => {
     tools: TransformedSubagent["tools"] = [],
   ) {
     const compiled = await compileSubagents(
-      [{ name: "worker", description: "test worker", systemPrompt: "do the work", tools }],
+      [{ name: "worker", description: "test worker", systemPrompt: "do the work", tools, scope: ToolScope.unrestricted() }],
       {
         approvalGate: captureGate(observer),
         parentModelName: "test-model",

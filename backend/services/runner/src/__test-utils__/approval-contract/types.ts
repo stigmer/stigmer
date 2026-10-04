@@ -49,6 +49,43 @@ export interface ProposedAction {
   readonly mcpServerSlug?: string;
   /** MCP tool name — required for `kind: "mcp"`, ignored otherwise. */
   readonly mcpToolName?: string;
+  /**
+   * For `kind: "mcp"`: the tool's server marks it destructive
+   * (`DiscoveredTool.destructive_hint`), so the approval default asks.
+   */
+  readonly mcpDestructive?: boolean;
+  /**
+   * For `kind: "read"`: `resource` is a path under the platform's own content
+   * (the `.stigmer/` route that carries the agent's skills, inputs and plan),
+   * which each adapter places where its engine mounts it.
+   */
+  readonly platformContent?: boolean;
+}
+
+/** An agent's (or sub-agent's) two tool lists, in Claude Code's names. */
+export interface ContractToolLists {
+  readonly tools: readonly string[];
+  readonly disallowedTools: readonly string[];
+}
+
+/** How a lists drive runs the action. */
+export interface ListsDriveOptions {
+  /** The pre-armed "trust this whole run": the approval gate is absent. */
+  readonly autoApproveAll?: boolean;
+  /**
+   * Run the action inside a sub-agent carrying these lists, narrowed from the
+   * agent's. Driven only where {@link SubstrateCapabilities.enforcesSubAgentLists}.
+   */
+  readonly subAgent?: ContractToolLists;
+}
+
+/** The outcome of a lists drive: a {@link GatewayOutcome} plus whether the lists refused the call. */
+export interface ListsOutcome extends GatewayOutcome {
+  /**
+   * The agent's lists refused the call: it did not run, the model read the
+   * out-of-scope message, and no approval was asked.
+   */
+  readonly refused: boolean;
 }
 
 /**
@@ -140,6 +177,14 @@ export interface SubstrateCapabilities {
    * covered instead by the translator, boundary-rows and corpus suites.
    */
   readonly surfacesGatePolicySource: boolean;
+  /**
+   * True when a sub-agent's own tool lists are enforced inside the sub-agent.
+   * The native engine narrows each sub-agent graph (`true`); the Cursor hook
+   * cannot tell which sub-agent is calling, so the Cursor engine refuses a
+   * turn whose sub-agent carries lists at setup instead (`false`, pinned by
+   * that harness's own tests).
+   */
+  readonly enforcesSubAgentLists: boolean;
 }
 
 /**
@@ -176,4 +221,10 @@ export interface GatewaySubstrate {
    * {@link SubstrateCapabilities.appliesRunLifetimeLease} is true.
    */
   authorizeUnderClassLease?(leased: ProposedAction, probe: ProposedAction): Promise<GatewayOutcome>;
+  /**
+   * Put one action through an agent carrying `lists`, with no approval
+   * decision (`none`), and report whether the lists refused it, the default
+   * gated it, or it ran.
+   */
+  authorizeUnderLists(lists: ContractToolLists, action: ProposedAction, options?: ListsDriveOptions): Promise<ListsOutcome>;
 }

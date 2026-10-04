@@ -56,7 +56,7 @@
  * sibling digest.ts pulls node:crypto) may be imported. The SDK bundler
  * hard-fails otherwise.
  */
-import { create, fromJson, toJson } from "@bufbuild/protobuf";
+import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 import {
   ApplicationFailure,
@@ -79,11 +79,9 @@ import {
 } from "@temporalio/workflow";
 
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { decodeLoadedExecution } from "../execution-json.js";
 import {
   ExecutionPhase,
   MessageType,
@@ -1328,7 +1326,7 @@ async function loadExecution(executionId: string): Promise<AgentExecution> {
       cause: error,
     });
   }
-  return fromJson(AgentExecutionSchema, raw);
+  return decodeLoadedExecution(raw);
 }
 
 async function readHarnessStateId(sessionId: string): Promise<string> {

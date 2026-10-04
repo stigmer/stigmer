@@ -34,15 +34,9 @@ function cursorTargetFor(step: MarketplaceConnectStep): string | undefined {
       return step.targetSlug;
     case "click-connect":
       return "connect-button";
-    case "connected-policies":
-      return "tab-policies";
     default:
       return undefined;
   }
-}
-
-function defaultTabFor(step: MarketplaceConnectStep): "tools" | "policies" {
-  return step.view === "connected-policies" ? "policies" : "tools";
 }
 
 function contentKeyFor(step: MarketplaceConnectStep): string {
@@ -53,7 +47,6 @@ function contentKeyFor(step: MarketplaceConnectStep): string {
     case "detail-view":
     case "click-connect":
     case "connected-tools":
-    case "connected-policies":
       return "mcp-detail";
   }
 }
@@ -75,8 +68,6 @@ function componentKeyFor(step: MarketplaceConnectStep): string {
       return "detail-base";
     case "connected-tools":
       return "connected-tools";
-    case "connected-policies":
-      return "connected-policies";
   }
 }
 
@@ -163,7 +154,6 @@ export function MarketplaceConnectTour() {
                     <McpServerDetailView
                       org={DEMO_ORG}
                       slug={DEMO_SLUG}
-                      defaultCapabilityTab={defaultTabFor(step)}
                     />
                     <div data-scroll-target="capabilities-bottom" />
                   </div>

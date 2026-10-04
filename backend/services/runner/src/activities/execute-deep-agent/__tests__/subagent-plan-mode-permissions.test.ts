@@ -29,6 +29,7 @@ import { buildPlanModePermissions } from "../../../shared/plan-mode-permissions.
 import { CasCaptureObserver } from "../cas-capture-observer.js";
 import { compileSubagents } from "../subagent-transformer.js";
 import { ScriptedModel, type ScriptSelector } from "../__test-utils__/scripted-model.js";
+import { ToolScope } from "../../../shared/tool-lists.js";
 
 const SEEDED_CONTENT = "PLAN_MODE_README_TOKEN: hello from the seeded file";
 
@@ -57,7 +58,7 @@ describe("plan-mode sub-agent filesystem permissions (issue #255)", () => {
    */
   async function compileWorker(script: ScriptSelector, planMode: boolean) {
     const compiled = await compileSubagents(
-      [{ name: "worker", description: "test worker", systemPrompt: "do the work", tools: [] }],
+      [{ name: "worker", description: "test worker", systemPrompt: "do the work", tools: [], scope: ToolScope.unrestricted() }],
       {
         approvalGate: null,
         parentModelName: "test-model",

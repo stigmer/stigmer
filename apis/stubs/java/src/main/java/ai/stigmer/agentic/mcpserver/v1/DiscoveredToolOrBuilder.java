@@ -78,4 +78,18 @@ public interface DiscoveredToolOrBuilder extends
    * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
    */
   com.google.protobuf.StructOrBuilder getInputSchemaOrBuilder();
+
+  /**
+   * <pre>
+   * True when the server's own MCP annotation marks the tool destructive
+   * (annotations.destructiveHint is exactly true), whatever readOnlyHint says.
+   * A destructive tool asks for approval before it runs. An absent annotation
+   * reads as false: Stigmer acts only on an explicit declaration, so a server
+   * that annotates nothing gates nothing.
+   * </pre>
+   *
+   * <code>bool destructive_hint = 4 [json_name = "destructiveHint"];</code>
+   * @return The destructiveHint.
+   */
+  boolean getDestructiveHint();
 }

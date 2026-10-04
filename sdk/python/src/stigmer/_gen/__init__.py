@@ -2,7 +2,7 @@
 
 from ._bidi import BidiStream
 from ._client import GeneratedClient
-from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput
+from ._agent import AgentClient, AgentInput, McpServerUsageInput, SubAgentInput, EnvVarDeclarationInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput, RunConfigInput
 from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput, ConversationCatchupInput, DeclaredPreferencesInput, RecalledMemoriesInput, RecalledMemoryFactInput
 from ._agentinstance import AgentInstanceClient, AgentInstanceInput
@@ -17,7 +17,7 @@ from ._identityaccount import IdentityAccountClient, IdentityAccountInput, Ident
 from ._identityprovider import IdentityProviderClient, IdentityProviderInput
 from ._invitation import InvitationClient, InvitationInput
 from ._license import LicenseClient, LicenseInput, LicenseCustomerInput, EntitlementsInput, EntitlementLimitsInput
-from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, ToolApprovalPolicyInput, McpServerAuthInput
+from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, McpServerAuthInput
 from ._memory import MemoryClient, MemoryInput, MemoryProvenanceInput
 from ._oauthapp import OAuthAppClient, OAuthAppInput
 from ._organization import OrganizationClient, OrganizationInput, OrganizationPreferencesInput
@@ -58,9 +58,7 @@ __all__ = [
     "AgentClient",
     "AgentInput",
     "McpServerUsageInput",
-    "ToolApprovalOverrideInput",
     "SubAgentInput",
-    "McpAccessInput",
     "EnvVarDeclarationInput",
     "AgentChannelClient",
     "AgentChannelInput",
@@ -119,7 +117,6 @@ __all__ = [
     "McpServerInput",
     "StdioServerConfigInput",
     "HttpServerConfigInput",
-    "ToolApprovalPolicyInput",
     "McpServerAuthInput",
     "MemoryClient",
     "MemoryInput",
