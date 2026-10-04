@@ -11,10 +11,12 @@ backend/services/stigmer-server/src/domain/workflow/registry/data/
 # must not touch it.
 backend/services/stigmer-server/src/authorization/model/data/
 
-# Vendored plugins from cursor/plugins (the plugin reader's real-world
-# fixtures); the NOTICE names the source and commit and the files must stay
-# byte-identical to it, so formatting must not touch them.
+# Vendored plugins from cursor/plugins and anthropics/claude-plugins-official
+# (the plugin reader's real-world fixtures); each NOTICE names the source and
+# commit and the files must stay byte-identical to it, so formatting must not
+# touch them.
 backend/libs/ts/plugin-package/src/__tests__/fixtures/cursor-plugins/
+backend/libs/ts/plugin-package/src/__tests__/fixtures/claude-plugins/
 
 # The Cursor hook configuration is rendered by `make agents-sync` and compared
 # byte for byte by `make agents-check`, so formatting must not touch it.

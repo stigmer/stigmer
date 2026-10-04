@@ -5,10 +5,12 @@
  * One builder per dialect, each writing the exact file layout that
  * dialect's tools produce: `openPlugin` a root `plugin.json` with the
  * canonical `$schema` and an `mcp.json` beside it; `claudePlugin` a
- * `.claude-plugin/plugin.json` with `.mcp.json`; `cursorPlugin` a
- * `.cursor-plugin/plugin.json` declaring `./skills/`, `./agents/` and
- * `./mcp.json` the way every published Cursor plugin does; `codexPlugin`
- * the legacy `.codex-plugin/plugin.json` compatibility layout. The
+ * `.claude-plugin/plugin.json` with `.mcp.json`, `hooks/hooks.json` and
+ * `settings.json`; `cursorPlugin` a `.cursor-plugin/plugin.json` declaring
+ * `./skills/`, `./agents/`, `./mcp.json` and `./hooks/hooks.json` the way
+ * every published Cursor plugin does; `codexPlugin` the legacy
+ * `.codex-plugin/plugin.json` compatibility layout. A `hooks` option is the
+ * event map; each builder wraps it in its format's file shape. The
  * adversarial suite starts from a valid plugin and breaks exactly one
  * thing with the mutators (`withFile`, `withoutFile`,
  * `withManifestField`), so each test reads as "this plugin, minus this",
@@ -78,6 +80,10 @@ export interface ClaudePluginFixture extends CommonFixture {
   /** The `mcpServers` map for `.mcp.json`; absent means no `.mcp.json`. */
   readonly mcpServers?: Readonly<Record<string, unknown>>;
   readonly userConfig?: Readonly<Record<string, unknown>>;
+  /** The event map for `hooks/hooks.json`, written as `{"hooks": <map>}`; absent means no file. */
+  readonly hooks?: Readonly<Record<string, unknown>>;
+  /** The `settings.json` object; absent means no file. */
+  readonly settings?: Readonly<Record<string, unknown>>;
 }
 
 export interface CursorPluginFixture extends CommonFixture {
@@ -87,6 +93,8 @@ export interface CursorPluginFixture extends CommonFixture {
   /** The `variables` JSON Schema: property name -> `{ type, title, description }`. */
   readonly variables?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   readonly required?: readonly string[];
+  /** The event map for `hooks/hooks.json`, written as `{"version": 1, "hooks": <map>}` and declared. */
+  readonly hooks?: Readonly<Record<string, unknown>>;
 }
 
 export interface CodexPluginFixture extends CommonFixture {
@@ -94,6 +102,8 @@ export interface CodexPluginFixture extends CommonFixture {
   readonly mcpServers?: Readonly<Record<string, unknown>>;
   /** The `apps` map for `.app.json`. */
   readonly apps?: Readonly<Record<string, unknown>>;
+  /** The event map for `hooks/hooks.json`, written as `{"hooks": <map>}`; absent means no file. */
+  readonly hooks?: Readonly<Record<string, unknown>>;
 }
 
 const DEFAULT_NAME = "example";
@@ -136,6 +146,8 @@ export function claudePlugin(fixture: ClaudePluginFixture = {}): PluginFixture {
   };
   files.set(MANIFEST_LOCATIONS.claude, json(manifest));
   if (fixture.mcpServers !== undefined) files.set(".mcp.json", json({ mcpServers: fixture.mcpServers }));
+  if (fixture.hooks !== undefined) files.set("hooks/hooks.json", json({ hooks: fixture.hooks }));
+  if (fixture.settings !== undefined) files.set("settings.json", json(fixture.settings));
   writeSkills(files, "skills", fixture.skills);
   writeAgents(files, "agents", fixture.agents);
   writeExtra(files, fixture.files);
@@ -159,10 +171,12 @@ export function cursorPlugin(fixture: CursorPluginFixture = {}): PluginFixture {
       },
     }),
     ...(fixture.mcpServers !== undefined && { mcpServers: "./mcp.json" }),
+    ...(fixture.hooks !== undefined && { hooks: "./hooks/hooks.json" }),
     ...fixture.manifest,
   };
   files.set(MANIFEST_LOCATIONS.cursor, json(manifest));
   if (fixture.mcpServers !== undefined) files.set("mcp.json", json({ mcpServers: fixture.mcpServers }));
+  if (fixture.hooks !== undefined) files.set("hooks/hooks.json", json({ version: 1, hooks: fixture.hooks }));
   writeSkills(files, "skills", fixture.skills);
   writeAgents(files, "agents", fixture.agents);
   writeExtra(files, fixture.files);
@@ -184,6 +198,7 @@ export function codexPlugin(fixture: CodexPluginFixture = {}): PluginFixture {
   files.set(MANIFEST_LOCATIONS.codex, json(manifest));
   if (fixture.mcpServers !== undefined) files.set(".mcp.json", json({ mcpServers: fixture.mcpServers }));
   if (fixture.apps !== undefined) files.set(".app.json", json({ apps: fixture.apps }));
+  if (fixture.hooks !== undefined) files.set("hooks/hooks.json", json({ hooks: fixture.hooks }));
   writeSkills(files, "skills", fixture.skills);
   writeExtra(files, fixture.files);
   return files;

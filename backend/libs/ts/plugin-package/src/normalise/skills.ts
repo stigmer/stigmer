@@ -17,7 +17,10 @@
  * name (Claude's rule) with a warning; the Agent Skills rules Stigmer relaxes
  * (`name` equal to the directory, `description` present) are warnings.
  * Optional frontmatter (`license`, `compatibility`, `metadata`,
- * `allowed-tools`) and vendor keys ride inside the skill untouched. Every
+ * `allowed-tools`) and vendor keys ride inside the skill untouched, except
+ * `hooks`: Claude Code registers a skill's frontmatter hooks once the skill
+ * is invoked, for the rest of the session, which Stigmer does not run, so
+ * it is named (`skill-hooks-not-run`) rather than carried silently. Every
  * file under the skill directory is listed for the installer's per-skill
  * archive; only `SKILL.md` is ever read.
  */
@@ -116,6 +119,7 @@ function readSkill(index: PluginFileIndex, dir: string, set: ManifestSet, findin
   if (typeof description !== "string" || description === "") {
     findings.warn("skill-description-missing", { path, subject: name });
   }
+  if (parsed.fields["hooks"] !== undefined) findings.warn("skill-hooks-not-run", { path, subject: name });
 
   return {
     name,

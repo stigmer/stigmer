@@ -20,7 +20,11 @@
  * location is a cross-manifest fact: `mcp.json` is read under the open
  * rules when a root manifest exists; a Claude or Codex manifest that
  * declares no `mcpServers` reads `.mcp.json` when present; Cursor reads
- * only what it declares. Sub-agent files (`agents/*.md`) are a vendor
+ * only what it declares. Hooks sources resolve the same way: every vendor
+ * manifest's declared sources, then `hooks/hooks.json` when it exists (the
+ * default Claude Code, Cursor and Codex all read, merged with what is
+ * declared), each file read once and tagged with the hook formats of the
+ * manifests that reach it. Sub-agent files (`agents/*.md`) are a vendor
  * component: they are read when any vendor manifest is present and recorded
  * as ignored otherwise, since the open format defines no such component.
  */
@@ -33,10 +37,27 @@ import { readOpenManifest } from "./dialects/open.js";
 import { type JsonObject, parseJsonObject, readText } from "./documents.js";
 import type { PluginFileIndex } from "./files.js";
 import { type Findings, MANIFEST_LOCATIONS } from "./messages.js";
-import type { PluginDialect } from "./types.js";
+import type { HookFormat, PluginDialect } from "./types.js";
 
 /** The open format's `mcp.json`, a fixed location. */
 export const OPEN_MCP_CONFIG = "mcp.json";
+
+/** The hooks file every vendor reads by default. */
+export const DEFAULT_HOOKS_FILE = "hooks/hooks.json";
+
+/**
+ * A hooks source after resolution. A file carries every format a manifest
+ * reaching it reads, so a file whose shape is none of them is refused; an
+ * inline object has the one format of the manifest that holds it.
+ */
+export type ResolvedHookSource =
+  | { readonly kind: "file"; readonly path: string; readonly formats: readonly HookFormat[]; readonly manifest: string }
+  | { readonly kind: "inline"; readonly manifest: string; readonly value: JsonObject; readonly format: HookFormat };
+
+/** The hook format a vendor dialect reads; Codex reads Claude Code's. */
+export function hookFormatOf(dialect: Exclude<PluginDialect, "agent-plugins">): HookFormat {
+  return dialect === "cursor" ? "cursor" : "claude-code";
+}
 
 /** The vendor precedence when no root manifest exists. */
 const VENDOR_PRECEDENCE: readonly Exclude<PluginDialect, "agent-plugins">[] = ["claude", "cursor", "codex"];
@@ -62,6 +83,7 @@ export interface ManifestSet {
   /** True when a vendor manifest is present, so `agents/*.md` is a component. */
   readonly readsAgents: boolean;
   readonly mcpSources: readonly McpConfigSource[];
+  readonly hookSources: readonly ResolvedHookSource[];
 }
 
 /** True when the directory holds any of the four manifests; the CLI's routing test. */
@@ -106,6 +128,7 @@ export function detectManifests(index: PluginFileIndex, findings: Findings): Man
     name,
     readsAgents: vendors.length > 0,
     mcpSources: resolveMcpSources(index, root, vendors),
+    hookSources: resolveHookSources(index, vendors),
   };
 }
 
@@ -132,7 +155,7 @@ function readDialect(dialect: PluginDialect, object: JsonObject, path: string, f
 }
 
 function emptyManifest(dialect: PluginDialect, path: string): DialectManifest {
-  return { dialect, path, identity: {}, skillPaths: [], mcpConfigs: [], ignored: [] };
+  return { dialect, path, identity: {}, skillPaths: [], mcpConfigs: [], hookSources: [], ignored: [] };
 }
 
 function resolveName(identity: DialectManifest, all: readonly DialectManifest[], findings: Findings): string | undefined {
@@ -194,4 +217,29 @@ function resolveMcpSources(
     seen.add(source.path);
     return true;
   });
+}
+
+function resolveHookSources(index: PluginFileIndex, vendors: readonly DialectManifest[]): readonly ResolvedHookSource[] {
+  const sources: ResolvedHookSource[] = [];
+  const files = new Map<string, { path: string; formats: HookFormat[]; manifest: string }>();
+  const addFile = (path: string, format: HookFormat, manifest: string): void => {
+    const existing = files.get(path);
+    if (existing !== undefined) {
+      if (!existing.formats.includes(format)) existing.formats.push(format);
+      return;
+    }
+    const entry = { path, formats: [format], manifest };
+    files.set(path, entry);
+    sources.push({ kind: "file", path, formats: entry.formats, manifest });
+  };
+  for (const vendor of vendors) {
+    if (vendor.dialect === "agent-plugins") continue;
+    const format = hookFormatOf(vendor.dialect);
+    for (const source of vendor.hookSources) {
+      if (source.kind === "inline") sources.push({ kind: "inline", manifest: source.manifest, value: source.value, format });
+      else addFile(source.path, format, source.manifest);
+    }
+    if (index.has(DEFAULT_HOOKS_FILE)) addFile(DEFAULT_HOOKS_FILE, format, vendor.path);
+  }
+  return sources;
 }

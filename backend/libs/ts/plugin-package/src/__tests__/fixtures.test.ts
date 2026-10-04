@@ -10,8 +10,8 @@
  * `KEY: "${KEY}"` (xero), an entry with no `type` inferred to stdio
  * (playwright), a `${VAR}` url plus the undocumented `auth` block
  * (salesforce, the one refusal), two sub-agents and no server (thermos), a
- * sub-agent with an unmappable model and a `readonly` field plus hooks that
- * reference `${CURSOR_PLUGIN_ROOT}` and must never be read (advisor), skill
+ * sub-agent with an unmappable model and a `readonly` field plus hooks on
+ * four events Stigmer does not run, each named (advisor), skill
  * frontmatter with vendor keys, `minClientVersions`, a `references/` file
  * inside a skill, and image assets that are listed and never opened.
  */
@@ -166,11 +166,14 @@ describe("salesforce: a variable in the url is refused", () => {
   });
 });
 
-describe("advisor: a sub-agent with an unmappable model, and hooks that are never read", () => {
+describe("advisor: a sub-agent with an unmappable model, and hooks on events Stigmer does not run", () => {
   const outcome = readFixture("advisor");
 
-  it("is accepted with the model and the readonly field warned", () => {
-    expect(kindsOf(outcome)).toEqual({ errors: [], warnings: ["sub-agent-field-ignored", "sub-agent-model-unknown"] });
+  it("is accepted with the model, the readonly field and the four hook events warned", () => {
+    expect(kindsOf(outcome)).toEqual({
+      errors: [],
+      warnings: ["hook-event-not-run", "hook-event-not-run", "hook-event-not-run", "hook-event-not-run", "sub-agent-field-ignored", "sub-agent-model-unknown"],
+    });
     expect(findingOf(outcome.warnings, "sub-agent-model-unknown")).toMatchObject({ subject: "advisor-subagent", detail: "grok-4.6[effort=xhigh]" });
     expect(findingOf(outcome.warnings, "sub-agent-field-ignored")).toMatchObject({ subject: "advisor-subagent", detail: "readonly" });
   });
@@ -185,13 +188,18 @@ describe("advisor: a sub-agent with an unmappable model, and hooks that are neve
     expect(skill?.files).toEqual(["skills/advisor/SKILL.md", "skills/advisor/references/briefing-template.md"]);
   });
 
-  it("records hooks as ignored without reading the ${CURSOR_PLUGIN_ROOT} inside them", () => {
+  it("reads the Cursor hooks file, names each event it does not run, and carries none", () => {
     const plugin = accepted(outcome);
+    expect(outcome.warnings.filter((f) => f.kind === "hook-event-not-run").map((f) => [f.path, f.subject])).toEqual([
+      ["hooks/hooks.json", "afterFileEdit"],
+      ["hooks/hooks.json", "afterAgentResponse"],
+      ["hooks/hooks.json", "subagentStop"],
+      ["hooks/hooks.json", "stop"],
+    ]);
+    expect(plugin.hooks).toBeUndefined();
     expect(plugin.ignored).toEqual([
       { kind: "assets", path: "assets/" },
-      { kind: "hooks", path: "hooks/" },
       { kind: "logo", path: ".cursor-plugin/plugin.json#logo" },
-      { kind: "hooks", path: ".cursor-plugin/plugin.json#hooks" },
     ]);
     expect(plugin.mcpServers).toEqual([]);
   });

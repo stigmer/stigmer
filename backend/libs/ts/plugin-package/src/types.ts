@@ -84,8 +84,56 @@ export interface PluginSubAgent {
   /** Plugin skill names this sub-agent asked for (Claude `skills:`), resolved to `skill_refs` by the installer. */
   readonly skillNames: readonly string[];
   readonly modelHint?: ModelHint;
+  /**
+   * Claude's "only these tools" list (`tools:`), entries as written. Absent
+   * means no list; an empty list is kept apart from absence so the installer
+   * can tell "no list" from a list it emptied.
+   */
+  readonly tools?: readonly string[];
+  /** Claude's "never these tools" list (`disallowedTools:`), entries as written. */
+  readonly disallowedTools?: readonly string[];
   /** The agent file, for messages that point at it. */
   readonly path: string;
+}
+
+/**
+ * The hook format a plugin's hooks are written in, which decides the JSON a
+ * hook reads and how its answer is parsed (`HookFormat`). Codex plugin hooks
+ * are written in Claude Code's format.
+ */
+export type HookFormat = "claude-code" | "cursor";
+
+/** One command a hook runs, in the shape `HookHandler` takes. */
+export interface PluginHookHandler {
+  /** As written; placeholders such as `${CLAUDE_PLUGIN_ROOT}` are kept verbatim. */
+  readonly command: string;
+  /** Claude's exec form; when non-empty the command runs without a shell. */
+  readonly args: readonly string[];
+  /** Seconds, rounded up; absent means the format's default. */
+  readonly timeoutSeconds?: number;
+  /** Claude's `if`, a permission rule such as `Bash(git push *)`. */
+  readonly condition?: string;
+  /** Cursor's `failClosed`. */
+  readonly failClosed: boolean;
+}
+
+/** One event, its matcher as written, and the handlers that run, in the shape `HookGroup` takes. */
+export interface PluginHookGroup {
+  /** Spelled as the format spells it (`PreToolUse`, `beforeShellExecution`). */
+  readonly event: string;
+  /** As written; empty or `*` matches every call. */
+  readonly matcher: string;
+  readonly handlers: readonly PluginHookHandler[];
+}
+
+/**
+ * The plugin's hooks that run on Stigmer, in the shape `HookConfig` takes.
+ * Only events and handlers Stigmer runs are here; everything else the
+ * plugin's hooks files carry is named in the read's warnings.
+ */
+export interface PluginHooks {
+  readonly format: HookFormat;
+  readonly groups: readonly PluginHookGroup[];
 }
 
 /**
@@ -185,5 +233,13 @@ export interface PluginPackage {
   readonly subAgents: readonly PluginSubAgent[];
   readonly variables: readonly PluginVariable[];
   readonly overlay: StigmerOverlay;
+  /** The hooks that run on Stigmer; absent when the plugin carries none that run. */
+  readonly hooks?: PluginHooks;
+  /**
+   * The sub-agent a Claude plugin's settings (`settings.json` or the
+   * manifest's `settings`) name as the session's main agent, by its name in
+   * `subAgents`; absent when none is named.
+   */
+  readonly mainAgent?: string;
   readonly ignored: readonly IgnoredComponent[];
 }

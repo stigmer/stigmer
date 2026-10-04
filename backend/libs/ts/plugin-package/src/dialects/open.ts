@@ -44,6 +44,7 @@ export function readOpenManifest(object: JsonObject, path: string, findings: Fin
     identity: readIdentity(object, path, findings),
     skillPaths: [],
     mcpConfigs: [],
+    hookSources: [],
     ignored: extensionComponents(object, path, findings),
   };
 }

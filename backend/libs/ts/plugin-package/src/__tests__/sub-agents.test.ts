@@ -109,3 +109,44 @@ describe("classifyModel", () => {
     expect(classifyModel("gpt-5").raw).toBe("gpt-5");
   });
 });
+
+describe("Claude's tool lists", () => {
+  const agent = (frontmatter: Readonly<Record<string, unknown>>) => accepted(read(claudePlugin({ agents: [{ file: "a", frontmatter }] }))).subAgents[0];
+
+  it("splits a comma string outside parentheses and trims each entry", () => {
+    expect(agent({ tools: " Read, Glob ,Grep, Agent(x:explore, x:scan), Bash(git push:*),," })?.tools).toEqual([
+      "Read",
+      "Glob",
+      "Grep",
+      "Agent(x:explore, x:scan)",
+      "Bash(git push:*)",
+    ]);
+  });
+
+  it("takes a YAML list as written", () => {
+    expect(agent({ tools: ["Read", " Grep ", ""], disallowedTools: ["Write"] })).toMatchObject({ tools: ["Read", "Grep"], disallowedTools: ["Write"] });
+  });
+
+  it("keeps an absent list apart from an empty one", () => {
+    const absent = agent({});
+    expect(absent && "tools" in absent).toBe(false);
+    expect(agent({ tools: "" })?.tools).toEqual([]);
+    expect(agent({ tools: null })?.tools).toBeUndefined();
+  });
+
+  it("refuses a list of another type", () => {
+    expect(kindsOf(read(claudePlugin({ agents: [{ file: "a", frontmatter: { disallowedTools: { Bash: true } } }] })))).toEqual({
+      errors: ["sub-agent-tool-list-invalid"],
+      warnings: [],
+    });
+  });
+
+  it("says Claude Code ignores hooks, mcpServers, permissionMode and initialPrompt on a plugin's agents too", () => {
+    const outcome = read(claudePlugin({ agents: [{ file: "a", frontmatter: { hooks: {}, color: "blue" } }] }));
+    const messages = outcome.warnings.map((f) => f.message);
+    expect(messages).toEqual([
+      "sub-agent 'a' in 'agents/a.md' has a field 'hooks' Stigmer does not read, ignored; Claude Code ignores it on a plugin's agents too",
+      "sub-agent 'a' in 'agents/a.md' has a field 'color' Stigmer does not read, ignored",
+    ]);
+  });
+});

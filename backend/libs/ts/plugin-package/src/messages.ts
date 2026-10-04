@@ -114,6 +114,18 @@ const ERROR_MESSAGES: Record<PluginErrorKind, Sentence> = {
   "sub-agent-instructions-short": (c) =>
     `sub-agent ${q(c.subject)}${at(c.path)} has instructions under ${c.detail ?? ""} characters; the body of the file is the sub-agent's prompt`,
   "sub-agent-name-duplicate": (c) => `sub-agent name ${q(c.subject)} appears more than once (again${at(c.path)})`,
+  "sub-agent-tool-list-invalid": (c) =>
+    `sub-agent ${q(c.subject)}${at(c.path)} has a ${q(c.detail)} field that is neither a comma-separated string nor a list of strings`,
+
+  "hooks-unreadable": (c) => `hooks file ${q(c.path)} is not valid JSON: ${c.detail ?? "parse error"}`,
+  "hooks-shape": (c) => `hooks ${q(c.path)} are not in a shape Stigmer reads: ${c.detail ?? "unexpected shape"}`,
+  "hook-command-missing": (c) => `a hook${at(c.path)} on ${q(c.subject)} has no 'command'; a command hook names the command it runs`,
+  "hook-matcher-invalid": (c) =>
+    `a hook${at(c.path)} on ${q(c.subject)} has a matcher ${q(c.detail)} that is neither '*', a list of names, nor a valid regular expression`,
+  "hook-condition-invalid": (c) =>
+    `a hook${at(c.path)} on ${q(c.subject)} has an 'if' ${q(c.detail)} that is not a permission rule such as 'Bash' or 'Bash(git push *)'`,
+
+  "settings-unreadable": (c) => `plugin settings ${q(c.path)} are not valid JSON: ${c.detail ?? "parse error"}`,
 
   "variable-name-invalid": (c) =>
     `variable name ${q(c.subject)}${at(c.path)} is invalid: an environment variable name is letters, digits and underscores, not starting with a digit`,
@@ -142,7 +154,7 @@ const WARNING_MESSAGES: Record<PluginWarningKind, Sentence> = {
     `MCP server ${q(c.subject)}${at(c.path)} has an 'auth' block Stigmer does not read; OAuth for a server is declared in 'ai.stigmer/mcp-servers/${c.subject ?? "<server>"}.yaml'`,
   "variable-inferred": (c) =>
     `variable ${q(c.subject)} is referenced by MCP server ${q(c.detail)} but not declared; it is declared as a required secret`,
-  "variable-unreferenced": (c) => `variable ${q(c.subject)}${at(c.path)} is declared but no MCP server references it`,
+  "variable-unreferenced": (c) => `variable ${q(c.subject)}${at(c.path)} is declared but no MCP server or hook references it`,
   "variable-default-dropped": (c) =>
     `variable ${q(c.subject)}${at(c.path)} has a default value, which Stigmer does not carry; the user supplies the value`,
   "variable-type-narrowed": (c) =>
@@ -155,8 +167,25 @@ const WARNING_MESSAGES: Record<PluginWarningKind, Sentence> = {
     `sub-agent ${q(c.subject)}${at(c.path)} asks for skill ${q(c.detail)}, which the plugin does not ship`,
   "sub-agent-model-unknown": (c) =>
     `sub-agent ${q(c.subject)}${at(c.path)} names model ${q(c.detail)}, which Stigmer cannot map; the sub-agent runs on the session's model`,
-  "sub-agent-field-ignored": (c) => `sub-agent ${q(c.subject)}${at(c.path)} has a field ${q(c.detail)} Stigmer does not read, ignored`,
+  "sub-agent-field-ignored": (c) =>
+    `sub-agent ${q(c.subject)}${at(c.path)} has a field ${q(c.detail)} Stigmer does not read, ignored${
+      PLUGIN_AGENT_FIELDS_CLAUDE_IGNORES.has(c.detail ?? "") ? "; Claude Code ignores it on a plugin's agents too" : ""
+    }`,
+  "hook-event-not-run": (c) => `hooks${at(c.path)} on ${q(c.subject)} are not run on Stigmer, which runs hooks on tool calls only`,
+  "hook-handler-not-run": (c) => `a hook${at(c.path)} on ${q(c.subject)} is not run on Stigmer: ${c.detail ?? "unsupported handler"}`,
+  "hook-field-ignored": (c) =>
+    `hooks${at(c.path)}${c.subject === undefined ? "" : ` on ${q(c.subject)}`} have a field ${q(c.detail)} Stigmer does not read, ignored`,
+  "hooks-format-not-run": (c) =>
+    `hooks${at(c.path)} are in ${c.detail ?? "another"} format and are not run, because the plugin's Claude Code hooks are`,
+  "skill-hooks-not-run": (c) =>
+    `skill ${q(c.subject)}${at(c.path)} declares hooks in its frontmatter, which Stigmer does not run`,
+  "settings-agent-unknown": (c) =>
+    `plugin settings${at(c.path)} name ${q(c.detail)} as the main agent, which is not one of the plugin's agents, ignored`,
+  "settings-key-ignored": (c) => `plugin settings${at(c.path)} have a key ${q(c.subject)} Stigmer does not apply, ignored`,
 };
+
+/** Sub-agent fields Claude Code itself ignores when the agent comes from a plugin (its sub-agents reference). */
+const PLUGIN_AGENT_FIELDS_CLAUDE_IGNORES: ReadonlySet<string> = new Set(["hooks", "mcpServers", "permissionMode", "initialPrompt"]);
 
 export function errorMessage(kind: PluginErrorKind, ctx: FindingContext): string {
   return ERROR_MESSAGES[kind](ctx);
