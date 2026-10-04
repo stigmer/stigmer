@@ -13,7 +13,10 @@
  *     driver's queue from a full read, so a turn the cheap read lags
  *     behind keeps its pod;
  *   - a Sandbox whose session has no executions, and one of ours that names
- *     no session, are suspended and logged as errors, never deleted;
+ *     no session, are suspended and logged as errors, never deleted; one
+ *     whose session label does not match its name is left alone and logged;
+ *   - a Sandbox another replica made, never ensured here, keeps its pod for
+ *     the window from its creation;
  *   - a Sandbox the pass fails on is skipped and logged, and the pass goes
  *     on; a stopping sweep ends a pass between Sandboxes;
  *   - started, the sweep runs a pass at once, logs a pass that fails, starts
@@ -326,6 +329,56 @@ describe("the idle sweep", () => {
       message:
         "agent-sandbox sandbox names no session; suspended it (its workspace is kept)",
       fields: { sandbox: sandboxBaseName("session", "ses_x") },
+    });
+  });
+
+  it("starts the idle clock at the Sandbox's creation, for one another replica made", async () => {
+    const h = harness();
+    h.cluster.seed(
+      buildAgentSandbox("session", "ses_new", env("session:ses_new"), config),
+      "Running",
+    );
+    h.advance(MIN);
+    await h.pass();
+    expect(modeOf(h.cluster, "ses_new")).toBe("Running");
+    h.advance(4.5 * MIN);
+    await h.pass();
+    expect(modeOf(h.cluster, "ses_new")).toBe("Suspended");
+  });
+
+  it("leaves alone, and logs, a Sandbox whose session label does not match its name", async () => {
+    const h = harness();
+    const built = buildAgentSandbox(
+      "session",
+      "ses_busy",
+      env("session:ses_busy"),
+      config,
+    );
+    h.cluster.seed(
+      {
+        ...built,
+        metadata: {
+          ...built.metadata,
+          labels: {
+            ...built.metadata.labels,
+            "stigmer.ai/sandbox-id": "ses_idle",
+          },
+        },
+      },
+      "Running",
+    );
+    h.advance(60 * MIN);
+    await h.pass();
+    expect(modeOf(h.cluster, "ses_busy")).toBe("Running");
+    expect(h.sessions.kinds).toEqual([]);
+    expect(h.logger.entries).toContainEqual({
+      level: "warn",
+      message:
+        "agent-sandbox sandbox's session label does not match its name; left it alone",
+      fields: {
+        sandbox: sandboxBaseName("session", "ses_busy"),
+        sessionId: "ses_idle",
+      },
     });
   });
 

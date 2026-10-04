@@ -17,10 +17,12 @@
  * sweep needs no map from names back to sessions. A Sandbox whose session
  * has no executions (the session is gone, and its delete did not remove
  * the Sandbox) reads as idle since its creation and is suspended like any
- * other, and so is one of ours that names no session; both are logged,
- * and neither is ever deleted: deleting a workspace is the session
- * delete's act, and a wrong read must cost a sleeping pod, not a user's
- * files.
+ * other, and so is one of ours that names no session; both are logged.
+ * One whose label names another session than its own name says is left
+ * alone and logged, since its label cannot be trusted to say whose
+ * idleness puts it to sleep. The sweep never deletes anything: deleting a
+ * workspace is the session delete's act, and a wrong read must cost a
+ * sleeping pod, not a user's files.
  *
  * Each suspend is decided twice: once from the pass's reads, then again
  * inside the driver's per-sandbox queue right before the patch, from
@@ -41,6 +43,7 @@ import {
   SANDBOX_MANAGED_BY_LABEL,
   SANDBOX_MANAGED_BY_VALUE,
   SANDBOX_SCOPE_LABEL,
+  sandboxBaseName,
 } from "../naming.js";
 import type {
   SandboxBackgroundHandle,
@@ -117,6 +120,16 @@ export async function runAgentSandboxSweepPass(
       const sessionId = sandbox.labels[SANDBOX_ID_LABEL] ?? "";
       if (sessionId === "") {
         await suspendUnnamed(sandbox, options);
+        continue;
+      }
+      // A label that names another session than the Sandbox's own name
+      // (edited or copied by hand) could put a busy session's pod to sleep
+      // on another session's idleness: left alone, and said.
+      if (sandbox.name !== sandboxBaseName("session", sessionId)) {
+        logger.warn(
+          "agent-sandbox sandbox's session label does not match its name; left it alone",
+          { sandbox: sandbox.name, sessionId },
+        );
         continue;
       }
       const planned = decide(

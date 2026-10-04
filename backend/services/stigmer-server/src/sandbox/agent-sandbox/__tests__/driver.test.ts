@@ -185,7 +185,7 @@ describe("the ensure", () => {
     await expect(
       driverOver(cluster).ensureSessionSandbox("ses_1", env),
     ).rejects.toThrow(
-      `agent-sandbox Sandbox '${name}' is still being deleted after 660s`,
+      `agent-sandbox Sandbox '${name}' is still being deleted after 300s`,
     );
   });
 

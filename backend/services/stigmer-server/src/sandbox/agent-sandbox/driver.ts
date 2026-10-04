@@ -28,9 +28,9 @@
  *     longer than that after its session's last ensure. The idle sweep
  *     (sweep.ts) suspends a session's sandbox long before that, so only a
  *     session busy for longer, with no new turn to ensure it, reaches it.
- *   - being deleted: wait, bounded by the pod's grace period, until it is
- *     gone (with its pod and claim: gateway.ts deletes in the foreground),
- *     then create it.
+ *   - being deleted: wait, bounded by the turn's ScheduleToStart window,
+ *     until it is gone (with its pod and claim: gateway.ts deletes in the
+ *     foreground), then create it.
  *
  * No readiness wait after any arm: a sandbox that never polls its queue
  * surfaces as the activity's ScheduleToStartTimeout, and the ensure step's
@@ -61,12 +61,15 @@ import type { AgentSandboxView } from "./resource.js";
 
 /**
  * How often, and how many times, an ensure re-reads a Sandbox being
- * deleted: a foreground delete lasts as long as its pod takes to stop, up
- * to the pod's 600-second grace period (manifest.ts), so the wait covers
- * that and a minute more.
+ * deleted. A foreground delete lasts as long as its pod takes to stop (up
+ * to its 600-second grace period, manifest.ts), but the turn that asked for
+ * the ensure fails at its first activity's 5-minute ScheduleToStart window
+ * (temporal/agentexecution/workflows/invoke-agent-execution.ts), so waiting
+ * longer could not save it: the wait ends there, and the next message wakes
+ * the sandbox.
  */
 const DELETION_POLL_MS = 2_000;
-const DELETION_POLLS = 330;
+const DELETION_POLLS = 150;
 
 /** The path an ensure took, logged so a wake is told apart from a create. */
 type EnsureArm = "created" | "suspended" | "running";
