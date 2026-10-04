@@ -26,14 +26,19 @@ interface ServerFacts {
 }
 
 /** The four fields `checkToolScope` reads, as a turn input. */
-function input(lists: ToolLists, subAgentLists: ToolLists[] = [], servers: readonly ServerFacts[] = []): TurnInput {
+function input(
+  lists: ToolLists,
+  subAgentLists: ToolLists[] = [],
+  servers: readonly ServerFacts[] = [],
+  platformServerSlugs: readonly string[] = [],
+): TurnInput {
   const subAgents = subAgentLists.map((l, i) =>
     create(SubAgentSchema, { name: `sub-${i}`, tools: [...l.tools], disallowedTools: [...l.disallowedTools] }),
   );
   return {
     executionId: "aex-1",
     blueprint: { subAgents },
-    mcp: { toolScope: ToolScope.of('Agent "a"', lists), servers },
+    mcp: { toolScope: ToolScope.of('Agent "a"', lists), servers, platformServerSlugs: new Set(platformServerSlugs) },
   } as unknown as TurnInput;
 }
 
@@ -76,6 +81,18 @@ describe("checkToolScope", () => {
 
     it("any tool of a server never discovered resolves: absence cannot be proven", () => {
       expect(check(["mcp__fresh__anything"])).not.toThrow();
+    });
+
+    it("the platform's own attachments count for nothing, as on the native engine", () => {
+      const platformOnly = (tools: string[]) => () =>
+        checkToolScope(input({ tools, disallowedTools: [] }, [], [{ slug: "stigmer-memory", discoveredToolNames: ["remember"] }], ["stigmer-memory"]), {
+          agentMode: "local",
+        });
+      expect(platformOnly(["mcp__*"])).toThrow(ToolListResolutionError);
+      expect(platformOnly(["mcp__stigmer-memory__remember"])).toThrow(ToolListResolutionError);
+      // A user server beside it still answers mcp__*.
+      const withUserServer = input({ tools: ["mcp__*"], disallowedTools: [] }, [], [...servers, { slug: "stigmer-memory", discoveredToolNames: null }], ["stigmer-memory"]);
+      expect(() => checkToolScope(withUserServer, { agentMode: "local" })).not.toThrow();
     });
 
     it("a server the turn does not have names nothing", () => {

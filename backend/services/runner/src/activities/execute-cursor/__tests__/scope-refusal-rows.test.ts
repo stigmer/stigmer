@@ -164,6 +164,24 @@ d("tool-list refusals on the timeline", () => {
     expect(fold.row("t-explore").error).toBe("");
   });
 
+  it("a Task refused at preToolUse by its subagent_type settles its own task row, never an allowed type's", async () => {
+    const h = setupCursorHookHarness({ lists: { tools: ["Read", "Agent(explore)"], disallowedTools: [] } });
+    expect(h.decide(hookBuiltin("Task", { subagent_type: "generalPurpose", prompt: "Do it." })).permission).toBe("deny");
+    const explore = { subagentType: "explore", description: "Look", prompt: "Look around." };
+    const general = { subagentType: "generalPurpose", description: "Do", prompt: "Do it." };
+    const fold = new CursorFold().events(
+      ev.toolCall("t-explore", "task", "running", explore),
+      ev.toolCall("t-general", "task", "running", general),
+      ev.toolCall("t-general", "task", "error", general, HOOK_BLOCK),
+    );
+    const { messages, subAgentExecutions } = fold.status;
+    const ledger = await readDenialLedger(h.hitlDir);
+    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(1);
+    expect(fold.row("t-general").error).toContain("Agent(generalPurpose) is not available to this agent");
+    expect(fold.row("t-explore").status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    expect(detectUnattributedHookBlocks(messages, 0, ledger, h.root)).toEqual([]);
+  });
+
   it("a refused Read settles only the read it names, matched across absolute and relative spellings; an allowed .stigmer/ read in flight stays", async () => {
     const h = setupCursorHookHarness({ lists: { tools: ["Grep"], disallowedTools: [] } });
     expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, "src/main.ts") })).permission).toBe("deny");

@@ -213,13 +213,22 @@ export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentM
       `${scope.owner} has tool lists, which a cloud Cursor agent cannot enforce. Run the session locally or on the native engine.`,
     );
   }
-  checkToolListResolution(scope, cursorToolInventory(input.mcp.servers), (line) =>
+  checkToolListResolution(scope, cursorToolInventory(input.mcp.servers, input.mcp.platformServerSlugs), (line) =>
     console.log(`ExecuteCursor tool lists: execution=${input.executionId}: ${line}`),
   );
 }
 
-/** What a Cursor turn has, for the zero-resolution check: every Claude tool the SDK's table covers, and the resolved servers. */
-function cursorToolInventory(servers: readonly ResolvedMcpServer[]): TurnToolInventory {
+/**
+ * What a Cursor turn has, for the zero-resolution check: every Claude tool the
+ * SDK's table covers, and the resolved servers but the platform's own
+ * attachments, which no list governs and so no entry can name, exactly as the
+ * native engine's `turnToolInventory` counts them.
+ */
+function cursorToolInventory(
+  resolved: readonly ResolvedMcpServer[],
+  platformServerSlugs: ReadonlySet<string>,
+): TurnToolInventory {
+  const servers = resolved.filter((s) => !platformServerSlugs.has(s.slug));
   return {
     claudeTools: claudeToolsOf(CURSOR_SDK_TOOL_COVERS.keys(), CURSOR_SDK_TOOL_COVERS),
     anyMcp: servers.length > 0,

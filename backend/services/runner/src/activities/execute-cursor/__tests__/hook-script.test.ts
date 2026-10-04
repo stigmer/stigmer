@@ -442,6 +442,19 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(explore.ledger().map((e) => e.kind)).toEqual(["disabled"]);
     });
 
+    it("preToolUse Task: a subagent_type outside Agent(type, …) is refused at the call, recorded with its type", () => {
+      const h = setup({ lists: { tools: ["Read", "Agent(explore)"], disallowedTools: [] } });
+      const res = h.decide(hookBuiltin("Task", { subagent_type: "generalPurpose", description: "Do", prompt: "Do it." }));
+      expect(res.permission).toBe("deny");
+      expect(res.raw).toContain("Agent(generalPurpose) is not available to this agent");
+      expect(h.decide(hookBuiltin("Task", { subagent_type: "Explore", prompt: "Look." })).permission).toBe("allow");
+      // A Task naming no type keeps the subagentStart path.
+      expect(h.decide(hookBuiltin("Task", { prompt: "Something." })).permission).toBe("allow");
+      const ledger = h.ledger();
+      expect(ledger.map((e) => e.kind)).toEqual(["disabled"]);
+      expect(ledger[0].token).toBe(scopeRefusalToken(AGENT_SCOPE_KEY, "generalpurpose"));
+    });
+
     it("subagentStart: allowed with no lists, and refused when the lists exclude Agent", () => {
       expect(setup({}).decide(hookSubagentStart("explore")).permission).toBe("allow");
       const h = setup({ lists: { tools: [], disallowedTools: ["Agent"] } });

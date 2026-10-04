@@ -118,6 +118,7 @@ import { normalizeSubAgentType } from "../../shared/tool-lists.js";
 import {
   CURSOR_HOOK_MCP_PREFIX,
   ENGINE_EXTRA_SCOPE_KEY,
+  AGENT_SCOPE_KEY,
   READ_SCOPE_KEY,
   SCOPE_KEY_PREFIX,
   TOOL_NAME_PLACEHOLDER,
@@ -257,9 +258,12 @@ function buildContentDigestScript(): string {
  * An excluded `Read` is let through only when the file's REAL path lies
  * inside `readRoot` (the platform dir's real path, "" on a turn with no
  * platform link), the path resolved against the payload's `cwd`, else the
- * baked workspace root (`process.argv[2]`); a missing file is refused. A `subagentStart` type is normalized
- * by the source of `normalizeSubAgentType` itself, embedded, so the hook
- * and the resolver share one rule. Expects `t`, `name`, `a`, `s`, `b`, `ev`
+ * baked workspace root (`process.argv[2]`); a missing file is refused. A
+ * `Task` call naming its `subagent_type` is held to `Agent(type, …)` here as
+ * well as at `subagentStart`, refused under the same discriminator, so the
+ * type list binds Cursor's built-in sub-agent types at the call itself. A
+ * sub-agent type is normalized by the source of `normalizeSubAgentType`
+ * itself, embedded, so the hook and the resolver share one rule. Expects `t`, `name`, `a`, `s`, `b`, `ev`
  * and `srv` in scope.
  */
 function buildScopeEvalScript(): string {
@@ -268,6 +272,7 @@ function buildScopeEvalScript(): string {
   const keyPrefix = JSON.stringify(SCOPE_KEY_PREFIX);
   const extraKey = JSON.stringify(ENGINE_EXTRA_SCOPE_KEY);
   const readKey = JSON.stringify(READ_SCOPE_KEY);
+  const agentKey = JSON.stringify(AGENT_SCOPE_KEY);
   return [
     `let sv="",stk="",smsg="",disc="";`,
     `try{`,
@@ -276,10 +281,12 @@ function buildScopeEvalScript(): string {
     `if(sc&&sc.restricted===true){`,
     `const own=(o,k)=>o!==null&&typeof o==="object"&&Object.prototype.hasOwnProperty.call(o,k);`,
     `let ok=true,label=name,key=name;`,
+    `const nt=(${normalizeSubAgentType.toString()});`,
+    `const typeOk=(lt)=>own(sc.subAgentTypes.types,lt)?sc.subAgentTypes.types[lt]===true:sc.subAgentTypes.otherTypes===true;`,
     `if(ev==="subagentStart"){`,
     `const ty=typeof t.subagent_type==="string"?t.subagent_type:"";`,
-    `const lt=(${normalizeSubAgentType.toString()})(ty);`,
-    `ok=own(sc.subAgentTypes.types,lt)?sc.subAgentTypes.types[lt]===true:sc.subAgentTypes.otherTypes===true;`,
+    `const lt=nt(ty);`,
+    `ok=typeOk(lt);`,
     `label="Agent("+ty+")";`,
     `disc=lt;`,
     `key=own(sc.builtins,"Task")?sc.builtins.Task.key:"Task";`,
@@ -292,6 +299,10 @@ function buildScopeEvalScript(): string {
     `ok=e?e.allowed===true:sc.otherBuiltins===true;`,
     `key=e?e.key:${extraKey};`,
     `if(key===${readKey})disc=s;`,
+    `if(ok&&key===${agentKey}&&typeof a.subagent_type==="string"&&a.subagent_type!==""){`,
+    `const lt=nt(a.subagent_type);`,
+    `if(!typeOk(lt)){ok=false;label="Agent("+a.subagent_type+")";disc=lt;}`,
+    `}`,
     `if(!ok&&key===${readKey}&&s&&typeof sc.readRoot==="string"&&sc.readRoot!==""){`,
     `const pth=require("path");`,
     `const base=typeof t.cwd==="string"&&t.cwd?t.cwd:(process.argv[2]||"/");`,
