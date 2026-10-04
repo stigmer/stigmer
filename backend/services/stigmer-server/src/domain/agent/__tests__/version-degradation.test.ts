@@ -9,7 +9,10 @@
  *   - a tag failure clears the live metadata.version.tag, so the agent never
  *     advertises a tag the history cannot resolve;
  *   - on create (no write follows the archive) either revert is re-persisted;
- *     on update the chain's own Persist writes it and the step writes nothing.
+ *     on update the chain's own Persist writes it and the step writes nothing;
+ *   - a write naming no tag onto an already-archived version shows the tag
+ *     that version holds and writes none (a tag moved since the write loaded
+ *     the row stays moved); a failed read of it leaves the head untagged.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -97,5 +100,56 @@ describe("the agent's SaveVersionAudit — safe degradation", () => {
     expect(ctx.newState.metadata?.version?.tag).toBe("");
     expect(ctx.newState.status?.versionHash).toBe(HASH);
     expect(persisted).toEqual([]);
+  });
+});
+
+describe("the agent's SaveVersionAudit — a version already archived, no tag named", () => {
+  function archivedStore(read: () => Promise<{ tag: string }>): { store: Store; tagWrites: () => number } {
+    let tagWrites = 0;
+    const store = {
+      async getAuditByHash(): Promise<Agent> {
+        return create(AgentSchema, {});
+      },
+      async getAuditRecordByHash(): Promise<{ tag: string }> {
+        return read();
+      },
+      async setAuditTag(): Promise<void> {
+        tagWrites += 1;
+      },
+    } as unknown as Store;
+    return { store, tagWrites: () => tagWrites };
+  }
+
+  function untaggedWrite(): RequestContext<typeof AgentSchema> {
+    return new RequestContext(
+      AgentSchema,
+      create(AgentSchema, {
+        metadata: { id: "agt_1", org: "acme", version: { id: HASH, tag: "" } },
+        status: { versionHash: HASH },
+      }),
+      testCallerIdentity(),
+      ApiResourceKind.agent,
+    );
+  }
+
+  it("shows the tag the version holds and writes none", async () => {
+    const { store, tagWrites } = archivedStore(async () => ({ tag: "stable" }));
+    const ctx = untaggedWrite();
+
+    await newSaveAgentVersionStep(store, silentLogger, false).execute(ctx);
+
+    expect(ctx.newState.metadata?.version?.tag).toBe("stable");
+    expect(tagWrites()).toBe(0);
+  });
+
+  it("leaves the head untagged when the tag cannot be read", async () => {
+    const { store } = archivedStore(async () => {
+      throw new Error("store is down");
+    });
+    const ctx = untaggedWrite();
+
+    await newSaveAgentVersionStep(store, silentLogger, false).execute(ctx);
+
+    expect(ctx.newState.metadata?.version?.tag).toBe("");
   });
 });

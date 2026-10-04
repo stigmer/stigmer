@@ -3,7 +3,8 @@
  * versions the agent has, read as the history's total from a one-entry
  * page; it lists them newest first through the shared
  * timeline, the current one marked; selecting an older version shows how
- * its instructions differ from the current version's; and an agent with no
+ * its instructions differ from the current version's, and nothing when the
+ * loaded history does not hold the current one; and an agent with no
  * recorded version yet says its next change records the first.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -73,6 +74,17 @@ describe("AgentDetailView — the Versions tab", () => {
     expect(screen.getByText("Flag missing tests.")).toBeTruthy();
     // The line both versions share is context, not removed and re-added.
     expect(screen.getAllByText("Review pull requests.")).toHaveLength(1);
+  });
+
+  it("shows no comparison when the loaded history does not hold the current version", async () => {
+    renderView([
+      create(AgentVersionEntrySchema, { versionHash: OLDER, message: "first cut", specSnapshot: { instructions: "Old." } }),
+    ]);
+
+    fireEvent.click(await screen.findByRole("tab", { name: /Versions/ }));
+    fireEvent.click(await screen.findByText("first cut"));
+
+    expect(screen.queryByText(/Comparing/)).toBeNull();
   });
 
   it("says an agent with no recorded version records its first on its next change", async () => {

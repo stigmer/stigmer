@@ -29,12 +29,14 @@
  * whole resource (workflows, agents), whose update replaces
  * metadata.version with whatever the client sent. On a changed hash the
  * version id becomes the new hash, previous_version_id the old one, and
- * message and tag are the client's. On an unchanged hash id,
- * previous_version_id and message stay the stored head's, and the tag is
- * the client's when it names one, else the stored head's. An unchanged
- * apply therefore archives nothing (the archive step repoints) yet still
- * moves a newly named tag, so the head and the audit column never disagree
- * about where a tag is.
+ * message are the client's. On an unchanged hash id, previous_version_id
+ * and message stay the stored head's. The tag is the client's in both
+ * cases. A write that names a tag moves it there (the archive step's
+ * single-holder assignment, even on an unchanged apply); a write that names
+ * none onto a version already archived shows the tag that version holds in
+ * the audit column, read and never written, so the head and the history
+ * never disagree about where a tag is and an apply never undoes a tag move
+ * made since it loaded the row.
  *
  * Proven by the skill domain's __tests__/push-degradation.test.ts (the
  * failing-store arms), the workflow and agent domains' version tests, and
@@ -105,9 +107,6 @@ export function newPopulateVersionStep<Desc extends DescMessage>(
         version.id = stored?.id || newHash;
         version.previousVersionId = stored?.previousVersionId ?? "";
         version.message = stored?.message ?? "";
-        if (version.tag === "") {
-          version.tag = stored?.tag ?? "";
-        }
       }
       ctx.setNewState(head);
     },
@@ -137,6 +136,12 @@ export interface ArchiveCurrentVersionBinding<Desc extends DescMessage> {
   liveTagOf(resource: MessageShape<Desc>): string;
   /** Degradation arm: the live tag must agree with the audit column. */
   clearLiveTag(resource: MessageShape<Desc>): void;
+  /**
+   * Shows on the head the tag its already-archived version holds, for a
+   * write that names none (the module doc). Absent for a kind whose tag is
+   * content (the plugin's manifest version).
+   */
+  showArchivedTag?(resource: MessageShape<Desc>, tag: string): void;
 }
 
 /**
@@ -280,6 +285,31 @@ export function newArchiveCurrentVersionStep<
           // resolve.
           binding.clearLiveTag(resource);
           await flushRevert("clearing its tag");
+        }
+      }
+
+      // A write naming no tag onto a version already archived shows the tag
+      // that version holds; it is read, never written, so a tag moved since
+      // this write loaded the row stays where it was moved. A failed read
+      // leaves the head untagged, the state the audit column cannot
+      // contradict.
+      if (alreadyArchived && tag === "" && binding.showArchivedTag !== undefined) {
+        try {
+          const record = await store.getAuditRecordByHash(
+            ctx.apiResourceKind,
+            resourceId,
+            versionHash,
+          );
+          binding.showArchivedTag(resource, record.tag);
+        } catch (error) {
+          logger.warn(
+            `Could not read the tag of the archived ${binding.noun} version — leaving the head untagged`,
+            {
+              [idField]: resourceId,
+              versionHash,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          );
         }
       }
 

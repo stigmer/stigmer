@@ -39,9 +39,11 @@ export function AgentVersionsTab({ agent, className }: AgentVersionsTabProps) {
     agent.metadata?.org ?? "",
     agent.metadata?.slug ?? "",
   );
-  const currentHash =
-    versions.find((v) => v.isCurrent)?.id ?? versions[0]?.id ?? "";
-  const showDiff = selectedHash !== null && selectedHash !== currentHash;
+  // The current version, when the loaded history holds it; with none
+  // loaded there is nothing to compare against, so no diff is shown.
+  const currentHash = versions.find((v) => v.isCurrent)?.id ?? "";
+  const showDiff =
+    selectedHash !== null && currentHash !== "" && selectedHash !== currentHash;
 
   const hunks = useMemo(() => {
     if (!showDiff) return [];

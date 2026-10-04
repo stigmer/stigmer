@@ -22,8 +22,9 @@
 // - a schedule whose agent reference names a version is refused: a schedule
 //   runs the agent's current version;
 // - a version whose tag moved reports the tag it holds now, for an agent, a
-//   workflow and a skill alike, and an unchanged re-apply naming a new tag
-//   moves it (agents and workflows).
+//   workflow and a skill alike; an unchanged re-apply naming a new tag moves
+//   it to the head, and a repoint naming no tag shows the tag the version
+//   holds (agents and workflows).
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -206,6 +207,20 @@ describe("Agent versions — tags", () => {
   it("[rpc:AgentCommandController.apply] an unchanged apply naming a new tag moves it, recording no version", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("agent");
+    const v1 = await applyAgent(org, name, "v1");
+
+    const retagged = await applyAgent(org, name, "v1", { tag: "prod" });
+
+    expect(retagged.status?.versionHash).toBe(v1.status?.versionHash);
+    expect(retagged.metadata?.version?.tag).toBe("prod");
+    const history = await clients.agentQuery.listVersions({ org, slug: v1.metadata!.slug });
+    expect(history.totalCount, "an unchanged apply records no version").toBe(1);
+    expect(history.versions.map((entry) => entry.tag)).toEqual(["prod"]);
+  });
+
+  it("[rpc:AgentCommandController.apply] a repoint (A→B→A) naming the tag moves it back; one naming none shows the tag the version holds", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("agent");
     const v1 = await applyAgent(org, name, "v1", { tag: "stable" });
     await applyAgent(org, name, "v2", { tag: "stable" });
 
@@ -217,6 +232,10 @@ describe("Agent versions — tags", () => {
     expect(history.versions.filter((entry) => entry.tag === "stable").map((entry) => entry.versionHash)).toEqual([
       v1.status?.versionHash,
     ]);
+
+    await applyAgent(org, name, "v2");
+    const untagged = await applyAgent(org, name, "v1");
+    expect(untagged.metadata?.version?.tag, "head and history agree on the tag").toBe("stable");
   });
 });
 
@@ -233,7 +252,22 @@ describe("Agent versions — run surfaces", () => {
 });
 
 describe("Version tags after a move, on every versioned kind", () => {
-  it("[rpc:WorkflowCommandController.apply] [rpc:WorkflowQueryController.getByReference] a workflow version whose tag moved reports the tag it holds now; an unchanged re-apply naming it moves it back", async () => {
+  it("[rpc:WorkflowCommandController.apply] a workflow's unchanged re-apply naming a new tag moves it to the head, recording no version", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("wf");
+    const v1 = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "v1" }));
+    fixtures.defer(() => clients.workflowCommand.delete({ value: v1.metadata!.id }));
+
+    const retagged = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "v1", tag: "prod" }));
+
+    expect(retagged.status?.versionHash).toBe(v1.status?.versionHash);
+    expect(retagged.metadata?.version?.tag).toBe("prod");
+    const history = await clients.workflowQuery.listVersions({ org, slug: v1.metadata!.slug });
+    expect(history.totalCount).toBe(1);
+    expect(history.versions.map((entry) => entry.tag), "the head and the history agree").toEqual(["prod"]);
+  });
+
+  it("[rpc:WorkflowCommandController.apply] [rpc:WorkflowQueryController.getByReference] a workflow version whose tag moved reports the tag it holds now; a repoint naming the tag moves it back", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
     const v1 = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "v1", tag: "stable" }));

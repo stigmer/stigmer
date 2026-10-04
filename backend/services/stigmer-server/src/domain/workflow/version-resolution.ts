@@ -210,6 +210,7 @@ export function newSaveVersionAuditStep(
           wf.metadata.version.tag = "";
         }
       },
+      showArchivedTag: overlayTag,
     },
   );
 }

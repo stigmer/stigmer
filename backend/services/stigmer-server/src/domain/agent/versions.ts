@@ -166,6 +166,7 @@ export function newSaveAgentVersionStep(
         agent.metadata.version.tag = "";
       }
     },
+    showArchivedTag: overlayTag,
   });
 }
 

@@ -242,6 +242,23 @@ describe("workflow version machinery (the #341 audit-row semantics)", () => {
     expect(kept.metadata?.version?.id).toBe(v1Hash);
   });
 
+  it("a repoint naming no tag shows the tag the version holds, and head and history agree", async () => {
+    const name = `Repoint ${++counter}`;
+    const a = await command.apply(workflowInput({ name, variables: { a: "1" }, tag: "stable" }));
+    await command.apply(workflowInput({ name, variables: { a: "2" } }));
+
+    const back = await command.apply(workflowInput({ name, variables: { a: "1" } }));
+
+    expect(back.status?.versionHash).toBe(a.status?.versionHash);
+    expect(back.metadata?.version?.tag).toBe("stable");
+    const head = await query.getByReference({ org: ORG, slug: a.metadata!.slug });
+    expect(head.metadata?.version?.tag).toBe("stable");
+    const history = await query.listVersions({ org: ORG, slug: a.metadata!.slug });
+    expect(
+      history.versions.filter((entry) => entry.tag === "stable").map((entry) => entry.versionHash),
+    ).toEqual([a.status?.versionHash]);
+  });
+
   it("a fetched archived version reports the tag it holds now, not the one it was applied with", async () => {
     const name = `Moved ${++counter}`;
     const v1 = await command.apply(
