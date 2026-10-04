@@ -33,10 +33,12 @@
  * not an interrupt, which nobody asked to diagnose. It tears down when the
  * test fails and on SIGINT or SIGTERM (a Ctrl-C on a laptop) too, an
  * interrupted `kind create` included, whose leftovers it deletes by the
- * cluster's name (`--keep` leaves the cluster for a reader, and prints how to
- * remove it). It never removes a cluster it did not make: it refuses to start
- * when a cluster of that name already exists, and a create that fails because
- * another run took the name in the meantime leaves that cluster alone.
+ * cluster's name (`--keep` leaves a cluster that came up for a reader, and
+ * prints how to remove it). It never removes a cluster it did not make: it
+ * refuses to start when a cluster of that name already exists, and a create
+ * that fails because another run took the name in the meantime leaves that
+ * cluster alone. Only an interrupt (SIGINT or SIGTERM) skips the diagnosis;
+ * a child killed by anything else is a red like any other.
  *
  * Needs kind, kubectl, docker and the Temporal CLI on PATH (CI pins kind and
  * installs the Temporal CLI through .github/actions/temporal-cli), and the
@@ -108,7 +110,7 @@ async function latestVersion() {
   return tag;
 }
 
-/** Whether a signal has interrupted the run: a child killed by one, or the run itself. */
+/** Whether an interrupt has stopped the run: a child ended by SIGINT or SIGTERM, or the run itself. */
 let interrupted = false;
 
 function run(command, args, options = {}) {
@@ -116,9 +118,27 @@ function run(command, args, options = {}) {
   try {
     return execFileSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], ...options });
   } catch (error) {
-    if (error?.signal) interrupted = true;
+    if (interruptedBy(error)) interrupted = true;
     throw error;
   }
+}
+
+/**
+ * Whether a child's ending signal was an interrupt (a Ctrl-C, or a stop): a
+ * child killed by anything else (the OOM killer's SIGKILL) is a red to
+ * diagnose, not an interrupt.
+ */
+export function isInterrupt(signal) {
+  return signal === "SIGINT" || signal === "SIGTERM";
+}
+
+/**
+ * Whether a failed execFileSync was an interrupt. Node ends a child whose
+ * output passes the buffer cap with SIGTERM too, but names it ENOBUFS: that
+ * is a red to diagnose, not an interrupt.
+ */
+export function interruptedBy(error) {
+  return isInterrupt(error?.signal) && error?.code !== "ENOBUFS";
 }
 
 /** Whether `kind get clusters` lists the named cluster. */
@@ -128,10 +148,16 @@ export function clusterListed(output, name) {
 
 /**
  * Whether the run still owns the cluster's name after its `kind create`
- * failed. kind removes what a failed create made unless the create was
- * interrupted, so an interrupted create's leftovers are this run's to delete,
- * while a cluster listed under the name after an uninterrupted failure is
- * another run's, which took the name between the check and the create.
+ * failed. kind removes what a failed create made in most failures, but not
+ * when the create was interrupted, so an interrupted create's leftovers are
+ * this run's to delete. A cluster listed under the name after an
+ * uninterrupted failure is taken as another run's, which took the name
+ * between the check and the create, and left alone. That is also what the
+ * run does with the two uninterrupted failures kind does not clean up: a
+ * failed kubeconfig export after the cluster was made, and a create the OOM
+ * killer (or another signal than an interrupt) ended. Each is left listed,
+ * and the next run's refusal names the command that deletes it. Leaving a
+ * cluster is the cost the run accepts so that it never deletes another's.
  */
 export function ownsAfterFailedCreate({ interrupted: byASignal, listedNow }) {
   return byASignal || !listedNow;
@@ -139,11 +165,13 @@ export function ownsAfterFailedCreate({ interrupted: byASignal, listedNow }) {
 
 /**
  * What the teardown does with the cluster's name: nothing when the run never
- * claimed it, keep it for a --keep reader, or delete whatever kind made under it.
+ * claimed it; keep it for a --keep reader once it came up; otherwise delete
+ * whatever kind made under it, a create's leftovers included, since a
+ * cluster that never came up has nothing for a reader.
  */
-export function teardownAction({ owned, keep }) {
+export function teardownAction({ owned, keep, ready }) {
   if (!owned) return "none";
-  return keep ? "keep" : "delete";
+  return keep && ready ? "keep" : "delete";
 }
 
 /** Whether a red run is diagnosed in its cluster before the teardown. */
@@ -201,7 +229,7 @@ function spawnChild(command, args, options) {
       resolveCode(127);
     });
     child.once("exit", (exit, signal) => {
-      if (signal) interrupted = true;
+      if (isInterrupt(signal)) interrupted = true;
       resolveCode(exit ?? 1);
     });
   });
@@ -271,7 +299,7 @@ async function main(argv) {
     if (tornDown) return;
     tornDown = true;
     temporal?.child.kill("SIGTERM");
-    const action = teardownAction({ owned, keep: opts.keep });
+    const action = teardownAction({ owned, keep: opts.keep, ready });
     if (action === "none") {
       rmSync(state, { recursive: true, force: true });
     } else if (action === "keep") {
