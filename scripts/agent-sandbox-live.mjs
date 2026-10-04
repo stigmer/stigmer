@@ -23,13 +23,14 @@
  *     host.docker.internal reaches the host's loopback. On Linux it binds
  *     every interface for the run, because the dev server bound to the
  *     gateway alone dials its own internal services on the loopback and
- *     refuses itself (seen in the lane, 2026-10-04); the dev server has no
- *     authentication, so on a Linux laptop the run's port is open to its
- *     network for those minutes.
+ *     refuses itself. The dev server has no authentication, so outside CI
+ *     (no CI variable) on Linux the run says so before it starts, because
+ *     the port is open to the machine's network for those minutes.
  * Then it runs `npm run test:live` in the server package with those
  * addresses. A red test is followed by every object in the namespace, the
  * runner pods' events and logs and the controller's log, before it tears
- * down, which it does even when the test fails (`--keep` leaves the
+ * down, which it does when the test fails and on SIGINT or SIGTERM (a Ctrl-C
+ * on a laptop) too (`--keep` leaves the
  * cluster for a reader, and prints how to remove it).
  *
  * Needs kind, kubectl, docker and the Temporal CLI on PATH (CI pins kind and
@@ -142,6 +143,12 @@ export function temporalBindAddress(platform) {
   return DOCKER_DESKTOP.has(platform) ? "127.0.0.1" : "0.0.0.0";
 }
 
+/** The warning a run outside CI prints before it opens Temporal to every interface, or undefined. */
+export function exposureWarning(platform, env) {
+  if (temporalBindAddress(platform) !== "0.0.0.0" || env.CI) return undefined;
+  return "agent-sandbox-live: warning: the Temporal dev server listens on every interface for this run, without authentication; anyone on this machine's network can reach it until the run ends";
+}
+
 /** Starts a child and resolves its exit code; a child that cannot start (a missing binary) resolves 127. */
 function spawnChild(command, args, options) {
   const child = spawn(command, args, options);
@@ -208,7 +215,36 @@ async function main(argv) {
   const kube = (...args) => run("kubectl", ["--kubeconfig", kubeconfig, ...args]);
   let temporal;
   let created = false;
+  let tornDown = false;
   let code = 2;
+  const teardown = () => {
+    if (tornDown) return;
+    tornDown = true;
+    temporal?.child.kill("SIGTERM");
+    if (!created) {
+      rmSync(state, { recursive: true, force: true });
+    } else if (opts.keep) {
+      console.log(`kept: KUBECONFIG=${kubeconfig}; remove with kind delete cluster --name ${CLUSTER} --kubeconfig ${kubeconfig}`);
+    } else {
+      try {
+        run("kind", ["delete", "cluster", "--name", CLUSTER, "--kubeconfig", kubeconfig]);
+      } finally {
+        rmSync(state, { recursive: true, force: true });
+      }
+    }
+  };
+  // A Ctrl-C reaches every child too; whatever was running ends, and the
+  // run takes down what it made before it exits.
+  for (const [signal, exit] of [["SIGINT", 130], ["SIGTERM", 143]]) {
+    process.once(signal, () => {
+      console.error(`agent-sandbox-live: ${signal}, tearing down`);
+      try {
+        teardown();
+      } finally {
+        process.exit(exit);
+      }
+    });
+  }
   try {
     console.log(`agent-sandbox ${version}, runner image ${opts.runnerImage}, state ${state}`);
     // A cluster of this name that is not this run's (kept by --keep, or
@@ -233,6 +269,8 @@ async function main(argv) {
     const gateway = ipv4Gateway(run("docker", ["network", "inspect", "kind", "--format", "{{range .IPAM.Config}}{{.Gateway}} {{end}}"]));
     const host = hostFromKindNetwork(process.platform, gateway);
     const bind = temporalBindAddress(process.platform);
+    const warning = exposureWarning(process.platform, process.env);
+    if (warning !== undefined) console.error(warning);
     const port = await freePort();
     temporal = spawnChild(
       "temporal",
@@ -259,18 +297,7 @@ async function main(argv) {
     }).exited;
     if (code !== 0) diagnose(kube);
   } finally {
-    temporal?.child.kill("SIGTERM");
-    if (!created) {
-      rmSync(state, { recursive: true, force: true });
-    } else if (opts.keep) {
-      console.log(`kept: KUBECONFIG=${kubeconfig}; remove with kind delete cluster --name ${CLUSTER} --kubeconfig ${kubeconfig}`);
-    } else {
-      try {
-        run("kind", ["delete", "cluster", "--name", CLUSTER, "--kubeconfig", kubeconfig]);
-      } finally {
-        rmSync(state, { recursive: true, force: true });
-      }
-    }
+    teardown();
   }
   return code;
 }

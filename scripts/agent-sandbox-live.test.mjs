@@ -2,7 +2,8 @@
  * Pins scripts/agent-sandbox-live.mjs's own decisions, without a cluster:
  * the arguments and environment it takes and refuses, the manifest it
  * applies for a version, the kind network's IPv4 gateway, the address a pod
- * reaches the host at and the one Temporal binds,
+ * reaches the host at, the one Temporal binds and the warning a laptop run
+ * prints when that is every interface,
  * and that the release it tests
  * against is the one the operator guide tells operators to install.
  */
@@ -13,6 +14,7 @@ import { test } from "node:test";
 import {
   AGENT_SANDBOX_VERSION,
   DEFAULT_RUNNER_IMAGE,
+  exposureWarning,
   hostFromKindNetwork,
   ipv4Gateway,
   manifestUrl,
@@ -78,6 +80,12 @@ test("Temporal binds the loopback on Docker Desktop, and every interface on Linu
   assert.equal(temporalBindAddress("linux"), "0.0.0.0");
   assert.equal(temporalBindAddress("darwin"), "127.0.0.1");
   assert.equal(temporalBindAddress("win32"), "127.0.0.1");
+});
+
+test("a run that opens Temporal to every interface says so, except in CI and on Docker Desktop", () => {
+  assert.match(exposureWarning("linux", {}) ?? "", /listens on every interface for this run, without authentication/);
+  assert.equal(exposureWarning("linux", { CI: "true" }), undefined);
+  assert.equal(exposureWarning("darwin", {}), undefined);
 });
 
 test("the operator guide installs the release the driver is tested against", () => {
