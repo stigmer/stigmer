@@ -19,8 +19,9 @@
  * instance kind: every session that ran against an instance names the
  * instance's agent and pins its current version (or keeps a deleted
  * agent's id, or continues with the built-in assistant when the instance is
- * gone), across keyset pages, and the instance rows leave every table; a
- * session it cannot decode fails the step and leaves the database at v13.
+ * gone, or names no agent), across keyset pages, and the instance rows
+ * leave every table; a session, instance or agent row it cannot decode
+ * fails the step, naming the row, and leaves the database at v13.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -1068,6 +1069,64 @@ describe("v14: sessions name their agent and the agent instance rows leave", () 
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_14 - 1);
     expect(count(db, "resources", "agent_instance")).toBe(2);
   });
+
+  it("continues a session on an instance that names no agent with the built-in assistant", () => {
+    const BLANK_SESSION = { id: "ses_blank", org: ORG, slug: "ses_blank" };
+    const { dbPath, db: setup } = v13Database();
+    insert(
+      setup,
+      "agent_instance",
+      "ain_blank",
+      retiredInstanceRow({
+        metadata: { id: "ain_blank", org: ORG, slug: "blank-default" },
+        agentId: "",
+      }),
+    );
+    insert(
+      setup,
+      "session",
+      "ses_blank",
+      retiredSessionRow({
+        metadata: BLANK_SESSION,
+        instanceId: "ain_blank",
+        spec: SPEC,
+      }),
+    );
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_14);
+
+    expect(data(db, "session", "ses_blank")).toEqual(
+      sessionBytes({ metadata: BLANK_SESSION, spec: SPEC }),
+    );
+    expect(count(db, "resources", "agent_instance")).toBe(0);
+  });
+
+  it.each([
+    { kind: "agent_instance", id: "ain_broken" },
+    // ain_orphan names agt_gone: the step reads it as the agent.
+    { kind: "agent", id: "agt_gone" },
+  ])(
+    "a $kind row that does not decode fails the step, names the row, and leaves the database at v13",
+    (broken) => {
+      const { dbPath, db: setup } = v13Database();
+      seedInstances(setup);
+      insert(setup, broken.kind, broken.id, new Uint8Array([0x22, 0xff]));
+      setup.close();
+
+      const db = new DatabaseSync(dbPath);
+      cleanups.push(() => db.close());
+      expect(() => runMigrations(db, SCHEMA_VERSION_14)).toThrow(
+        `${broken.kind} '${broken.id}' cannot be read to retire the agent instance kind`,
+      );
+      expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_14 - 1);
+      expect(count(db, "resources", "agent_instance")).toBe(
+        broken.kind === "agent_instance" ? 3 : 2,
+      );
+    },
+  );
 
   it("replays the frozen steps over instance rows from v9 exactly as they shipped, then removes them", () => {
     const dbPath = tempDbPath();

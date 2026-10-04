@@ -104,6 +104,7 @@ interface TurnRequest {
   label: string;
 }
 
+/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
 async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnRequest, io: SessionIo): Promise<MeasuredTurn> {
   const { clients } = stack;
   const executionConfig: MessageInitShape<typeof ExecutionConfigSchema> | undefined =

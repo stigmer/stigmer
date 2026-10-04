@@ -19,7 +19,8 @@
  *     an echo of a skill deleted since the session named it passes (the
  *     runner's harness-state write-back sends the whole row);
  *   - listByAgent answers the sessions whose pin names the agent, and
- *     refuses an empty agent_id;
+ *     refuses an empty agent_id, at the filter step as well as at proto
+ *     validation;
  *   - harness immutability locks only once harness_state_id is non-empty,
  *     with UNSPECIFIED==NATIVE equivalence in both directions and the
  *     exact FAILED_PRECONDITION copy;
@@ -71,7 +72,7 @@ import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
-import { ResourceNotFoundError } from "../../../store/interface.js";
+import { ResourceNotFoundError, type Store } from "../../../store/interface.js";
 import {
   AgentExecutionTemporalConfig,
   DEFAULT_EXECUTION_TARGET_CLOUD,
@@ -79,7 +80,10 @@ import {
   ROUTING_GLOBAL,
   newConfigFromEnv,
 } from "../../agentexecution/temporal/config.js";
-import { newValidateExecutionTargetImmutabilityStep } from "../steps.js";
+import {
+  newFilterByAgentStep,
+  newValidateExecutionTargetImmutabilityStep,
+} from "../steps.js";
 import {
   seedOrganizations,
   type OrganizationIds,
@@ -496,6 +500,27 @@ describe("session listByAgent", () => {
     const error = await grpcError(() => query.listByAgent({ agentId: "" }));
     expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toContain("agent_id");
+  });
+
+  it("refuses an empty agent_id at the filter step too, before any read", async () => {
+    // The chain's proto validation answers first; the step's own refusal
+    // holds for any chain composed without it. The stand-in store has no
+    // members, so a read would fail as something other than the refusal.
+    const step = newFilterByAgentStep({} as Store, silentLogger, undefined);
+    const ctx = new RequestContext(
+      SessionQueryController.method.listByAgent.input,
+      create(SessionQueryController.method.listByAgent.input, { agentId: "" }),
+      testCallerIdentity(),
+      ApiResourceKind.session,
+    );
+    const error = ConnectError.from(
+      await Promise.resolve(step.execute(ctx)).then(
+        () => undefined,
+        (e: unknown) => e,
+      ),
+    );
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe("agent_id is required");
   });
 });
 

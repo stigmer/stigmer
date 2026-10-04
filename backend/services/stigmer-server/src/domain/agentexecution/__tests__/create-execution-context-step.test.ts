@@ -35,6 +35,11 @@
  * a recorded version rebuilds from that version's spec, never the agent's
  * head, so recovery after an author's edit declares what the turn ran with;
  * a recorded version that no longer resolves refuses, naming it.
+ *
+ * And the create step around the builder: runtime_env reaches the context
+ * and is cleared from the execution, so no secret is persisted on it; a
+ * turn with no session id refuses before any read; a declared key the
+ * personal environment does not hold is logged as missing by name.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -64,6 +69,8 @@ import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclie
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { RequestContext } from "../../../pipeline/request-context.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import type { ManagedEnvironmentService } from "../../mcpserver/oauth/managed-env.js";
@@ -71,6 +78,7 @@ import type { ManagedEnvironmentService } from "../../mcpserver/oauth/managed-en
 import type { ExecutionContextBuilderDeps } from "../create-execution-context-step.js";
 import {
   buildAndPersistExecutionContext,
+  newCreateExecutionContextStep,
   SCHEDULE_ID_LABEL_KEY,
 } from "../create-execution-context-step.js";
 import { applyUpdateStatusMerge } from "../update-status.js";
@@ -1324,4 +1332,130 @@ it("declares for the recorded agent when the session has since moved to the buil
   const data = createdEcs[0]?.spec?.data ?? {};
   expect(data["RECORDED_KEY"]?.value).toBe("kept");
   expect(data["HEAD_KEY"]).toBeUndefined();
+});
+
+it("the create step consumes runtime_env into the context and clears it from the execution", async () => {
+  const createdEcs: ExecutionContext[] = [];
+  const deps = platformClientLayerDeps({
+    client: undefined,
+    environments: [scheduleSecrets],
+    resolved: [],
+    clientReads: [],
+    createdEcs,
+  });
+  const ctx = new RequestContext(
+    AgentExecutionSchema,
+    executionCreatedThrough("aexec_step_clear", "", {
+      RUNTIME_ONLY: "runtime",
+    }),
+    testCallerIdentity(),
+    ApiResourceKind.agent_execution,
+  );
+
+  await newCreateExecutionContextStep(deps).execute(ctx);
+
+  expect(createdEcs[0]?.spec?.data["RUNTIME_ONLY"]?.value).toBe("runtime");
+  expect(ctx.newState.spec?.runtimeEnv).toEqual({});
+});
+
+it("refuses a turn with no session id before reading anything", async () => {
+  const createdEcs: ExecutionContext[] = [];
+  const deps: ExecutionContextBuilderDeps = {
+    ...platformClientLayerDeps({
+      client: undefined,
+      environments: [],
+      resolved: [],
+      clientReads: [],
+      createdEcs,
+    }),
+    sessionLoader: () => ({
+      get: async () => {
+        throw new Error("a turn with no session id reads no session");
+      },
+    }),
+  };
+  const turn = create(AgentExecutionSchema, {
+    metadata: { id: "aexec_no_session", org: "acme" },
+    spec: { message: "hi" },
+  });
+
+  const failure = await buildAndPersistExecutionContext(deps, turn).catch(
+    (e: unknown) => e,
+  );
+
+  expect(failure).toBeInstanceOf(Error);
+  expect((failure as Error).message).toBe(
+    "resolve session: no session_id on execution",
+  );
+  expect(createdEcs).toEqual([]);
+});
+
+it("logs a required declared key the personal environment does not hold, by name", async () => {
+  const ORG = "acme";
+  const lines: string[] = [];
+  const createdEcs: ExecutionContext[] = [];
+  const personal = await personalEnvironmentOver(
+    ORG,
+    "acc_missing_keys",
+    { HELD_TOKEN: "held" },
+    [],
+  );
+  const deps: ExecutionContextBuilderDeps = {
+    ...bridgeDeps({
+      session: create(SessionSchema, {
+        metadata: { id: "ses_missing_keys", org: ORG },
+        spec: { agentRef: { org: ORG, slug: "needy-agent" } },
+        status: { agentId: "agt_needy" },
+      }),
+      agent: create(AgentSchema, {
+        metadata: { id: "agt_needy", org: ORG, slug: "needy-agent" },
+        spec: {
+          env: {
+            HELD_TOKEN: { isSecret: true },
+            ABSENT_TOKEN: { isSecret: true },
+            OPTIONAL_TOKEN: { isSecret: true, optional: true },
+          },
+        },
+      }),
+      client: mintingClient(ORG, "needy-layer"),
+      layer: [environmentOf("needy-layer", {}, ORG)],
+      personal,
+      createdEcs,
+    }),
+    logger: createLogger({
+      level: "warn",
+      pretty: false,
+      write: (line) => lines.push(line),
+    }),
+  };
+  const execution = create(AgentExecutionSchema, {
+    metadata: { id: "aexec_missing_keys", org: ORG },
+    spec: {
+      target: { case: "sessionId", value: "ses_missing_keys" },
+      message: "hi",
+    },
+    status: {
+      agentId: "agt_needy",
+      audit: {
+        specAudit: {
+          createdBy: {
+            id: "acc_missing_keys",
+            platformClientId: "pcl_dashboard",
+          },
+        },
+      },
+    },
+  });
+
+  await buildAndPersistExecutionContext(deps, execution);
+
+  expect(createdEcs[0]?.spec?.data["HELD_TOKEN"]?.value).toBe("held");
+  const warned = lines
+    .map((line) => JSON.parse(line) as { message: string; missing?: string[] })
+    .find(
+      (entry) =>
+        entry.message ===
+        "The run declares required variables the personal environment does not hold",
+    );
+  expect(warned?.missing).toEqual(["ABSENT_TOKEN"]);
 });

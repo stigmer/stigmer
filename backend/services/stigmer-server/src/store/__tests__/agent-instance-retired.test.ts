@@ -2,7 +2,8 @@
  * Pins the driver-neutral half of the agent instance kind's removal
  * (../agent-instance-retired.ts) over rows built the way an earlier
  * release wrote them (retired-instance-rows.ts):
- *   - a retired instance row names its agent by spec.agent_id;
+ *   - a retired instance row names its agent by spec.agent_id, and a row
+ *     with no spec names none;
  *   - a session whose instance survives with its agent names that agent by
  *     organization id and slug and pins its current version, dropping the
  *     retired field and keeping every other field it carried;
@@ -14,6 +15,7 @@
  *   - bytes that do not decode throw (the step must not pass over them).
  */
 import { fromBinary } from "@bufbuild/protobuf";
+import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { describe, expect, it } from "vitest";
 
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -56,6 +58,16 @@ describe("instanceAgentIdOf", () => {
       description: "Default instance",
     });
     expect(instanceAgentIdOf(row)).toBe("agt_1");
+  });
+
+  it("answers no agent for a row that carries no spec", () => {
+    const row = new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .string("agentic.stigmer.ai/v1")
+      .tag(2, WireType.LengthDelimited)
+      .string("AgentInstance")
+      .finish();
+    expect(instanceAgentIdOf(row)).toBe("");
   });
 
   it("throws on bytes that do not decode", () => {

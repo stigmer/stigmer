@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import {
+  SessionSchema,
+  type Session,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { useSessionConversation } from "../useSessionConversation";
@@ -23,7 +26,9 @@ import { useSessionConversation } from "../useSessionConversation";
 function sessionOnAgent(version: string): Session {
   return create(SessionSchema, {
     metadata: { id: "session-1", org: "org_acme", name: "s" },
-    spec: { agentRef: { org: "org_acme", slug: "reviewer", version, kind: 40 } },
+    spec: {
+      agentRef: { org: "org_acme", slug: "reviewer", version, kind: 40 },
+    },
     status: { agentId: "agt_1", agentVersionHash: "h_old" },
   });
 }
@@ -45,11 +50,18 @@ function client(): Stigmer {
 }
 
 function wrapper({ children }: { children: ReactNode }) {
-  return <StigmerContext.Provider value={client()}>{children}</StigmerContext.Provider>;
+  return (
+    <StigmerContext.Provider value={client()}>
+      {children}
+    </StigmerContext.Provider>
+  );
 }
 
 async function loaded() {
-  const hook = renderHook(() => useSessionConversation("session-1", "org_acme"), { wrapper });
+  const hook = renderHook(
+    () => useSessionConversation("session-1", "org_acme"),
+    { wrapper },
+  );
   await waitFor(() => expect(hook.result.current.session).not.toBeNull());
   return hook;
 }
@@ -58,7 +70,9 @@ describe("useSessionConversation — the agent version a session runs", () => {
   beforeEach(() => {
     sessionGet = vi.fn().mockResolvedValue(sessionOnAgent(""));
     sessionUpdate = vi.fn().mockImplementation(async () => sessionOnAgent(""));
-    executionCreate = vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
+    executionCreate = vi
+      .fn()
+      .mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
   });
 
   it("moveToCurrentAgentVersion writes the session's agent back with version latest and reads it again", async () => {
@@ -71,15 +85,25 @@ describe("useSessionConversation — the agent version a session runs", () => {
 
     expect(sessionUpdate).toHaveBeenCalledTimes(1);
     const input = sessionUpdate.mock.calls[0][0];
-    expect(input.agentRef).toMatchObject({ org: "org_acme", slug: "reviewer", version: "latest" });
+    expect(input.agentRef).toMatchObject({
+      org: "org_acme",
+      slug: "reviewer",
+      version: "latest",
+    });
     // Nothing but the version moves: the rest of the spec is the stored one.
     expect(input.org).toBe("org_acme");
     // The fresh read before the write, and the reload after it.
-    await waitFor(() => expect(sessionGet.mock.calls.length).toBeGreaterThanOrEqual(readsBefore + 2));
+    await waitFor(() =>
+      expect(sessionGet.mock.calls.length).toBeGreaterThanOrEqual(
+        readsBefore + 2,
+      ),
+    );
   });
 
   it("moveToCurrentAgentVersion does nothing for a session that names no agent", async () => {
-    sessionGet.mockResolvedValue(create(SessionSchema, { metadata: { id: "session-1" }, spec: {} }));
+    sessionGet.mockResolvedValue(
+      create(SessionSchema, { metadata: { id: "session-1" }, spec: {} }),
+    );
     const { result } = await loaded();
 
     await act(async () => {
@@ -89,16 +113,36 @@ describe("useSessionConversation — the agent version a session runs", () => {
     expect(sessionUpdate).not.toHaveBeenCalled();
   });
 
+  it("moveToCurrentAgentVersion reads and writes nothing without a session", async () => {
+    const { result } = renderHook(
+      () => useSessionConversation(null, "org_acme"),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.moveToCurrentAgentVersion();
+    });
+
+    expect(sessionGet).not.toHaveBeenCalled();
+    expect(sessionUpdate).not.toHaveBeenCalled();
+  });
+
   it("a follow-up that rewrites the session echoes a stored latest without its version, keeping the pin", async () => {
     sessionGet.mockResolvedValue(sessionOnAgent("latest"));
     const { result } = await loaded();
 
     await act(async () => {
-      await result.current.sendFollowUp("go on", { skillRefs: [{ org: "org_acme", slug: "triage" }] });
+      await result.current.sendFollowUp("go on", {
+        skillRefs: [{ org: "org_acme", slug: "triage" }],
+      });
     });
 
     const input = sessionUpdate.mock.calls[0][0];
-    expect(input.agentRef).toEqual({ org: "org_acme", slug: "reviewer", kind: 40 });
+    expect(input.agentRef).toEqual({
+      org: "org_acme",
+      slug: "reviewer",
+      kind: 40,
+    });
   });
 
   it("a follow-up echoes a stored tag as stored", async () => {
@@ -106,19 +150,28 @@ describe("useSessionConversation — the agent version a session runs", () => {
     const { result } = await loaded();
 
     await act(async () => {
-      await result.current.sendFollowUp("go on", { skillRefs: [{ org: "org_acme", slug: "triage" }] });
+      await result.current.sendFollowUp("go on", {
+        skillRefs: [{ org: "org_acme", slug: "triage" }],
+      });
     });
 
-    expect(sessionUpdate.mock.calls[0][0].agentRef).toMatchObject({ version: "v2" });
+    expect(sessionUpdate.mock.calls[0][0].agentRef).toMatchObject({
+      version: "v2",
+    });
   });
 
   it("a follow-up that moves to another agent names it, and null clears the agent", async () => {
     const { result } = await loaded();
 
     await act(async () => {
-      await result.current.sendFollowUp("switch", { agentRef: { org: "org_acme", slug: "other" } });
+      await result.current.sendFollowUp("switch", {
+        agentRef: { org: "org_acme", slug: "other" },
+      });
     });
-    expect(sessionUpdate.mock.calls[0][0].agentRef).toEqual({ org: "org_acme", slug: "other" });
+    expect(sessionUpdate.mock.calls[0][0].agentRef).toEqual({
+      org: "org_acme",
+      slug: "other",
+    });
 
     await act(async () => {
       await result.current.sendFollowUp("drop", { agentRef: null });

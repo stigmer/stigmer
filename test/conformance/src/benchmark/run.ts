@@ -269,6 +269,7 @@ interface ProvisionedAgent {
   sessionSpec: MessageInitShape<typeof SessionSpecSchema>;
 }
 
+/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
 async function provisionAgent(
   stack: BenchmarkStack,
   fixtures: FixtureTracker,
@@ -291,6 +292,7 @@ async function provisionAgent(
 }
 
 /** One attempt of a cell: one execution, or one three-turn session whose second turn is the sample. */
+/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
 async function measureCell(
   stack: BenchmarkStack,
   cell: BenchmarkCell,
@@ -339,6 +341,7 @@ async function measureCell(
 }
 
 /** One graded attempt of a quality task: the session, its end state, the subject and the verdict. */
+/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
 async function gradeQualityCell(
   stack: BenchmarkStack,
   cell: PlannedQualityCell,

@@ -83,6 +83,7 @@ export const FrozenAgentInstanceEnvelopeSchema: DescMessage = (() => {
   );
   const message = registry.getMessage(AGENT_INSTANCE_TYPE_NAME);
   if (message === undefined) {
+    /* v8 ignore next -- @preserve: an invariant over this module's constant descriptor, which always declares the message; it runs once at import, where no test can make the registry lose it */
     throw new Error(
       `the frozen ${AGENT_INSTANCE_TYPE_NAME} envelope did not build`,
     );

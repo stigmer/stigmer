@@ -13,7 +13,8 @@
  *     does not;
  *   - no reference clears the pin (the built-in assistant);
  *   - an agent gone since the reference rule's scan is FAILED_PRECONDITION;
- *     a chain that ran without the recorded targets is Internal;
+ *     a chain that ran without the recorded targets is Internal, and so is
+ *     a failing read of the agent row;
  *   - a client-sent status never survives: the step writes both fields.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -122,6 +123,7 @@ async function pin(
   options: {
     readonly stored?: Session;
     readonly targets?: ReferenceTargets;
+    readonly store?: Store;
   } = {},
 ): Promise<Session> {
   const ctx = new RequestContext(
@@ -137,7 +139,10 @@ async function pin(
     RESOLVED_REFERENCE_TARGETS_KEY,
     options.targets ?? targetsOf({ [`${ORG}/reviewer`]: "agt_1" }),
   );
-  await newResolveSessionAgentStep(store, silentLogger).execute(ctx);
+  await newResolveSessionAgentStep(
+    options.store ?? store,
+    silentLogger,
+  ).execute(ctx);
   return ctx.newState;
 }
 
@@ -299,5 +304,23 @@ describe("ResolveSessionAgent", () => {
       pin(sessionNaming("reviewer"), { targets: targetsOf({}) }),
     );
     expect(error.code).toBe(Code.Internal);
+  });
+
+  it("fails Internal when the agent row cannot be read", async () => {
+    const failing: Store = new Proxy(store, {
+      get(target, property, receiver) {
+        if (property === "getResource") {
+          return () => Promise.reject(new Error("store is down"));
+        }
+        return Reflect.get(target, property, receiver) as unknown;
+      },
+    });
+    const error = await refusal(
+      pin(sessionNaming("reviewer"), { store: failing }),
+    );
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toContain(
+      "failed to resolve the agent this conversation runs",
+    );
   });
 });

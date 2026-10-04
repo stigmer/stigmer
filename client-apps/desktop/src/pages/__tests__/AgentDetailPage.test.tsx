@@ -10,6 +10,10 @@
  * Also pins how the page names organizations: a referenced resource, which
  * names its org by id, opens at a URL carrying the org's slug. A share link names neither: it
  * points at the web console's `/chat/<share id>`, never the Tauri origin.
+ *
+ * And pins the page's own actions: Start session opens the new-session
+ * screen on the agent itself (no instance to bind), and Delete warns that
+ * conversations on the agent cannot continue, deleting only once confirmed.
  */
 import type { ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -31,8 +35,20 @@ interface PanelProps {
   sessionHref: (id: string) => string;
 }
 
+interface Action {
+  id: string;
+  onAction: () => void | Promise<void>;
+}
+
+interface ConfirmRequest {
+  title: string;
+  description: string;
+}
+
 interface DetailProps {
   additionalTabs: Tab[];
+  primaryAction: Action;
+  actions: Action[];
   viewerOrg?: string;
   onSkillClick: (ref: { org: string; slug: string }) => void;
   onMcpServerClick: (ref: { org: string; slug: string }) => void;
@@ -43,6 +59,9 @@ interface DetailProps {
 const page = vi.hoisted(() => ({
   agent: undefined as unknown,
   detail: [] as DetailProps[],
+  confirmed: false,
+  confirmations: [] as ConfirmRequest[],
+  deletes: 0,
 }));
 
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
@@ -59,8 +78,21 @@ vi.mock("@stigmer/react", () => ({
   ConfirmDialog: () => null,
   useAgent: () => ({ agent: page.agent, refetch: noop }),
   useCopyResource: () => ({ copyId: noop, copyQualifiedSlug: noop }),
-  useConfirmAction: () => ({ confirmState: null, confirm: noop, handleConfirm: noop, handleCancel: noop }),
-  useDeleteResource: () => ({ deleteResource: noop, isDeleting: false }),
+  useConfirmAction: () => ({
+    confirmState: null,
+    confirm: async (request: ConfirmRequest) => {
+      page.confirmations.push(request);
+      return page.confirmed;
+    },
+    handleConfirm: noop,
+    handleCancel: noop,
+  }),
+  useDeleteResource: () => ({
+    deleteResource: async () => {
+      page.deletes += 1;
+    },
+    isDeleting: false,
+  }),
   useExportResource: () => ({ copyYaml: noop, copyJson: noop, downloadYaml: noop }),
   useBreadcrumbOverride: () => ({ setLabel: noop }),
   // The person's organizations: their one org reads "acme" in a URL.
@@ -73,7 +105,13 @@ import AgentDetailPage from "../library/AgentDetailPage";
 const AGENT = { metadata: { id: "agt_1", org: ACME_ID, slug: "helper" } };
 
 function Location() {
-  return <div data-testid="location">{useLocation().pathname}</div>;
+  const location = useLocation();
+  return (
+    <>
+      <div data-testid="location">{location.pathname}</div>
+      <div data-testid="search">{location.search}</div>
+    </>
+  );
 }
 
 function renderAgent() {
@@ -91,6 +129,9 @@ function renderAgent() {
 beforeEach(() => {
   page.agent = undefined;
   page.detail.length = 0;
+  page.confirmed = false;
+  page.confirmations.length = 0;
+  page.deletes = 0;
 });
 
 describe("desktop AgentDetailPage — the Channels tab", () => {
@@ -168,5 +209,54 @@ describe("desktop AgentDetailPage — organizations", () => {
     expect(page.detail.at(-1)?.buildShareUrl("ash_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
       `${CONSOLE_URL}/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2`,
     );
+  });
+});
+
+describe("desktop AgentDetailPage — actions", () => {
+  function action(id: string): Action {
+    const found = page.detail.at(-1)?.actions.find((a) => a.id === id);
+    if (found === undefined) throw new Error(`no ${id} action`);
+    return found;
+  }
+
+  it("starts a session on the agent itself, with no instance to bind", () => {
+    page.agent = AGENT;
+    renderAgent();
+
+    act(() => {
+      void page.detail.at(-1)?.primaryAction.onAction();
+    });
+
+    expect(screen.getByTestId("location").textContent).toBe("/");
+    expect(screen.getByTestId("search").textContent).toBe("?agent=acme%2Fhelper");
+  });
+
+  it("warns that conversations on the agent cannot continue, and keeps it when declined", async () => {
+    page.agent = AGENT;
+    renderAgent();
+
+    await act(async () => {
+      await action("delete").onAction();
+    });
+
+    expect(page.confirmations).toHaveLength(1);
+    expect(page.confirmations[0]!.description).toContain(
+      "conversations on it cannot continue",
+    );
+    expect(page.deletes).toBe(0);
+    expect(screen.getByTestId("location").textContent).toBe("/library/agents/acme/helper");
+  });
+
+  it("deletes the agent and returns to the list once confirmed", async () => {
+    page.agent = AGENT;
+    page.confirmed = true;
+    renderAgent();
+
+    await act(async () => {
+      await action("delete").onAction();
+    });
+
+    expect(page.deletes).toBe(1);
+    expect(screen.getByTestId("location").textContent).toBe("/library/agents");
   });
 });

@@ -454,6 +454,33 @@ describe("MessageThread", () => {
     ).toBeTruthy();
   });
 
+  it("renders a divider naming the agent version where the conversation starts and where it changes", () => {
+    const first = makeExecution({ id: "exec-a", specMessage: "one" });
+    first.status!.agentVersionHash = "h1";
+    const second = makeExecution({ id: "exec-b", specMessage: "two" });
+    second.status!.agentVersionHash = "h2";
+
+    render(
+      <MessageThread
+        executions={[first, second]}
+        agentVersionLabel={(hash) => (hash === "h2" ? "v2" : hash)}
+      />,
+    );
+
+    expect(
+      screen.getAllByTestId("agent-version-marker").map((m) => m.textContent),
+    ).toEqual(["Agent version h1", "Agent version v2"]);
+  });
+
+  it("renders no agent version divider without a label function", () => {
+    const exec = makeExecution({ id: "exec-a" });
+    exec.status!.agentVersionHash = "h1";
+
+    render(<MessageThread executions={[exec]} />);
+
+    expect(screen.queryByTestId("agent-version-marker")).toBeNull();
+  });
+
   it("renders the agent's todos as an inline card in the thread", () => {
     const exec = makeExecution({
       id: "exec-todos",

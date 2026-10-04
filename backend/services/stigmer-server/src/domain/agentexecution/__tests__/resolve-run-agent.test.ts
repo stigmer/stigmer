@@ -25,7 +25,8 @@
  *     and handed on as the loaded execution;
  *   - a turn that recorded an agent, a session pinning none, and a skipped
  *     recover are left as they are;
- *   - running before the execution was loaded is Internal.
+ *   - running before the execution was loaded is Internal; a turn row gone
+ *     before the stamp is written is NotFound, a failing write Internal.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -331,6 +332,7 @@ describe("ResolveRunAgent (recover)", () => {
   async function recover(
     loaded: AgentExecution | undefined,
     skip = false,
+    run: Store = store,
   ): Promise<RequestContext<typeof RecoverAgentExecutionInputSchema>> {
     const ctx = new RequestContext(
       RecoverAgentExecutionInputSchema,
@@ -343,11 +345,9 @@ describe("ResolveRunAgent (recover)", () => {
     if (loaded !== undefined) {
       ctx.set(LOADED_EXECUTION_KEY, loaded);
     }
-    await newStampRecoveredRunAgentStep(
-      store,
-      silentLogger,
-      () => skip,
-    ).execute(ctx);
+    await newStampRecoveredRunAgentStep(run, silentLogger, () => skip).execute(
+      ctx,
+    );
     return ctx;
   }
 
@@ -405,5 +405,36 @@ describe("ResolveRunAgent (recover)", () => {
     const error = await refusal(recover(undefined));
 
     expect(error.code).toBe(Code.Internal);
+  });
+
+  it("is NotFound when the turn's row is gone before the stamp is written", async () => {
+    await seedSession(pinnedSession("ses_gone", "agt_gone", HEAD));
+    const turn = create(AgentExecutionSchema, {
+      metadata: { id: "aex_gone", org: "test-org", slug: "aex_gone" },
+      spec: { target: { case: "sessionId", value: "ses_gone" } },
+    });
+
+    const error = await refusal(recover(turn));
+
+    expect(error.code).toBe(Code.NotFound);
+    expect(error.rawMessage).toContain("aex_gone");
+  });
+
+  it("is Internal when the stamp cannot be written", async () => {
+    await seedSession(pinnedSession("ses_down", "agt_down", HEAD));
+    const turn = await seedTurn("aex_down", "ses_down");
+    const failing: Store = new Proxy(store, {
+      get(target, property, receiver) {
+        if (property === "updateResource") {
+          return () => Promise.reject(new Error("store is down"));
+        }
+        return Reflect.get(target, property, receiver) as unknown;
+      },
+    });
+
+    const error = await refusal(recover(turn, false, failing));
+
+    expect(error.code).toBe(Code.Internal);
+    expect((await storedTurn("aex_down")).status?.agentId ?? "").toBe("");
   });
 });

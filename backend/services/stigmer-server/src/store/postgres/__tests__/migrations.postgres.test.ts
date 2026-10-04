@@ -15,9 +15,11 @@
  * leaves the database at v6 with no ledger. v9 removes the agent instance
  * kind: every session that ran against an instance names the instance's
  * agent and pins its current version (or keeps a deleted agent's id, or
- * continues with the built-in assistant when the instance is gone), across
- * keyset pages, and the instance rows leave every table; a session it
- * cannot decode fails the step and leaves the database at v8. A step's
+ * continues with the built-in assistant when the instance is gone or names
+ * no agent), reading instances and sessions across keyset pages, and the
+ * instance rows leave every table; a session, instance or agent row it
+ * cannot decode fails the step, naming the row, and leaves the database at
+ * v8. A step's
  * starting database is built by running the chain up to the step before it.
  * Newer schemas are refused without writes or reconciliation; refusal
  * releases the migration lock and closes a failed store's pool.
@@ -961,6 +963,110 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await client.end();
         }
       });
+
+      it("reads instances across keyset pages, and continues a session on an instance that names no agent with the built-in assistant", async () => {
+        const client = await v8Client();
+        try {
+          await seedInstances(client);
+          // Sorted after ain_1 and ain_orphan, so the blank instance and the
+          // last seeded one land past the first page.
+          for (let i = 0; i < RETIREMENT_PAGE_SIZE; i++) {
+            const id = `ain_page_${String(i).padStart(4, "0")}`;
+            await insert(
+              client,
+              "agent_instance",
+              id,
+              retiredInstanceRow({
+                metadata: { id, org: ORG, slug: id },
+                agentId: "agt_1",
+              }),
+            );
+          }
+          await insert(
+            client,
+            "agent_instance",
+            "ain_zz_blank",
+            retiredInstanceRow({
+              metadata: { id: "ain_zz_blank", org: ORG, slug: "blank" },
+              agentId: "",
+            }),
+          );
+          const last = `ain_page_${String(RETIREMENT_PAGE_SIZE - 1).padStart(4, "0")}`;
+          await insert(
+            client,
+            "session",
+            "ses_last_page",
+            retiredSessionRow({
+              metadata: metadata("ses_last_page"),
+              instanceId: last,
+              spec: SPEC,
+            }),
+          );
+          await insert(
+            client,
+            "session",
+            "ses_blank",
+            retiredSessionRow({
+              metadata: metadata("ses_blank"),
+              instanceId: "ain_zz_blank",
+              spec: SPEC,
+            }),
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_9);
+
+          expect(await data(client, "session", "ses_last_page")).toEqual(
+            sessionBytes({
+              metadata: metadata("ses_last_page"),
+              spec: {
+                ...SPEC,
+                agentRef: { kind: 40, org: ORG, slug: "reviewer" },
+              },
+              status: { agentId: "agt_1", agentVersionHash: HEAD },
+            }),
+          );
+          expect(await data(client, "session", "ses_blank")).toEqual(
+            sessionBytes({ metadata: metadata("ses_blank"), spec: SPEC }),
+          );
+          expect(await count(client, "resources", "agent_instance")).toBe(0);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it.each([
+        { kind: "agent_instance", id: "ain_broken" },
+        // ain_orphan names agt_gone: the step reads it as the agent.
+        { kind: "agent", id: "agt_gone" },
+      ])(
+        "a $kind row that does not decode fails the step, names the row, and leaves the database at v8",
+        async (broken) => {
+          const client = await v8Client();
+          try {
+            await seedInstances(client);
+            await insert(
+              client,
+              broken.kind,
+              broken.id,
+              new Uint8Array([0x22, 0xff]),
+            );
+            await expect(
+              migrateTo(db.databaseUrl, SCHEMA_VERSION_9),
+            ).rejects.toThrow(
+              `${broken.kind} '${broken.id}' cannot be read to retire the agent instance kind`,
+            );
+            const version = await client.query(
+              `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+            );
+            expect(Number(version.rows[0].version)).toBe(SCHEMA_VERSION_9 - 1);
+            expect(await count(client, "resources", "agent_instance")).toBe(
+              broken.kind === "agent_instance" ? 3 : 2,
+            );
+          } finally {
+            await client.end();
+          }
+        },
+      );
 
       it("replays the frozen steps over instance rows from v4 exactly as they shipped, then removes them", async () => {
         await migrateTo(db.databaseUrl, SCHEMA_VERSION_5 - 1);

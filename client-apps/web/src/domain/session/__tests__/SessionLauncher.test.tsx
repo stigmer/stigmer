@@ -2,7 +2,9 @@
  * Pins the web session launcher's wiring: a new session starts in the
  * active organization by its id, the way the server names every org, and
  * the GitHub connection is the one that org holds; an `?agent=org/slug`
- * deep link preselects that agent. The viewer is pinned in @stigmer/react.
+ * deep link preselects that agent, and the link a detail page builds with
+ * `getAgentSessionUrl` is one the launcher reads back to the same agent.
+ * The viewer is pinned in @stigmer/react.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
@@ -38,6 +40,7 @@ vi.mock("@/domain/session/session-navigation", () => ({
 }));
 
 import { SessionLauncher } from "../SessionLauncher";
+import { getAgentSessionUrl } from "../session-url";
 
 beforeEach(() => {
   page.viewer.length = 0;
@@ -63,5 +66,19 @@ describe("web SessionLauncher", () => {
       initialAgentRef: { org: "acme", slug: "helper" },
     });
     expect(page.viewer.at(-1)).not.toHaveProperty("initialInstanceId");
+  });
+
+  it("reads the link a detail page builds back to the same agent", () => {
+    const link = new URL(
+      getAgentSessionUrl("acme", "code-reviewer"),
+      "https://console.test",
+    );
+    page.search = link.searchParams;
+    render(<SessionLauncher />);
+
+    expect(link.pathname).toBe("/");
+    expect(page.viewer.at(-1)).toMatchObject({
+      initialAgentRef: { org: "acme", slug: "code-reviewer" },
+    });
   });
 });

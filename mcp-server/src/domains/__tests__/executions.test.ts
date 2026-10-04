@@ -5,13 +5,13 @@
 // Same harness as reads.test.ts: a real Connect backend serving
 // stubbed controllers, the MCP server driven through an in-memory client. The
 // stubs capture requests so the tests assert the exact protos the tools send
-// (slug→reference resolution, the turn's target, runtime-env conversion,
-// approval enum mapping) and
+// (slug→reference resolution and a missing agent's not-found, the turn's
+// target, runtime-env conversion, approval enum mapping) and
 // script execution state (running vs terminal, long message histories) to
 // exercise the compact projection and the cancel short-circuit.
 
 import { create, toJson } from "@bufbuild/protobuf";
-import type { ConnectRouter } from "@connectrpc/connect";
+import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import {
   createServer as createHttp2Server,
@@ -134,8 +134,11 @@ function parseText(result: ToolResult): Record<string, unknown> {
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
     router.service(AgentQueryController, {
-      getByReference: () => {
+      getByReference: (req) => {
         agentLookups++;
+        if (req.slug !== knownAgent.metadata?.slug) {
+          throw new ConnectError(`agent ${req.slug} not found`, Code.NotFound);
+        }
         return knownAgent;
       },
     });
@@ -261,6 +264,20 @@ describe("execution tools integration", () => {
     // The created execution comes back as plain protojson (its status is small).
     const created = parseText(result);
     expect((created.metadata as Record<string, unknown>).id).toBe("aex_1");
+  });
+
+  it("run_agent reports an unknown agent as not found and starts nothing", async () => {
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "no-such-agent",
+      message: "hello",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain(
+      'agent "no-such-agent" in org "acme" not found',
+    );
+    expect(createdAgentExecution).toBeUndefined();
   });
 
   it("run_agent threads a session follow-up", async () => {
