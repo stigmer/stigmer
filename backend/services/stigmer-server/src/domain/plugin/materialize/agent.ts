@@ -22,8 +22,12 @@
  * Lists are rewritten to Stigmer's names and checked (`tool-lists.ts`): an
  * entry the contract cannot store is dropped with a warning, a sub-agent
  * whose `tools` list empties is left out with a warning, and a main agent
- * in that state refuses the install. Without a list, an agent or sub-agent
- * may use every tool its parent may.
+ * in that state refuses the install. Only `tools` empties an agent: a
+ * `disallowedTools` list that loses entries keeps the rest. An agent type
+ * in `Agent(...)` is rewritten to its bare name only when that sub-agent is
+ * installed, so a stored list never names a sub-agent the agent lacks by
+ * its installed name. Without a list, an agent or sub-agent may use every
+ * tool its parent may.
  *
  * The composed agent declares in `env` the union of its servers' variables,
  * OAuth-managed target variables excluded. An execution filters its
@@ -133,14 +137,25 @@ export function planAgent(
   const skillSlugByName = new Map(
     plugin.skills.map((skill) => [skill.name, skillSlugOf(skill)]),
   );
-  const scope: ToolListScope = {
-    pluginName: plugin.name,
-    servers: plugin.mcpServers,
-    agentNames: new Set(plugin.subAgents.map((subAgent) => subAgent.name)),
-  };
   const main = plugin.subAgents.find(
     (subAgent) => subAgent.name === plugin.mainAgent,
   );
+  // Whether a `tools` list empties does not depend on agent types (an
+  // `Agent(...)` entry is storable scoped or bare), so the installed set is
+  // known before any type is rewritten.
+  const servers = { pluginName: plugin.name, servers: plugin.mcpServers };
+  const installed = plugin.subAgents.filter(
+    (subAgent) =>
+      subAgent !== main &&
+      !checkToolList(subAgent.tools ?? [], "tools", {
+        ...servers,
+        agentNames: new Set(),
+      }).emptied,
+  );
+  const scope: ToolListScope = {
+    ...servers,
+    agentNames: new Set(installed.map((subAgent) => subAgent.name)),
+  };
   const mainLists =
     main === undefined ? undefined : listsOf(main, scope, warnings);
   if (main !== undefined) {
@@ -243,7 +258,8 @@ function listsOf(
         }),
       );
     }
-    return checked.emptied ? undefined : checked.entries;
+    // An emptied `tools` would mean every tool; fewer exclusions narrow nothing away.
+    return field === "tools" && checked.emptied ? undefined : checked.entries;
   };
   const tools = check("tools");
   const disallowedTools = check("disallowedTools");

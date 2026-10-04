@@ -372,8 +372,8 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.plugin.v1.HookConfig hooks_;
   /**
    * <pre>
-   * The plugin's hooks that run on Stigmer; unset when the plugin carries
-   * none that run.
+   * The plugin's tool-call hooks, as recorded at install; unset when the
+   * plugin carries none.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -385,8 +385,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The plugin's hooks that run on Stigmer; unset when the plugin carries
-   * none that run.
+   * The plugin's tool-call hooks, as recorded at install; unset when the
+   * plugin carries none.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -398,8 +398,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The plugin's hooks that run on Stigmer; unset when the plugin carries
-   * none that run.
+   * The plugin's tool-call hooks, as recorded at install; unset when the
+   * plugin carries none.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -1974,8 +1974,8 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.plugin.v1.HookConfig, ai.stigmer.agentic.plugin.v1.HookConfig.Builder, ai.stigmer.agentic.plugin.v1.HookConfigOrBuilder> hooksBuilder_;
     /**
      * <pre>
-     * The plugin's hooks that run on Stigmer; unset when the plugin carries
-     * none that run.
+     * The plugin's tool-call hooks, as recorded at install; unset when the
+     * plugin carries none.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -1986,8 +1986,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's hooks that run on Stigmer; unset when the plugin carries
-     * none that run.
+     * The plugin's tool-call hooks, as recorded at install; unset when the
+     * plugin carries none.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -2002,8 +2002,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's hooks that run on Stigmer; unset when the plugin carries
-     * none that run.
+     * The plugin's tool-call hooks, as recorded at install; unset when the
+     * plugin carries none.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -2023,8 +2023,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's hooks that run on Stigmer; unset when the plugin carries
-     * none that run.
+     * The plugin's tool-call hooks, as recorded at install; unset when the
+     * plugin carries none.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -2042,8 +2042,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's hooks that run on Stigmer; unset when the plugin carries
-     * none that run.
+     * The plugin's tool-call hooks, as recorded at install; unset when the
+     * plugin carries none.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -2068,8 +2068,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's hooks that run on Stigmer; unset when the plugin carries
-     * none that run.
+     * The plugin's tool-call hooks, as recorded at install; unset when the
+     * plugin carries none.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -2086,8 +2086,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's hooks that run on Stigmer; unset when the plugin carries
-     * none that run.
+     * The plugin's tool-call hooks, as recorded at install; unset when the
+     * plugin carries none.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -2099,8 +2099,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's hooks that run on Stigmer; unset when the plugin carries
-     * none that run.
+     * The plugin's tool-call hooks, as recorded at install; unset when the
+     * plugin carries none.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -2115,8 +2115,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's hooks that run on Stigmer; unset when the plugin carries
-     * none that run.
+     * The plugin's tool-call hooks, as recorded at install; unset when the
+     * plugin carries none.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>

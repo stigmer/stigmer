@@ -127,7 +127,7 @@ export interface PluginHookGroup {
 }
 
 /**
- * The plugin's hooks that run on Stigmer, in the shape `HookConfig` takes.
+ * The plugin's tool-call hooks Stigmer reads, in the shape `HookConfig` takes.
  * Only events and handlers Stigmer runs are here; everything else the
  * plugin's hooks files carry is named in the read's warnings.
  */
@@ -233,7 +233,7 @@ export interface PluginPackage {
   readonly subAgents: readonly PluginSubAgent[];
   readonly variables: readonly PluginVariable[];
   readonly overlay: StigmerOverlay;
-  /** The hooks that run on Stigmer; absent when the plugin carries none that run. */
+  /** The tool-call hooks Stigmer reads; absent when the plugin carries none. */
   readonly hooks?: PluginHooks;
   /**
    * The sub-agent a Claude plugin's settings (`settings.json` or the

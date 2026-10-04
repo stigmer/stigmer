@@ -836,7 +836,7 @@
           "kind": "message",
           "messageType": "HookConfig"
         },
-        "description": "The plugin's hooks that run on Stigmer; unset when the plugin carries\n none that run.",
+        "description": "The plugin's tool-call hooks, as recorded at install; unset when the\n plugin carries none.",
         "required": false
       }
     ]
@@ -992,7 +992,7 @@
     },
     {
       "name": "HookConfig",
-      "description": "HookConfig is the set of a plugin's hooks that run on Stigmer, in the format\n the plugin wrote them.",
+      "description": "HookConfig is a plugin's tool-call hooks, in the format the plugin wrote\n them.",
       "protoType": "ai.stigmer.agentic.plugin.v1.HookConfig",
       "protoFile": "apis/ai/stigmer/agentic/plugin/v1/hooks.proto",
       "fields": [
@@ -1197,7 +1197,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Stable warning kind, e.g. \"component-ignored\", \"member-adopted\",\n \"model-hint-unresolved\", \"settings-agent-not-applied\",\n \"sub-agent-name-builtin\", \"sub-agent-not-installed\",\n \"tool-list-entry-dropped\", \"version-not-taggable\".",
+          "description": "Stable warning kind, e.g. \"component-ignored\", \"hooks-not-run-yet\",\n \"member-adopted\", \"model-hint-unresolved\", \"settings-agent-not-applied\",\n \"sub-agent-name-builtin\", \"sub-agent-not-installed\",\n \"tool-list-entry-dropped\", \"version-not-taggable\".",
           "required": false
         },
         {

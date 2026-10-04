@@ -7,8 +7,8 @@ package ai.stigmer.agentic.plugin.v1;
 
 /**
  * <pre>
- * HookConfig is the set of a plugin's hooks that run on Stigmer, in the format
- * the plugin wrote them.
+ * HookConfig is a plugin's tool-call hooks, in the format the plugin wrote
+ * them.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookConfig}
@@ -318,8 +318,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * HookConfig is the set of a plugin's hooks that run on Stigmer, in the format
-   * the plugin wrote them.
+   * HookConfig is a plugin's tool-call hooks, in the format the plugin wrote
+   * them.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookConfig}

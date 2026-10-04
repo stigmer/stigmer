@@ -422,10 +422,12 @@ describe("a Claude plugin's tool lists, main agent and hooks", () => {
   it("rewrites the plugin's own server and agents to Stigmer's names and keeps Claude-only tools", () => {
     const agent = plan(scanner()).agent!.resource.spec!;
     const lead = agent.subAgents.find((s) => s.name === "lead")!;
+    // explore is left out (its tools list empties), so its type keeps the
+    // plugin-scoped name rather than naming a sub-agent the agent lacks.
     expect(lead.tools).toEqual([
       "Read",
       "Bash",
-      "Agent(explore, verify)",
+      "Agent(security-scanner:explore, verify)",
       "Workflow(security-scanner:scan)",
       "mcp__dbtools__query",
       "LS",
@@ -482,7 +484,7 @@ describe("a Claude plugin's tool lists, main agent and hooks", () => {
     expect(spec.tools).toEqual([
       "Read",
       "Bash",
-      "Agent(explore, verify)",
+      "Agent(security-scanner:explore, verify)",
       "Workflow(security-scanner:scan)",
       "mcp__dbtools__query",
       "LS",
@@ -497,6 +499,45 @@ describe("a Claude plugin's tool lists, main agent and hooks", () => {
     expect(
       planned.warnings.find((w) => w.kind === "model-hint-unresolved")?.message,
     ).toMatch(/^main agent 'lead' names model 'opus'/);
+  });
+
+  it("keeps an agent whose disallowedTools loses every entry, with its entries dropped and nothing narrowed away", () => {
+    const planned = plan(
+      claudePlugin({
+        name: "kit",
+        settings: { agent: "lead" },
+        agents: [
+          {
+            file: "lead",
+            frontmatter: {
+              description: "Leads.",
+              disallowedTools: "mcp__claude_ai_Slack__post",
+            },
+          },
+          {
+            file: "helper",
+            frontmatter: {
+              description: "Helps.",
+              disallowedTools: ["mcp__claude_ai_Slack__post"],
+            },
+          },
+        ],
+      }),
+    );
+    const spec = planned.agent!.resource.spec!;
+    expect([spec.tools, spec.disallowedTools]).toEqual([[], []]);
+    expect(spec.subAgents.map((s) => [s.name, s.disallowedTools])).toEqual([
+      ["helper", []],
+    ]);
+    expect(planned.warnings.map((w) => `${w.kind}:${w.path}`)).toEqual(
+      expect.arrayContaining([
+        "tool-list-entry-dropped:agents/lead.md",
+        "tool-list-entry-dropped:agents/helper.md",
+      ]),
+    );
+    expect(planned.warnings.map((w) => w.kind)).not.toContain(
+      "sub-agent-not-installed",
+    );
   });
 
   it("refuses the install when the main agent's tools list empties", () => {
@@ -561,6 +602,24 @@ describe("a Claude plugin's tool lists, main agent and hooks", () => {
       ],
     });
     expect(plan(claudePlugin()).hooks).toBeUndefined();
+  });
+
+  it("says in one warning that recorded hooks are not run yet, and says nothing without them", () => {
+    const hooks = {
+      PreToolUse: [{ hooks: [{ type: "command", command: "guard" }] }],
+    };
+    const warned = plan(claudePlugin({ hooks })).warnings.filter(
+      (w) => w.kind === "hooks-not-run-yet",
+    );
+    expect(warned.map((w) => w.message)).toEqual([
+      "the plugin's tool-call hooks are recorded but not run yet: this version of Stigmer runs no plugin hook, so none of them checks a call",
+    ]);
+    const lifecycleOnly = claudePlugin({
+      hooks: { Stop: [{ hooks: [{ type: "command", command: "x" }] }] },
+    });
+    expect(plan(lifecycleOnly).warnings.map((w) => w.kind)).not.toContain(
+      "hooks-not-run-yet",
+    );
   });
 
   it("names hooks and settings among what Stigmer reads when it ignores a component", () => {

@@ -598,13 +598,13 @@ PluginStatus is the system-managed state of an installed plugin: the archive ide
     error: { type: "string", description: "One sentence naming what failed when state is FAILED; empty otherwise." },
     materialized: { type: "PluginMaterialization", description: "What the last push materialised, by kind.", typeDescriptionLink: "#pluginmaterialization" },
     warnings: { type: "PluginWarning[]", description: "Warnings the last push recorded: components Stigmer does not carry, model hints it did not apply, names that shadow built-ins.", typeDescriptionLink: "#pluginwarning" },
-    hooks: { type: "HookConfig", description: "The plugin's hooks that run on Stigmer; unset when the plugin carries none that run.", typeDescriptionLink: "#hookconfig" },
+    hooks: { type: "HookConfig", description: "The plugin's tool-call hooks, as recorded at install; unset when the plugin carries none.", typeDescriptionLink: "#hookconfig" },
   }}
 />
 
 ### HookConfig
 
-HookConfig is the set of a plugin's hooks that run on Stigmer, in the format the plugin wrote them.
+HookConfig is a plugin's tool-call hooks, in the format the plugin wrote them.
 
 <TypeTable
   type={{
@@ -658,7 +658,7 @@ PluginWarning is one thing a push noticed but did not refuse.
 
 <TypeTable
   type={{
-    kind: { type: "string", description: "Stable warning kind, e.g. \"component-ignored\", \"member-adopted\", \"model-hint-unresolved\", \"settings-agent-not-applied\", \"sub-agent-name-builtin\", \"sub-agent-not-installed\", \"tool-list-entry-dropped\", \"version-not-taggable\"." },
+    kind: { type: "string", description: "Stable warning kind, e.g. \"component-ignored\", \"hooks-not-run-yet\", \"member-adopted\", \"model-hint-unresolved\", \"settings-agent-not-applied\", \"sub-agent-name-builtin\", \"sub-agent-not-installed\", \"tool-list-entry-dropped\", \"version-not-taggable\"." },
     message: { type: "string", description: "The warning as one user-facing sentence." },
     path: { type: "string", description: "The plugin-relative path the warning points at, when it has one." },
   }}

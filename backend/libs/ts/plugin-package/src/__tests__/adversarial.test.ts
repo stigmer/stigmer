@@ -432,7 +432,7 @@ const WARNING_CASES: Record<PluginWarningKind, Case> = {
   "hook-event-not-run": {
     files: claudePlugin({ hooks: { Stop: [{ hooks: [COMMAND] }] } }),
     kinds: warnings("hook-event-not-run"),
-    message: "hooks in 'hooks/hooks.json' on 'Stop' are not run on Stigmer, which runs hooks on tool calls only",
+    message: "hooks in 'hooks/hooks.json' on 'Stop' are not run on Stigmer, which reads hooks on tool calls only",
   },
   "hook-handler-not-run": {
     files: preToolUse({ hooks: [{ type: "http", url: "https://hooks.example.com/check" }] }),

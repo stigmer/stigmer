@@ -14,8 +14,8 @@ export const file_ai_stigmer_agentic_plugin_v1_hooks: GenFile = /*@__PURE__*/
   fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL2hvb2tzLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxIn8KCkhvb2tDb25maWcSOAoGZm9ybWF0GAEgASgOMiguYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5Ib29rRm9ybWF0EjcKBmdyb3VwcxgCIAMoCzInLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuSG9va0dyb3VwInEKCUhvb2tHcm91cBIWCgVldmVudBgBIAEoCUIHukgEcgIQARIPCgdtYXRjaGVyGAIgASgJEjsKCGhhbmRsZXJzGAMgAygLMikuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5Ib29rSGFuZGxlciJ/CgtIb29rSGFuZGxlchIYCgdjb21tYW5kGAEgASgJQge6SARyAhABEgwKBGFyZ3MYAiADKAkSIAoPdGltZW91dF9zZWNvbmRzGAMgASgFQge6SAQaAigAEhEKCWNvbmRpdGlvbhgEIAEoCRITCgtmYWlsX2Nsb3NlZBgFIAEoCCpeCgpIb29rRm9ybWF0EhsKF0hPT0tfRk9STUFUX1VOU1BFQ0lGSUVEEAASGwoXSE9PS19GT1JNQVRfQ0xBVURFX0NPREUQARIWChJIT09LX0ZPUk1BVF9DVVJTT1IQAmIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
- * HookConfig is the set of a plugin's hooks that run on Stigmer, in the format
- * the plugin wrote them.
+ * HookConfig is a plugin's tool-call hooks, in the format the plugin wrote
+ * them.
  *
  * @generated from message ai.stigmer.agentic.plugin.v1.HookConfig
  */

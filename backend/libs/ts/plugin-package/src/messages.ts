@@ -171,7 +171,7 @@ const WARNING_MESSAGES: Record<PluginWarningKind, Sentence> = {
     `sub-agent ${q(c.subject)}${at(c.path)} has a field ${q(c.detail)} Stigmer does not read, ignored${
       PLUGIN_AGENT_FIELDS_CLAUDE_IGNORES.has(c.detail ?? "") ? "; Claude Code ignores it on a plugin's agents too" : ""
     }`,
-  "hook-event-not-run": (c) => `hooks${at(c.path)} on ${q(c.subject)} are not run on Stigmer, which runs hooks on tool calls only`,
+  "hook-event-not-run": (c) => `hooks${at(c.path)} on ${q(c.subject)} are not run on Stigmer, which reads hooks on tool calls only`,
   "hook-handler-not-run": (c) => `a hook${at(c.path)} on ${q(c.subject)} is not run on Stigmer: ${c.detail ?? "unsupported handler"}`,
   "hook-field-ignored": (c) =>
     `hooks${at(c.path)}${c.subject === undefined ? "" : ` on ${q(c.subject)}`} have a field ${q(c.detail)} Stigmer does not read, ignored`,

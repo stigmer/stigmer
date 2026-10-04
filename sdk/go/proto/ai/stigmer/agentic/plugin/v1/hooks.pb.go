@@ -75,8 +75,8 @@ func (HookFormat) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_plugin_v1_hooks_proto_rawDescGZIP(), []int{0}
 }
 
-// HookConfig is the set of a plugin's hooks that run on Stigmer, in the format
-// the plugin wrote them.
+// HookConfig is a plugin's tool-call hooks, in the format the plugin wrote
+// them.
 type HookConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The format the hooks are written in, which decides their input and answer.

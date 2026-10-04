@@ -99,8 +99,8 @@ type PluginStatus struct {
 	// Warnings the last push recorded: components Stigmer does not carry,
 	// model hints it did not apply, names that shadow built-ins.
 	Warnings []*PluginWarning `protobuf:"bytes,6,rep,name=warnings,proto3" json:"warnings,omitempty"`
-	// The plugin's hooks that run on Stigmer; unset when the plugin carries
-	// none that run.
+	// The plugin's tool-call hooks, as recorded at install; unset when the
+	// plugin carries none.
 	Hooks         *HookConfig `protobuf:"bytes,7,opt,name=hooks,proto3" json:"hooks,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -269,8 +269,8 @@ func (x *PluginMaterialization) GetWorkflows() int32 {
 // PluginWarning is one thing a push noticed but did not refuse.
 type PluginWarning struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stable warning kind, e.g. "component-ignored", "member-adopted",
-	// "model-hint-unresolved", "settings-agent-not-applied",
+	// Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
+	// "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
 	// "sub-agent-name-builtin", "sub-agent-not-installed",
 	// "tool-list-entry-dropped", "version-not-taggable".
 	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`

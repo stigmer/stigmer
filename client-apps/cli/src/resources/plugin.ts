@@ -315,7 +315,11 @@ const HOOK_FORMAT_LABELS = {
   cursor: "Cursor",
 } as const;
 
-/** `Claude Code format: PreToolUse 2, PostToolUse 1`: handlers per event, in first-seen order. */
+/**
+ * `Claude Code format: PreToolUse 2, PostToolUse 1 (recorded, not run yet)`:
+ * handlers per event, in first-seen order. No engine runs a plugin hook
+ * yet, and the line says so wherever it is printed.
+ */
 export function hooksSummary(
   format: string,
   groups: readonly {
@@ -326,7 +330,7 @@ export function hooksSummary(
   const perEvent = new Map<string, number>();
   for (const group of groups)
     perEvent.set(group.event, (perEvent.get(group.event) ?? 0) + group.handlers.length);
-  return `${format} format: ${[...perEvent].map(([event, n]) => `${event} ${n}`).join(", ")}`;
+  return `${format} format: ${[...perEvent].map(([event, n]) => `${event} ${n}`).join(", ")} (recorded, not run yet)`;
 }
 
 function installedHooksSummary(hooks: HookConfig): string {

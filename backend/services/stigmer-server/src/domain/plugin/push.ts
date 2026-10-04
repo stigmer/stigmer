@@ -890,7 +890,7 @@ export function orderForDeletion(members: readonly Member[]): Member[] {
 
 /**
  * FinalizePluginStatus — the install receipt: counts, every warning (the
- * library's and the plan's), the hooks that run, READY.
+ * library's and the plan's), the tool-call hooks recorded, READY.
  */
 export function newFinalizePluginStatusStep(): PipelineStep<PushDesc> {
   return {

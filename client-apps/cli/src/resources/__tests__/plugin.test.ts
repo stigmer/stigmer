@@ -396,7 +396,7 @@ describe("the hooks summary", () => {
     return lines.join("");
   }
 
-  it("counts handlers per event in first-seen order", async () => {
+  it("counts handlers per event in first-seen order and says they are not run yet", async () => {
     const { hooksSummary } = await import("../plugin.js");
     expect(
       hooksSummary("Claude Code", [
@@ -404,7 +404,7 @@ describe("the hooks summary", () => {
         { event: "PostToolUse", handlers: [1] },
         { event: "PreToolUse", handlers: [1] },
       ]),
-    ).toBe("Claude Code format: PreToolUse 3, PostToolUse 1");
+    ).toBe("Claude Code format: PreToolUse 3, PostToolUse 1 (recorded, not run yet)");
   });
 
   it("names the hooks and the main agent a package would install, offline", async () => {
@@ -428,7 +428,7 @@ describe("the hooks summary", () => {
       }),
     );
     expect(text).toContain("Main agent");
-    expect(text).toContain("Claude Code format: PreToolUse 1");
+    expect(text).toContain("Claude Code format: PreToolUse 1 (recorded, not run yet)");
   });
 
   it("names the hooks an install recorded", async () => {
@@ -450,6 +450,6 @@ describe("the hooks summary", () => {
     });
     const text = await human(renderPushOutcome({ plugin, members: [], archiveBytes: 10 }));
     expect(text).toContain("Installed plugin 'guard' (nothing installed)");
-    expect(text).toContain("Cursor format: preToolUse 1, beforeShellExecution 1");
+    expect(text).toContain("Cursor format: preToolUse 1, beforeShellExecution 1 (recorded, not run yet)");
   });
 });

@@ -72,7 +72,7 @@ export type EntryRead =
       readonly subAgents: readonly string[];
       readonly servers: readonly EntryServer[];
       readonly variables: readonly PluginVariable[];
-      /** The events of the hooks an install would run, each once; the ones it would not are in `warnings`. */
+      /** The events of the tool-call hooks an install records, each once; the hooks it does not read are in `warnings`. */
       readonly hookEvents: readonly string[];
       /** Component kinds the reader passes over (commands, rules, ...), one per component. */
       readonly ignored: readonly { readonly kind: string; readonly path: string }[];

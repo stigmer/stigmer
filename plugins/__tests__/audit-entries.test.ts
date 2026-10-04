@@ -1,6 +1,6 @@
 /**
  * Pins what the audit reads from a checked-out tree and how the report names
- * a plugin that is only hooks: the events of the hooks an install would run
+ * a plugin that is only hooks: the events of the tool-call hooks an install records
  * are recorded per entry, and an entry whose hooks Stigmer does not run
  * reads as "nothing (hooks)" in the report, beside what it carries that is
  * not installed, and fails "becomes something" without being told its
@@ -52,7 +52,7 @@ afterAll(() => {
 });
 
 describe("a catalogue of hooks-only plugins", () => {
-  it("records the events of the hooks an install would run, and none for hooks that do not run", () => {
+  it("records the events of the tool-call hooks an install records, and none for hooks it does not read", () => {
     const events = catalogue.entries.map((entry) => [entry.name, entry.read.ok ? entry.read.hookEvents : null]);
     expect(events).toEqual([
       ["loop", []],

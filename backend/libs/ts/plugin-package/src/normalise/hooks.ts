@@ -1,6 +1,6 @@
 /**
- * A plugin's hooks files into the hooks Stigmer runs, in the format the
- * plugin wrote them.
+ * A plugin's hooks files into the tool-call hooks Stigmer reads, in the
+ * format the plugin wrote them.
  *
  * Sources are resolved by `detect.ts`: every vendor manifest's declared
  * `hooks` (a file or an inline object) and `hooks/hooks.json`, each file
@@ -13,8 +13,8 @@
  * inline object is the bare event map; Cursor documents no inline form, so
  * a Cursor inline object is read in its file's shape.
  *
- * Stigmer runs hooks on tool calls only, and only command handlers that
- * can decide a call: `PreToolUse` and `PostToolUse` in Claude Code's
+ * Stigmer reads hooks on tool calls only, and only command handlers that
+ * can decide a call (the installer records them; no engine runs one yet): `PreToolUse` and `PostToolUse` in Claude Code's
  * format, and Cursor's `preToolUse`, `beforeShellExecution`,
  * `beforeMCPExecution`, `postToolUse` and `afterMCPExecution`. Everything
  * else is named, never dropped silently: an event once per file
@@ -78,7 +78,7 @@ const CURSOR_HANDLER_KEYS: ReadonlySet<string> = new Set(["type", "command", "ma
 const FORMAT_NAMES: Readonly<Record<HookFormat, string>> = { "claude-code": "Claude Code's", cursor: "Cursor's" };
 
 export interface HooksResult {
-  /** The hooks that run; absent when none do. */
+  /** The tool-call hooks read; absent when there are none. */
   readonly hooks?: PluginHooks;
   /** `${user_config.KEY}` names the carried handlers reference. */
   readonly references: ReadonlySet<string>;

@@ -75,8 +75,8 @@ export type PluginStatus = Message<"ai.stigmer.agentic.plugin.v1.PluginStatus"> 
   warnings: PluginWarning[];
 
   /**
-   * The plugin's hooks that run on Stigmer; unset when the plugin carries
-   * none that run.
+   * The plugin's tool-call hooks, as recorded at install; unset when the
+   * plugin carries none.
    *
    * @generated from field: ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7;
    */
@@ -140,8 +140,8 @@ export const PluginMaterializationSchema: GenMessage<PluginMaterialization> = /*
  */
 export type PluginWarning = Message<"ai.stigmer.agentic.plugin.v1.PluginWarning"> & {
   /**
-   * Stable warning kind, e.g. "component-ignored", "member-adopted",
-   * "model-hint-unresolved", "settings-agent-not-applied",
+   * Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
+   * "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
    * "sub-agent-name-builtin", "sub-agent-not-installed",
    * "tool-list-entry-dropped", "version-not-taggable".
    *

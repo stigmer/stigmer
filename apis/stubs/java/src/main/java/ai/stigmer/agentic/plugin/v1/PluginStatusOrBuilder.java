@@ -194,8 +194,8 @@ public interface PluginStatusOrBuilder extends
 
   /**
    * <pre>
-   * The plugin's hooks that run on Stigmer; unset when the plugin carries
-   * none that run.
+   * The plugin's tool-call hooks, as recorded at install; unset when the
+   * plugin carries none.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -204,8 +204,8 @@ public interface PluginStatusOrBuilder extends
   boolean hasHooks();
   /**
    * <pre>
-   * The plugin's hooks that run on Stigmer; unset when the plugin carries
-   * none that run.
+   * The plugin's tool-call hooks, as recorded at install; unset when the
+   * plugin carries none.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
@@ -214,8 +214,8 @@ public interface PluginStatusOrBuilder extends
   ai.stigmer.agentic.plugin.v1.HookConfig getHooks();
   /**
    * <pre>
-   * The plugin's hooks that run on Stigmer; unset when the plugin carries
-   * none that run.
+   * The plugin's tool-call hooks, as recorded at install; unset when the
+   * plugin carries none.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>

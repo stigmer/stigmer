@@ -4,15 +4,16 @@ package ai.stigmer.agentic.plugin.v1;
 
 import "buf/validate/validate.proto";
 
-// HookConfig is the set of a plugin's hooks that run on Stigmer, in the format
-// the plugin wrote them.
+// HookConfig is a plugin's tool-call hooks, in the format the plugin wrote
+// them.
 //
 // @internal
 // Derived at push from the plugin's hooks files (hooks/hooks.json and any
 // manifest-declared source) and stored on PluginStatus.hooks. It carries only
-// the events and handlers Stigmer runs; every event, handler type and field it
-// does not run is named in PluginStatus.warnings instead, so a reader needs no
-// table of its own to know what is live. Placeholders such as
+// the events and handlers Stigmer reads (tool-call events, command handlers
+// that can decide a call); every event, handler type and field it does not
+// read is named in PluginStatus.warnings instead, so a reader needs no table
+// of its own. No engine runs them yet. Placeholders such as
 // ${CLAUDE_PLUGIN_ROOT} are kept verbatim; the runner substitutes them when it
 // mounts the plugin.
 message HookConfig {
