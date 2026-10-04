@@ -67,7 +67,7 @@ describe("seedWorkingWorkspace", () => {
 describe("workingAgentSessionSpec", () => {
   it("bootstraps the session on the harness asked for, with the one workspace mounted by host path", () => {
     const spec = workingAgentSessionSpec(
-      { org: "org", agentId: "agt_1", workspace: { name: WORKING_AGENT_WORKSPACE_NAME, path: "/tmp/x/orders-sync" }, mcpServerSlug: "orders-api", skillSlugs: [] },
+      { org: "org", agentRef: { org: "org", slug: "orders-agent" }, workspace: { name: WORKING_AGENT_WORKSPACE_NAME, path: "/tmp/x/orders-sync" }, mcpServerSlug: "orders-api", skillSlugs: [] },
       Harness.CURSOR,
       "harness benchmark",
     );

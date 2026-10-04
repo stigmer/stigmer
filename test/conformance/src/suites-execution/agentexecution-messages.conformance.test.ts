@@ -31,7 +31,7 @@ import { ECHO_TOOL_NAME, FAIL_TOOL_NAME, type FixtureTool, type McpToolFixture }
 import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { requireRegistryRow } from "../harness/model-registry";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import {
   allToolCalls,
   awaitTerminal,
@@ -103,7 +103,7 @@ async function runAgent(opts: {
     makeAgentExecution({
       org,
       name: uniqueName("aex-messages"),
-      agentId: agent.metadata!.id,
+      agentRef: agentRefOf(agent),
       message: opts.message,
       autoApproveAll: true,
       ...(opts.modelName !== undefined ? { executionConfig: { modelName: opts.modelName } } : {}),

@@ -447,7 +447,7 @@ export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = ()
   return { ...agent, ...run };
 }
 
-/** A tool-less agent in the smoke's organization, the fixture the agent line runs. Resolves `{ orgId, agentId }`. */
+/** A tool-less agent in the smoke's organization, the fixture the agent line runs. Resolves `{ orgId, agentId, agentSlug }`. */
 export async function createSmokeAgent(baseUrl, { log = () => {}, org } = {}) {
   const suffix = uniqueSuffix();
   const orgId = await smokeOrganization(baseUrl, `smoke-agent-org-${suffix}`, { org });
@@ -465,7 +465,31 @@ export async function createSmokeAgent(baseUrl, { log = () => {}, org } = {}) {
   const agentId = agent.metadata?.id;
   if (!agentId) throw new Error(`agent create returned no id: ${JSON.stringify(agent)}`);
   log(`agent ${agentId} created`);
-  return { orgId, agentId };
+  return { orgId, agentId, agentSlug: agent.metadata?.slug ?? "" };
+}
+
+/**
+ * The first turn of a new conversation on the agent: a session that names
+ * the agent by reference. A server released before conversations named
+ * their agent refuses that field as unknown JSON and takes the agent's id
+ * instead, so the line answers either: the upgrade rehearsal records its
+ * state on the release it upgrades from with this same line.
+ */
+async function startAgentConversation(baseUrl, { orgId, agentId, agentSlug }) {
+  const create = (target) =>
+    connectJson(baseUrl, "ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create", {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "AgentExecution",
+      metadata: { name: `smoke-aex-${uniqueSuffix()}`, org: orgId },
+      spec: { ...target, message: "Say hello." },
+    });
+  try {
+    return await create({ sessionSpec: { agentRef: { kind: "agent", org: orgId, slug: agentSlug } } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("HTTP 400") || !message.includes("agentRef")) throw error;
+    return create({ agentId });
+  }
 }
 
 /**
@@ -474,18 +498,9 @@ export async function createSmokeAgent(baseUrl, { log = () => {}, org } = {}) {
  * stored this way, which is what shows the stored agent still works. Resolves
  * `{ executionId, reply }`.
  */
-export async function runAgentExecution(baseUrl, { orgId, agentId }, timeoutMs, { expectText, log = () => {} }) {
+export async function runAgentExecution(baseUrl, agent, timeoutMs, { expectText, log = () => {} }) {
   requireExpectText(expectText);
-  const execution = await connectJson(
-    baseUrl,
-    "ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create",
-    {
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentExecution",
-      metadata: { name: `smoke-aex-${uniqueSuffix()}`, org: orgId },
-      spec: { agentId, message: "Say hello." },
-    },
-  );
+  const execution = await startAgentConversation(baseUrl, agent);
   const executionId = execution.metadata?.id;
   if (!executionId) throw new Error(`agent execution create returned no id: ${JSON.stringify(execution)}`);
   log(`agent execution ${executionId} created — awaiting the model's reply...`);
@@ -594,6 +609,7 @@ export async function recordState(baseUrl, timeoutMs, { expectText, log = () => 
     workflowExecutionId: workflow.executionId,
     agentOrgId: agent.orgId,
     agentId: agent.agentId,
+    agentSlug: agent.agentSlug,
     agentExecutionId: agent.executionId,
   };
   const snapshot = await readState(baseUrl, ids);

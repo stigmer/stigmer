@@ -33,12 +33,13 @@ import type { CapturedMcpRequest, McpToolFixture } from "../harness/mcp-server";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitTerminal,
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
+  sessionIdOf,
 } from "../support/agentexecutions";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeHttpMcpServer, type HttpMcpServerOptions } from "../support/mcpservers";
@@ -129,7 +130,7 @@ async function runEchoAndCapture(options: {
     makeAgentExecution({
       org: options.org,
       name: uniqueName("aex-identity"),
-      agentId: agent.metadata!.id,
+      agentRef: agentRefOf(agent),
       autoApproveAll: true,
       ...(options.sessionSpec !== undefined ? { sessionSpec: options.sessionSpec } : {}),
     }),
@@ -145,7 +146,7 @@ async function runEchoAndCapture(options: {
 
   const toolCalls = mcp.capturedRequests().filter((r) => r.method === "tools/call");
   expect(toolCalls.length, "the echo dispatch reaches the fixture as a tools/call").toBeGreaterThan(0);
-  return { toolCalls: [...toolCalls], sessionId: final.spec?.sessionId ?? "" };
+  return { toolCalls: [...toolCalls], sessionId: sessionIdOf(final) };
 }
 
 describe("MCP caller-identity headers (mint → session → execution → headers)", () => {

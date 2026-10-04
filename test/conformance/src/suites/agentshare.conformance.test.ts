@@ -274,13 +274,15 @@ describe("AgentShare conformance — the anonymous resolution lane", () => {
       shareId: share.metadata!.id,
     });
 
-    // The share's organization and slug from the SHARE; display fields from
-    // the AGENT — never the full Agent resource (its spec carries the system
-    // prompt).
+    // The share's organization, slug and agent reference from the SHARE (the
+    // hosted page starts its sessions on exactly that reference); display
+    // fields from the AGENT — never the full Agent resource (its spec
+    // carries the system prompt).
     expect(profile.org).toBe(org);
     expect(profile.slug).toBe(share.metadata?.slug);
     expect(profile.name).toBe(agent.metadata?.name);
-    expect(profile.defaultInstanceId).toBe(agent.status?.defaultInstanceId);
+    expect(profile.agentRef?.slug).toBe(agent.metadata?.slug);
+    expect(profile.agentRef?.org).toBe(share.spec?.agentRef?.org);
   });
 
   it("[rpc:AgentShareQueryController.getSharedProfile] [rpc:PlatformClientTokenController.mintGuestToken] require a share_id of at most 128 characters (InvalidArgument)", async () => {

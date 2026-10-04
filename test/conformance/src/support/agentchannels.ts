@@ -31,6 +31,9 @@ export interface SlackAgentChannelOptions {
   // Explicit agent_ref org, for the cross-org negative; empty means
   // same-org (the platform's relative-reference convention).
   agentRefOrg?: string;
+  // The agent version the channel's conversations pin (agent_ref.version):
+  // a tag or a content hash; empty is the agent's current version.
+  agentRefVersion?: string;
   enabled?: boolean;
   // ChannelApp binding (BYO app). Optional for Slack — absent means the
   // shared platform app.
@@ -60,6 +63,7 @@ export function makeSlackAgentChannel(
         slug: agentSlug,
         kind: ApiResourceKind.agent,
         ...(options.agentRefOrg !== undefined ? { org: options.agentRefOrg } : {}),
+        ...(options.agentRefVersion !== undefined ? { version: options.agentRefVersion } : {}),
       },
       enabled: options.enabled ?? true,
       providerConfig: { case: "slack", value: {} },

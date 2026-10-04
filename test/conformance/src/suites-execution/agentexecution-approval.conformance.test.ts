@@ -67,7 +67,7 @@ import type { McpToolFixture } from "../harness/mcp-server";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { AnthropicMessageBody, MockLlmProxy, ToolUseBlock } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUses } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import {
   allToolCalls,
   awaitPhase,
@@ -107,9 +107,9 @@ afterAll(async () => {
 
 // Provision an agent that uses the HTTP MCP fixture with `echo` gated for
 // approval. The McpServer is created only; the runner connects to it live and
-// the per-agent tool_approval_override is what forces the gate. Returns both ids
-// the tests need.
-async function provisionGatedAgent(org: string): Promise<{ agentId: string; mcpSlug: string }> {
+// the per-agent tool_approval_override is what forces the gate. Returns the agent
+// reference and the server slug the tests need.
+async function provisionGatedAgent(org: string): Promise<{ agentRef: AgentRefInit; mcpSlug: string }> {
   const server = await clients.mcpServerCommand.create(
     makeHttpMcpServer({ org, name: uniqueName("mcp"), url: mcp.url() }),
   );
@@ -129,7 +129,7 @@ async function provisionGatedAgent(org: string): Promise<{ agentId: string; mcpS
     }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  return { agentId: agent.metadata!.id, mcpSlug };
+  return { agentRef: agentRefOf(agent), mcpSlug };
 }
 
 // Run an execution to its approval gate. Scripts the given echo tool_use blocks
@@ -138,7 +138,7 @@ async function provisionGatedAgent(org: string): Promise<{ agentId: string; mcpS
 // execution and its id.
 async function runToGate(
   org: string,
-  agentId: string,
+  agentRef: AgentRefInit,
   blocks: ToolUseBlock[],
   opts: { autoApproveAll?: boolean; turnsBeforeDone?: AnthropicMessageBody[] } = {},
 ): Promise<{ executionId: string; gated: AgentExecution }> {
@@ -149,7 +149,7 @@ async function runToGate(
   mock.enqueue(anthropicText("Done."));
 
   const execution = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ org, name: uniqueName("aex-hitl"), agentId, autoApproveAll: opts.autoApproveAll }),
+    makeAgentExecution({ org, name: uniqueName("aex-hitl"), agentRef, autoApproveAll: opts.autoApproveAll }),
   );
   const executionId = execution.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -177,8 +177,8 @@ function approvalStreamHas(exec: AgentExecution, toolCallId: string, type: Appro
 describe("AgentExecution submitApproval — gate resolution", () => {
   it("[rpc:AgentExecutionCommandController.submitApproval] APPROVE resolves the gate and completes the execution", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentId } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_approve", "hello")]);
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_approve", "hello")]);
 
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
     // The gate is on the ledger before it is decided: the approval-event stream
@@ -227,8 +227,8 @@ describe("AgentExecution submitApproval — gate resolution", () => {
 
   it("[rpc:AgentExecutionCommandController.submitApproval] SKIP resolves the gate and completes the execution", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentId } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_skip", "hello")]);
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_skip", "hello")]);
 
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
     await submitApprovalPerContract({
@@ -248,8 +248,8 @@ describe("AgentExecution submitApproval — gate resolution", () => {
 
   it("[rpc:AgentExecutionCommandController.submitApproval] REJECT resolves the gate; the agent continues to completion", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentId } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_reject", "hello")]);
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_reject", "hello")]);
 
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
     await submitApprovalPerContract({
@@ -286,9 +286,9 @@ describe("AgentExecution submitApproval — gate resolution", () => {
 
   it("[rpc:AgentExecutionCommandController.submitApproval] APPROVE_ALL resolves every co-pending gate in a single decision", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentId } = await provisionGatedAgent(org);
+    const { agentRef } = await provisionGatedAgent(org);
     // Two echo calls in one assistant turn -> two co-pending approvals.
-    const { executionId, gated } = await runToGate(org, agentId, [
+    const { executionId, gated } = await runToGate(org, agentRef, [
       echoBlock("call_echo_all_1", "one"),
       echoBlock("call_echo_all_2", "two"),
     ]);
@@ -320,14 +320,14 @@ describe("AgentExecution submitApproval — gate resolution", () => {
 describe("AgentExecution submitApproval — spec bypass and read model", () => {
   it("auto_approve_all bypasses the gate entirely (no submit needed)", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentId } = await provisionGatedAgent(org);
+    const { agentRef } = await provisionGatedAgent(org);
 
     // Same gated agent, but the execution arms auto_approve_all: the gate never
     // engages even though `echo` has requiresApproval=true.
     mock.enqueue(anthropicToolUses([echoBlock("call_echo_bypass", "hello")]));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-bypass"), agentId, autoApproveAll: true }),
+      makeAgentExecution({ org, name: uniqueName("aex-bypass"), agentRef, autoApproveAll: true }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -340,8 +340,8 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
 
   it("exposes pending-approval details (tool_call_id, tool_name, mcp_server_slug)", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentId, mcpSlug } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_details", "peek")]);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_details", "peek")]);
 
     expect(gated.status?.pendingApprovals.length, "exactly one pending approval").toBe(1);
     const pending = gated.status!.pendingApprovals[0]!;
@@ -368,11 +368,11 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
 
   it("[rpc:AgentExecutionCommandController.submitApproval] is idempotent: re-submitting the same decision before the gate resolves is benign", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentId } = await provisionGatedAgent(org);
+    const { agentRef } = await provisionGatedAgent(org);
     // Two co-pending calls: approving only the first leaves the gate open (the
     // second is still pending), so no resume races the second submit — making the
     // idempotent re-submit deterministic.
-    const { executionId, gated } = await runToGate(org, agentId, [
+    const { executionId, gated } = await runToGate(org, agentRef, [
       echoBlock("call_idem_1", "one"),
       echoBlock("call_idem_2", "two"),
     ]);
@@ -423,10 +423,10 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
 describe("AgentExecution submitApproval — lease, cancel at the gate, durable resume", () => {
   it("[rpc:AgentExecutionCommandController.submitApproval] APPROVE_ALL leases the MCP server: a later turn's tool on the same server is not re-gated", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentId } = await provisionGatedAgent(org);
+    const { agentRef } = await provisionGatedAgent(org);
     // Turn 1 gates on echo; turn 2 is a SECOND echo in its own assistant turn;
     // turn 3 ends the loop. A plain APPROVE at turn 1 would re-gate turn 2.
-    const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_lease_first", "first")], {
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_lease_first", "first")], {
       turnsBeforeDone: [anthropicToolUses([echoBlock("call_lease_second", "second")])],
     });
     expect(gated.status?.pendingApprovals.map((p) => p.toolName)).toEqual([ECHO_TOOL_NAME]);
@@ -465,8 +465,8 @@ describe("AgentExecution submitApproval — lease, cancel at the gate, durable r
     // gets its second turn. A replay would re-emit the tool call under a fresh
     // id and consume the script out of order.
     const { org } = await target.provisionTenancy();
-    const { agentId } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_durable", "durable")]);
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_durable", "durable")]);
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
 
     await submitApprovalPerContract({
@@ -549,8 +549,8 @@ describe("AgentExecution submitApproval — negatives", () => {
 
   it("[rpc:AgentExecutionCommandController.submitApproval] returns InvalidArgument for an unknown tool_call_id on a gated execution", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentId } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_unknown", "hello")]);
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_unknown", "hello")]);
 
     await expectGrpcCode(
       () =>
@@ -580,13 +580,13 @@ describe("AgentExecution submitApproval — negatives", () => {
 
   it("[rpc:AgentExecutionCommandController.submitApproval] returns FailedPrecondition for a submit on a terminal execution", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentId } = await provisionGatedAgent(org);
+    const { agentRef } = await provisionGatedAgent(org);
 
     // Drive a run to COMPLETED via the bypass, then submit against it.
     mock.enqueue(anthropicToolUses([echoBlock("call_echo_terminal", "hello")]));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-terminal"), agentId, autoApproveAll: true }),
+      makeAgentExecution({ org, name: uniqueName("aex-terminal"), agentRef, autoApproveAll: true }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

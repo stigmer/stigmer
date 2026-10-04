@@ -12,6 +12,13 @@
 // keeping them here is what makes the cloud (Java) edition's protovalidate
 // enforcement a gated contract rather than an assumption.
 //
+// Also pinned here, because each refusal comes before the engine gate: a
+// turn reaches its conversation's agent through the session's pin, so a
+// deleted agent, or another agent later created under its slug, answers
+// FAILED_PRECONDITION naming the pinned agent; and a turn's workflow parent
+// link must agree with its lineage label, and is admitted from a
+// trusted-local caller.
+//
 // Positive bootstrap behavior (spec forwarding, resolution precedence,
 // single-source-of-truth clearing) needs a live engine and stays in the
 // execution suite.
@@ -26,7 +33,8 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
-import { makeAgent } from "../support/agents";
+import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentExecution } from "../support/agentexecutions";
 import { makeSession } from "../support/sessions";
 import { collectStream } from "../support/collect-stream";
@@ -47,24 +55,6 @@ afterAll(async () => {
 });
 
 describe("AgentExecution conformance — one-call session bootstrap validation (session_spec)", () => {
-  it("[rpc:AgentExecutionCommandController.create] rejects session_id and session_spec together (InvalidArgument)", async () => {
-    const { org } = await target.provisionTenancy();
-    // Validation fires before any resource resolution, so fake ids suffice.
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.create(
-          makeAgentExecution({
-            org,
-            name: uniqueName("aex-bootstrap-exclusive"),
-            sessionId: "ses_existing",
-            sessionSpec: { agentInstanceId: "ain_1" },
-          }),
-        ),
-      Code.InvalidArgument,
-      "create with both session_id and session_spec",
-    );
-  });
-
   it("[rpc:AgentExecutionCommandController.create] rejects a session_spec carrying harness_state_id (InvalidArgument — server-owned field)", async () => {
     const { org } = await target.provisionTenancy();
     // harness_state_id is engine-owned conversation continuity state; a
@@ -76,7 +66,7 @@ describe("AgentExecution conformance — one-call session bootstrap validation (
           makeAgentExecution({
             org,
             name: uniqueName("aex-bootstrap-hstate"),
-            sessionSpec: { agentInstanceId: "ain_1", harnessStateId: "thread-forged" },
+            sessionSpec: { harnessStateId: "thread-forged" },
           }),
         ),
       Code.InvalidArgument,
@@ -100,7 +90,7 @@ describe("AgentExecution conformance — service-tier fail-closed validation (#3
           makeAgentExecution({
             org,
             name: uniqueName("aex-tier-no-model"),
-            agentId: "agt_fake",
+            agentRef: { org, slug: "fake-agent" },
             executionConfig: { serviceTier: ServiceTier.FAST },
           }),
         ),
@@ -120,7 +110,7 @@ describe("AgentExecution conformance — service-tier fail-closed validation (#3
           makeAgentExecution({
             org,
             name: uniqueName("aex-tier-unpriced"),
-            agentId: "agt_fake",
+            agentRef: { org, slug: "fake-agent" },
             executionConfig: {
               modelName: "claude-haiku-4-5",
               serviceTier: ServiceTier.FAST,
@@ -141,11 +131,10 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
   // runs behind the run gate, so each arm creates a real agent: an
   // enforcing edition would refuse a fake one as PermissionDenied first.
   // Every arm is a refusal, before any side effect, so no execution runs.
-  async function realAgent(org: string): Promise<string> {
-    const agent = await clients.agentCommand.create(
+  async function realAgent(org: string): Promise<Agent> {
+    return clients.agentCommand.create(
       makeAgent({ org, name: uniqueName("agent-thinking"), instructions: "You validate thinking modes." }),
     );
-    return agent.metadata!.id;
   }
 
   async function expectRefused(
@@ -155,7 +144,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
     what: string,
   ): Promise<void> {
     const { org } = await target.provisionTenancy();
-    const agentId = await realAgent(org);
+    const agent = await realAgent(org);
     try {
       await expectGrpcCode(
         () =>
@@ -163,7 +152,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
             makeAgentExecution({
               org,
               name: uniqueName(label),
-              agentId,
+              agentRef: agentRefOf(agent),
               sessionSpec: { harness },
               executionConfig,
             }),
@@ -172,7 +161,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
         what,
       );
     } finally {
-      await clients.agentCommand.delete({ value: agentId });
+      await clients.agentCommand.delete({ value: agent.metadata!.id });
     }
   }
 
@@ -236,7 +225,7 @@ describe("AgentExecution conformance — a turn belongs to its session's organiz
     const home = await target.provisionTenancy();
     const other = await target.provisionTenancy();
     const session = await clients.sessionCommand.create(
-      makeSession({ org: home.org, name: uniqueName("aex-home-session"), agentInstanceId: "" }),
+      makeSession({ org: home.org, name: uniqueName("aex-home-session") }),
     );
     const sessionId = session.metadata!.id;
     try {
@@ -260,6 +249,116 @@ describe("AgentExecution conformance — a turn belongs to its session's organiz
   });
 });
 
+describe("AgentExecution conformance — a turn runs the agent its session pinned", () => {
+  // A session records the agent it runs by id (status.agent_id), and every
+  // turn reaches it by that id, never by slug again. Both refusals come from
+  // ResolveRunAgent, after the session's own run gate and before the engine
+  // gate, so no engine is needed and no execution is created.
+  it("[rpc:AgentExecutionCommandController.create] a turn in a session whose agent was deleted is FailedPrecondition naming the session and the agent", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-gone") }));
+    const session = await clients.sessionCommand.create(
+      makeSession({ org, name: uniqueName("aex-gone-session"), agentRef: agentRefOf(agent) }),
+    );
+    const sessionId = session.metadata!.id;
+    try {
+      await clients.agentCommand.delete({ value: agent.metadata!.id });
+
+      const refused = await expectGrpcCode(
+        () => clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-gone"), sessionId })),
+        Code.FailedPrecondition,
+        "a turn in a session whose agent was deleted",
+      );
+      expect(refused.rawMessage).toBe(
+        `session '${sessionId}' runs agent '${agent.metadata!.id}', which no longer exists; update the session to another agent, or to none for the built-in assistant`,
+      );
+      const listed = await clients.agentExecutionQuery.listBySession({ sessionId });
+      expect(listed.entries, "refused before any side effect").toHaveLength(0);
+    } finally {
+      await clients.sessionCommand.delete({ value: sessionId });
+    }
+  });
+
+  it("[rpc:AgentExecutionCommandController.create] an agent deleted and re-created under the same slug does not take over a live conversation: its next turn fails naming the old agent", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("agent-reborn");
+    const original = await clients.agentCommand.create(makeAgent({ org, name }));
+    const session = await clients.sessionCommand.create(
+      makeSession({ org, name: uniqueName("aex-reborn-session"), agentRef: agentRefOf(original) }),
+    );
+    const sessionId = session.metadata!.id;
+    let reborn: Agent | undefined;
+    try {
+      await clients.agentCommand.delete({ value: original.metadata!.id });
+      reborn = await clients.agentCommand.create(makeAgent({ org, name }));
+      expect(reborn.metadata?.slug, "the slug is taken again").toBe(original.metadata?.slug);
+      expect(reborn.metadata?.id).not.toBe(original.metadata?.id);
+
+      const refused = await expectGrpcCode(
+        () => clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-reborn"), sessionId })),
+        Code.FailedPrecondition,
+        "a turn in a session whose agent's slug now names another agent",
+      );
+      expect(refused.rawMessage).toContain(`runs agent '${original.metadata!.id}', which no longer exists`);
+      const stored = await clients.sessionQuery.get({ value: sessionId });
+      expect(stored.status?.agentId, "the pin still names the agent it resolved").toBe(original.metadata?.id);
+    } finally {
+      await clients.sessionCommand.delete({ value: sessionId });
+      if (reborn !== undefined) {
+        await clients.agentCommand.delete({ value: reborn.metadata!.id });
+      }
+    }
+  });
+});
+
+describe("AgentExecution conformance — the workflow parent link", () => {
+  // spec.parent links a turn to the workflow run that started it. It is
+  // honoured only from that run's runner, the server, or a holder of the
+  // platform's can_write_reserved_labels (open source's trusted-local
+  // posture grants it; an enforcing Authorizer does not — the run-gate
+  // suite pins that refusal on the enforcing lane). The queue the turn
+  // dispatches to is derived from the link; no request field names one.
+  it("[rpc:AgentExecutionCommandController.create] a parent link naming another workflow run than the stigmer.ai/workflow-execution-id label is refused (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    const refused = await expectGrpcCode(
+      () =>
+        clients.agentExecutionCommand.create(
+          makeAgentExecution({
+            org,
+            name: uniqueName("aex-parent-mismatch"),
+            parent: { workflowExecutionId: "wfx_linked" },
+            labels: { "stigmer.ai/workflow-execution-id": "wfx_labelled" },
+          }),
+        ),
+      Code.InvalidArgument,
+      "a parent link whose workflow run differs from the lineage label",
+    );
+    expect(refused.rawMessage).toBe(
+      "parent.workflow_execution_id 'wfx_linked' differs from the stigmer.ai/workflow-execution-id label 'wfx_labelled'; a turn belongs to one workflow run",
+    );
+  });
+
+  it("[rpc:AgentExecutionCommandController.create] a parent link is admitted under the trusted-local posture: the turn passes every check up to the engine gate", async (ctx) => {
+    // Only an engineless target whose primary is trusted-local observes this
+    // boundary: an enforcing primary refuses the link (the run-gate suite),
+    // and a target with an engine runs the turn (the execution suite).
+    if (target.capabilities.enforcingAuthorizer || target.capabilities.scheduleFiring) return ctx.skip();
+    const { org } = await target.provisionTenancy();
+    await expectGrpcCode(
+      () =>
+        clients.agentExecutionCommand.create(
+          makeAgentExecution({
+            org,
+            name: uniqueName("aex-parent-local"),
+            parent: { workflowExecutionId: "wfx_trustedlocal" },
+          }),
+        ),
+      Code.Unavailable,
+      "a parent link under the trusted-local posture reaches the engine gate",
+    );
+  });
+});
+
 describe("AgentExecution conformance — the engine gate", () => {
   it("[rpc:AgentExecutionCommandController.create] create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
     // Only the engineless local CRUD targets observe this boundary —
@@ -268,13 +367,13 @@ describe("AgentExecution conformance — the engine gate", () => {
     // reference before its gate).
     if (target.capabilities.scheduleFiring) return ctx.skip();
     const { org } = await target.provisionTenancy();
-    // agt_fake passes the reference-presence guard; existence is resolved
-    // AFTER the engine gate (default-instance creation), so the refusal
-    // proves the gate itself.
+    // A turn with no target is a conversation with the built-in assistant:
+    // it names no agent, so every check before the engine gate passes and
+    // the refusal proves the gate itself.
     const err = await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.create(
-          makeAgentExecution({ org, name: uniqueName("aex-gate"), agentId: "agt_fake" }),
+          makeAgentExecution({ org, name: uniqueName("aex-gate") }),
         ),
       Code.Unavailable,
       "create with no execution engine behind the server",

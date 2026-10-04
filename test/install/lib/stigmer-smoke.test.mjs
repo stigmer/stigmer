@@ -222,8 +222,15 @@ async function serveConnectLane(routes) {
     }
     const n = (calls.get(procedure) ?? 0) + 1;
     calls.set(procedure, n);
-    response.writeHead(200, { "content-type": "application/json" });
-    response.end(JSON.stringify(route(n)));
+    let raw = "";
+    request.on("data", (chunk) => (raw += chunk));
+    request.on("end", () => {
+      const answer = route(n, raw === "" ? {} : JSON.parse(raw));
+      // A route answers a refusal as { refuse: { status, code, message } }.
+      const refusal = answer?.refuse;
+      response.writeHead(refusal?.status ?? 200, { "content-type": "application/json" });
+      response.end(JSON.stringify(refusal === undefined ? answer : { code: refusal.code, message: refusal.message }));
+    });
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   return {
@@ -243,13 +250,13 @@ const AEX_CREATE = "ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandCo
 const AEX_GET = "ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/get";
 const REPLY = "This is the Stigmer fake model's default reply; no real model was called.";
 
-function agentLane(executionAt) {
+function agentLane(executionAt, aexCreate = () => ({ metadata: { id: "aex_smoke_1" } })) {
   return serveConnectLane({
     // A server that holds several organizations: the line makes its own.
     [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
     [ORG_CREATE]: () => ({ metadata: { id: "org_smoke_1" } }),
-    [AGENT_CREATE]: () => ({ metadata: { id: "agt_smoke_1" } }),
-    [AEX_CREATE]: () => ({ metadata: { id: "aex_smoke_1" } }),
+    [AGENT_CREATE]: () => ({ metadata: { id: "agt_smoke_1", slug: "smoke-agent" } }),
+    [AEX_CREATE]: aexCreate,
     [AEX_GET]: executionAt,
   });
 }
@@ -257,6 +264,55 @@ function agentLane(executionAt) {
 function completedWith(messages) {
   return { metadata: { id: "aex_smoke_1" }, status: { phase: "EXECUTION_COMPLETED", messages } };
 }
+
+test("an agent run starts a conversation on the agent's reference", async () => {
+  const sent = [];
+  const lane = await agentLane(
+    () => completedWith([{ type: "MESSAGE_AI", content: REPLY }]),
+    (_n, body) => {
+      sent.push(body.spec);
+      return { metadata: { id: "aex_smoke_1" } };
+    },
+  );
+  try {
+    await runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY });
+    assert.deepEqual(sent, [
+      {
+        sessionSpec: { agentRef: { kind: "agent", org: "org_smoke_1", slug: "smoke-agent" } },
+        message: "Say hello.",
+      },
+    ]);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("an agent run on a server that predates agent references names the agent by id", async () => {
+  const sent = [];
+  const lane = await agentLane(
+    () => completedWith([{ type: "MESSAGE_AI", content: REPLY }]),
+    (_n, body) => {
+      sent.push(body.spec);
+      return body.spec.sessionSpec === undefined
+        ? { metadata: { id: "aex_smoke_1" } }
+        : {
+            refuse: {
+              status: 400,
+              code: "invalid_argument",
+              message:
+                'cannot decode message ai.stigmer.agentic.session.v1.SessionSpec from JSON: key "agentRef" is unknown',
+            },
+          };
+    },
+  );
+  try {
+    const result = await runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY });
+    assert.equal(result.executionId, "aex_smoke_1");
+    assert.deepEqual(sent[1], { agentId: "agt_smoke_1", message: "Say hello." });
+  } finally {
+    await lane.close();
+  }
+});
 
 test("an agent run passes on the model's reply, and yields the ids an upgrade reads back", async () => {
   const lane = await agentLane((n) =>
@@ -269,7 +325,13 @@ test("an agent run passes on the model's reply, and yields the ids an upgrade re
   );
   try {
     const result = await runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY });
-    assert.deepEqual(result, { orgId: "org_smoke_1", agentId: "agt_smoke_1", executionId: "aex_smoke_1", reply: REPLY });
+    assert.deepEqual(result, {
+      orgId: "org_smoke_1",
+      agentId: "agt_smoke_1",
+      agentSlug: "smoke-agent",
+      executionId: "aex_smoke_1",
+      reply: REPLY,
+    });
     assert.equal(lane.calls(AEX_GET), 2);
   } finally {
     await lane.close();

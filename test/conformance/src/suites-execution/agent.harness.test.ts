@@ -20,8 +20,8 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, MOCK_SESSION_TITLE } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
+import { agentRefOf, makeAgent } from "../support/agents";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/agentexecutions";
 import { pollUntil } from "../support/execution-poll";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -58,7 +58,7 @@ describe("Execution harness smoke — agent text turn", () => {
     mock.enqueue(anthropicText("Hello from the conformance mock."));
 
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-smoke"), agentId: agent.metadata!.id }),
+      makeAgentExecution({ org, name: uniqueName("aex-smoke"), agentRef: agentRefOf(agent) }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -88,7 +88,7 @@ describe("Execution harness smoke — agent text turn", () => {
     // background LLM call that the mock answers out-of-band, and the activity
     // writes the cleaned title over the server's auto-created sentinel. Polled
     // because the titling branch is fire-and-forget and races the agent turn.
-    const sessionId = final.spec?.sessionId ?? "";
+    const sessionId = sessionIdOf(final);
     expect(sessionId, "a completed run carries its auto-created session id").not.toBe("");
     await pollUntil(
       () => clients.sessionQuery.get({ value: sessionId }),

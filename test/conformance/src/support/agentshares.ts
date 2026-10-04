@@ -21,6 +21,9 @@ export interface AgentShareOptions {
   name?: string;
   // Explicit agent_ref org, for cross-org shares; empty means same-org.
   agentRefOrg?: string;
+  // The agent version the share's conversations pin (agent_ref.version): a
+  // tag or a content hash; empty is the agent's current version.
+  agentRefVersion?: string;
   enabled?: boolean;
   // Unspecified deliberately means PUBLIC (the proto's documented default) —
   // set org for the member-gated audience.
@@ -42,6 +45,7 @@ export function makeAgentShare(
         slug: agentSlug,
         kind: ApiResourceKind.agent,
         ...(options.agentRefOrg !== undefined ? { org: options.agentRefOrg } : {}),
+        ...(options.agentRefVersion !== undefined ? { version: options.agentRefVersion } : {}),
       },
       enabled: options.enabled ?? true,
       ...(options.audience !== undefined ? { audience: options.audience } : {}),

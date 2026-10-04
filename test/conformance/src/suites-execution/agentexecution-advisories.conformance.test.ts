@@ -40,7 +40,7 @@ import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import { readTurnShapes, type TurnShape } from "@stigmer/test-support/llm-wire";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
@@ -120,7 +120,7 @@ describe("AgentExecution advisories to the model", () => {
       makeAgentExecution({
         org,
         name: uniqueName("aex-advisory"),
-        agentId: agent.metadata!.id,
+        agentRef: agentRefOf(agent),
         message: "Echo until you are done.",
         autoApproveAll: true,
       }),

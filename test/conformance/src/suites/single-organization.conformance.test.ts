@@ -100,11 +100,10 @@ describe.skipIf(!capabilities.singleOrganization)(
 
     it("[rpc:SessionCommandController.create] a session created with no organization lives in the one", async () => {
       const session = await clients.sessionCommand.create(
-        // "" runs the built-in assistant: no agent fixture needed.
+        // No agent reference runs the built-in assistant: no agent fixture needed.
         makeSession({
           org: NOBODY,
           name: uniqueName("session"),
-          agentInstanceId: "",
         }),
       );
       expect(session.metadata?.org).toBe(theOrganization);

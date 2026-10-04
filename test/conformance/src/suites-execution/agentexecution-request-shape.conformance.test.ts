@@ -93,8 +93,8 @@ import { readAnthropicRequest, readLastUserText, type AnthropicMessageBody, type
 import { requireNativeRow, wireModelIdOf, type ModelRegistryDocument } from "../harness/model-registry";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
-import { BARE_AGENT_INSTRUCTIONS, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
+import { type AgentRefInit, BARE_AGENT_INSTRUCTIONS, agentRefOf, makeAgent } from "../support/agents";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { renderSystemPrompt, renderToolSurface } from "../support/request-shape";
 import { makeSkillArtifact } from "../support/skills";
@@ -134,7 +134,7 @@ const BARE_AGENT_MESSAGE = "Say hello.";
 // for the one arm that reads its last user message.
 async function runAgentTurn(
   org: string,
-  agentId: string,
+  agentRef: AgentRefInit,
   sessionId?: string,
   turn: {
     message?: string;
@@ -150,7 +150,7 @@ async function runAgentTurn(
     makeAgentExecution({
       org,
       name: uniqueName("aex-shape"),
-      ...(sessionId === undefined ? { agentId } : { sessionId }),
+      ...(sessionId === undefined ? { agentRef } : { sessionId }),
       message: turn.message ?? BARE_AGENT_MESSAGE,
       autoApproveAll: true,
       ...(turn.attachments !== undefined ? { attachments: turn.attachments } : {}),
@@ -174,13 +174,13 @@ async function runAgentTurn(
   return { final, request: readAnthropicRequest(body), body };
 }
 
-async function createBareAgent(): Promise<{ org: string; agentId: string }> {
+async function createBareAgent(): Promise<{ org: string; agentRef: AgentRefInit }> {
   const { org } = await target.provisionTenancy();
   const agent = await clients.agentCommand.create(
     makeAgent({ org, name: uniqueName("agent-shape"), instructions: BARE_AGENT_INSTRUCTIONS }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  return { org, agentId: agent.metadata!.id };
+  return { org, agentRef: agentRefOf(agent) };
 }
 
 async function registry(): Promise<ModelRegistryDocument> {
@@ -212,8 +212,8 @@ const THINKING_REQUIRED_MODEL = "claude-fable-5";
 
 describe("AgentExecution request shape — what the native harness sends the model for a bare agent", () => {
   it("the system prompt blocks, as the provider receives them, match the golden", async () => {
-    const { org, agentId } = await createBareAgent();
-    const { request } = await runAgentTurn(org, agentId);
+    const { org, agentRef } = await createBareAgent();
+    const { request } = await runAgentTurn(org, agentRef);
 
     expect(Array.isArray(request.system), "the engine sends the system prompt as an array of blocks, not one string").toBe(
       true,
@@ -224,8 +224,8 @@ describe("AgentExecution request shape — what the native harness sends the mod
   });
 
   it("the tool surface — names, descriptions and schemas in wire order — matches the golden", async () => {
-    const { org, agentId } = await createBareAgent();
-    const { request } = await runAgentTurn(org, agentId);
+    const { org, agentRef } = await createBareAgent();
+    const { request } = await runAgentTurn(org, agentRef);
 
     expect(request.tools?.length ?? 0, "a bare native agent still binds the engine's built-in tools").toBeGreaterThan(0);
     await expect(renderToolSurface(request)).toMatchFileSnapshot(
@@ -234,8 +234,8 @@ describe("AgentExecution request shape — what the native harness sends the mod
   });
 
   it("an unpinned turn sends an explicit disabled, no temperature, and the row's ceiling on a streamed request", async () => {
-    const { org, agentId } = await createBareAgent();
-    const { request } = await runAgentTurn(org, agentId);
+    const { org, agentRef } = await createBareAgent();
+    const { request } = await runAgentTurn(org, agentRef);
     const row = nativeRowOnTheWire(await registry(), request.model);
 
     expect(row.thinkingRequired, "the bare agent's default model may turn thinking off").toBe(false);
@@ -246,12 +246,12 @@ describe("AgentExecution request shape — what the native harness sends the mod
   });
 
   it("a second turn in the same session sends byte-identical system blocks and tools", async () => {
-    const { org, agentId } = await createBareAgent();
-    const first = await runAgentTurn(org, agentId);
-    const sessionId = first.final.spec?.sessionId;
+    const { org, agentRef } = await createBareAgent();
+    const first = await runAgentTurn(org, agentRef);
+    const sessionId = sessionIdOf(first.final);
     expect(sessionId, "the first turn's session is where the second turn runs").toBeTruthy();
 
-    const second = await runAgentTurn(org, agentId, sessionId);
+    const second = await runAgentTurn(org, agentRef, sessionId);
 
     expect(JSON.stringify(second.request.system), "the system prompt is rebuilt to the same bytes").toBe(
       JSON.stringify(first.request.system),
@@ -287,7 +287,7 @@ const CROSS_TURN_MESSAGES = [
   "Define the glossary terms for the team.",
 ] as const;
 
-async function createAgentWithSkills(): Promise<{ org: string; agentId: string }> {
+async function createAgentWithSkills(): Promise<{ org: string; agentRef: AgentRefInit }> {
   const { org } = await target.provisionTenancy();
   const skillRefs: string[] = [];
   for (const skill of CROSS_TURN_SKILLS) {
@@ -299,26 +299,26 @@ async function createAgentWithSkills(): Promise<{ org: string; agentId: string }
     makeAgent({ org, name: uniqueName("agent-shape-skills"), instructions: BARE_AGENT_INSTRUCTIONS, skillRefs }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  return { org, agentId: agent.metadata!.id };
+  return { org, agentRef: agentRefOf(agent) };
 }
 
 describe("AgentExecution request shape — the system prompt is the session's, the payload the turn's", () => {
   it("nine skills, three turns with different messages, an attachment and a referenced file: system and tools stay byte-identical", async () => {
-    const { org, agentId } = await createAgentWithSkills();
+    const { org, agentRef } = await createAgentWithSkills();
     const filename = "cross-turn-notes.txt";
     const uploaded = await clients.agentExecutionCommand.uploadAttachment(
       create(UploadAttachmentRequestSchema, { filename, content: Buffer.from("cross-turn attachment"), contentType: "text/plain" }),
     );
     const referenced = "docs/glossary.md";
 
-    const first = await runAgentTurn(org, agentId, undefined, { message: CROSS_TURN_MESSAGES[0] });
-    const sessionId = first.final.spec?.sessionId;
+    const first = await runAgentTurn(org, agentRef, undefined, { message: CROSS_TURN_MESSAGES[0] });
+    const sessionId = sessionIdOf(first.final);
     expect(sessionId, "the first turn's session is where the later turns run").toBeTruthy();
-    const second = await runAgentTurn(org, agentId, sessionId, {
+    const second = await runAgentTurn(org, agentRef, sessionId, {
       message: CROSS_TURN_MESSAGES[1],
       attachments: [{ filename, storageKey: uploaded.storageKey }],
     });
-    const third = await runAgentTurn(org, agentId, sessionId, { message: CROSS_TURN_MESSAGES[2], workspaceFileRefs: [referenced] });
+    const third = await runAgentTurn(org, agentRef, sessionId, { message: CROSS_TURN_MESSAGES[2], workspaceFileRefs: [referenced] });
 
     for (const [turn, later] of [[2, second], [3, third]] as const) {
       expect(JSON.stringify(later.request.system), `turn ${turn} rebuilds the system prompt to turn 1's bytes`).toBe(
@@ -343,9 +343,9 @@ describe("AgentExecution request shape — thinking, per the model's native regi
   it("ENABLED on an adaptive row sends adaptive thinking with summarized display, and drops the think tool", async () => {
     const row = requireNativeRow(await registry(), ADAPTIVE_MODEL);
     expect(row.thinkingForm, `${ADAPTIVE_MODEL} is the adaptive row this arm pins`).toBe("adaptive");
-    const { org, agentId } = await createBareAgent();
+    const { org, agentRef } = await createBareAgent();
 
-    const { request } = await runAgentTurn(org, agentId, undefined, {
+    const { request } = await runAgentTurn(org, agentRef, undefined, {
       executionConfig: { modelName: ADAPTIVE_MODEL, thinkingMode: ThinkingMode.ENABLED },
     });
 
@@ -357,9 +357,9 @@ describe("AgentExecution request shape — thinking, per the model's native regi
   it("ENABLED on a budget row sends the fixed budget below the row's ceiling", async () => {
     const row = requireNativeRow(await registry(), BUDGET_MODEL);
     expect(row.thinkingForm, `${BUDGET_MODEL} is the budget row this arm pins`).toBe("budget");
-    const { org, agentId } = await createBareAgent();
+    const { org, agentRef } = await createBareAgent();
 
-    const { request } = await runAgentTurn(org, agentId, undefined, {
+    const { request } = await runAgentTurn(org, agentRef, undefined, {
       executionConfig: { modelName: BUDGET_MODEL, thinkingMode: ThinkingMode.ENABLED },
     });
 
@@ -369,9 +369,9 @@ describe("AgentExecution request shape — thinking, per the model's native regi
   });
 
   it("DISABLED binds the think tool: a graph that does not think keeps its reasoning aid", async () => {
-    const { org, agentId } = await createBareAgent();
+    const { org, agentRef } = await createBareAgent();
 
-    const { request } = await runAgentTurn(org, agentId, undefined, {
+    const { request } = await runAgentTurn(org, agentRef, undefined, {
       executionConfig: { modelName: ADAPTIVE_MODEL, thinkingMode: ThinkingMode.DISABLED },
     });
 
@@ -382,9 +382,9 @@ describe("AgentExecution request shape — thinking, per the model's native regi
   it("a model that requires thinking gets its thinking form when the execution names no mode", async () => {
     const row = requireNativeRow(await registry(), THINKING_REQUIRED_MODEL);
     expect(row.thinkingRequired, `${THINKING_REQUIRED_MODEL} is the row that requires thinking`).toBe(true);
-    const { org, agentId } = await createBareAgent();
+    const { org, agentRef } = await createBareAgent();
 
-    const { request } = await runAgentTurn(org, agentId, undefined, {
+    const { request } = await runAgentTurn(org, agentRef, undefined, {
       executionConfig: { modelName: THINKING_REQUIRED_MODEL },
     });
 
@@ -393,10 +393,10 @@ describe("AgentExecution request shape — thinking, per the model's native regi
   });
 
   it("structured output under thinking rides the provider's JSON output with closed objects, forcing no tool", async () => {
-    const { org, agentId } = await createBareAgent();
+    const { org, agentRef } = await createBareAgent();
     const answer = { summary: "hello", score: 1 };
 
-    const { final, request } = await runAgentTurn(org, agentId, undefined, {
+    const { final, request } = await runAgentTurn(org, agentRef, undefined, {
       executionConfig: {
         modelName: ADAPTIVE_MODEL,
         thinkingMode: ThinkingMode.ENABLED,

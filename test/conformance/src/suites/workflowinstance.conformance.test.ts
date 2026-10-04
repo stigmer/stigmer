@@ -486,8 +486,7 @@ describe("WorkflowInstance conformance — negative paths", () => {
 
   it("[rpc:WorkflowInstanceCommandController.create] rejects an unknown workflow_id (contract: NotFound from parent load)", async () => {
     // The parent template must exist: create runs LoadParentWorkflow before
-    // persisting. (AgentInstance converged on the same posture with
-    // stigmer#645 — its suite pins the agent-side twin.)
+    // persisting.
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>

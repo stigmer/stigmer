@@ -32,7 +32,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { CLOUD_ENV, mintCloudUserToken } from "../harness/cloud-env";
 import { FixtureTracker } from "../harness/fixtures";
 import { anthropicText, openAiText } from "@stigmer/test-support/llm-wire";
-import { makeAgent } from "../support/agents";
+import { makeAgent, agentRefOf } from "../support/agents";
 import { makeAgentExecution } from "../support/agentexecutions";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
 import { bidiHandshake, HTTP2_REFUSED_STREAM } from "../support/cursor-bidi";
@@ -75,7 +75,7 @@ async function ownedExecution(org: string): Promise<string> {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("proxy-agent") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
   const execution = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ org, name: uniqueName("proxy-exec"), agentId: agent.metadata!.id }),
+    makeAgentExecution({ org, name: uniqueName("proxy-exec"), agentRef: agentRefOf(agent) }),
   );
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
   return execution.metadata!.id;
@@ -84,8 +84,7 @@ async function ownedExecution(org: string): Promise<string> {
 async function ownedSession(org: string): Promise<string> {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("ckpt-agent") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  const instanceId = agent.status?.defaultInstanceId ?? "";
-  const session = await clients.sessionCommand.create(makeSession({ org, name: uniqueName("ckpt-session"), agentInstanceId: instanceId }));
+  const session = await clients.sessionCommand.create(makeSession({ org, name: uniqueName("ckpt-session"), agentRef: agentRefOf(agent) }));
   fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
   return session.metadata!.id;
 }

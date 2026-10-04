@@ -62,8 +62,8 @@ export interface EnvironmentRefInit {
 }
 
 // Projects environment references into the proto ApiResourceReference init shape,
-// fixing kind to environment (the CEL constraint on WorkflowInstanceSpec /
-// AgentInstanceSpec environment_refs). Shared by both instance builders.
+// fixing kind to environment (the CEL constraint on environment_refs, e.g.
+// WorkflowInstanceSpec's).
 export function makeEnvironmentRefs(
   refs: EnvironmentRefInit[],
 ): InitShape<typeof ApiResourceReferenceSchema>[] {

@@ -27,7 +27,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
 import { anthropicText, anthropicToolUses, type MockLlmProxy } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { awaitPhase, awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture, submitApprovalPerContract } from "../support/agentexecutions";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
@@ -136,13 +136,13 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     return after;
   }
 
-  async function provisionAgent(org: string): Promise<string> {
+  async function provisionAgent(org: string): Promise<AgentRefInit> {
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    return agent.metadata!.id;
+    return agentRefOf(agent);
   }
 
-  async function provisionGatedAgent(org: string): Promise<string> {
+  async function provisionGatedAgent(org: string): Promise<AgentRefInit> {
     const server = await clients.mcpServerCommand.create(makeHttpMcpServer({ org, name: uniqueName("mcp"), url: mcp.url() }));
     fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
     const agent = await clients.agentCommand.create(
@@ -153,16 +153,16 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
       }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    return agent.metadata!.id;
+    return agentRefOf(agent);
   }
 
   it("[billing.gate.reserve.funded-execution-holds-then-settles] a completed run settles its reservation — nothing stays held and the balance reflects the run", async () => {
     const { org } = await fundedOrg();
-    const agentId = await provisionAgent(org);
+    const agentRef = await provisionAgent(org);
     const before = await balance(org);
 
     mock.enqueue(anthropicText("Done.", { inputTokens: 100, outputTokens: 20 }));
-    const created = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-settle"), agentId }));
+    const created = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-settle"), agentRef }));
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
 
     const final = await awaitTerminal(clients, created.metadata!.id);
@@ -174,11 +174,11 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
 
   it("[billing.gate.approval-signal.stop-refuses-approval] once the org is drained, acting on a pending approval is refused with the STOP copy; refunding clears it", async () => {
     const { org } = await fundedOrg();
-    const agentId = await provisionGatedAgent(org);
+    const agentRef = await provisionGatedAgent(org);
 
     mock.enqueue(anthropicToolUses([{ toolCallId: "call_gate", toolName: ECHO_TOOL_NAME, toolInput: { text: "hi" } }]));
     mock.enqueue(anthropicText("Done."));
-    const created = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-gate"), agentId }));
+    const created = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-gate"), agentRef }));
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
     const gated = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, { label: "WAITING_FOR_APPROVAL" });
@@ -205,11 +205,11 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
 
   it("[billing.gate.rearm.recover-refused-when-unfunded] recovering a failed run is refused with the re-arm copy while unfunded, and re-arms once funded", async () => {
     const { org } = await fundedOrg();
-    const agentId = await provisionAgent(org);
+    const agentRef = await provisionAgent(org);
 
     mock.enqueueError(400);
     mock.enqueue(anthropicText("Recovered."));
-    const created = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-rearm"), agentId }));
+    const created = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-rearm"), agentRef }));
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
     await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
