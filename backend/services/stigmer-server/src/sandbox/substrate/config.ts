@@ -9,8 +9,11 @@
  * Every endpoint and credential is configuration, never a constant: the
  * Control API's address, its CA and server name, and the bearer token's
  * file (a projected ServiceAccount token in a cluster, a token minted for
- * Substrate's `ate-client` account elsewhere). A missing required value is
- * one boot throw naming the variable.
+ * Substrate's `ate-client` account elsewhere); the router's address, and
+ * its CA and server name when it is reached over https://. A missing
+ * required value is one boot throw naming the variable, and so is a router
+ * CA or server name given for an http:// router, where it would do
+ * nothing.
  *
  * The idle windows default to a pause after 5 idle minutes and a suspend
  * to storage at 5.5, chosen from measurements on a local Agent Substrate
@@ -46,8 +49,24 @@ export interface SubstrateDriverSettings {
   readonly apiCaFile: string;
   /** File holding the bearer token, re-read when it changes (a projected token rotates). */
   readonly apiTokenFile: string;
-  /** Substrate's router as this server reaches it, `http(s)://host[:port]`. */
+  /**
+   * Substrate's router as this server reaches it, `http(s)://host[:port]`
+   * (in a cluster, `https://atenet-router.ate-system.svc`). The attach push
+   * carries the runner's secrets, so over http:// they cross the cluster
+   * in cleartext.
+   */
   readonly routerUrl: string;
+  /**
+   * PEM file of the CA the router's certificate chains to, re-read when it
+   * changes; "" uses the system roots. Only for an https:// router.
+   */
+  readonly routerCaFile: string;
+  /**
+   * The name the router's certificate is checked against; "" uses the
+   * URL's host. Only for an https:// router; needed when the router is
+   * reached by another name than its certificate's (a port-forward).
+   */
+  readonly routerServerName: string;
   /** The atespace this server's actors and templates live in; the server owns it. */
   readonly atespace: string;
   /** The base object-storage prefix the template's snapshots are written under. */
@@ -104,6 +123,20 @@ export function newSubstrateSettingsFromEnv(
       `${PREFIX}ROUTER_URL must be an http:// or https:// URL; got ${routerUrl}`,
     );
   }
+  const routerCaFile = optional("ROUTER_CA_FILE", "");
+  const routerServerName = optional("ROUTER_SERVER_NAME", "");
+  if (!routerUrl.startsWith("https://")) {
+    for (const [name, value] of [
+      ["ROUTER_CA_FILE", routerCaFile],
+      ["ROUTER_SERVER_NAME", routerServerName],
+    ] as const) {
+      if (value !== "") {
+        throw new Error(
+          `${PREFIX}${name} applies only to an https:// router; ${PREFIX}ROUTER_URL is ${routerUrl}`,
+        );
+      }
+    }
+  }
   const httpsEgress = optional("EGRESS_HTTPS", "all");
   if (httpsEgress !== "all" && httpsEgress !== "none") {
     throw new Error(
@@ -117,6 +150,8 @@ export function newSubstrateSettingsFromEnv(
     apiCaFile: optional("API_CA_FILE", ""),
     apiTokenFile: required("API_TOKEN_FILE"),
     routerUrl: withoutTrailingSlashes(routerUrl),
+    routerCaFile,
+    routerServerName,
     atespace: required("ATESPACE"),
     storageLocation: required("STORAGE_LOCATION"),
     workerSelector: parseSelector(required("WORKER_SELECTOR")),

@@ -3,7 +3,9 @@
  * built-in factory reads its own settings, refuses an unusable
  * configuration, and exposes the idle sweep as the provisioner's
  * background work, which starts and stops; newSubstrateSandboxDriver gives
- * a composition the provisioner and the lifecycle without starting it.
+ * a composition the provisioner and the lifecycle without starting it,
+ * warns once when the router is reached over http://, and refuses a router
+ * CA it cannot read.
  */
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -101,5 +103,51 @@ describe("newSubstrateSandboxDriver", () => {
       "startIdleSweep",
     ]);
     expect(driver.provisioner.startBackground).toBeUndefined();
+  });
+
+  it("warns once that an http:// router carries the push's secrets in cleartext, and is silent for an https:// one", () => {
+    const warnings: string[] = [];
+    const logger = createLogger({
+      level: "warn",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => warnings.push(entry.message),
+    });
+    newSubstrateSandboxDriver({
+      config,
+      settings: newSubstrateSettingsFromEnv(env),
+      logger,
+    });
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/http:\/\/.*cleartext/);
+    expect(warnings[0]).toContain("STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE");
+    expect(warnings[0]).toContain(
+      "STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME",
+    );
+
+    warnings.length = 0;
+    newSubstrateSandboxDriver({
+      config,
+      settings: newSubstrateSettingsFromEnv({
+        ...env,
+        STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL: "https://router.example",
+      }),
+      logger,
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it("refuses a router CA file it cannot read before it dials anything", () => {
+    expect(() =>
+      newSubstrateSandboxDriver({
+        config,
+        settings: newSubstrateSettingsFromEnv({
+          ...env,
+          STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL: "https://router.example",
+          STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE: path.join(dir, "absent"),
+        }),
+        logger: silentLogger,
+      }),
+    ).toThrow(/STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE/);
   });
 });
