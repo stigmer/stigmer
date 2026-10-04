@@ -401,7 +401,17 @@ What the driver needs:
   `STIGMER_SANDBOX_SUBSTRATE_API_TOKEN_FILE`, and reads the file again when it
   changes, so a projected ServiceAccount token can rotate.
 - **Its router**: `STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL`, the address the server
-  pushes each Session's queue and credentials through.
+  pushes each Session's queue and credentials through. In the cluster, use
+  `https://atenet-router.ate-system.svc` with
+  `STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE` set to the cluster's servicedns
+  trust bundle, the same CA the Control API's certificate chains to. The server
+  reads that file again when it changes, so the CA can rotate under it. The
+  router's certificate names only `atenet-router.ate-system.svc`, so when you
+  reach the router another way, through a port-forward for instance, set
+  `STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME` to that name. An `http://`
+  router works too, as a port-forward to its port 80, but the push then carries
+  the Session's token and the runner's secrets, model keys among them, across
+  the cluster in cleartext, and the server logs a warning at boot.
 - **Where actors live**: an atespace the server owns
   (`STIGMER_SANDBOX_SUBSTRATE_ATESPACE`; the server creates it), the labels of
   the WorkerPool they run on (`STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR`, as
@@ -413,13 +423,17 @@ What the driver needs:
   egress rules name hosts, and Substrate's gateway resolves a short name among
   its own services.
 - **Cleartext lanes inside the cluster.** The runner reaches the server and
-  Temporal in cleartext: an `http://` backend endpoint (and MCP endpoint, when
-  you set one), and none of the server's `STIGMER_TEMPORAL_*` connection
-  settings (TLS, an API key, certificates). Substrate's gateway can carry TLS
-  only by decrypting it, which breaks a Temporal client certificate or a pinned
-  CA, and Substrate v0.3.0 doesn't yet serve its rule for passing TLS through
-  untouched. The server refuses to boot otherwise; these lanes can use TLS once
-  Substrate serves that rule.
+  Temporal in cleartext: an `http://` backend endpoint, and none of the server's
+  `STIGMER_TEMPORAL_*` connection settings (TLS, an API key, certificates).
+  Substrate's gateway can carry TLS only by decrypting it, which breaks a
+  Temporal client certificate or a pinned CA, and Substrate v0.3.0 doesn't yet
+  serve its rule for passing TLS through untouched. The server refuses to boot
+  otherwise; these lanes can use TLS once Substrate serves that rule. The public
+  MCP endpoint (`STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT`) isn't one of these lanes:
+  an `http://` one gets its own rule, and an `https://` one, a public address
+  such as your server's, is reached like any HTTPS site, so only while HTTPS
+  egress is on. With HTTPS egress off, the server logs a warning at boot that no
+  sandbox can reach it.
 
 What an Agent can reach: the server's endpoints, any extra cleartext `host:port`
 you list in `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTP`, and HTTPS to any name

@@ -3,14 +3,21 @@
  * reach. Substrate denies everything a policy does not allow, and an
  * actor without a policy reaches nothing.
  *
- * Allowed: the lanes the runner needs (this server's backend endpoint,
- * Temporal, and this server's public MCP address, which stdio MCP
- * servers inside the sandbox may dial), each as a cleartext rule; the
- * operator's extra cleartext destinations; and, unless HTTPS egress is off,
- * HTTPS to every name (`"*"`), intercepted by Substrate's egress gateway,
- * so an agent can fetch from the web while every tool trusts the gateway's
- * CA (template.ts). Nothing else: no SSH, no database protocol, no HTTP/3,
- * no TLS that is not HTTP.
+ * Allowed: the lanes the runner needs (this server's backend endpoint and
+ * Temporal), each as a cleartext rule; this server's public MCP address,
+ * which stdio MCP servers inside the sandbox may dial, as a cleartext rule
+ * when it is http://; the operator's extra cleartext destinations; and,
+ * unless HTTPS egress is off, HTTPS to every name (`"*"`), intercepted by
+ * Substrate's egress gateway, so an agent can fetch from the web while
+ * every tool trusts the gateway's CA (template.ts). Nothing else: no SSH,
+ * no database protocol, no HTTP/3, no TLS that is not HTTP.
+ *
+ * An https:// public MCP address adds no rule. It is not a runner lane:
+ * the runner hands it to MCP servers, and a stdio one that dials it does
+ * so as any HTTPS client inside the sandbox. With HTTPS egress on, the
+ * wildcard and the gateway's CA carry it like any public site (a hosted
+ * server's address is one, `https://api.stigmer.ai`); with it off, it is
+ * unreachable from the sandbox, as every HTTPS name is.
  *
  * A runner lane over TLS is a boot throw. Substrate's gateway can carry
  * TLS only by intercepting it: its `tls_passthrough` rule, which would
@@ -72,19 +79,20 @@ export function buildEgressRules(
   config: SandboxDriverConfig,
   settings: SubstrateDriverSettings,
 ): EgressRule[] {
+  const mcpPublic =
+    config.mcpPublicEndpoint !== ""
+      ? urlDestination(
+          config.mcpPublicEndpoint,
+          "STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT",
+        )
+      : undefined;
   const destinations: Destination[] = [
     urlDestination(config.backendEndpoint, "STIGMER_SANDBOX_BACKEND_ENDPOINT"),
     // Temporal's TLS is its connection settings', which the driver
     // refuses (driver.ts); its address is plain host:port.
     urlDestination(config.temporalAddress, "STIGMER_SANDBOX_TEMPORAL_ADDRESS"),
-    ...(config.mcpPublicEndpoint !== ""
-      ? [
-          urlDestination(
-            config.mcpPublicEndpoint,
-            "STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT",
-          ),
-        ]
-      : []),
+    // An https:// one rides the HTTPS rule, or nothing (module header).
+    ...(mcpPublic !== undefined && !mcpPublic.tls ? [mcpPublic] : []),
     ...settings.extraHttpEgress.map((d) => ({
       ...d,
       tls: false,
