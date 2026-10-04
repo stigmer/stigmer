@@ -114,6 +114,7 @@
  */
 
 import { SALIENT_ARG_FIELDS, getBuiltInGatedCategories } from "./approval-policy.js";
+import { normalizeSubAgentType } from "../../shared/tool-lists.js";
 import { CURSOR_HOOK_MCP_PREFIX, ENGINE_EXTRA_SCOPE_KEY, SCOPE_KEY_PREFIX, TOOL_NAME_PLACEHOLDER } from "./hook-scope.js";
 import {
   EDIT_OLD_FIELDS,
@@ -246,8 +247,10 @@ function buildContentDigestScript(): string {
  *    boundary can write the very words the model read onto the refused row.
  * An excluded `Read` is let through under `readRoots` (the `.stigmer/`
  * route), its path resolved against the payload's `cwd`, else the baked
- * workspace root (`process.argv[2]`). Expects `t`, `name`, `a`, `s`, `b`,
- * `ev` and `srv` in scope.
+ * workspace root (`process.argv[2]`). A `subagentStart` type is normalized
+ * by the source of `normalizeSubAgentType` itself, embedded, so the hook
+ * and the resolver share one rule. Expects `t`, `name`, `a`, `s`, `b`, `ev`
+ * and `srv` in scope.
  */
 function buildScopeEvalScript(): string {
   const placeholder = JSON.stringify(TOOL_NAME_PLACEHOLDER);
@@ -264,7 +267,7 @@ function buildScopeEvalScript(): string {
     `let ok=true,label=name,key=name;`,
     `if(ev==="subagentStart"){`,
     `const ty=typeof t.subagent_type==="string"?t.subagent_type:"";`,
-    `const lt=ty.toLowerCase();`,
+    `const lt=(${normalizeSubAgentType.toString()})(ty);`,
     `ok=own(sc.subAgentTypes.types,lt)?sc.subAgentTypes.types[lt]===true:sc.subAgentTypes.otherTypes===true;`,
     `label="Agent("+ty+")";`,
     `key=own(sc.builtins,"Task")?sc.builtins.Task.key:"Task";`,

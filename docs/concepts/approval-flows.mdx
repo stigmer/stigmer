@@ -39,6 +39,11 @@ Nothing else asks. Stigmer reads the annotation when you connect the
 [MCP Server](/docs/concepts/tools), so the server's author decides which of its
 tools are destructive. A server that annotates nothing never asks.
 
+Stigmer records the annotations each time a server connects, and reads them from
+that record. Connect a server again after its author changes them. A server
+connected before Stigmer recorded annotations asks for nothing until it is
+connected again, so connect each existing server once after upgrading.
+
 ## Keeping an Agent away from a tool
 
 To stop an [Agent](/docs/concepts/agents) from using a tool at all, rather than

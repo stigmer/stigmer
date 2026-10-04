@@ -42,7 +42,7 @@ const UNRESTRICTED = ToolScope.unrestricted();
 const SCOPE_BASE: SubagentScopeBase = {
   serverToolMap: new Map(),
   platformServerSlugs: new Set(),
-  confinedReadRoots: ["/.stigmer/"],
+  admitsConfinedRead: async () => false,
 };
 
 function mockTool(name: string): StructuredTool {

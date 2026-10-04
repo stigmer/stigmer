@@ -46,6 +46,8 @@
  * run in the workspace and resolve `.stigmer/…` through it.
  */
 
+import { lstat, realpath } from "node:fs/promises";
+import { join, posix, sep } from "node:path";
 import { CompositeBackend, FilesystemBackend } from "deepagents";
 import type {
   AnyBackendProtocol,
@@ -80,23 +82,50 @@ export const DEEPAGENTS_OFFLOAD_ROOT = "/large_tool_results/";
  */
 export const DEEPAGENTS_HISTORY_ROOT = "/conversation_history/";
 
+/** The offload roots: deepagents' own outputs, written through the workspace backend. */
+const OFFLOAD_ROOTS: readonly string[] = [DEEPAGENTS_OFFLOAD_ROOT, DEEPAGENTS_HISTORY_ROOT];
+
 /**
  * What `read_file` may still read when an agent's tool lists exclude `Read`
  * (`middleware/tool-scope.ts`): the platform's own content and what deepagents
  * offloads from the agent's own turn, never the rest of the workspace.
  *
- * The two offload roots resolve through the workspace backend, so deepagents
- * writes them as top-level `large_tool_results/` and `conversation_history/`
- * directories of the workspace, and a repository's own directory of either
- * name is readable too: the confinement is by path, and an offloaded file and
- * a repository file there are the same path. Routing the offloads elsewhere
- * would close it, at the cost of moving what file review sees.
+ * The `.stigmer/` route is its own backend (above), so a path under it is
+ * admitted by prefix. The two offload roots resolve through the workspace
+ * backend, which follows in-root symlinks, so deepagents writes them as
+ * top-level `large_tool_results/` and `conversation_history/` directories of
+ * the workspace and a prefix alone would not confine anything: a repository
+ * shipping `large_tool_results -> .`, or a link inside it pointing out, would
+ * expose the workspace. An offload path is admitted only when the offload
+ * directory is a real directory (not a symlink) and the file's real path
+ * lies inside that directory's real path. A repository's own real directory
+ * of either name stays readable: an offloaded file and a repository file
+ * there are the same path. Routing the offloads elsewhere would close that,
+ * at the cost of moving what file review sees.
+ *
+ * Built where the workspace root is known (`turn-setup.ts`, handed on to
+ * every sub-agent); the canonical virtual path is what the tool sees after
+ * path normalization.
  */
-export const NATIVE_CONFINED_READ_ROOTS: readonly string[] = [
-  PLATFORM_ROUTE_PREFIX,
-  DEEPAGENTS_OFFLOAD_ROOT,
-  DEEPAGENTS_HISTORY_ROOT,
-];
+export function confinedReadAdmission(workspaceDir: string): (virtualPath: string) => Promise<boolean> {
+  return async (virtualPath) => {
+    if (!virtualPath.startsWith("/")) return false;
+    const normalized = posix.normalize(virtualPath);
+    if (normalized.startsWith(PLATFORM_ROUTE_PREFIX)) return true;
+    const root = OFFLOAD_ROOTS.find((r) => normalized.startsWith(r));
+    if (root === undefined) return false;
+    // No trailing slash: `lstat` of `dir/` follows a symlinked `dir`.
+    const rootDir = join(workspaceDir, root.slice(0, -1));
+    try {
+      const stat = await lstat(rootDir);
+      if (stat.isSymbolicLink() || !stat.isDirectory()) return false;
+      const [realRoot, realTarget] = await Promise.all([realpath(rootDir), realpath(join(workspaceDir, normalized))]);
+      return realTarget.startsWith(realRoot + sep);
+    } catch {
+      return false;
+    }
+  };
+}
 
 /** The path as the agent named it: the route hands its backend the path with the prefix stripped. */
 function agentPath(routedPath: string): string {

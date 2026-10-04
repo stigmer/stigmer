@@ -20,6 +20,7 @@ import {
   NATIVE_TOOL_COVERS,
   ToolListResolutionError,
   ToolScope,
+  normalizeSubAgentType,
   checkToolListResolution,
   claudeToolsOf,
   cursorSdkToolOptions,
@@ -65,11 +66,14 @@ describe("parseToolListEntry", () => {
     expect(scopeOf(["Task"]).allowsClaudeTool("Agent")).toBe(true);
   });
 
-  it("parses Agent's type list, trimmed and lower-cased", () => {
+  it("parses Agent's type list, trimmed and normalized", () => {
     expect(parseToolListEntry("Agent(Explore, Shell)")).toMatchObject({
       kind: "builtin",
       tool: "Agent",
       agentTypes: ["explore", "shell"],
+    });
+    expect(parseToolListEntry("Agent(general-purpose, code_reviewer)")).toMatchObject({
+      agentTypes: ["generalpurpose", "codereviewer"],
     });
   });
 
@@ -195,6 +199,27 @@ describe("Agent(type, …)", () => {
     expect(scope.allowsSubAgentType("EXPLORE")).toBe(true);
     expect(scope.allowsSubAgentType("Reviewer")).toBe(true);
     expect(scope.allowsSubAgentType("general-purpose")).toBe(false);
+  });
+
+  it("one built-in type spelled two ways by the two engines is one type", () => {
+    const scope = scopeOf(["Read", "Agent(general-purpose)"]);
+    for (const spelling of ["general-purpose", "generalPurpose", "general_purpose", "GeneralPurpose"]) {
+      expect(scope.allowsSubAgentType(spelling), spelling).toBe(true);
+    }
+    expect(scopeOf(["Agent(generalPurpose)"]).allowsSubAgentType("general-purpose")).toBe(true);
+    const explore = scopeOf(["Agent(explore)"]);
+    expect(explore.allowsSubAgentType("Explore")).toBe(true);
+    expect(explore.allowsSubAgentType("shell")).toBe(false);
+    expect(explore.allowsSubAgentType("generalPurpose")).toBe(false);
+  });
+
+  it("normalizes a type by case and by dropping - and _", () => {
+    expect(["general-purpose", "generalPurpose", "general_purpose"].map(normalizeSubAgentType)).toEqual([
+      "generalpurpose",
+      "generalpurpose",
+      "generalpurpose",
+    ]);
+    expect(normalizeSubAgentType("Explore")).toBe("explore");
   });
 
   it("Agent with no type list, or no allow-list, allows every type", () => {

@@ -37,7 +37,7 @@ import { createApprovalGateMiddleware } from "../../../middleware/approval-gate.
 import { createToolScopeMiddleware } from "../../../middleware/tool-scope.js";
 import { deriveLeaseScope, mcpToolKey, type McpApprovalDefault } from "../../../shared/approval-policy.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
-import { NATIVE_CONFINED_READ_ROOTS, PLATFORM_ROUTE_PREFIX } from "../platform-route.js";
+import { PLATFORM_ROUTE_PREFIX, confinedReadAdmission } from "../platform-route.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { ScriptedModel, readPendingInterrupts } from "./scripted-model.js";
 import type {
@@ -234,7 +234,7 @@ async function runListsProbe(
         scope,
         serverToolMap: new Map(serverSlug ? [[serverSlug, mcpTools]] : []),
         platformServerSlugs: new Set(),
-        confinedReadRoots: NATIVE_CONFINED_READ_ROOTS,
+        admitsConfinedRead: confinedReadAdmission(root),
       }),
     ];
     if (!options.autoApproveAll) {

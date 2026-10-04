@@ -12,15 +12,18 @@
  *    `outOfScopeMessage`, and its handler never runs;
  *  - the refusal binds with no approval gate installed (auto-approve-all), and
  *    with the gate installed a refused call raises no interrupt;
- *  - with `Read` excluded, `read_file` stays bound but reads only under the
- *    confined roots, whatever path dialect the model writes;
+ *  - with `Read` excluded, `read_file` stays bound but reads only the
+ *    platform's `.stigmer/` content and deepagents' real offload directories,
+ *    whatever path dialect the model writes, and no symlink stretches that
+ *    over the workspace (`platform-route.ts` `confinedReadAdmission`, pinned
+ *    on a real temp workspace);
  *  - a sub-agent's graph enforces its own narrowed scope.
  * The attribution of an MCP tool by object (never by a shared name) is pinned
  * on the middleware directly, since a graph refuses two tools of one name.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm, mkdir, writeFile, readFile } from "node:fs/promises";
+import { mkdtemp, rm, mkdir, writeFile, readFile, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
@@ -30,7 +33,7 @@ import { createDeepAgent } from "deepagents";
 import { z } from "zod";
 
 import { buildMiddlewareStack } from "../../../middleware/index.js";
-import { createToolScopeMiddleware, isUnderConfinedRoot, type ToolScopeConfig } from "../../../middleware/tool-scope.js";
+import { createToolScopeMiddleware, type ToolScopeConfig } from "../../../middleware/tool-scope.js";
 import type { ApprovalGateConfig } from "../../../middleware/approval-gate.js";
 import type { ModelCallRequest, ToolCallRequest } from "../../../middleware/types.js";
 import { ToolScope, outOfScopeMessage, type ToolLists } from "../../../shared/tool-lists.js";
@@ -38,7 +41,7 @@ import { createThinkTool } from "../../../tools/index.js";
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
 import { compileSubagents } from "../subagent-transformer.js";
-import { NATIVE_CONFINED_READ_ROOTS } from "../platform-route.js";
+import { confinedReadAdmission } from "../platform-route.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptSelector, type ScriptedToolCall } from "../__test-utils__/scripted-model.js";
 
 const NO_GATE_DEFAULT = { destructive: new Set<string>(), leasedServers: new Set<string>() };
@@ -90,7 +93,7 @@ describe("tool scope on a real deepagents graph", () => {
         ["stigmer-channels", platform],
       ]),
       platformServerSlugs: new Set(["stigmer-channels"]),
-      confinedReadRoots: NATIVE_CONFINED_READ_ROOTS,
+      admitsConfinedRead: confinedReadAdmission(root),
     };
     const gate: ApprovalGateConfig | null = options.gate
       ? {
@@ -200,10 +203,13 @@ describe("tool scope on a real deepagents graph", () => {
     expect(toolMessage(run, "call_shell").status).toBe("error");
   });
 
-  it("with Read excluded, read_file reads the platform's .stigmer/ content and nothing of the workspace", async () => {
+  it("with Read excluded, read_file reads the platform's .stigmer/ content and its offloads, nothing of the workspace", async () => {
     await mkdir(join(root, ".stigmer", "skills"), { recursive: true });
     await writeFile(join(root, ".stigmer", "skills", "SKILL.md"), "skill body");
     await writeFile(join(root, "notes.txt"), "workspace secret");
+    await mkdir(join(root, "large_tool_results"));
+    await writeFile(join(root, "large_tool_results", "call_1.txt"), "offloaded body");
+    await symlink(join(root, "notes.txt"), join(root, "large_tool_results", "leak.txt"));
     const lists = { tools: ["Grep"], disallowedTools: [] };
     const run = await runParent({
       lists,
@@ -213,13 +219,16 @@ describe("tool scope on a real deepagents graph", () => {
         { name: "read_file", args: { file_path: "/notes.txt" }, id: "call_ws" },
         { name: "read_file", args: { file_path: "/.stigmer/../notes.txt" }, id: "call_escape" },
         { name: "read_file", args: { file_path: `${root}/notes.txt` }, id: "call_real" },
+        { name: "read_file", args: { file_path: "/large_tool_results/call_1.txt" }, id: "call_offload" },
+        { name: "read_file", args: { file_path: "/large_tool_results/leak.txt" }, id: "call_leak" },
       ],
     });
 
     const scope = ToolScope.of('Agent "a"', lists);
     expect(JSON.stringify(toolMessage(run, "call_skill").content)).toContain("skill body");
     expect(JSON.stringify(toolMessage(run, "call_relative").content), "a relative path normalizes first").toContain("skill body");
-    for (const id of ["call_ws", "call_escape", "call_real"]) {
+    expect(JSON.stringify(toolMessage(run, "call_offload").content), "a real offloaded file reads").toContain("offloaded body");
+    for (const id of ["call_ws", "call_escape", "call_real", "call_leak"]) {
       expect(toolMessage(run, id).content, id).toBe(outOfScopeMessage("read_file", scope));
     }
   });
@@ -246,7 +255,7 @@ describe("tool scope on a real deepagents graph", () => {
         workspaceRootDir: root,
         casObserver: observer,
         shellEnv: {},
-        scopeBase: { serverToolMap: new Map(), platformServerSlugs: new Set(), confinedReadRoots: NATIVE_CONFINED_READ_ROOTS },
+        scopeBase: { serverToolMap: new Map(), platformServerSlugs: new Set(), admitsConfinedRead: confinedReadAdmission(root) },
         modelFactory: async () => new ScriptedModel(roles),
       },
     );
@@ -280,7 +289,7 @@ describe("tool scope attribution, on the middleware itself", () => {
       ["b", [serverB]],
     ]),
     platformServerSlugs: new Set(),
-    confinedReadRoots: NATIVE_CONFINED_READ_ROOTS,
+    admitsConfinedRead: async () => true,
   });
 
   function visibleTools(cfg: ToolScopeConfig, tools: unknown[]): unknown[] {
@@ -293,10 +302,15 @@ describe("tool scope attribution, on the middleware itself", () => {
     return seen;
   }
 
-  function callRefused(cfg: ToolScopeConfig, name: string, toolObject: unknown): boolean {
+  async function callRefused(
+    cfg: ToolScopeConfig,
+    name: string,
+    toolObject: unknown,
+    args: Record<string, unknown> = {},
+  ): Promise<boolean> {
     let ran = false;
-    const request: ToolCallRequest = { toolCall: { id: "c", name, args: {} }, tool: toolObject, state: {}, runtime: {} };
-    const out = createToolScopeMiddleware(cfg).wrapToolCall!(request, () => {
+    const request: ToolCallRequest = { toolCall: { id: "c", name, args }, tool: toolObject, state: {}, runtime: {} };
+    const out = await createToolScopeMiddleware(cfg).wrapToolCall!(request, () => {
       ran = true;
       return new ToolMessage({ content: "ran", tool_call_id: "c" });
     });
@@ -307,21 +321,36 @@ describe("tool scope attribution, on the middleware itself", () => {
     expect(visibleTools(config({ tools: ["mcp__a"], disallowedTools: [] }), [serverA, serverB])).toEqual([serverA]);
   });
 
-  it("refuses by the call's tool object when it carries one", () => {
+  it("refuses by the call's tool object when it carries one", async () => {
     const cfg = config({ tools: ["mcp__a"], disallowedTools: [] });
-    expect(callRefused(cfg, "search", serverA)).toBe(false);
-    expect(callRefused(cfg, "search", serverB)).toBe(true);
+    expect(await callRefused(cfg, "search", serverA)).toBe(false);
+    expect(await callRefused(cfg, "search", serverB)).toBe(true);
   });
 
-  it("refuses a bare-name call unless every server carrying the name allows it", () => {
-    expect(callRefused(config({ tools: ["mcp__a"], disallowedTools: [] }), "search", undefined)).toBe(true);
-    expect(callRefused(config({ tools: ["mcp__a", "mcp__b"], disallowedTools: [] }), "search", undefined)).toBe(false);
+  it("refuses a bare-name call unless every server carrying the name allows it", async () => {
+    expect(await callRefused(config({ tools: ["mcp__a"], disallowedTools: [] }), "search", undefined)).toBe(true);
+    expect(await callRefused(config({ tools: ["mcp__a", "mcp__b"], disallowedTools: [] }), "search", undefined)).toBe(false);
   });
 
-  it("runs an in-scope built-in and refuses an out-of-scope one, by its native name", () => {
+  it("runs an in-scope built-in and refuses an out-of-scope one, by its native name", async () => {
     const cfg = config({ tools: ["Read"], disallowedTools: [] });
-    expect(callRefused(cfg, "read_file", undefined)).toBe(false);
-    expect(callRefused(cfg, "execute", undefined)).toBe(true);
+    expect(await callRefused(cfg, "read_file", undefined)).toBe(false);
+    expect(await callRefused(cfg, "execute", undefined)).toBe(true);
+  });
+
+  it("with Read excluded, asks the injected admission about read_file's path, and refuses one with no path", async () => {
+    const asked: string[] = [];
+    const cfg: ToolScopeConfig = {
+      ...config({ tools: ["Grep"], disallowedTools: [] }),
+      admitsConfinedRead: async (path) => {
+        asked.push(path);
+        return path === "/large_tool_results/a.txt";
+      },
+    };
+    expect(await callRefused(cfg, "read_file", undefined, { file_path: "/large_tool_results/a.txt" })).toBe(false);
+    expect(await callRefused(cfg, "read_file", undefined, { file_path: "/src/a.ts" })).toBe(true);
+    expect(await callRefused(cfg, "read_file", undefined, {})).toBe(true);
+    expect(asked).toEqual(["/large_tool_results/a.txt", "/src/a.ts"]);
   });
 
   it("leaves alone what carries no name (a provider tool), and passes a request with no tools through", () => {
@@ -348,30 +377,59 @@ describe("tool scope attribution, on the middleware itself", () => {
   });
 });
 
-describe("isUnderConfinedRoot", () => {
-  const roots = NATIVE_CONFINED_READ_ROOTS;
+describe("confinedReadAdmission, on a real temp workspace", () => {
+  let ws: string;
+  let admits: (virtualPath: string) => Promise<boolean>;
 
-  it("admits the platform route and both offload roots, in their canonical virtual form", () => {
-    expect(isUnderConfinedRoot("/.stigmer/skills/a/SKILL.md", roots)).toBe(true);
-    expect(isUnderConfinedRoot("/large_tool_results/call_1.txt", roots)).toBe(true);
-    expect(isUnderConfinedRoot("/conversation_history/0a1b2c3d4e5f", roots)).toBe(true);
+  beforeEach(async () => {
+    ws = await mkdtemp(join(tmpdir(), "confined-read-"));
+    await writeFile(join(ws, "secret.ts"), "workspace");
+    admits = confinedReadAdmission(ws);
   });
 
-  it("confines by path: a repository's own directory named like an offload root is readable too", () => {
-    // The offloads land in the workspace (platform-route.ts), so an offloaded
-    // file and a repository file under the same name are one path. Pinned so
-    // the overlap stays a stated trade-off, not a surprise.
-    expect(isUnderConfinedRoot("/large_tool_results/committed-by-the-repo.md", roots)).toBe(true);
-    expect(isUnderConfinedRoot("/conversation_history/notes.md", roots)).toBe(true);
-    expect(isUnderConfinedRoot("/docs/large_tool_results/x.md", roots), "only the top-level directory").toBe(false);
+  afterEach(async () => {
+    await rm(ws, { recursive: true, force: true });
   });
 
-  it("refuses the workspace, a traversal out of a root, a sibling prefix, a relative path and a non-string", () => {
-    expect(isUnderConfinedRoot("/src/app.ts", roots)).toBe(false);
-    expect(isUnderConfinedRoot("/.stigmer/../src/app.ts", roots)).toBe(false);
-    expect(isUnderConfinedRoot("/.stigmerx/a", roots)).toBe(false);
-    expect(isUnderConfinedRoot(".stigmer/a", roots)).toBe(false);
-    expect(isUnderConfinedRoot("/../.stigmer/a", roots), "normalized: a root-level `..` stays at the root").toBe(true);
-    expect(isUnderConfinedRoot(undefined, roots)).toBe(false);
+  it("admits the .stigmer/ route by prefix: it is its own backend", async () => {
+    expect(await admits("/.stigmer/skills/a/SKILL.md")).toBe(true);
+    expect(await admits("/../.stigmer/a"), "normalized: a root-level `..` stays at the root").toBe(true);
+  });
+
+  it("admits a real file in a real offload directory, the repository's own included", async () => {
+    await mkdir(join(ws, "large_tool_results"));
+    await writeFile(join(ws, "large_tool_results", "call_1.txt"), "offloaded");
+    await mkdir(join(ws, "conversation_history"));
+    await writeFile(join(ws, "conversation_history", "0a1b"), "history");
+    expect(await admits("/large_tool_results/call_1.txt")).toBe(true);
+    expect(await admits("/conversation_history/0a1b")).toBe(true);
+  });
+
+  it("refuses an offload directory that is a symlink, wherever it points", async () => {
+    await symlink(ws, join(ws, "large_tool_results"));
+    expect(await admits("/large_tool_results/secret.ts")).toBe(false);
+  });
+
+  it("refuses a symlink inside the offload directory that points out of it", async () => {
+    await mkdir(join(ws, "large_tool_results"));
+    await symlink(join(ws, "secret.ts"), join(ws, "large_tool_results", "leak.txt"));
+    expect(await admits("/large_tool_results/leak.txt")).toBe(false);
+  });
+
+  it("refuses a `..` traversal out of an offload root or the route", async () => {
+    await mkdir(join(ws, "large_tool_results"));
+    expect(await admits("/large_tool_results/../secret.ts")).toBe(false);
+    expect(await admits("/.stigmer/../secret.ts")).toBe(false);
+  });
+
+  it("refuses the workspace, a sibling prefix, a nested same-named directory, a relative path, an offload root that is a file, and a missing file", async () => {
+    await writeFile(join(ws, "conversation_history"), "a file, not a directory");
+    await mkdir(join(ws, "large_tool_results"));
+    expect(await admits("/secret.ts")).toBe(false);
+    expect(await admits("/.stigmerx/a")).toBe(false);
+    expect(await admits("/docs/large_tool_results/x.md")).toBe(false);
+    expect(await admits(".stigmer/a")).toBe(false);
+    expect(await admits("/conversation_history/x")).toBe(false);
+    expect(await admits("/large_tool_results/missing.txt")).toBe(false);
   });
 });

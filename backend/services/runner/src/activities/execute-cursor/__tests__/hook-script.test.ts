@@ -406,6 +406,15 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(ledger[0].token).toBe(scopeRefusalToken(scopeKey("task", CURSOR_SDK_TOOL_COVERS)));
     });
 
+    it("subagentStart: Cursor's generalPurpose is the general-purpose type a list names", () => {
+      const gp = setup({ lists: { tools: ["Read", "Agent(general-purpose)"], disallowedTools: [] } });
+      expect(gp.decide(hookSubagentStart("generalPurpose")).permission).toBe("allow");
+      const explore = setup({ lists: { tools: ["Read", "Agent(explore)"], disallowedTools: [] } });
+      expect(explore.decide(hookSubagentStart("generalPurpose")).permission).toBe("deny");
+      expect(explore.decide(hookSubagentStart("Explore")).permission).toBe("allow");
+      expect(explore.ledger().map((e) => e.kind)).toEqual(["disabled"]);
+    });
+
     it("subagentStart: allowed with no lists, and refused when the lists exclude Agent", () => {
       expect(setup({}).decide(hookSubagentStart("explore")).permission).toBe("allow");
       const h = setup({ lists: { tools: [], disallowedTools: ["Agent"] } });

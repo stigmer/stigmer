@@ -13,8 +13,9 @@
  *  - An entry may carry a specifier in parentheses (`Bash(git push *)`); it is
  *    accepted and governs the whole tool, in either list.
  *  - `Agent(type, …)` in the main agent's `tools` limits which sub-agents it
- *    may start (types match case-insensitively); inside a sub-agent the type
- *    list is ignored.
+ *    may start; inside a sub-agent the type list is ignored. Types compare in
+ *    one normalized form ({@link normalizeSubAgentType}), so Claude's
+ *    `general-purpose` and Cursor's `generalPurpose` are one type.
  *  - A sub-agent starts from its parent's resolved set and can only narrow
  *    it: a scope is the conjunction of its layers.
  *  - An entry naming no tool the turn has is ignored with one log line; a
@@ -170,9 +171,22 @@ export function parseToolListEntry(raw: string): ToolListEntry {
   if (!tool) return { kind: "unknown", raw };
   const agentTypes =
     tool === "Agent" && specifier !== null
-      ? specifier.split(",").map((t) => t.trim().toLowerCase()).filter((t) => t !== "")
+      ? specifier.split(",").map((t) => normalizeSubAgentType(t.trim())).filter((t) => t !== "")
       : null;
   return { kind: "builtin", raw, tool, agentTypes };
+}
+
+/**
+ * A sub-agent type in the one form both sides of an `Agent(type, …)`
+ * comparison take: lower-cased, with `-` and `_` dropped. The engines spell
+ * one built-in type differently (Claude Code and the native engine
+ * `general-purpose`, Cursor's `subagent_type` `generalPurpose`), and a list
+ * must mean the same on both. Self-contained on purpose: the Cursor hook
+ * embeds this function's own source (`hook-script.ts`), so it references
+ * nothing outside itself.
+ */
+export function normalizeSubAgentType(type: string): string {
+  return type.toLowerCase().replace(/[-_]/g, "");
 }
 
 /** An agent's or sub-agent's lists as the blueprint carries them. */
@@ -213,7 +227,7 @@ export interface McpScopeTable {
 
 /** A scope's `Agent(type, …)` answers as data ({@link ToolScope.subAgentTypeTable}). */
 export interface SubAgentTypeTable {
-  /** May the main agent start this type, per lowercased type known or named. */
+  /** May the main agent start this type, per normalized type known or named ({@link normalizeSubAgentType}). */
   readonly types: Readonly<Record<string, boolean>>;
   /** The answer every other type shares. */
   readonly otherTypes: boolean;
@@ -264,7 +278,8 @@ function layerAllows(layer: ScopeLayer, subject: Subject): boolean {
 export class ToolScope {
   /**
    * @param layers each owner's lists, the main agent's first when it has any
-   * @param agentTypes the main agent's `Agent(type, …)` types, lower-cased;
+   * @param agentTypes the main agent's `Agent(type, …)` types, normalized
+   *   ({@link normalizeSubAgentType});
    *   `null` when its lists name no type list. Fixed at {@link of} and carried
    *   unchanged by {@link narrow}: a sub-agent's type list is ignored, and a
    *   sub-agent's layer can be the first one when the main agent has no lists.
@@ -371,7 +386,7 @@ export class ToolScope {
    * agent's `Agent(…)` type list counts: inside a sub-agent it is ignored.
    */
   allowsSubAgentType(type: string): boolean {
-    return this.allowsType(type.toLowerCase());
+    return this.allowsType(normalizeSubAgentType(type));
   }
 
   private allowsType(type: string | Unnamed): boolean {
@@ -425,7 +440,7 @@ export class ToolScope {
    * {@link allowsSubAgentType}.
    */
   subAgentTypeTable(known: readonly string[]): SubAgentTypeTable {
-    const types = new Set(known.map((t) => t.toLowerCase()));
+    const types = new Set(known.map(normalizeSubAgentType));
     for (const t of this.agentTypes ?? []) types.add(t);
     return {
       types: Object.fromEntries([...types].map((t) => [t, this.allowsType(t)])),

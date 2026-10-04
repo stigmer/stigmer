@@ -34,8 +34,8 @@ export interface UseMcpServerConnectReturn {
    * @param org - The caller's active organization id (a slug is also accepted). Required for
    *   OAuth grant lookup and personal environment resolution.
    * @param runtimeEnv - Optional one-time values for this connect.
-   * @returns The updated McpServer with populated status.discovered_capabilities
-   *          and status.tool_approvals.
+   * @returns The updated McpServer with populated status.discovered_capabilities,
+   *          each tool carrying its destructive hint.
    */
   readonly connect: (
     mcpServerId: string,

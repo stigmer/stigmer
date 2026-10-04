@@ -84,7 +84,7 @@ import { backstopRecursionLimit, resolveToolRoundLimit } from "../../shared/tool
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
-import { NATIVE_CONFINED_READ_ROOTS, mountPlatformRoute } from "./platform-route.js";
+import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv, shellRunValues } from "./shell-env.js";
@@ -436,7 +436,7 @@ export async function buildEngine(
   const scopeBase: SubagentScopeBase = {
     serverToolMap: tools.serverToolMap,
     platformServerSlugs: input.mcp.platformServerSlugs,
-    confinedReadRoots: NATIVE_CONFINED_READ_ROOTS,
+    admitsConfinedRead: confinedReadAdmission(primaryDir),
   };
 
   // The approval gate config is the single source of truth for HITL gating,

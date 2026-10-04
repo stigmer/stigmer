@@ -651,8 +651,9 @@ export async function reconcileReinvocation(
  * missing STIGMER_SERVER_ADDRESS per server from `config`'s endpoints
  * (shared/platform-server-address.ts). The resolved list
  * then mutates through the Connect backfill and three synthesized
- * attachments, deliberately AFTER resolve + backfill so the backfill's
- * destructiveHint tightener can never force-gate an attachment's tools:
+ * attachments, deliberately AFTER resolve + backfill: an attachment is the
+ * platform's own server, never discovered, so the backfill must not try to
+ * connect it, and its tools carry no destructive hint and never ask:
  *
  *  - channel messaging: the discovery read IS the attachment
  *    decision, and every failure mode degrades to honest absence;

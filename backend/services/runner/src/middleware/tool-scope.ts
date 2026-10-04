@@ -45,14 +45,14 @@
  * results and history deepagents offloads from the agent's own turn
  * (`/large_tool_results/`, `/conversation_history/`). Those are the platform's
  * and the agent's own outputs, not the workspace (`platform-route.ts` states
- * the one overlap), so
- * `read_file` stays bound and visible and a call is refused unless its path
- * lies under one of {@link ToolScopeConfig.confinedReadRoots}.
+ * the one overlap), so `read_file` stays bound and visible and a call is
+ * refused unless {@link ToolScopeConfig.admitsConfinedRead} admits its path,
+ * which for an offload root checks the real path on disk, so a symlink cannot
+ * stretch the confinement over the workspace.
  *
  * Pinned by `__tests__/tool-scope.test.ts` on a real deepagents graph.
  */
 
-import { posix } from "node:path";
 import { ToolMessage } from "@langchain/core/messages";
 import { NATIVE_TOOL_COVERS, outOfScopeMessage, type ToolScope } from "../shared/tool-lists.js";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
@@ -92,10 +92,12 @@ export interface ToolScopeConfig {
   /** The platform's own servers, outside every list. */
   readonly platformServerSlugs: ReadonlySet<string>;
   /**
-   * Virtual-path prefixes (each ending in `/`) `read_file` may still read when
-   * the scope excludes `Read`: the platform route and the offload root.
+   * Whether `read_file` may still read this canonical virtual path when the
+   * scope excludes `Read`: the platform route and deepagents' offload roots,
+   * confined on disk (`platform-route.ts` `confinedReadAdmission`). Injected
+   * by the harness, which knows the workspace root this middleware does not.
    */
-  readonly confinedReadRoots: readonly string[];
+  readonly admitsConfinedRead: (virtualPath: string) => Promise<boolean>;
 }
 
 function toolNameOf(tool: unknown): string | undefined {
@@ -104,20 +106,9 @@ function toolNameOf(tool: unknown): string | undefined {
   return typeof name === "string" ? name : undefined;
 }
 
-/**
- * Whether a virtual path lies under one of `roots`. Only an absolute path
- * qualifies, and it is normalized first, so a `..` can never climb out of a
- * root (normalizing an absolute path leaves none).
- */
-export function isUnderConfinedRoot(rawPath: unknown, roots: readonly string[]): boolean {
-  if (typeof rawPath !== "string" || !rawPath.startsWith("/")) return false;
-  const normalized = posix.normalize(rawPath);
-  return roots.some((root) => normalized.startsWith(root));
-}
-
 /** The middleware; see the module header. Install only when `scope.restricted`. */
 export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddleware {
-  const { scope, platformServerSlugs, confinedReadRoots } = config;
+  const { scope, platformServerSlugs, admitsConfinedRead } = config;
 
   const serverOfTool = new Map<unknown, string>();
   const serversOfName = new Map<string, string[]>();
@@ -146,14 +137,15 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
   };
 
   /** Whether a call may run, from the tool object when the tool node supplies it, else from the name. */
-  const callable = (request: ToolCallRequest): boolean => {
+  const callable = async (request: ToolCallRequest): Promise<boolean> => {
     const { name, args } = request.toolCall;
     const objectSlug = serverOfTool.get(request.tool);
     if (objectSlug !== undefined) return mcpToolInScope(objectSlug, name);
     const nameSlugs = serversOfName.get(name);
     if (nameSlugs !== undefined) return nameSlugs.every((slug) => mcpToolInScope(slug, name));
     if (scope.allowsEngineTool(name, NATIVE_TOOL_COVERS)) return true;
-    return name === READ_TOOL && isUnderConfinedRoot(args[READ_PATH_ARG], confinedReadRoots);
+    const path = args[READ_PATH_ARG];
+    return name === READ_TOOL && typeof path === "string" && (await admitsConfinedRead(path));
   };
 
   return {
@@ -164,8 +156,8 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
       return handler({ ...request, tools: request.tools.filter(visible) });
     },
 
-    wrapToolCall(request, handler) {
-      if (callable(request)) return handler(request);
+    async wrapToolCall(request, handler) {
+      if (await callable(request)) return handler(request);
       const { name, id, args } = request.toolCall;
       const message = outOfScopeMessage(name, scope);
       writerOf(request.runtime)?.({ name: TOOL_REFUSED_EVENT, tool_call_id: id ?? "", tool_name: name, input: args, message });
