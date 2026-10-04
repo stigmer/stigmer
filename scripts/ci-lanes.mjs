@@ -72,6 +72,41 @@ import { COVERAGE_FLOORS, changedFilesSince, resolveRange } from "./turbo-affect
  * that runs on every change and decides inside what to cover.
  */
 export const LANES = {
+  "ci.agent-sandbox.yaml": {
+    paths: [
+      // The driver, the seam and naming it is built on, and the launch
+      // command its pod template carries.
+      "backend/services/stigmer-server/src/sandbox/agent-sandbox/**",
+      "backend/services/stigmer-server/src/sandbox/provisioner.ts",
+      "backend/services/stigmer-server/src/sandbox/naming.ts",
+      "backend/services/stigmer-server/src/sandbox/runner-launch.ts",
+      // The live class's config and the entry point that makes its cluster.
+      "backend/services/stigmer-server/vitest.live.config.ts",
+      "backend/services/stigmer-server/package.json",
+      "backend/services/stigmer-server/package-lock.json",
+      "scripts/agent-sandbox-live.mjs",
+      // The libraries the server package links: the live test runs the
+      // server's source, which imports them.
+      "apis/stubs/ts/**",
+      "backend/libs/ts/outbound/**",
+      "backend/libs/ts/plugin-package/**",
+      "backend/libs/ts/temporal-codecs/**",
+      "backend/libs/ts/zip-structure/**",
+      // The Temporal CLI the lane installs through .github/actions/temporal-cli:
+      // the installer and the CLI source that holds its pin.
+      "client-apps/cli/scripts/install-temporal-cli.ts",
+      "client-apps/cli/src/errors/cli-exit-error.ts",
+      "client-apps/cli/src/errors/exit-codes.ts",
+      "client-apps/cli/src/local/artifact.ts",
+      "client-apps/cli/src/local/temporal/download.ts",
+      "Makefile",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
+      ".github/workflows/ci.agent-sandbox.yaml",
+    ],
+  },
   "ci.all-in-one.yaml": {
     paths: [
       "deploy/all-in-one/**",

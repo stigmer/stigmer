@@ -1,0 +1,49 @@
+# =============================================================================
+# agent-sandbox upstream — the driver against upstream's newest release
+# =============================================================================
+# agent-sandbox releases weekly, on Thursdays, and its API is v1beta1. Every
+# Friday this runs the agent-sandbox lane (ci.agent-sandbox.yaml) against
+# upstream's newest release instead of the pinned one, so an upstream change
+# breaks this run before it breaks an operator who upgrades.
+#
+# Red: a scheduled failure files or comments on one
+# `ci-agent-sandbox-failure` issue (notify-failure.yaml). A dispatch is
+# watched by whoever dispatched it and notifies nobody.
+# =============================================================================
+
+name: ci.agent-sandbox-upstream
+
+on:
+  schedule:
+    - cron: "0 6 * * 5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    uses: ./.github/workflows/ci.agent-sandbox.yaml
+    with:
+      agent_sandbox_version: latest
+
+  notify-failure:
+    name: File agent-sandbox Failure Issue
+    needs: live
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: ci-agent-sandbox-failure
+      title: "ci.agent-sandbox-upstream: the agent-sandbox driver fails against upstream's newest release"
+      body-context: >-
+        This run tests the agent-sandbox sandbox driver on kind against
+        Kubernetes SIG Apps' newest agent-sandbox release, every Friday after
+        upstream's Thursday release. A failure here while the gate's run
+        against the pinned release is green usually means upstream changed
+        the v1beta1 Sandbox API or its controller's behaviour: read the
+        release notes since AGENT_SANDBOX_VERSION in
+        scripts/agent-sandbox-live.mjs, then fix the driver
+        (backend/services/stigmer-server/src/sandbox/agent-sandbox) and move
+        the pin and the operator guide's version together.
