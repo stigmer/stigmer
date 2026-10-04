@@ -43,9 +43,13 @@ describe("buildDockerRun", () => {
     expect(args).toContain("STIGMER_TASK_QUEUE=session:ses_1");
     expect(args).toContain("ANTHROPIC_BASE_URL=http://gateway.example:8080");
     expect(args).not.toContain("STIGMER_MCP_PUBLIC_ENDPOINT=");
-    expect(args.slice(-3)).toEqual([
+    // The start script as the entrypoint, so a base image's own ENTRYPOINT
+    // never wraps it; the entry as the image's arguments.
+    expect(args.slice(-4)).toEqual([
+      "--entrypoint",
+      runnerCommand()[0],
       "ghcr.io/stigmer/runner:latest",
-      ...runnerCommand(),
+      ...runnerCommand().slice(1),
     ]);
   });
 

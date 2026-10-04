@@ -14,9 +14,11 @@
 // compute what this machine lacks (the loader, /proc, root) and expect
 // exactly that beside the tools a case hides. The success case (the Node
 // beside the script exec'd with its arguments unchanged, NODE_OPTIONS and
-// NODE_PATH gone) runs only as root on glibc and otherwise skips; the image
-// itself proves it on every build (release.sandbox-cloud's layer checks,
-// and the compose and Helm smokes, whose runner starts through the script).
+// NODE_PATH gone) runs only as root on glibc and otherwise skips. The
+// runner lane runs this file again as root in Node's Debian image, with
+// STIGMER_TEST_AS_ROOT=1, where that skip is a failure; the image itself
+// proves the same on every build (release.sandbox-cloud's layer checks, and
+// the compose and Helm smokes, whose runner starts through the script).
 // shellcheck skips where it is not installed, and in the gate
 // (STIGMER_TEST_GATE=1) always runs, so a missing shellcheck fails there.
 
@@ -124,7 +126,9 @@ test("a relative $0 is refused, not resolved", () => {
 
 test(
   "on a base it can run on, it warns per missing optional tool, clears the Node variables and execs the Node beside it",
-  hasLoader && hasProc && isRoot ? {} : { skip: "needs root on a glibc Linux; the image checks prove it on every build" },
+  (hasLoader && hasProc && isRoot) || process.env.STIGMER_TEST_AS_ROOT === "1"
+    ? {}
+    : { skip: "needs root on a glibc Linux; the runner lane runs it as root" },
   () => {
     const result = start(layerBin(), pathWith(REQUIRED), ["/runner/dist/main.js", "a b"], {
       NODE_OPTIONS: "--require /nonexistent.js",

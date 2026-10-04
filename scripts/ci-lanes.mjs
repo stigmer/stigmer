@@ -450,6 +450,8 @@ export const LANES = {
   "ci.runner.yaml": {
     paths: [
       "backend/services/runner/**",
+      // Its as-root job runs the start script's suite.
+      "scripts/runner-layer-start.test.mjs",
       "apis/stubs/ts/**",
       "backend/libs/ts/**",
       // `make build-runner-deps` goes through the root `build:runner-deps`

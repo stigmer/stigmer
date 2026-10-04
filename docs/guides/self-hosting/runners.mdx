@@ -278,17 +278,18 @@ while your base's layers stay cached.
 **What the base image needs.** The runner refuses to start on an image that
 can't run it, and says why. The requirements:
 
-| Requirement                                                                 | Without it                                                        |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| glibc 2.28 or newer, with `libstdc++` and `libgcc_s`, on `amd64` or `arm64` | the runner can't start: refused                                   |
-| root (below)                                                                | refused                                                           |
-| `/bin/sh`, `bash`, `git`, and `/proc`                                       | refused                                                           |
-| `cat`, `sed`, `grep`, `head`, `cut`, `awk`, `tr`, `base64`, `dirname`       | refused: the Cursor harness's approval hook runs them             |
-| CA certificates for `git` and `curl`                                        | cloning a repository over HTTPS fails                             |
-| `python3`                                                                   | a warning; Workflow script tasks in Python fail                   |
-| `node`                                                                      | a warning; Workflow script tasks in JavaScript fail               |
-| `rg` (ripgrep)                                                              | a warning; the native harness's grep falls back to a plain search |
-| nothing of your own at `/runner`                                            | the layer replaces it                                             |
+| Requirement                                                                 | Without it                                                                                                            |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| glibc 2.28 or newer, with `libstdc++` and `libgcc_s`, on `amd64` or `arm64` | the runner can't start: refused                                                                                       |
+| root (below)                                                                | refused                                                                                                               |
+| `/bin/sh`                                                                   | the runner can't start, and only the kernel's "no such file or directory" says so: the check itself is a shell script |
+| `bash`, `git`, and `/proc`                                                  | refused                                                                                                               |
+| `cat`, `sed`, `grep`, `head`, `cut`, `awk`, `tr`, `base64`, `dirname`       | refused: the Cursor harness's approval hook runs them                                                                 |
+| CA certificates for `git` and `curl`                                        | cloning a repository over HTTPS fails                                                                                 |
+| `python3`                                                                   | a warning; Workflow script tasks in Python fail                                                                       |
+| `node`                                                                      | a warning; Workflow script tasks in JavaScript fail                                                                   |
+| `rg` (ripgrep)                                                              | a warning; the native harness's grep falls back to a plain search                                                     |
+| nothing of your own at `/runner`                                            | the layer replaces it                                                                                                 |
 
 Debian 10 and newer, Ubuntu 20.04 and newer, and RHEL 8 and its rebuilds meet
 the glibc floor. Alpine and other musl images don't, and can't be made to.

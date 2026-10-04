@@ -118,9 +118,11 @@ export function buildDockerRun(
   };
   if (env.stigmerToken !== "") secretEnv["STIGMER_TOKEN"] = env.stigmerToken;
   for (const name of Object.keys(secretEnv)) args.push("--env", name);
-  // The image's CMD is /bin/bash by design; the driver sets the command,
-  // exactly as the Kubernetes pod spec does.
-  args.push(config.runnerImage, ...runnerCommand());
+  // The driver sets the command, exactly as the Kubernetes pod spec's
+  // `command` does: the start script replaces the image's ENTRYPOINT (a base
+  // Stigmer did not build may carry one), and the entry replaces its CMD.
+  const [entrypoint, ...entryArgs] = runnerCommand();
+  args.push("--entrypoint", entrypoint!, config.runnerImage, ...entryArgs);
   return { args, secretEnv };
 }
 

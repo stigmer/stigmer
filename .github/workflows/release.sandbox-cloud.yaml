@@ -228,8 +228,9 @@ jobs:
 
       # Package visibility is an org-settings fact, not a step (GHCR has no
       # REST endpoint for it; the PUT this job carried answered 404 on
-      # every run, masked into an error annotation). `runner`, `runner-base`
-      # and `runner-layer` are public.
+      # every run, masked into an error annotation). `runner` is public;
+      # `runner-base` and `runner-layer` are created private by their first
+      # push and made public once, by an org admin, in the package settings.
 
       - name: Set up the Temporal CLI
         uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
