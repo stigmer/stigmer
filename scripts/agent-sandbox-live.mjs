@@ -153,8 +153,9 @@ export function clusterListed(output, name) {
  * this run's to delete. A cluster listed under the name after an
  * uninterrupted failure is taken as another run's, which took the name
  * between the check and the create, and left alone. That is also what the
- * run does with the one uninterrupted failure kind does not clean up, a
- * failed kubeconfig export after the cluster was made: it is left listed,
+ * run does with the two uninterrupted failures kind does not clean up: a
+ * failed kubeconfig export after the cluster was made, and a create the OOM
+ * killer (or another signal than an interrupt) ended. Each is left listed,
  * and the next run's refusal names the command that deletes it. Leaving a
  * cluster is the cost the run accepts so that it never deletes another's.
  */

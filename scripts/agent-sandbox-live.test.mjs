@@ -146,7 +146,10 @@ test("a failed child is an interrupt when a Ctrl-C or a stop ended it, never whe
 test("Node really ends a child past the buffer cap with SIGTERM and ENOBUFS, which is not an interrupt", () => {
   let error;
   try {
-    execFileSync(process.execPath, ["-e", "process.stdout.write('x'.repeat(4096))"], { maxBuffer: 16 });
+    // The child stays alive after its write, so it is Node's kill that ends it.
+    execFileSync(process.execPath, ["-e", "process.stdout.write('x'.repeat(4096)); setInterval(() => {}, 1000)"], {
+      maxBuffer: 16,
+    });
   } catch (caught) {
     error = caught;
   }
