@@ -1,17 +1,18 @@
 /**
  * Pins AuthorizeMemberAudience (steps.ts), the member-profile lane's gate:
- * membership (can_view on the reference's organization) is asked before
- * the share is loaded; deny and not-found both answer the lane's one
- * NOT_FOUND, byte-identical to a missing share, so a share URL teaches a
- * non-member nothing; unavailable is INTERNAL; an empty org asks nothing
- * and is left to the loader's INVALID_ARGUMENT; the internal class skips.
+ * membership (can_view on the loaded share's organization, since the link
+ * names only the share) is asked after the share loads; deny and not-found
+ * both answer the lane's one NOT_FOUND, byte-identical to a missing share,
+ * so a share link teaches a non-member nothing; unavailable is INTERNAL;
+ * the internal class skips.
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
+import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import { AgentShareIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type {
@@ -23,7 +24,13 @@ import type { CallerIdentity } from "../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { AUTHORIZATION_UNAVAILABLE_MESSAGE } from "../../../pipeline/steps/authorize.js";
-import { newAuthorizeMemberAudienceStep, sharedNotFound } from "../steps.js";
+import {
+  RESOLVED_SHARE_KEY,
+  newAuthorizeMemberAudienceStep,
+  sharedNotFound,
+} from "../steps.js";
+
+const SHARE_ID = "ash_01j9helper";
 
 function fakeAuthorizer(decision: AuthzDecision): {
   authorizer: Authorizer;
@@ -42,12 +49,19 @@ function fakeAuthorizer(decision: AuthzDecision): {
 }
 
 function ctxFor(org: string, caller: CallerIdentity = testCallerIdentity()) {
-  return new RequestContext(
-    ApiResourceReferenceSchema,
-    create(ApiResourceReferenceSchema, { org, slug: "helper" }),
+  const ctx = new RequestContext(
+    AgentShareIdSchema,
+    create(AgentShareIdSchema, { value: SHARE_ID }),
     caller,
     ApiResourceKind.agent_share,
   );
+  ctx.set(
+    RESOLVED_SHARE_KEY,
+    create(AgentShareSchema, {
+      metadata: { id: SHARE_ID, org, slug: "helper" },
+    }),
+  );
+  return ctx;
 }
 
 async function captureError(
@@ -62,7 +76,7 @@ async function captureError(
 }
 
 describe("AuthorizeMemberAudience", () => {
-  it("asks can_view on the reference's organization and admits an allow", async () => {
+  it("asks can_view on the loaded share's organization and admits an allow", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
     await newAuthorizeMemberAudienceStep(authorizer).execute(ctxFor("acme"));
     expect(checks).toEqual([
@@ -84,7 +98,7 @@ describe("AuthorizeMemberAudience", () => {
         newAuthorizeMemberAudienceStep(authorizer).execute(ctxFor("acme")),
       );
       expect(error.code).toBe(Code.NotFound);
-      expect(error.rawMessage).toBe(sharedNotFound("helper").rawMessage);
+      expect(error.rawMessage).toBe(sharedNotFound(SHARE_ID).rawMessage);
     }
   });
 
@@ -100,11 +114,8 @@ describe("AuthorizeMemberAudience", () => {
     expect(error.rawMessage).toBe(AUTHORIZATION_UNAVAILABLE_MESSAGE);
   });
 
-  it("an empty org asks nothing (the loader's INVALID_ARGUMENT answers), and the internal class skips", async () => {
+  it("the internal class skips", async () => {
     const denying = fakeAuthorizer({ kind: "deny", reason: "" });
-    await newAuthorizeMemberAudienceStep(denying.authorizer).execute(
-      ctxFor(""),
-    );
     await newAuthorizeMemberAudienceStep(denying.authorizer).execute(
       ctxFor("acme", testCallerIdentity({ callerClass: "internal" })),
     );

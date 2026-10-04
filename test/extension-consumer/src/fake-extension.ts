@@ -504,10 +504,21 @@ const consumerGuestTokenVerifier: IdentityVerifier = {
   },
 };
 
+/**
+ * The organization of each share the consumer serves: a mint names only the
+ * share's id, so a consumer reads the share to learn whose guest it mints
+ * (the cloud reads its own share row).
+ */
+const consumerShareOrgs = new Map<string, string>();
+
 /** A consumer's guest-token capability (registered below as `drivers.guestTokenMinting`). */
 const consumerGuestTokenMinting: GuestTokenMinting = {
   async mintGuestToken(request) {
-    const signed = await mintConsumerGuestToken(request.org, request.slug);
+    const org = consumerShareOrgs.get(request.shareId);
+    if (org === undefined) {
+      throw new ConnectError(`Agent not found: ${request.shareId}`, Code.NotFound);
+    }
+    const signed = await mintConsumerGuestToken(org, request.shareId);
     return create(MintGuestTokenResponseSchema, {
       accessToken: signed.token,
       tokenType: "Bearer",

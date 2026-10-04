@@ -12,43 +12,23 @@ public interface MintGuestTokenRequestOrBuilder extends
 
   /**
    * <pre>
-   * Organization from the share URL, by id or slug (required).
+   * Id of the share, from the hosted chat link (required).
    * </pre>
    *
-   * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
-   * @return The org.
+   * <code>string share_id = 6 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
+   * @return The shareId.
    */
-  java.lang.String getOrg();
+  java.lang.String getShareId();
   /**
    * <pre>
-   * Organization from the share URL, by id or slug (required).
+   * Id of the share, from the hosted chat link (required).
    * </pre>
    *
-   * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for org.
+   * <code>string share_id = 6 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for shareId.
    */
   com.google.protobuf.ByteString
-      getOrgBytes();
-
-  /**
-   * <pre>
-   * Share slug from the share URL (required).
-   * </pre>
-   *
-   * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
-   * @return The slug.
-   */
-  java.lang.String getSlug();
-  /**
-   * <pre>
-   * Share slug from the share URL (required).
-   * </pre>
-   *
-   * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for slug.
-   */
-  com.google.protobuf.ByteString
-      getSlugBytes();
+      getShareIdBytes();
 
   /**
    * <pre>
@@ -112,7 +92,7 @@ public interface MintGuestTokenRequestOrBuilder extends
 
   /**
    * <pre>
-   * Link token from the share URL's `?k=` parameter (optional).
+   * Link token from the share link's `?k=` parameter (optional).
    *
    * Required when the share link has been locked with rotateShareLink;
    * ignored for plain share links.
@@ -124,7 +104,7 @@ public interface MintGuestTokenRequestOrBuilder extends
   java.lang.String getLinkToken();
   /**
    * <pre>
-   * Link token from the share URL's `?k=` parameter (optional).
+   * Link token from the share link's `?k=` parameter (optional).
    *
    * Required when the share link has been locked with rotateShareLink;
    * ignored for plain share links.

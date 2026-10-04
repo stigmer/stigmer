@@ -31,15 +31,19 @@ see the **Create share** button.
 3. Click **Create share**, keep the suggested name and slug (or pick your own),
    and confirm.
 
-The link is live the moment the share is created. It has the form:
+The link is live the moment the share is created. It names the share by its
+permanent ID:
 
 ```
-https://app.stigmer.ai/chat/<org>/<slug>
+https://app.stigmer.ai/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2
 ```
 
-The slug is the share's own — it defaults to the Agent's, and it can't be
-changed after creation. Click **Copy** to copy the link, or **Open** to try it
-yourself.
+Because the link carries only the share's ID, renaming your Organization never
+breaks it, and nobody who later takes your Organization's old name can take the
+link over. The slug names the share inside your Organization — for the CLI and
+the API (`stigmer get agent-share <slug>`) — and is not part of the link. It
+defaults to the Agent's slug and can't be changed after creation. Click **Copy**
+to copy the link, or **Open** to try it yourself.
 
 ## Manage your shares
 
@@ -111,7 +115,7 @@ The **Embed** tab gives you a two-line snippet you can paste into any web page:
 
 ```html
 <script src="https://app.stigmer.ai/embed.js" async></script>
-<stigmer-agent org="acme" agent="support-agent"></stigmer-agent>
+<stigmer-agent share="ash_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
 ```
 
 Under **Allowed embed origins**, list the websites that may embed your Agent
@@ -167,12 +171,12 @@ them at all.
 A public link sometimes travels further than you meant it to — a forwarded
 email, a message pasted into the wrong channel, a page a search engine picked
 up. **Reset link** in the **Link** tab kills the current link and gives you a
-new one, without turning sharing off or renaming the Agent.
+new one, without turning sharing off or deleting the share.
 
 After a reset, the link carries a secret key:
 
 ```
-https://app.stigmer.ai/chat/<org>/<agent>?k=<key>
+https://app.stigmer.ai/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2?k=<key>
 ```
 
 - The old link — including the plain one without a key — stops working

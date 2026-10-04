@@ -14,8 +14,8 @@ export const SHARE_LINK_TOKEN_BYTES = 20;
 
 /**
  * InvalidArgument copy when metadata.org is absent — Go
- * resolveShareDefaultsStep, byte-pinned. The share's org appears in the
- * hosted chat URL and is the billing org, so it can never be inferred.
+ * resolveShareDefaultsStep, byte-pinned. The share's org is the billing
+ * org, so it can never be inferred.
  */
 export const ORG_REQUIRED_MESSAGE =
   "metadata.org is required for an agent share";
@@ -23,15 +23,6 @@ export const ORG_REQUIRED_MESSAGE =
 /** InvalidArgument copy when spec.agent_ref.slug is absent — Go, pinned. */
 export const AGENT_REF_SLUG_REQUIRED_MESSAGE =
   "spec.agent_ref.slug is required";
-
-/**
- * InvalidArgument copy for BOTH profile lanes when org is absent — Go
- * loadShareForProfileStep / loadShareForMemberProfileStep, byte-pinned.
- * Anti-enumeration: an empty org would mean "match slug across all orgs"
- * on a public endpoint.
- */
-export const ORG_REQUIRED_FOR_LOOKUP_MESSAGE =
-  "org is required for shared agent lookup";
 
 /**
  * FailedPrecondition copy when spec.agent_ref names another organization's

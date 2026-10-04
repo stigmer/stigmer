@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Rotate the share's link token.\n\n Generates a fresh server-side token for the share's hosted chat link.\n The share URL becomes `/chat/\u003corg\u003e/\u003cslug\u003e?k=\u003ctoken\u003e` and the previous\n link (tokened or plain) stops working immediately — including for\n visitors mid-conversation. Use this to kill a leaked or over-shared\n public link without disabling the share or changing its slug.\n\n The token lives in status.share_link_token, so manifest applies never\n reset it. Rotation affects public-audience shares only; org-audience\n access is governed by live org membership instead."
+          "description": "Rotate the share's link token.\n\n Generates a fresh server-side token for the share's hosted chat link.\n The share URL becomes `/chat/\u003cshare id\u003e?k=\u003ctoken\u003e` and the previous\n link (tokened or plain) stops working immediately — including for\n visitors mid-conversation. Use this to kill a leaked or over-shared\n public link without disabling or deleting the share.\n\n The token lives in status.share_link_token, so manifest applies never\n reset it. Rotation affects public-audience shares only; org-audience\n access is governed by live org membership instead."
         },
         {
           "name": "Delete",
@@ -93,15 +93,15 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest",
           "outputType": "SharedAgentProfile",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.SharedAgentProfile",
-          "description": "Get the public profile of a shared agent by the share's org/slug.\n\n This is the resolution path for the hosted chat page: anonymous\n visitors (no Stigmer account, no token) resolve a shared link to the\n trimmed SharedAgentProfile — never the full Agent, whose spec carries\n the system prompt, environment declarations, and MCP wiring.\n\n Returns NOT_FOUND when the share does not exist, is disabled, has the\n org audience (anonymous callers must not be able to distinguish an\n org-internal share from a nonexistent one; use\n getSharedProfileForMember instead), or the share link is locked and\n link_token does not match the share's current status.share_link_token.\n The cases are deliberately indistinguishable so an unshared, revoked,\n or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is\n empty: org+slug is the shared URL's identity, and cross-org slug\n matching on a public endpoint would enable enumeration."
+          "description": "Get the public profile of a shared agent by the share's id.\n\n This is the resolution path for the hosted chat page: anonymous\n visitors (no Stigmer account, no token) resolve a shared link to the\n trimmed SharedAgentProfile — never the full Agent, whose spec carries\n the system prompt, environment declarations, and MCP wiring.\n\n Returns NOT_FOUND when the share does not exist, is disabled, has the\n org audience (anonymous callers must not be able to distinguish an\n org-internal share from a nonexistent one; use\n getSharedProfileForMember instead), or the share link is locked and\n link_token does not match the share's current status.share_link_token.\n The same NOT_FOUND answers when the share's organization no longer\n exists. The cases are deliberately indistinguishable so an unshared,\n revoked, or rotated URL leaks nothing. Returns INVALID_ARGUMENT when\n share_id is empty."
         },
         {
           "name": "GetSharedProfileForMember",
-          "inputType": "ApiResourceReference",
-          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "inputType": "AgentShareId",
+          "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShareId",
           "outputType": "SharedAgentProfile",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.SharedAgentProfile",
-          "description": "Get the profile of a shared agent as a signed-in organization member.\n\n This is the resolution path for the hosted chat page when a share has\n the org audience: the public getSharedProfile deliberately returns\n NOT_FOUND for such shares, so a signed-in member resolves the same\n trimmed SharedAgentProfile through this authenticated RPC instead.\n Also resolves public-audience shares, so an authenticated caller can\n use one resolution path for any share.\n\n Returns NOT_FOUND when the share does not exist, is disabled, the\n caller is not a member of the sharing organization, or the share is a\n public-audience share locked with a link token (this tokenless path\n must not reveal a killed link's profile) — the cases are deliberately\n indistinguishable so a share URL leaks nothing to non-members.\n Returns INVALID_ARGUMENT when org is empty."
+          "description": "Get the profile of a shared agent as a signed-in organization member.\n\n This is the resolution path for the hosted chat page when a share has\n the org audience: the public getSharedProfile deliberately returns\n NOT_FOUND for such shares, so a signed-in member resolves the same\n trimmed SharedAgentProfile through this authenticated RPC instead.\n Also resolves public-audience shares, so an authenticated caller can\n use one resolution path for any share.\n\n Returns NOT_FOUND when the share does not exist, is disabled, the\n caller is not a member of the sharing organization, the share's\n organization no longer exists, or the share is a public-audience share\n locked with a link token (this tokenless path must not reveal a killed\n link's profile) — the cases are deliberately indistinguishable so a\n share URL leaks nothing to non-members. Returns INVALID_ARGUMENT when\n the id is empty."
         }
       ]
     }
@@ -348,29 +348,22 @@
     },
     {
       "name": "GetSharedProfileRequest",
-      "description": "Input for resolving a share's public profile.\n\n Identifies the share by the org and slug from the hosted chat URL, plus\n the link token when the share URL carries one.",
+      "description": "Input for resolving a share's public profile.\n\n Identifies the share by its id, the one identity a hosted chat link\n carries (`/chat/\u003cshare id\u003e`), plus the link token when the link carries\n one. A share id never changes and is never reused, so a link cannot be\n broken by a rename of the share's organization or captured by a later\n holder of that organization's name.",
       "protoType": "ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest",
       "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/io.proto",
       "fields": [
         {
-          "name": "Org",
-          "jsonName": "org",
-          "protoField": "org",
+          "name": "ShareId",
+          "jsonName": "shareId",
+          "protoField": "share_id",
           "type": {
             "kind": "string"
           },
-          "description": "Organization from the share URL: its id, as links built from a share's\n stored org carry it, or its slug, as older links do.",
-          "required": false
-        },
-        {
-          "name": "Slug",
-          "jsonName": "slug",
-          "protoField": "slug",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Share slug from the share URL.",
-          "required": false
+          "description": "Id of the share, from the hosted chat link.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
         },
         {
           "name": "LinkToken",
@@ -379,7 +372,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Link token from the share URL's `?k=` parameter.\n\n Required (and validated) only when the share link has been locked with\n rotateShareLink; ignored for plain share links.",
+          "description": "Link token from the share link's `?k=` parameter.\n\n Required (and validated) only when the share link has been locked with\n rotateShareLink; ignored for plain share links.",
           "required": false,
           "validation": {
             "maxLength": 128
@@ -400,7 +393,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization that owns the share.",
+          "description": "Id of the organization that owns the share. The hosted chat page\n creates the visitor's session in it.",
           "required": false
         },
         {
@@ -410,7 +403,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Slug of the share (unique within the org).\n Together with org, this is the identity in the hosted chat URL.",
+          "description": "Slug of the share: its name within its organization, as the CLI and\n getByReference address it. The hosted chat link names the share by\n its id, never by this slug.",
           "required": false
         },
         {
@@ -703,7 +696,7 @@
       ]
     }
   ],
-  "resourceDescription": "AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.\n\n A share is a distribution channel: it controls who can chat with the\n referenced agent over `/chat/\u003corg\u003e/\u003cslug\u003e`, which sites may embed the\n chat widget, what visitors see when a limit refuses them, and which\n environment credentials guest conversations receive. Deleting the share\n tears the channel down; disabling it pauses serving while preserving\n configuration. The referenced agent is never modified by share\n operations.",
+  "resourceDescription": "AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.\n\n A share is a distribution channel: it controls who can chat with the\n referenced agent over `/chat/\u003cshare id\u003e`, which sites may embed the\n chat widget, what visitors see when a limit refuses them, and which\n environment credentials guest conversations receive. Deleting the share\n tears the channel down; disabling it pauses serving while preserving\n configuration. The referenced agent is never modified by share\n operations.",
   "statusType": {
     "name": "AgentShareStatus",
     "description": "AgentShareStatus contains system-managed state for an agent share.",
@@ -728,7 +721,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "Rotatable token protecting the share's public link.\n\n Empty means the hosted chat link is the plain `/chat/\u003corg\u003e/\u003cslug\u003e` —\n the behavior of every share created without a token. When set, the\n link only resolves with the matching `?k=\u003ctoken\u003e` query parameter; the\n rotateShareLink RPC generates a fresh value, killing the old link\n immediately. Applies to public-audience shares only (org-audience\n access is governed by live membership instead).",
+        "description": "Rotatable token protecting the share's public link.\n\n Empty means the hosted chat link is the plain `/chat/\u003cshare id\u003e` —\n the behavior of every share created without a token. When set, the\n link only resolves with the matching `?k=\u003ctoken\u003e` query parameter; the\n rotateShareLink RPC generates a fresh value, killing the old link\n immediately. Applies to public-audience shares only (org-audience\n access is governed by live membership instead).",
         "required": false
       },
       {

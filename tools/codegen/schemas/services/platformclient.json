@@ -92,7 +92,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest",
           "outputType": "MintGuestTokenResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse",
-          "description": "Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.\n\n Resolves org+slug to an AgentShare, provisions the org's system-managed\n PlatformClient and guest identity account lazily, and returns a short-lived\n Stigmer-signed JWT scoped to that org."
+          "description": "Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.\n\n Resolves the share id from the hosted chat link to an AgentShare,\n provisions its org's system-managed PlatformClient and guest identity\n account lazily, and returns a short-lived Stigmer-signed JWT scoped to\n that org."
         }
       ]
     }
@@ -395,26 +395,13 @@
       "protoFile": "apis/ai/stigmer/iam/platformclient/v1/token.proto",
       "fields": [
         {
-          "name": "Org",
-          "jsonName": "org",
-          "protoField": "org",
+          "name": "ShareId",
+          "jsonName": "shareId",
+          "protoField": "share_id",
           "type": {
             "kind": "string"
           },
-          "description": "Organization from the share URL, by id or slug (required).",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        },
-        {
-          "name": "Slug",
-          "jsonName": "slug",
-          "protoField": "slug",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Share slug from the share URL (required).",
+          "description": "Id of the share, from the hosted chat link (required).",
           "required": false,
           "validation": {
             "minLength": 1
@@ -447,7 +434,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Link token from the share URL's `?k=` parameter (optional).\n\n Required when the share link has been locked with rotateShareLink;\n ignored for plain share links.",
+          "description": "Link token from the share link's `?k=` parameter (optional).\n\n Required when the share link has been locked with rotateShareLink;\n ignored for plain share links.",
           "required": false,
           "validation": {
             "maxLength": 128

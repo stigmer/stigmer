@@ -19,8 +19,9 @@
  * lifecycle; getByReference authorizes the loaded share as `get` would;
  * getByAgent and list narrow through the composed list read scope. The
  * public share-link read skips the Authorizer through is_public, and the
- * member read asks can_view on the organization before the share loads
- * (AuthorizeMemberAudience). Per-RPC posture:
+ * member read asks can_view on the loaded share's organization
+ * (AuthorizeMemberAudience). Both profile reads take the share's id, the
+ * one identity a hosted chat link carries. Per-RPC posture:
  * docs/authorization-coverage.md §9.
  *
  * Proven by agentshare.conformance.test.ts (CONFORMANCE_TARGET=local),
@@ -57,7 +58,6 @@ import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-a
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
   internalError,
-  invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -112,10 +112,8 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { ORG_REQUIRED_FOR_LOOKUP_MESSAGE } from "./constants.js";
 import {
   buildSharedAgentProfile,
-  findShareByOrgAndSlug,
   generateShareLinkToken,
   newResolveShareDefaultsStep,
   newStampAgentPinStep,
@@ -124,6 +122,8 @@ import {
   sharingLinkTokenAllowed,
   resolveShareCreateTargets,
   newAuthorizeMemberAudienceStep,
+  loadLinkedShare,
+  RESOLVED_SHARE_KEY,
 } from "./steps.js";
 
 export interface AgentShareControllerDeps {
@@ -769,10 +769,10 @@ function newListByOrgAndLabelsStep(
 // whose spec carries the system prompt. GetSharedProfileForMember is the
 // tokenless authenticated twin: in OSS the one principal IS the
 // organization, so membership always holds and it resolves any enabled
-// share — with ONE exception mirrored from cloud (see below).
+// share — with ONE exception mirrored from cloud (see below). Both take the
+// share's id, the one identity a hosted chat link carries.
 // ---------------------------------------------------------------------------
 
-const RESOLVED_SHARE_KEY = "resolvedAgentShare";
 const SHARED_PROFILE_KEY = "sharedAgentProfile";
 
 type ProfileDesc =
@@ -808,12 +808,12 @@ async function getSharedProfile(
 
 async function getSharedProfileForMember(
   deps: AgentShareControllerDeps,
-  ref: ApiResourceReference,
+  req: AgentShareId,
   ctx: HandlerContext,
 ): Promise<SharedAgentProfile> {
   const reqCtx = new RequestContext(
     AgentShareQueryController.method.getSharedProfileForMember.input,
-    ref,
+    req,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
@@ -828,9 +828,10 @@ async function getSharedProfileForMember(
       ),
     )
     .addStep(newValidateProtoStep())
-    // Membership before existence (steps.ts, AuthorizeMemberAudience).
-    .addStep(newAuthorizeMemberAudienceStep(deps.authorizer))
+    // The link names only the share, so membership is asked of the loaded
+    // share's organization (steps.ts, AuthorizeMemberAudience).
     .addStep(newLoadShareForMemberProfileStep(deps.store))
+    .addStep(newAuthorizeMemberAudienceStep(deps.authorizer))
     .addStep(newProjectMemberSharedProfileStep(deps.store))
     .build()
     .execute(reqCtx);
@@ -838,43 +839,34 @@ async function getSharedProfileForMember(
 }
 
 /**
- * Loads the share by org+slug for the anonymous path. Org is required —
- * an empty org would mean "match slug across all orgs", an enumeration
- * hazard on this public endpoint.
+ * Loads the share by the id the link carries, for the anonymous path
+ * (steps.ts, loadLinkedShare): a missing share and a share whose
+ * organization is gone answer the uniform refusal. An empty id never
+ * reaches it; ValidateProto refuses it first.
  */
 function newLoadShareForProfileStep(store: Store): PipelineStep<ProfileDesc> {
   return {
     name: "LoadShareForProfile",
     async execute(ctx: RequestContext<ProfileDesc>): Promise<void> {
-      const req = ctx.input;
-      if (req.org === "") {
-        throw invalidArgumentError(ORG_REQUIRED_FOR_LOOKUP_MESSAGE);
-      }
-      const share = await findShareByOrgAndSlug(store, req.org, req.slug);
-      if (share === undefined) {
-        throw sharedNotFound(req.slug);
-      }
-      ctx.set(RESOLVED_SHARE_KEY, share);
+      ctx.set(
+        RESOLVED_SHARE_KEY,
+        await loadLinkedShare(store, ctx.input.shareId),
+      );
     },
   };
 }
 
-/** The member path's loader — same org-required contract, same refusal. */
+/** The member path's loader — the same load, the same refusal. */
 function newLoadShareForMemberProfileStep(
   store: Store,
 ): PipelineStep<MemberProfileDesc> {
   return {
     name: "LoadShareForMemberProfile",
     async execute(ctx: RequestContext<MemberProfileDesc>): Promise<void> {
-      const ref = ctx.input;
-      if (ref.org === "") {
-        throw invalidArgumentError(ORG_REQUIRED_FOR_LOOKUP_MESSAGE);
-      }
-      const share = await findShareByOrgAndSlug(store, ref.org, ref.slug);
-      if (share === undefined) {
-        throw sharedNotFound(ref.slug);
-      }
-      ctx.set(RESOLVED_SHARE_KEY, share);
+      ctx.set(
+        RESOLVED_SHARE_KEY,
+        await loadLinkedShare(store, ctx.input.value),
+      );
     },
   };
 }
@@ -897,7 +889,7 @@ function newProjectSharedProfileStep(store: Store): PipelineStep<ProfileDesc> {
       const req = ctx.input;
 
       if (share.spec?.enabled !== true) {
-        throw sharedNotFound(req.slug);
+        throw sharedNotFound(req.shareId);
       }
       // The audience arm (SharingAudiencePolicy.admitsGuests): only an
       // EXPLICIT org audience refuses — unspecified means public by
@@ -906,7 +898,7 @@ function newProjectSharedProfileStep(store: Store): PipelineStep<ProfileDesc> {
       // would resolve org-audience shares the proto contract says must
       // collapse.
       if (share.spec.audience === AgentShareAudience.org) {
-        throw sharedNotFound(req.slug);
+        throw sharedNotFound(req.shareId);
       }
       if (
         !sharingLinkTokenAllowed(
@@ -914,7 +906,7 @@ function newProjectSharedProfileStep(store: Store): PipelineStep<ProfileDesc> {
           share.status?.shareLinkToken ?? "",
         )
       ) {
-        throw sharedNotFound(req.slug);
+        throw sharedNotFound(req.shareId);
       }
 
       ctx.set(SHARED_PROFILE_KEY, await buildSharedAgentProfile(store, share));
@@ -938,12 +930,12 @@ function newProjectMemberSharedProfileStep(
       const share = ctx.get(RESOLVED_SHARE_KEY) as AgentShare;
 
       if (share.spec?.enabled !== true) {
-        throw sharedNotFound(ctx.input.slug);
+        throw sharedNotFound(ctx.input.value);
       }
 
       const isOrgAudience = share.spec.audience === AgentShareAudience.org;
       if (!isOrgAudience && (share.status?.shareLinkToken ?? "") !== "") {
-        throw sharedNotFound(ctx.input.slug);
+        throw sharedNotFound(ctx.input.value);
       }
 
       ctx.set(SHARED_PROFILE_KEY, await buildSharedAgentProfile(store, share));

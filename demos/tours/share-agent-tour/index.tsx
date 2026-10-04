@@ -46,7 +46,7 @@ export function renderStep(data: ShareAgentTourStep): ReactNode {
               onOpenChange={noop}
               agent={buildDemoAgent()}
               share={buildDemoShare()}
-              buildShareUrl={(org, slug) => `https://app.stigmer.ai/chat/${org}/${slug}`}
+              buildShareUrl={(shareId) => `https://app.stigmer.ai/chat/${shareId}`}
               modal={false}
             />
           </div>

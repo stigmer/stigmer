@@ -95,7 +95,7 @@ const FILES = new Set([
   "/settings/billing.html",
   "/auth/github/callback.html",
   "/sessions/__placeholder__.html",
-  "/chat/__placeholder__/__placeholder__.html",
+  "/chat/__placeholder__.html",
   "/conversations/__placeholder__/__placeholder__.html",
   "/workflows/__placeholder__/__placeholder__.html",
   "/workflows/executions/__placeholder__.html",
@@ -142,10 +142,20 @@ test("conversation deep links resolve to the conversations placeholder", () => {
 });
 
 test("chat resolves through the general rule without a special-case block", () => {
+  // A hosted chat link names only the share, by its id: /chat/[share] is a
+  // one-placeholder route, served by the two-segment block like /sessions.
   assert.equal(
-    resolveProbe("/chat/acme/support-bot"),
-    "/chat/__placeholder__/__placeholder__.html",
+    resolveProbe("/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2"),
+    "/chat/__placeholder__.html",
   );
+});
+
+test("an old /chat/<org>/<slug> link no longer reaches a chat page", () => {
+  // It falls to the three-segment block, whose candidates
+  // (/chat/acme/__placeholder__.html, /chat/__placeholder__/__placeholder__.html)
+  // no longer exist in the export, so it ends at the real not-found page —
+  // never the chat page under another share's id, never the blank shell.
+  assert.equal(resolveProbe("/chat/acme/support-bot"), "/404.html");
 });
 
 test("four-segment library routes resolve to their placeholder pair", () => {
@@ -204,9 +214,14 @@ test("the pre-fix config produces the blank page for conversations and workflows
     resolveRequest(historical, "/workflows/acme/my-flow", FILES),
     "/index.html",
   );
-  // While /chat only worked because of its special case.
+  // While /chat only worked because of its special case (the export then
+  // held the two-placeholder /chat/[org]/[slug] page).
   assert.equal(
-    resolveRequest(historical, "/chat/acme/bot", FILES),
+    resolveRequest(
+      historical,
+      "/chat/acme/bot",
+      new Set([...FILES, "/chat/__placeholder__/__placeholder__.html"]),
+    ),
     "/chat/__placeholder__/__placeholder__.html",
   );
 });
@@ -350,6 +365,7 @@ test("verifyRoutes passes the probe config and fails the historical one, naming 
     ["conversations", "[channelId]", "[key]"],
     ["workflows", "executions", "[id]"],
     ["sessions", "[id]"],
+    ["chat", "[share]"],
   ]);
   try {
     const routes = enumerateRoutes(dir);

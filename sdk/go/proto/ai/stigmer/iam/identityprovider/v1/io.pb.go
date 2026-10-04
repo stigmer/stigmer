@@ -221,7 +221,8 @@ func (x *ListIdentityProvidersByOrgInput) GetOrg() string {
 // SSO enabled and to retrieve the OIDC configuration needed to initiate login.
 type OrganizationSsoLookup struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization slug to look up SSO configuration for.
+	// Organization to look up SSO configuration for: its id, as the shared
+	// SSO sign-in link carries it, or its slug, as a person types it.
 	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

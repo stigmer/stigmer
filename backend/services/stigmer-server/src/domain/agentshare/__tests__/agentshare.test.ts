@@ -8,12 +8,12 @@
  *   - the client-provided agent-id pin is discarded and re-stamped;
  *   - the indistinguishability contract compared ERROR-TO-ERROR (a
  *     private cross-org agent vs a genuinely missing one; disabled vs
- *     deleted vs locked-link vs no-share);
+ *     deleted vs locked-link vs no-share vs an organization that is gone);
  *   - the pin keeps a recreated same-slug agent from reviving a dangling
  *     share (the rebind guard);
  *   - the #478 store-failure sanitization, pinned at the seam
- *     (findShareByOrgAndSlug) with an injected failing store — the
- *     composed server cannot fault-inject storage.
+ *     (loadLinkedShare) with an injected failing store — the composed
+ *     server cannot fault-inject storage.
  *
  * Go tests run one store per test function; this file shares ONE server,
  * so count-sensitive assertions use dedicated orgs and every agent name is
@@ -38,6 +38,7 @@ import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -47,11 +48,8 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import type { Store } from "../../../store/interface.js";
-import {
-  ORG_REQUIRED_FOR_LOOKUP_MESSAGE,
-  sameOrgInvariantMessage,
-} from "../constants.js";
-import { findShareByOrgAndSlug, sharingLinkTokenAllowed } from "../steps.js";
+import { sameOrgInvariantMessage } from "../constants.js";
+import { loadLinkedShare, sharingLinkTokenAllowed } from "../steps.js";
 import {
   organizationId,
   seedOrganizations,
@@ -553,7 +551,7 @@ describe("the same-organization invariant", () => {
     );
 
     const err = await grpcError(() =>
-      query.getSharedProfile({ org: CONSUMER, slug: "legacy-cross-org" }),
+      query.getSharedProfile({ shareId: legacy.metadata!.id }),
     );
     expect(err.code).toBe(Code.NotFound);
     // The row itself is still readable by id — nothing is deleted.
@@ -574,18 +572,20 @@ describe("getSharedProfile (anonymous lane)", () => {
       uniqueName("Shared Profile Agent"),
       ORG,
     );
-    const ref = { org: ORG, slug: agent.metadata!.slug };
 
-    // No share yet.
-    const noShareErr = await grpcError(() => query.getSharedProfile(ref));
-    expect(noShareErr.code).toBe(Code.NotFound);
-    expect(noShareErr.rawMessage).toBe(
-      `Agent not found: ${agent.metadata!.slug}`,
+    // No such share: the refusal echoes the id the caller sent.
+    const noShareErr = await grpcError(() =>
+      query.getSharedProfile({ shareId: "ash_never_created" }),
     );
+    expect(noShareErr.code).toBe(Code.NotFound);
+    expect(noShareErr.rawMessage).toBe("Agent not found: ash_never_created");
 
-    // Enabled share resolves to the trimmed profile — display fields from
-    // the AGENT, URL identity from the SHARE, never the full Agent.
+    // Enabled share resolves by its id to the trimmed profile — display
+    // fields from the AGENT, org and slug from the SHARE, never the full
+    // Agent.
     const share = await shares.create(shareFor(agent, true));
+    const ref = { shareId: share.metadata!.id };
+    const missing = `Agent not found: ${share.metadata!.id}`;
     const profile = await query.getSharedProfile(ref);
     expect(profile.org).toBe(share.metadata!.org);
     expect(profile.slug).toBe(share.metadata!.slug);
@@ -599,32 +599,79 @@ describe("getSharedProfile (anonymous lane)", () => {
     await shares.update(share);
     const disabledErr = await grpcError(() => query.getSharedProfile(ref));
     expect(disabledErr.code).toBe(Code.NotFound);
-    expect(disabledErr.rawMessage).toBe(noShareErr.rawMessage);
+    expect(disabledErr.rawMessage).toBe(missing);
 
     // Deleted: indistinguishable too.
     await shares.delete({ value: share.metadata!.id });
     const deletedErr = await grpcError(() => query.getSharedProfile(ref));
     expect(deletedErr.code).toBe(Code.NotFound);
-    expect(deletedErr.rawMessage).toBe(noShareErr.rawMessage);
+    expect(deletedErr.rawMessage).toBe(missing);
   });
 
-  it("dangling agent_ref fails closed with the same error", async () => {
+  it("dangling agent_ref fails closed with the same error, naming the share's id", async () => {
     const agent = await createTestAgent(uniqueName("Soon Deleted Agent"), ORG);
-    await shares.create(shareFor(agent, true));
+    const share = await shares.create(shareFor(agent, true));
     await agents.delete({ value: agent.metadata!.id });
 
     const err = await grpcError(() =>
-      query.getSharedProfile({ org: ORG, slug: agent.metadata!.slug }),
+      query.getSharedProfile({ shareId: share.metadata!.id }),
     );
     expect(err.code).toBe(Code.NotFound);
+    expect(err.rawMessage).toBe(`Agent not found: ${share.metadata!.id}`);
   });
 
-  it("empty org is INVALID_ARGUMENT (anti-enumeration)", async () => {
+  it("another kind's id answers the same NotFound", async () => {
+    const agent = await createTestAgent(uniqueName("Wrong Kind Agent"), ORG);
     const err = await grpcError(() =>
-      query.getSharedProfile({ org: "", slug: "any-slug" }),
+      query.getSharedProfile({ shareId: agent.metadata!.id }),
+    );
+    expect(err.code).toBe(Code.NotFound);
+    expect(err.rawMessage).toBe(`Agent not found: ${agent.metadata!.id}`);
+  });
+
+  it("an empty share_id is INVALID_ARGUMENT", async () => {
+    const err = await grpcError(() =>
+      query.getSharedProfile({ shareId: "" }),
     );
     expect(err.code).toBe(Code.InvalidArgument);
-    expect(err.rawMessage).toBe(ORG_REQUIRED_FOR_LOOKUP_MESSAGE);
+  });
+
+  it("a share whose organization is gone answers the same NotFound on both lanes", async () => {
+    const agent = await createTestAgent(uniqueName("Orphaned Share Agent"), ORG);
+    const share = await shares.create(shareFor(agent, true));
+    const ref = { shareId: share.metadata!.id };
+    await query.getSharedProfile(ref);
+
+    // Delete leaves an organization's resources in place; only its row
+    // goes. Removing the row directly is that state, with nothing else
+    // in this shared server's organization disturbed.
+    const org = share.metadata!.org;
+    const orgRow = await server.store.getResource(
+      ApiResourceKind.organization,
+      org,
+      OrganizationSchema,
+    );
+    await server.store.deleteResource(ApiResourceKind.organization, org);
+    try {
+      const anonymous = await grpcError(() => query.getSharedProfile(ref));
+      expect(anonymous.code).toBe(Code.NotFound);
+      expect(anonymous.rawMessage).toBe(
+        `Agent not found: ${share.metadata!.id}`,
+      );
+      const member = await grpcError(() =>
+        query.getSharedProfileForMember({ value: share.metadata!.id }),
+      );
+      expect(member.code).toBe(Code.NotFound);
+      expect(member.rawMessage).toBe(anonymous.rawMessage);
+    } finally {
+      await server.store.saveResource(
+        ApiResourceKind.organization,
+        org,
+        OrganizationSchema,
+        orgRow,
+      );
+    }
+    await query.getSharedProfile(ref);
   });
 });
 
@@ -655,19 +702,21 @@ describe("audience and the member resolution lane", () => {
       uniqueName("Member Resolution Agent"),
       ORG,
     );
-    const ref = { org: ORG, slug: agent.metadata!.slug };
 
     const noShareErr = await grpcError(() =>
-      query.getSharedProfileForMember(ref),
+      query.getSharedProfileForMember({ value: "ash_never_created" }),
     );
     expect(noShareErr.code).toBe(Code.NotFound);
+    expect(noShareErr.rawMessage).toBe("Agent not found: ash_never_created");
 
-    await shares.create({
+    const share = await shares.create({
       ...shareFor(agent, true),
       spec: { ...shareFor(agent, true).spec, audience: AgentShareAudience.org },
     });
 
-    const profile = await query.getSharedProfileForMember(ref);
+    const profile = await query.getSharedProfileForMember({
+      value: share.metadata!.id,
+    });
     expect(profile.slug).toBe(agent.metadata!.slug);
   });
 
@@ -676,28 +725,25 @@ describe("audience and the member resolution lane", () => {
       uniqueName("Org Audience Anon Agent"),
       ORG,
     );
-    await shares.create({
+    const share = await shares.create({
       ...shareFor(agent, true),
       spec: { ...shareFor(agent, true).spec, audience: AgentShareAudience.org },
     });
 
     // Byte-identical with the missing/disabled/rotated refusals — a
-    // members-only share URL must teach an anonymous visitor nothing.
+    // members-only share link must teach an anonymous visitor nothing.
     const err = await grpcError(() =>
-      query.getSharedProfile({ org: ORG, slug: agent.metadata!.slug }),
+      query.getSharedProfile({ shareId: share.metadata!.id }),
     );
     expect(err.code).toBe(Code.NotFound);
-    expect(err.rawMessage).toBe(`Agent not found: ${agent.metadata!.slug}`);
+    expect(err.rawMessage).toBe(`Agent not found: ${share.metadata!.id}`);
 
     // Flipping back to public restores anonymous resolution — the same
     // immediate-revocation latency as disabling the share.
-    const stored = await query.getByAgent({ agentId: agent.metadata!.id });
-    const share = stored.items[0];
     share.spec!.audience = AgentShareAudience.public;
     await shares.update(share);
     const profile = await query.getSharedProfile({
-      org: ORG,
-      slug: agent.metadata!.slug,
+      shareId: share.metadata!.id,
     });
     expect(profile.slug).toBe(agent.metadata!.slug);
   });
@@ -713,14 +759,13 @@ describe("agent apply never touches the share", () => {
       uniqueName("Apply Isolation Agent"),
       "apply-isolation-org",
     );
-    await shares.create(shareFor(agent, true));
+    const share = await shares.create(shareFor(agent, true));
 
     agent.spec!.description = "Updated description";
     await agents.update(agent);
 
     const profile = await query.getSharedProfile({
-      org: "apply-isolation-org",
-      slug: agent.metadata!.slug,
+      shareId: share.metadata!.id,
     });
     expect(profile.description).toBe("Updated description");
   });
@@ -736,19 +781,13 @@ describe("rotateShareLink", () => {
 
   it("the full rotation lifecycle: lock, resolve-with-token, re-rotate, preserve across update", async () => {
     const agent = await createTestAgent(uniqueName("Rotate Link Agent"), ORG);
+    const share = await shares.create(shareFor(agent, true));
     const request = (token: string) => ({
-      org: ORG,
-      slug: agent.metadata!.slug,
+      shareId: share.metadata!.id,
       linkToken: token,
     });
-
-    // Capture the no-share NOT_FOUND before creating — the locked-link
-    // refusal must be byte-identical to it.
-    const noShareErr = await grpcError(() =>
-      query.getSharedProfile(request("")),
-    );
-
-    const share = await shares.create(shareFor(agent, true));
+    // The locked-link refusal is byte-identical to a missing share's.
+    const missing = `Agent not found: ${share.metadata!.id}`;
 
     // A stray ?k= on an unlocked link is harmless.
     await query.getSharedProfile(request("stray-token"));
@@ -765,7 +804,7 @@ describe("rotateShareLink", () => {
       query.getSharedProfile(request("")),
     );
     expect(lockedErr.code).toBe(Code.NotFound);
-    expect(lockedErr.rawMessage).toBe(noShareErr.rawMessage);
+    expect(lockedErr.rawMessage).toBe(missing);
 
     await query.getSharedProfile(request(firstToken));
 
@@ -780,13 +819,15 @@ describe("rotateShareLink", () => {
       query.getSharedProfile(request(firstToken)),
     );
     expect(deadErr.code).toBe(Code.NotFound);
+    expect(deadErr.rawMessage).toBe(missing);
     await query.getSharedProfile(request(secondToken));
 
     // The tokenless member path must not reveal a token-locked PUBLIC share.
     const memberErr = await grpcError(() =>
-      query.getSharedProfileForMember({ org: ORG, slug: agent.metadata!.slug }),
+      query.getSharedProfileForMember({ value: share.metadata!.id }),
     );
     expect(memberErr.code).toBe(Code.NotFound);
+    expect(memberErr.rawMessage).toBe(missing);
 
     // A manifest-shaped update (no status) preserves the token — status
     // survives every update verbatim, the design's core guarantee.
@@ -816,8 +857,7 @@ describe("rotateShareLink", () => {
     await shares.rotateShareLink({ resourceId: created.metadata!.id });
 
     const profile = await query.getSharedProfileForMember({
-      org: ORG,
-      slug: agent.metadata!.slug,
+      value: created.metadata!.id,
     });
     expect(profile.slug).toBe(agent.metadata!.slug);
   });
@@ -925,15 +965,34 @@ describe("seam-level pins", () => {
     // cause stays server-side on ConnectError.cause.
     const cause = new Error("bbolt: /var/lib/stigmer/store.db corrupted");
     const failing = {
-      listResources: async () => {
+      getResource: async () => {
         throw cause;
       },
     } as unknown as Store;
 
-    const err = await grpcError(() => findShareByOrgAndSlug(failing, "o", "s"));
+    const err = await grpcError(() => loadLinkedShare(failing, "ash_x"));
     expect(err.code).toBe(Code.Internal);
-    expect(err.rawMessage).toBe("failed to list agent share resources");
+    expect(err.rawMessage).toBe("failed to load agent share");
     expect(err.rawMessage).not.toContain("bbolt");
+    expect(err.cause).toBe(cause);
+  });
+
+  it("an organization read failure leaks no internals either", async () => {
+    const cause = new Error("bbolt: /var/lib/stigmer/store.db corrupted");
+    const failing = {
+      getResource: async (kind: ApiResourceKind) => {
+        if (kind === ApiResourceKind.agent_share) {
+          return create(AgentShareSchema, {
+            metadata: { id: "ash_x", org: "org_x" },
+          });
+        }
+        throw cause;
+      },
+    } as unknown as Store;
+
+    const err = await grpcError(() => loadLinkedShare(failing, "ash_x"));
+    expect(err.code).toBe(Code.Internal);
+    expect(err.rawMessage).toBe("failed to load organization");
     expect(err.cause).toBe(cause);
   });
 

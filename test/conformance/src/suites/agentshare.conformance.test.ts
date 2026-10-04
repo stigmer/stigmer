@@ -1,22 +1,33 @@
-// AgentShare conformance — CRUD, the rotatable link token, the anonymous
-// resolution lane's uniform-refusal contract, and the same-organization
+// AgentShare conformance — CRUD, the rotatable link token, the resolution
+// lanes' uniform-refusal contract, the guest path, and the same-organization
 // invariant on agent_ref (Class A).
 // Domain: conformance suites.
 //
-// An AgentShare is the hosted-chat channel for one agent. Four surfaces
-// make the domain distinct, all asserted here:
+// An AgentShare is the hosted-chat channel for one agent. A hosted chat link
+// names it by its id alone (`/chat/<share id>`), so no rename of its
+// organization breaks the link and no later holder of the organization's
+// name can capture it. These surfaces make the domain distinct, all
+// asserted here:
 //
 //   - The CANONICAL-SHARE default: creating a share with neither name nor
-//     slug adopts the agent's own slug (the /chat/<org>/<agent-slug> URL),
-//     and create stamps status.agent_id — the server-owned rebind pin that
+//     slug adopts the agent's own slug (its name in the organization), and
+//     create stamps status.agent_id — the server-owned rebind pin that
 //     keeps a stale share from attaching to whatever agent later claims
 //     the slug.
-//   - The ANONYMOUS resolution lane (getSharedProfile): every miss — share
-//     absent, share disabled, locked link with a wrong or missing token,
-//     dangling or rebound agent — answers ONE byte-identical NotFound that
-//     deliberately says "Agent", so a public URL leaks nothing about which
-//     internal state produced the refusal (the constant-time token compare
-//     behind it is unit-level; the wire contract is the uniformity).
+//   - The ANONYMOUS resolution lane (getSharedProfile, by share id): every
+//     miss — share absent, an id of another kind, share disabled, locked
+//     link with a wrong or missing token, dangling or rebound agent —
+//     answers ONE byte-identical NotFound that deliberately says "Agent" and
+//     echoes only the id the caller sent, so a public link leaks nothing
+//     about which internal state produced the refusal (the constant-time
+//     token compare behind it is unit-level; the wire contract is the
+//     uniformity).
+//   - The MEMBER lane (getSharedProfileForMember, by share id): it asks
+//     membership of the loaded share's organization, and a non-member hears
+//     the same NotFound as a missing share.
+//   - The GUEST path (mintGuestToken, by share id): where an edition mints,
+//     the token names the share and its organization; open source pins the
+//     UNIMPLEMENTED edition sentence.
 //   - The ROTATABLE link token: rotateShareLink is status.share_link_token's
 //     sole writer; after rotation the plain URL dies, the tokened URL
 //     resolves, and a stale token on an UNLOCKED link stays harmless.
@@ -37,7 +48,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeAgentShare } from "../support/agentshares";
 import { uniqueName } from "../support/naming";
-import { createTarget, type TargetProfile } from "../targets";
+import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -57,11 +68,11 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-async function createAgentFixture(org: string) {
-  const agent = await clients.agentCommand.create(
+async function createAgentFixture(org: string, using: ConformanceClients = clients) {
+  const agent = await using.agentCommand.create(
     makeAgent({ org, name: uniqueName("shared-agent") }),
   );
-  fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+  fixtures.defer(() => using.agentCommand.delete({ value: agent.metadata!.id }));
   return agent;
 }
 
@@ -69,17 +80,31 @@ async function createShareFixture(
   org: string,
   agentSlug: string,
   options: Parameters<typeof makeAgentShare>[2] = {},
+  using: ConformanceClients = clients,
 ) {
-  const share = await clients.agentShareCommand.create(makeAgentShare(org, agentSlug, options));
-  fixtures.defer(() => clients.agentShareCommand.delete({ value: share.metadata!.id }));
+  const share = await using.agentShareCommand.create(makeAgentShare(org, agentSlug, options));
+  fixtures.defer(() => using.agentShareCommand.delete({ value: share.metadata!.id }));
   return share;
 }
 
 // The uniform public refusal — deliberately "Agent", never "AgentShare":
 // the visitor asked for an agent's chat page; the share resource is an
-// internal modeling detail a public error must not teach.
-function sharedNotFoundMessage(slug: string): string {
-  return `Agent not found: ${slug}`;
+// internal modeling detail a public error must not teach. It echoes the
+// share id the caller sent, which the caller already holds.
+function sharedNotFoundMessage(shareId: string): string {
+  return `Agent not found: ${shareId}`;
+}
+
+// The open-source edition's answer to a guest mint (no unit composes the
+// capability).
+const GUEST_MINT_UNIMPLEMENTED =
+  "PlatformClientTokenController.mintGuestToken is not implemented: guest tokens for shared agents are served by the Cloud edition";
+
+// A JWT's payload, decoded without verifying: the arm reads which share
+// and organization the server named, not whether it signed them.
+function jwtPayload(token: string): Record<string, unknown> {
+  const [, payload = ""] = token.split(".");
+  return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<string, unknown>;
 }
 
 describe("AgentShare conformance — CRUD & identity", () => {
@@ -240,72 +265,79 @@ describe("AgentShare conformance — create validation", () => {
 });
 
 describe("AgentShare conformance — the anonymous resolution lane", () => {
-  it("[rpc:AgentShareQueryController.getSharedProfile] resolves an enabled share to the trimmed profile (share identity + agent display)", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfile] resolves an enabled share by its id to the trimmed profile (share identity + agent display)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
-    await createShareFixture(org, agent.metadata!.slug);
+    const share = await createShareFixture(org, agent.metadata!.slug);
 
     const profile = await clients.agentShareQuery.getSharedProfile({
-      org,
-      slug: agent.metadata!.slug,
+      shareId: share.metadata!.id,
     });
 
-    // URL identity from the SHARE; display fields from the AGENT — never
-    // the full Agent resource (its spec carries the system prompt).
+    // The share's organization and slug from the SHARE; display fields from
+    // the AGENT — never the full Agent resource (its spec carries the system
+    // prompt).
     expect(profile.org).toBe(org);
-    expect(profile.slug).toBe(agent.metadata?.slug);
+    expect(profile.slug).toBe(share.metadata?.slug);
     expect(profile.name).toBe(agent.metadata?.name);
     expect(profile.defaultInstanceId).toBe(agent.status?.defaultInstanceId);
   });
 
-  it("[rpc:AgentShareQueryController.getSharedProfile] requires org (InvalidArgument — cross-org slug matching would enable enumeration)", async () => {
-    const err = await expectGrpcCode(
-      () => clients.agentShareQuery.getSharedProfile({ org: "", slug: "anything" }),
+  it("[rpc:AgentShareQueryController.getSharedProfile] requires share_id (InvalidArgument)", async () => {
+    await expectGrpcCode(
+      () => clients.agentShareQuery.getSharedProfile({ shareId: "" }),
       Code.InvalidArgument,
-      "getSharedProfile without org",
+      "getSharedProfile without share_id",
     );
-    expect(err.rawMessage).toBe("org is required for shared agent lookup");
   });
 
-  it("[rpc:AgentShareQueryController.getSharedProfile] answers ONE byte-identical NotFound for absent, disabled, and dangling shares", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfile] answers ONE byte-identical NotFound for absent, other-kind, disabled, and dangling shares", async () => {
     const { org } = await target.provisionTenancy();
-    const slug = uniqueName("uniform");
 
     // Absent share.
+    const missingId = "ash_01confnevercreated";
     const absent = await expectGrpcCode(
-      () => clients.agentShareQuery.getSharedProfile({ org, slug }),
+      () => clients.agentShareQuery.getSharedProfile({ shareId: missingId }),
       Code.NotFound,
       "getSharedProfile on a nonexistent share",
     );
-    expect(absent.rawMessage).toBe(sharedNotFoundMessage(slug));
+    expect(absent.rawMessage).toBe(sharedNotFoundMessage(missingId));
+
+    // Another kind's id: an agent's id is not a share's.
+    const agent = await createAgentFixture(org);
+    const otherKind = await expectGrpcCode(
+      () => clients.agentShareQuery.getSharedProfile({ shareId: agent.metadata!.id }),
+      Code.NotFound,
+      "getSharedProfile on an agent's id",
+    );
+    expect(otherKind.rawMessage).toBe(sharedNotFoundMessage(agent.metadata!.id));
 
     // Disabled share: existing-but-disabled must be indistinguishable.
-    const agent = await createAgentFixture(org);
-    await createShareFixture(org, agent.metadata!.slug, { enabled: false });
+    const disabledShare = await createShareFixture(org, agent.metadata!.slug, { enabled: false });
     const disabled = await expectGrpcCode(
-      () => clients.agentShareQuery.getSharedProfile({ org, slug: agent.metadata!.slug }),
+      () => clients.agentShareQuery.getSharedProfile({ shareId: disabledShare.metadata!.id }),
       Code.NotFound,
       "getSharedProfile on a disabled share",
     );
-    expect(disabled.rawMessage).toBe(sharedNotFoundMessage(agent.metadata!.slug));
+    expect(disabled.rawMessage).toBe(sharedNotFoundMessage(disabledShare.metadata!.id));
 
     // Dangling agent_ref: a channel to a deleted agent must look exactly
     // like no channel. (Deleting the agent directly; the share outlives it.)
     const dangling = await createAgentFixture(org);
-    await createShareFixture(org, dangling.metadata!.slug);
+    const danglingShare = await createShareFixture(org, dangling.metadata!.slug);
     await clients.agentCommand.delete({ value: dangling.metadata!.id });
     const afterDelete = await expectGrpcCode(
-      () => clients.agentShareQuery.getSharedProfile({ org, slug: dangling.metadata!.slug }),
+      () => clients.agentShareQuery.getSharedProfile({ shareId: danglingShare.metadata!.id }),
       Code.NotFound,
       "getSharedProfile after the referenced agent was deleted",
     );
-    expect(afterDelete.rawMessage).toBe(sharedNotFoundMessage(dangling.metadata!.slug));
+    expect(afterDelete.rawMessage).toBe(sharedNotFoundMessage(danglingShare.metadata!.id));
   });
 
-  it("[rpc:AgentShareQueryController.getSharedProfile] [rpc:AgentShareQueryController.getSharedProfileForMember] collapses an org-audience share to the SAME NotFound — members-only URLs teach anonymous visitors nothing", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfile] [rpc:AgentShareQueryController.getSharedProfileForMember] collapses an org-audience share to the SAME NotFound — members-only links teach anonymous visitors nothing", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
-    await createShareFixture(org, agent.metadata!.slug, {
+    const share = await createShareFixture(org, agent.metadata!.slug, {
       audience: AgentShareAudience.org,
     });
 
@@ -313,86 +345,82 @@ describe("AgentShare conformance — the anonymous resolution lane", () => {
     // getSharedProfileForMember; the anonymous lane answers the uniform
     // refusal, byte-identical with a share that never existed.
     const refused = await expectGrpcCode(
-      () => clients.agentShareQuery.getSharedProfile({ org, slug: agent.metadata!.slug }),
+      () => clients.agentShareQuery.getSharedProfile({ shareId: share.metadata!.id }),
       Code.NotFound,
       "getSharedProfile on an org-audience share",
     );
-    expect(refused.rawMessage).toBe(sharedNotFoundMessage(agent.metadata!.slug));
+    expect(refused.rawMessage).toBe(sharedNotFoundMessage(share.metadata!.id));
 
     // The member lane still resolves it — the refusal is audience, not state.
     const profile = await clients.agentShareQuery.getSharedProfileForMember({
-      org,
-      slug: agent.metadata!.slug,
+      value: share.metadata!.id,
     });
-    expect(profile.slug).toBe(agent.metadata?.slug);
+    expect(profile.slug).toBe(share.metadata?.slug);
   });
 
   it("[rpc:AgentShareQueryController.getSharedProfile] a stale token on an UNLOCKED link stays harmless", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
-    await createShareFixture(org, agent.metadata!.slug);
+    const share = await createShareFixture(org, agent.metadata!.slug);
 
     // No live token → whatever the caller presented is ignored, so an old
     // bookmarked ?k= keeps working after an unlock-by-recreate.
     const profile = await clients.agentShareQuery.getSharedProfile({
-      org,
-      slug: agent.metadata!.slug,
+      shareId: share.metadata!.id,
       linkToken: "stale-token-from-an-old-bookmark",
     });
-    expect(profile.slug).toBe(agent.metadata?.slug);
+    expect(profile.slug).toBe(share.metadata?.slug);
   });
 });
 
 describe("AgentShare conformance — the rotatable link token", () => {
-  it("[rpc:AgentShareCommandController.rotateShareLink] [rpc:AgentShareQueryController.getSharedProfile] rotation kills the plain URL, admits the tokened one, and refuses the wrong token uniformly", async () => {
+  it("[rpc:AgentShareCommandController.rotateShareLink] [rpc:AgentShareQueryController.getSharedProfile] rotation kills the plain link, admits the tokened one, and refuses the wrong token uniformly", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const share = await createShareFixture(org, agent.metadata!.slug);
+    const shareId = share.metadata!.id;
 
     const rotated = await clients.agentShareCommand.rotateShareLink({
-      resourceId: share.metadata!.id,
+      resourceId: shareId,
     });
     const token = rotated.status?.shareLinkToken ?? "";
     // 20 bytes of server entropy → 27 url-safe base64 characters.
     expect(token).toMatch(/^[A-Za-z0-9_-]{27}$/);
 
-    // The plain URL is dead — and the refusal is byte-identical with a
+    // The plain link is dead — and the refusal is byte-identical with a
     // nonexistent share's, so a killed link looks like one that never was.
     const plain = await expectGrpcCode(
-      () => clients.agentShareQuery.getSharedProfile({ org, slug: share.metadata!.slug }),
+      () => clients.agentShareQuery.getSharedProfile({ shareId }),
       Code.NotFound,
-      "plain URL after rotation",
+      "plain link after rotation",
     );
-    expect(plain.rawMessage).toBe(sharedNotFoundMessage(share.metadata!.slug));
+    expect(plain.rawMessage).toBe(sharedNotFoundMessage(shareId));
 
     // A wrong token refuses the same way — never a distinct "wrong token".
     const wrong = await expectGrpcCode(
       () =>
         clients.agentShareQuery.getSharedProfile({
-          org,
-          slug: share.metadata!.slug,
+          shareId,
           linkToken: "not-the-token-that-was-minted",
         }),
       Code.NotFound,
       "wrong token after rotation",
     );
-    expect(wrong.rawMessage).toBe(sharedNotFoundMessage(share.metadata!.slug));
+    expect(wrong.rawMessage).toBe(sharedNotFoundMessage(shareId));
 
     // The minted token resolves.
     const profile = await clients.agentShareQuery.getSharedProfile({
-      org,
-      slug: share.metadata!.slug,
+      shareId,
       linkToken: token,
     });
     expect(profile.slug).toBe(share.metadata?.slug);
 
     // Rotating again kills the previous token immediately.
-    await clients.agentShareCommand.rotateShareLink({ resourceId: share.metadata!.id });
+    await clients.agentShareCommand.rotateShareLink({ resourceId: shareId });
     await expectGrpcCode(
       () =>
         clients.agentShareQuery.getSharedProfile({
-          org,
-          slug: share.metadata!.slug,
+          shareId,
           linkToken: token,
         }),
       Code.NotFound,
@@ -411,22 +439,59 @@ describe("AgentShare conformance — the rotatable link token", () => {
 });
 
 describe("AgentShare conformance — the member resolution lane", () => {
-  it("[rpc:AgentShareQueryController.getSharedProfileForMember] resolves enabled shares and requires org, like the anonymous lane", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfileForMember] resolves enabled shares by id and requires the id, like the anonymous lane", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
-    await createShareFixture(org, agent.metadata!.slug);
+    const share = await createShareFixture(org, agent.metadata!.slug);
 
     const profile = await clients.agentShareQuery.getSharedProfileForMember({
-      org,
-      slug: agent.metadata!.slug,
+      value: share.metadata!.id,
     });
-    expect(profile.slug).toBe(agent.metadata?.slug);
+    expect(profile.slug).toBe(share.metadata?.slug);
 
     await expectGrpcCode(
-      () => clients.agentShareQuery.getSharedProfileForMember({ org: "", slug: "anything" }),
+      () => clients.agentShareQuery.getSharedProfileForMember({ value: "" }),
       Code.InvalidArgument,
-      "member lookup without org",
+      "member lookup without an id",
     );
+    const missingId = "ash_01confnevercreated";
+    const missing = await expectGrpcCode(
+      () => clients.agentShareQuery.getSharedProfileForMember({ value: missingId }),
+      Code.NotFound,
+      "member lookup of a nonexistent share",
+    );
+    expect(missing.rawMessage).toBe(sharedNotFoundMessage(missingId));
+  });
+
+  it("[rpc:AgentShareQueryController.getSharedProfileForMember] resolves for a member of the share's organization and answers a non-member the missing share's NotFound", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    fixtures.defer(() => lane.cleanupTenancy(tenancy));
+    const agent = await createAgentFixture(tenancy.org, lane.clients);
+    const share = await createShareFixture(
+      tenancy.org,
+      agent.metadata!.slug,
+      { audience: AgentShareAudience.org },
+      lane.clients,
+    );
+    const shareId = share.metadata!.id;
+
+    const member = await lane.provisionMember(tenancy);
+    const resolved = await member.agentShareQuery.getSharedProfileForMember({ value: shareId });
+    expect(resolved.org, "the profile names the share's organization").toBe(tenancy.org);
+
+    // The link names only the share, so membership is asked of the share's
+    // organization after it loads; a non-member hears exactly what a
+    // nonexistent share answers.
+    const outsider = await lane.provisionIdentity();
+    const refused = await expectGrpcCode(
+      () => outsider.agentShareQuery.getSharedProfileForMember({ value: shareId }),
+      Code.NotFound,
+      "member lookup by someone outside the share's organization",
+    );
+    expect(refused.rawMessage).toBe(sharedNotFoundMessage(shareId));
   });
 
   it("[rpc:AgentShareQueryController.getSharedProfileForMember] refuses a token-locked PUBLIC share on the tokenless member path, but not an org-audience one", async () => {
@@ -440,13 +505,12 @@ describe("AgentShare conformance — the member resolution lane", () => {
     const refused = await expectGrpcCode(
       () =>
         clients.agentShareQuery.getSharedProfileForMember({
-          org,
-          slug: publicShare.metadata!.slug,
+          value: publicShare.metadata!.id,
         }),
       Code.NotFound,
       "member path on a token-locked public share",
     );
-    expect(refused.rawMessage).toBe(sharedNotFoundMessage(publicShare.metadata!.slug));
+    expect(refused.rawMessage).toBe(sharedNotFoundMessage(publicShare.metadata!.id));
 
     // Org-audience + rotated: the gate is membership, not the link token —
     // the member path still resolves.
@@ -456,10 +520,48 @@ describe("AgentShare conformance — the member resolution lane", () => {
     });
     await clients.agentShareCommand.rotateShareLink({ resourceId: orgShare.metadata!.id });
     const resolved = await clients.agentShareQuery.getSharedProfileForMember({
-      org,
-      slug: orgShare.metadata!.slug,
+      value: orgShare.metadata!.id,
     });
     expect(resolved.slug).toBe(orgShare.metadata?.slug);
+  });
+});
+
+describe("AgentShare conformance — the guest path by share id", () => {
+  it("[rpc:PlatformClientTokenController.mintGuestToken] mints a guest token naming the share and its organization, or pins open source's refusal", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+    const share = await createShareFixture(org, agent.metadata!.slug);
+    const shareId = share.metadata!.id;
+
+    if (!target.capabilities.guestMinting) {
+      const err = await expectGrpcCode(
+        () => clients.platformClientToken.mintGuestToken({ shareId }),
+        Code.Unimplemented,
+        "mintGuestToken on an edition that mints no guest tokens",
+      );
+      expect(err.rawMessage).toBe(GUEST_MINT_UNIMPLEMENTED);
+      return;
+    }
+
+    const minted = await clients.platformClientToken.mintGuestToken({ shareId });
+    expect(minted.tokenType).toBe("Bearer");
+    expect(minted.guestCookieId, "a fresh visitor gets a server-issued id").not.toBe("");
+    const claims = jwtPayload(minted.accessToken);
+    expect(claims.share_id, "the token names the share the link named").toBe(shareId);
+    expect(claims.org, "and the share's organization, which the link never named").toBe(org);
+  });
+
+  it("[rpc:PlatformClientTokenController.mintGuestToken] refuses an unknown share id with the uniform NotFound", async (ctx) => {
+    if (!target.capabilities.guestMinting) {
+      return ctx.skip("guestMinting is false: the open-source refusal is pinned by the arm above");
+    }
+    const missingId = "ash_01confnevercreated";
+    const err = await expectGrpcCode(
+      () => clients.platformClientToken.mintGuestToken({ shareId: missingId }),
+      Code.NotFound,
+      "mintGuestToken for a nonexistent share",
+    );
+    expect(err.rawMessage).toBe(sharedNotFoundMessage(missingId));
   });
 });
 

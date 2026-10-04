@@ -12,7 +12,8 @@ public interface SharedAgentProfileOrBuilder extends
 
   /**
    * <pre>
-   * Organization that owns the share.
+   * Id of the organization that owns the share. The hosted chat page
+   * creates the visitor's session in it.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>
@@ -21,7 +22,8 @@ public interface SharedAgentProfileOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization that owns the share.
+   * Id of the organization that owns the share. The hosted chat page
+   * creates the visitor's session in it.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>
@@ -32,8 +34,9 @@ public interface SharedAgentProfileOrBuilder extends
 
   /**
    * <pre>
-   * Slug of the share (unique within the org).
-   * Together with org, this is the identity in the hosted chat URL.
+   * Slug of the share: its name within its organization, as the CLI and
+   * getByReference address it. The hosted chat link names the share by
+   * its id, never by this slug.
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug"];</code>
@@ -42,8 +45,9 @@ public interface SharedAgentProfileOrBuilder extends
   java.lang.String getSlug();
   /**
    * <pre>
-   * Slug of the share (unique within the org).
-   * Together with org, this is the identity in the hosted chat URL.
+   * Slug of the share: its name within its organization, as the CLI and
+   * getByReference address it. The hosted chat link names the share by
+   * its id, never by this slug.
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug"];</code>

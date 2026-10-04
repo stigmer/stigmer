@@ -18,6 +18,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { recordShareId } from "./share-id.mjs";
+
 const here = dirname(fileURLToPath(import.meta.url));
 const bin = process.env.STIGMER_BIN ?? "stigmer";
 const ORG = "meridian-travel";
@@ -59,8 +61,11 @@ stigmer("apply", "-f", join(here, "resources/disruption-digest-schedule.yaml"));
 
 // 6. The hosted-chat share (share link + embed origins for the Meridian page).
 stigmer("apply", "-f", join(here, "resources/traveler-assist-share.yaml"));
+// A share link names the share by its id; record it for the embed page
+// and the capture script (share-id.mjs).
+const shareId = recordShareId(bin, ORG, "traveler-assist");
 
 console.log("\nMeridian Travel demo world seeded.");
 console.log("Console:    http://localhost:7234");
-console.log("Share link: http://localhost:7234/chat/meridian-travel/traveler-assist");
+console.log(`Share link: http://localhost:7234/chat/${shareId}`);
 console.log("Embed page: npm run demo:embed  →  http://localhost:4173");

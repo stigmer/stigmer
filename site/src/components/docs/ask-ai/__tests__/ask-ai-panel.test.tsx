@@ -1,14 +1,23 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
 import { AskAiProvider } from "../AskAiProvider";
 import { AskAiTrigger } from "../AskAiTrigger";
 import { AskAiPanel } from "../AskAiPanel";
-import {
-  ASK_AI_AGENT,
-  ASK_AI_APP_ORIGIN,
-  ASK_AI_ORG,
-  ASK_AI_READY_TIMEOUT_MS,
-} from "../config";
+import { ASK_AI_APP_ORIGIN, ASK_AI_READY_TIMEOUT_MS } from "../config";
+
+/**
+ * The shipped config wires no share until the deployment's docs share id
+ * is set; each describe below chooses the id the components read.
+ */
+const wiring = vi.hoisted(() => ({ share: "" }));
+vi.mock("../config", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../config")>()),
+  get ASK_AI_SHARE() {
+    return wiring.share;
+  },
+}));
+
+const DOCS_SHARE = "ash_01j9docsshare0000000000000";
 
 /**
  * The docs layout shape: one provider, two triggers, one panel. Both
@@ -39,14 +48,32 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+describe("Ask AI with no docs share wired", () => {
+  beforeEach(() => {
+    wiring.share = "";
+  });
+
+  it("renders no trigger and no panel", () => {
+    render(<Harness />);
+
+    expect(screen.queryAllByRole("button", { name: "Ask AI" })).toEqual([]);
+    expect(screen.queryByText("Ask AI")).toBe(null);
+    expect(embedElement()).toBe(null);
+  });
+});
+
 describe("AskAiPanel", () => {
+  beforeEach(() => {
+    wiring.share = DOCS_SHARE;
+  });
+
   it("never mounts the embed (no guest mint) until first opened", () => {
     render(<Harness />);
 
     expect(embedElement()).toBe(null);
   });
 
-  it("mounts exactly one embed with the share's coordinates on first open", () => {
+  it("mounts exactly one embed naming the share by id on first open", () => {
     render(<Harness />);
     openPanel();
 
@@ -54,8 +81,7 @@ describe("AskAiPanel", () => {
     expect(elements.length).toBe(1);
 
     const element = elements[0];
-    expect(element.getAttribute("org")).toBe(ASK_AI_ORG);
-    expect(element.getAttribute("agent")).toBe(ASK_AI_AGENT);
+    expect(element.getAttribute("share")).toBe(DOCS_SHARE);
     expect(element.getAttribute("app-origin")).toBe(ASK_AI_APP_ORIGIN);
     expect(element.getAttribute("theme")).toBe("dark");
     expect(element.getAttribute("width")).toBe("100%");
@@ -69,7 +95,7 @@ describe("AskAiPanel", () => {
     const iframe = embedElement()?.querySelector("iframe");
     expect(iframe).toBeTruthy();
     expect(iframe!.src).toBe(
-      `${ASK_AI_APP_ORIGIN}/chat/${ASK_AI_ORG}/${ASK_AI_AGENT}?theme=dark`,
+      `${ASK_AI_APP_ORIGIN}/chat/${DOCS_SHARE}?theme=dark`,
     );
   });
 

@@ -12,49 +12,27 @@ public interface GetSharedProfileRequestOrBuilder extends
 
   /**
    * <pre>
-   * Organization from the share URL: its id, as links built from a share's
-   * stored org carry it, or its slug, as older links do.
+   * Id of the share, from the hosted chat link.
    * </pre>
    *
-   * <code>string org = 1 [json_name = "org"];</code>
-   * @return The org.
+   * <code>string share_id = 4 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
+   * @return The shareId.
    */
-  java.lang.String getOrg();
+  java.lang.String getShareId();
   /**
    * <pre>
-   * Organization from the share URL: its id, as links built from a share's
-   * stored org carry it, or its slug, as older links do.
+   * Id of the share, from the hosted chat link.
    * </pre>
    *
-   * <code>string org = 1 [json_name = "org"];</code>
-   * @return The bytes for org.
+   * <code>string share_id = 4 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for shareId.
    */
   com.google.protobuf.ByteString
-      getOrgBytes();
+      getShareIdBytes();
 
   /**
    * <pre>
-   * Share slug from the share URL.
-   * </pre>
-   *
-   * <code>string slug = 2 [json_name = "slug"];</code>
-   * @return The slug.
-   */
-  java.lang.String getSlug();
-  /**
-   * <pre>
-   * Share slug from the share URL.
-   * </pre>
-   *
-   * <code>string slug = 2 [json_name = "slug"];</code>
-   * @return The bytes for slug.
-   */
-  com.google.protobuf.ByteString
-      getSlugBytes();
-
-  /**
-   * <pre>
-   * Link token from the share URL's `?k=` parameter.
+   * Link token from the share link's `?k=` parameter.
    *
    * Required (and validated) only when the share link has been locked with
    * rotateShareLink; ignored for plain share links.
@@ -66,7 +44,7 @@ public interface GetSharedProfileRequestOrBuilder extends
   java.lang.String getLinkToken();
   /**
    * <pre>
-   * Link token from the share URL's `?k=` parameter.
+   * Link token from the share link's `?k=` parameter.
    *
    * Required (and validated) only when the share link has been locked with
    * rotateShareLink; ignored for plain share links.

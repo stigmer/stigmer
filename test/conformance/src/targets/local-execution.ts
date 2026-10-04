@@ -96,6 +96,8 @@ export class LocalExecutionTarget implements TargetProfile {
     billingPlans: false,
     sideChannelProxy: false,
     publicLane: false,
+    // No guest-token capability, as on `local`.
+    guestMinting: false,
     // Open source serves PlatformClient; the minting lane is the OIDC
     // sibling this target lends through enforcingLane(), where the key ring,
     // the platform-token verifier and the origin guard are composed.

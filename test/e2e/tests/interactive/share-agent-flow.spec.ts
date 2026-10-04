@@ -2,6 +2,7 @@ import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 import type { Page } from "@playwright/test";
+import type { Stigmer } from "@stigmer/sdk";
 
 /**
  * Share flow on the agent detail page, anchored to the Shares-tab surface
@@ -64,6 +65,24 @@ async function deleteShare(page: Page, shareName: string) {
   });
 }
 
+/**
+ * The chat link the console shows for the agent's share with `shareSlug`:
+ * `/chat/<share id>`, the id read back from the server. A link names only
+ * the share, so no rename of its organization moves it.
+ */
+async function chatPathOf(
+  client: Stigmer,
+  agentId: string,
+  shareSlug: string,
+): Promise<string> {
+  const shares = await client.agentShare.getByAgent({ agentId });
+  const share = shares.items.find((s) => s.metadata?.slug === shareSlug);
+  if (share === undefined) {
+    throw new Error(`no share '${shareSlug}' on agent ${agentId}`);
+  }
+  return `/chat/${share.metadata!.id}`;
+}
+
 test.describe("Share agent flow", () => {
   // The row's copy affordance writes through navigator.clipboard, which
   // automated Chromium only allows with an explicit permission grant.
@@ -79,6 +98,7 @@ test.describe("Share agent flow", () => {
   test("create a share from the Shares tab, see the live link, copy it, delete it", async ({
     page,
     testAgent,
+    stigmerClient,
   }) => {
     await openAgentDetail(page, testAgent.org, testAgent.slug);
     await openSharesTab(page);
@@ -93,9 +113,13 @@ test.describe("Share agent flow", () => {
 
     // The list shows the share with its chat link (name stays prefilled
     // from the agent, so the row is addressed by the agent's name). The
-    // link carries the organization's id, which a later holder of its slug
-    // cannot capture.
-    const expectedPath = `/chat/${testAgent.orgId}/${shareSlug}`;
+    // link names the share by its id, which no rename or later holder of
+    // the organization's slug can move.
+    const expectedPath = await chatPathOf(
+      stigmerClient,
+      testAgent.id,
+      shareSlug,
+    );
     await expect(page.getByText(expectedPath)).toBeVisible({
       timeout: 10_000,
     });
@@ -115,6 +139,7 @@ test.describe("Share agent flow", () => {
   test("a created share persists across a page reload", async ({
     page,
     testAgent,
+    stigmerClient,
   }) => {
     await openAgentDetail(page, testAgent.org, testAgent.slug);
     await openSharesTab(page);
@@ -130,7 +155,9 @@ test.describe("Share agent flow", () => {
     await openAgentDetail(page, testAgent.org, testAgent.slug);
     await openSharesTab(page);
     await expect(
-      page.getByText(`/chat/${testAgent.orgId}/${shareSlug}`),
+      page.getByText(
+        await chatPathOf(stigmerClient, testAgent.id, shareSlug),
+      ),
     ).toBeVisible({ timeout: 10_000 });
 
     await deleteShare(page, testAgent.slug);

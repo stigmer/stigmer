@@ -5,9 +5,11 @@
  * desktop app (via `@stigmer/react`), the `stigmer` CLI, and any platform
  * builder that wants to construct share links or embed snippets itself.
  *
- * The canonical URL shape is `<app-origin>/chat/<org>/<slug>`, and
+ * The canonical URL shape is `<app-origin>/chat/<share id>`, and
  * `embed.js` is served from the root of that same
- * app origin. Callers supply the origin — resolving it is a host
+ * app origin. A link names only the share, by its permanent id, so no
+ * rename of the share's organization breaks it and no later holder of
+ * that organization's name can take it over. Callers supply the origin — resolving it is a host
  * concern (the console knows its `appUrl`, the CLI resolves it from the
  * backend type) — while the path and snippet shapes live here so every
  * surface emits byte-identical output.
@@ -45,23 +47,22 @@ export function validateOrigin(value: string): string | null {
 
 /**
  * Query parameter carrying the share-link token on a locked link:
- * `/chat/<org>/<slug>?k=<token>`. Short by design — the token rides every
+ * `/chat/<share id>?k=<token>`. Short by design — the token rides every
  * copied link, and `k` (for "key") is the platform's one-character
  * convention, mirrored by the hosted page and the embed widget.
  */
 export const LINK_TOKEN_PARAM = "k";
 
 /**
- * The hosted chat page path for a shared agent: `/chat/<org>/<slug>`
- * (the AgentShare's org and slug — the slug defaults to the agent's),
- * plus `?k=<token>` when the share link is locked with a rotatable
- * token (`AgentShareStatus.share_link_token`).
+ * The hosted chat page path for a shared agent: `/chat/<share id>` (the
+ * AgentShare's `metadata.id`), plus `?k=<token>` when the share link is
+ * locked with a rotatable token (`AgentShareStatus.share_link_token`).
  *
  * Useful on its own when the caller renders relative to the current
  * origin (e.g. a host that never configured an absolute app URL).
  */
-export function chatPath(org: string, slug: string, linkToken?: string): string {
-  const path = `/chat/${org}/${slug}`;
+export function chatPath(shareId: string, linkToken?: string): string {
+  const path = `/chat/${encodeURIComponent(shareId)}`;
   return linkToken
     ? `${path}?${LINK_TOKEN_PARAM}=${encodeURIComponent(linkToken)}`
     : path;
@@ -69,7 +70,7 @@ export function chatPath(org: string, slug: string, linkToken?: string): string 
 
 /**
  * The absolute hosted chat URL for a shared agent:
- * `<appOrigin>/chat/<org>/<slug>[?k=<token>]`.
+ * `<appOrigin>/chat/<share id>[?k=<token>]`.
  *
  * A trailing slash on `appOrigin` is tolerated so callers can pass
  * user-configured values verbatim. An empty `appOrigin` degrades to the
@@ -78,11 +79,10 @@ export function chatPath(org: string, slug: string, linkToken?: string): string 
  */
 export function buildChatUrl(
   appOrigin: string,
-  org: string,
-  slug: string,
+  shareId: string,
   linkToken?: string,
 ): string {
-  return stripTrailingSlash(appOrigin) + chatPath(org, slug, linkToken);
+  return stripTrailingSlash(appOrigin) + chatPath(shareId, linkToken);
 }
 
 /**
@@ -113,20 +113,19 @@ export function buildEmbedLoaderUrl(appOrigin: string): string {
 /**
  * The two-line embed snippet an owner pastes into any website: the
  * loader script plus the `<stigmer-agent>` element where the widget
- * renders. A locked share link adds the `token` attribute, which the
+ * renders, naming the share by its id. A locked share link adds the `token` attribute, which the
  * widget forwards as `?k=` on its iframe URL. Every surface (share
  * dialog, CLI, docs) emits exactly this.
  */
 export function buildEmbedSnippet(
   appOrigin: string,
-  org: string,
-  slug: string,
+  shareId: string,
   linkToken?: string,
 ): string {
   const tokenAttribute = linkToken ? ` token="${linkToken}"` : "";
   return [
     `<script src="${buildEmbedLoaderUrl(appOrigin)}" async></script>`,
-    `<stigmer-agent org="${org}" agent="${slug}"${tokenAttribute}></stigmer-agent>`,
+    `<stigmer-agent share="${shareId}"${tokenAttribute}></stigmer-agent>`,
   ].join("\n");
 }
 

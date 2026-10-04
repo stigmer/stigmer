@@ -144,8 +144,9 @@ function withShares(...shares: unknown[]) {
   return vi.fn().mockResolvedValue({ totalCount: shares.length, items: shares });
 }
 
-const buildShareUrl = (org: string, slug: string) =>
-  `https://app.example.com/chat/${org}/${slug}`;
+// A link names the share by its id alone — never its organization or slug.
+const buildShareUrl = (shareId: string) =>
+  `https://app.example.com/chat/${shareId}`;
 
 async function renderList(
   client: unknown,
@@ -196,8 +197,8 @@ describe("AgentShareList", () => {
     expect(screen.getByText("2 shares")).toBeTruthy();
     expect(screen.getByText("Support Agent")).toBeTruthy();
     expect(screen.getByText("Help Desk")).toBeTruthy();
-    expect(screen.getByText("/chat/acme/support-agent")).toBeTruthy();
-    expect(screen.getByText("/chat/acme/help-desk")).toBeTruthy();
+    expect(screen.getByText("/chat/ash_1")).toBeTruthy();
+    expect(screen.getByText("/chat/ash_2")).toBeTruthy();
     expect(screen.getByText("Public")).toBeTruthy();
     expect(screen.getByText("Org members")).toBeTruthy();
     expect(screen.getByText("Active")).toBeTruthy();
@@ -257,7 +258,7 @@ describe("AgentShareList", () => {
 
     // The editor shows the chosen share's URL — not the first row's.
     expect(
-      await screen.findByText("https://app.example.com/chat/acme/help-desk"),
+      await screen.findByText("https://app.example.com/chat/ash_2"),
     ).toBeTruthy();
   });
 
@@ -286,7 +287,7 @@ describe("AgentShareList", () => {
     );
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        "https://app.example.com/chat/acme/support-agent?k=tok123",
+        "https://app.example.com/chat/ash_1?k=tok123",
       ),
     );
 
@@ -297,8 +298,27 @@ describe("AgentShareList", () => {
     // stays clean.
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        "https://app.example.com/chat/acme/internal",
+        "https://app.example.com/chat/ash_2",
       ),
+    );
+  });
+
+  it("falls back to the relative /chat/<share id> link when the host builds no URL", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    const client = createMockStigmer({
+      getByAgent: withShares(makeShare({ shareLinkToken: "tok123" })),
+    });
+    await renderList(client, { buildShareUrl: undefined });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Copy link for Support Agent" }),
+    );
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith("/chat/ash_1?k=tok123"),
     );
   });
 
@@ -384,9 +404,11 @@ describe("AgentShareList", () => {
       await openRowMenu();
       fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
 
-      // The confirmation names the destructive consequence and the
-      // config-preserving alternative (pause).
+      // The confirmation names the link that stops working (by the share's
+      // id, the one identity a link carries), the destructive consequence,
+      // and the config-preserving alternative (pause).
       const title = await screen.findByText("Delete share?");
+      expect(screen.getByText(/The link \/chat\/ash_1 stops working/)).toBeTruthy();
       expect(screen.getByText(/pause it instead/i)).toBeTruthy();
 
       const confirmDialog = title.closest("dialog") as HTMLElement;

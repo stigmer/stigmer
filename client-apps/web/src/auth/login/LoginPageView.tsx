@@ -35,7 +35,10 @@ const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
  * skeleton rather than the hostname guess (a self-host guesses "cloud").
  *
  * Two entry points on the SSO editions:
- * - `/login?org=acme` — auto-discovers the SSO provider for "acme"
+ * - `/login?org=<org id>` — auto-discovers the organization's SSO provider.
+ *   The shared sign-in link names the organization by its permanent id, so
+ *   a later holder of a released slug can never sit behind it; a typed
+ *   slug (`/login?org=acme`) resolves the same way.
  * - `/login` — shows an org input for the user to type their org slug
  */
 export function LoginPageView() {

@@ -68,23 +68,19 @@ message RotateShareLinkInput {
 
 // Input for resolving a share's public profile.
 //
-// Identifies the share by the org and slug from the hosted chat URL, plus
-// the link token when the share URL carries one.
-//
-// @internal
-// org emptiness is validated in the handler (INVALID_ARGUMENT) rather than
-// the proto to keep the anonymous path's existing error contract: org+slug
-// is the shared URL's identity, and cross-org slug matching on a public
-// endpoint would enable enumeration.
+// Identifies the share by its id, the one identity a hosted chat link
+// carries (`/chat/<share id>`), plus the link token when the link carries
+// one. A share id never changes and is never reused, so a link cannot be
+// broken by a rename of the share's organization or captured by a later
+// holder of that organization's name.
 message GetSharedProfileRequest {
-  // Organization from the share URL: its id, as links built from a share's
-  // stored org carry it, or its slug, as older links do.
-  string org = 1;
+  reserved 1, 2;
+  reserved "org", "slug";
 
-  // Share slug from the share URL.
-  string slug = 2;
+  // Id of the share, from the hosted chat link.
+  string share_id = 4 [(buf.validate.field).required = true];
 
-  // Link token from the share URL's `?k=` parameter.
+  // Link token from the share link's `?k=` parameter.
   //
   // Required (and validated) only when the share link has been locked with
   // rotateShareLink; ignored for plain share links.
@@ -100,11 +96,13 @@ message GetSharedProfileRequest {
 // profile carries only what the hosted chat page needs to render a header
 // and start a session.
 message SharedAgentProfile {
-  // Organization that owns the share.
+  // Id of the organization that owns the share. The hosted chat page
+  // creates the visitor's session in it.
   string org = 1;
 
-  // Slug of the share (unique within the org).
-  // Together with org, this is the identity in the hosted chat URL.
+  // Slug of the share: its name within its organization, as the CLI and
+  // getByReference address it. The hosted chat link names the share by
+  // its id, never by this slug.
   string slug = 2;
 
   // Human-readable agent name for the chat page header.

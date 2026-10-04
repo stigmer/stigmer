@@ -15,10 +15,11 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link SharedAgentChat}. */
 export interface SharedAgentChatProps {
-  /** Organization slug from the share URL. */
-  readonly org: string;
-  /** Agent slug from the share URL. */
-  readonly slug: string;
+  /**
+   * Id of the share, from the hosted chat link (`/chat/<share id>`). The
+   * share's organization and slug come from its resolved profile.
+   */
+  readonly shareId: string;
   /**
    * Heading above the composer before the first message.
    * Defaults to a prompt built from the agent's name.
@@ -76,7 +77,7 @@ export interface SharedAgentChatProps {
  *
  * **Auth contract:** requires a `StigmerProvider` whose client can
  * chat with this agent. For public shares (the default), pair with
- * `createGuestAuth({ baseUrl, org, slug })` from `@stigmer/sdk` —
+ * `createGuestAuth({ baseUrl, shareId })` from `@stigmer/sdk` —
  * the profile fetch is public and sessions use the guest token the
  * provider mints on demand. For org-members-only shares, pass
  * `sharingAudience="org"` and a client carrying the signed-in
@@ -84,20 +85,19 @@ export interface SharedAgentChatProps {
  *
  * @example
  * ```tsx
- * const guestAuth = createGuestAuth({ baseUrl, org, slug });
+ * const guestAuth = createGuestAuth({ baseUrl, shareId });
  * const client = useMemo(
  *   () => new Stigmer({ baseUrl, getAccessToken: guestAuth.getAccessToken }),
  *   [guestAuth],
  * );
  *
  * <StigmerProvider client={client} colorMode="system">
- *   <SharedAgentChat org={org} slug={slug} />
+ *   <SharedAgentChat shareId={shareId} />
  * </StigmerProvider>
  * ```
  */
 export function SharedAgentChat({
-  org,
-  slug,
+  shareId,
   heading,
   placeholder,
   showPoweredBy = true,
@@ -106,7 +106,7 @@ export function SharedAgentChat({
   linkToken,
   className,
 }: SharedAgentChatProps) {
-  const { profile, isLoading, error, refetch } = useSharedAgentProfile(org, slug, {
+  const { profile, isLoading, error, refetch } = useSharedAgentProfile(shareId, {
     audience: sharingAudience,
     linkToken,
   });
@@ -159,6 +159,10 @@ export function SharedAgentChat({
       </div>
     );
   }
+
+  // The visitor's session lives in the share's organization, which the
+  // profile names; the link itself names only the share.
+  const { org, slug } = profile;
 
   return (
     <div className={cn("stg:flex stg:h-full stg:w-full stg:flex-col", className)}>

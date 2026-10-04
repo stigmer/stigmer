@@ -261,9 +261,9 @@ const persisted = await save({ ...draftFromShare(share), enabled: true }, share)
 
 ### useSharedAgentProfile
 
-Data hook that fetches a shared agent's public profile by the org and
-slug from the share URL (the share's slug — it defaults to the
-agent's, so existing links resolve unchanged).
+Data hook that fetches a shared agent's public profile by the share's
+id, the one identity a hosted chat link carries (`/chat/<share id>`).
+The profile names the share's organization (`org`) and slug.
 
 By default this hook calls the `getSharedProfile` endpoint, which is
 **public** — it requires no authentication. The server returns a
@@ -283,8 +283,8 @@ maps that to `profile === null` without raising an error, matching
 `useAgent`'s not-found convention:
 `profile === null && !isLoading && !error` means unavailable.
 
-Pass `null` for either `org` or `slug` to skip fetching (stable
-no-op) — useful while route params are still resolving.
+Pass `null` for `shareId` to skip fetching (stable no-op) — useful
+while route params are still resolving.
 
 **Note**: Although authentication is not required by the server,
 the hook still requires a `StigmerProvider` ancestor because it
@@ -294,13 +294,12 @@ request.
 **Signature**
 
 ```tsx
-function useSharedAgentProfile(org: string | null, slug: string | null, options?: UseSharedAgentProfileOptions): UseSharedAgentProfileReturn
+function useSharedAgentProfile(shareId: string | null, options?: UseSharedAgentProfileOptions): UseSharedAgentProfileReturn
 ```
 
 <TypeTable
   type={{
-    org: { type: "string | null", description: "", required: true },
-    slug: { type: "string | null", description: "", required: true },
+    shareId: { type: "string | null", description: "", required: true },
     options: { type: "UseSharedAgentProfileOptions", description: "" },
   }}
 />
@@ -318,7 +317,7 @@ function useSharedAgentProfile(org: string | null, slug: string | null, options?
 />
 
 ```tsx
-const { profile, isLoading, error } = useSharedAgentProfile(org, slug);
+const { profile, isLoading, error } = useSharedAgentProfile(shareId);
 
 if (isLoading) return <Spinner />;
 if (error) return <ErrorCard error={error} />;
@@ -381,7 +380,7 @@ This is an SDK component — embeddable by platform builders.
 <TypeTable
   type={{
     agent: { type: "Agent", description: "The agent whose shares are managed.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
-    buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL for a share. The host application owns URL construction (its configured public origin may differ from the rendering origin — e.g. the desktop app). When omitted, links fall back to the relative `/chat/<org>/<slug>`." },
+    buildShareUrl: { type: "(shareId: string) => string", description: "Builds the absolute public chat URL for a share. The host application owns URL construction (its configured public origin may differ from the rendering origin — e.g. the desktop app). It receives the share's id (`metadata.id`), the one identity a link carries. When omitted, links fall back to the relative `/chat/<share id>`." },
     className: { type: "string", description: "Additional CSS class names." },
   }}
 />
@@ -422,7 +421,7 @@ Render it directly only when you own the open-state.
 <TypeTable
   type={{
     agent: { type: "Agent", description: "The agent whose sharing is managed.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
-    buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL for the shared agent. The host application owns URL construction (its configured public origin may differ from the rendering origin — e.g. the desktop app). When omitted, falls back to the relative path `/chat/<org>/<slug>`." },
+    buildShareUrl: { type: "(shareId: string) => string", description: "Builds the absolute public chat URL for the shared agent. The host application owns URL construction (its configured public origin may differ from the rendering origin — e.g. the desktop app). It receives the share's id (`metadata.id`), the one identity a link carries. When omitted, falls back to the relative path `/chat/<share id>`." },
     modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — no `showModal()`, no backdrop, no focus trap. For embedding the dialog in a constrained surface (documentation demos, visual tests). Interactive hosts keep the default." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
     onSharingChanged: { type: "() => void", description: "Called after any sharing change is persisted. Hosts typically pass the share list's `refetch`." },
@@ -449,7 +448,7 @@ or is not shared — indistinguishable by design), transient errors
 
 **Auth contract:** requires a `StigmerProvider` whose client can
 chat with this agent. For public shares (the default), pair with
-`createGuestAuth({ baseUrl, org, slug })` from `@stigmer/sdk` —
+`createGuestAuth({ baseUrl, shareId })` from `@stigmer/sdk` —
 the profile fetch is public and sessions use the guest token the
 provider mints on demand. For org-members-only shares, pass
 `sharingAudience="org"` and a client carrying the signed-in
@@ -463,23 +462,22 @@ member's own token; the presentation stays the same pure chat.
     heading: { type: "string", description: "Heading above the composer before the first message. Defaults to a prompt built from the agent's name." },
     linkToken: { type: "string", description: "Share-link token from the URL's `?k=` parameter (public audience only). Required when the share link has been locked with a rotatable token; harmless on plain links. Pair it with the same `linkToken` on `createGuestAuth` so profile resolution and token minting present the same credentialing." },
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after the visitor's session and first execution are created — e.g. to reflect the session in the host page's URL." },
-    org: { type: "string", description: "Organization slug from the share URL.", required: true },
     placeholder: { type: "string", description: "Placeholder for the composer textarea." },
+    shareId: { type: "string", description: "Id of the share, from the hosted chat link (`/chat/<share id>`). The share's organization and slug come from its resolved profile.", required: true },
     sharingAudience: { type: "SharingAudience", description: "Which sharing audience this surface serves. Selects the profile resolution path: `\"public\"` uses the anonymous `getSharedProfile` RPC (pair with `createGuestAuth`); `\"org\"` uses the authenticated `getSharedProfileForMember` RPC and requires a `StigmerProvider` whose client carries a signed-in org member's token. The chat presentation is identical either way.", typeDescriptionLink: "#sharingaudience" },
     showPoweredBy: { type: "boolean", description: "Render the \"Powered by Stigmer\" footer." },
-    slug: { type: "string", description: "Agent slug from the share URL.", required: true },
   }}
 />
 
 ```tsx
-const guestAuth = createGuestAuth({ baseUrl, org, slug });
+const guestAuth = createGuestAuth({ baseUrl, shareId });
 const client = useMemo(
   () => new Stigmer({ baseUrl, getAccessToken: guestAuth.getAccessToken }),
   [guestAuth],
 );
 
 <StigmerProvider client={client} colorMode="system">
-  <SharedAgentChat org={org} slug={slug} />
+  <SharedAgentChat shareId={shareId} />
 </StigmerProvider>
 ```
 
@@ -488,14 +486,14 @@ const client = useMemo(
 
 ### AgentShareCreateIdentity
 
-Identity for a share being created: its display name and URL slug in
+Identity for a share being created: its display name and its slug in
 the sharing org's namespace. Only consulted when `current` is `null`
 — an existing share's identity is immutable.
 
 <TypeTable
   type={{
     name: { type: "string", description: "Display name for the new share.", required: true },
-    slug: { type: "string", description: "URL slug for the new share — appears in `/chat/<org>/<slug>`.", required: true },
+    slug: { type: "string", description: "Slug for the new share: its name in its organization, as the CLI and API address it. The hosted chat link names the share by its id.", required: true },
   }}
 />
 

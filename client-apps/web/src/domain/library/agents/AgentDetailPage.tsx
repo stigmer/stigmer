@@ -1,5 +1,6 @@
 "use client";
 
+import { buildChatUrl } from "@stigmer/sdk";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -145,8 +146,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   );
 
   const buildShareUrl = useCallback(
-    (shareOrg: string, shareSlug: string) =>
-      `${getAppBaseUrl()}/chat/${shareOrg}/${shareSlug}`,
+    (shareId: string) => buildChatUrl(getAppBaseUrl(), shareId),
     [],
   );
 

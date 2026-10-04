@@ -41,9 +41,7 @@ export function IdentityProvidersSection({
   const headingId = useId();
   const { activeOrg } = useOrg();
   const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
-  // Requests name the org by id; the slug only reads in the SSO login URL
-  // a person shares.
-  const orgSlug = activeOrg?.metadata?.slug ?? "";
+  // Requests and the shared SSO login URL name the org by its id.
   const orgId = activeOrg?.metadata?.id ?? "";
   const createCheck = useCheckPermission(
     idpAvailable && orgId ? { kind: "organization", id: orgId } : null,
@@ -122,7 +120,10 @@ export function IdentityProvidersSection({
             identityProvider={flow.identityProvider}
             ssoLoginUrl={
               flow.identityProvider.spec?.isSsoProvider
-                ? `${baseUrl}/login?org=${orgSlug}`
+                ? // The shared link names the organization by its permanent
+                  // id: a slug can be renamed and later taken by someone
+                  // else, who would then receive every old copy of the link.
+                  `${baseUrl}/login?org=${encodeURIComponent(orgId)}`
                 : undefined
             }
             onUpdated={handleUpdated}

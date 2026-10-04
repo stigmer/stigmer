@@ -33,6 +33,8 @@ function wrapper(client: unknown) {
   };
 }
 
+const SHARE_ID = "ash_01j9z3k8f2q4m6n7p8r9s0t1v2";
+
 const PROFILE = {
   org: "acme",
   slug: "support-agent",
@@ -47,14 +49,13 @@ describe("useSharedAgentProfile", () => {
     vi.restoreAllMocks();
   });
 
-  it("fetches the profile by org and slug", async () => {
+  it("fetches the profile by the share's id", async () => {
     const getSharedProfile = vi.fn().mockResolvedValue(PROFILE);
     const client = createMockStigmer({ getSharedProfile });
 
-    const { result } = renderHook(
-      () => useSharedAgentProfile("acme", "support-agent"),
-      { wrapper: wrapper(client) },
-    );
+    const { result } = renderHook(() => useSharedAgentProfile(SHARE_ID), {
+      wrapper: wrapper(client),
+    });
 
     expect(result.current.isLoading).toBe(true);
 
@@ -62,15 +63,14 @@ describe("useSharedAgentProfile", () => {
 
     expect(result.current.profile).toBe(PROFILE);
     expect(result.current.error).toBeNull();
-    // The hook builds a GetSharedProfileRequest message; a plain link
-    // carries an empty link token.
+    // The hook builds a GetSharedProfileRequest message naming the share
+    // by its id alone; a plain link carries an empty link token.
     expect(getSharedProfile).toHaveBeenCalledWith(
-      expect.objectContaining({
-        org: "acme",
-        slug: "support-agent",
-        linkToken: "",
-      }),
+      expect.objectContaining({ shareId: SHARE_ID, linkToken: "" }),
     );
+    const request = getSharedProfile.mock.calls[0]![0] as Record<string, unknown>;
+    expect(request).not.toHaveProperty("org");
+    expect(request).not.toHaveProperty("slug");
   });
 
   it("threads the linkToken option into the public request", async () => {
@@ -78,8 +78,7 @@ describe("useSharedAgentProfile", () => {
     const client = createMockStigmer({ getSharedProfile });
 
     const { result } = renderHook(
-      () =>
-        useSharedAgentProfile("acme", "support-agent", { linkToken: "tok123" }),
+      () => useSharedAgentProfile(SHARE_ID, { linkToken: "tok123" }),
       { wrapper: wrapper(client) },
     );
 
@@ -99,18 +98,15 @@ describe("useSharedAgentProfile", () => {
     });
 
     const { result } = renderHook(
-      () =>
-        useSharedAgentProfile("acme", "support-agent", { audience: "org" }),
+      () => useSharedAgentProfile(SHARE_ID, { audience: "org" }),
       { wrapper: wrapper(client) },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.profile).toBe(PROFILE);
-    expect(getSharedProfileForMember).toHaveBeenCalledWith({
-      org: "acme",
-      slug: "support-agent",
-    });
+    // The member path names the share by its id, too.
+    expect(getSharedProfileForMember).toHaveBeenCalledWith(SHARE_ID);
     // The anonymous path returns NOT_FOUND for org shares by design; the
     // hook must never fall back to it in org mode.
     expect(getSharedProfile).not.toHaveBeenCalled();
@@ -123,8 +119,7 @@ describe("useSharedAgentProfile", () => {
     const client = createMockStigmer({ getSharedProfileForMember });
 
     const { result } = renderHook(
-      () =>
-        useSharedAgentProfile("acme", "support-agent", { audience: "org" }),
+      () => useSharedAgentProfile(SHARE_ID, { audience: "org" }),
       { wrapper: wrapper(client) },
     );
 
@@ -134,31 +129,22 @@ describe("useSharedAgentProfile", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("skips fetching when org is null", () => {
+  it("skips fetching when the share id is null", () => {
     const getSharedProfile = vi.fn();
-    const client = createMockStigmer({ getSharedProfile });
+    const getSharedProfileForMember = vi.fn();
+    const client = createMockStigmer({
+      getSharedProfile,
+      getSharedProfileForMember,
+    });
 
-    const { result } = renderHook(
-      () => useSharedAgentProfile(null, "support-agent"),
-      { wrapper: wrapper(client) },
-    );
-
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.profile).toBeNull();
-    expect(getSharedProfile).not.toHaveBeenCalled();
-  });
-
-  it("skips fetching when slug is null", () => {
-    const getSharedProfile = vi.fn();
-    const client = createMockStigmer({ getSharedProfile });
-
-    const { result } = renderHook(() => useSharedAgentProfile("acme", null), {
+    const { result } = renderHook(() => useSharedAgentProfile(null), {
       wrapper: wrapper(client),
     });
 
     expect(result.current.isLoading).toBe(false);
     expect(result.current.profile).toBeNull();
     expect(getSharedProfile).not.toHaveBeenCalled();
+    expect(getSharedProfileForMember).not.toHaveBeenCalled();
   });
 
   it("maps NOT_FOUND (unshared or nonexistent) to null without error", async () => {
@@ -172,7 +158,7 @@ describe("useSharedAgentProfile", () => {
     const client = createMockStigmer({ getSharedProfile });
 
     const { result } = renderHook(
-      () => useSharedAgentProfile("acme", "revoked-agent"),
+      () => useSharedAgentProfile("ash_revoked"),
       { wrapper: wrapper(client) },
     );
 
@@ -188,10 +174,9 @@ describe("useSharedAgentProfile", () => {
       .mockRejectedValue(new Error("Internal server error"));
     const client = createMockStigmer({ getSharedProfile });
 
-    const { result } = renderHook(
-      () => useSharedAgentProfile("acme", "support-agent"),
-      { wrapper: wrapper(client) },
-    );
+    const { result } = renderHook(() => useSharedAgentProfile(SHARE_ID), {
+      wrapper: wrapper(client),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 

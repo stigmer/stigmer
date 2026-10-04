@@ -76,10 +76,11 @@ export interface ShareAgentDialogProps {
   /**
    * Builds the absolute public chat URL for the shared agent. The host
    * application owns URL construction (its configured public origin may
-   * differ from the rendering origin — e.g. the desktop app). When
-   * omitted, falls back to the relative path `/chat/<org>/<slug>`.
+   * differ from the rendering origin — e.g. the desktop app). It receives
+   * the share's id (`metadata.id`), the one identity a link carries. When
+   * omitted, falls back to the relative path `/chat/<share id>`.
    */
-  readonly buildShareUrl?: (org: string, slug: string) => string;
+  readonly buildShareUrl?: (shareId: string) => string;
   /**
    * Called after any sharing change is persisted. Hosts typically pass
    * the share list's `refetch`.
@@ -189,7 +190,7 @@ function ShareAgentDialogBody({
 }: {
   readonly agent: Agent;
   readonly share: AgentShare | null;
-  readonly buildShareUrl?: (org: string, slug: string) => string;
+  readonly buildShareUrl?: (shareId: string) => string;
   readonly onSharingChanged?: () => void;
   readonly onClose: () => void;
   /** Heading id minted by the outer dialog for its aria-labelledby. */
@@ -272,8 +273,9 @@ function ShareAgentDialogBody({
 /**
  * Names the new share and creates it live (`enabled: true`, public
  * audience — the server's own defaults). Identity is set here because it
- * is immutable afterward: the slug becomes the hosted
- * URL `/chat/<org>/<slug>` in the agent's organization's namespace.
+ * is immutable afterward: the slug names the share in the agent's
+ * organization for the CLI and API. The hosted link names the share by
+ * its id, so it exists only once the share does.
  *
  * The slug auto-derives from the name until the user edits it (the
  * {@link CreateOrganizationForm} pattern), validated by the same
@@ -448,11 +450,8 @@ function CreateShareForm({
           </p>
         ) : (
           <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-            Becomes the share&apos;s address:{" "}
-            <code className="stg:font-mono">
-              /chat/{shareOrg}/{slug || "…"}
-            </code>
-            . Can&apos;t be changed later.
+            Names this share in the CLI and API. The link is made when you
+            create the share. Can&apos;t be changed later.
           </p>
         )}
       </div>
@@ -493,7 +492,7 @@ function ShareAgentForm({
 }: {
   readonly agent: Agent;
   readonly initialShare: AgentShare;
-  readonly buildShareUrl?: (org: string, slug: string) => string;
+  readonly buildShareUrl?: (shareId: string) => string;
   readonly onSharingChanged?: () => void;
 }) {
   const agentName = agent.metadata?.name || (agent.metadata?.slug ?? "");
@@ -514,7 +513,9 @@ function ShareAgentForm({
     share.metadata?.id ?? null,
   );
 
-  // The share's own org/slug are the hosted URL.
+  // The hosted link names the share by its id; org and slug are its
+  // billing organization and its name there.
+  const shareId = share.metadata?.id ?? "";
   const org = share.metadata?.org ?? "";
   const slug = share.metadata?.slug ?? "";
   const linkToken = share.status?.shareLinkToken ?? "";
@@ -594,8 +595,8 @@ function ShareAgentForm({
   // Hosts build the base URL; the token rides it only on public shares
   // (org-audience access is gated by membership, not the link token).
   const baseShareUrl = buildShareUrl
-    ? buildShareUrl(org, slug)
-    : chatPath(org, slug);
+    ? buildShareUrl(shareId)
+    : chatPath(shareId);
   const shareUrl = isOrgAudience
     ? baseShareUrl
     : appendLinkToken(baseShareUrl, linkToken);
@@ -657,8 +658,7 @@ function ShareAgentForm({
             {activeTab === "embed" && (
               <EmbedTab
                 shareUrl={shareUrl}
-                org={org}
-                slug={slug}
+                shareId={shareId}
                 agentName={agentName}
                 linkToken={linkToken}
                 enabled={draft.enabled}
@@ -1090,8 +1090,7 @@ function buildIframeSnippet(shareUrl: string, agentName: string): string {
 
 function EmbedTab({
   shareUrl,
-  org,
-  slug,
+  shareId,
   agentName,
   linkToken,
   enabled,
@@ -1100,8 +1099,7 @@ function EmbedTab({
   commit,
 }: {
   readonly shareUrl: string;
-  readonly org: string;
-  readonly slug: string;
+  readonly shareId: string;
   readonly agentName: string;
   readonly linkToken: string;
   readonly enabled: boolean;
@@ -1114,8 +1112,8 @@ function EmbedTab({
 }) {
   const scriptSnippet = useMemo(
     () =>
-      buildEmbedSnippet(appOriginFrom(shareUrl), org, slug, linkToken || undefined),
-    [shareUrl, org, slug, linkToken],
+      buildEmbedSnippet(appOriginFrom(shareUrl), shareId, linkToken || undefined),
+    [shareUrl, shareId, linkToken],
   );
 
   // Embedding serves anonymous visitors via guest tokens, which an

@@ -9,7 +9,9 @@ import type { UseSharedAgentProfileReturn } from "../useSharedAgentProfile";
 // behavior (including the guest-audience mapping) is covered by their own
 // tests. These tests assert the organism's states (loading / error /
 // unavailable / chat), the guest wiring it hands the viewers, and the
-// launcher→viewer handoff on session creation.
+// launcher→viewer handoff on session creation. The hosted link names only
+// the share, by its id: the organization and slug the viewers receive come
+// from the resolved profile, never from the link.
 // ---------------------------------------------------------------------------
 
 type CapturedProps = Record<string, unknown>;
@@ -49,8 +51,10 @@ vi.mock("../useSharedAgentProfile", () => ({
 
 import { SharedAgentChat } from "../SharedAgentChat";
 
+const SHARE_ID = "ash_01j9z3k8f2q4m6n7p8r9s0t1v2";
+
 const PROFILE = {
-  org: "acme",
+  org: "org_acme",
   slug: "support-agent",
   name: "Support Agent",
   description: "Answers support questions",
@@ -83,7 +87,7 @@ afterEach(() => {
 describe("SharedAgentChat", () => {
   it("renders a loading skeleton while the profile resolves", () => {
     setProfileState({ isLoading: true });
-    render(<SharedAgentChat org="acme" slug="support-agent" />);
+    render(<SharedAgentChat shareId={SHARE_ID} />);
 
     expect(screen.getByText("Loading agent")).toBeTruthy();
     expect(newSessionViewerProps).toHaveLength(0);
@@ -91,24 +95,14 @@ describe("SharedAgentChat", () => {
 
   it("resolves via the public path by default and the member path for sharingAudience=org", () => {
     setProfileState({ profile: PROFILE });
-    render(<SharedAgentChat org="acme" slug="support-agent" />);
-    expect(profileHookCalls[0]).toEqual([
-      "acme",
-      "support-agent",
-      { audience: "public" },
-    ]);
+    render(<SharedAgentChat shareId={SHARE_ID} />);
+    expect(profileHookCalls[0]).toEqual([SHARE_ID, { audience: "public" }]);
 
     cleanup();
     profileHookCalls.length = 0;
 
-    render(
-      <SharedAgentChat org="acme" slug="support-agent" sharingAudience="org" />,
-    );
-    expect(profileHookCalls[0]).toEqual([
-      "acme",
-      "support-agent",
-      { audience: "org" },
-    ]);
+    render(<SharedAgentChat shareId={SHARE_ID} sharingAudience="org" />);
+    expect(profileHookCalls[0]).toEqual([SHARE_ID, { audience: "org" }]);
     // Presentation is identical either way: the session organisms still
     // render with the pure-chat guest audience.
     expect(newSessionViewerProps[0]?.audience).toBe("guest");
@@ -117,7 +111,7 @@ describe("SharedAgentChat", () => {
   it("renders an error state with retry on transient failures", () => {
     const refetch = vi.fn();
     setProfileState({ error: new Error("network down"), refetch });
-    render(<SharedAgentChat org="acme" slug="support-agent" />);
+    render(<SharedAgentChat shareId={SHARE_ID} />);
 
     expect(screen.getByText("Something went wrong")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
@@ -126,7 +120,7 @@ describe("SharedAgentChat", () => {
 
   it("renders the unavailable state when the agent is not shared", () => {
     setProfileState({ profile: null });
-    render(<SharedAgentChat org="acme" slug="support-agent" />);
+    render(<SharedAgentChat shareId={SHARE_ID} />);
 
     expect(screen.getByText("This agent isn't available")).toBeTruthy();
     expect(newSessionViewerProps).toHaveLength(0);
@@ -136,23 +130,34 @@ describe("SharedAgentChat", () => {
     setProfileState({
       profile: { ...(PROFILE as object), defaultInstanceId: "" } as never,
     });
-    render(<SharedAgentChat org="acme" slug="support-agent" />);
+    render(<SharedAgentChat shareId={SHARE_ID} />);
 
     expect(screen.getByText("This agent isn't available")).toBeTruthy();
   });
 
+  it("threads the link token into the profile lookup", () => {
+    setProfileState({ profile: PROFILE });
+    render(<SharedAgentChat shareId={SHARE_ID} linkToken="tok123" />);
+    expect(profileHookCalls[0]).toEqual([
+      SHARE_ID,
+      { audience: "public", linkToken: "tok123" },
+    ]);
+  });
+
   it("renders the agent header and a guest launcher pinned to the shared instance", () => {
     setProfileState({ profile: PROFILE });
-    render(<SharedAgentChat org="acme" slug="support-agent" />);
+    render(<SharedAgentChat shareId={SHARE_ID} />);
 
     expect(screen.getByRole("heading", { name: "Support Agent" })).toBeTruthy();
     expect(screen.getByText("Answers support questions")).toBeTruthy();
 
     expect(newSessionViewerProps).toHaveLength(1);
+    // The organization and agent come from the profile the share id
+    // resolved to.
     expect(newSessionViewerProps[0]).toMatchObject({
-      org: "acme",
+      org: "org_acme",
       audience: "guest",
-      initialAgentRef: { org: "acme", slug: "support-agent" },
+      initialAgentRef: { org: "org_acme", slug: "support-agent" },
       initialInstanceId: "inst_1",
       enableGitHub: false,
     });
@@ -162,11 +167,7 @@ describe("SharedAgentChat", () => {
     setProfileState({ profile: PROFILE });
     const onSessionCreated = vi.fn();
     render(
-      <SharedAgentChat
-        org="acme"
-        slug="support-agent"
-        onSessionCreated={onSessionCreated}
-      />,
+      <SharedAgentChat shareId={SHARE_ID} onSessionCreated={onSessionCreated} />,
     );
 
     const created = newSessionViewerProps[0]
@@ -177,7 +178,7 @@ describe("SharedAgentChat", () => {
     expect(screen.getByTestId("session-probe")).toBeTruthy();
     expect(sessionViewerProps[0]).toMatchObject({
       sessionId: "ses_1",
-      org: "acme",
+      org: "org_acme",
       audience: "guest",
       enableGitHub: false,
     });
@@ -185,13 +186,11 @@ describe("SharedAgentChat", () => {
 
   it("surfaces launcher errors through the composer footer", () => {
     setProfileState({ profile: PROFILE });
-    const { rerender } = render(
-      <SharedAgentChat org="acme" slug="support-agent" />,
-    );
+    const { rerender } = render(<SharedAgentChat shareId={SHARE_ID} />);
 
     const onError = newSessionViewerProps[0].onError as (msg: string) => void;
     act(() => onError("Rate limit reached"));
-    rerender(<SharedAgentChat org="acme" slug="support-agent" />);
+    rerender(<SharedAgentChat shareId={SHARE_ID} />);
 
     const footer = newSessionViewerProps.at(-1)!.footerContent;
     expect(footer).toBeTruthy();
@@ -199,13 +198,11 @@ describe("SharedAgentChat", () => {
 
   it("shows the Powered by Stigmer footer by default and hides it on request", () => {
     setProfileState({ profile: PROFILE });
-    const { unmount } = render(<SharedAgentChat org="acme" slug="support-agent" />);
+    const { unmount } = render(<SharedAgentChat shareId={SHARE_ID} />);
     expect(screen.getByText("Powered by Stigmer")).toBeTruthy();
     unmount();
 
-    render(
-      <SharedAgentChat org="acme" slug="support-agent" showPoweredBy={false} />,
-    );
+    render(<SharedAgentChat shareId={SHARE_ID} showPoweredBy={false} />);
     expect(screen.queryByText("Powered by Stigmer")).toBeNull();
   });
 
@@ -213,7 +210,7 @@ describe("SharedAgentChat", () => {
     setProfileState({
       profile: { ...(PROFILE as object), name: "" } as never,
     });
-    render(<SharedAgentChat org="acme" slug="support-agent" />);
+    render(<SharedAgentChat shareId={SHARE_ID} />);
 
     expect(
       screen.getByRole("heading", { name: "support-agent" }),

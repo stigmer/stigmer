@@ -74,8 +74,6 @@ export interface TestAgentResult {
   slug: string;
   /** The organization as the spec named it: its slug, for console URLs. */
   org: string;
-  /** The organization's id, as the agent stores it (share links carry it). */
-  orgId: string;
   cleanup: () => Promise<void>;
 }
 
@@ -105,7 +103,6 @@ export async function createTestAgent(
     id,
     slug,
     org,
-    orgId: agent.metadata!.org,
     cleanup: async () => {
       await client.agent.delete(id).catch(() => {});
     },

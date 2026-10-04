@@ -275,10 +275,10 @@ public final class AgentShareCommandControllerGrpc {
      * <pre>
      * Rotate the share's link token.
      * Generates a fresh server-side token for the share's hosted chat link.
-     * The share URL becomes `/chat/&lt;org&gt;/&lt;slug&gt;?k=&lt;token&gt;` and the previous
+     * The share URL becomes `/chat/&lt;share id&gt;?k=&lt;token&gt;` and the previous
      * link (tokened or plain) stops working immediately — including for
      * visitors mid-conversation. Use this to kill a leaked or over-shared
-     * public link without disabling the share or changing its slug.
+     * public link without disabling or deleting the share.
      * The token lives in status.share_link_token, so manifest applies never
      * reset it. Rotation affects public-audience shares only; org-audience
      * access is governed by live org membership instead.
@@ -380,10 +380,10 @@ public final class AgentShareCommandControllerGrpc {
      * <pre>
      * Rotate the share's link token.
      * Generates a fresh server-side token for the share's hosted chat link.
-     * The share URL becomes `/chat/&lt;org&gt;/&lt;slug&gt;?k=&lt;token&gt;` and the previous
+     * The share URL becomes `/chat/&lt;share id&gt;?k=&lt;token&gt;` and the previous
      * link (tokened or plain) stops working immediately — including for
      * visitors mid-conversation. Use this to kill a leaked or over-shared
-     * public link without disabling the share or changing its slug.
+     * public link without disabling or deleting the share.
      * The token lives in status.share_link_token, so manifest applies never
      * reset it. Rotation affects public-audience shares only; org-audience
      * access is governed by live org membership instead.
@@ -470,10 +470,10 @@ public final class AgentShareCommandControllerGrpc {
      * <pre>
      * Rotate the share's link token.
      * Generates a fresh server-side token for the share's hosted chat link.
-     * The share URL becomes `/chat/&lt;org&gt;/&lt;slug&gt;?k=&lt;token&gt;` and the previous
+     * The share URL becomes `/chat/&lt;share id&gt;?k=&lt;token&gt;` and the previous
      * link (tokened or plain) stops working immediately — including for
      * visitors mid-conversation. Use this to kill a leaked or over-shared
-     * public link without disabling the share or changing its slug.
+     * public link without disabling or deleting the share.
      * The token lives in status.share_link_token, so manifest applies never
      * reset it. Rotation affects public-audience shares only; org-audience
      * access is governed by live org membership instead.
@@ -558,10 +558,10 @@ public final class AgentShareCommandControllerGrpc {
      * <pre>
      * Rotate the share's link token.
      * Generates a fresh server-side token for the share's hosted chat link.
-     * The share URL becomes `/chat/&lt;org&gt;/&lt;slug&gt;?k=&lt;token&gt;` and the previous
+     * The share URL becomes `/chat/&lt;share id&gt;?k=&lt;token&gt;` and the previous
      * link (tokened or plain) stops working immediately — including for
      * visitors mid-conversation. Use this to kill a leaked or over-shared
-     * public link without disabling the share or changing its slug.
+     * public link without disabling or deleting the share.
      * The token lives in status.share_link_token, so manifest applies never
      * reset it. Rotation affects public-audience shares only; org-audience
      * access is governed by live org membership instead.
@@ -649,10 +649,10 @@ public final class AgentShareCommandControllerGrpc {
      * <pre>
      * Rotate the share's link token.
      * Generates a fresh server-side token for the share's hosted chat link.
-     * The share URL becomes `/chat/&lt;org&gt;/&lt;slug&gt;?k=&lt;token&gt;` and the previous
+     * The share URL becomes `/chat/&lt;share id&gt;?k=&lt;token&gt;` and the previous
      * link (tokened or plain) stops working immediately — including for
      * visitors mid-conversation. Use this to kill a leaked or over-shared
-     * public link without disabling the share or changing its slug.
+     * public link without disabling or deleting the share.
      * The token lives in status.share_link_token, so manifest applies never
      * reset it. Rotation affects public-audience shares only; org-audience
      * access is governed by live org membership instead.

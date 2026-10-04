@@ -154,11 +154,6 @@ waivers:
     issue: 1546
     reason: >-
       Served by the Cloud edition only; the open-source server routes no License service and the suite has no client for it.
-  - rpc: PlatformClientTokenController.mintGuestToken
-    kind: gap
-    issue: 1550
-    reason: >-
-      Open source answers Unimplemented unless a composition mints guest tokens, and no capability flag tells the targets apart yet.
   - rpc: ProviderKeyCommandController.delete
     kind: gap
     issue: 1547

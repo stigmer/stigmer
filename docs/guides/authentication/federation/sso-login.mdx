@@ -39,8 +39,8 @@ sequenceDiagram
   end
   rect rgba(0, 0, 0, 0.03)
   Note over User,API: Every login
-  User->>Login: Visit /login?org=acme
-  Login->>API: getSsoProvider(acme)
+  User->>Login: Visit /login?org=org_01j9…
+  Login->>API: getSsoProvider(org_01j9…)
   API-->>Login: Provider info
   User->>IdP: "Sign in with Acme SSO"
   IdP-->>Login: Tokens (OIDC callback)
@@ -204,12 +204,13 @@ Once SSO is enabled, a login URL appears on the Identity Provider detail panel
 in the Stigmer console:
 
 ```
-https://app.stigmer.ai/login?org=acme
+https://app.stigmer.ai/login?org=org_01j9…
 ```
 
-The URL includes your Organization slug as the `org` parameter. When a team
-member opens this URL, the login page automatically detects the SSO provider and
-shows a "Sign in with [provider name]" button.
+The URL names your Organization by its permanent ID in the `org` parameter, so
+renaming the Organization never breaks the link you shared. When a team member
+opens this URL, the login page automatically detects the SSO provider and shows
+a "Sign in with [provider name]" button.
 
 Copy the URL from the **SSO Login URL** field on the Identity Provider detail
 panel and share it with your team through your Organization's internal channels
@@ -217,8 +218,9 @@ panel and share it with your team through your Organization's internal channels
 
 <Callout type="tip">
   Team members can also reach the SSO login page by visiting
-  `https://app.stigmer.ai/login` and typing your Organization slug manually. The
-  URL with `?org=` pre-filled saves them that step.
+  `https://app.stigmer.ai/login` and typing your Organization slug manually —
+  `/login?org=acme` resolves the same way as the ID. The URL with `?org=`
+  pre-filled saves them that step.
 </Callout>
 
 ## What happens on first login
@@ -308,7 +310,8 @@ for the full pattern in all SDK languages.
 
 ### SSO button doesn't appear on the login page
 
-The login page calls `getSsoProvider` with the Organization slug. If no SSO
+The login page calls `getSsoProvider` with the `org` value from the URL — the
+Organization's ID from the copied link, or the slug a person typed. If no SSO
 provider is found, only the standard sign-in option appears.
 
 **Check**: Confirm that `isSsoProvider` is `true` on your Identity Provider. You
