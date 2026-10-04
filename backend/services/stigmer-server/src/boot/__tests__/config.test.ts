@@ -220,7 +220,12 @@ describe("loadConfig", () => {
     });
 
     it("follows latest when no image of the server's version is published", () => {
-      for (const version of ["dev", "0.0.0-dev", "3.42.0-dev.20261003120000.g58ac1f2"]) {
+      for (const version of [
+        "dev",
+        "0.0.0-dev",
+        "3.42.0-dev.20261003120000.g58ac1f2",
+        "0.0.0-local.20261004150608",
+      ]) {
         expect(defaultSandboxRunnerImage(version)).toBe(
           "ghcr.io/stigmer/runner:latest",
         );

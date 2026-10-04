@@ -352,8 +352,9 @@ export const DEFAULT_MODEL_REGISTRY_UPSTREAM = "https://api.stigmer.ai";
  * on every runner change to `main`. Only a bundled server knows its version
  * (the release lane stamps SERVER_VERSION into the server image, the
  * all-in-one image and @stigmer/server-slim); the @stigmer/server library
- * and an unbundled build report `dev`, and a dev-channel stamp has no
- * published image, so those fall back to `latest`, and a composition that
+ * and an unbundled build report `dev`, and neither a dev-channel stamp nor
+ * a local build (`0.0.0-local.<stamp>`) has a published image, so those
+ * fall back to `latest`, and a composition that
  * embeds the library names its image itself (the cloud selects the image
  * of the release it pins). isReleaseVersion is the one test of which
  * versions the release lane publishes.
