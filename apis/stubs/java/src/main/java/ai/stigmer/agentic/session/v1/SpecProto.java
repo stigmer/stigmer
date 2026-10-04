@@ -53,38 +53,43 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "to\0322ai/stigmer/commons/apiresource/field" +
       "_options.proto\032\'ai/stigmer/commons/apire" +
       "source/io.proto\032\033buf/validate/validate.p" +
-      "roto\"\301\010\n\013SessionSpec\022*\n\021agent_instance_i" +
-      "d\030\001 \001(\tR\017agentInstanceId\022\030\n\007subject\030\002 \001(" +
-      "\tR\007subject\022(\n\020harness_state_id\030\003 \001(\tR\016ha" +
-      "rnessStateId\0227\n\030harness_state_id_history" +
-      "\030\r \003(\tR\025harnessStateIdHistory\022T\n\010metadat" +
-      "a\030\005 \003(\01328.ai.stigmer.agentic.session.v1." +
-      "SessionSpec.MetadataEntryR\010metadata\022Z\n\021w" +
-      "orkspace_entries\030\006 \003(\0132-.ai.stigmer.agen" +
-      "tic.session.v1.WorkspaceEntryR\020workspace" +
-      "Entries\022\352\001\n\021mcp_server_usages\030\007 \003(\0132+.ai" +
-      ".stigmer.agentic.agent.v1.McpServerUsage" +
-      "B\220\001\272H\214\001\222\001\210\001\"\205\001\272\001\201\001\n\036session_mcp_server_u" +
-      "sages.kind\022?mcp_server_usages must refer" +
-      "ence resources with kind=mcp_server\032\036thi" +
-      "s.mcp_server_ref.kind == 44R\017mcpServerUs" +
-      "ages\022\303\001\n\nskill_refs\030\010 \003(\01324.ai.stigmer.c" +
-      "ommons.apiresource.ApiResourceReferenceB" +
-      "n\272Hg\222\001d\"b\272\001_\n\027session_skill_refs.kind\0223s" +
-      "kill_refs must reference resources with " +
-      "kind=skill\032\017this.kind == 43\340\205,+R\tskillRe" +
-      "fs\022@\n\007harness\030\n \001(\0162&.ai.stigmer.agentic" +
-      ".session.v1.HarnessR\007harness\022J\n\013cursor_m" +
-      "ode\030\013 \001(\0162).ai.stigmer.agentic.session.v" +
-      "1.CursorModeR\ncursorMode\022Y\n\020execution_ta" +
-      "rget\030\014 \001(\0162..ai.stigmer.agentic.session." +
-      "v1.ExecutionTargetR\017executionTarget\032;\n\rM" +
-      "etadataEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030" +
-      "\002 \001(\tR\005value:\0028\001B\244\001B\tSpecProtoP\001\242\002\004ASAS\252" +
-      "\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Sti" +
-      "gmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Age" +
-      "ntic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigme" +
-      "r::Agentic::Session::V1b\006proto3"
+      "roto\"\354\t\n\013SessionSpec\022\273\001\n\tagent_ref\030\016 \001(\013" +
+      "24.ai.stigmer.commons.apiresource.ApiRes" +
+      "ourceReferenceBh\272Ha\272\001^\n\026session_agent_re" +
+      "f.kind\0223agent_ref must reference a resou" +
+      "rce with kind=agent\032\017this.kind == 40\340\205,(" +
+      "R\010agentRef\022\030\n\007subject\030\002 \001(\tR\007subject\022(\n\020" +
+      "harness_state_id\030\003 \001(\tR\016harnessStateId\0227" +
+      "\n\030harness_state_id_history\030\r \003(\tR\025harnes" +
+      "sStateIdHistory\022T\n\010metadata\030\005 \003(\01328.ai.s" +
+      "tigmer.agentic.session.v1.SessionSpec.Me" +
+      "tadataEntryR\010metadata\022Z\n\021workspace_entri" +
+      "es\030\006 \003(\0132-.ai.stigmer.agentic.session.v1" +
+      ".WorkspaceEntryR\020workspaceEntries\022\352\001\n\021mc" +
+      "p_server_usages\030\007 \003(\0132+.ai.stigmer.agent" +
+      "ic.agent.v1.McpServerUsageB\220\001\272H\214\001\222\001\210\001\"\205\001" +
+      "\272\001\201\001\n\036session_mcp_server_usages.kind\022?mc" +
+      "p_server_usages must reference resources" +
+      " with kind=mcp_server\032\036this.mcp_server_r" +
+      "ef.kind == 44R\017mcpServerUsages\022\303\001\n\nskill" +
+      "_refs\030\010 \003(\01324.ai.stigmer.commons.apireso" +
+      "urce.ApiResourceReferenceBn\272Hg\222\001d\"b\272\001_\n\027" +
+      "session_skill_refs.kind\0223skill_refs must" +
+      " reference resources with kind=skill\032\017th" +
+      "is.kind == 43\340\205,+R\tskillRefs\022@\n\007harness\030" +
+      "\n \001(\0162&.ai.stigmer.agentic.session.v1.Ha" +
+      "rnessR\007harness\022J\n\013cursor_mode\030\013 \001(\0162).ai" +
+      ".stigmer.agentic.session.v1.CursorModeR\n" +
+      "cursorMode\022Y\n\020execution_target\030\014 \001(\0162..a" +
+      "i.stigmer.agentic.session.v1.ExecutionTa" +
+      "rgetR\017executionTarget\032;\n\rMetadataEntry\022\020" +
+      "\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\002" +
+      "8\001J\004\010\001\020\002R\021agent_instance_idB\244\001B\tSpecProt" +
+      "oP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session." +
+      "V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\" +
+      "Stigmer\\Agentic\\Session\\V1\\GPBMetadata\352\002" +
+      "!Ai::Stigmer::Agentic::Session::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -101,7 +106,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor,
-        new java.lang.String[] { "AgentInstanceId", "Subject", "HarnessStateId", "HarnessStateIdHistory", "Metadata", "WorkspaceEntries", "McpServerUsages", "SkillRefs", "Harness", "CursorMode", "ExecutionTarget", });
+        new java.lang.String[] { "AgentRef", "Subject", "HarnessStateId", "HarnessStateIdHistory", "Metadata", "WorkspaceEntries", "McpServerUsages", "SkillRefs", "Harness", "CursorMode", "ExecutionTarget", });
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_descriptor =
       internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_fieldAccessorTable = new

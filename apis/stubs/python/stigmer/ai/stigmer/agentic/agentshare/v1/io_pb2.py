@@ -23,11 +23,12 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.agentic.agentshare.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_api__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_pagination__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\"1\n\x0c\x41gentShareId\x12!\n\x05value\x18\x01 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x05value\"\x92\x01\n\x1cGetAgentSharesByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\"u\n\x0e\x41gentShareList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12\x42\n\x05items\x18\x02 \x03(\x0b\x32,.ai.stigmer.agentic.agentshare.v1.AgentShareR\x05items\"\x8b\x02\n\x16ListAgentSharesRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\\\n\x06labels\x18\x02 \x03(\x0b\x32\x44.ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.LabelsEntryR\x06labels\x12=\n\tpage_info\x18\x03 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"?\n\x14RotateShareLinkInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\"\x81\x01\n\x17GetSharedProfileRequest\x12&\n\x08share_id\x18\x04 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x07shareId\x12\'\n\nlink_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\tlinkTokenJ\x04\x08\x01\x10\x02J\x04\x08\x02\x10\x03R\x03orgR\x04slug\"\xbb\x01\n\x12SharedAgentProfile\x12\x10\n\x03org\x18\x01 \x01(\tR\x03org\x12\x12\n\x04slug\x18\x02 \x01(\tR\x04slug\x12\x12\n\x04name\x18\x03 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x04 \x01(\tR\x0b\x64\x65scription\x12\x19\n\x08icon_url\x18\x05 \x01(\tR\x07iconUrl\x12.\n\x13\x64\x65\x66\x61ult_instance_id\x18\x06 \x01(\tR\x11\x64\x65\x66\x61ultInstanceIdB\xd4\x01\n$com.ai.stigmer.agentic.agentshare.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\"1\n\x0c\x41gentShareId\x12!\n\x05value\x18\x01 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x05value\"\x92\x01\n\x1cGetAgentSharesByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\"u\n\x0e\x41gentShareList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12\x42\n\x05items\x18\x02 \x03(\x0b\x32,.ai.stigmer.agentic.agentshare.v1.AgentShareR\x05items\"\x8b\x02\n\x16ListAgentSharesRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\\\n\x06labels\x18\x02 \x03(\x0b\x32\x44.ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.LabelsEntryR\x06labels\x12=\n\tpage_info\x18\x03 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"?\n\x14RotateShareLinkInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\"\x81\x01\n\x17GetSharedProfileRequest\x12&\n\x08share_id\x18\x04 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x07shareId\x12\'\n\nlink_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\tlinkTokenJ\x04\x08\x01\x10\x02J\x04\x08\x02\x10\x03R\x03orgR\x04slug\"\xf9\x01\n\x12SharedAgentProfile\x12\x10\n\x03org\x18\x01 \x01(\tR\x03org\x12\x12\n\x04slug\x18\x02 \x01(\tR\x04slug\x12\x12\n\x04name\x18\x03 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x04 \x01(\tR\x0b\x64\x65scription\x12\x19\n\x08icon_url\x18\x05 \x01(\tR\x07iconUrl\x12Q\n\tagent_ref\x18\x07 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x08\x61gentRefJ\x04\x08\x06\x10\x07R\x13\x64\x65\x66\x61ult_instance_idB\xd4\x01\n$com.ai.stigmer.agentic.agentshare.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -49,20 +50,20 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETSHAREDPROFILEREQUEST'].fields_by_name['share_id']._serialized_options = b'\272H\010r\003\030\200\001\310\001\001'
   _globals['_GETSHAREDPROFILEREQUEST'].fields_by_name['link_token']._loaded_options = None
   _globals['_GETSHAREDPROFILEREQUEST'].fields_by_name['link_token']._serialized_options = b'\272H\005r\003\030\200\001'
-  _globals['_AGENTSHAREID']._serialized_start=193
-  _globals['_AGENTSHAREID']._serialized_end=242
-  _globals['_GETAGENTSHARESBYAGENTREQUEST']._serialized_start=245
-  _globals['_GETAGENTSHARESBYAGENTREQUEST']._serialized_end=391
-  _globals['_AGENTSHARELIST']._serialized_start=393
-  _globals['_AGENTSHARELIST']._serialized_end=510
-  _globals['_LISTAGENTSHARESREQUEST']._serialized_start=513
-  _globals['_LISTAGENTSHARESREQUEST']._serialized_end=780
-  _globals['_LISTAGENTSHARESREQUEST_LABELSENTRY']._serialized_start=723
-  _globals['_LISTAGENTSHARESREQUEST_LABELSENTRY']._serialized_end=780
-  _globals['_ROTATESHARELINKINPUT']._serialized_start=782
-  _globals['_ROTATESHARELINKINPUT']._serialized_end=845
-  _globals['_GETSHAREDPROFILEREQUEST']._serialized_start=848
-  _globals['_GETSHAREDPROFILEREQUEST']._serialized_end=977
-  _globals['_SHAREDAGENTPROFILE']._serialized_start=980
-  _globals['_SHAREDAGENTPROFILE']._serialized_end=1167
+  _globals['_AGENTSHAREID']._serialized_start=234
+  _globals['_AGENTSHAREID']._serialized_end=283
+  _globals['_GETAGENTSHARESBYAGENTREQUEST']._serialized_start=286
+  _globals['_GETAGENTSHARESBYAGENTREQUEST']._serialized_end=432
+  _globals['_AGENTSHARELIST']._serialized_start=434
+  _globals['_AGENTSHARELIST']._serialized_end=551
+  _globals['_LISTAGENTSHARESREQUEST']._serialized_start=554
+  _globals['_LISTAGENTSHARESREQUEST']._serialized_end=821
+  _globals['_LISTAGENTSHARESREQUEST_LABELSENTRY']._serialized_start=764
+  _globals['_LISTAGENTSHARESREQUEST_LABELSENTRY']._serialized_end=821
+  _globals['_ROTATESHARELINKINPUT']._serialized_start=823
+  _globals['_ROTATESHARELINKINPUT']._serialized_end=886
+  _globals['_GETSHAREDPROFILEREQUEST']._serialized_start=889
+  _globals['_GETSHAREDPROFILEREQUEST']._serialized_end=1018
+  _globals['_SHAREDAGENTPROFILE']._serialized_start=1021
+  _globals['_SHAREDAGENTPROFILE']._serialized_end=1270
 # @@protoc_insertion_point(module_scope)

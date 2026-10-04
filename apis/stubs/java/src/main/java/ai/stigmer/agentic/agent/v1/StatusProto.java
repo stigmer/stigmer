@@ -42,16 +42,16 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n(ai/stigmer/agentic/agent/v1/status.pro" +
       "to\022\033ai.stigmer.agentic.agent.v1\032+ai/stig" +
-      "mer/commons/apiresource/status.proto\"\300\001\n" +
+      "mer/commons/apiresource/status.proto\"\253\001\n" +
       "\013AgentStatus\022F\n\005audit\030c \001(\01320.ai.stigmer" +
       ".commons.apiresource.ApiResourceAuditR\005a" +
-      "udit\022.\n\023default_instance_id\030\001 \001(\tR\021defau" +
-      "ltInstanceId\022!\n\014version_hash\030\003 \001(\tR\013vers" +
-      "ionHashJ\004\010\002\020\003R\020share_link_tokenB\236\001B\013Stat" +
-      "usProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Ag" +
-      "ent.V1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'A" +
-      "i\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\352\002" +
-      "\037Ai::Stigmer::Agentic::Agent::V1b\006proto3"
+      "udit\022!\n\014version_hash\030\003 \001(\tR\013versionHashJ" +
+      "\004\010\001\020\002J\004\010\002\020\003R\023default_instance_idR\020share_" +
+      "link_tokenB\236\001B\013StatusProtoP\001\242\002\004ASAA\252\002\033Ai" +
+      ".Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\A" +
+      "gentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Age" +
+      "nt\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic" +
+      "::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -63,7 +63,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agent_v1_AgentStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentStatus_descriptor,
-        new java.lang.String[] { "Audit", "DefaultInstanceId", "VersionHash", });
+        new java.lang.String[] { "Audit", "VersionHash", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
   }

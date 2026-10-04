@@ -148,7 +148,8 @@ export type ParentRelationConfig = Message<"ai.stigmer.commons.apiresource.apire
   /**
    * Field name in the resource's spec message that contains the parent ID.
    * The service extracts this field from resource.spec to resolve the parent ID.
-   * Example: "session_id" for agent_execution, "agent_id" for agent_instance.
+   * Example: "session_id" for agent_execution, "workflow_id" for
+   * workflow_instance.
    * This eliminates hardcoded parent ID extraction logic in the service.
    *
    * @generated from field: string spec_field = 3;
@@ -188,13 +189,13 @@ export const ParentRelationConfigSchema: GenMessage<ParentRelationConfig> = /*@_
  *   -> Creates: agent_execution#session@session:<session_id>
  *   -> No owner tuple (inherited from session)
  *
- * Resource with additional parent (agent_instance):
+ * Resource with additional parent (workflow_instance):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
  *   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
- *   additional_parents: [{ kind: "agent", relation: "agent", spec_field: "agent_id" }]
- *   -> Creates: agent_instance#organization@organization:<org_id>
- *   -> Creates: agent_instance#agent@agent:<agent_id>
- *   -> Creates: agent_instance#owner@identity_account:<creator_id>
+ *   additional_parents: [{ kind: "workflow", relation: "workflow", spec_field: "workflow_id" }]
+ *   -> Creates: workflow_instance#organization@organization:<org_id>
+ *   -> Creates: workflow_instance#workflow@workflow:<workflow_id>
+ *   -> Creates: workflow_instance#owner@identity_account:<creator_id>
  *
  * Personal resource with creator attribution (environment):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -243,7 +244,7 @@ export type AuthorizationConfig = Message<"ai.stigmer.commons.apiresource.apires
   /**
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: agent_instance needs org link AND agent link.
+   * Example: workflow_instance needs org link AND workflow link.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4;
    */

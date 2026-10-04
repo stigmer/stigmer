@@ -1,0 +1,41 @@
+{
+  "name": "WorkflowParent",
+  "description": "WorkflowParent links a turn to the workflow run whose agent_call step\n started it.",
+  "protoType": "ai.stigmer.agentic.agentexecution.v1.WorkflowParent",
+  "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
+  "fields": [
+    {
+      "name": "WorkflowExecutionId",
+      "jsonName": "workflowExecutionId",
+      "protoField": "workflow_execution_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the workflow execution whose step started this turn. The turn's\n activities run on that workflow run's task queue, in its sandbox.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "SignalWorkflowId",
+      "jsonName": "signalWorkflowId",
+      "protoField": "signal_workflow_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Temporal workflow ID the agent-execution workflow signals about\n approval requests (\"child_approval_required\", carrying only this\n execution's id): the workflow run's engine workflow, which for a nested\n workflow is a child workflow with its own id, so it is named rather\n than derived.",
+      "required": false
+    },
+    {
+      "name": "CallbackToken",
+      "jsonName": "callbackToken",
+      "protoField": "callback_token",
+      "type": {
+        "kind": "bytes"
+      },
+      "description": "Temporal task token of the agent_call activity waiting for this turn\n (asynchronous activity completion). The agent-execution workflow\n completes that activity with the turn's result when the turn finishes.",
+      "required": false
+    }
+  ]
+}

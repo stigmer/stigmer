@@ -237,8 +237,6 @@ const (
 	ApiResourceKind_skill ApiResourceKind = 43
 	// External tool server connected via the Model Context Protocol.
 	ApiResourceKind_mcp_server ApiResourceKind = 44
-	// Configured deployment of an agent with environment-specific overrides.
-	ApiResourceKind_agent_instance ApiResourceKind = 45
 	// Hosted chat link for an agent with its own audience, origins, and credentials.
 	ApiResourceKind_agent_share ApiResourceKind = 46
 	// Connection binding an agent to an external messaging platform workspace.
@@ -309,7 +307,6 @@ var (
 		42: "session",
 		43: "skill",
 		44: "mcp_server",
-		45: "agent_instance",
 		46: "agent_share",
 		47: "agent_channel",
 		48: "channel_app",
@@ -344,7 +341,6 @@ var (
 		"session":                   42,
 		"skill":                     43,
 		"mcp_server":                44,
-		"agent_instance":            45,
 		"agent_share":               46,
 		"agent_channel":             47,
 		"channel_app":               48,
@@ -552,7 +548,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\x90\x14\n" +
+	"\astigmer\x10\x01*\xb7\x13\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -581,9 +577,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x05skill\x10+\x1a4\xaa\xff+0\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\x13\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04\x12M\n" +
 	"\n" +
 	"mcp_server\x10,\x1a=\xaa\xff+9\b\x01\x10\x01\x1a\tMcpServer\"\n" +
-	"MCP Server*\x03mcp@\x01J\x15\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04\x12m\n" +
-	"\x0eagent_instance\x10-\x1aY\xaa\xff+U\b\x01\x10\x01\x1a\rAgentInstance\"\x0eAgent Instance*\x03ain@\x01J)\b\x02\x10\x01\"\x18\n" +
-	"\x05agent\x12\x05agent\x1a\bagent_id*\x02\x18\x01:\x02\x01\x04B\x01\x04\x12E\n" +
+	"MCP Server*\x03mcp@\x01J\x15\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04\x12E\n" +
 	"\vagent_share\x10.\x1a4\xaa\xff+0\b\x01\x10\x01\x1a\n" +
 	"AgentShare\"\vAgent Share*\x03ash8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12P\n" +
 	"\ragent_channel\x10/\x1a=\xaa\xff+9\b\x01\x10\x01\x1a\fAgentChannel\"\rAgent Channel*\x03ach8\x01@\x01J\r\b\x02\x10\x01:\x03\x01\x04\x05B\x02\x04\x05\x12F\n" +
@@ -603,7 +597,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x06plugin\x10:\x1a6\xaa\xff+2\b\x01\x10\x01\x1a\x06Plugin\"\x06Plugin*\x03plg0\x01@\x01J\x13\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04\x12-\n" +
 	"\x04plan\x10F\x1a#\xaa\xff+\x1f\b\x04\x10\x01\x1a\x04Plan\"\x04Plan*\x03pln8\x01@\x02J\x04\b\x05\x10\x04\x12E\n" +
 	"\fsubscription\x10G\x1a3\xaa\xff+/\b\x04\x10\x01\x1a\fSubscription\"\fSubscription*\x03sub8\x01@\x02J\x04\b\x02\x10\x04\x126\n" +
-	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b1\x101\"\x04\b<\x10<*\tdatastore*\aproject:\x85\x01\n" +
+	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b-\x10-\"\x04\b1\x101\"\x04\b<\x10<*\x0eagent_instance*\tdatastore*\aproject:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x83\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 

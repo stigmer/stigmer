@@ -9,7 +9,6 @@ const PY_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["agent", "agents"],
   ["agentchannel", "agent_channels"],
   ["agentexecution", "agent_executions"],
-  ["agentinstance", "agent_instances"],
   ["agentshare", "agent_shares"],
   ["apikey", "api_keys"],
   ["environment", "environments"],

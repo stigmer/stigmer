@@ -13,7 +13,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionSpec(_message.Message):
-    __slots__ = ("agent_instance_id", "subject", "harness_state_id", "harness_state_id_history", "metadata", "workspace_entries", "mcp_server_usages", "skill_refs", "harness", "cursor_mode", "execution_target")
+    __slots__ = ("agent_ref", "subject", "harness_state_id", "harness_state_id_history", "metadata", "workspace_entries", "mcp_server_usages", "skill_refs", "harness", "cursor_mode", "execution_target")
     class MetadataEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -21,7 +21,7 @@ class SessionSpec(_message.Message):
         key: str
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
-    AGENT_INSTANCE_ID_FIELD_NUMBER: _ClassVar[int]
+    AGENT_REF_FIELD_NUMBER: _ClassVar[int]
     SUBJECT_FIELD_NUMBER: _ClassVar[int]
     HARNESS_STATE_ID_FIELD_NUMBER: _ClassVar[int]
     HARNESS_STATE_ID_HISTORY_FIELD_NUMBER: _ClassVar[int]
@@ -32,7 +32,7 @@ class SessionSpec(_message.Message):
     HARNESS_FIELD_NUMBER: _ClassVar[int]
     CURSOR_MODE_FIELD_NUMBER: _ClassVar[int]
     EXECUTION_TARGET_FIELD_NUMBER: _ClassVar[int]
-    agent_instance_id: str
+    agent_ref: _io_pb2.ApiResourceReference
     subject: str
     harness_state_id: str
     harness_state_id_history: _containers.RepeatedScalarFieldContainer[str]
@@ -43,4 +43,4 @@ class SessionSpec(_message.Message):
     harness: _enum_pb2.Harness
     cursor_mode: _enum_pb2.CursorMode
     execution_target: _enum_pb2.ExecutionTarget
-    def __init__(self, agent_instance_id: _Optional[str] = ..., subject: _Optional[str] = ..., harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ..., metadata: _Optional[_Mapping[str, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_spec_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., cursor_mode: _Optional[_Union[_enum_pb2.CursorMode, str]] = ..., execution_target: _Optional[_Union[_enum_pb2.ExecutionTarget, str]] = ...) -> None: ...
+    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., subject: _Optional[str] = ..., harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ..., metadata: _Optional[_Mapping[str, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_spec_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., cursor_mode: _Optional[_Union[_enum_pb2.CursorMode, str]] = ..., execution_target: _Optional[_Union[_enum_pb2.ExecutionTarget, str]] = ...) -> None: ...

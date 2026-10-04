@@ -14,8 +14,9 @@ public interface AgentInvocationOrBuilder extends
    * <pre>
    * Reference to the agent to run.
    *
-   * The reference names no version (or "latest"): this runs the agent's
-   * current version, and a reference naming another version is refused.
+   * A version on the reference (a tag or a content hash) is the version
+   * each run starts on; none, or "latest", runs the agent's current version
+   * when the run starts.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -26,8 +27,9 @@ public interface AgentInvocationOrBuilder extends
    * <pre>
    * Reference to the agent to run.
    *
-   * The reference names no version (or "latest"): this runs the agent's
-   * current version, and a reference naming another version is refused.
+   * A version on the reference (a tag or a content hash) is the version
+   * each run starts on; none, or "latest", runs the agent's current version
+   * when the run starts.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -38,8 +40,9 @@ public interface AgentInvocationOrBuilder extends
    * <pre>
    * Reference to the agent to run.
    *
-   * The reference names no version (or "latest"): this runs the agent's
-   * current version, and a reference naming another version is refused.
+   * A version on the reference (a tag or a content hash) is the version
+   * each run starts on; none, or "latest", runs the agent's current version
+   * when the run starts.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>

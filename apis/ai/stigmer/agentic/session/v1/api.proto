@@ -3,8 +3,8 @@ syntax = "proto3";
 package ai.stigmer.agentic.session.v1;
 
 import "ai/stigmer/agentic/session/v1/spec.proto";
+import "ai/stigmer/agentic/session/v1/status.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
-import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 
 // Session represents a multi-turn conversation thread with an agent.
@@ -22,6 +22,7 @@ message Session {
   // Session-specific configuration.
   SessionSpec spec = 4;
 
-  // System-managed audit information (created_at, updated_at, created_by, etc.).
-  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+  // System-managed state: the agent version the conversation runs, and the
+  // audit information (created_at, updated_at, created_by, etc.).
+  SessionStatus status = 5;
 }

@@ -895,7 +895,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * prompt.
    *
    * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the spec.recalled_memories snapshot was injected.
+   * fact in the status.recalled_memories snapshot was injected.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -908,7 +908,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * prompt.
    *
    * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the spec.recalled_memories snapshot was injected.
+   * fact in the status.recalled_memories snapshot was injected.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -921,7 +921,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * prompt.
    *
    * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the spec.recalled_memories snapshot was injected.
+   * fact in the status.recalled_memories snapshot was injected.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -983,4 +983,64 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    */
   com.google.protobuf.ByteString
       getAgentVersionHashBytes();
+
+  /**
+   * <pre>
+   * Standing preferences declared by the organization and the calling user,
+   * snapshotted into this execution at create time.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+   * @return Whether the declaredPreferences field is set.
+   */
+  boolean hasDeclaredPreferences();
+  /**
+   * <pre>
+   * Standing preferences declared by the organization and the calling user,
+   * snapshotted into this execution at create time.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+   * @return The declaredPreferences.
+   */
+  ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences getDeclaredPreferences();
+  /**
+   * <pre>
+   * Standing preferences declared by the organization and the calling user,
+   * snapshotted into this execution at create time.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder getDeclaredPreferencesOrBuilder();
+
+  /**
+   * <pre>
+   * The caller's confirmed memories, snapshotted into this execution at
+   * create time: the candidate set the prompt was built from.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+   * @return Whether the recalledMemories field is set.
+   */
+  boolean hasRecalledMemories();
+  /**
+   * <pre>
+   * The caller's confirmed memories, snapshotted into this execution at
+   * create time: the candidate set the prompt was built from.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+   * @return The recalledMemories.
+   */
+  ai.stigmer.agentic.agentexecution.v1.RecalledMemories getRecalledMemories();
+  /**
+   * <pre>
+   * The caller's confirmed memories, snapshotted into this execution at
+   * create time: the candidate set the prompt was built from.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder getRecalledMemoriesOrBuilder();
 }

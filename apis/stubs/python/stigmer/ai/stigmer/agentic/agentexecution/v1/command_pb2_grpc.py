@@ -86,8 +86,8 @@ class AgentExecutionCommandControllerServicer(object):
     """
 
     def create(self, request, context):
-        """Create and trigger a new agent execution.
-        Session is optional — can be provided or auto-created from agent_id.
+        """Create and trigger a new agent execution: a turn in an existing session,
+        or the first turn of a new one created from session_spec.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

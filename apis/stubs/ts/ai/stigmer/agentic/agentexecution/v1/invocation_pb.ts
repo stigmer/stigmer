@@ -42,8 +42,9 @@ export type AgentInvocation = Message<"ai.stigmer.agentic.agentexecution.v1.Agen
   /**
    * Reference to the agent to run.
    *
-   * The reference names no version (or "latest"): this runs the agent's
-   * current version, and a reference naming another version is refused.
+   * A version on the reference (a tag or a content hash) is the version
+   * each run starts on; none, or "latest", runs the agent's current version
+   * when the run starts.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1;
    */

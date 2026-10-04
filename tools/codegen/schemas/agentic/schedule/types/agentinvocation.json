@@ -12,7 +12,7 @@
         "kind": "message",
         "messageType": "ApiResourceReference"
       },
-      "description": "Reference to the agent to run.\n\n The reference names no version (or \"latest\"): this runs the agent's\n current version, and a reference naming another version is refused.",
+      "description": "Reference to the agent to run.\n\n A version on the reference (a tag or a content hash) is the version\n each run starts on; none, or \"latest\", runs the agent's current version\n when the run starts.",
       "required": true,
       "referenceKind": 40,
       "validation": {

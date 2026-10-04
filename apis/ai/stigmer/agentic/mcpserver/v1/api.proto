@@ -19,8 +19,10 @@ import "buf/validate/validate.proto";
 // Lifecycle:
 // 1. Create McpServer definition (this resource) with server type and env requirements
 // 2. Reference in Agent via mcp_server_usages
-// 3. Create AgentInstance with environment_ref providing actual secrets
-// 4. Agent runner resolves McpServer, gets secrets from Environment, starts server
+// 3. Provide the declared values through an Environment the run resolves (a
+//    personal environment, a schedule's or PlatformClient's environment_refs)
+//    or the turn's runtime_env
+// 4. Agent runner resolves McpServer, gets the values, starts server
 message McpServer {
   // API version for this resource type.
   // Must be exactly "agentic.stigmer.ai/v1".

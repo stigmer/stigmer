@@ -9,7 +9,7 @@ import { ToolApprovalOverrideSchema, McpServerUsageSchema, type ToolApprovalOver
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { SessionIdSchema, UpdateSessionSubjectRequestSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentInstanceRequestSchema, ListSessionsByChannelRequestSchema, type UpdateSessionSubjectRequest, type ListSessionsRequest, type SessionList, type ListSessionsByAgentInstanceRequest, type ListSessionsByChannelRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionIdSchema, UpdateSessionSubjectRequestSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, type UpdateSessionSubjectRequest, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -69,9 +69,9 @@ export class SessionClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByAgentInstance(input: ListSessionsByAgentInstanceRequest): Promise<SessionList> {
+  async listByAgent(input: ListSessionsByAgentRequest): Promise<SessionList> {
     try {
-      return await this.query.listByAgentInstance(input);
+      return await this.query.listByAgent(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -96,7 +96,7 @@ export interface SessionInput {
   org: string;
   labels?: Record<string, string>;
   visibility?: ApiResourceVisibility;
-  agentInstanceId?: string;
+  agentRef?: ResourceRef;
   subject?: string;
   harnessStateId?: string;
   harnessStateIdHistory?: string[];
@@ -199,6 +199,7 @@ function buildMcpServerUsageProto(input: McpServerUsageInput) {
 }
 
 export function buildSessionProto(input: SessionInput): Session {
+  const agentRef = (input.agentRef?.slug || input.agentRef?.org) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
   const workspaceEntries = input.workspaceEntries?.map(buildWorkspaceEntryProto);
   const mcpServerUsages = input.mcpServerUsages?.map(buildMcpServerUsageProto);
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
@@ -214,7 +215,7 @@ export function buildSessionProto(input: SessionInput): Session {
       ...(input.visibility && { visibility: input.visibility }),
     }),
     spec: Object.assign(create(SessionSpecSchema), stripUndefined({
-      agentInstanceId: input.agentInstanceId,
+      agentRef,
       subject: input.subject,
       harnessStateId: input.harnessStateId,
       harnessStateIdHistory: input.harnessStateIdHistory,
@@ -300,7 +301,7 @@ export function toSessionUpdateInput(resource: Session): SessionInput {
     org: meta?.org ?? "",
     labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
     visibility: meta?.visibility || undefined,
-    agentInstanceId: spec.agentInstanceId || undefined,
+    agentRef: toResourceRefInput(spec.agentRef),
     subject: spec.subject || undefined,
     harnessStateId: spec.harnessStateId || undefined,
     harnessStateIdHistory: spec.harnessStateIdHistory?.length ? [...spec.harnessStateIdHistory] : undefined,

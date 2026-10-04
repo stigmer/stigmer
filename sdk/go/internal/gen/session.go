@@ -71,8 +71,8 @@ func (s *SessionClient) List(ctx context.Context, input *sessionv1.ListSessionsR
 	return resp, wrapErr(err)
 }
 
-func (s *SessionClient) ListByAgentInstance(ctx context.Context, input *sessionv1.ListSessionsByAgentInstanceRequest) (*sessionv1.SessionList, error) {
-	resp, err := s.query.ListByAgentInstance(ctx, input)
+func (s *SessionClient) ListByAgent(ctx context.Context, input *sessionv1.ListSessionsByAgentRequest) (*sessionv1.SessionList, error) {
+	resp, err := s.query.ListByAgent(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -93,7 +93,7 @@ type SessionInput struct {
 	Org                   string
 	Labels                map[string]string
 	Visibility            apiresource.ApiResourceVisibility
-	AgentInstanceId       string
+	AgentRef              ResourceRef
 	Subject               string
 	HarnessStateId        string
 	HarnessStateIdHistory []string
@@ -120,7 +120,11 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 		},
 		Spec: &sessionv1.SessionSpec{},
 	}
-	resource.Spec.AgentInstanceId = i.AgentInstanceId
+	if i.AgentRef.Org != "" || i.AgentRef.Slug != "" {
+		ref := i.AgentRef.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_agent
+		resource.Spec.AgentRef = ref
+	}
 	resource.Spec.Subject = i.Subject
 	resource.Spec.HarnessStateId = i.HarnessStateId
 	resource.Spec.HarnessStateIdHistory = i.HarnessStateIdHistory
@@ -165,7 +169,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
-		input.AgentInstanceId = s.GetAgentInstanceId()
+		input.AgentRef = resourceRefFromProto(s.GetAgentRef())
 		input.Subject = s.GetSubject()
 		input.HarnessStateId = s.GetHarnessStateId()
 		input.HarnessStateIdHistory = s.GetHarnessStateIdHistory()

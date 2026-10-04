@@ -9,7 +9,6 @@ type Client struct {
 	Agent             *AgentClient
 	AgentChannel      *AgentChannelClient
 	AgentExecution    *AgentExecutionClient
-	AgentInstance     *AgentInstanceClient
 	AgentShare        *AgentShareClient
 	ApiKey            *ApiKeyClient
 	Artifact          *ArtifactClient
@@ -45,7 +44,6 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		Agent:             NewAgentClient(conn),
 		AgentChannel:      NewAgentChannelClient(conn),
 		AgentExecution:    NewAgentExecutionClient(conn),
-		AgentInstance:     NewAgentInstanceClient(conn),
 		AgentShare:        NewAgentShareClient(conn),
 		ApiKey:            NewApiKeyClient(conn),
 		Artifact:          NewArtifactClient(conn),

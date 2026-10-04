@@ -32,7 +32,6 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private SessionSpec() {
-    agentInstanceId_ = "";
     subject_ = "";
     harnessStateId_ = "";
     harnessStateIdHistory_ =
@@ -75,63 +74,97 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.session.v1.SessionSpec.class, ai.stigmer.agentic.session.v1.SessionSpec.Builder.class);
   }
 
-  public static final int AGENT_INSTANCE_ID_FIELD_NUMBER = 1;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object agentInstanceId_ = "";
+  private int bitField0_;
+  public static final int AGENT_REF_FIELD_NUMBER = 14;
+  private ai.stigmer.commons.apiresource.ApiResourceReference agentRef_;
   /**
    * <pre>
-   * Agent instance this session runs against; empty means no agent, and the
-   * built-in assistant answers with the MCP servers and skills this session
-   * itself declares.
+   * The agent this conversation runs, as 'org/slug' with an optional
+   * version; empty means no agent, and the built-in assistant answers with
+   * the MCP servers and skills this session itself declares.
    *
-   * A session may gain an agent or drop back to the built-in assistant on
-   * update; the harness and execution target are the immutable fields, not
-   * this one.
+   * The conversation runs the agent version this reference resolved to
+   * when it was written, recorded in status.agent_id and
+   * status.agent_version_hash, so an author saving a new version never
+   * changes an open conversation under its people. A version names a tag or
+   * a content hash; `latest`, or none on a new reference, names the
+   * agent's current version. To move a conversation to the agent's current
+   * version, update the session with this reference's version set to
+   * `latest`; an update that sends the reference unchanged with no version
+   * keeps the version the conversation runs.
+   *
+   * A session may gain an agent, change it or drop back to the built-in
+   * assistant on update; the harness and execution target are the
+   * immutable fields, not this one. Naming an agent, or changing it, needs
+   * permission to run that agent (can_execute), and every turn asks it
+   * again.
    * </pre>
    *
-   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
-   * @return The agentInstanceId.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
+   * @return Whether the agentRef field is set.
    */
   @java.lang.Override
-  public java.lang.String getAgentInstanceId() {
-    java.lang.Object ref = agentInstanceId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      agentInstanceId_ = s;
-      return s;
-    }
+  public boolean hasAgentRef() {
+    return ((bitField0_ & 0x00000001) != 0);
   }
   /**
    * <pre>
-   * Agent instance this session runs against; empty means no agent, and the
-   * built-in assistant answers with the MCP servers and skills this session
-   * itself declares.
+   * The agent this conversation runs, as 'org/slug' with an optional
+   * version; empty means no agent, and the built-in assistant answers with
+   * the MCP servers and skills this session itself declares.
    *
-   * A session may gain an agent or drop back to the built-in assistant on
-   * update; the harness and execution target are the immutable fields, not
-   * this one.
+   * The conversation runs the agent version this reference resolved to
+   * when it was written, recorded in status.agent_id and
+   * status.agent_version_hash, so an author saving a new version never
+   * changes an open conversation under its people. A version names a tag or
+   * a content hash; `latest`, or none on a new reference, names the
+   * agent's current version. To move a conversation to the agent's current
+   * version, update the session with this reference's version set to
+   * `latest`; an update that sends the reference unchanged with no version
+   * keeps the version the conversation runs.
+   *
+   * A session may gain an agent, change it or drop back to the built-in
+   * assistant on update; the harness and execution target are the
+   * immutable fields, not this one. Naming an agent, or changing it, needs
+   * permission to run that agent (can_execute), and every turn asks it
+   * again.
    * </pre>
    *
-   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
-   * @return The bytes for agentInstanceId.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
+   * @return The agentRef.
    */
   @java.lang.Override
-  public com.google.protobuf.ByteString
-      getAgentInstanceIdBytes() {
-    java.lang.Object ref = agentInstanceId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      agentInstanceId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
+  public ai.stigmer.commons.apiresource.ApiResourceReference getAgentRef() {
+    return agentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : agentRef_;
+  }
+  /**
+   * <pre>
+   * The agent this conversation runs, as 'org/slug' with an optional
+   * version; empty means no agent, and the built-in assistant answers with
+   * the MCP servers and skills this session itself declares.
+   *
+   * The conversation runs the agent version this reference resolved to
+   * when it was written, recorded in status.agent_id and
+   * status.agent_version_hash, so an author saving a new version never
+   * changes an open conversation under its people. A version names a tag or
+   * a content hash; `latest`, or none on a new reference, names the
+   * agent's current version. To move a conversation to the agent's current
+   * version, update the session with this reference's version set to
+   * `latest`; an update that sends the reference unchanged with no version
+   * keeps the version the conversation runs.
+   *
+   * A session may gain an agent, change it or drop back to the built-in
+   * assistant on update; the harness and execution target are the
+   * immutable fields, not this one. Naming an agent, or changing it, needs
+   * permission to run that agent (can_execute), and every turn asks it
+   * again.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAgentRefOrBuilder() {
+    return agentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : agentRef_;
   }
 
   public static final int SUBJECT_FIELD_NUMBER = 2;
@@ -823,9 +856,6 @@ java.lang.String defaultValue) {
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentInstanceId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, agentInstanceId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subject_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, subject_);
     }
@@ -859,6 +889,9 @@ java.lang.String defaultValue) {
     for (int i = 0; i < harnessStateIdHistory_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 13, harnessStateIdHistory_.getRaw(i));
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(14, getAgentRef());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -868,9 +901,6 @@ java.lang.String defaultValue) {
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentInstanceId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, agentInstanceId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subject_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, subject_);
     }
@@ -934,6 +964,10 @@ java.lang.String defaultValue) {
       size += dataSize;
       size += 1 * getHarnessStateIdHistoryList().size();
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(14, getAgentRef());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -949,8 +983,11 @@ java.lang.String defaultValue) {
     }
     ai.stigmer.agentic.session.v1.SessionSpec other = (ai.stigmer.agentic.session.v1.SessionSpec) obj;
 
-    if (!getAgentInstanceId()
-        .equals(other.getAgentInstanceId())) return false;
+    if (hasAgentRef() != other.hasAgentRef()) return false;
+    if (hasAgentRef()) {
+      if (!getAgentRef()
+          .equals(other.getAgentRef())) return false;
+    }
     if (!getSubject()
         .equals(other.getSubject())) return false;
     if (!getHarnessStateId()
@@ -979,8 +1016,10 @@ java.lang.String defaultValue) {
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + AGENT_INSTANCE_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getAgentInstanceId().hashCode();
+    if (hasAgentRef()) {
+      hash = (37 * hash) + AGENT_REF_FIELD_NUMBER;
+      hash = (53 * hash) + getAgentRef().hashCode();
+    }
     hash = (37 * hash) + SUBJECT_FIELD_NUMBER;
     hash = (53 * hash) + getSubject().hashCode();
     hash = (37 * hash) + HARNESS_STATE_ID_FIELD_NUMBER;
@@ -1156,19 +1195,32 @@ java.lang.String defaultValue) {
 
     // Construct using ai.stigmer.agentic.session.v1.SessionSpec.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetAgentRefFieldBuilder();
+        internalGetWorkspaceEntriesFieldBuilder();
+        internalGetMcpServerUsagesFieldBuilder();
+        internalGetSkillRefsFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      agentInstanceId_ = "";
+      agentRef_ = null;
+      if (agentRefBuilder_ != null) {
+        agentRefBuilder_.dispose();
+        agentRefBuilder_ = null;
+      }
       subject_ = "";
       harnessStateId_ = "";
       harnessStateIdHistory_ =
@@ -1262,8 +1314,12 @@ java.lang.String defaultValue) {
 
     private void buildPartial0(ai.stigmer.agentic.session.v1.SessionSpec result) {
       int from_bitField0_ = bitField0_;
+      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.agentInstanceId_ = agentInstanceId_;
+        result.agentRef_ = agentRefBuilder_ == null
+            ? agentRef_
+            : agentRefBuilder_.build();
+        to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.subject_ = subject_;
@@ -1288,6 +1344,7 @@ java.lang.String defaultValue) {
       if (((from_bitField0_ & 0x00000400) != 0)) {
         result.executionTarget_ = executionTarget_;
       }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -1302,10 +1359,8 @@ java.lang.String defaultValue) {
 
     public Builder mergeFrom(ai.stigmer.agentic.session.v1.SessionSpec other) {
       if (other == ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance()) return this;
-      if (!other.getAgentInstanceId().isEmpty()) {
-        agentInstanceId_ = other.agentInstanceId_;
-        bitField0_ |= 0x00000001;
-        onChanged();
+      if (other.hasAgentRef()) {
+        mergeAgentRef(other.getAgentRef());
       }
       if (!other.getSubject().isEmpty()) {
         subject_ = other.subject_;
@@ -1443,11 +1498,6 @@ java.lang.String defaultValue) {
             case 0:
               done = true;
               break;
-            case 10: {
-              agentInstanceId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000001;
-              break;
-            } // case 10
             case 18: {
               subject_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000002;
@@ -1526,6 +1576,13 @@ java.lang.String defaultValue) {
               harnessStateIdHistory_.add(input.readStringRequireUtf8());
               break;
             } // case 106
+            case 114: {
+              input.readMessage(
+                  internalGetAgentRefFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000001;
+              break;
+            } // case 114
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1543,126 +1600,323 @@ java.lang.String defaultValue) {
     }
     private int bitField0_;
 
-    private java.lang.Object agentInstanceId_ = "";
+    private ai.stigmer.commons.apiresource.ApiResourceReference agentRef_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> agentRefBuilder_;
     /**
      * <pre>
-     * Agent instance this session runs against; empty means no agent, and the
-     * built-in assistant answers with the MCP servers and skills this session
-     * itself declares.
+     * The agent this conversation runs, as 'org/slug' with an optional
+     * version; empty means no agent, and the built-in assistant answers with
+     * the MCP servers and skills this session itself declares.
      *
-     * A session may gain an agent or drop back to the built-in assistant on
-     * update; the harness and execution target are the immutable fields, not
-     * this one.
+     * The conversation runs the agent version this reference resolved to
+     * when it was written, recorded in status.agent_id and
+     * status.agent_version_hash, so an author saving a new version never
+     * changes an open conversation under its people. A version names a tag or
+     * a content hash; `latest`, or none on a new reference, names the
+     * agent's current version. To move a conversation to the agent's current
+     * version, update the session with this reference's version set to
+     * `latest`; an update that sends the reference unchanged with no version
+     * keeps the version the conversation runs.
+     *
+     * A session may gain an agent, change it or drop back to the built-in
+     * assistant on update; the harness and execution target are the
+     * immutable fields, not this one. Naming an agent, or changing it, needs
+     * permission to run that agent (can_execute), and every turn asks it
+     * again.
      * </pre>
      *
-     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
-     * @return The agentInstanceId.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
+     * @return Whether the agentRef field is set.
      */
-    public java.lang.String getAgentInstanceId() {
-      java.lang.Object ref = agentInstanceId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        agentInstanceId_ = s;
-        return s;
+    public boolean hasAgentRef() {
+      return ((bitField0_ & 0x00000001) != 0);
+    }
+    /**
+     * <pre>
+     * The agent this conversation runs, as 'org/slug' with an optional
+     * version; empty means no agent, and the built-in assistant answers with
+     * the MCP servers and skills this session itself declares.
+     *
+     * The conversation runs the agent version this reference resolved to
+     * when it was written, recorded in status.agent_id and
+     * status.agent_version_hash, so an author saving a new version never
+     * changes an open conversation under its people. A version names a tag or
+     * a content hash; `latest`, or none on a new reference, names the
+     * agent's current version. To move a conversation to the agent's current
+     * version, update the session with this reference's version set to
+     * `latest`; an update that sends the reference unchanged with no version
+     * keeps the version the conversation runs.
+     *
+     * A session may gain an agent, change it or drop back to the built-in
+     * assistant on update; the harness and execution target are the
+     * immutable fields, not this one. Naming an agent, or changing it, needs
+     * permission to run that agent (can_execute), and every turn asks it
+     * again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
+     * @return The agentRef.
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getAgentRef() {
+      if (agentRefBuilder_ == null) {
+        return agentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : agentRef_;
       } else {
-        return (java.lang.String) ref;
+        return agentRefBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * Agent instance this session runs against; empty means no agent, and the
-     * built-in assistant answers with the MCP servers and skills this session
-     * itself declares.
+     * The agent this conversation runs, as 'org/slug' with an optional
+     * version; empty means no agent, and the built-in assistant answers with
+     * the MCP servers and skills this session itself declares.
      *
-     * A session may gain an agent or drop back to the built-in assistant on
-     * update; the harness and execution target are the immutable fields, not
-     * this one.
+     * The conversation runs the agent version this reference resolved to
+     * when it was written, recorded in status.agent_id and
+     * status.agent_version_hash, so an author saving a new version never
+     * changes an open conversation under its people. A version names a tag or
+     * a content hash; `latest`, or none on a new reference, names the
+     * agent's current version. To move a conversation to the agent's current
+     * version, update the session with this reference's version set to
+     * `latest`; an update that sends the reference unchanged with no version
+     * keeps the version the conversation runs.
+     *
+     * A session may gain an agent, change it or drop back to the built-in
+     * assistant on update; the harness and execution target are the
+     * immutable fields, not this one. Naming an agent, or changing it, needs
+     * permission to run that agent (can_execute), and every turn asks it
+     * again.
      * </pre>
      *
-     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
-     * @return The bytes for agentInstanceId.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
      */
-    public com.google.protobuf.ByteString
-        getAgentInstanceIdBytes() {
-      java.lang.Object ref = agentInstanceId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        agentInstanceId_ = b;
-        return b;
+    public Builder setAgentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (agentRefBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        agentRef_ = value;
       } else {
-        return (com.google.protobuf.ByteString) ref;
+        agentRefBuilder_.setMessage(value);
       }
-    }
-    /**
-     * <pre>
-     * Agent instance this session runs against; empty means no agent, and the
-     * built-in assistant answers with the MCP servers and skills this session
-     * itself declares.
-     *
-     * A session may gain an agent or drop back to the built-in assistant on
-     * update; the harness and execution target are the immutable fields, not
-     * this one.
-     * </pre>
-     *
-     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
-     * @param value The agentInstanceId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setAgentInstanceId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      agentInstanceId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Agent instance this session runs against; empty means no agent, and the
-     * built-in assistant answers with the MCP servers and skills this session
-     * itself declares.
+     * The agent this conversation runs, as 'org/slug' with an optional
+     * version; empty means no agent, and the built-in assistant answers with
+     * the MCP servers and skills this session itself declares.
      *
-     * A session may gain an agent or drop back to the built-in assistant on
-     * update; the harness and execution target are the immutable fields, not
-     * this one.
+     * The conversation runs the agent version this reference resolved to
+     * when it was written, recorded in status.agent_id and
+     * status.agent_version_hash, so an author saving a new version never
+     * changes an open conversation under its people. A version names a tag or
+     * a content hash; `latest`, or none on a new reference, names the
+     * agent's current version. To move a conversation to the agent's current
+     * version, update the session with this reference's version set to
+     * `latest`; an update that sends the reference unchanged with no version
+     * keeps the version the conversation runs.
+     *
+     * A session may gain an agent, change it or drop back to the built-in
+     * assistant on update; the harness and execution target are the
+     * immutable fields, not this one. Naming an agent, or changing it, needs
+     * permission to run that agent (can_execute), and every turn asks it
+     * again.
      * </pre>
      *
-     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
-     * @return This builder for chaining.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
      */
-    public Builder clearAgentInstanceId() {
-      agentInstanceId_ = getDefaultInstance().getAgentInstanceId();
+    public Builder setAgentRef(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (agentRefBuilder_ == null) {
+        agentRef_ = builderForValue.build();
+      } else {
+        agentRefBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000001;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The agent this conversation runs, as 'org/slug' with an optional
+     * version; empty means no agent, and the built-in assistant answers with
+     * the MCP servers and skills this session itself declares.
+     *
+     * The conversation runs the agent version this reference resolved to
+     * when it was written, recorded in status.agent_id and
+     * status.agent_version_hash, so an author saving a new version never
+     * changes an open conversation under its people. A version names a tag or
+     * a content hash; `latest`, or none on a new reference, names the
+     * agent's current version. To move a conversation to the agent's current
+     * version, update the session with this reference's version set to
+     * `latest`; an update that sends the reference unchanged with no version
+     * keeps the version the conversation runs.
+     *
+     * A session may gain an agent, change it or drop back to the built-in
+     * assistant on update; the harness and execution target are the
+     * immutable fields, not this one. Naming an agent, or changing it, needs
+     * permission to run that agent (can_execute), and every turn asks it
+     * again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder mergeAgentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (agentRefBuilder_ == null) {
+        if (((bitField0_ & 0x00000001) != 0) &&
+          agentRef_ != null &&
+          agentRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
+          getAgentRefBuilder().mergeFrom(value);
+        } else {
+          agentRef_ = value;
+        }
+      } else {
+        agentRefBuilder_.mergeFrom(value);
+      }
+      if (agentRef_ != null) {
+        bitField0_ |= 0x00000001;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The agent this conversation runs, as 'org/slug' with an optional
+     * version; empty means no agent, and the built-in assistant answers with
+     * the MCP servers and skills this session itself declares.
+     *
+     * The conversation runs the agent version this reference resolved to
+     * when it was written, recorded in status.agent_id and
+     * status.agent_version_hash, so an author saving a new version never
+     * changes an open conversation under its people. A version names a tag or
+     * a content hash; `latest`, or none on a new reference, names the
+     * agent's current version. To move a conversation to the agent's current
+     * version, update the session with this reference's version set to
+     * `latest`; an update that sends the reference unchanged with no version
+     * keeps the version the conversation runs.
+     *
+     * A session may gain an agent, change it or drop back to the built-in
+     * assistant on update; the harness and execution target are the
+     * immutable fields, not this one. Naming an agent, or changing it, needs
+     * permission to run that agent (can_execute), and every turn asks it
+     * again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearAgentRef() {
       bitField0_ = (bitField0_ & ~0x00000001);
+      agentRef_ = null;
+      if (agentRefBuilder_ != null) {
+        agentRefBuilder_.dispose();
+        agentRefBuilder_ = null;
+      }
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Agent instance this session runs against; empty means no agent, and the
-     * built-in assistant answers with the MCP servers and skills this session
-     * itself declares.
+     * The agent this conversation runs, as 'org/slug' with an optional
+     * version; empty means no agent, and the built-in assistant answers with
+     * the MCP servers and skills this session itself declares.
      *
-     * A session may gain an agent or drop back to the built-in assistant on
-     * update; the harness and execution target are the immutable fields, not
-     * this one.
+     * The conversation runs the agent version this reference resolved to
+     * when it was written, recorded in status.agent_id and
+     * status.agent_version_hash, so an author saving a new version never
+     * changes an open conversation under its people. A version names a tag or
+     * a content hash; `latest`, or none on a new reference, names the
+     * agent's current version. To move a conversation to the agent's current
+     * version, update the session with this reference's version set to
+     * `latest`; an update that sends the reference unchanged with no version
+     * keeps the version the conversation runs.
+     *
+     * A session may gain an agent, change it or drop back to the built-in
+     * assistant on update; the harness and execution target are the
+     * immutable fields, not this one. Naming an agent, or changing it, needs
+     * permission to run that agent (can_execute), and every turn asks it
+     * again.
      * </pre>
      *
-     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
-     * @param value The bytes for agentInstanceId to set.
-     * @return This builder for chaining.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
      */
-    public Builder setAgentInstanceIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      agentInstanceId_ = value;
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getAgentRefBuilder() {
       bitField0_ |= 0x00000001;
       onChanged();
-      return this;
+      return internalGetAgentRefFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The agent this conversation runs, as 'org/slug' with an optional
+     * version; empty means no agent, and the built-in assistant answers with
+     * the MCP servers and skills this session itself declares.
+     *
+     * The conversation runs the agent version this reference resolved to
+     * when it was written, recorded in status.agent_id and
+     * status.agent_version_hash, so an author saving a new version never
+     * changes an open conversation under its people. A version names a tag or
+     * a content hash; `latest`, or none on a new reference, names the
+     * agent's current version. To move a conversation to the agent's current
+     * version, update the session with this reference's version set to
+     * `latest`; an update that sends the reference unchanged with no version
+     * keeps the version the conversation runs.
+     *
+     * A session may gain an agent, change it or drop back to the built-in
+     * assistant on update; the harness and execution target are the
+     * immutable fields, not this one. Naming an agent, or changing it, needs
+     * permission to run that agent (can_execute), and every turn asks it
+     * again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAgentRefOrBuilder() {
+      if (agentRefBuilder_ != null) {
+        return agentRefBuilder_.getMessageOrBuilder();
+      } else {
+        return agentRef_ == null ?
+            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : agentRef_;
+      }
+    }
+    /**
+     * <pre>
+     * The agent this conversation runs, as 'org/slug' with an optional
+     * version; empty means no agent, and the built-in assistant answers with
+     * the MCP servers and skills this session itself declares.
+     *
+     * The conversation runs the agent version this reference resolved to
+     * when it was written, recorded in status.agent_id and
+     * status.agent_version_hash, so an author saving a new version never
+     * changes an open conversation under its people. A version names a tag or
+     * a content hash; `latest`, or none on a new reference, names the
+     * agent's current version. To move a conversation to the agent's current
+     * version, update the session with this reference's version set to
+     * `latest`; an update that sends the reference unchanged with no version
+     * keeps the version the conversation runs.
+     *
+     * A session may gain an agent, change it or drop back to the built-in
+     * assistant on update; the harness and execution target are the
+     * immutable fields, not this one. Naming an agent, or changing it, needs
+     * permission to run that agent (can_execute), and every turn asks it
+     * again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetAgentRefFieldBuilder() {
+      if (agentRefBuilder_ == null) {
+        agentRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                getAgentRef(),
+                getParentForChildren(),
+                isClean());
+        agentRef_ = null;
+      }
+      return agentRefBuilder_;
     }
 
     private java.lang.Object subject_ = "";

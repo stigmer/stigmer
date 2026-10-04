@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKWBwoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAMgASgJEiAKGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeRgNIAMoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYBiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLZAQoRbWNwX3NlcnZlcl91c2FnZXMYByADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTWNwU2VydmVyVXNhZ2VCkAG6SIwBkgGIASKFAboBgQEKHnNlc3Npb25fbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSuAEKCnNraWxsX3JlZnMYCCADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCbrpIZ5IBZCJiugFfChdzZXNzaW9uX3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEjcKB2hhcm5lc3MYCiABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5IYXJuZXNzEj4KC2N1cnNvcl9tb2RlGAsgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQ3Vyc29yTW9kZRJIChBleGVjdXRpb25fdGFyZ2V0GAwgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXhlY3V0aW9uVGFyZ2V0Gi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSLICAoLU2Vzc2lvblNwZWMSsQEKCWFnZW50X3JlZhgOIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJoukhhugFeChZzZXNzaW9uX2FnZW50X3JlZi5raW5kEjNhZ2VudF9yZWYgbXVzdCByZWZlcmVuY2UgYSByZXNvdXJjZSB3aXRoIGtpbmQ9YWdlbnQaD3RoaXMua2luZCA9PSA0MOCFLCgSDwoHc3ViamVjdBgCIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAMgASgJEiAKGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeRgNIAMoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYBiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLZAQoRbWNwX3NlcnZlcl91c2FnZXMYByADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTWNwU2VydmVyVXNhZ2VCkAG6SIwBkgGIASKFAboBgQEKHnNlc3Npb25fbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSuAEKCnNraWxsX3JlZnMYCCADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCbrpIZ5IBZCJiugFfChdzZXNzaW9uX3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEjcKB2hhcm5lc3MYCiABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5IYXJuZXNzEj4KC2N1cnNvcl9tb2RlGAsgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQ3Vyc29yTW9kZRJIChBleGVjdXRpb25fdGFyZ2V0GAwgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXhlY3V0aW9uVGFyZ2V0Gi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUoECAEQAlIRYWdlbnRfaW5zdGFuY2VfaWRiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -29,17 +29,29 @@ export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
  */
 export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> & {
   /**
-   * Agent instance this session runs against; empty means no agent, and the
-   * built-in assistant answers with the MCP servers and skills this session
-   * itself declares.
+   * The agent this conversation runs, as 'org/slug' with an optional
+   * version; empty means no agent, and the built-in assistant answers with
+   * the MCP servers and skills this session itself declares.
    *
-   * A session may gain an agent or drop back to the built-in assistant on
-   * update; the harness and execution target are the immutable fields, not
-   * this one.
+   * The conversation runs the agent version this reference resolved to
+   * when it was written, recorded in status.agent_id and
+   * status.agent_version_hash, so an author saving a new version never
+   * changes an open conversation under its people. A version names a tag or
+   * a content hash; `latest`, or none on a new reference, names the
+   * agent's current version. To move a conversation to the agent's current
+   * version, update the session with this reference's version set to
+   * `latest`; an update that sends the reference unchanged with no version
+   * keeps the version the conversation runs.
    *
-   * @generated from field: string agent_instance_id = 1;
+   * A session may gain an agent, change it or drop back to the built-in
+   * assistant on update; the harness and execution target are the
+   * immutable fields, not this one. Naming an agent, or changing it, needs
+   * permission to run that agent (can_execute), and every turn asks it
+   * again.
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14;
    */
-  agentInstanceId: string;
+  agentRef?: ApiResourceReference;
 
   /**
    * Conversation title for UI display.

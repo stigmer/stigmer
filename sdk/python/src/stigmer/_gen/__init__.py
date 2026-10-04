@@ -4,8 +4,7 @@ from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput, RunConfigInput
-from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput, ConversationCatchupInput, DeclaredPreferencesInput, RecalledMemoriesInput, RecalledMemoryFactInput
-from ._agentinstance import AgentInstanceClient, AgentInstanceInput
+from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput, ConversationCatchupInput, WorkflowParentInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._artifact import ArtifactClient, ArtifactInput, ArtifactSourceInput, RetentionPolicyInput
@@ -78,11 +77,7 @@ __all__ = [
     "ContextManagementConfigInput",
     "AttachmentInput",
     "ConversationCatchupInput",
-    "DeclaredPreferencesInput",
-    "RecalledMemoriesInput",
-    "RecalledMemoryFactInput",
-    "AgentInstanceClient",
-    "AgentInstanceInput",
+    "WorkflowParentInput",
     "AgentShareClient",
     "AgentShareInput",
     "AgentShareMessagesInput",

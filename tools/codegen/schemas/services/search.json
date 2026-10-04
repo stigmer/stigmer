@@ -52,7 +52,6 @@
                 "session",
                 "skill",
                 "mcp_server",
-                "agent_instance",
                 "agent_share",
                 "agent_channel",
                 "channel_app",
@@ -258,11 +257,6 @@
           "name": "mcp_server",
           "number": 44,
           "description": "External tool server connected via the Model Context Protocol."
-        },
-        {
-          "name": "agent_instance",
-          "number": 45,
-          "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
           "name": "agent_share",

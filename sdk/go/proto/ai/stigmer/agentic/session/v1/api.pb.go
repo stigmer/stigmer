@@ -35,8 +35,9 @@ type Session struct {
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Session-specific configuration.
 	Spec *SessionSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed audit information (created_at, updated_at, created_by, etc.).
-	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	// System-managed state: the agent version the conversation runs, and the
+	// audit information (created_at, updated_at, created_by, etc.).
+	Status        *SessionStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -99,7 +100,7 @@ func (x *Session) GetSpec() *SessionSpec {
 	return nil
 }
 
-func (x *Session) GetStatus() *apiresource.ApiResourceAuditStatus {
+func (x *Session) GetStatus() *SessionStatus {
 	if x != nil {
 		return x.Status
 	}
@@ -110,7 +111,7 @@ var File_ai_stigmer_agentic_session_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/session/v1/api.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xd5\x02\n" +
+	"'ai/stigmer/agentic/session/v1/api.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a*ai/stigmer/agentic/session/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1bbuf/validate/validate.proto\"\xcb\x02\n" +
 	"\aSession\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
@@ -118,8 +119,8 @@ const file_ai_stigmer_agentic_session_v1_api_proto_rawDesc = "" +
 	"\x04kind\x18\x02 \x01(\tB\x0e\xbaH\vr\t\n" +
 	"\aSessionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12>\n" +
-	"\x04spec\x18\x04 \x01(\v2*.ai.stigmer.agentic.session.v1.SessionSpecR\x04spec\x12N\n" +
-	"\x06status\x18\x05 \x01(\v26.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\x9a\x02\n" +
+	"\x04spec\x18\x04 \x01(\v2*.ai.stigmer.agentic.session.v1.SessionSpecR\x04spec\x12D\n" +
+	"\x06status\x18\x05 \x01(\v2,.ai.stigmer.agentic.session.v1.SessionStatusR\x06statusB\x9a\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\bApiProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -136,15 +137,15 @@ func file_ai_stigmer_agentic_session_v1_api_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_session_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_agentic_session_v1_api_proto_goTypes = []any{
-	(*Session)(nil),                            // 0: ai.stigmer.agentic.session.v1.Session
-	(*apiresource.ApiResourceMetadata)(nil),    // 1: ai.stigmer.commons.apiresource.ApiResourceMetadata
-	(*SessionSpec)(nil),                        // 2: ai.stigmer.agentic.session.v1.SessionSpec
-	(*apiresource.ApiResourceAuditStatus)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceAuditStatus
+	(*Session)(nil),                         // 0: ai.stigmer.agentic.session.v1.Session
+	(*apiresource.ApiResourceMetadata)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceMetadata
+	(*SessionSpec)(nil),                     // 2: ai.stigmer.agentic.session.v1.SessionSpec
+	(*SessionStatus)(nil),                   // 3: ai.stigmer.agentic.session.v1.SessionStatus
 }
 var file_ai_stigmer_agentic_session_v1_api_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.session.v1.Session.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
 	2, // 1: ai.stigmer.agentic.session.v1.Session.spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
-	3, // 2: ai.stigmer.agentic.session.v1.Session.status:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditStatus
+	3, // 2: ai.stigmer.agentic.session.v1.Session.status:type_name -> ai.stigmer.agentic.session.v1.SessionStatus
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -158,6 +159,7 @@ func file_ai_stigmer_agentic_session_v1_api_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_session_v1_spec_proto_init()
+	file_ai_stigmer_agentic_session_v1_status_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

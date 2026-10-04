@@ -8,8 +8,8 @@ package agentexecutionv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v11 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	v11 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -30,61 +30,21 @@ const (
 // All execution results and state live in AgentExecutionStatus (in api.proto).
 type AgentExecutionSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Session ID this execution belongs to (optional).
+	// The conversation this turn belongs to: an existing session, or a new
+	// one. Neither set starts a new conversation with the built-in
+	// assistant: a person starts a conversation without choosing an agent.
 	//
-	// Resolution priority (enforced in handler pipeline):
-	//  1. session_id provided     -> use existing session
-	//  2. session_spec provided   -> auto-create session from the embedded spec
-	//  3. agent_id provided       -> auto-create session using agent's default instance
-	//  4. none provided           -> auto-create a session with no agent; the
-	//     built-in assistant answers
+	// A turn runs the agent its session names, at the version the session
+	// records (SessionStatus), and is refused unless the caller may add a
+	// turn to the session (can_create_execution_in) and may still run that
+	// agent (can_execute). The agent and version the turn runs are recorded on
+	// its status (agent_id, agent_version_hash).
 	//
-	// session_id and agent_id may both be set — when both are present, session_id
-	// is used for session resolution and agent_id is preserved as metadata for
-	// downstream consumers (e.g., session subject generation). session_id and
-	// session_spec are mutually exclusive.
+	// Types that are valid to be assigned to Target:
 	//
-	// An execution in an existing session belongs to that session's
-	// organization: metadata.org, when set, must be the session's
-	// (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
-	// session. An execution stays in the session it was created in: update
-	// refuses a different session_id (FAILED_PRECONDITION), and an empty one
-	// keeps the stored session.
-	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// Agent ID (optional).
-	//
-	// When absent along with session_id and session_spec, the execution runs
-	// the built-in assistant in a new session with no agent: a person starts a
-	// conversation without choosing an agent.
-	//
-	// Both may be set — agent_id is preserved on the execution record even when
-	// session_id is present, so downstream consumers can access the agent
-	// without resolving through the session chain.
-	//
-	// When provided without session_id, a new session is auto-created using
-	// the agent's default instance ID.
-	AgentId string `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	// Spec for the session to auto-create when session_id is empty (optional).
-	//
-	// This is the one-call session bootstrap: a single create carries the full
-	// session shape (workspace_entries, harness, execution_target, MCP servers,
-	// skills) together with the first message, so embedders do not need to
-	// orchestrate session.create followed by agentExecution.create. The created
-	// session's ID is returned on the persisted execution's session_id.
-	//
-	// Fields that must be set at session-creation time and are immutable once
-	// an execution has run — harness and execution_target — can only reach an
-	// auto-created session through this field.
-	//
-	// When session_spec.agent_instance_id is set, the session runs against that
-	// instance and agent_id must not also be resolved from it. When empty, the
-	// normal resolution applies: agent_id's default instance, or no agent (the
-	// built-in assistant) when agent_id is also empty.
-	//
-	// Mutually exclusive with session_id. session_spec.harness_state_id must be
-	// empty — it is server-owned harness continuity state, created by the runner
-	// after the first execution.
-	SessionSpec *v1.SessionSpec `protobuf:"bytes,13,opt,name=session_spec,json=sessionSpec,proto3" json:"session_spec,omitempty"`
+	//	*AgentExecutionSpec_SessionId
+	//	*AgentExecutionSpec_SessionSpec
+	Target isAgentExecutionSpec_Target `protobuf_oneof:"target"`
 	// User input message that triggers this execution.
 	// Each execution represents one user message and the agent's response.
 	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
@@ -100,13 +60,7 @@ type AgentExecutionSpec struct {
 	// Use case: B2B integrations where secrets are injected at runtime per call.
 	// These values are consumed into the ExecutionContext (deleted when the
 	// execution completes) and cleared from the persisted execution.
-	RuntimeEnv map[string]*v11.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Callback token for async activity completion (optional).
-	//
-	// When a workflow invokes an agent, this token enables the workflow to
-	// wait for the agent to finish without blocking. When empty, the
-	// execution runs independently (CLI, API calls, non-workflow triggers).
-	CallbackToken []byte `protobuf:"bytes,6,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
+	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Auto-approve all tool executions for this execution.
 	//
 	// When true, tools that would normally require approval are automatically
@@ -127,12 +81,6 @@ type AgentExecutionSpec struct {
 	//
 	// Default: false (approvals required as configured in policies)
 	AutoApproveAll bool `protobuf:"varint,7,opt,name=auto_approve_all,json=autoApproveAll,proto3" json:"auto_approve_all,omitempty"`
-	// Parent workflow ID when this execution was triggered by a workflow (optional).
-	//
-	// When set, the platform notifies the parent workflow about approval
-	// requests instead of requiring polling. When empty, approvals are
-	// submitted directly via the SubmitApproval RPC.
-	ParentWorkflowId string `protobuf:"bytes,8,opt,name=parent_workflow_id,json=parentWorkflowId,proto3" json:"parent_workflow_id,omitempty"`
 	// Files attached to this execution.
 	//
 	// Attachments are injected into the sandbox before execution begins.
@@ -171,8 +119,6 @@ type AgentExecutionSpec struct {
 	//	# CLI detects src/config.yaml is inside workspace -> workspace_file_ref
 	//	# No upload, no injection; agent reads directly from src/config.yaml
 	WorkspaceFileRefs []string `protobuf:"bytes,10,rep,name=workspace_file_refs,json=workspaceFileRefs,proto3" json:"workspace_file_refs,omitempty"`
-	// Explicit Temporal task queue override for activity routing.
-	ActivityTaskQueue string `protobuf:"bytes,11,opt,name=activity_task_queue,json=activityTaskQueue,proto3" json:"activity_task_queue,omitempty"`
 	// ID of the execution this one supersedes via edit-and-resubmit (optional).
 	//
 	// When a user stops an in-flight turn, edits the message, and resubmits,
@@ -191,14 +137,19 @@ type AgentExecutionSpec struct {
 	// agent was not watching, the digest carries what happened so the agent
 	// re-enters informed. Absent on every other execution surface.
 	ConversationCatchup *ConversationCatchup `protobuf:"bytes,14,opt,name=conversation_catchup,json=conversationCatchup,proto3" json:"conversation_catchup,omitempty"`
-	// Standing preferences declared by the organization and the calling user,
-	// snapshotted into this execution at create time (optional).
-	DeclaredPreferences *DeclaredPreferences `protobuf:"bytes,15,opt,name=declared_preferences,json=declaredPreferences,proto3" json:"declared_preferences,omitempty"`
-	// The caller's confirmed memories, snapshotted into this execution at
-	// create time (optional).
-	RecalledMemories *RecalledMemories `protobuf:"bytes,16,opt,name=recalled_memories,json=recalledMemories,proto3" json:"recalled_memories,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The workflow run this turn was started by (optional): set only by a
+	// workflow's agent_call step, which waits for the turn to finish.
+	//
+	// The server honours it only from the workflow run it names: a request
+	// the server composes itself, a runner whose credential is bound to that
+	// workflow run, or a caller holding the platform's
+	// can_write_reserved_labels. Any other caller that sets it is refused with
+	// INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+	// runs in the workflow run's sandbox, the parent is told about approval
+	// requests, and the waiting step is completed when the turn finishes.
+	Parent        *WorkflowParent `protobuf:"bytes,17,opt,name=parent,proto3" json:"parent,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentExecutionSpec) Reset() {
@@ -231,23 +182,27 @@ func (*AgentExecutionSpec) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{0}
 }
 
+func (x *AgentExecutionSpec) GetTarget() isAgentExecutionSpec_Target {
+	if x != nil {
+		return x.Target
+	}
+	return nil
+}
+
 func (x *AgentExecutionSpec) GetSessionId() string {
 	if x != nil {
-		return x.SessionId
+		if x, ok := x.Target.(*AgentExecutionSpec_SessionId); ok {
+			return x.SessionId
+		}
 	}
 	return ""
 }
 
-func (x *AgentExecutionSpec) GetAgentId() string {
+func (x *AgentExecutionSpec) GetSessionSpec() *v11.SessionSpec {
 	if x != nil {
-		return x.AgentId
-	}
-	return ""
-}
-
-func (x *AgentExecutionSpec) GetSessionSpec() *v1.SessionSpec {
-	if x != nil {
-		return x.SessionSpec
+		if x, ok := x.Target.(*AgentExecutionSpec_SessionSpec); ok {
+			return x.SessionSpec
+		}
 	}
 	return nil
 }
@@ -266,16 +221,9 @@ func (x *AgentExecutionSpec) GetExecutionConfig() *ExecutionConfig {
 	return nil
 }
 
-func (x *AgentExecutionSpec) GetRuntimeEnv() map[string]*v11.ExecutionValue {
+func (x *AgentExecutionSpec) GetRuntimeEnv() map[string]*v1.ExecutionValue {
 	if x != nil {
 		return x.RuntimeEnv
-	}
-	return nil
-}
-
-func (x *AgentExecutionSpec) GetCallbackToken() []byte {
-	if x != nil {
-		return x.CallbackToken
 	}
 	return nil
 }
@@ -285,13 +233,6 @@ func (x *AgentExecutionSpec) GetAutoApproveAll() bool {
 		return x.AutoApproveAll
 	}
 	return false
-}
-
-func (x *AgentExecutionSpec) GetParentWorkflowId() string {
-	if x != nil {
-		return x.ParentWorkflowId
-	}
-	return ""
 }
 
 func (x *AgentExecutionSpec) GetAttachments() []*Attachment {
@@ -308,13 +249,6 @@ func (x *AgentExecutionSpec) GetWorkspaceFileRefs() []string {
 	return nil
 }
 
-func (x *AgentExecutionSpec) GetActivityTaskQueue() string {
-	if x != nil {
-		return x.ActivityTaskQueue
-	}
-	return ""
-}
-
 func (x *AgentExecutionSpec) GetSupersedesExecutionId() string {
 	if x != nil {
 		return x.SupersedesExecutionId
@@ -329,16 +263,121 @@ func (x *AgentExecutionSpec) GetConversationCatchup() *ConversationCatchup {
 	return nil
 }
 
-func (x *AgentExecutionSpec) GetDeclaredPreferences() *DeclaredPreferences {
+func (x *AgentExecutionSpec) GetParent() *WorkflowParent {
 	if x != nil {
-		return x.DeclaredPreferences
+		return x.Parent
 	}
 	return nil
 }
 
-func (x *AgentExecutionSpec) GetRecalledMemories() *RecalledMemories {
+type isAgentExecutionSpec_Target interface {
+	isAgentExecutionSpec_Target()
+}
+
+type AgentExecutionSpec_SessionId struct {
+	// ID of the existing session this turn continues.
+	//
+	// An execution in an existing session belongs to that session's
+	// organization: metadata.org, when set, must be the session's
+	// (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+	// the session. An execution stays in the session it was created in:
+	// update refuses a different session_id (FAILED_PRECONDITION), and an
+	// empty one keeps the stored session.
+	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3,oneof"`
+}
+
+type AgentExecutionSpec_SessionSpec struct {
+	// Spec for a new session this turn starts.
+	//
+	// This is the one-call session bootstrap: a single create carries the
+	// full session shape (the agent, workspace_entries, harness,
+	// execution_target, MCP servers, skills) together with the first
+	// message, so embedders do not need to orchestrate session.create
+	// followed by agentExecution.create. The created session's ID is
+	// returned on the persisted execution's session_id.
+	//
+	// session_spec.agent_ref names the agent the conversation runs (empty:
+	// the built-in assistant). Fields that must be set at session-creation
+	// time and are immutable once an execution has run — harness and
+	// execution_target — can only reach an auto-created session through
+	// this field. session_spec.harness_state_id must be empty — it is
+	// server-owned harness continuity state, created by the runner after
+	// the first execution.
+	SessionSpec *v11.SessionSpec `protobuf:"bytes,13,opt,name=session_spec,json=sessionSpec,proto3,oneof"`
+}
+
+func (*AgentExecutionSpec_SessionId) isAgentExecutionSpec_Target() {}
+
+func (*AgentExecutionSpec_SessionSpec) isAgentExecutionSpec_Target() {}
+
+// WorkflowParent links a turn to the workflow run whose agent_call step
+// started it.
+type WorkflowParent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the workflow execution whose step started this turn. The turn's
+	// activities run on that workflow run's task queue, in its sandbox.
+	WorkflowExecutionId string `protobuf:"bytes,1,opt,name=workflow_execution_id,json=workflowExecutionId,proto3" json:"workflow_execution_id,omitempty"`
+	// Temporal workflow ID the agent-execution workflow signals about
+	// approval requests ("child_approval_required", carrying only this
+	// execution's id): the workflow run's engine workflow, which for a nested
+	// workflow is a child workflow with its own id, so it is named rather
+	// than derived.
+	SignalWorkflowId string `protobuf:"bytes,2,opt,name=signal_workflow_id,json=signalWorkflowId,proto3" json:"signal_workflow_id,omitempty"`
+	// Temporal task token of the agent_call activity waiting for this turn
+	// (asynchronous activity completion). The agent-execution workflow
+	// completes that activity with the turn's result when the turn finishes.
+	CallbackToken []byte `protobuf:"bytes,3,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkflowParent) Reset() {
+	*x = WorkflowParent{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowParent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowParent) ProtoMessage() {}
+
+func (x *WorkflowParent) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[1]
 	if x != nil {
-		return x.RecalledMemories
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowParent.ProtoReflect.Descriptor instead.
+func (*WorkflowParent) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *WorkflowParent) GetWorkflowExecutionId() string {
+	if x != nil {
+		return x.WorkflowExecutionId
+	}
+	return ""
+}
+
+func (x *WorkflowParent) GetSignalWorkflowId() string {
+	if x != nil {
+		return x.SignalWorkflowId
+	}
+	return ""
+}
+
+func (x *WorkflowParent) GetCallbackToken() []byte {
+	if x != nil {
+		return x.CallbackToken
 	}
 	return nil
 }
@@ -471,7 +510,7 @@ type ExecutionConfig struct {
 
 func (x *ExecutionConfig) Reset() {
 	*x = ExecutionConfig{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -483,7 +522,7 @@ func (x *ExecutionConfig) String() string {
 func (*ExecutionConfig) ProtoMessage() {}
 
 func (x *ExecutionConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -496,7 +535,7 @@ func (x *ExecutionConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecutionConfig.ProtoReflect.Descriptor instead.
 func (*ExecutionConfig) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ExecutionConfig) GetModelName() string {
@@ -664,7 +703,7 @@ type ContextManagementConfig struct {
 
 func (x *ContextManagementConfig) Reset() {
 	*x = ContextManagementConfig{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -676,7 +715,7 @@ func (x *ContextManagementConfig) String() string {
 func (*ContextManagementConfig) ProtoMessage() {}
 
 func (x *ContextManagementConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -689,7 +728,7 @@ func (x *ContextManagementConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextManagementConfig.ProtoReflect.Descriptor instead.
 func (*ContextManagementConfig) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ContextManagementConfig) GetDisableSummarization() bool {
@@ -778,7 +817,7 @@ type Attachment struct {
 
 func (x *Attachment) Reset() {
 	*x = Attachment{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -790,7 +829,7 @@ func (x *Attachment) String() string {
 func (*Attachment) ProtoMessage() {}
 
 func (x *Attachment) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -803,7 +842,7 @@ func (x *Attachment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attachment.ProtoReflect.Descriptor instead.
 func (*Attachment) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Attachment) GetFilename() string {
@@ -863,7 +902,7 @@ type ConversationCatchup struct {
 
 func (x *ConversationCatchup) Reset() {
 	*x = ConversationCatchup{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -875,7 +914,7 @@ func (x *ConversationCatchup) String() string {
 func (*ConversationCatchup) ProtoMessage() {}
 
 func (x *ConversationCatchup) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -888,7 +927,7 @@ func (x *ConversationCatchup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationCatchup.ProtoReflect.Descriptor instead.
 func (*ConversationCatchup) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ConversationCatchup) GetDigest() string {
@@ -919,7 +958,7 @@ type DeclaredPreferences struct {
 
 func (x *DeclaredPreferences) Reset() {
 	*x = DeclaredPreferences{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -931,7 +970,7 @@ func (x *DeclaredPreferences) String() string {
 func (*DeclaredPreferences) ProtoMessage() {}
 
 func (x *DeclaredPreferences) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -944,7 +983,7 @@ func (x *DeclaredPreferences) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeclaredPreferences.ProtoReflect.Descriptor instead.
 func (*DeclaredPreferences) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeclaredPreferences) GetOrgContext() string {
@@ -977,7 +1016,7 @@ type RecalledMemories struct {
 
 func (x *RecalledMemories) Reset() {
 	*x = RecalledMemories{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -989,7 +1028,7 @@ func (x *RecalledMemories) String() string {
 func (*RecalledMemories) ProtoMessage() {}
 
 func (x *RecalledMemories) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1002,7 +1041,7 @@ func (x *RecalledMemories) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecalledMemories.ProtoReflect.Descriptor instead.
 func (*RecalledMemories) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RecalledMemories) GetEnabled() bool {
@@ -1033,7 +1072,7 @@ type RecalledMemoryFact struct {
 
 func (x *RecalledMemoryFact) Reset() {
 	*x = RecalledMemoryFact{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1045,7 +1084,7 @@ func (x *RecalledMemoryFact) String() string {
 func (*RecalledMemoryFact) ProtoMessage() {}
 
 func (x *RecalledMemoryFact) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1058,7 +1097,7 @@ func (x *RecalledMemoryFact) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecalledMemoryFact.ProtoReflect.Descriptor instead.
 func (*RecalledMemoryFact) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RecalledMemoryFact) GetMemoryId() string {
@@ -1079,32 +1118,32 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xeb\f\n" +
-	"\x12AgentExecutionSpec\x12\x1d\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x96\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
-	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12M\n" +
-	"\fsession_spec\x18\r \x01(\v2*.ai.stigmer.agentic.session.v1.SessionSpecR\vsessionSpec\x12!\n" +
+	"\x12AgentExecutionSpec\x12\x1f\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
+	"\fsession_spec\x18\r \x01(\v2*.ai.stigmer.agentic.session.v1.SessionSpecH\x00R\vsessionSpec\x12!\n" +
 	"\amessage\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\amessage\x12`\n" +
 	"\x10execution_config\x18\x04 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.ExecutionConfigR\x0fexecutionConfig\x12i\n" +
 	"\vruntime_env\x18\x05 \x03(\v2H.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntryR\n" +
-	"runtimeEnv\x12%\n" +
-	"\x0ecallback_token\x18\x06 \x01(\fR\rcallbackToken\x12(\n" +
-	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x12,\n" +
-	"\x12parent_workflow_id\x18\b \x01(\tR\x10parentWorkflowId\x12R\n" +
+	"runtimeEnv\x12(\n" +
+	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x12R\n" +
 	"\vattachments\x18\t \x03(\v20.ai.stigmer.agentic.agentexecution.v1.AttachmentR\vattachments\x12.\n" +
 	"\x13workspace_file_refs\x18\n" +
-	" \x03(\tR\x11workspaceFileRefs\x12.\n" +
-	"\x13activity_task_queue\x18\v \x01(\tR\x11activityTaskQueue\x126\n" +
+	" \x03(\tR\x11workspaceFileRefs\x126\n" +
 	"\x17supersedes_execution_id\x18\f \x01(\tR\x15supersedesExecutionId\x12l\n" +
-	"\x14conversation_catchup\x18\x0e \x01(\v29.ai.stigmer.agentic.agentexecution.v1.ConversationCatchupR\x13conversationCatchup\x12l\n" +
-	"\x14declared_preferences\x18\x0f \x01(\v29.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesR\x13declaredPreferences\x12c\n" +
-	"\x11recalled_memories\x18\x10 \x01(\v26.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesR\x10recalledMemories\x1au\n" +
+	"\x14conversation_catchup\x18\x0e \x01(\v29.ai.stigmer.agentic.agentexecution.v1.ConversationCatchupR\x13conversationCatchup\x12L\n" +
+	"\x06parent\x18\x11 \x01(\v24.ai.stigmer.agentic.agentexecution.v1.WorkflowParentR\x06parent\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01:\xb8\x03\xbaH\xb4\x03\x1a\xcb\x01\n" +
-	"!agent_execution.session_exclusive\x12rsession_id and session_spec are mutually exclusive — reference an existing session or define a new one, not both\x1a2!(this.session_id != '' && has(this.session_spec))\x1a\xe3\x01\n" +
-	"*agent_execution.session_spec_harness_state\x12psession_spec.harness_state_id must be empty — harness state is created by the runner after the first execution\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''\"\xa8\x06\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01:\xea\x01\xbaH\xe6\x01\x1a\xe3\x01\n" +
+	"*agent_execution.session_spec_harness_state\x12psession_spec.harness_state_id must be empty — harness state is created by the runner after the first execution\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''B\b\n" +
+	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x14declared_preferencesR\x11recalled_memories\"\xa2\x01\n" +
+	"\x0eWorkflowParent\x12;\n" +
+	"\x15workflow_execution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x13workflowExecutionId\x12,\n" +
+	"\x12signal_workflow_id\x18\x02 \x01(\tR\x10signalWorkflowId\x12%\n" +
+	"\x0ecallback_token\x18\x03 \x01(\fR\rcallbackToken\"\xa8\x06\n" +
 	"\x0fExecutionConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x12l\n" +
@@ -1164,48 +1203,48 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_goTypes = []any{
 	(*AgentExecutionSpec)(nil),      // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
-	(*ExecutionConfig)(nil),         // 1: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
-	(*ContextManagementConfig)(nil), // 2: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
-	(*Attachment)(nil),              // 3: ai.stigmer.agentic.agentexecution.v1.Attachment
-	(*ConversationCatchup)(nil),     // 4: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
-	(*DeclaredPreferences)(nil),     // 5: ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences
-	(*RecalledMemories)(nil),        // 6: ai.stigmer.agentic.agentexecution.v1.RecalledMemories
-	(*RecalledMemoryFact)(nil),      // 7: ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact
-	nil,                             // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
-	(*v1.SessionSpec)(nil),          // 9: ai.stigmer.agentic.session.v1.SessionSpec
-	(InteractionMode)(0),            // 10: ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	(*structpb.Struct)(nil),         // 11: google.protobuf.Struct
-	(ApprovalMode)(0),               // 12: ai.stigmer.agentic.agentexecution.v1.ApprovalMode
-	(ServiceTier)(0),                // 13: ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	(ThinkingMode)(0),               // 14: ai.stigmer.agentic.agentexecution.v1.ThinkingMode
-	(*timestamppb.Timestamp)(nil),   // 15: google.protobuf.Timestamp
-	(*v11.ExecutionValue)(nil),      // 16: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*WorkflowParent)(nil),          // 1: ai.stigmer.agentic.agentexecution.v1.WorkflowParent
+	(*ExecutionConfig)(nil),         // 2: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
+	(*ContextManagementConfig)(nil), // 3: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	(*Attachment)(nil),              // 4: ai.stigmer.agentic.agentexecution.v1.Attachment
+	(*ConversationCatchup)(nil),     // 5: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
+	(*DeclaredPreferences)(nil),     // 6: ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences
+	(*RecalledMemories)(nil),        // 7: ai.stigmer.agentic.agentexecution.v1.RecalledMemories
+	(*RecalledMemoryFact)(nil),      // 8: ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact
+	nil,                             // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
+	(*v11.SessionSpec)(nil),         // 10: ai.stigmer.agentic.session.v1.SessionSpec
+	(InteractionMode)(0),            // 11: ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	(*structpb.Struct)(nil),         // 12: google.protobuf.Struct
+	(ApprovalMode)(0),               // 13: ai.stigmer.agentic.agentexecution.v1.ApprovalMode
+	(ServiceTier)(0),                // 14: ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	(ThinkingMode)(0),               // 15: ai.stigmer.agentic.agentexecution.v1.ThinkingMode
+	(*timestamppb.Timestamp)(nil),   // 16: google.protobuf.Timestamp
+	(*v1.ExecutionValue)(nil),       // 17: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
-	9,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
-	1,  // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.execution_config:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
-	8,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
-	3,  // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.attachments:type_name -> ai.stigmer.agentic.agentexecution.v1.Attachment
-	4,  // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.conversation_catchup:type_name -> ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
-	5,  // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.declared_preferences:type_name -> ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences
-	6,  // 6: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.recalled_memories:type_name -> ai.stigmer.agentic.agentexecution.v1.RecalledMemories
-	2,  // 7: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
-	10, // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	11, // 9: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
-	12, // 10: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.approval_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalMode
-	13, // 11: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	14, // 12: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.thinking_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ThinkingMode
-	15, // 13: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
-	7,  // 14: ai.stigmer.agentic.agentexecution.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact
-	16, // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	10, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
+	2,  // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.execution_config:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
+	9,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
+	4,  // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.attachments:type_name -> ai.stigmer.agentic.agentexecution.v1.Attachment
+	5,  // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.conversation_catchup:type_name -> ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
+	1,  // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.parent:type_name -> ai.stigmer.agentic.agentexecution.v1.WorkflowParent
+	3,  // 6: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	11, // 7: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	12, // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
+	13, // 9: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.approval_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalMode
+	14, // 10: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	15, // 11: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.thinking_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ThinkingMode
+	16, // 12: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
+	8,  // 13: ai.stigmer.agentic.agentexecution.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact
+	17, // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() }
@@ -1214,13 +1253,17 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
+	file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[0].OneofWrappers = []any{
+		(*AgentExecutionSpec_SessionId)(nil),
+		(*AgentExecutionSpec_SessionSpec)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

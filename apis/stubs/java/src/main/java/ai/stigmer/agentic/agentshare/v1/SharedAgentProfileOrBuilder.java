@@ -118,25 +118,40 @@ public interface SharedAgentProfileOrBuilder extends
 
   /**
    * <pre>
-   * ID of the referenced agent's default instance, used by the hosted chat
-   * page to create sessions. This is an identifier, not a capability —
-   * session creation still requires an authorized token.
+   * The share's agent reference (spec.agent_ref): the hosted chat page
+   * starts the visitor's session on exactly this reference, version
+   * included. This is a name, not a capability — session creation still
+   * requires an authorized token, and the edition's guest gate admits a
+   * session only on this reference and the agent the share pins.
    * </pre>
    *
-   * <code>string default_instance_id = 6 [json_name = "defaultInstanceId"];</code>
-   * @return The defaultInstanceId.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   * @return Whether the agentRef field is set.
    */
-  java.lang.String getDefaultInstanceId();
+  boolean hasAgentRef();
   /**
    * <pre>
-   * ID of the referenced agent's default instance, used by the hosted chat
-   * page to create sessions. This is an identifier, not a capability —
-   * session creation still requires an authorized token.
+   * The share's agent reference (spec.agent_ref): the hosted chat page
+   * starts the visitor's session on exactly this reference, version
+   * included. This is a name, not a capability — session creation still
+   * requires an authorized token, and the edition's guest gate admits a
+   * session only on this reference and the agent the share pins.
    * </pre>
    *
-   * <code>string default_instance_id = 6 [json_name = "defaultInstanceId"];</code>
-   * @return The bytes for defaultInstanceId.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   * @return The agentRef.
    */
-  com.google.protobuf.ByteString
-      getDefaultInstanceIdBytes();
+  ai.stigmer.commons.apiresource.ApiResourceReference getAgentRef();
+  /**
+   * <pre>
+   * The share's agent reference (spec.agent_ref): the hosted chat page
+   * starts the visitor's session on exactly this reference, version
+   * included. This is a name, not a capability — session creation still
+   * requires an authorized token, and the edition's guest gate admits a
+   * session only on this reference and the agent the share pins.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAgentRefOrBuilder();
 }

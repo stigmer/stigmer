@@ -40,8 +40,9 @@ type AgentInvocation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Reference to the agent to run.
 	//
-	// The reference names no version (or "latest"): this runs the agent's
-	// current version, and a reference naming another version is refused.
+	// A version on the reference (a tag or a content hash) is the version
+	// each run starts on; none, or "latest", runs the agent's current version
+	// when the run starts.
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Prompt the run starts from.
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`

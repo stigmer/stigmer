@@ -68,9 +68,9 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def list_by_agent_instance(self, input: io_pb2.ListSessionsByAgentInstanceRequest) -> io_pb2.SessionList:
+    def list_by_agent(self, input: io_pb2.ListSessionsByAgentRequest) -> io_pb2.SessionList:
         try:
-            return self._query.listByAgentInstance(input)
+            return self._query.listByAgent(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -91,7 +91,7 @@ class SessionInput:
     slug: str | None = None
     labels: dict[str, str] | None = None
     visibility: int = 0
-    agent_instance_id: str = ""
+    agent_ref: ResourceRef | None = None
     subject: str = ""
     harness_state_id: str = ""
     harness_state_id_history: list[str] = field(default_factory=list)
@@ -105,13 +105,16 @@ class SessionInput:
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
-            agent_instance_id=self.agent_instance_id,
             subject=self.subject,
             harness_state_id=self.harness_state_id,
             harness=self.harness,
             cursor_mode=self.cursor_mode,
             execution_target=self.execution_target,
         )
+        if self.agent_ref is not None and (self.agent_ref.org or self.agent_ref.slug):
+            _ref = self.agent_ref._to_proto()
+            _ref.kind = 40
+            spec.agent_ref.CopyFrom(_ref)
         if self.harness_state_id_history:
             spec.harness_state_id_history.extend(self.harness_state_id_history)
         if self.metadata:

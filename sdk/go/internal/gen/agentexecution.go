@@ -184,26 +184,21 @@ type AgentExecutionInput struct {
 	Labels                map[string]string
 	Visibility            apiresource.ApiResourceVisibility
 	SessionId             string
-	AgentId               string
 	SessionSpec           *SessionSpecInput
 	Message               string
 	ExecutionConfig       *ExecutionConfigInput
 	RuntimeEnv            map[string]EnvVarInput
-	CallbackToken         []byte
 	AutoApproveAll        bool
-	ParentWorkflowId      string
 	Attachments           []*AttachmentInput
 	WorkspaceFileRefs     []string
-	ActivityTaskQueue     string
 	SupersedesExecutionId string
 	ConversationCatchup   *ConversationCatchupInput
-	DeclaredPreferences   *DeclaredPreferencesInput
-	RecalledMemories      *RecalledMemoriesInput
+	Parent                *WorkflowParentInput
 }
 
 // SessionSpecInput is the SDK input type for SessionSpec.
 type SessionSpecInput struct {
-	AgentInstanceId       string
+	AgentRef              ResourceRef
 	Subject               string
 	HarnessStateId        string
 	HarnessStateIdHistory []string
@@ -280,22 +275,11 @@ type ConversationCatchupInput struct {
 	WindowEnd string
 }
 
-// DeclaredPreferencesInput is the SDK input type for DeclaredPreferences.
-type DeclaredPreferencesInput struct {
-	OrgContext  string
-	UserContext string
-}
-
-// RecalledMemoriesInput is the SDK input type for RecalledMemories.
-type RecalledMemoriesInput struct {
-	Enabled bool
-	Facts   []*RecalledMemoryFactInput
-}
-
-// RecalledMemoryFactInput is the SDK input type for RecalledMemoryFact.
-type RecalledMemoryFactInput struct {
-	MemoryId string
-	Content  string
+// WorkflowParentInput is the SDK input type for WorkflowParent.
+type WorkflowParentInput struct {
+	WorkflowExecutionId string
+	SignalWorkflowId    string
+	CallbackToken       []byte
 }
 
 func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error) {
@@ -313,13 +297,40 @@ func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error
 		Spec: &agentexecutionv1.AgentExecutionSpec{},
 	}
 	resource.Spec.SessionId = i.SessionId
-	resource.Spec.AgentId = i.AgentId
 	if i.SessionSpec != nil {
-		v, err := i.SessionSpec.toProto()
-		if err != nil {
-			return nil, fieldErr("SessionSpec", err)
+		m := &sessionv1.SessionSpec{}
+		if i.SessionSpec.AgentRef.Org != "" || i.SessionSpec.AgentRef.Slug != "" {
+			ref := i.SessionSpec.AgentRef.toProto()
+			ref.Kind = apiresourcekind.ApiResourceKind_agent
+			m.AgentRef = ref
 		}
-		resource.Spec.SessionSpec = v
+		m.Subject = i.SessionSpec.Subject
+		m.HarnessStateId = i.SessionSpec.HarnessStateId
+		m.HarnessStateIdHistory = i.SessionSpec.HarnessStateIdHistory
+		m.Metadata = i.SessionSpec.Metadata
+		for idx, item := range i.SessionSpec.WorkspaceEntries {
+			v, err := item.toProto()
+			if err != nil {
+				return nil, indexErr("SessionSpec.WorkspaceEntries", idx, err)
+			}
+			m.WorkspaceEntries = append(m.WorkspaceEntries, v)
+		}
+		for idx, item := range i.SessionSpec.McpServerUsages {
+			v, err := item.toProto()
+			if err != nil {
+				return nil, indexErr("SessionSpec.McpServerUsages", idx, err)
+			}
+			m.McpServerUsages = append(m.McpServerUsages, v)
+		}
+		for _, r := range i.SessionSpec.SkillRefs {
+			ref := r.toProto()
+			ref.Kind = apiresourcekind.ApiResourceKind_skill
+			m.SkillRefs = append(m.SkillRefs, ref)
+		}
+		m.Harness = i.SessionSpec.Harness
+		m.CursorMode = i.SessionSpec.CursorMode
+		m.ExecutionTarget = i.SessionSpec.ExecutionTarget
+		resource.Spec.Target = &agentexecutionv1.AgentExecutionSpec_SessionSpec{SessionSpec: m}
 	}
 	resource.Spec.Message = i.Message
 	if i.ExecutionConfig != nil {
@@ -335,9 +346,7 @@ func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error
 			resource.Spec.RuntimeEnv[k] = &executioncontextv1.ExecutionValue{Value: v.Value, IsSecret: v.IsSecret}
 		}
 	}
-	resource.Spec.CallbackToken = i.CallbackToken
 	resource.Spec.AutoApproveAll = i.AutoApproveAll
-	resource.Spec.ParentWorkflowId = i.ParentWorkflowId
 	for idx, item := range i.Attachments {
 		v, err := item.toProto()
 		if err != nil {
@@ -346,7 +355,6 @@ func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error
 		resource.Spec.Attachments = append(resource.Spec.Attachments, v)
 	}
 	resource.Spec.WorkspaceFileRefs = i.WorkspaceFileRefs
-	resource.Spec.ActivityTaskQueue = i.ActivityTaskQueue
 	resource.Spec.SupersedesExecutionId = i.SupersedesExecutionId
 	if i.ConversationCatchup != nil {
 		v, err := i.ConversationCatchup.toProto()
@@ -355,53 +363,14 @@ func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error
 		}
 		resource.Spec.ConversationCatchup = v
 	}
-	if i.DeclaredPreferences != nil {
-		v, err := i.DeclaredPreferences.toProto()
+	if i.Parent != nil {
+		v, err := i.Parent.toProto()
 		if err != nil {
-			return nil, fieldErr("DeclaredPreferences", err)
+			return nil, fieldErr("Parent", err)
 		}
-		resource.Spec.DeclaredPreferences = v
-	}
-	if i.RecalledMemories != nil {
-		v, err := i.RecalledMemories.toProto()
-		if err != nil {
-			return nil, fieldErr("RecalledMemories", err)
-		}
-		resource.Spec.RecalledMemories = v
+		resource.Spec.Parent = v
 	}
 	return resource, nil
-}
-
-func (i *SessionSpecInput) toProto() (*sessionv1.SessionSpec, error) {
-	p := &sessionv1.SessionSpec{}
-	p.AgentInstanceId = i.AgentInstanceId
-	p.Subject = i.Subject
-	p.HarnessStateId = i.HarnessStateId
-	p.HarnessStateIdHistory = i.HarnessStateIdHistory
-	p.Metadata = i.Metadata
-	for idx, item := range i.WorkspaceEntries {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("WorkspaceEntries", idx, err)
-		}
-		p.WorkspaceEntries = append(p.WorkspaceEntries, v)
-	}
-	for idx, item := range i.McpServerUsages {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("McpServerUsages", idx, err)
-		}
-		p.McpServerUsages = append(p.McpServerUsages, v)
-	}
-	for _, r := range i.SkillRefs {
-		ref := r.toProto()
-		ref.Kind = apiresourcekind.ApiResourceKind_skill
-		p.SkillRefs = append(p.SkillRefs, ref)
-	}
-	p.Harness = i.Harness
-	p.CursorMode = i.CursorMode
-	p.ExecutionTarget = i.ExecutionTarget
-	return p, nil
 }
 
 func (i *WorkspaceEntryInput) toProto() (*sessionv1.WorkspaceEntry, error) {
@@ -499,30 +468,11 @@ func (i *ConversationCatchupInput) toProto() (*agentexecutionv1.ConversationCatc
 	return p, nil
 }
 
-func (i *DeclaredPreferencesInput) toProto() (*agentexecutionv1.DeclaredPreferences, error) {
-	return &agentexecutionv1.DeclaredPreferences{
-		OrgContext:  i.OrgContext,
-		UserContext: i.UserContext,
-	}, nil
-}
-
-func (i *RecalledMemoriesInput) toProto() (*agentexecutionv1.RecalledMemories, error) {
-	p := &agentexecutionv1.RecalledMemories{}
-	p.Enabled = i.Enabled
-	for idx, item := range i.Facts {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("Facts", idx, err)
-		}
-		p.Facts = append(p.Facts, v)
-	}
-	return p, nil
-}
-
-func (i *RecalledMemoryFactInput) toProto() (*agentexecutionv1.RecalledMemoryFact, error) {
-	return &agentexecutionv1.RecalledMemoryFact{
-		MemoryId: i.MemoryId,
-		Content:  i.Content,
+func (i *WorkflowParentInput) toProto() (*agentexecutionv1.WorkflowParent, error) {
+	return &agentexecutionv1.WorkflowParent{
+		WorkflowExecutionId: i.WorkflowExecutionId,
+		SignalWorkflowId:    i.SignalWorkflowId,
+		CallbackToken:       i.CallbackToken,
 	}, nil
 }
 
@@ -541,9 +491,6 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 		input.Visibility = m.GetVisibility()
 	}
 	if s := p.GetSpec(); s != nil {
-		input.SessionId = s.GetSessionId()
-		input.AgentId = s.GetAgentId()
-		input.SessionSpec = sessionSpecInputFromProto(s.GetSessionSpec())
 		input.Message = s.GetMessage()
 		input.ExecutionConfig = executionConfigInputFromProto(s.GetExecutionConfig())
 		if len(s.GetRuntimeEnv()) > 0 {
@@ -552,18 +499,17 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 				input.RuntimeEnv[k] = EnvVarInput{Value: v.GetValue(), IsSecret: v.GetIsSecret()}
 			}
 		}
-		input.CallbackToken = s.GetCallbackToken()
 		input.AutoApproveAll = s.GetAutoApproveAll()
-		input.ParentWorkflowId = s.GetParentWorkflowId()
 		for _, item := range s.GetAttachments() {
 			input.Attachments = append(input.Attachments, attachmentInputFromProto(item))
 		}
 		input.WorkspaceFileRefs = s.GetWorkspaceFileRefs()
-		input.ActivityTaskQueue = s.GetActivityTaskQueue()
 		input.SupersedesExecutionId = s.GetSupersedesExecutionId()
 		input.ConversationCatchup = conversationCatchupInputFromProto(s.GetConversationCatchup())
-		input.DeclaredPreferences = declaredPreferencesInputFromProto(s.GetDeclaredPreferences())
-		input.RecalledMemories = recalledMemoriesInputFromProto(s.GetRecalledMemories())
+		input.Parent = workflowParentInputFromProto(s.GetParent())
+		if ov := s.GetSessionSpec(); ov != nil {
+			input.SessionSpec = sessionSpecInputFromProto(ov)
+		}
 	}
 	return input
 }
@@ -573,7 +519,7 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 		return nil
 	}
 	input := &SessionSpecInput{}
-	input.AgentInstanceId = p.GetAgentInstanceId()
+	input.AgentRef = resourceRefFromProto(p.GetAgentRef())
 	input.Subject = p.GetSubject()
 	input.HarnessStateId = p.GetHarnessStateId()
 	input.HarnessStateIdHistory = p.GetHarnessStateIdHistory()
@@ -693,34 +639,13 @@ func conversationCatchupInputFromProto(p *agentexecutionv1.ConversationCatchup) 
 	return input
 }
 
-func declaredPreferencesInputFromProto(p *agentexecutionv1.DeclaredPreferences) *DeclaredPreferencesInput {
+func workflowParentInputFromProto(p *agentexecutionv1.WorkflowParent) *WorkflowParentInput {
 	if p == nil {
 		return nil
 	}
-	input := &DeclaredPreferencesInput{}
-	input.OrgContext = p.GetOrgContext()
-	input.UserContext = p.GetUserContext()
-	return input
-}
-
-func recalledMemoriesInputFromProto(p *agentexecutionv1.RecalledMemories) *RecalledMemoriesInput {
-	if p == nil {
-		return nil
-	}
-	input := &RecalledMemoriesInput{}
-	input.Enabled = p.GetEnabled()
-	for _, item := range p.GetFacts() {
-		input.Facts = append(input.Facts, recalledMemoryFactInputFromProto(item))
-	}
-	return input
-}
-
-func recalledMemoryFactInputFromProto(p *agentexecutionv1.RecalledMemoryFact) *RecalledMemoryFactInput {
-	if p == nil {
-		return nil
-	}
-	input := &RecalledMemoryFactInput{}
-	input.MemoryId = p.GetMemoryId()
-	input.Content = p.GetContent()
+	input := &WorkflowParentInput{}
+	input.WorkflowExecutionId = p.GetWorkflowExecutionId()
+	input.SignalWorkflowId = p.GetSignalWorkflowId()
+	input.CallbackToken = p.GetCallbackToken()
 	return input
 }

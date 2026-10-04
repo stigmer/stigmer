@@ -25,8 +25,8 @@ import "buf/validate/validate.proto";
 // @internal
 // An ALLOWLIST by
 // construction: platform-owned execution fields (approval_mode,
-// execution_target, callback_token, harness_state_id,
-// activity_task_queue, auto_approve_all, org/labels/subject) cannot
+// execution_target, the workflow parent link, harness_state_id,
+// auto_approve_all, org/labels/subject) cannot
 // appear here, so embedding surfaces never need a blocklist validator
 // — the rejected alternative was embedding AgentExecutionSpec /
 // SessionSpec and validating the illegal fields away. Exclusions,
@@ -42,8 +42,9 @@ import "buf/validate/validate.proto";
 message AgentInvocation {
   // Reference to the agent to run.
   //
-  // The reference names no version (or "latest"): this runs the agent's
-  // current version, and a reference naming another version is refused.
+  // A version on the reference (a tag or a content hash) is the version
+  // each run starts on; none, or "latest", runs the agent's current version
+  // when the run starts.
   //
   // @internal
   // Embedding surfaces own the referential invariants: the schedule

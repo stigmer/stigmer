@@ -1287,7 +1287,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * prompt.
    *
    * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the spec.recalled_memories snapshot was injected.
+   * fact in the status.recalled_memories snapshot was injected.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -1303,7 +1303,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * prompt.
    *
    * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the spec.recalled_memories snapshot was injected.
+   * fact in the status.recalled_memories snapshot was injected.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -1319,7 +1319,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * prompt.
    *
    * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the spec.recalled_memories snapshot was injected.
+   * fact in the status.recalled_memories snapshot was injected.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -1439,6 +1439,88 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
   }
 
+  public static final int DECLARED_PREFERENCES_FIELD_NUMBER = 29;
+  private ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declaredPreferences_;
+  /**
+   * <pre>
+   * Standing preferences declared by the organization and the calling user,
+   * snapshotted into this execution at create time.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+   * @return Whether the declaredPreferences field is set.
+   */
+  @java.lang.Override
+  public boolean hasDeclaredPreferences() {
+    return ((bitField0_ & 0x00000200) != 0);
+  }
+  /**
+   * <pre>
+   * Standing preferences declared by the organization and the calling user,
+   * snapshotted into this execution at create time.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+   * @return The declaredPreferences.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences getDeclaredPreferences() {
+    return declaredPreferences_ == null ? ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.getDefaultInstance() : declaredPreferences_;
+  }
+  /**
+   * <pre>
+   * Standing preferences declared by the organization and the calling user,
+   * snapshotted into this execution at create time.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder getDeclaredPreferencesOrBuilder() {
+    return declaredPreferences_ == null ? ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.getDefaultInstance() : declaredPreferences_;
+  }
+
+  public static final int RECALLED_MEMORIES_FIELD_NUMBER = 30;
+  private ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalledMemories_;
+  /**
+   * <pre>
+   * The caller's confirmed memories, snapshotted into this execution at
+   * create time: the candidate set the prompt was built from.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+   * @return Whether the recalledMemories field is set.
+   */
+  @java.lang.Override
+  public boolean hasRecalledMemories() {
+    return ((bitField0_ & 0x00000400) != 0);
+  }
+  /**
+   * <pre>
+   * The caller's confirmed memories, snapshotted into this execution at
+   * create time: the candidate set the prompt was built from.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+   * @return The recalledMemories.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.RecalledMemories getRecalledMemories() {
+    return recalledMemories_ == null ? ai.stigmer.agentic.agentexecution.v1.RecalledMemories.getDefaultInstance() : recalledMemories_;
+  }
+  /**
+   * <pre>
+   * The caller's confirmed memories, snapshotted into this execution at
+   * create time: the candidate set the prompt was built from.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder getRecalledMemoriesOrBuilder() {
+    return recalledMemories_ == null ? ai.stigmer.agentic.agentexecution.v1.RecalledMemories.getDefaultInstance() : recalledMemories_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1521,6 +1603,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentVersionHash_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 28, agentVersionHash_);
+    }
+    if (((bitField0_ & 0x00000200) != 0)) {
+      output.writeMessage(29, getDeclaredPreferences());
+    }
+    if (((bitField0_ & 0x00000400) != 0)) {
+      output.writeMessage(30, getRecalledMemories());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1653,6 +1741,14 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentVersionHash_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(28, agentVersionHash_);
     }
+    if (((bitField0_ & 0x00000200) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(29, getDeclaredPreferences());
+    }
+    if (((bitField0_ & 0x00000400) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(30, getRecalledMemories());
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1744,6 +1840,16 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         .equals(other.getAgentId())) return false;
     if (!getAgentVersionHash()
         .equals(other.getAgentVersionHash())) return false;
+    if (hasDeclaredPreferences() != other.hasDeclaredPreferences()) return false;
+    if (hasDeclaredPreferences()) {
+      if (!getDeclaredPreferences()
+          .equals(other.getDeclaredPreferences())) return false;
+    }
+    if (hasRecalledMemories() != other.hasRecalledMemories()) return false;
+    if (hasRecalledMemories()) {
+      if (!getRecalledMemories()
+          .equals(other.getRecalledMemories())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1833,6 +1939,14 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     hash = (53 * hash) + getAgentId().hashCode();
     hash = (37 * hash) + AGENT_VERSION_HASH_FIELD_NUMBER;
     hash = (53 * hash) + getAgentVersionHash().hashCode();
+    if (hasDeclaredPreferences()) {
+      hash = (37 * hash) + DECLARED_PREFERENCES_FIELD_NUMBER;
+      hash = (53 * hash) + getDeclaredPreferences().hashCode();
+    }
+    if (hasRecalledMemories()) {
+      hash = (37 * hash) + RECALLED_MEMORIES_FIELD_NUMBER;
+      hash = (53 * hash) + getRecalledMemories().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -2005,6 +2119,8 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         internalGetFileReviewEventStreamFieldBuilder();
         internalGetFileChangeProgressFieldBuilder();
         internalGetRecalledMemoriesReportFieldBuilder();
+        internalGetDeclaredPreferencesFieldBuilder();
+        internalGetRecalledMemoriesFieldBuilder();
       }
     }
     @java.lang.Override
@@ -2106,6 +2222,16 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       }
       agentId_ = "";
       agentVersionHash_ = "";
+      declaredPreferences_ = null;
+      if (declaredPreferencesBuilder_ != null) {
+        declaredPreferencesBuilder_.dispose();
+        declaredPreferencesBuilder_ = null;
+      }
+      recalledMemories_ = null;
+      if (recalledMemoriesBuilder_ != null) {
+        recalledMemoriesBuilder_.dispose();
+        recalledMemoriesBuilder_ = null;
+      }
       return this;
     }
 
@@ -2275,6 +2401,18 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       }
       if (((from_bitField0_ & 0x00400000) != 0)) {
         result.agentVersionHash_ = agentVersionHash_;
+      }
+      if (((from_bitField0_ & 0x00800000) != 0)) {
+        result.declaredPreferences_ = declaredPreferencesBuilder_ == null
+            ? declaredPreferences_
+            : declaredPreferencesBuilder_.build();
+        to_bitField0_ |= 0x00000200;
+      }
+      if (((from_bitField0_ & 0x01000000) != 0)) {
+        result.recalledMemories_ = recalledMemoriesBuilder_ == null
+            ? recalledMemories_
+            : recalledMemoriesBuilder_.build();
+        to_bitField0_ |= 0x00000400;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -2508,6 +2646,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         bitField0_ |= 0x00400000;
         onChanged();
       }
+      if (other.hasDeclaredPreferences()) {
+        mergeDeclaredPreferences(other.getDeclaredPreferences());
+      }
+      if (other.hasRecalledMemories()) {
+        mergeRecalledMemories(other.getRecalledMemories());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2712,6 +2856,20 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               bitField0_ |= 0x00400000;
               break;
             } // case 226
+            case 234: {
+              input.readMessage(
+                  internalGetDeclaredPreferencesFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00800000;
+              break;
+            } // case 234
+            case 242: {
+              input.readMessage(
+                  internalGetRecalledMemoriesFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x01000000;
+              break;
+            } // case 242
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -7275,7 +7433,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * prompt.
      *
      * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the spec.recalled_memories snapshot was injected.
+     * fact in the status.recalled_memories snapshot was injected.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -7290,7 +7448,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * prompt.
      *
      * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the spec.recalled_memories snapshot was injected.
+     * fact in the status.recalled_memories snapshot was injected.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -7309,7 +7467,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * prompt.
      *
      * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the spec.recalled_memories snapshot was injected.
+     * fact in the status.recalled_memories snapshot was injected.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -7333,7 +7491,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * prompt.
      *
      * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the spec.recalled_memories snapshot was injected.
+     * fact in the status.recalled_memories snapshot was injected.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -7355,7 +7513,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * prompt.
      *
      * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the spec.recalled_memories snapshot was injected.
+     * fact in the status.recalled_memories snapshot was injected.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -7384,7 +7542,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * prompt.
      *
      * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the spec.recalled_memories snapshot was injected.
+     * fact in the status.recalled_memories snapshot was injected.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -7405,7 +7563,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * prompt.
      *
      * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the spec.recalled_memories snapshot was injected.
+     * fact in the status.recalled_memories snapshot was injected.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -7421,7 +7579,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * prompt.
      *
      * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the spec.recalled_memories snapshot was injected.
+     * fact in the status.recalled_memories snapshot was injected.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -7440,7 +7598,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * prompt.
      *
      * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the spec.recalled_memories snapshot was injected.
+     * fact in the status.recalled_memories snapshot was injected.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
@@ -7681,6 +7839,338 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       bitField0_ |= 0x00400000;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declaredPreferences_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.Builder, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder> declaredPreferencesBuilder_;
+    /**
+     * <pre>
+     * Standing preferences declared by the organization and the calling user,
+     * snapshotted into this execution at create time.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+     * @return Whether the declaredPreferences field is set.
+     */
+    public boolean hasDeclaredPreferences() {
+      return ((bitField0_ & 0x00800000) != 0);
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization and the calling user,
+     * snapshotted into this execution at create time.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+     * @return The declaredPreferences.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences getDeclaredPreferences() {
+      if (declaredPreferencesBuilder_ == null) {
+        return declaredPreferences_ == null ? ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.getDefaultInstance() : declaredPreferences_;
+      } else {
+        return declaredPreferencesBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization and the calling user,
+     * snapshotted into this execution at create time.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+     */
+    public Builder setDeclaredPreferences(ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences value) {
+      if (declaredPreferencesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        declaredPreferences_ = value;
+      } else {
+        declaredPreferencesBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00800000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization and the calling user,
+     * snapshotted into this execution at create time.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+     */
+    public Builder setDeclaredPreferences(
+        ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.Builder builderForValue) {
+      if (declaredPreferencesBuilder_ == null) {
+        declaredPreferences_ = builderForValue.build();
+      } else {
+        declaredPreferencesBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00800000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization and the calling user,
+     * snapshotted into this execution at create time.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+     */
+    public Builder mergeDeclaredPreferences(ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences value) {
+      if (declaredPreferencesBuilder_ == null) {
+        if (((bitField0_ & 0x00800000) != 0) &&
+          declaredPreferences_ != null &&
+          declaredPreferences_ != ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.getDefaultInstance()) {
+          getDeclaredPreferencesBuilder().mergeFrom(value);
+        } else {
+          declaredPreferences_ = value;
+        }
+      } else {
+        declaredPreferencesBuilder_.mergeFrom(value);
+      }
+      if (declaredPreferences_ != null) {
+        bitField0_ |= 0x00800000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization and the calling user,
+     * snapshotted into this execution at create time.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+     */
+    public Builder clearDeclaredPreferences() {
+      bitField0_ = (bitField0_ & ~0x00800000);
+      declaredPreferences_ = null;
+      if (declaredPreferencesBuilder_ != null) {
+        declaredPreferencesBuilder_.dispose();
+        declaredPreferencesBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization and the calling user,
+     * snapshotted into this execution at create time.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.Builder getDeclaredPreferencesBuilder() {
+      bitField0_ |= 0x00800000;
+      onChanged();
+      return internalGetDeclaredPreferencesFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization and the calling user,
+     * snapshotted into this execution at create time.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder getDeclaredPreferencesOrBuilder() {
+      if (declaredPreferencesBuilder_ != null) {
+        return declaredPreferencesBuilder_.getMessageOrBuilder();
+      } else {
+        return declaredPreferences_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.getDefaultInstance() : declaredPreferences_;
+      }
+    }
+    /**
+     * <pre>
+     * Standing preferences declared by the organization and the calling user,
+     * snapshotted into this execution at create time.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.Builder, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder> 
+        internalGetDeclaredPreferencesFieldBuilder() {
+      if (declaredPreferencesBuilder_ == null) {
+        declaredPreferencesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.Builder, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder>(
+                getDeclaredPreferences(),
+                getParentForChildren(),
+                isClean());
+        declaredPreferences_ = null;
+      }
+      return declaredPreferencesBuilder_;
+    }
+
+    private ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalledMemories_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.RecalledMemories, ai.stigmer.agentic.agentexecution.v1.RecalledMemories.Builder, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder> recalledMemoriesBuilder_;
+    /**
+     * <pre>
+     * The caller's confirmed memories, snapshotted into this execution at
+     * create time: the candidate set the prompt was built from.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+     * @return Whether the recalledMemories field is set.
+     */
+    public boolean hasRecalledMemories() {
+      return ((bitField0_ & 0x01000000) != 0);
+    }
+    /**
+     * <pre>
+     * The caller's confirmed memories, snapshotted into this execution at
+     * create time: the candidate set the prompt was built from.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+     * @return The recalledMemories.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RecalledMemories getRecalledMemories() {
+      if (recalledMemoriesBuilder_ == null) {
+        return recalledMemories_ == null ? ai.stigmer.agentic.agentexecution.v1.RecalledMemories.getDefaultInstance() : recalledMemories_;
+      } else {
+        return recalledMemoriesBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The caller's confirmed memories, snapshotted into this execution at
+     * create time: the candidate set the prompt was built from.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+     */
+    public Builder setRecalledMemories(ai.stigmer.agentic.agentexecution.v1.RecalledMemories value) {
+      if (recalledMemoriesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        recalledMemories_ = value;
+      } else {
+        recalledMemoriesBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x01000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The caller's confirmed memories, snapshotted into this execution at
+     * create time: the candidate set the prompt was built from.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+     */
+    public Builder setRecalledMemories(
+        ai.stigmer.agentic.agentexecution.v1.RecalledMemories.Builder builderForValue) {
+      if (recalledMemoriesBuilder_ == null) {
+        recalledMemories_ = builderForValue.build();
+      } else {
+        recalledMemoriesBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x01000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The caller's confirmed memories, snapshotted into this execution at
+     * create time: the candidate set the prompt was built from.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+     */
+    public Builder mergeRecalledMemories(ai.stigmer.agentic.agentexecution.v1.RecalledMemories value) {
+      if (recalledMemoriesBuilder_ == null) {
+        if (((bitField0_ & 0x01000000) != 0) &&
+          recalledMemories_ != null &&
+          recalledMemories_ != ai.stigmer.agentic.agentexecution.v1.RecalledMemories.getDefaultInstance()) {
+          getRecalledMemoriesBuilder().mergeFrom(value);
+        } else {
+          recalledMemories_ = value;
+        }
+      } else {
+        recalledMemoriesBuilder_.mergeFrom(value);
+      }
+      if (recalledMemories_ != null) {
+        bitField0_ |= 0x01000000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The caller's confirmed memories, snapshotted into this execution at
+     * create time: the candidate set the prompt was built from.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+     */
+    public Builder clearRecalledMemories() {
+      bitField0_ = (bitField0_ & ~0x01000000);
+      recalledMemories_ = null;
+      if (recalledMemoriesBuilder_ != null) {
+        recalledMemoriesBuilder_.dispose();
+        recalledMemoriesBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The caller's confirmed memories, snapshotted into this execution at
+     * create time: the candidate set the prompt was built from.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RecalledMemories.Builder getRecalledMemoriesBuilder() {
+      bitField0_ |= 0x01000000;
+      onChanged();
+      return internalGetRecalledMemoriesFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The caller's confirmed memories, snapshotted into this execution at
+     * create time: the candidate set the prompt was built from.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder getRecalledMemoriesOrBuilder() {
+      if (recalledMemoriesBuilder_ != null) {
+        return recalledMemoriesBuilder_.getMessageOrBuilder();
+      } else {
+        return recalledMemories_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.RecalledMemories.getDefaultInstance() : recalledMemories_;
+      }
+    }
+    /**
+     * <pre>
+     * The caller's confirmed memories, snapshotted into this execution at
+     * create time: the candidate set the prompt was built from.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.RecalledMemories, ai.stigmer.agentic.agentexecution.v1.RecalledMemories.Builder, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder> 
+        internalGetRecalledMemoriesFieldBuilder() {
+      if (recalledMemoriesBuilder_ == null) {
+        recalledMemoriesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.RecalledMemories, ai.stigmer.agentic.agentexecution.v1.RecalledMemories.Builder, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder>(
+                getRecalledMemories(),
+                getParentForChildren(),
+                isClean());
+        recalledMemories_ = null;
+      }
+      return recalledMemoriesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus)

@@ -33,8 +33,10 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
   /**
    * Reference to the agent this channel serves.
    *
-   * The reference names no version (or "latest"): this runs the agent's
-   * current version, and a reference naming another version is refused.
+   * A version on the reference (a tag or a content hash) is the version
+   * each new conversation on this channel runs; none, or "latest", runs the
+   * agent's current version when the conversation starts. A started
+   * conversation keeps the version it started on.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1;
    */

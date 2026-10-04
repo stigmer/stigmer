@@ -4,7 +4,6 @@ import type { Transport } from "@connectrpc/connect";
 import { AgentClient } from "./agent.js";
 import { AgentChannelClient } from "./agentchannel.js";
 import { AgentExecutionClient } from "./agentexecution.js";
-import { AgentInstanceClient } from "./agentinstance.js";
 import { AgentShareClient } from "./agentshare.js";
 import { ApiKeyClient } from "./apikey.js";
 import { ArtifactClient } from "./artifact.js";
@@ -38,7 +37,6 @@ export class GeneratedClient {
   readonly agent: AgentClient;
   readonly agentChannel: AgentChannelClient;
   readonly agentExecution: AgentExecutionClient;
-  readonly agentInstance: AgentInstanceClient;
   readonly agentShare: AgentShareClient;
   readonly apiKey: ApiKeyClient;
   readonly artifact: ArtifactClient;
@@ -71,7 +69,6 @@ export class GeneratedClient {
     this.agent = new AgentClient(transport);
     this.agentChannel = new AgentChannelClient(transport);
     this.agentExecution = new AgentExecutionClient(transport);
-    this.agentInstance = new AgentInstanceClient(transport);
     this.agentShare = new AgentShareClient(transport);
     this.apiKey = new ApiKeyClient(transport);
     this.artifact = new ArtifactClient(transport);
@@ -108,9 +105,7 @@ export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInp
 export { AgentChannelClient } from "./agentchannel.js";
 export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput, type RunConfigInput } from "./agentchannel.js";
 export { AgentExecutionClient } from "./agentexecution.js";
-export { type AgentExecutionInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput, type ConversationCatchupInput, type DeclaredPreferencesInput, type RecalledMemoriesInput, type RecalledMemoryFactInput } from "./agentexecution.js";
-export { AgentInstanceClient } from "./agentinstance.js";
-export { type AgentInstanceInput } from "./agentinstance.js";
+export { type AgentExecutionInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput, type ConversationCatchupInput, type WorkflowParentInput } from "./agentexecution.js";
 export { AgentShareClient } from "./agentshare.js";
 export { type AgentShareInput, type AgentShareMessagesInput } from "./agentshare.js";
 export { ApiKeyClient } from "./apikey.js";

@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Create and trigger a new agent execution.\n Session is optional — can be provided or auto-created from agent_id."
+          "description": "Create and trigger a new agent execution: a turn in an existing session,\n or the first turn of a new one created from session_spec."
         },
         {
           "name": "Update",
@@ -2461,18 +2461,6 @@
       ]
     },
     {
-      "name": "GitWriteBackMode",
-      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.",
-      "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
-      "values": [
-        {
-          "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
-          "number": 1,
-          "description": "Create a branch and pull request from the agent's file changes after execution completes."
-        }
-      ]
-    },
-    {
       "name": "ApiResourceKind",
       "description": "API resource kinds for Stigmer.",
       "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
@@ -2558,11 +2546,6 @@
           "description": "External tool server connected via the Model Context Protocol."
         },
         {
-          "name": "agent_instance",
-          "number": 45,
-          "description": "Configured deployment of an agent with environment-specific overrides."
-        },
-        {
           "name": "agent_share",
           "number": 46,
           "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
@@ -2636,6 +2619,18 @@
           "name": "license",
           "number": 72,
           "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
+        }
+      ]
+    },
+    {
+      "name": "GitWriteBackMode",
+      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.",
+      "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
+      "values": [
+        {
+          "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
+          "number": 1,
+          "description": "Create a branch and pull request from the agent's file changes after execution completes."
         }
       ]
     },
@@ -2938,7 +2933,7 @@
           "kind": "message",
           "messageType": "RecalledMemoriesReport"
         },
-        "description": "Report of which recalled memories were injected into this execution's\n prompt.\n\n Absent, or present with selection_active=false, means wholesale: every\n fact in the spec.recalled_memories snapshot was injected.",
+        "description": "Report of which recalled memories were injected into this execution's\n prompt.\n\n Absent, or present with selection_active=false, means wholesale: every\n fact in the status.recalled_memories snapshot was injected.",
         "required": false
       },
       {
@@ -2959,6 +2954,28 @@
           "kind": "string"
         },
         "description": "Content hash of the agent version this turn ran (AgentStatus.version_hash\n at create; resolvable through AgentQueryController.getVersion with\n agent_id).\n\n Empty when agent_id is empty, or when the agent had no recorded version\n at create (an agent last written before agents were versioned, or one\n whose last version failed to archive); such a turn runs the agent as\n it is when the turn starts.",
+        "required": false
+      },
+      {
+        "name": "DeclaredPreferences",
+        "jsonName": "declaredPreferences",
+        "protoField": "declared_preferences",
+        "type": {
+          "kind": "message",
+          "messageType": "DeclaredPreferences"
+        },
+        "description": "Standing preferences declared by the organization and the calling user,\n snapshotted into this execution at create time.",
+        "required": false
+      },
+      {
+        "name": "RecalledMemories",
+        "jsonName": "recalledMemories",
+        "protoField": "recalled_memories",
+        "type": {
+          "kind": "message",
+          "messageType": "RecalledMemories"
+        },
+        "description": "The caller's confirmed memories, snapshotted into this execution at\n create time: the candidate set the prompt was built from.",
         "required": false
       }
     ]
@@ -3878,6 +3895,34 @@
             "kind": "float"
           },
           "description": "Context utilization as a percentage (0-100).\n\n Calculated as: (current_token_count / context_window_limit) * 100\n\n Use for health indicators:\n - 0-70%: Green (healthy)\n - 70-90%: Yellow (approaching threshold)\n - 90-100%: Red (at or above trigger threshold)\n\n Updated progressively during streaming.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DeclaredPreferences",
+      "description": "DeclaredPreferences carries the standing preference texts injected into\n this execution's prompt, one field per declaring scope.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
+      "fields": [
+        {
+          "name": "OrgContext",
+          "jsonName": "orgContext",
+          "protoField": "org_context",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization's standing context, verbatim.",
+          "required": false
+        },
+        {
+          "name": "UserContext",
+          "jsonName": "userContext",
+          "protoField": "user_context",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The calling user's standing context, verbatim.",
           "required": false
         }
       ]
@@ -5009,6 +5054,38 @@
       ]
     },
     {
+      "name": "RecalledMemories",
+      "description": "RecalledMemories is the server-composed snapshot of the caller's\n confirmed memories for one execution — the candidate set for prompt\n injection.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.RecalledMemories",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
+      "fields": [
+        {
+          "name": "Enabled",
+          "jsonName": "enabled",
+          "protoField": "enabled",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether memory is enabled for this execution's caller.",
+          "required": false
+        },
+        {
+          "name": "Facts",
+          "jsonName": "facts",
+          "protoField": "facts",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "RecalledMemoryFact"
+            }
+          },
+          "description": "The confirmed facts — every confirmed memory of the caller in this\n organization, the candidate set for prompt injection.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "RecalledMemoriesReport",
       "description": "RecalledMemoriesReport records the semantic retriever's injection outcome\n for one execution.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport",
@@ -5021,7 +5098,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether semantic selection was active for this execution's prompt.\n False means wholesale: the full spec.recalled_memories snapshot was\n injected.",
+          "description": "Whether semantic selection was active for this execution's prompt.\n False means wholesale: the full status.recalled_memories snapshot was\n injected.",
           "required": false
         },
         {
@@ -5045,6 +5122,34 @@
             "kind": "string"
           },
           "description": "Embedding model that performed the selection.\n Example: \"text-embedding-3-small\". Empty when selection_active is\n false.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RecalledMemoryFact",
+      "description": "RecalledMemoryFact is one confirmed memory as injected into an\n execution.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
+      "fields": [
+        {
+          "name": "MemoryId",
+          "jsonName": "memoryId",
+          "protoField": "memory_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the memory record this fact came from.",
+          "required": false
+        },
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The remembered fact, verbatim as stored at snapshot time.",
           "required": false
         }
       ]

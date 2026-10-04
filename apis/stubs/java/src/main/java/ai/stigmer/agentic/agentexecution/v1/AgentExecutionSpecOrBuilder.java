@@ -12,26 +12,30 @@ public interface AgentExecutionSpecOrBuilder extends
 
   /**
    * <pre>
-   * Session ID this execution belongs to (optional).
-   *
-   * Resolution priority (enforced in handler pipeline):
-   * 1. session_id provided     -&gt; use existing session
-   * 2. session_spec provided   -&gt; auto-create session from the embedded spec
-   * 3. agent_id provided       -&gt; auto-create session using agent's default instance
-   * 4. none provided           -&gt; auto-create a session with no agent; the
-   * built-in assistant answers
-   *
-   * session_id and agent_id may both be set — when both are present, session_id
-   * is used for session resolution and agent_id is preserved as metadata for
-   * downstream consumers (e.g., session subject generation). session_id and
-   * session_spec are mutually exclusive.
+   * ID of the existing session this turn continues.
    *
    * An execution in an existing session belongs to that session's
    * organization: metadata.org, when set, must be the session's
-   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
-   * session. An execution stays in the session it was created in: update
-   * refuses a different session_id (FAILED_PRECONDITION), and an empty one
-   * keeps the stored session.
+   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+   * the session. An execution stays in the session it was created in:
+   * update refuses a different session_id (FAILED_PRECONDITION), and an
+   * empty one keeps the stored session.
+   * </pre>
+   *
+   * <code>string session_id = 1 [json_name = "sessionId"];</code>
+   * @return Whether the sessionId field is set.
+   */
+  boolean hasSessionId();
+  /**
+   * <pre>
+   * ID of the existing session this turn continues.
+   *
+   * An execution in an existing session belongs to that session's
+   * organization: metadata.org, when set, must be the session's
+   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+   * the session. An execution stays in the session it was created in:
+   * update refuses a different session_id (FAILED_PRECONDITION), and an
+   * empty one keeps the stored session.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -40,26 +44,14 @@ public interface AgentExecutionSpecOrBuilder extends
   java.lang.String getSessionId();
   /**
    * <pre>
-   * Session ID this execution belongs to (optional).
-   *
-   * Resolution priority (enforced in handler pipeline):
-   * 1. session_id provided     -&gt; use existing session
-   * 2. session_spec provided   -&gt; auto-create session from the embedded spec
-   * 3. agent_id provided       -&gt; auto-create session using agent's default instance
-   * 4. none provided           -&gt; auto-create a session with no agent; the
-   * built-in assistant answers
-   *
-   * session_id and agent_id may both be set — when both are present, session_id
-   * is used for session resolution and agent_id is preserved as metadata for
-   * downstream consumers (e.g., session subject generation). session_id and
-   * session_spec are mutually exclusive.
+   * ID of the existing session this turn continues.
    *
    * An execution in an existing session belongs to that session's
    * organization: metadata.org, when set, must be the session's
-   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
-   * session. An execution stays in the session it was created in: update
-   * refuses a different session_id (FAILED_PRECONDITION), and an empty one
-   * keeps the stored session.
+   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+   * the session. An execution stays in the session it was created in:
+   * update refuses a different session_id (FAILED_PRECONDITION), and an
+   * empty one keeps the stored session.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -70,68 +62,22 @@ public interface AgentExecutionSpecOrBuilder extends
 
   /**
    * <pre>
-   * Agent ID (optional).
+   * Spec for a new session this turn starts.
    *
-   * When absent along with session_id and session_spec, the execution runs
-   * the built-in assistant in a new session with no agent: a person starts a
-   * conversation without choosing an agent.
+   * This is the one-call session bootstrap: a single create carries the
+   * full session shape (the agent, workspace_entries, harness,
+   * execution_target, MCP servers, skills) together with the first
+   * message, so embedders do not need to orchestrate session.create
+   * followed by agentExecution.create. The created session's ID is
+   * returned on the persisted execution's session_id.
    *
-   * Both may be set — agent_id is preserved on the execution record even when
-   * session_id is present, so downstream consumers can access the agent
-   * without resolving through the session chain.
-   *
-   * When provided without session_id, a new session is auto-created using
-   * the agent's default instance ID.
-   * </pre>
-   *
-   * <code>string agent_id = 2 [json_name = "agentId"];</code>
-   * @return The agentId.
-   */
-  java.lang.String getAgentId();
-  /**
-   * <pre>
-   * Agent ID (optional).
-   *
-   * When absent along with session_id and session_spec, the execution runs
-   * the built-in assistant in a new session with no agent: a person starts a
-   * conversation without choosing an agent.
-   *
-   * Both may be set — agent_id is preserved on the execution record even when
-   * session_id is present, so downstream consumers can access the agent
-   * without resolving through the session chain.
-   *
-   * When provided without session_id, a new session is auto-created using
-   * the agent's default instance ID.
-   * </pre>
-   *
-   * <code>string agent_id = 2 [json_name = "agentId"];</code>
-   * @return The bytes for agentId.
-   */
-  com.google.protobuf.ByteString
-      getAgentIdBytes();
-
-  /**
-   * <pre>
-   * Spec for the session to auto-create when session_id is empty (optional).
-   *
-   * This is the one-call session bootstrap: a single create carries the full
-   * session shape (workspace_entries, harness, execution_target, MCP servers,
-   * skills) together with the first message, so embedders do not need to
-   * orchestrate session.create followed by agentExecution.create. The created
-   * session's ID is returned on the persisted execution's session_id.
-   *
-   * Fields that must be set at session-creation time and are immutable once
-   * an execution has run — harness and execution_target — can only reach an
-   * auto-created session through this field.
-   *
-   * When session_spec.agent_instance_id is set, the session runs against that
-   * instance and agent_id must not also be resolved from it. When empty, the
-   * normal resolution applies: agent_id's default instance, or no agent (the
-   * built-in assistant) when agent_id is also empty.
-   *
-   * Mutually exclusive with session_id. session_spec.harness_state_id must be
-   * empty — it is server-owned harness continuity state, created by the runner
-   * after the first execution.
+   * session_spec.agent_ref names the agent the conversation runs (empty:
+   * the built-in assistant). Fields that must be set at session-creation
+   * time and are immutable once an execution has run — harness and
+   * execution_target — can only reach an auto-created session through
+   * this field. session_spec.harness_state_id must be empty — it is
+   * server-owned harness continuity state, created by the runner after
+   * the first execution.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -140,26 +86,22 @@ public interface AgentExecutionSpecOrBuilder extends
   boolean hasSessionSpec();
   /**
    * <pre>
-   * Spec for the session to auto-create when session_id is empty (optional).
+   * Spec for a new session this turn starts.
    *
-   * This is the one-call session bootstrap: a single create carries the full
-   * session shape (workspace_entries, harness, execution_target, MCP servers,
-   * skills) together with the first message, so embedders do not need to
-   * orchestrate session.create followed by agentExecution.create. The created
-   * session's ID is returned on the persisted execution's session_id.
+   * This is the one-call session bootstrap: a single create carries the
+   * full session shape (the agent, workspace_entries, harness,
+   * execution_target, MCP servers, skills) together with the first
+   * message, so embedders do not need to orchestrate session.create
+   * followed by agentExecution.create. The created session's ID is
+   * returned on the persisted execution's session_id.
    *
-   * Fields that must be set at session-creation time and are immutable once
-   * an execution has run — harness and execution_target — can only reach an
-   * auto-created session through this field.
-   *
-   * When session_spec.agent_instance_id is set, the session runs against that
-   * instance and agent_id must not also be resolved from it. When empty, the
-   * normal resolution applies: agent_id's default instance, or no agent (the
-   * built-in assistant) when agent_id is also empty.
-   *
-   * Mutually exclusive with session_id. session_spec.harness_state_id must be
-   * empty — it is server-owned harness continuity state, created by the runner
-   * after the first execution.
+   * session_spec.agent_ref names the agent the conversation runs (empty:
+   * the built-in assistant). Fields that must be set at session-creation
+   * time and are immutable once an execution has run — harness and
+   * execution_target — can only reach an auto-created session through
+   * this field. session_spec.harness_state_id must be empty — it is
+   * server-owned harness continuity state, created by the runner after
+   * the first execution.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -168,26 +110,22 @@ public interface AgentExecutionSpecOrBuilder extends
   ai.stigmer.agentic.session.v1.SessionSpec getSessionSpec();
   /**
    * <pre>
-   * Spec for the session to auto-create when session_id is empty (optional).
+   * Spec for a new session this turn starts.
    *
-   * This is the one-call session bootstrap: a single create carries the full
-   * session shape (workspace_entries, harness, execution_target, MCP servers,
-   * skills) together with the first message, so embedders do not need to
-   * orchestrate session.create followed by agentExecution.create. The created
-   * session's ID is returned on the persisted execution's session_id.
+   * This is the one-call session bootstrap: a single create carries the
+   * full session shape (the agent, workspace_entries, harness,
+   * execution_target, MCP servers, skills) together with the first
+   * message, so embedders do not need to orchestrate session.create
+   * followed by agentExecution.create. The created session's ID is
+   * returned on the persisted execution's session_id.
    *
-   * Fields that must be set at session-creation time and are immutable once
-   * an execution has run — harness and execution_target — can only reach an
-   * auto-created session through this field.
-   *
-   * When session_spec.agent_instance_id is set, the session runs against that
-   * instance and agent_id must not also be resolved from it. When empty, the
-   * normal resolution applies: agent_id's default instance, or no agent (the
-   * built-in assistant) when agent_id is also empty.
-   *
-   * Mutually exclusive with session_id. session_spec.harness_state_id must be
-   * empty — it is server-owned harness continuity state, created by the runner
-   * after the first execution.
+   * session_spec.agent_ref names the agent the conversation runs (empty:
+   * the built-in assistant). Fields that must be set at session-creation
+   * time and are immutable once an execution has run — harness and
+   * execution_target — can only reach an auto-created session through
+   * this field. session_spec.harness_state_id must be empty — it is
+   * server-owned harness continuity state, created by the runner after
+   * the first execution.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -342,20 +280,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
 
   /**
    * <pre>
-   * Callback token for async activity completion (optional).
-   *
-   * When a workflow invokes an agent, this token enables the workflow to
-   * wait for the agent to finish without blocking. When empty, the
-   * execution runs independently (CLI, API calls, non-workflow triggers).
-   * </pre>
-   *
-   * <code>bytes callback_token = 6 [json_name = "callbackToken"];</code>
-   * @return The callbackToken.
-   */
-  com.google.protobuf.ByteString getCallbackToken();
-
-  /**
-   * <pre>
    * Auto-approve all tool executions for this execution.
    *
    * When true, tools that would normally require approval are automatically
@@ -380,34 +304,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * @return The autoApproveAll.
    */
   boolean getAutoApproveAll();
-
-  /**
-   * <pre>
-   * Parent workflow ID when this execution was triggered by a workflow (optional).
-   *
-   * When set, the platform notifies the parent workflow about approval
-   * requests instead of requiring polling. When empty, approvals are
-   * submitted directly via the SubmitApproval RPC.
-   * </pre>
-   *
-   * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
-   * @return The parentWorkflowId.
-   */
-  java.lang.String getParentWorkflowId();
-  /**
-   * <pre>
-   * Parent workflow ID when this execution was triggered by a workflow (optional).
-   *
-   * When set, the platform notifies the parent workflow about approval
-   * requests instead of requiring polling. When empty, approvals are
-   * submitted directly via the SubmitApproval RPC.
-   * </pre>
-   *
-   * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
-   * @return The bytes for parentWorkflowId.
-   */
-  com.google.protobuf.ByteString
-      getParentWorkflowIdBytes();
 
   /**
    * <pre>
@@ -635,26 +531,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
 
   /**
    * <pre>
-   * Explicit Temporal task queue override for activity routing.
-   * </pre>
-   *
-   * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
-   * @return The activityTaskQueue.
-   */
-  java.lang.String getActivityTaskQueue();
-  /**
-   * <pre>
-   * Explicit Temporal task queue override for activity routing.
-   * </pre>
-   *
-   * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
-   * @return The bytes for activityTaskQueue.
-   */
-  com.google.protobuf.ByteString
-      getActivityTaskQueueBytes();
-
-  /**
-   * <pre>
    * ID of the execution this one supersedes via edit-and-resubmit (optional).
    *
    * When a user stops an in-flight turn, edits the message, and resubmits,
@@ -736,61 +612,57 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
 
   /**
    * <pre>
-   * Standing preferences declared by the organization and the calling user,
-   * snapshotted into this execution at create time (optional).
+   * The workflow run this turn was started by (optional): set only by a
+   * workflow's agent_call step, which waits for the turn to finish.
+   *
+   * The server honours it only from the workflow run it names: a request
+   * the server composes itself, a runner whose credential is bound to that
+   * workflow run, or a caller holding the platform's
+   * can_write_reserved_labels. Any other caller that sets it is refused with
+   * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+   * runs in the workflow run's sandbox, the parent is told about approval
+   * requests, and the waiting step is completed when the turn finishes.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
-   * @return Whether the declaredPreferences field is set.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
+   * @return Whether the parent field is set.
    */
-  boolean hasDeclaredPreferences();
+  boolean hasParent();
   /**
    * <pre>
-   * Standing preferences declared by the organization and the calling user,
-   * snapshotted into this execution at create time (optional).
+   * The workflow run this turn was started by (optional): set only by a
+   * workflow's agent_call step, which waits for the turn to finish.
+   *
+   * The server honours it only from the workflow run it names: a request
+   * the server composes itself, a runner whose credential is bound to that
+   * workflow run, or a caller holding the platform's
+   * can_write_reserved_labels. Any other caller that sets it is refused with
+   * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+   * runs in the workflow run's sandbox, the parent is told about approval
+   * requests, and the waiting step is completed when the turn finishes.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
-   * @return The declaredPreferences.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
+   * @return The parent.
    */
-  ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences getDeclaredPreferences();
+  ai.stigmer.agentic.agentexecution.v1.WorkflowParent getParent();
   /**
    * <pre>
-   * Standing preferences declared by the organization and the calling user,
-   * snapshotted into this execution at create time (optional).
+   * The workflow run this turn was started by (optional): set only by a
+   * workflow's agent_call step, which waits for the turn to finish.
+   *
+   * The server honours it only from the workflow run it names: a request
+   * the server composes itself, a runner whose credential is bound to that
+   * workflow run, or a caller holding the platform's
+   * can_write_reserved_labels. Any other caller that sets it is refused with
+   * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+   * runs in the workflow run's sandbox, the parent is told about approval
+   * requests, and the waiting step is completed when the turn finishes.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
    */
-  ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder getDeclaredPreferencesOrBuilder();
+  ai.stigmer.agentic.agentexecution.v1.WorkflowParentOrBuilder getParentOrBuilder();
 
-  /**
-   * <pre>
-   * The caller's confirmed memories, snapshotted into this execution at
-   * create time (optional).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-   * @return Whether the recalledMemories field is set.
-   */
-  boolean hasRecalledMemories();
-  /**
-   * <pre>
-   * The caller's confirmed memories, snapshotted into this execution at
-   * create time (optional).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-   * @return The recalledMemories.
-   */
-  ai.stigmer.agentic.agentexecution.v1.RecalledMemories getRecalledMemories();
-  /**
-   * <pre>
-   * The caller's confirmed memories, snapshotted into this execution at
-   * create time (optional).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder getRecalledMemoriesOrBuilder();
+  ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.TargetCase getTargetCase();
 }

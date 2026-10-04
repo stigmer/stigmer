@@ -159,14 +159,6 @@ public enum ApiResourceKind
   mcp_server(44),
   /**
    * <pre>
-   * Configured deployment of an agent with environment-specific overrides.
-   * </pre>
-   *
-   * <code>agent_instance = 45 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  agent_instance(45),
-  /**
-   * <pre>
    * Hosted chat link for an agent with its own audience, origins, and credentials.
    * </pre>
    *
@@ -459,14 +451,6 @@ public enum ApiResourceKind
   public static final int mcp_server_VALUE = 44;
   /**
    * <pre>
-   * Configured deployment of an agent with environment-specific overrides.
-   * </pre>
-   *
-   * <code>agent_instance = 45 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  public static final int agent_instance_VALUE = 45;
-  /**
-   * <pre>
    * Hosted chat link for an agent with its own audience, origins, and credentials.
    * </pre>
    *
@@ -646,7 +630,6 @@ public enum ApiResourceKind
       case 42: return session;
       case 43: return skill;
       case 44: return mcp_server;
-      case 45: return agent_instance;
       case 46: return agent_share;
       case 47: return agent_channel;
       case 48: return channel_app;

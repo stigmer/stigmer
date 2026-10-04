@@ -72,12 +72,12 @@
           "description": "List all sessions with pagination and optional filtering."
         },
         {
-          "name": "ListByAgentInstance",
-          "inputType": "ListSessionsByAgentInstanceRequest",
-          "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest",
+          "name": "ListByAgent",
+          "inputType": "ListSessionsByAgentRequest",
+          "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest",
           "outputType": "SessionList",
           "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
-          "description": "List all sessions for a specific agent instance."
+          "description": "List the conversations on one agent, whichever version each runs.\n\n Results are filtered to the sessions the caller can view."
         },
         {
           "name": "ListByChannel",
@@ -216,19 +216,19 @@
       ]
     },
     {
-      "name": "ListSessionsByAgentInstanceRequest",
-      "description": "ListSessionsByAgentInstanceRequest lists all sessions for a specific agent instance.",
-      "protoType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest",
+      "name": "ListSessionsByAgentRequest",
+      "description": "ListSessionsByAgentRequest lists the conversations on one agent.",
+      "protoType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest",
       "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
       "fields": [
         {
-          "name": "AgentInstanceId",
-          "jsonName": "agentInstanceId",
-          "protoField": "agent_instance_id",
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
           "type": {
             "kind": "string"
           },
-          "description": "Agent instance ID to filter by.",
+          "description": "ID of the agent whose conversations to list: the sessions whose\n status.agent_id names it, whichever version each runs.",
           "required": true,
           "validation": {
             "required": true
@@ -378,18 +378,6 @@
       ]
     },
     {
-      "name": "GitWriteBackMode",
-      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.",
-      "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
-      "values": [
-        {
-          "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
-          "number": 1,
-          "description": "Create a branch and pull request from the agent's file changes after execution completes."
-        }
-      ]
-    },
-    {
       "name": "ApiResourceKind",
       "description": "API resource kinds for Stigmer.",
       "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
@@ -475,11 +463,6 @@
           "description": "External tool server connected via the Model Context Protocol."
         },
         {
-          "name": "agent_instance",
-          "number": 45,
-          "description": "Configured deployment of an agent with environment-specific overrides."
-        },
-        {
           "name": "agent_share",
           "number": 46,
           "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
@@ -555,7 +538,208 @@
           "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
         }
       ]
+    },
+    {
+      "name": "GitWriteBackMode",
+      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.",
+      "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
+      "values": [
+        {
+          "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
+          "number": 1,
+          "description": "Create a branch and pull request from the agent's file changes after execution completes."
+        }
+      ]
     }
   ],
-  "resourceDescription": "Session represents a multi-turn conversation thread with an agent."
+  "resourceDescription": "Session represents a multi-turn conversation thread with an agent.",
+  "statusType": {
+    "name": "SessionStatus",
+    "description": "SessionStatus contains system-managed state for a session.",
+    "protoType": "ai.stigmer.agentic.session.v1.SessionStatus",
+    "protoFile": "apis/ai/stigmer/agentic/session/v1/status.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      },
+      {
+        "name": "AgentId",
+        "jsonName": "agentId",
+        "protoField": "agent_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ID of the agent spec.agent_ref resolved to when it was last written.\n Empty when the session names no agent: the built-in assistant answers.",
+        "required": false
+      },
+      {
+        "name": "AgentVersionHash",
+        "jsonName": "agentVersionHash",
+        "protoField": "agent_version_hash",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Content hash of the agent version this conversation runs\n (AgentStatus.version_hash when the reference resolved; resolvable\n through AgentQueryController.getVersion with agent_id).\n\n Each turn runs this version and records it on its own status. Empty\n when agent_id is empty, or when the agent had no recorded version when\n the reference resolved; such a conversation runs the agent as it is\n when each turn starts.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        },
+        {
+          "name": "PlatformClientId",
+          "jsonName": "platformClientId",
+          "protoField": "platform_client_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The PlatformClient whose minted user token the actor acted through.\n Empty for every other credential, and on an actor that records no act\n (an account's profile lookup).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
 }

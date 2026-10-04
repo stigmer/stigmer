@@ -196,11 +196,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * User-provided inputs for this execution.
-   * Contains: session_id / session_spec / agent_id (session resolution),
-   * message, execution_config, and runtime_env. Environment bindings are
-   * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-   * Environment Flow) or per-execution runtime_env (the Execution Flow);
-   * see the runtime_env field docs in spec.proto.
+   * Contains: the conversation (session_id or a new session_spec), message,
+   * execution_config, and runtime_env. Environment values reach a turn from
+   * the environments the server resolves for its run and from the
+   * per-execution runtime_env; see the runtime_env field docs in
+   * spec.proto.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -213,11 +213,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * User-provided inputs for this execution.
-   * Contains: session_id / session_spec / agent_id (session resolution),
-   * message, execution_config, and runtime_env. Environment bindings are
-   * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-   * Environment Flow) or per-execution runtime_env (the Execution Flow);
-   * see the runtime_env field docs in spec.proto.
+   * Contains: the conversation (session_id or a new session_spec), message,
+   * execution_config, and runtime_env. Environment values reach a turn from
+   * the environments the server resolves for its run and from the
+   * per-execution runtime_env; see the runtime_env field docs in
+   * spec.proto.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -230,11 +230,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * User-provided inputs for this execution.
-   * Contains: session_id / session_spec / agent_id (session resolution),
-   * message, execution_config, and runtime_env. Environment bindings are
-   * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-   * Environment Flow) or per-execution runtime_env (the Execution Flow);
-   * see the runtime_env field docs in spec.proto.
+   * Contains: the conversation (session_id or a new session_spec), message,
+   * execution_config, and runtime_env. Environment values reach a turn from
+   * the environments the server resolves for its run and from the
+   * per-execution runtime_env; see the runtime_env field docs in
+   * spec.proto.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -1085,11 +1085,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided inputs for this execution.
-     * Contains: session_id / session_spec / agent_id (session resolution),
-     * message, execution_config, and runtime_env. Environment bindings are
-     * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-     * Environment Flow) or per-execution runtime_env (the Execution Flow);
-     * see the runtime_env field docs in spec.proto.
+     * Contains: the conversation (session_id or a new session_spec), message,
+     * execution_config, and runtime_env. Environment values reach a turn from
+     * the environments the server resolves for its run and from the
+     * per-execution runtime_env; see the runtime_env field docs in
+     * spec.proto.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -1101,11 +1101,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided inputs for this execution.
-     * Contains: session_id / session_spec / agent_id (session resolution),
-     * message, execution_config, and runtime_env. Environment bindings are
-     * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-     * Environment Flow) or per-execution runtime_env (the Execution Flow);
-     * see the runtime_env field docs in spec.proto.
+     * Contains: the conversation (session_id or a new session_spec), message,
+     * execution_config, and runtime_env. Environment values reach a turn from
+     * the environments the server resolves for its run and from the
+     * per-execution runtime_env; see the runtime_env field docs in
+     * spec.proto.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -1121,11 +1121,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided inputs for this execution.
-     * Contains: session_id / session_spec / agent_id (session resolution),
-     * message, execution_config, and runtime_env. Environment bindings are
-     * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-     * Environment Flow) or per-execution runtime_env (the Execution Flow);
-     * see the runtime_env field docs in spec.proto.
+     * Contains: the conversation (session_id or a new session_spec), message,
+     * execution_config, and runtime_env. Environment values reach a turn from
+     * the environments the server resolves for its run and from the
+     * per-execution runtime_env; see the runtime_env field docs in
+     * spec.proto.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -1146,11 +1146,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided inputs for this execution.
-     * Contains: session_id / session_spec / agent_id (session resolution),
-     * message, execution_config, and runtime_env. Environment bindings are
-     * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-     * Environment Flow) or per-execution runtime_env (the Execution Flow);
-     * see the runtime_env field docs in spec.proto.
+     * Contains: the conversation (session_id or a new session_spec), message,
+     * execution_config, and runtime_env. Environment values reach a turn from
+     * the environments the server resolves for its run and from the
+     * per-execution runtime_env; see the runtime_env field docs in
+     * spec.proto.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -1169,11 +1169,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided inputs for this execution.
-     * Contains: session_id / session_spec / agent_id (session resolution),
-     * message, execution_config, and runtime_env. Environment bindings are
-     * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-     * Environment Flow) or per-execution runtime_env (the Execution Flow);
-     * see the runtime_env field docs in spec.proto.
+     * Contains: the conversation (session_id or a new session_spec), message,
+     * execution_config, and runtime_env. Environment values reach a turn from
+     * the environments the server resolves for its run and from the
+     * per-execution runtime_env; see the runtime_env field docs in
+     * spec.proto.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -1199,11 +1199,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided inputs for this execution.
-     * Contains: session_id / session_spec / agent_id (session resolution),
-     * message, execution_config, and runtime_env. Environment bindings are
-     * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-     * Environment Flow) or per-execution runtime_env (the Execution Flow);
-     * see the runtime_env field docs in spec.proto.
+     * Contains: the conversation (session_id or a new session_spec), message,
+     * execution_config, and runtime_env. Environment values reach a turn from
+     * the environments the server resolves for its run and from the
+     * per-execution runtime_env; see the runtime_env field docs in
+     * spec.proto.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -1221,11 +1221,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided inputs for this execution.
-     * Contains: session_id / session_spec / agent_id (session resolution),
-     * message, execution_config, and runtime_env. Environment bindings are
-     * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-     * Environment Flow) or per-execution runtime_env (the Execution Flow);
-     * see the runtime_env field docs in spec.proto.
+     * Contains: the conversation (session_id or a new session_spec), message,
+     * execution_config, and runtime_env. Environment values reach a turn from
+     * the environments the server resolves for its run and from the
+     * per-execution runtime_env; see the runtime_env field docs in
+     * spec.proto.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -1238,11 +1238,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided inputs for this execution.
-     * Contains: session_id / session_spec / agent_id (session resolution),
-     * message, execution_config, and runtime_env. Environment bindings are
-     * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-     * Environment Flow) or per-execution runtime_env (the Execution Flow);
-     * see the runtime_env field docs in spec.proto.
+     * Contains: the conversation (session_id or a new session_spec), message,
+     * execution_config, and runtime_env. Environment values reach a turn from
+     * the environments the server resolves for its run and from the
+     * per-execution runtime_env; see the runtime_env field docs in
+     * spec.proto.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -1258,11 +1258,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided inputs for this execution.
-     * Contains: session_id / session_spec / agent_id (session resolution),
-     * message, execution_config, and runtime_env. Environment bindings are
-     * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-     * Environment Flow) or per-execution runtime_env (the Execution Flow);
-     * see the runtime_env field docs in spec.proto.
+     * Contains: the conversation (session_id or a new session_spec), message,
+     * execution_config, and runtime_env. Environment values reach a turn from
+     * the environments the server resolves for its run and from the
+     * per-execution runtime_env; see the runtime_env field docs in
+     * spec.proto.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>

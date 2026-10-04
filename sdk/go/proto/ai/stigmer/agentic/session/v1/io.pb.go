@@ -258,11 +258,12 @@ func (x *ListSessionsRequest) GetOrg() string {
 	return ""
 }
 
-// ListSessionsByAgentInstanceRequest lists all sessions for a specific agent instance.
-type ListSessionsByAgentInstanceRequest struct {
+// ListSessionsByAgentRequest lists the conversations on one agent.
+type ListSessionsByAgentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Agent instance ID to filter by.
-	AgentInstanceId string `protobuf:"bytes,1,opt,name=agent_instance_id,json=agentInstanceId,proto3" json:"agent_instance_id,omitempty"`
+	// ID of the agent whose conversations to list: the sessions whose
+	// status.agent_id names it, whichever version each runs.
+	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	// The most sessions to return, at most 100; zero returns them all.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
@@ -272,20 +273,20 @@ type ListSessionsByAgentInstanceRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListSessionsByAgentInstanceRequest) Reset() {
-	*x = ListSessionsByAgentInstanceRequest{}
+func (x *ListSessionsByAgentRequest) Reset() {
+	*x = ListSessionsByAgentRequest{}
 	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListSessionsByAgentInstanceRequest) String() string {
+func (x *ListSessionsByAgentRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListSessionsByAgentInstanceRequest) ProtoMessage() {}
+func (*ListSessionsByAgentRequest) ProtoMessage() {}
 
-func (x *ListSessionsByAgentInstanceRequest) ProtoReflect() protoreflect.Message {
+func (x *ListSessionsByAgentRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -297,26 +298,26 @@ func (x *ListSessionsByAgentInstanceRequest) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListSessionsByAgentInstanceRequest.ProtoReflect.Descriptor instead.
-func (*ListSessionsByAgentInstanceRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListSessionsByAgentRequest.ProtoReflect.Descriptor instead.
+func (*ListSessionsByAgentRequest) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ListSessionsByAgentInstanceRequest) GetAgentInstanceId() string {
+func (x *ListSessionsByAgentRequest) GetAgentId() string {
 	if x != nil {
-		return x.AgentInstanceId
+		return x.AgentId
 	}
 	return ""
 }
 
-func (x *ListSessionsByAgentInstanceRequest) GetPageSize() int32 {
+func (x *ListSessionsByAgentRequest) GetPageSize() int32 {
 	if x != nil {
 		return x.PageSize
 	}
 	return 0
 }
 
-func (x *ListSessionsByAgentInstanceRequest) GetPageToken() string {
+func (x *ListSessionsByAgentRequest) GetPageToken() string {
 	if x != nil {
 		return x.PageToken
 	}
@@ -462,9 +463,9 @@ const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x12\n" +
 	"\x04tags\x18\x03 \x03(\tR\x04tags\x12\x10\n" +
-	"\x03org\x18\x04 \x01(\tR\x03org\"\x9d\x01\n" +
-	"\"ListSessionsByAgentInstanceRequest\x122\n" +
-	"\x11agent_instance_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0fagentInstanceId\x12$\n" +
+	"\x03org\x18\x04 \x01(\tR\x03org\"\x84\x01\n" +
+	"\x1aListSessionsByAgentRequest\x12!\n" +
+	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\"\x8a\x01\n" +
@@ -493,14 +494,14 @@ func file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_session_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_session_v1_io_proto_goTypes = []any{
-	(*SessionId)(nil),                          // 0: ai.stigmer.agentic.session.v1.SessionId
-	(*AgentId)(nil),                            // 1: ai.stigmer.agentic.session.v1.AgentId
-	(*SessionList)(nil),                        // 2: ai.stigmer.agentic.session.v1.SessionList
-	(*ListSessionsRequest)(nil),                // 3: ai.stigmer.agentic.session.v1.ListSessionsRequest
-	(*ListSessionsByAgentInstanceRequest)(nil), // 4: ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest
-	(*ListSessionsByChannelRequest)(nil),       // 5: ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest
-	(*UpdateSessionSubjectRequest)(nil),        // 6: ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest
-	(*Session)(nil),                            // 7: ai.stigmer.agentic.session.v1.Session
+	(*SessionId)(nil),                    // 0: ai.stigmer.agentic.session.v1.SessionId
+	(*AgentId)(nil),                      // 1: ai.stigmer.agentic.session.v1.AgentId
+	(*SessionList)(nil),                  // 2: ai.stigmer.agentic.session.v1.SessionList
+	(*ListSessionsRequest)(nil),          // 3: ai.stigmer.agentic.session.v1.ListSessionsRequest
+	(*ListSessionsByAgentRequest)(nil),   // 4: ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest
+	(*ListSessionsByChannelRequest)(nil), // 5: ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest
+	(*UpdateSessionSubjectRequest)(nil),  // 6: ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest
+	(*Session)(nil),                      // 7: ai.stigmer.agentic.session.v1.Session
 }
 var file_ai_stigmer_agentic_session_v1_io_proto_depIdxs = []int32{
 	7, // 0: ai.stigmer.agentic.session.v1.SessionList.entries:type_name -> ai.stigmer.agentic.session.v1.Session

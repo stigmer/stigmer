@@ -39,32 +39,6 @@ public interface AgentStatusOrBuilder extends
 
   /**
    * <pre>
-   * ID of the default agent instance.
-   * Every agent has exactly one default instance that uses all agent defaults
-   * and requires no additional configuration. Created automatically when the
-   * agent is created.
-   * </pre>
-   *
-   * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-   * @return The defaultInstanceId.
-   */
-  java.lang.String getDefaultInstanceId();
-  /**
-   * <pre>
-   * ID of the default agent instance.
-   * Every agent has exactly one default instance that uses all agent defaults
-   * and requires no additional configuration. Created automatically when the
-   * agent is created.
-   * </pre>
-   *
-   * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-   * @return The bytes for defaultInstanceId.
-   */
-  com.google.protobuf.ByteString
-      getDefaultInstanceIdBytes();
-
-  /**
-   * <pre>
    * Content hash of the agent's current version: the SHA-256 of the
    * canonical JSON rendering of the stored AgentSpec (unset and default
    * fields omitted, object keys sorted at every depth, enums as numbers).

@@ -259,7 +259,6 @@ export function tsProtoFieldName(protoField: string): string {
 const TS_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["agentchannel", "agentChannel"],
   ["agentexecution", "agentExecution"],
-  ["agentinstance", "agentInstance"],
   ["agentshare", "agentShare"],
   ["executioncontext", "executionContext"],
   ["mcpserver", "mcpServer"],

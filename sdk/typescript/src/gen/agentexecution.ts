@@ -12,7 +12,7 @@ import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agen
 import { InteractionMode, ApprovalMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentExecutionIdSchema, AgentExecutionUpdateStatusInputSchema, UpdateStatusResponseSchema, SubmitApprovalInputSchema, SubmitFileDecisionInputSchema, CancelAgentExecutionInputSchema, TerminateAgentExecutionInputSchema, RecoverAgentExecutionInputSchema, PauseAgentExecutionInputSchema, ResumeAgentExecutionInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListAgentExecutionsRequestSchema, AgentExecutionListSchema, ListAgentExecutionsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetExecutionUsageReportInputSchema, GetExecutionUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetAgentExecutionSummaryRequestSchema, AgentExecutionSummarySchema, type AgentExecutionUpdateStatusInput, type UpdateStatusResponse, type SubmitApprovalInput, type SubmitFileDecisionInput, type CancelAgentExecutionInput, type TerminateAgentExecutionInput, type RecoverAgentExecutionInput, type PauseAgentExecutionInput, type ResumeAgentExecutionInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListAgentExecutionsRequest, type AgentExecutionList, type ListAgentExecutionsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetExecutionUsageReportInput, type GetExecutionUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetAgentExecutionSummaryRequest, type AgentExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
-import { AgentExecutionSpecSchema, ContextManagementConfigSchema, ExecutionConfigSchema, AttachmentSchema, ConversationCatchupSchema, DeclaredPreferencesSchema, RecalledMemoryFactSchema, RecalledMemoriesSchema, type ContextManagementConfig, type ExecutionConfig, type Attachment, type ConversationCatchup, type DeclaredPreferences, type RecalledMemoryFact, type RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentExecutionSpecSchema, ContextManagementConfigSchema, ExecutionConfigSchema, AttachmentSchema, ConversationCatchupSchema, WorkflowParentSchema, type ContextManagementConfig, type ExecutionConfig, type Attachment, type ConversationCatchup, type WorkflowParent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -187,26 +187,21 @@ export interface AgentExecutionInput {
   labels?: Record<string, string>;
   visibility?: ApiResourceVisibility;
   sessionId?: string;
-  agentId?: string;
   sessionSpec?: SessionSpecInput;
   message?: string;
   executionConfig?: ExecutionConfigInput;
   runtimeEnv?: Record<string, EnvVarInput>;
-  callbackToken?: Uint8Array;
   autoApproveAll?: boolean;
-  parentWorkflowId?: string;
   attachments?: AttachmentInput[];
   workspaceFileRefs?: string[];
-  activityTaskQueue?: string;
   supersedesExecutionId?: string;
   conversationCatchup?: ConversationCatchupInput;
-  declaredPreferences?: DeclaredPreferencesInput;
-  recalledMemories?: RecalledMemoriesInput;
+  parent?: WorkflowParentInput;
 }
 
 /** SDK input type for SessionSpec. */
 export interface SessionSpecInput {
-  agentInstanceId?: string;
+  agentRef?: ResourceRef;
   subject?: string;
   harnessStateId?: string;
   harnessStateIdHistory?: string[];
@@ -297,22 +292,11 @@ export interface ConversationCatchupInput {
   windowEnd?: Date | string;
 }
 
-/** SDK input type for DeclaredPreferences. */
-export interface DeclaredPreferencesInput {
-  orgContext?: string;
-  userContext?: string;
-}
-
-/** SDK input type for RecalledMemories. */
-export interface RecalledMemoriesInput {
-  enabled?: boolean;
-  facts?: RecalledMemoryFactInput[];
-}
-
-/** SDK input type for RecalledMemoryFact. */
-export interface RecalledMemoryFactInput {
-  memoryId?: string;
-  content?: string;
+/** SDK input type for WorkflowParent. */
+export interface WorkflowParentInput {
+  workflowExecutionId?: string;
+  signalWorkflowId?: string;
+  callbackToken?: Uint8Array;
 }
 
 function buildGitRepoSourceProto(input: GitRepoSourceInput) {
@@ -366,7 +350,7 @@ function buildMcpServerUsageProto(input: McpServerUsageInput) {
 
 function buildSessionSpecProto(input: SessionSpecInput) {
   const msg = create(SessionSpecSchema);
-  if (input.agentInstanceId !== undefined) msg.agentInstanceId = input.agentInstanceId;
+  if (input.agentRef?.slug || input.agentRef?.org) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
   if (input.subject !== undefined) msg.subject = input.subject;
   if (input.harnessStateId !== undefined) msg.harnessStateId = input.harnessStateId;
   if (input.harnessStateIdHistory) msg.harnessStateIdHistory = input.harnessStateIdHistory;
@@ -422,29 +406,15 @@ function buildConversationCatchupProto(input: ConversationCatchupInput) {
   return msg;
 }
 
-function buildDeclaredPreferencesProto(input: DeclaredPreferencesInput) {
-  return Object.assign(create(DeclaredPreferencesSchema), stripUndefined({
-    orgContext: input.orgContext,
-    userContext: input.userContext,
+function buildWorkflowParentProto(input: WorkflowParentInput) {
+  return Object.assign(create(WorkflowParentSchema), stripUndefined({
+    workflowExecutionId: input.workflowExecutionId,
+    signalWorkflowId: input.signalWorkflowId,
+    callbackToken: input.callbackToken,
   }));
-}
-
-function buildRecalledMemoryFactProto(input: RecalledMemoryFactInput) {
-  return Object.assign(create(RecalledMemoryFactSchema), stripUndefined({
-    memoryId: input.memoryId,
-    content: input.content,
-  }));
-}
-
-function buildRecalledMemoriesProto(input: RecalledMemoriesInput) {
-  const msg = create(RecalledMemoriesSchema);
-  if (input.enabled !== undefined) msg.enabled = input.enabled;
-  if (input.facts) msg.facts = input.facts.map(buildRecalledMemoryFactProto);
-  return msg;
 }
 
 export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecution {
-  const sessionSpec = input.sessionSpec ? buildSessionSpecProto(input.sessionSpec) : undefined;
   const executionConfig = input.executionConfig ? buildExecutionConfigProto(input.executionConfig) : undefined;
   let runtimeEnv;
   if (input.runtimeEnv) {
@@ -453,8 +423,23 @@ export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecu
   }
   const attachments = input.attachments?.map(buildAttachmentProto);
   const conversationCatchup = input.conversationCatchup ? buildConversationCatchupProto(input.conversationCatchup) : undefined;
-  const declaredPreferences = input.declaredPreferences ? buildDeclaredPreferencesProto(input.declaredPreferences) : undefined;
-  const recalledMemories = input.recalledMemories ? buildRecalledMemoriesProto(input.recalledMemories) : undefined;
+  const parent = input.parent ? buildWorkflowParentProto(input.parent) : undefined;
+  const spec = Object.assign(create(AgentExecutionSpecSchema), stripUndefined({
+    message: input.message,
+    executionConfig,
+    runtimeEnv,
+    autoApproveAll: input.autoApproveAll,
+    attachments,
+    workspaceFileRefs: input.workspaceFileRefs,
+    supersedesExecutionId: input.supersedesExecutionId,
+    conversationCatchup,
+    parent,
+  }));
+  if (input.sessionId) {
+    spec.target = { case: "sessionId", value: input.sessionId };
+  } else if (input.sessionSpec) {
+    spec.target = { case: "sessionSpec", value: buildSessionSpecProto(input.sessionSpec) };
+  }
   return Object.assign(create(AgentExecutionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "AgentExecution",
@@ -466,24 +451,7 @@ export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecu
       ...(input.labels && { labels: input.labels }),
       ...(input.visibility && { visibility: input.visibility }),
     }),
-    spec: Object.assign(create(AgentExecutionSpecSchema), stripUndefined({
-      sessionId: input.sessionId,
-      agentId: input.agentId,
-      sessionSpec,
-      message: input.message,
-      executionConfig,
-      runtimeEnv,
-      callbackToken: input.callbackToken,
-      autoApproveAll: input.autoApproveAll,
-      parentWorkflowId: input.parentWorkflowId,
-      attachments,
-      workspaceFileRefs: input.workspaceFileRefs,
-      activityTaskQueue: input.activityTaskQueue,
-      supersedesExecutionId: input.supersedesExecutionId,
-      conversationCatchup,
-      declaredPreferences,
-      recalledMemories,
-    })),
+    spec,
   }) as AgentExecution;
 }
 
@@ -535,7 +503,7 @@ function toMcpServerUsageInput(msg: McpServerUsage): McpServerUsageInput {
 
 function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
   return {
-    agentInstanceId: msg.agentInstanceId || undefined,
+    agentRef: toResourceRefInput(msg.agentRef),
     subject: msg.subject || undefined,
     harnessStateId: msg.harnessStateId || undefined,
     harnessStateIdHistory: msg.harnessStateIdHistory?.length ? [...msg.harnessStateIdHistory] : undefined,
@@ -591,24 +559,11 @@ function toConversationCatchupInput(msg: ConversationCatchup): ConversationCatch
   };
 }
 
-function toDeclaredPreferencesInput(msg: DeclaredPreferences): DeclaredPreferencesInput {
+function toWorkflowParentInput(msg: WorkflowParent): WorkflowParentInput {
   return {
-    orgContext: msg.orgContext || undefined,
-    userContext: msg.userContext || undefined,
-  };
-}
-
-function toRecalledMemoryFactInput(msg: RecalledMemoryFact): RecalledMemoryFactInput {
-  return {
-    memoryId: msg.memoryId || undefined,
-    content: msg.content || undefined,
-  };
-}
-
-function toRecalledMemoriesInput(msg: RecalledMemories): RecalledMemoriesInput {
-  return {
-    enabled: msg.enabled || undefined,
-    facts: msg.facts?.length ? msg.facts.map(toRecalledMemoryFactInput) : undefined,
+    workflowExecutionId: msg.workflowExecutionId || undefined,
+    signalWorkflowId: msg.signalWorkflowId || undefined,
+    callbackToken: msg.callbackToken?.length ? msg.callbackToken : undefined,
   };
 }
 
@@ -637,21 +592,16 @@ export function toAgentExecutionUpdateInput(resource: AgentExecution): AgentExec
     org: meta?.org ?? "",
     labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
     visibility: meta?.visibility || undefined,
-    sessionId: spec.sessionId || undefined,
-    agentId: spec.agentId || undefined,
-    sessionSpec: spec.sessionSpec ? toSessionSpecInput(spec.sessionSpec) : undefined,
+    sessionId: spec.target?.case === "sessionId" ? spec.target.value : undefined,
+    sessionSpec: spec.target?.case === "sessionSpec" ? toSessionSpecInput(spec.target.value) : undefined,
     message: spec.message || undefined,
     executionConfig: spec.executionConfig ? toExecutionConfigInput(spec.executionConfig) : undefined,
     runtimeEnv: toExecVarInputMap(spec.runtimeEnv),
-    callbackToken: spec.callbackToken?.length ? spec.callbackToken : undefined,
     autoApproveAll: spec.autoApproveAll || undefined,
-    parentWorkflowId: spec.parentWorkflowId || undefined,
     attachments: spec.attachments?.length ? spec.attachments.map(toAttachmentInput) : undefined,
     workspaceFileRefs: spec.workspaceFileRefs?.length ? [...spec.workspaceFileRefs] : undefined,
-    activityTaskQueue: spec.activityTaskQueue || undefined,
     supersedesExecutionId: spec.supersedesExecutionId || undefined,
     conversationCatchup: spec.conversationCatchup ? toConversationCatchupInput(spec.conversationCatchup) : undefined,
-    declaredPreferences: spec.declaredPreferences ? toDeclaredPreferencesInput(spec.declaredPreferences) : undefined,
-    recalledMemories: spec.recalledMemories ? toRecalledMemoriesInput(spec.recalledMemories) : undefined,
+    parent: spec.parent ? toWorkflowParentInput(spec.parent) : undefined,
   };
 }

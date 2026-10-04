@@ -15,7 +15,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentExecutionSpec(_message.Message):
-    __slots__ = ("session_id", "agent_id", "session_spec", "message", "execution_config", "runtime_env", "callback_token", "auto_approve_all", "parent_workflow_id", "attachments", "workspace_file_refs", "activity_task_queue", "supersedes_execution_id", "conversation_catchup", "declared_preferences", "recalled_memories")
+    __slots__ = ("session_id", "session_spec", "message", "execution_config", "runtime_env", "auto_approve_all", "attachments", "workspace_file_refs", "supersedes_execution_id", "conversation_catchup", "parent")
     class RuntimeEnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -24,38 +24,38 @@ class AgentExecutionSpec(_message.Message):
         value: _spec_pb2.ExecutionValue
         def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[_spec_pb2.ExecutionValue, _Mapping]] = ...) -> None: ...
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
-    AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_SPEC_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     EXECUTION_CONFIG_FIELD_NUMBER: _ClassVar[int]
     RUNTIME_ENV_FIELD_NUMBER: _ClassVar[int]
-    CALLBACK_TOKEN_FIELD_NUMBER: _ClassVar[int]
     AUTO_APPROVE_ALL_FIELD_NUMBER: _ClassVar[int]
-    PARENT_WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
     ATTACHMENTS_FIELD_NUMBER: _ClassVar[int]
     WORKSPACE_FILE_REFS_FIELD_NUMBER: _ClassVar[int]
-    ACTIVITY_TASK_QUEUE_FIELD_NUMBER: _ClassVar[int]
     SUPERSEDES_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     CONVERSATION_CATCHUP_FIELD_NUMBER: _ClassVar[int]
-    DECLARED_PREFERENCES_FIELD_NUMBER: _ClassVar[int]
-    RECALLED_MEMORIES_FIELD_NUMBER: _ClassVar[int]
+    PARENT_FIELD_NUMBER: _ClassVar[int]
     session_id: str
-    agent_id: str
     session_spec: _spec_pb2_1.SessionSpec
     message: str
     execution_config: ExecutionConfig
     runtime_env: _containers.MessageMap[str, _spec_pb2.ExecutionValue]
-    callback_token: bytes
     auto_approve_all: bool
-    parent_workflow_id: str
     attachments: _containers.RepeatedCompositeFieldContainer[Attachment]
     workspace_file_refs: _containers.RepeatedScalarFieldContainer[str]
-    activity_task_queue: str
     supersedes_execution_id: str
     conversation_catchup: ConversationCatchup
-    declared_preferences: DeclaredPreferences
-    recalled_memories: RecalledMemories
-    def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2_1.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., activity_task_queue: _Optional[str] = ..., supersedes_execution_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ..., declared_preferences: _Optional[_Union[DeclaredPreferences, _Mapping]] = ..., recalled_memories: _Optional[_Union[RecalledMemories, _Mapping]] = ...) -> None: ...
+    parent: WorkflowParent
+    def __init__(self, session_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2_1.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., auto_approve_all: bool = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., supersedes_execution_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ..., parent: _Optional[_Union[WorkflowParent, _Mapping]] = ...) -> None: ...
+
+class WorkflowParent(_message.Message):
+    __slots__ = ("workflow_execution_id", "signal_workflow_id", "callback_token")
+    WORKFLOW_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    SIGNAL_WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
+    CALLBACK_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    workflow_execution_id: str
+    signal_workflow_id: str
+    callback_token: bytes
+    def __init__(self, workflow_execution_id: _Optional[str] = ..., signal_workflow_id: _Optional[str] = ..., callback_token: _Optional[bytes] = ...) -> None: ...
 
 class ExecutionConfig(_message.Message):
     __slots__ = ("model_name", "context_management", "max_tool_rounds", "max_tool_result_chars", "max_cost_usd", "interaction_mode", "structured_output_schema", "build_from_plan", "approval_mode", "service_tier", "thinking_mode")

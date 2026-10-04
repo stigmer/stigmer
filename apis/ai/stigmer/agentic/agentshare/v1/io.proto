@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.agentshare.v1;
 
 import "ai/stigmer/agentic/agentshare/v1/api.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 
@@ -120,8 +121,15 @@ message SharedAgentProfile {
   // Icon URL for the chat page header.
   string icon_url = 5;
 
-  // ID of the referenced agent's default instance, used by the hosted chat
-  // page to create sessions. This is an identifier, not a capability —
-  // session creation still requires an authorized token.
-  string default_instance_id = 6;
+  // Field 6 held the shared agent's default instance id, which the hosted
+  // chat page started sessions on until the instance kind was removed.
+  reserved 6;
+  reserved "default_instance_id";
+
+  // The share's agent reference (spec.agent_ref): the hosted chat page
+  // starts the visitor's session on exactly this reference, version
+  // included. This is a name, not a capability — session creation still
+  // requires an authorized token, and the edition's guest gate admits a
+  // session only on this reference and the agent the share pins.
+  ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7;
 }

@@ -43,7 +43,6 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_manage_plans: _ClassVar[IamPermission]
     can_issue_license: _ClassVar[IamPermission]
     can_create_mcp_server: _ClassVar[IamPermission]
-    can_create_agent_instance: _ClassVar[IamPermission]
     can_create_team: _ClassVar[IamPermission]
     can_manage_credits: _ClassVar[IamPermission]
 
@@ -93,7 +92,6 @@ can_create_plugin: IamPermission
 can_manage_plans: IamPermission
 can_issue_license: IamPermission
 can_create_mcp_server: IamPermission
-can_create_agent_instance: IamPermission
 can_create_team: IamPermission
 can_manage_credits: IamPermission
 iam_role_unspecified: IamRole

@@ -110,7 +110,7 @@ message IdentityAccountPreferences {
   //
   // @internal
   // Snapshotted verbatim into
-  // AgentExecutionSpec.declared_preferences.user_context at execution create
+  // AgentExecutionStatus.declared_preferences.user_context at execution create
   // (first-party human operators only). The runner
   // frames it as context, not instructions that override the task.
   string standing_context = 1 [(buf.validate.field).string.max_len = 2000];

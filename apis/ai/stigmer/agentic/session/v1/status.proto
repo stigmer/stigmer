@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.session.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+
+// SessionStatus contains system-managed state for a session.
+message SessionStatus {
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // ID of the agent spec.agent_ref resolved to when it was last written.
+  // Empty when the session names no agent: the built-in assistant answers.
+  //
+  // @internal
+  // Server-owned: the server resolves the reference when a write names or
+  // changes it, and every turn reaches its agent through this id by point
+  // read, never by its slug again. A slug deleted and taken by another
+  // agent therefore never redirects a live conversation; the conversation's
+  // next turn fails naming the agent that is gone.
+  string agent_id = 1;
+
+  // Content hash of the agent version this conversation runs
+  // (AgentStatus.version_hash when the reference resolved; resolvable
+  // through AgentQueryController.getVersion with agent_id).
+  //
+  // Each turn runs this version and records it on its own status. Empty
+  // when agent_id is empty, or when the agent had no recorded version when
+  // the reference resolved; such a conversation runs the agent as it is
+  // when each turn starts.
+  string agent_version_hash = 2;
+}

@@ -29,7 +29,7 @@ message GetAgentChannelsByAgentRequest {
   //
   // @internal
   // Mirrors the org scoping on the sibling getByAgent/getByWorkflow
-  // requests (agent shares, agent instances, workflow instances). Handlers
+  // requests (agent shares, workflow instances). Handlers
   // implementing this RPC must apply the filter in their query/list step.
   string org = 3;
 }
