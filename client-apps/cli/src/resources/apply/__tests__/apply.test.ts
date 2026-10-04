@@ -4,13 +4,16 @@
 // manifest declares a different level the core lands it through
 // updateVisibility (or warns when the kind has no such door), and when an
 // organization manifest carries its id and a different slug, through rename.
-// Visibility lands first, so a refused rename reports what landed with it.
-// And the org-mismatch warning: an organization is named by id or slug, so
-// two different strings are asked about before they are called different,
-// and the warning names each by slug.
+// Visibility lands first, so a refused rename reports what landed with it,
+// and its advice follows the refusal's code. And the org-mismatch warning:
+// an organization is named by id or slug, so two different strings are
+// asked about before they are called different, and the warning names each
+// by slug; a lookup that fails for another reason fails the apply. The
+// dry-run preview names the organization by slug too.
 // And the Organization handler's rename binding, which the follow-up drives.
 
 import { create, type Message } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -187,11 +190,36 @@ describe("applyMessage declared-slug follow-up", () => {
   });
 
   it("fails loudly when the rename is refused, naming the partial state and how to finish", async () => {
-    const { handler } = organizationHandler(organization("acme"), () => Promise.reject(new Error("the slug is taken")));
+    const { handler } = organizationHandler(organization("acme"), () =>
+      Promise.reject(new ConnectError("the slug is taken", Code.AlreadyExists)),
+    );
 
     await expect(applyMessage(controller, handler, organization("taken"), "", false)).rejects.toThrow(
-      /Organization spec applied, but the manifest's slug change was rejected: the slug is taken\. The slug stays 'acme'; choose another slug and apply again\./,
+      /Organization spec applied, but the manifest's slug change was rejected: .*the slug is taken\. The slug stays 'acme'; choose another slug and apply again\.$/,
     );
+  });
+
+  it("tells a caller who may not rename that renaming needs the organization's owner, not to pick another slug", async () => {
+    const { handler } = organizationHandler(organization("acme"), () =>
+      Promise.reject(new ConnectError("can_delete required", Code.PermissionDenied)),
+    );
+
+    const err = await applyMessage(controller, handler, organization("acme-corp"), "", false).catch((e: unknown) => e);
+
+    expect((err as Error).message).toMatch(
+      /slug change was rejected: .*can_delete required\. The slug stays 'acme'; renaming needs the organization's owner\.$/,
+    );
+    expect((err as Error).message).not.toMatch(/choose another slug/);
+  });
+
+  it("gives no advice for any other refusal", async () => {
+    const { handler } = organizationHandler(organization("acme"), () =>
+      Promise.reject(new ConnectError("backend unavailable", Code.Unavailable)),
+    );
+
+    const err = await applyMessage(controller, handler, organization("acme-corp"), "", false).catch((e: unknown) => e);
+
+    expect((err as Error).message).toMatch(/slug change was rejected: .*backend unavailable\. The slug stays 'acme'\.$/);
   });
 
   it("lands a declared visibility before a refused rename, and the refusal says both landed", async () => {
@@ -212,7 +240,7 @@ describe("applyMessage declared-slug follow-up", () => {
       },
       rename: (_c, input) => {
         renameCalls.push(input);
-        return Promise.reject(new Error("the slug is taken"));
+        return Promise.reject(new ConnectError("the slug is taken", Code.AlreadyExists));
       },
     };
     const manifest = create(AgentSchema, {
@@ -220,7 +248,7 @@ describe("applyMessage declared-slug follow-up", () => {
     });
 
     await expect(applyMessage(controller, handler, manifest, "acme", false)).rejects.toThrow(
-      /Agent spec and visibility applied, but the manifest's slug change was rejected: the slug is taken\. The slug stays 'reviewer'; choose another slug and apply again\./,
+      /Agent spec and visibility applied, but the manifest's slug change was rejected: .*the slug is taken\. The slug stays 'reviewer'; choose another slug and apply again\./,
     );
     expect(visibilityCalls).toHaveLength(1);
     expect(visibilityCalls[0].visibility).toBe(ApiResourceVisibility.visibility_platform);
@@ -266,7 +294,7 @@ describe("applyMessage org-mismatch warning", () => {
     return (() => ({
       get: ({ value }: { value: string }) =>
         ids[value] === undefined
-          ? Promise.reject(new Error("not found"))
+          ? Promise.reject(new ConnectError("not found", Code.NotFound))
           : Promise.resolve(organization(value, ids[value])),
     })) as unknown as ControllerFn;
   }
@@ -313,7 +341,7 @@ describe("applyMessage org-mismatch warning", () => {
     const answering = (() => ({
       get: ({ value }: { value: string }) =>
         slugs[value] === undefined
-          ? Promise.reject(new Error("not found"))
+          ? Promise.reject(new ConnectError("not found", Code.NotFound))
           : Promise.resolve(organization(slugs[value], value)),
     })) as unknown as ControllerFn;
     const { handler } = handlerWith({ applyReturns: agent(ApiResourceVisibility.visibility_org) });
@@ -322,6 +350,37 @@ describe("applyMessage org-mismatch warning", () => {
     const outcome = await applyMessage(answering, handler, manifest, GLOBEX_ID, true);
 
     expect(outcome.warning).toBe("resource org 'acme' differs from target org 'globex'; using 'acme'");
+  });
+
+  it("fails the apply when a lookup fails for any reason but not being able to see the organization", async () => {
+    const unreachable = (() => ({
+      get: () => Promise.reject(new ConnectError("backend unavailable", Code.Unavailable)),
+    })) as unknown as ControllerFn;
+    const { handler } = handlerWith({ applyReturns: agent(ApiResourceVisibility.visibility_org) });
+
+    await expect(
+      applyMessage(unreachable, handler, agent(ApiResourceVisibility.api_resource_visibility_unspecified), "globex", true),
+    ).rejects.toThrow(/backend unavailable/);
+  });
+});
+
+describe("applyMessage dry-run preview", () => {
+  it("names the organization by slug where the injected one is an id, and as given where the caller cannot see it", async () => {
+    const answering = (() => ({
+      get: ({ value }: { value: string }) =>
+        value === ACME_ID
+          ? Promise.resolve(organization("acme"))
+          : Promise.reject(new ConnectError("permission denied", Code.PermissionDenied)),
+    })) as unknown as ControllerFn;
+    const { handler } = handlerWith({ applyReturns: agent(ApiResourceVisibility.visibility_org) });
+    const orgOf = (outcome: Awaited<ReturnType<typeof applyMessage>>) =>
+      outcome.result.sections[0]?.fields.find((field) => field.key === "Org")?.value;
+
+    const named = await applyMessage(answering, handler, create(AgentSchema, { metadata: { name: "a" } }), ACME_ID, true);
+    const hidden = await applyMessage(answering, handler, create(AgentSchema, { metadata: { name: "a" } }), "org_01jbbbbbbbbbbbbbbbbbbbbbbb", true);
+
+    expect(orgOf(named)).toBe("acme");
+    expect(orgOf(hidden)).toBe("org_01jbbbbbbbbbbbbbbbbbbbbbbb");
   });
 });
 

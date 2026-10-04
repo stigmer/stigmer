@@ -5,6 +5,7 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { Stigmer } from "@stigmer/sdk";
+import { cannotSeeOrganization } from "../client/organizations.js";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
 import { getterFor, type ResourceResult } from "./get-bindings.js";
 import type { ParsedReference } from "./reference.js";
@@ -39,9 +40,13 @@ async function fetchOrganization(client: Stigmer, ref: ParsedReference): Promise
   if (match !== undefined) {
     return { schema: OrganizationSchema, message: match };
   }
+  // Only a refusal that says the caller cannot see it is "not found"; any
+  // other failure (a refused credential, an unreachable server) is reported
+  // as itself.
   try {
     return { schema: OrganizationSchema, message: await client.organization.get(ref.slug) };
-  } catch {
+  } catch (err) {
+    if (!cannotSeeOrganization(err)) throw err;
     throw new CliExitError(`organization "${ref.slug}" not found`, ExitCode.NotFound);
   }
 }

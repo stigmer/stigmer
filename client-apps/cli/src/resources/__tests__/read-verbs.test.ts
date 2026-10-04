@@ -288,6 +288,10 @@ beforeAll(async () => {
       get: (req) => {
         orgGets.push(req.value);
         if (req.value === ACME_ID || req.value === "acme") return knownOrg;
+        // As the server refuses an organization the caller cannot see.
+        if (req.value === "hidden-org") throw new ConnectError("permission denied", Code.PermissionDenied);
+        // As a server that cannot answer right now.
+        if (req.value === "flaky-org") throw new ConnectError("backend unavailable", Code.Unavailable);
         if (req.value !== "globex-old" && req.value !== renamedOrg.metadata?.id) {
           throw new ConnectError("organization not found", Code.NotFound);
         }
@@ -437,6 +441,27 @@ describe("get integration", () => {
     }).catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
     expect(String(err)).toMatch(/organization "nobody" not found/);
+  });
+
+  it("answers NotFound for an organization the server refuses to show the caller", async () => {
+    const err = await fetchResource(client, ApiResourceKind.organization, {
+      kind: "ref",
+      org: "acme",
+      slug: "hidden-org",
+    }).catch((e) => e);
+    expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
+    expect(String(err)).toMatch(/organization "hidden-org" not found/);
+  });
+
+  it("reports a failed organization lookup as itself, never as not found", async () => {
+    const err = await fetchResource(client, ApiResourceKind.organization, {
+      kind: "ref",
+      org: "acme",
+      slug: "flaky-org",
+    }).catch((e) => e);
+    expect(classify(err)?.exitCode).toBe(ExitCode.Connection);
+    expect(String(err)).toMatch(/backend unavailable/);
+    expect(String(err)).not.toMatch(/not found/);
   });
 
   it("fetches an environment by org/slug and renders backend protojson", async () => {

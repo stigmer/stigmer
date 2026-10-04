@@ -7,6 +7,7 @@
 // (org → mcp_server → agent → workflow → …) land before their dependents.
 
 import { create, fromJson, type JsonValue, type Message } from "@bufbuild/protobuf";
+import { Code } from "@connectrpc/connect";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -17,7 +18,12 @@ import {
   type ApiResourceMetadata,
   ApiResourceMetadataSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { UsageError } from "../../errors/index.js";
+import {
+  type OrganizationReader,
+  organizationLabel,
+  organizationNamed,
+} from "../../client/organizations.js";
+import { classify, UsageError } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
 import { defaultRegistry, unknownKindError, Verb } from "../../registry/index.js";
 import { loadDocuments, resolveYamlFiles } from "../documents.js";
@@ -140,7 +146,7 @@ export async function applyMessage(
   const created = (metaOf(message)?.id ?? "") === "";
 
   if (dryRun) {
-    return { result: buildDryRunResult(handler, message), warning: orgWarning };
+    return { result: await buildDryRunResult(controller, handler, message), warning: orgWarning };
   }
 
   const applied = await handler.apply(controller, message);
@@ -217,10 +223,12 @@ async function applyDeclaredVisibility(
  * the slug as it was; this follows up with one `rename`, as visibility is
  * followed up. Only kinds with the RPC are driven, and only when the
  * manifest names the id: without it the slug is how apply finds the
- * resource, so a new slug means a new resource. A refusal (the slug is
- * taken) fails the command after the spec and any declared visibility have
- * landed; the error says what landed, carries the visibility follow-up's
- * warning, and says how to finish.
+ * resource, so a new slug means a new resource. A refusal fails the
+ * command after the spec and any declared visibility have landed; the error
+ * says what landed and carries the visibility follow-up's warning. Its advice
+ * follows the refusal: a slug that is taken or reserved (AlreadyExists) asks
+ * for another slug, a caller who may not rename (PermissionDenied: renaming
+ * needs the organization's owner) is told so, anything else gets none.
  */
 async function applyDeclaredSlug(
   controller: ControllerFn,
@@ -255,8 +263,20 @@ async function applyDeclaredSlug(
     const warning = visibilityWarning === undefined ? "" : ` (${visibilityWarning})`;
     throw new UsageError(
       `${handler.displayName} ${landed} applied${warning}, but the manifest's slug change was rejected: ` +
-        `${(err as Error).message}. The slug stays '${appliedMeta.slug}'; choose another slug and apply again.`,
+        `${(err as Error).message}. The slug stays '${appliedMeta.slug}'${renameAdvice(err)}.`,
     );
+  }
+}
+
+/** What to do after a refused rename, by the refusal's code; "" when there is nothing to add. */
+function renameAdvice(err: unknown): string {
+  switch (classify(err)?.code) {
+    case Code.AlreadyExists:
+      return "; choose another slug and apply again";
+    case Code.PermissionDenied:
+      return "; renaming needs the organization's owner";
+    default:
+      return "";
   }
 }
 
@@ -296,9 +316,10 @@ async function injectOrg(
     return undefined;
   }
   if (holder.metadata.org === org) return undefined;
+  const reader = organizationReader(controller);
   const [declared, target] = await Promise.all([
-    organizationNamed(controller, holder.metadata.org),
-    organizationNamed(controller, org),
+    organizationNamed(reader, holder.metadata.org),
+    organizationNamed(reader, org),
   ]);
   if (declared !== undefined && declared.id === target?.id) return undefined;
   const declaredLabel = declared?.slug || holder.metadata.org;
@@ -306,18 +327,9 @@ async function injectOrg(
   return `resource org '${declaredLabel}' differs from target org '${targetLabel}'; using '${declaredLabel}'`;
 }
 
-/** The organization a value (id or slug) names, as the server resolves it; undefined when the caller cannot see one. */
-async function organizationNamed(
-  controller: ControllerFn,
-  value: string,
-): Promise<{ readonly id: string; readonly slug: string } | undefined> {
-  try {
-    const metadata = (await controller(OrganizationQueryController).get({ value })).metadata;
-    const id = metadata?.id ?? "";
-    return id === "" ? undefined : { id, slug: metadata?.slug ?? "" };
-  } catch {
-    return undefined;
-  }
+/** The organization get the shared name helpers ask, over the raw query controller. */
+function organizationReader(controller: ControllerFn): OrganizationReader {
+  return { organization: { get: (value) => controller(OrganizationQueryController).get({ value }) } };
 }
 
 function buildApplyResult(handler: ApplyHandler, applied: Message, created: boolean): CommandResult {
@@ -330,14 +342,20 @@ function buildApplyResult(handler: ApplyHandler, applied: Message, created: bool
   return result;
 }
 
-function buildDryRunResult(handler: ApplyHandler, message: Message): CommandResult {
+// The preview names the organization by slug, as other output does: the
+// injected context organization is an id.
+async function buildDryRunResult(
+  controller: ControllerFn,
+  handler: ApplyHandler,
+  message: Message,
+): Promise<CommandResult> {
   const meta = metaOf(message);
   const name = meta?.name ?? handler.displayName;
   const result = CommandResult.success(`Dry run: ${name} is valid`);
   const section = result.addSection(`${handler.displayName} Preview`);
   if (meta?.name) section.field("Name", meta.name);
   if (meta?.slug) section.field("Slug", meta.slug);
-  if (meta?.org) section.field("Org", meta.org);
+  if (meta?.org) section.field("Org", await organizationLabel(organizationReader(controller), meta.org));
   return result;
 }
 

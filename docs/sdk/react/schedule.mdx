@@ -448,6 +448,9 @@ recommended workflow — create staged-disabled, validate with
 Creation only. Editing an existing schedule must not flow through
 this form's curated input — see the note on [`useCreateSchedule`](#usecreateschedule).
 
+The created schedule names its organization by id; the console URL
+carries the slug.
+
 **Props** — `ScheduleFormProps`
 
 <TypeTable
@@ -460,9 +463,13 @@ this form's curated input — see the note on [`useCreateSchedule`](#usecreatesc
 />
 
 ```tsx
+const slugForOrg = useOrgSlugForId();
+
 <ScheduleForm
   org="acme"
-  onComplete={(s) => navigate(`/library/schedules/${s.metadata?.org}/${s.metadata?.slug}`)}
+  onComplete={(s) =>
+    navigate(`/library/schedules/${slugForOrg(s.metadata?.org ?? "")}/${s.metadata?.slug}`)
+  }
   onCancel={() => navigate("/library/schedules")}
 />
 ```

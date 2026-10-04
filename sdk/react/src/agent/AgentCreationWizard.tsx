@@ -87,11 +87,15 @@ const STEPS: WizardStepDef<AgentWizardData>[] = [
  * This component is an SDK-first, embeddable wizard with zero Console
  * dependencies. Platform builders can mount it anywhere.
  *
+ * `onComplete` receives the organization by id; the URL carries the slug.
+ *
  * @example
  * ```tsx
+ * const slugForOrg = useOrgSlugForId();
+ *
  * <AgentCreationWizard
  *   org="acme"
- *   onComplete={({ org, slug }) => navigate(`/agents/${org}/${slug}`)}
+ *   onComplete={({ org, slug }) => navigate(`/agents/${slugForOrg(org)}/${slug}`)}
  *   onCancel={() => navigate("/agents")}
  * />
  * ```

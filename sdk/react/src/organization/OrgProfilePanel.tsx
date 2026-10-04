@@ -32,7 +32,11 @@ const LOGO_URL_MAX_LEN = 2048;
 export interface OrgProfilePanelProps {
   /** The ID of the organization to display and edit. */
   readonly org: string;
-  /** Fired with the updated resource after a successful save. */
+  /**
+   * Fired with the updated resource after a successful save or rename.
+   * Inside an {@link OrgProvider} the panel has already refreshed the
+   * provider's organizations, so a handler need not refresh them again.
+   */
   readonly onUpdated?: (org: Organization) => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
@@ -48,9 +52,13 @@ export interface OrgProfilePanelProps {
  * The organization's owners (`can_delete` on it) can also rename it: the
  * slug becomes an editable field whose Rename action calls
  * `organization.rename()` and fires `onUpdated` with the renamed resource.
- * Inside an {@link OrgProvider}, a rename also refreshes the provider's
- * organizations, so every slug it shows follows, and the active
- * organization stays selected.
+ * The Rename action stays disabled until the panel shows the renamed slug,
+ * so one rename is in flight at a time.
+ *
+ * Inside an {@link OrgProvider}, the panel is the one that refreshes the
+ * provider's organizations after a save or a rename, once each, so every
+ * name and slug it shows follows, and the active organization stays
+ * selected.
  * The field is never shown on a server that holds one organization, where
  * the organization is not named anywhere.
  *
@@ -129,6 +137,13 @@ export function OrgProfilePanel({
 
   const canSubmit = name.trim().length > 0 && !isUpdating && hasChanges;
 
+  // The provider's one refresh after a save or a rename. It re-selects the
+  // active organization by its id, which a rename leaves alone, so renaming
+  // another organization switches nothing.
+  const refreshProvider = useCallback(() => {
+    orgContext?.refresh(orgContext.activeOrg?.metadata?.id);
+  }, [orgContext]);
+
   const handleDiscard = useCallback(() => {
     setName(serverName);
     setDescription(serverDescription);
@@ -153,6 +168,7 @@ export function OrgProfilePanel({
           logoUrl: logoUrl.trim() || undefined,
         });
         refetch();
+        refreshProvider();
         onUpdated?.(updated);
       } catch {
         // error state is managed by useUpdateOrganization
@@ -167,6 +183,7 @@ export function OrgProfilePanel({
       update,
       clearError,
       refetch,
+      refreshProvider,
       onUpdated,
     ],
   );
@@ -235,9 +252,7 @@ export function OrgProfilePanel({
             currentSlug={serverSlug}
             onRenamed={(renamed) => {
               refetch();
-              // Re-selecting the active org by its id, which a rename leaves
-              // alone, so renaming another organization switches nothing.
-              orgContext?.refresh(orgContext.activeOrg?.metadata?.id);
+              refreshProvider();
               onUpdated?.(renamed);
             }}
           />
@@ -501,7 +516,9 @@ function ShieldSmallIcon() {
  * profile's Save: a rename changes the name in every link to the
  * organization, so it is a deliberate act of its own. It sits inside the
  * profile form, so Enter in the field renames rather than submitting the
- * profile.
+ * profile. After a rename lands, `currentSlug` is the old slug until the
+ * panel's refetch returns, so the field stays settling (disabled) until
+ * `currentSlug` moves: a second click cannot send the same rename again.
  */
 function RenameSlugField({
   orgId,
@@ -515,23 +532,30 @@ function RenameSlugField({
   const inputId = useId();
   const { rename, isRenaming, error, clearError } = useRenameOrganization();
   const [slug, setSlug] = useState(currentSlug);
+  // The slug a landed rename left behind, until the panel shows another.
+  const [renamedFrom, setRenamedFrom] = useState<string | null>(null);
 
   useEffect(() => {
     setSlug(currentSlug);
+    setRenamedFrom(null);
   }, [currentSlug]);
 
+  const settling = renamedFrom !== null;
+  const busy = isRenaming || settling;
   const next = slug.trim();
-  const canRename = next.length > 0 && next !== currentSlug && !isRenaming;
+  const canRename = next.length > 0 && next !== currentSlug && !busy;
 
   const submit = useCallback(async () => {
     if (!canRename) return;
     clearError();
     try {
-      onRenamed(await rename(orgId, next));
+      const renamed = await rename(orgId, next);
+      setRenamedFrom(currentSlug);
+      onRenamed(renamed);
     } catch {
       // error state is managed by useRenameOrganization
     }
-  }, [canRename, clearError, rename, orgId, next, onRenamed]);
+  }, [canRename, clearError, rename, orgId, next, currentSlug, onRenamed]);
 
   return (
     <div className="stg:space-y-1">
@@ -556,7 +580,7 @@ function RenameSlugField({
               void submit();
             }
           }}
-          disabled={isRenaming}
+          disabled={busy}
           spellCheck={false}
           autoComplete="off"
           className={cn(
@@ -575,7 +599,7 @@ function RenameSlugField({
             "stg:disabled:pointer-events-none stg:disabled:opacity-40",
           )}
         >
-          {isRenaming && <SpinnerIcon size={12} />}
+          {busy && <SpinnerIcon size={12} />}
           Rename
         </button>
       </div>

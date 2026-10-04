@@ -449,9 +449,13 @@ On save, calls `organization.update()` and fires `onUpdated`.
 The organization's owners (`can_delete` on it) can also rename it: the
 slug becomes an editable field whose Rename action calls
 `organization.rename()` and fires `onUpdated` with the renamed resource.
-Inside an [`OrgProvider`](#orgprovider), a rename also refreshes the provider's
-organizations, so every slug it shows follows, and the active
-organization stays selected.
+The Rename action stays disabled until the panel shows the renamed slug,
+so one rename is in flight at a time.
+
+Inside an [`OrgProvider`](#orgprovider), the panel is the one that refreshes the
+provider's organizations after a save or a rename, once each, so every
+name and slug it shows follows, and the active organization stays
+selected.
 The field is never shown on a server that holds one organization, where
 the organization is not named anywhere.
 
@@ -464,7 +468,7 @@ or layout — platform builders can embed it directly:
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    onUpdated: { type: "(org: Organization) => void", description: "Fired with the updated resource after a successful save." },
+    onUpdated: { type: "(org: Organization) => void", description: "Fired with the updated resource after a successful save or rename. Inside an OrgProvider the panel has already refreshed the provider's organizations, so a handler need not refresh them again." },
     org: { type: "string", description: "The ID of the organization to display and edit.", required: true },
   }}
 />

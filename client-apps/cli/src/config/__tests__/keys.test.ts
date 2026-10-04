@@ -1,3 +1,8 @@
+// Unit tests for the dotted-key access behind `config get|set|list`
+// (config/keys.ts): the known keys, reads of unset keys, writes that create
+// what they need, and `context.org`, the unchecked escape hatch beside
+// `config context set`.
+
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/usage-error.js";
 import { getDefault } from "../config.js";
@@ -20,6 +25,13 @@ describe("config keys", () => {
     setConfigValue(config, "context.org", "acme");
     expect(config.context?.org).toBe("acme");
     expect(getConfigValue(config, "context.org")).toBe("acme");
+  });
+
+  it("context.org drops the slug `context set` stored beside an earlier value", () => {
+    const config = getDefault();
+    config.context = { org: "org_01jaaaaaaaaaaaaaaaaaaaaaaa", org_slug: "acme" };
+    setConfigValue(config, "context.org", "globex");
+    expect(config.context).toEqual({ org: "globex" });
   });
 
   it("gets the backend type", () => {

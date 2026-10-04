@@ -1,22 +1,18 @@
 "use client";
 
-import { useCallback, useId } from "react";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { useId } from "react";
 import { OrgProfilePanel } from "../organization/OrgProfilePanel.js";
 import { useOrg } from "../organization/OrgProvider.js";
 
-/** Settings section for editing the active organization profile. */
+/**
+ * Settings section for editing the active organization profile. The panel
+ * refreshes the organization context itself after a save or a rename, so
+ * the section adds no refresh of its own.
+ */
 export function OrgProfileSection() {
   const headingId = useId();
-  const { activeOrg, refresh } = useOrg();
+  const { activeOrg } = useOrg();
   const orgId = activeOrg?.metadata?.id ?? "";
-
-  const handleUpdated = useCallback(
-    (org: Organization) => {
-      refresh(org.metadata?.id);
-    },
-    [refresh],
-  );
 
   return (
     <section aria-labelledby={headingId}>
@@ -35,7 +31,7 @@ export function OrgProfileSection() {
           Select an organization to view its profile.
         </p>
       ) : (
-        <OrgProfilePanel org={orgId} onUpdated={handleUpdated} />
+        <OrgProfilePanel org={orgId} />
       )}
     </section>
   );

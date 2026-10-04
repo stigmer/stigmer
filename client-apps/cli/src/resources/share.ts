@@ -102,10 +102,15 @@ export async function shareAgent(
   // An empty org (an ID ref without context) is the agent's own. The agent
   // names its organization by id and the caller may name it by slug, so a
   // mismatch is asked about before it is refused.
+  // Both organizations print by slug: the requested one may be the
+  // context's id.
   if (org !== "" && !(await sameOrganization(client, org, agentOrg))) {
-    const agentOrgLabel = await organizationLabel(client, agentOrg);
+    const [agentOrgLabel, orgLabel] = await Promise.all([
+      organizationLabel(client, agentOrg),
+      organizationLabel(client, org),
+    ]);
     throw new UsageError(
-      `a share of ${agentOrgLabel}/${agent.metadata?.slug ?? ""} lives in ${agentOrgLabel}, not ${org}\n\n` +
+      `a share of ${agentOrgLabel}/${agent.metadata?.slug ?? ""} lives in ${agentOrgLabel}, not ${orgLabel}\n\n` +
         "A share is the agent's own organization's channel. To share another\n" +
         "organization's agent from yours, install the plugin that carries it and\n" +
         "share the installed copy. To manage this agent's own share:\n" +

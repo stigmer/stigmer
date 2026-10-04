@@ -1,7 +1,15 @@
+/**
+ * useCreateSession: a session is created for an explicit agent instance or
+ * for an agent reference's default instance, with the execution target the
+ * input or the context names; an agent without a default instance is an
+ * error that names the agent's organization by slug where it is one of the
+ * person's, and by the reference's value otherwise.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerContext } from "../../context";
+import { OrgProvider, useOrg } from "../../organization/OrgProvider";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ExecutionTargetContext } from "../../execution-target-context";
 import { useCreateSession } from "../useCreateSession";
@@ -123,6 +131,51 @@ describe("useCreateSession", () => {
     expect(caughtError!.message).toContain("does not have a default instance");
     expect(result.current.error).toBeTruthy();
     expect(result.current.error!.message).toContain("does not have a default instance");
+    expect(caughtError!.message).toContain('Agent "acme/no-instance-agent"');
+  });
+
+  it("names the agent's organization by slug where it is one of the person's", async () => {
+    const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
+    localStorage.clear();
+    const client = {
+      ...(createMockStigmer({
+        getByReference: vi.fn().mockResolvedValue({ status: { defaultInstanceId: "" } }),
+      }) as object),
+      organization: {
+        findMyOrganizations: vi.fn().mockResolvedValue({
+          entries: [{ metadata: { id: ACME_ID, slug: "acme" } }],
+        }),
+      },
+    };
+    const Base = wrapper(client);
+    const { result } = renderHook(
+      () => ({ session: useCreateSession(), org: useOrg() }),
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <Base>
+            <OrgProvider>{children}</OrgProvider>
+          </Base>
+        ),
+      },
+    );
+    await waitFor(() => expect(result.current.org.orgs).toHaveLength(1));
+
+    const messageFor = async (org: string) => {
+      let message = "";
+      await act(async () => {
+        try {
+          await result.current.session.create({ org, agentRef: { org, slug: "no-instance-agent" } });
+        } catch (err) {
+          message = (err as Error).message;
+        }
+      });
+      return message;
+    };
+
+    expect(await messageFor(ACME_ID)).toContain('Agent "acme/no-instance-agent" does not have a default instance');
+    // An organization the person does not belong to reads as given.
+    const other = "org_01jbbbbbbbbbbbbbbbbbbbbbbb";
+    expect(await messageFor(other)).toContain(`Agent "${other}/no-instance-agent"`);
   });
 
   it("sets error state on session.create failure", async () => {

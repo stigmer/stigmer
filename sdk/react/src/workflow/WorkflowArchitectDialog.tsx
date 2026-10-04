@@ -47,13 +47,18 @@ export interface WorkflowArchitectDialogProps {
  * Uses the same `<dialog>` + `showModal()` pattern as `WorkflowRunDialog`.
  * Styled via `--stgm-*` design tokens.
  *
+ * `onSuccess` receives the workflow's organization by id; the console URL
+ * carries the slug.
+ *
  * @example
  * ```tsx
+ * const slugForOrg = useOrgSlugForId();
+ *
  * <WorkflowArchitectDialog
  *   open={showDialog}
  *   onOpenChange={setShowDialog}
  *   org="acme"
- *   onSuccess={(org, slug) => router.push(`/library/workflows/${org}/${slug}`)}
+ *   onSuccess={(org, slug) => router.push(`/library/workflows/${slugForOrg(org)}/${slug}`)}
  *   onError={(msg) => toast.error(msg)}
  * />
  * ```

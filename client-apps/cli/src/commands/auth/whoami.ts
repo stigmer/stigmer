@@ -6,17 +6,24 @@
 // who only ever uses the CLI is never left without an account. The result
 // says when THIS call created it — a first sign-in is visible, never silent.
 //
+// It names the context organization by the slug the backend answers now,
+// not the one `config context set` stored, and stores the current one when
+// the organization was renamed since.
+//
 // whoamiResult is the pure half (given the account and what the call learned,
 // the CommandResult a person reads); runWhoami is the I/O half.
 
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { ensureMyIdentityAccount } from "@stigmer/sdk";
+import { ensureMyIdentityAccount, type Stigmer } from "@stigmer/sdk";
 import {
+  type Config,
   ensureAuthenticated,
-  contextOrganizationId,
-  contextOrganizationLabel,
+  load,
+  resolveContextOrganization,
+  save,
 } from "../../config/index.js";
 import { CommandResult } from "../../output/index.js";
+import { organizationLabel } from "../../client/organizations.js";
 import { omitsOrganization } from "../../client/single-org.js";
 
 /** What the call learned beyond the account itself. */
@@ -90,10 +97,37 @@ export async function runWhoami(): Promise<CommandResult> {
   const { account, created } = await ensureMyIdentityAccount(client.stigmer, {
     onProvisioning: () => process.stderr.write("Setting up your account...\n"),
   });
-  return whoamiResult(account, {
-    created,
-    org: contextOrganizationLabel(client.config),
-    orgId: contextOrganizationId(client.config),
-    singleOrg: await omitsOrganization(client.stigmer),
-  });
+  const singleOrg = await omitsOrganization(client.stigmer);
+  const org = singleOrg ? { label: "", id: "" } : await liveContextOrganization(client.stigmer, client.config);
+  return whoamiResult(account, { created, org: org.label, orgId: org.id, singleOrg });
+}
+
+/**
+ * The context organization as the backend names it now: its live slug when
+ * the caller can see it, else the slug `context set` stored, else the value
+ * as configured; with its id beside a label that is not the value itself.
+ * A live slug that differs from the stored one (the organization was renamed
+ * since `set`) is stored in its place, so `config context show` catches up.
+ */
+async function liveContextOrganization(
+  stigmer: Stigmer,
+  config: Config,
+): Promise<{ readonly label: string; readonly id: string }> {
+  const org = resolveContextOrganization(config);
+  if (org === "") return { label: "", id: "" };
+  const live = await organizationLabel(stigmer, org);
+  const stored = config.context?.org_slug ?? "";
+  const label = live !== org ? live : stored || org;
+  if (live !== org && stored !== "" && live !== stored) {
+    rememberSlug(org, live);
+  }
+  return { label, id: label === org ? "" : org };
+}
+
+/** Store a context organization's current slug, unless the file names another organization by now. */
+function rememberSlug(org: string, slug: string): void {
+  const config = load();
+  if (config.context?.org !== org) return;
+  config.context.org_slug = slug;
+  save(config);
 }

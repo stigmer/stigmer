@@ -777,6 +777,9 @@ Composes existing infrastructure:
 The hook is framework-agnostic and returns referentially
 stable values.
 
+`onSuccess` receives the workflow's organization by id; the console URL
+carries the slug.
+
 **Signature**
 
 ```tsx
@@ -808,9 +811,10 @@ function useWorkflowArchitectFlow(options: UseWorkflowArchitectFlowOptions): Use
 />
 
 ```tsx
+const slugForOrg = useOrgSlugForId();
 const flow = useWorkflowArchitectFlow({
   org: "acme",
-  onSuccess: (org, slug) => router.push(`/library/workflows/${org}/${slug}`),
+  onSuccess: (org, slug) => router.push(`/library/workflows/${slugForOrg(org)}/${slug}`),
   onError: (msg) => toast.error(msg),
 });
 
@@ -1838,6 +1842,9 @@ The user can create the workflow, try again, or close.
 Uses the same `<dialog>` + `showModal()` pattern as `WorkflowRunDialog`.
 Styled via `--stgm-*` design tokens.
 
+`onSuccess` receives the workflow's organization by id; the console URL
+carries the slug.
+
 **Props** — `WorkflowArchitectDialogProps`
 
 <TypeTable
@@ -1851,11 +1858,13 @@ Styled via `--stgm-*` design tokens.
 />
 
 ```tsx
+const slugForOrg = useOrgSlugForId();
+
 <WorkflowArchitectDialog
   open={showDialog}
   onOpenChange={setShowDialog}
   org="acme"
-  onSuccess={(org, slug) => router.push(`/library/workflows/${org}/${slug}`)}
+  onSuccess={(org, slug) => router.push(`/library/workflows/${slugForOrg(org)}/${slug}`)}
   onError={(msg) => toast.error(msg)}
 />
 ```

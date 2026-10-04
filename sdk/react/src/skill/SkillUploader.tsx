@@ -46,11 +46,18 @@ export interface SkillUploaderProps {
  * Zero Console dependencies — safe for platform builder embedding.
  * All visual properties flow through `--stgm-*` design tokens.
  *
+ * The pushed skill names its organization by id; the console URL carries
+ * the slug.
+ *
  * @example
  * ```tsx
+ * const slugForOrg = useOrgSlugForId();
+ *
  * <SkillUploader
  *   org="acme"
- *   onComplete={(skill) => router.push(`/library/skills/${skill.metadata?.org}/${skill.metadata?.slug}`)}
+ *   onComplete={(skill) =>
+ *     router.push(`/library/skills/${slugForOrg(skill.metadata?.org ?? "")}/${skill.metadata?.slug}`)
+ *   }
  *   onCancel={() => router.back()}
  * />
  * ```

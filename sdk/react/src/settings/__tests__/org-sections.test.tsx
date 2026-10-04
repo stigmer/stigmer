@@ -1,8 +1,8 @@
 /**
  * The organization settings sections hand the active organization to their
  * panel as `org`, and show a prompt instead when none is selected; the
- * profile section reselects an organization its panel updated by the
- * organization's id, which a rename leaves unchanged. The
+ * profile section leaves refreshing the organization context to its panel,
+ * which does it once after a save or a rename. The
  * organization context and the panels are stubbed: each panel only records
  * the organization it was given.
  */
@@ -69,10 +69,10 @@ describe("the organization settings sections", () => {
     expect(state.given).toEqual([]);
   });
 
-  it("profile reselects an updated organization by its id, not its new slug", () => {
+  it("profile adds no refresh of its own to the one its panel makes", () => {
     state.activeId = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
     render(<OrgProfileSection />);
-    state.onUpdated?.({ metadata: { id: "org_01jaaaaaaaaaaaaaaaaaaaaaaa", slug: "acme-labs" } });
-    expect(state.refreshed).toEqual(["org_01jaaaaaaaaaaaaaaaaaaaaaaa"]);
+    expect(state.onUpdated).toBeUndefined();
+    expect(state.refreshed).toEqual([]);
   });
 });

@@ -2,10 +2,12 @@
  * OrgProfilePanel: the profile save keeps every spec field it does not
  * edit, the identity-provider summary's empty state follows the caller's
  * rights, and the slug is renamable by owners only, and never on a server
- * that holds one organization. A rename inside an OrgProvider refreshes its
- * organizations and keeps the active one selected.
+ * that holds one organization. A rename lands once: the Rename action stays
+ * disabled until the panel shows the renamed slug. A save or a rename inside
+ * an OrgProvider refreshes its organizations once, keeps the active one
+ * selected, and lists the renamed one by its new slug.
  */
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
@@ -18,6 +20,7 @@ import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { OrgProfilePanel } from "../OrgProfilePanel";
 import { OrgProvider, useOrg } from "../OrgProvider";
+import { OrgProfileSection } from "../../settings/OrgProfileSection";
 
 /**
  * Regression suite for the full-spec-replace wipe bug:
@@ -77,6 +80,8 @@ function renderPanel(client: unknown) {
 }
 
 afterEach(cleanup);
+// The provider restores the organization a case before it remembered.
+beforeEach(() => localStorage.clear());
 
 describe("OrgProfilePanel save payload", () => {
   it("round-trips unedited spec fields — preferences survive a profile save", async () => {
@@ -282,17 +287,22 @@ describe("OrgProfilePanel rename", () => {
       );
     }
 
-    function renderInProvider(panelOrg: string) {
-      // The person's organizations before the rename, then after it.
+    const GLOBEX_RENAMED: Organization = create(OrganizationSchema, {
+      metadata: { id: GLOBEX_ID, name: "Globex", slug: "globex-labs" },
+    });
+
+    function renderInProvider(panelOrg: string, panel?: "section") {
+      // The person's organizations before the rename, then after it: the
+      // renamed one by its new slug.
       const findMyOrganizations = vi
         .fn()
         .mockResolvedValueOnce({ entries: [ORG, GLOBEX] })
-        .mockResolvedValue({ entries: [RENAMED, GLOBEX] });
+        .mockResolvedValue({ entries: panelOrg === ACME_ID ? [RENAMED, GLOBEX] : [ORG, GLOBEX_RENAMED] });
       const client = {
         organization: {
           get: vi.fn(async () => (panelOrg === ACME_ID ? ORG : GLOBEX)),
           update: vi.fn(async () => ORG),
-          rename: vi.fn(async () => (panelOrg === ACME_ID ? RENAMED : GLOBEX)),
+          rename: vi.fn(async () => (panelOrg === ACME_ID ? RENAMED : GLOBEX_RENAMED)),
           findMyOrganizations,
         },
         iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
@@ -303,7 +313,7 @@ describe("OrgProfilePanel rename", () => {
           <DeploymentModeContext.Provider value="local">
             <OrgProvider>
               <ProviderProbe />
-              <OrgProfilePanel org={panelOrg} />
+              {panel === "section" ? <OrgProfileSection /> : <OrgProfilePanel org={panelOrg} />}
             </OrgProvider>
           </DeploymentModeContext.Provider>
         </StigmerContext.Provider>,
@@ -330,17 +340,93 @@ describe("OrgProfilePanel rename", () => {
       );
     });
 
-    it("keeps the active organization selected when it renames another", async () => {
+    it("keeps the active organization selected when it renames another, and lists that one by its new slug", async () => {
       const { findMyOrganizations } = renderInProvider(GLOBEX_ID);
       await waitFor(() => expect(screen.getByTestId("provider").textContent).toBe("acme:acme,globex"));
+      // Another tab remembers Globex; this one keeps Acme, by naming it.
+      localStorage.setItem("stigmer:activeOrg", GLOBEX_ID);
 
       await renameTo("globex-labs", "globex");
 
       await waitFor(() => expect(findMyOrganizations).toHaveBeenCalledTimes(2));
       await waitFor(() =>
+        expect(screen.getByTestId("provider").textContent).toBe("acme:acme,globex-labs"),
+      );
+      expect(localStorage.getItem("stigmer:activeOrg")).toBe(ACME_ID);
+    });
+
+    it("refreshes the provider once when the settings section hosts the panel", async () => {
+      const { findMyOrganizations } = renderInProvider(ACME_ID, "section");
+      await waitFor(() => expect(screen.getByTestId("provider").textContent).toBe("acme:acme,globex"));
+
+      await renameTo("acme-labs", "acme");
+
+      await waitFor(() =>
         expect(screen.getByTestId("provider").textContent).toBe("acme-labs:acme-labs,globex"),
       );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(findMyOrganizations).toHaveBeenCalledTimes(2);
     });
+
+    it("refreshes the provider once after a profile save", async () => {
+      const { findMyOrganizations } = renderInProvider(ACME_ID, "section");
+      const name = await screen.findByLabelText("Name");
+      await waitFor(() => expect(name).toHaveProperty("value", "Acme Corp"));
+
+      fireEvent.change(name, { target: { value: "Acme Corporation" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+      await waitFor(() => expect(findMyOrganizations).toHaveBeenCalledTimes(2));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(findMyOrganizations).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("sends one rename while the first settles, until the panel shows the new slug", async () => {
+    // The panel's refetch after the rename answers only when the test says.
+    let answerRefetch: (org: Organization) => void = () => undefined;
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce(ORG)
+      .mockImplementation(
+        () =>
+          new Promise<Organization>((resolve) => {
+            answerRefetch = resolve;
+          }),
+      );
+    const rename = vi.fn(async () => RENAMED);
+    const client = {
+      organization: { get, update: vi.fn(async () => ORG), rename },
+      iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+      platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
+    };
+    render(
+      <StigmerContext.Provider value={client as never}>
+        <DeploymentModeContext.Provider value="local">
+          <OrgProfilePanel org={ACME_ID} />
+        </DeploymentModeContext.Provider>
+      </StigmerContext.Provider>,
+    );
+
+    const slug = await screen.findByLabelText("Slug");
+    await waitFor(() => expect(slug).toHaveProperty("value", "acme"));
+    fireEvent.change(slug, { target: { value: "acme-labs" } });
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+
+    // The rename landed; the panel still shows the old slug.
+    const button = screen.getByRole("button", { name: "Rename" });
+    expect(button).toHaveProperty("disabled", true);
+    fireEvent.click(button);
+    fireEvent.keyDown(screen.getByLabelText("Slug"), { key: "Enter" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(rename).toHaveBeenCalledTimes(1);
+
+    answerRefetch(RENAMED);
+    await waitFor(() => expect(screen.getByLabelText("Slug")).toHaveProperty("disabled", false));
+    expect(screen.getByLabelText("Slug")).toHaveProperty("value", "acme-labs");
+    fireEvent.change(screen.getByLabelText("Slug"), { target: { value: "acme-works" } });
+    expect(screen.getByRole("button", { name: "Rename" })).toHaveProperty("disabled", false);
   });
 
   it("renames nothing on Enter while the slug is unchanged or blank", async () => {

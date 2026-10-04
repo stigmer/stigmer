@@ -10,8 +10,22 @@
 // the server, which resolves every form, and only when the strings differ.
 //
 // A value the caller cannot see answers undefined, so a comparison treats
-// it as a different organization and the server judges the request.
-import type { Stigmer } from "@stigmer/sdk";
+// it as a different organization and the server judges the request. The
+// server refuses an organization the caller cannot see, or one that does
+// not exist, as PermissionDenied, and may answer a get NotFound; only those
+// two mean "cannot see". Any other failure (a refused credential, an
+// unreachable server) is the lookup's own and rejects, so a command never
+// reports a network fault as "not found" or "a different organization".
+// Output is the exception: a label falls back to the value as given on any
+// failure, so printing never fails a command whose work already succeeded.
+import { Code } from "@connectrpc/connect";
+import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { classify } from "../errors/classify.js";
+
+/** What these helpers need of a client: the organization get, which resolves an id or any slug. */
+export interface OrganizationReader {
+  readonly organization: { get(value: string): Promise<Organization> };
+}
 
 /** An organization as people and the server name it. */
 export interface OrganizationNames {
@@ -19,9 +33,18 @@ export interface OrganizationNames {
   readonly slug: string;
 }
 
-/** The organization a value (id or slug) names, or undefined when the caller cannot see one by it. */
+/** Whether a failed organization lookup says the caller cannot see it (NotFound or PermissionDenied). */
+export function cannotSeeOrganization(err: unknown): boolean {
+  const code = classify(err)?.code;
+  return code === Code.NotFound || code === Code.PermissionDenied;
+}
+
+/**
+ * The organization a value (id or slug) names, or undefined when the caller
+ * cannot see one by it. Rejects with any other failure.
+ */
 export async function organizationNamed(
-  stigmer: Stigmer,
+  stigmer: OrganizationReader,
   value: string,
 ): Promise<OrganizationNames | undefined> {
   if (value === "") return undefined;
@@ -29,14 +52,15 @@ export async function organizationNamed(
     const organization = await stigmer.organization.get(value);
     const id = organization.metadata?.id ?? "";
     return id === "" ? undefined : { id, slug: organization.metadata?.slug ?? "" };
-  } catch {
-    return undefined;
+  } catch (err) {
+    if (cannotSeeOrganization(err)) return undefined;
+    throw err;
   }
 }
 
 /** Whether two values (ids or slugs) name the same organization. */
 export async function sameOrganization(
-  stigmer: Stigmer,
+  stigmer: OrganizationReader,
   a: string,
   b: string,
 ): Promise<boolean> {
@@ -48,12 +72,19 @@ export async function sameOrganization(
   return first !== undefined && second !== undefined && first.id === second.id;
 }
 
-/** How output names an organization: its slug when the caller can see it, else the value as given. */
+/**
+ * How output names an organization: its slug when the caller can see it,
+ * else the value as given, whatever stopped the lookup.
+ */
 export async function organizationLabel(
-  stigmer: Stigmer,
+  stigmer: OrganizationReader,
   value: string,
 ): Promise<string> {
-  return (await organizationNamed(stigmer, value))?.slug || value;
+  try {
+    return (await organizationNamed(stigmer, value))?.slug || value;
+  } catch {
+    return value;
+  }
 }
 
 /**
@@ -62,7 +93,7 @@ export async function organizationLabel(
  * answer prints as given.
  */
 export async function organizationLabels(
-  stigmer: Stigmer,
+  stigmer: OrganizationReader,
   values: Iterable<string>,
 ): Promise<ReadonlyMap<string, string>> {
   const distinct = [...new Set(values)].filter((value) => value !== "");

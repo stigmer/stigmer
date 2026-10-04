@@ -120,11 +120,15 @@ const MIN_PROMPT_LENGTH = 10;
  * The hook is framework-agnostic and returns referentially
  * stable values.
  *
+ * `onSuccess` receives the workflow's organization by id; the console URL
+ * carries the slug.
+ *
  * @example
  * ```tsx
+ * const slugForOrg = useOrgSlugForId();
  * const flow = useWorkflowArchitectFlow({
  *   org: "acme",
- *   onSuccess: (org, slug) => router.push(`/library/workflows/${org}/${slug}`),
+ *   onSuccess: (org, slug) => router.push(`/library/workflows/${slugForOrg(org)}/${slug}`),
  *   onError: (msg) => toast.error(msg),
  * });
  *

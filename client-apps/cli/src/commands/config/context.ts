@@ -10,9 +10,12 @@
 // slug for output: a context set before the organization is renamed keeps
 // working after it. An empty value clears the context without asking the
 // backend. The raw `config set context.org` stays the unchecked escape
-// hatch.
+// hatch. `show` never asks the backend: the slug it prints is the one `set`
+// stored, and it says so; `stigmer auth whoami` shows the current one and
+// refreshes the stored copy.
 
 import type { Command } from "commander";
+import { organizationNamed } from "../../client/organizations.js";
 import {
   type Config,
   activeBackendName,
@@ -50,6 +53,11 @@ function buildShow(config: Config): CommandResult {
   const section = result.addSection("").field("Organization", organization);
   if (organizationId !== "") section.field("Organization ID", organizationId);
   section.field("Backend", activeBackendName(config));
+  // Offline by design: the slug is the one `set` stored, which a rename
+  // since then leaves behind. whoami asks the backend.
+  if (organizationId !== "") {
+    result.hint("Organization shows the slug as of `context set`; `stigmer auth whoami` shows the current one");
+  }
   return result;
 }
 
@@ -83,14 +91,11 @@ async function assertMembership(config: Config, org: string): Promise<{ id: stri
   ensureAuthenticated(client.config);
   const mine = await client.stigmer.organization.findMyOrganizations();
   // A slug an organization was renamed from still leads to it for a while:
-  // the server answers which organization it names, matched here by id.
-  const named = async (): Promise<string | undefined> => {
-    try {
-      return (await client.stigmer.organization.get(org)).metadata?.id;
-    } catch {
-      return undefined;
-    }
-  };
+  // the server answers which organization it names, matched here by id. A
+  // value the caller cannot see is refused below; any other failed lookup
+  // rejects as itself.
+  const named = async (): Promise<string | undefined> =>
+    (await organizationNamed(client.stigmer, org))?.id;
   const match =
     mine.entries.find((entry) => entry.metadata?.slug === org || entry.metadata?.id === org) ??
     (await named().then((id) => mine.entries.find((entry) => id !== undefined && entry.metadata?.id === id)));

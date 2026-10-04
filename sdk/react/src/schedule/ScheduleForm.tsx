@@ -72,11 +72,18 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
  * Creation only. Editing an existing schedule must not flow through
  * this form's curated input — see the note on {@link useCreateSchedule}.
  *
+ * The created schedule names its organization by id; the console URL
+ * carries the slug.
+ *
  * @example
  * ```tsx
+ * const slugForOrg = useOrgSlugForId();
+ *
  * <ScheduleForm
  *   org="acme"
- *   onComplete={(s) => navigate(`/library/schedules/${s.metadata?.org}/${s.metadata?.slug}`)}
+ *   onComplete={(s) =>
+ *     navigate(`/library/schedules/${slugForOrg(s.metadata?.org ?? "")}/${s.metadata?.slug}`)
+ *   }
  *   onCancel={() => navigate("/library/schedules")}
  * />
  * ```

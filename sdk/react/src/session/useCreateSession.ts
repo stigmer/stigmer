@@ -13,6 +13,7 @@ import { toError } from "../internal/toError.js";
 import { toProtoHarness, type HarnessOption } from "../models/harness.js";
 import { toProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
+import { findOrgByRef, useOptionalOrg } from "../organization/OrgProvider.js";
 
 /** Shared fields present in both variants of {@link CreateSessionInput}. */
 export interface SharedSessionFields {
@@ -165,6 +166,9 @@ export interface UseCreateSessionReturn {
 export function useCreateSession(): UseCreateSessionReturn {
   const stigmer = useStigmer();
   const contextTarget = useExecutionTarget();
+  // The person's organizations, to name an agent's organization by slug in
+  // an error; empty outside an OrgProvider.
+  const orgs = useOptionalOrg()?.orgs;
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -185,8 +189,12 @@ export function useCreateSession(): UseCreateSessionReturn {
           const defaultId = agent.status?.defaultInstanceId;
 
           if (!defaultId) {
+            // A reference names its organization by id; the person reads
+            // the slug where it is one of theirs, else the value as given.
+            const orgLabel =
+              findOrgByRef(orgs ?? [], input.agentRef.org)?.metadata?.slug || input.agentRef.org;
             throw new Error(
-              `Agent "${input.agentRef.org}/${input.agentRef.slug}" does not have a default instance. ` +
+              `Agent "${orgLabel}/${input.agentRef.slug}" does not have a default instance. ` +
                 `Pass an explicit agentInstanceId instead.`,
             );
           }
@@ -227,7 +235,7 @@ export function useCreateSession(): UseCreateSessionReturn {
         setIsCreating(false);
       }
     },
-    [stigmer, contextTarget],
+    [stigmer, contextTarget, orgs],
   );
 
   return { create, isCreating, error, clearError };

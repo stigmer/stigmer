@@ -93,11 +93,15 @@ const STEPS: WizardStepDef<McpServerWizardData>[] = [
  * This component is an SDK-first, embeddable wizard with zero Console
  * dependencies. Platform builders can mount it anywhere.
  *
+ * `onComplete` receives the organization by id; the URL carries the slug.
+ *
  * @example
  * ```tsx
+ * const slugForOrg = useOrgSlugForId();
+ *
  * <McpServerCreationWizard
  *   org="acme"
- *   onComplete={({ org, slug }) => navigate(`/mcp-servers/${org}/${slug}`)}
+ *   onComplete={({ org, slug }) => navigate(`/mcp-servers/${slugForOrg(org)}/${slug}`)}
  *   onCancel={() => navigate("/mcp-servers")}
  * />
  * ```
