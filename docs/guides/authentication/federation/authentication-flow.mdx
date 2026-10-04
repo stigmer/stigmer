@@ -229,8 +229,8 @@ sequenceDiagram
   participant API as Stigmer API
   participant IdP as org Identity Provider
   participant Console as Stigmer Console
-  User->>Login: 1. Visit /login?org=acme
-  Login->>API: 2. getSsoProvider(acme)
+  User->>Login: 1. Visit /login?org=org_01j9…
+  Login->>API: 2. getSsoProvider(org_01j9…)
   API-->>Login: 3. SsoProviderInfo
   User->>IdP: 4. Click "Sign in with..." (OIDC redirect)
   IdP-->>User: 5. Authenticate

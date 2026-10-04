@@ -22,6 +22,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { recordShareId } from "../share-id.mjs";
+
 const here = dirname(fileURLToPath(import.meta.url));
 const resources = join(here, "../resources");
 const bin = process.env.STIGMER_BIN ?? "stigmer";
@@ -68,6 +70,9 @@ stigmer("apply", "-f", join(resources, "traveler-assist.yaml"));
 
 // 5. The public-audience share (the guest path the embed rides).
 stigmer("apply", "-f", join(here, "traveler-assist-share.yaml"));
+// The embed names the share by its id; record the cloud share's id for the
+// embed page (../share-id.mjs).
+recordShareId(bin, ORG, "traveler-assist");
 
 console.log("\nMeridian cloud world seeded (S4d minimal set).");
 console.log("Embed page: APP_ORIGIN=https://app.stigmer.ai npm run demo:embed");

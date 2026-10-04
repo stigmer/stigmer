@@ -3,10 +3,9 @@
  * a gVisor sandbox that can be paused in place (memory kept, back in about
  * a second) or suspended to storage (memory released, its workspace
  * committed) and resumed with its files. A session's sandbox therefore
- * sleeps while the session is idle and wakes when the next turn arrives,
- * where the kubernetes driver keeps a pod running for the session's life.
+ * sleeps while the session is idle and wakes when the next turn arrives.
  *
- * Shape: the kubernetes driver's. A gateway is the only surface touching
+ * Shape: a gateway is the only surface touching
  * Substrate (gateway.ts), the provisioner is built over it, and
  * newSubstrateSandboxDriverOverGateway is the test seam. State is
  * Substrate's, never a store table: an actor is named by

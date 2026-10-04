@@ -213,9 +213,10 @@ public final class PlatformClientTokenControllerGrpc {
     /**
      * <pre>
      * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
-     * Resolves org+slug to an AgentShare, provisions the org's system-managed
-     * PlatformClient and guest identity account lazily, and returns a short-lived
-     * Stigmer-signed JWT scoped to that org.
+     * Resolves the share id from the hosted chat link to an AgentShare,
+     * provisions its org's system-managed PlatformClient and guest identity
+     * account lazily, and returns a short-lived Stigmer-signed JWT scoped to
+     * that org.
      * </pre>
      */
     default void mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request,
@@ -328,9 +329,10 @@ public final class PlatformClientTokenControllerGrpc {
     /**
      * <pre>
      * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
-     * Resolves org+slug to an AgentShare, provisions the org's system-managed
-     * PlatformClient and guest identity account lazily, and returns a short-lived
-     * Stigmer-signed JWT scoped to that org.
+     * Resolves the share id from the hosted chat link to an AgentShare,
+     * provisions its org's system-managed PlatformClient and guest identity
+     * account lazily, and returns a short-lived Stigmer-signed JWT scoped to
+     * that org.
      * </pre>
      */
     public void mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request,
@@ -413,9 +415,10 @@ public final class PlatformClientTokenControllerGrpc {
     /**
      * <pre>
      * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
-     * Resolves org+slug to an AgentShare, provisions the org's system-managed
-     * PlatformClient and guest identity account lazily, and returns a short-lived
-     * Stigmer-signed JWT scoped to that org.
+     * Resolves the share id from the hosted chat link to an AgentShare,
+     * provisions its org's system-managed PlatformClient and guest identity
+     * account lazily, and returns a short-lived Stigmer-signed JWT scoped to
+     * that org.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request) throws io.grpc.StatusException {
@@ -497,9 +500,10 @@ public final class PlatformClientTokenControllerGrpc {
     /**
      * <pre>
      * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
-     * Resolves org+slug to an AgentShare, provisions the org's system-managed
-     * PlatformClient and guest identity account lazily, and returns a short-lived
-     * Stigmer-signed JWT scoped to that org.
+     * Resolves the share id from the hosted chat link to an AgentShare,
+     * provisions its org's system-managed PlatformClient and guest identity
+     * account lazily, and returns a short-lived Stigmer-signed JWT scoped to
+     * that org.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request) {
@@ -582,9 +586,10 @@ public final class PlatformClientTokenControllerGrpc {
     /**
      * <pre>
      * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
-     * Resolves org+slug to an AgentShare, provisions the org's system-managed
-     * PlatformClient and guest identity account lazily, and returns a short-lived
-     * Stigmer-signed JWT scoped to that org.
+     * Resolves the share id from the hosted chat link to an AgentShare,
+     * provisions its org's system-managed PlatformClient and guest identity
+     * account lazily, and returns a short-lived Stigmer-signed JWT scoped to
+     * that org.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse> mintGuestToken(

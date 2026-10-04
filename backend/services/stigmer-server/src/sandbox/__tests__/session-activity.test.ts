@@ -11,7 +11,18 @@
  *     been idle long enough by the stamps the server trusts; one less than
  *     a minute ahead counts as it is;
  *   - a session with no executions has no clock;
- *   - every session id is paged out, past one page.
+ *   - every session id is paged out, past one page;
+ *   - the cheap read (recentActivity) answers as the full read does
+ *     through creates, completions, deletions and a stamp ahead of the
+ *     clock, reading only the look-back window, and by id the active
+ *     runs and the run holding the latest stamp, so that run's delete,
+ *     recover or rewritten completion is never missed; it lags only
+ *     another recovered run and a run seen later than the look-back,
+ *     never busier or later than the full read, and one full read heals
+ *     it; a run stamped inside the look-back before one already seen is
+ *     caught, and an ended run is decoded once, until a by-id read
+ *     finds it active again; a held run that cannot be read sends it to
+ *     the full read; an entry untouched for ten minutes is dropped.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -30,8 +41,11 @@ import { createLogger } from "../../boot/logger.js";
 import { LIST_INDEXES } from "../../boot/list-indexes.js";
 import type { Store } from "../../store/interface.js";
 import { SqliteStore } from "../../store/sqlite/store.js";
+import type { SessionActivity } from "../provisioner.js";
 import {
+  ENTRY_IDLE_EVICT_MS,
   FUTURE_STAMP_ALLOWANCE_MS,
+  RECENT_LOOKBACK_MS,
   newStoreSessionActivityReader,
   sessionActivityOf,
 } from "../session-activity.js";
@@ -285,5 +299,649 @@ describe("sessionIds()", () => {
     const seen: string[] = [];
     for await (const id of reader.sessionIds()) seen.push(id);
     expect(seen.sort()).toEqual(ids);
+  });
+});
+
+describe("recentActivity(sessionId)", () => {
+  const T0 = Date.parse("2026-10-03T12:00:00Z");
+  const PASS_MS = 30_000;
+  const at = (ms: number) => new Date(T0 + ms);
+
+  /**
+   * The reader under test over a store that counts what each read hands
+   * out, and can corrupt a row's bytes on its next read so a test can
+   * prove the reader never decodes it again.
+   */
+  function rig() {
+    let t = T0;
+    const clock = () => t;
+    const counts = { rows: 0, byId: 0 };
+    const corrupt = new Set<string>();
+    const warnings: string[] = [];
+    const counted = new Proxy(store, {
+      get(target, prop, receiver) {
+        if (prop === "queryResources") {
+          return async (...args: Parameters<Store["queryResources"]>) => {
+            const rows = await target.queryResources(...args);
+            counts.rows += rows.length;
+            return rows.map((row) =>
+              corrupt.has(row.id)
+                ? { ...row, data: new Uint8Array([0xff, 0xff, 0xff]) }
+                : row,
+            );
+          };
+        }
+        if (prop === "getResource") {
+          return (...args: Parameters<Store["getResource"]>) => {
+            counts.byId += 1;
+            return target.getResource(...args);
+          };
+        }
+        return Reflect.get(target, prop, receiver) as unknown;
+      },
+    });
+    const logger = createLogger({
+      level: "warn",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => warnings.push(entry.message),
+    });
+    const reader = newStoreSessionActivityReader(counted, logger, clock);
+    /** The full read from a reader with no memory: the answer the cheap read owes. */
+    const truth = (): Promise<SessionActivity> =>
+      newStoreSessionActivityReader(store, silentLogger, clock).activity(
+        "ses_a",
+      );
+    return {
+      reader,
+      counts,
+      corrupt,
+      warnings,
+      truth,
+      advance: (ms: number) => {
+        t += ms;
+      },
+      now: () => t,
+    };
+  }
+
+  /** Never busier, never later than the full read. */
+  function leansToAct(cheap: SessionActivity, full: SessionActivity): void {
+    if (cheap.busy) expect(full.busy).toBe(true);
+    if (cheap.lastActiveAt !== undefined) {
+      expect(full.lastActiveAt).toBeDefined();
+      expect(cheap.lastActiveAt.getTime()).toBeLessThanOrEqual(
+        full.lastActiveAt?.getTime() ?? Number.NaN,
+      );
+    }
+  }
+
+  it("answers as the full read does through creates, completions, deletions and a stamp ahead of the clock", async () => {
+    const r = rig();
+    const steps: Array<[string, () => Promise<void>]> = [
+      ["no runs yet", async () => {}],
+      [
+        "a turn starts",
+        () =>
+          save(
+            execution(
+              "aex_1",
+              "ses_a",
+              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              at(0),
+            ),
+          ),
+      ],
+      [
+        "it ends",
+        () =>
+          save(
+            execution(
+              "aex_1",
+              "ses_a",
+              ExecutionPhase.EXECUTION_COMPLETED,
+              at(0),
+              at(40_000),
+            ),
+          ),
+      ],
+      [
+        "another session's run changes nothing",
+        () =>
+          save(
+            execution(
+              "aex_x",
+              "ses_b",
+              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              at(60_000),
+            ),
+          ),
+      ],
+      [
+        "a second turn waits for approval",
+        () =>
+          save(
+            execution(
+              "aex_2",
+              "ses_a",
+              ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+              at(90_000),
+            ),
+          ),
+      ],
+      [
+        "time passes with the turn still waiting, past the look-back",
+        async () => {},
+      ],
+      [
+        "it ends, its completion stamped by a runner two minutes ahead",
+        () =>
+          save(
+            execution(
+              "aex_2",
+              "ses_a",
+              ExecutionPhase.EXECUTION_FAILED,
+              at(90_000),
+              new Date(r.now() + 2 * 60_000),
+            ),
+          ),
+      ],
+      ["the clock reaches the stamp less the allowance", async () => {}],
+      [
+        "a late report rewrites the latest completion earlier",
+        () =>
+          save(
+            execution(
+              "aex_2",
+              "ses_a",
+              ExecutionPhase.EXECUTION_FAILED,
+              at(90_000),
+              at(100_000),
+            ),
+          ),
+      ],
+      [
+        "the run holding the latest stamp is recovered",
+        () =>
+          save(
+            execution(
+              "aex_2",
+              "ses_a",
+              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              at(90_000),
+            ),
+          ),
+      ],
+      [
+        "it fails again",
+        () =>
+          save(
+            execution(
+              "aex_2",
+              "ses_a",
+              ExecutionPhase.EXECUTION_FAILED,
+              at(90_000),
+              new Date(r.now()),
+            ),
+          ),
+      ],
+      [
+        "a third turn is deleted while it runs",
+        async () => {
+          await save(
+            execution(
+              "aex_3",
+              "ses_a",
+              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              new Date(r.now()),
+            ),
+          );
+        },
+      ],
+      [
+        "(deleted)",
+        () => store.deleteResource(ApiResourceKind.agent_execution, "aex_3"),
+      ],
+      [
+        "the run holding the latest stamp is deleted",
+        () => store.deleteResource(ApiResourceKind.agent_execution, "aex_2"),
+      ],
+      [
+        "the last run is deleted",
+        () => store.deleteResource(ApiResourceKind.agent_execution, "aex_1"),
+      ],
+    ];
+    for (const [step, act] of steps) {
+      await act();
+      const cheap = await r.reader.recentActivity("ses_a");
+      expect({ step, ...cheap }).toEqual({ step, ...(await r.truth()) });
+      r.advance(
+        step.startsWith("time passes")
+          ? 4 * PASS_MS + RECENT_LOOKBACK_MS
+          : PASS_MS,
+      );
+      if (step.startsWith("the clock reaches")) r.advance(60_000);
+    }
+  });
+
+  it("re-reads a folded run that a by-id read found active again, until it ends", async () => {
+    const r = rig();
+    await save(
+      // Its end stamped by a runner a little more than the allowance
+      // ahead, so the stamp is held back and its run re-read once reached.
+      execution(
+        "aex_x",
+        "ses_a",
+        ExecutionPhase.EXECUTION_FAILED,
+        at(-10_000),
+        at(61_500),
+      ),
+      execution(
+        "aex_y",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(-5_000),
+        at(0),
+      ),
+    );
+    await r.reader.recentActivity("ses_a");
+    // Recovered: the held-back stamp is reached on the next read, which
+    // re-reads the run by id and finds it active.
+    await save(
+      execution(
+        "aex_x",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        at(-10_000),
+      ),
+    );
+    r.advance(PASS_MS);
+    expect(await r.reader.recentActivity("ses_a")).toEqual(await r.truth());
+    await save(
+      execution(
+        "aex_x",
+        "ses_a",
+        ExecutionPhase.EXECUTION_FAILED,
+        at(-10_000),
+        at(40_000),
+      ),
+    );
+    for (let pass = 2; pass <= 5; pass += 1) {
+      r.advance(PASS_MS);
+      const cheap = await r.reader.recentActivity("ses_a");
+      expect({ pass, ...cheap }).toEqual({ pass, ...(await r.truth()) });
+    }
+  });
+
+  it("reads only the look-back window and the active runs by id once it has read a session", async () => {
+    const r = rig();
+    for (let i = 0; i < 20; i += 1) {
+      await save(
+        execution(
+          `aex_${String(i).padStart(2, "0")}`,
+          "ses_a",
+          ExecutionPhase.EXECUTION_COMPLETED,
+          at(-60 * 60_000 + i * 60_000),
+          at(-60 * 60_000 + i * 60_000 + 30_000),
+        ),
+      );
+    }
+    await save(
+      execution(
+        "aex_old",
+        "ses_a",
+        ExecutionPhase.EXECUTION_PAUSED,
+        at(-90 * 60_000),
+      ),
+    );
+    await r.reader.recentActivity("ses_a");
+    expect(r.counts).toEqual({ rows: 21, byId: 0 });
+    r.advance(PASS_MS);
+    const counts = { ...r.counts };
+    expect(await r.reader.recentActivity("ses_a")).toEqual(await r.truth());
+    // Nothing new: an empty window; the one active run and the run
+    // holding the latest stamp, each read by id.
+    expect({
+      rows: r.counts.rows - counts.rows,
+      byId: r.counts.byId - counts.byId,
+    }).toEqual({ rows: 0, byId: 2 });
+    // The active run ends, long outside the window: its by-id read sees it.
+    await save(
+      execution(
+        "aex_old",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(-90 * 60_000),
+        at(-80 * 60_000),
+      ),
+    );
+    r.advance(PASS_MS);
+    expect(await r.reader.recentActivity("ses_a")).toEqual({
+      busy: false,
+      lastActiveAt: at(-60 * 60_000 + 19 * 60_000 + 30_000),
+    });
+  });
+
+  it("re-reads the run holding the latest stamp once it is older than the window", async () => {
+    const r = rig();
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(-60 * 60_000),
+        at(-50 * 60_000),
+      ),
+    );
+    await r.reader.recentActivity("ses_a");
+    r.advance(PASS_MS);
+    const before = r.counts.byId;
+    expect(await r.reader.recentActivity("ses_a")).toEqual(await r.truth());
+    expect(r.counts.byId - before).toBe(1);
+  });
+
+  it("lags a recovered run and a run seen later than the look-back, toward acting, and one full read heals it", async () => {
+    const cases: Array<[string, () => Promise<void>]> = [
+      [
+        "an old failed run recovered, not the one holding the latest stamp",
+        () =>
+          save(
+            execution(
+              "aex_1",
+              "ses_a",
+              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              at(-60 * 60_000),
+            ),
+          ),
+      ],
+      [
+        "a run first seen long after its stamp",
+        () =>
+          save(
+            execution(
+              "aex_2",
+              "ses_a",
+              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              at(-RECENT_LOOKBACK_MS - PASS_MS - 1_000),
+            ),
+          ),
+      ],
+    ];
+    for (const [name, act] of cases) {
+      await store.deleteResourcesByKind(ApiResourceKind.agent_execution);
+      await save(
+        execution(
+          "aex_1",
+          "ses_a",
+          ExecutionPhase.EXECUTION_FAILED,
+          at(-60 * 60_000),
+          at(-59 * 60_000),
+        ),
+        execution(
+          "aex_9",
+          "ses_a",
+          ExecutionPhase.EXECUTION_COMPLETED,
+          at(-30 * 60_000),
+          at(-29 * 60_000),
+        ),
+      );
+      const r = rig();
+      await r.reader.recentActivity("ses_a");
+      r.advance(PASS_MS);
+      await act();
+      const cheap = await r.reader.recentActivity("ses_a");
+      const full = await r.truth();
+      expect({ name, busy: cheap.busy, full: full.busy }).toEqual({
+        name,
+        busy: false,
+        full: true,
+      });
+      leansToAct(cheap, full);
+      expect(await r.reader.activity("ses_a")).toEqual(full);
+      r.advance(PASS_MS);
+      expect(await r.reader.recentActivity("ses_a")).toEqual(await r.truth());
+    }
+  });
+
+  it("catches a run stamped inside the look-back before one already seen, and decodes an ended run once", async () => {
+    const r = rig();
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(0),
+        at(10_000),
+      ),
+      execution(
+        "aex_2",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(5_000),
+        at(20_000),
+      ),
+    );
+    await r.reader.recentActivity("ses_a");
+    r.advance(PASS_MS);
+    // Stamped a minute before the runs already seen, saved only now.
+    await save(
+      execution(
+        "aex_0",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        at(-60_000),
+      ),
+    );
+    // aex_1 is ended and not the latest: were it decoded again, its bytes
+    // would warn.
+    r.corrupt.add("aex_1");
+    expect(await r.reader.recentActivity("ses_a")).toEqual({
+      busy: true,
+      lastActiveAt: at(20_000),
+    });
+    expect(r.warnings).toEqual([]);
+  });
+
+  it("counts a held-back stamp once the clock reaches it, only while its run still carries it, and then stops re-reading the run", async () => {
+    const cases: Array<[string, () => Promise<void>]> = [
+      ["the run is unchanged", async () => {}],
+      [
+        "a late report rewrote the completion",
+        () =>
+          save(
+            execution(
+              "aex_2",
+              "ses_a",
+              ExecutionPhase.EXECUTION_COMPLETED,
+              at(-20 * 60_000),
+              at(-19 * 60_000),
+            ),
+          ),
+      ],
+      [
+        "the run was deleted",
+        () => store.deleteResource(ApiResourceKind.agent_execution, "aex_2"),
+      ],
+    ];
+    for (const [name, act] of cases) {
+      await store.deleteResourcesByKind(ApiResourceKind.agent_execution);
+      await save(
+        execution(
+          "aex_1",
+          "ses_a",
+          ExecutionPhase.EXECUTION_COMPLETED,
+          at(-10 * 60_000),
+          at(-9 * 60_000),
+        ),
+        // A runner whose clock is five minutes ahead stamped its end.
+        execution(
+          "aex_2",
+          "ses_a",
+          ExecutionPhase.EXECUTION_COMPLETED,
+          at(-20 * 60_000),
+          at(5 * 60_000),
+        ),
+      );
+      const r = rig();
+      await r.reader.recentActivity("ses_a");
+      await act();
+      let byIdOnLastPass = 0;
+      for (let pass = 0; pass < 12; pass += 1) {
+        r.advance(PASS_MS);
+        const before = r.counts.byId;
+        const cheap = await r.reader.recentActivity("ses_a");
+        byIdOnLastPass = r.counts.byId - before;
+        expect({ name, pass, ...cheap }).toEqual({
+          name,
+          pass,
+          ...(await r.truth()),
+        });
+      }
+      // Past the stamp, only the run holding the latest stamp is re-read.
+      expect({ name, byIdOnLastPass }).toEqual({ name, byIdOnLastPass: 1 });
+    }
+  });
+
+  it("reads in full when a by-id read fails other than by the row being gone, never taking it for a delete", async () => {
+    const r = rig();
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        at(-60 * 60_000),
+      ),
+    );
+    const warnings: string[] = [];
+    const logger = createLogger({
+      level: "warn",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => warnings.push(entry.message),
+    });
+    const failing = new Proxy(store, {
+      get(target, prop, receiver) {
+        if (prop === "getResource") {
+          return () => Promise.reject(new Error("premature end of input"));
+        }
+        return Reflect.get(target, prop, receiver) as unknown;
+      },
+    });
+    const reader = newStoreSessionActivityReader(failing, logger, r.now);
+    await reader.recentActivity("ses_a");
+    r.advance(PASS_MS);
+    expect(await reader.recentActivity("ses_a")).toEqual(await r.truth());
+    expect(warnings).toContain(
+      "Failed to re-read execution; reading the session in full",
+    );
+  });
+
+  it("fails when the window's read fails, as the full read would", async () => {
+    const r = rig();
+    let queries = 0;
+    const failing = new Proxy(store, {
+      get(target, prop, receiver) {
+        if (prop === "queryResources") {
+          return (...args: Parameters<Store["queryResources"]>) => {
+            queries += 1;
+            return queries > 1
+              ? Promise.reject(new Error("database is locked"))
+              : target.queryResources(...args);
+          };
+        }
+        return Reflect.get(target, prop, receiver) as unknown;
+      },
+    });
+    const reader = newStoreSessionActivityReader(failing, silentLogger, r.now);
+    await reader.recentActivity("ses_a");
+    r.advance(PASS_MS);
+    await expect(reader.recentActivity("ses_a")).rejects.toThrow(
+      "database is locked",
+    );
+  });
+
+  it("skips a new run whose row will not decode, as the full read does", async () => {
+    const r = rig();
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(-60 * 60_000),
+        at(-59 * 60_000),
+      ),
+    );
+    await r.reader.recentActivity("ses_a");
+    r.advance(PASS_MS);
+    await save(
+      execution(
+        "aex_2",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        new Date(r.now()),
+      ),
+    );
+    r.corrupt.add("aex_2");
+    expect(await r.reader.recentActivity("ses_a")).toEqual({
+      busy: false,
+      lastActiveAt: at(-59 * 60_000),
+    });
+    expect(r.warnings).toEqual(["Failed to unmarshal execution, skipping"]);
+  });
+
+  it("reads in full when an active run's row in the window will not decode, so a bad row never keeps the session busy", async () => {
+    const r = rig();
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        at(-10_000),
+      ),
+    );
+    expect((await r.reader.recentActivity("ses_a")).busy).toBe(true);
+    r.advance(PASS_MS);
+    r.corrupt.add("aex_1");
+    // The full read skips the row it cannot decode, as it always has.
+    expect(await r.reader.recentActivity("ses_a")).toEqual({
+      busy: false,
+      lastActiveAt: undefined,
+    });
+    expect(r.warnings).toContain("Failed to unmarshal execution, skipping");
+  });
+
+  it("drops an entry no read has touched for ten minutes, so a stale memory is never read from", async () => {
+    const r = rig();
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_FAILED,
+        at(-60 * 60_000),
+        at(-59 * 60_000),
+      ),
+      execution(
+        "aex_9",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(-30 * 60_000),
+        at(-29 * 60_000),
+      ),
+    );
+    await r.reader.recentActivity("ses_a");
+    r.advance(ENTRY_IDLE_EVICT_MS - 1);
+    await r.reader.recentActivity("ses_b");
+    r.advance(1);
+    // A recover the cheap read would lag behind, were the entry still kept
+    // (aex_1 does not hold the latest stamp, so no re-read catches it).
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        at(-60 * 60_000),
+      ),
+    );
+    expect((await r.reader.recentActivity("ses_a")).busy).toBe(true);
   });
 });

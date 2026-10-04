@@ -4,8 +4,12 @@
  *
  * ```html
  * <script src="https://app.stigmer.ai/embed.js" async></script>
- * <stigmer-agent org="acme" agent="support-bot"></stigmer-agent>
+ * <stigmer-agent share="ash_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
  * ```
+ *
+ * `share` is the share's id: the hosted chat link `/chat/<share id>` names
+ * nothing else, so no rename of the share's organization can break an embed
+ * and no later holder of that organization's name can take it over.
  *
  * The element renders a cross-origin iframe onto the hosted chat page — the
  * iframe is the isolation boundary; no Stigmer UI code runs in the host page.
@@ -18,8 +22,7 @@ import { createEmbedHost, type EmbedHost } from "./host.js";
 
 /** Attribute-driven configuration of `<stigmer-agent>`. */
 const OBSERVED_ATTRIBUTES = [
-  "org",
-  "agent",
+  "share",
   "token",
   "theme",
   "width",
@@ -83,11 +86,10 @@ export class StigmerAgentElement extends BaseElement {
   private attach(): void {
     this.detach();
 
-    const org = this.getAttribute("org");
-    const agent = this.getAttribute("agent");
+    const share = this.getAttribute("share");
     const appOrigin = this.getAttribute("app-origin") ?? defaultAppOrigin;
-    if (!org || !agent) {
-      console.error("[stigmer-agent] the org and agent attributes are required");
+    if (!share) {
+      console.error("[stigmer-agent] the share attribute is required");
       return;
     }
     if (!appOrigin) {
@@ -105,12 +107,16 @@ export class StigmerAgentElement extends BaseElement {
     const iframe = document.createElement("iframe");
     iframe.src = buildChatUrl(
       appOrigin,
-      org,
-      agent,
+      share,
       this.getAttribute("token"),
       this.getAttribute("theme"),
     );
-    iframe.title = `Chat with ${agent}`;
+    // The element holds only the share's id, and the frame protocol carries
+    // no agent name, so the frame's accessible name is generic unless the
+    // host names it with the element's own title attribute. Read once, when
+    // the frame is built: title is deliberately not observed, because a
+    // rebuild would wipe the visitor's conversation.
+    iframe.title = this.getAttribute("title") || "Chat with a shared agent";
     iframe.setAttribute("loading", "lazy");
     iframe.style.cssText =
       "width:100%;height:100%;border:0;border-radius:12px";
@@ -140,15 +146,11 @@ export class StigmerAgentElement extends BaseElement {
 
 function buildChatUrl(
   appOrigin: string,
-  org: string,
-  agent: string,
+  share: string,
   token: string | null,
   theme: string | null,
 ): string {
-  const url = new URL(
-    `/chat/${encodeURIComponent(org)}/${encodeURIComponent(agent)}`,
-    appOrigin,
-  );
+  const url = new URL(`/chat/${encodeURIComponent(share)}`, appOrigin);
   // `k` is the platform's link-token parameter (see @stigmer/sdk's
   // LINK_TOKEN_PARAM — not imported: this loader stays dependency-free).
   // Required when the share link is locked; the hosted page forwards it

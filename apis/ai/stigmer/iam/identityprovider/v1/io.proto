@@ -39,7 +39,8 @@ message ListIdentityProvidersByOrgInput {
 // Used by the web app's login page to determine whether an organization has
 // SSO enabled and to retrieve the OIDC configuration needed to initiate login.
 message OrganizationSsoLookup {
-  // Organization slug to look up SSO configuration for.
+  // Organization to look up SSO configuration for: its id, as the shared
+  // SSO sign-in link carries it, or its slug, as a person types it.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 }
 

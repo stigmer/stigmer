@@ -206,10 +206,8 @@ func (x *MintUserTokenResponse) GetExpiresIn() int32 {
 // MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
 type MintGuestTokenRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization from the share URL, by id or slug (required).
-	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Share slug from the share URL (required).
-	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
+	// Id of the share, from the hosted chat link (required).
+	ShareId string `protobuf:"bytes,6,opt,name=share_id,json=shareId,proto3" json:"share_id,omitempty"`
 	// Per-browser visitor cookie id from a prior mint (optional).
 	//
 	// When empty, the server generates a high-entropy id and returns it so the
@@ -224,7 +222,7 @@ type MintGuestTokenRequest struct {
 	// literal value "null" reports a framed page whose parent origin could not
 	// be determined (opaque origin).
 	EmbedOrigin string `protobuf:"bytes,4,opt,name=embed_origin,json=embedOrigin,proto3" json:"embed_origin,omitempty"`
-	// Link token from the share URL's `?k=` parameter (optional).
+	// Link token from the share link's `?k=` parameter (optional).
 	//
 	// Required when the share link has been locked with rotateShareLink;
 	// ignored for plain share links.
@@ -263,16 +261,9 @@ func (*MintGuestTokenRequest) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_platformclient_v1_token_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *MintGuestTokenRequest) GetOrg() string {
+func (x *MintGuestTokenRequest) GetShareId() string {
 	if x != nil {
-		return x.Org
-	}
-	return ""
-}
-
-func (x *MintGuestTokenRequest) GetSlug() string {
-	if x != nil {
-		return x.Slug
+		return x.ShareId
 	}
 	return ""
 }
@@ -393,15 +384,15 @@ const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
 	"\n" +
 	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n" +
 	"\n" +
-	"expires_in\x18\x03 \x01(\x05R\texpiresIn\"\xfb\x03\n" +
-	"\x15MintGuestTokenRequest\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\x1b\n" +
-	"\x04slug\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04slug\x12&\n" +
+	"expires_in\x18\x03 \x01(\x05R\texpiresIn\"\x81\x04\n" +
+	"\x15MintGuestTokenRequest\x12%\n" +
+	"\bshare_id\x18\x06 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\ashareId\x12&\n" +
 	"\x0fguest_cookie_id\x18\x03 \x01(\tR\rguestCookieId\x12\xd8\x02\n" +
 	"\fembed_origin\x18\x04 \x01(\tB\xb4\x02\xbaH\xb0\x02\xba\x01\xac\x02\n" +
 	"\x13embed_origin.format\x12wembed_origin must be empty, \"null\", or an exact web origin like https://example.com (no path, query, or trailing slash)\x1a\x9b\x01this == '' || this == 'null' || this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\vembedOrigin\x12'\n" +
 	"\n" +
-	"link_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkToken\"\xa1\x01\n" +
+	"link_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkTokenJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x03orgR\x04slug\"\xa1\x01\n" +
 	"\x16MintGuestTokenResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x1d\n" +
 	"\n" +

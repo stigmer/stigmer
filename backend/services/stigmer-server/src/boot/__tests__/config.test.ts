@@ -220,7 +220,12 @@ describe("loadConfig", () => {
     });
 
     it("follows latest when no image of the server's version is published", () => {
-      for (const version of ["dev", "0.0.0-dev", "3.42.0-dev.20261003120000.g58ac1f2"]) {
+      for (const version of [
+        "dev",
+        "0.0.0-dev",
+        "3.42.0-dev.20261003120000.g58ac1f2",
+        "0.0.0-local.20261004150608",
+      ]) {
         expect(defaultSandboxRunnerImage(version)).toBe(
           "ghcr.io/stigmer/runner:latest",
         );
@@ -277,7 +282,7 @@ describe("loadConfig", () => {
     });
 
     it("fail the boot, under a driver that starts a runner image, on HOME, the server's release and a Node setting the runner layer clears at start", () => {
-      for (const driver of ["kubernetes", "docker", "substrate", "cloud-kubernetes"]) {
+      for (const driver of ["agent-sandbox", "docker", "substrate", "cloud-kubernetes"]) {
         for (const list of ["STIGMER_SANDBOX_RUNNER_ENV", "STIGMER_SANDBOX_RUNNER_SECRETS"]) {
           for (const owned of ["HOME", "STIGMER_SERVER_RELEASE"]) {
             expect(() => loadConfig({ SANDBOX_PROVISIONER_TYPE: driver, [list]: owned, [owned]: "x" })).toThrow(

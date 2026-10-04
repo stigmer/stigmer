@@ -6,8 +6,9 @@
  * `client-select-archive.test.ts`); it reads only the ignore files and the
  * selected entries, never an ignored file's bytes; an over-cap selection is
  * refused before any selected byte is read; a reader refusal is returned
- * with the reader's findings. `isReleaseVersion`'s five cases, the two
- * wrong answers the console and the CLI used to give among them.
+ * with the reader's findings. `isReleaseVersion`'s cases, the two
+ * wrong answers the console and the CLI used to give among them, and the
+ * local build's stamp the server once took for a release (stigmer#1867).
  * `rerootSingleDirectory` on the shapes a zip takes. The built-in sources'
  * order, their reserved names, and that the official one is first.
  */
@@ -132,6 +133,10 @@ describe("isReleaseVersion", () => {
     expect(isReleaseVersion("dev")).toBe(false);
     expect(isReleaseVersion("0.0.0-dev")).toBe(false);
     expect(isReleaseVersion("3.17.0-dev.20260918120000")).toBe(false);
+    // A local build (scripts/stage-server-library.mjs) once read as a
+    // release, so its sandboxes held their runner to a release nobody
+    // published (stigmer#1867).
+    expect(isReleaseVersion("0.0.0-local.20261004150608")).toBe(false);
     expect(isReleaseVersion("3.17.0+build.5")).toBe(false);
     expect(isReleaseVersion("")).toBe(false);
   });

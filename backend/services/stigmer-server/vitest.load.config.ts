@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 /**
  * The load class (`npm run test:load`): only `*.load.test.ts`, one file at a
@@ -10,6 +10,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["src/**/__tests__/**/*.load.test.ts"],
+    exclude: [...configDefaults.exclude, "**/*.live.test.ts"],
     fileParallelism: false,
     testTimeout: 10 * 60_000,
     hookTimeout: 10 * 60_000,

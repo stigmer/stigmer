@@ -351,6 +351,10 @@ describe("a sandbox driver's background work", () => {
         busy: false,
         lastActiveAt: undefined,
       });
+      expect(await context?.sessions.recentActivity("ses_none")).toEqual({
+        busy: false,
+        lastActiveAt: undefined,
+      });
       const ids: string[] = [];
       for await (const id of context!.sessions.sessionIds()) ids.push(id);
       expect(ids).toEqual([]);
@@ -367,6 +371,7 @@ describe("the server's release in the sandbox driver bag", () => {
     ["3.42.0", "3.42.0"],
     ["3.42.0-rc.1", "3.42.0-rc.1"],
     ["3.42.0-dev.20261004013001.g5b1a7967f91e", ""],
+    ["0.0.0-local.20261004150608", ""],
     ["dev", ""],
   ])(
     "a server stating %s hands its drivers %j, and reports what it stated",

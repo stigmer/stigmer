@@ -3,6 +3,7 @@
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAskAi } from "./AskAiProvider";
+import { ASK_AI_SHARE } from "./config";
 
 interface AskAiTriggerProps {
   /**
@@ -20,9 +21,14 @@ interface AskAiTriggerProps {
   className?: string;
 }
 
-/** Opens the shared Ask AI panel (see `AskAiProvider`). */
+/**
+ * Opens the shared Ask AI panel (see `AskAiProvider`). Renders nothing
+ * while no docs share is wired (`ASK_AI_SHARE` empty).
+ */
 export function AskAiTrigger({ variant, className }: AskAiTriggerProps) {
   const { open, setOpen } = useAskAi();
+
+  if (!ASK_AI_SHARE) return null;
 
   return (
     <button

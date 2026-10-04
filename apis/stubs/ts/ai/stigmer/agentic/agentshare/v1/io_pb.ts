@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentshare/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEiJQoMQWdlbnRTaGFyZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiegocR2V0QWdlbnRTaGFyZXNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEjMKCXBhZ2VfaW5mbxgCIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8SCwoDb3JnGAMgASgJImIKDkFnZW50U2hhcmVMaXN0EhMKC3RvdGFsX2NvdW50GAEgASgFEjsKBWl0ZW1zGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZSLoAQoWTGlzdEFnZW50U2hhcmVzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESVAoGbGFiZWxzGAIgAygLMkQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuTGlzdEFnZW50U2hhcmVzUmVxdWVzdC5MYWJlbHNFbnRyeRIzCglwYWdlX2luZm8YAyABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiMwoUUm90YXRlU2hhcmVMaW5rSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBASJSChdHZXRTaGFyZWRQcm9maWxlUmVxdWVzdBILCgNvcmcYASABKAkSDAoEc2x1ZxgCIAEoCRIcCgpsaW5rX3Rva2VuGAMgASgJQgi6SAVyAxiAASKBAQoSU2hhcmVkQWdlbnRQcm9maWxlEgsKA29yZxgBIAEoCRIMCgRzbHVnGAIgASgJEgwKBG5hbWUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEAoIaWNvbl91cmwYBSABKAkSGwoTZGVmYXVsdF9pbnN0YW5jZV9pZBgGIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEiKgoMQWdlbnRTaGFyZUlkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASJ6ChxHZXRBZ2VudFNoYXJlc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxILCgNvcmcYAyABKAkiYgoOQWdlbnRTaGFyZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSOwoFaXRlbXMYAiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlIugBChZMaXN0QWdlbnRTaGFyZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJUCgZsYWJlbHMYAiADKAsyRC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5MaXN0QWdlbnRTaGFyZXNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASIzChRSb3RhdGVTaGFyZUxpbmtJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBIm0KF0dldFNoYXJlZFByb2ZpbGVSZXF1ZXN0Eh0KCHNoYXJlX2lkGAQgASgJQgu6SAjIAQFyAxiAARIcCgpsaW5rX3Rva2VuGAMgASgJQgi6SAVyAxiAAUoECAEQAkoECAIQA1IDb3JnUgRzbHVnIoEBChJTaGFyZWRBZ2VudFByb2ZpbGUSCwoDb3JnGAEgASgJEgwKBHNsdWcYAiABKAkSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghpY29uX3VybBgFIAEoCRIbChNkZWZhdWx0X2luc3RhbmNlX2lkGAYgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
  * AgentShareId wraps an agent share identifier.
@@ -169,29 +169,24 @@ export const RotateShareLinkInputSchema: GenMessage<RotateShareLinkInput> = /*@_
 /**
  * Input for resolving a share's public profile.
  *
- * Identifies the share by the org and slug from the hosted chat URL, plus
- * the link token when the share URL carries one.
+ * Identifies the share by its id, the one identity a hosted chat link
+ * carries (`/chat/<share id>`), plus the link token when the link carries
+ * one. A share id never changes and is never reused, so a link cannot be
+ * broken by a rename of the share's organization or captured by a later
+ * holder of that organization's name.
  *
  * @generated from message ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest
  */
 export type GetSharedProfileRequest = Message<"ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest"> & {
   /**
-   * Organization from the share URL: its id, as links built from a share's
-   * stored org carry it, or its slug, as older links do.
+   * Id of the share, from the hosted chat link.
    *
-   * @generated from field: string org = 1;
+   * @generated from field: string share_id = 4;
    */
-  org: string;
+  shareId: string;
 
   /**
-   * Share slug from the share URL.
-   *
-   * @generated from field: string slug = 2;
-   */
-  slug: string;
-
-  /**
-   * Link token from the share URL's `?k=` parameter.
+   * Link token from the share link's `?k=` parameter.
    *
    * Required (and validated) only when the share link has been locked with
    * rotateShareLink; ignored for plain share links.
@@ -222,15 +217,17 @@ export const GetSharedProfileRequestSchema: GenMessage<GetSharedProfileRequest> 
  */
 export type SharedAgentProfile = Message<"ai.stigmer.agentic.agentshare.v1.SharedAgentProfile"> & {
   /**
-   * Organization that owns the share.
+   * Id of the organization that owns the share. The hosted chat page
+   * creates the visitor's session in it.
    *
    * @generated from field: string org = 1;
    */
   org: string;
 
   /**
-   * Slug of the share (unique within the org).
-   * Together with org, this is the identity in the hosted chat URL.
+   * Slug of the share: its name within its organization, as the CLI and
+   * getByReference address it. The hosted chat link names the share by
+   * its id, never by this slug.
    *
    * @generated from field: string slug = 2;
    */

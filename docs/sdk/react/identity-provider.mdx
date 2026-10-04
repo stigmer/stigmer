@@ -354,7 +354,7 @@ All visual properties flow through `--stgm-*` design tokens.
     identityProvider: { type: "IdentityProvider", description: "The identity provider resource to display and edit.", required: true, typeDescriptionLink: "/docs/sdk/resources/identity-provider" },
     onBack: { type: "() => void", description: "Fired when the user clicks the back button." },
     onUpdated: { type: "(idp: IdentityProvider) => void", description: "Fired with the updated resource after a successful save." },
-    ssoLoginUrl: { type: "string", description: "Pre-computed SSO login URL to display when the IdP is an SSO provider. Omit to hide the field. The consumer is responsible for constructing the URL (e.g., `${window.location.origin}/login?org=${orgSlug}`)." },
+    ssoLoginUrl: { type: "string", description: "Pre-computed SSO login URL to display when the IdP is an SSO provider. Omit to hide the field. The consumer is responsible for constructing the URL (e.g., `${window.location.origin}/login?org=${orgId}`), naming the organization by its permanent id so a later holder of its slug can never put their own sign-in behind the link. The login page accepts a typed slug too." },
   }}
 />
 

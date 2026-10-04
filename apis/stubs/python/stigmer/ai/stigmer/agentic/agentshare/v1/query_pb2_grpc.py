@@ -44,7 +44,7 @@ class AgentShareQueryControllerStub(object):
                 _registered_method=True)
         self.getSharedProfileForMember = channel.unary_unary(
                 '/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/getSharedProfileForMember',
-                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.AgentShareId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.SharedAgentProfile.FromString,
                 _registered_method=True)
 
@@ -87,7 +87,7 @@ class AgentShareQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getSharedProfile(self, request, context):
-        """Get the public profile of a shared agent by the share's org/slug.
+        """Get the public profile of a shared agent by the share's id.
 
         This is the resolution path for the hosted chat page: anonymous
         visitors (no Stigmer account, no token) resolve a shared link to the
@@ -99,10 +99,10 @@ class AgentShareQueryControllerServicer(object):
         org-internal share from a nonexistent one; use
         getSharedProfileForMember instead), or the share link is locked and
         link_token does not match the share's current status.share_link_token.
-        The cases are deliberately indistinguishable so an unshared, revoked,
-        or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
-        empty: org+slug is the shared URL's identity, and cross-org slug
-        matching on a public endpoint would enable enumeration.
+        The same NOT_FOUND answers when the share's organization no longer
+        exists. The cases are deliberately indistinguishable so an unshared,
+        revoked, or rotated URL leaks nothing. Returns INVALID_ARGUMENT when
+        share_id is empty.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -119,11 +119,12 @@ class AgentShareQueryControllerServicer(object):
         use one resolution path for any share.
 
         Returns NOT_FOUND when the share does not exist, is disabled, the
-        caller is not a member of the sharing organization, or the share is a
-        public-audience share locked with a link token (this tokenless path
-        must not reveal a killed link's profile) — the cases are deliberately
-        indistinguishable so a share URL leaks nothing to non-members.
-        Returns INVALID_ARGUMENT when org is empty.
+        caller is not a member of the sharing organization, the share's
+        organization no longer exists, or the share is a public-audience share
+        locked with a link token (this tokenless path must not reveal a killed
+        link's profile) — the cases are deliberately indistinguishable so a
+        share URL leaks nothing to non-members. Returns INVALID_ARGUMENT when
+        the id is empty.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -159,7 +160,7 @@ def add_AgentShareQueryControllerServicer_to_server(servicer, server):
             ),
             'getSharedProfileForMember': grpc.unary_unary_rpc_method_handler(
                     servicer.getSharedProfileForMember,
-                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.AgentShareId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.SharedAgentProfile.SerializeToString,
             ),
     }
@@ -324,7 +325,7 @@ class AgentShareQueryController(object):
             request,
             target,
             '/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/getSharedProfileForMember',
-            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.AgentShareId.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.SharedAgentProfile.FromString,
             options,
             channel_credentials,

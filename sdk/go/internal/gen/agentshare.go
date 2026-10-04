@@ -87,9 +87,8 @@ func (a *AgentShareClient) GetSharedProfile(ctx context.Context, input *agentsha
 	return resp, wrapErr(err)
 }
 
-func (a *AgentShareClient) GetSharedProfileForMember(ctx context.Context, ref ResourceRef) (*agentsharev1.SharedAgentProfile, error) {
-	ref.Kind = apiresourcekind.ApiResourceKind_agent_share
-	resp, err := a.query.GetSharedProfileForMember(ctx, ref.toProto())
+func (a *AgentShareClient) GetSharedProfileForMember(ctx context.Context, id string) (*agentsharev1.SharedAgentProfile, error) {
+	resp, err := a.query.GetSharedProfileForMember(ctx, &agentsharev1.AgentShareId{Value: id})
 	return resp, wrapErr(err)
 }
 

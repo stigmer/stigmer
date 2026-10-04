@@ -29,7 +29,7 @@ type AgentShareStatus struct {
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	// Rotatable token protecting the share's public link.
 	//
-	// Empty means the hosted chat link is the plain `/chat/<org>/<slug>` —
+	// Empty means the hosted chat link is the plain `/chat/<share id>` —
 	// the behavior of every share created without a token. When set, the
 	// link only resolves with the matching `?k=<token>` query parameter; the
 	// rotateShareLink RPC generates a fresh value, killing the old link

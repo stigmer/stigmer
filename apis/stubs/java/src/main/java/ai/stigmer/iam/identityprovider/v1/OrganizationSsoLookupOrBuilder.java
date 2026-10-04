@@ -12,7 +12,8 @@ public interface OrganizationSsoLookupOrBuilder extends
 
   /**
    * <pre>
-   * Organization slug to look up SSO configuration for.
+   * Organization to look up SSO configuration for: its id, as the shared
+   * SSO sign-in link carries it, or its slug, as a person types it.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -21,7 +22,8 @@ public interface OrganizationSsoLookupOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization slug to look up SSO configuration for.
+   * Organization to look up SSO configuration for: its id, as the shared
+   * SSO sign-in link carries it, or its slug, as a person types it.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>

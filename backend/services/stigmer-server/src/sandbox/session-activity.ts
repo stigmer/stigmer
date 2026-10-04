@@ -22,6 +22,37 @@
  * sandbox awake at most that minute longer. An execution that has not
  * ended is in an active phase, which makes the session busy, so its
  * progress never needs a clock.
+ *
+ * An idle sweep asks every awake session on every pass, and a session's
+ * full history is the store's fattest rows
+ * (domain/agentexecution/list-index.ts), so the reader keeps one entry
+ * per session it has read and offers a second, cheap read beside the
+ * full one (stigmer#1803). `recentActivity` reads only the session's
+ * executions created since its previous read, less RECENT_LOOKBACK_MS,
+ * and re-reads by id the ones that were active and the one holding the
+ * latest stamp. Every other execution had already ended when it was
+ * folded, and an ended execution changes only through Recover
+ * (domain/agentexecution/lifecycle.ts), a late status report that
+ * rewrites its completion (update-status.ts), or a delete. Any of those
+ * can only lower the full read's latest stamp when it befalls the
+ * execution holding it, which is why that one is re-read: when its
+ * stamp has gone or moved earlier, the cheap read falls back to the
+ * full one. It does the same when an execution it holds anything of
+ * cannot be read (a row that will not decode, a store fault): the full
+ * read skips such a row as it always has, so a bad row never keeps a
+ * session busy. The look-back covers a run stamped up to a minute
+ * before it became visible (its create chain stamps it before the gate
+ * and the save) on a replica whose clock is up to a minute behind. So
+ * the cheap read can miss only a recovered run or a rewritten
+ * completion of another execution, or a run that became visible later
+ * than the look-back: it may report a session idle, or last active
+ * earlier, when it is not, never busier or later. `activity`, the full
+ * read, rebuilds the entry, so the driver's guard read before every act
+ * heals any lag. An entry no read has touched for ENTRY_IDLE_EVICT_MS
+ * is dropped, so memory follows the sessions that are awake. The
+ * created-since read is the list index's existing bound
+ * (store/list-index.ts, `createdAtOrAfter`) and the by-id read is
+ * `getResource`.
  */
 import { fromBinary } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -33,7 +64,11 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Logger } from "../boot/logger.js";
 import { agentExecutionListIndex } from "../domain/agentexecution/list-index.js";
 import { isActiveExecutionPhase } from "../domain/agentexecution/phases.js";
-import type { Store } from "../store/interface.js";
+import { ResourceNotFoundError, type Store } from "../store/interface.js";
+import {
+  listIndexInstantOfMillis,
+  type ListIndexRow,
+} from "../store/list-index.js";
 import type { SessionActivity, SessionActivityReader } from "./provisioner.js";
 
 /** Sessions read per keyset page while mapping sandboxes back to sessions. */
@@ -42,28 +77,269 @@ const SESSION_PAGE_SIZE = 500;
 /** How far ahead of this server's clock an activity stamp may be and still count (module header). */
 export const FUTURE_STAMP_ALLOWANCE_MS = 60_000;
 
+/**
+ * How far before its previous read the cheap read looks again: a minute of
+ * clock skew between replicas (the allowance FUTURE_STAMP_ALLOWANCE_MS
+ * gives a stamp ahead) and a minute for a create chain's stamp-to-save
+ * (module header).
+ */
+export const RECENT_LOOKBACK_MS = 120_000;
+
+/** Raised inside the cheap read when only the full read can answer (module header). */
+class ReadInFull extends Error {}
+
+/** An entry no read has touched for this long is dropped (module header). */
+export const ENTRY_IDLE_EVICT_MS = 10 * 60_000;
+
+/** What the reader remembers of one session between reads (module header). */
+interface SessionEntry {
+  /** Executions in an active phase when last read. */
+  readonly busyIds: Set<string>;
+  /** Ended executions already folded, by id, with their index instant, while the next read's bound can still return them. */
+  readonly foldedIds: Map<string, string>;
+  /** Stamps more than the allowance ahead when folded, counted once the clock reaches them and their execution still carries them. */
+  readonly aheadStamps: Array<{ readonly id: string; readonly stamp: number }>;
+  lastActiveMs: number | undefined;
+  /** The execution whose stamp is lastActiveMs. */
+  lastActiveId: string | undefined;
+  /** When the read that left this entry began, by this server's clock. */
+  readAtMs: number;
+  touchedAtMs: number;
+}
+
+function newEntry(readAtMs: number): SessionEntry {
+  return {
+    busyIds: new Set(),
+    foldedIds: new Map(),
+    aheadStamps: [],
+    lastActiveMs: undefined,
+    lastActiveId: undefined,
+    readAtMs,
+    touchedAtMs: readAtMs,
+  };
+}
+
 export function newStoreSessionActivityReader(
   store: Store,
   logger: Logger,
   now: () => number = Date.now,
 ): SessionActivityReader {
-  return {
-    async activity(sessionId: string): Promise<SessionActivity> {
-      const rows = await store.queryResources(agentExecutionListIndex, {
-        anyKey: [{ name: "session", value: sessionId }],
-      });
-      const executions: AgentExecution[] = [];
-      for (const row of rows) {
-        try {
-          executions.push(fromBinary(AgentExecutionSchema, row.data));
-        } catch (error) {
-          logger.warn("Failed to unmarshal execution, skipping", {
-            sessionId,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
+  const entries = new Map<string, SessionEntry>();
+
+  const evictUntouched = (nowMs: number): void => {
+    for (const [sessionId, entry] of entries) {
+      if (nowMs - entry.touchedAtMs >= ENTRY_IDLE_EVICT_MS) {
+        entries.delete(sessionId);
       }
-      return sessionActivityOf(executions, now());
+    }
+  };
+
+  const decode = (
+    sessionId: string,
+    row: ListIndexRow,
+  ): AgentExecution | undefined => {
+    try {
+      return fromBinary(AgentExecutionSchema, row.data);
+    } catch (error) {
+      logger.warn("Failed to unmarshal execution, skipping", {
+        sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
+  };
+
+  /** Folds one read row, and remembers it when it has ended and the next read's bound can still return it. */
+  const foldRow = (
+    entry: SessionEntry,
+    row: ListIndexRow,
+    execution: AgentExecution,
+    nowMs: number,
+    nextBound: string,
+  ): void => {
+    foldExecution(entry, row.id, execution, nowMs);
+    const instant = row.cursor.createdAt;
+    if (
+      !entry.busyIds.has(row.id) &&
+      (instant === "" || instant >= nextBound)
+    ) {
+      entry.foldedIds.set(row.id, instant);
+    }
+  };
+
+  const activity = async (sessionId: string): Promise<SessionActivity> => {
+    const readAtMs = now();
+    const rows = await store.queryResources(agentExecutionListIndex, {
+      anyKey: [{ name: "session", value: sessionId }],
+    });
+    const nowMs = now();
+    const entry = newEntry(readAtMs);
+    const nextBound = listIndexInstantOfMillis(readAtMs - RECENT_LOOKBACK_MS);
+    for (const row of rows) {
+      const execution = decode(sessionId, row);
+      if (execution !== undefined) {
+        foldRow(entry, row, execution, nowMs, nextBound);
+      }
+    }
+    evictUntouched(nowMs);
+    entry.touchedAtMs = nowMs;
+    entries.set(sessionId, entry);
+    return activityOfEntry(entry);
+  };
+
+  /**
+   * The execution by id, or undefined once it is deleted. Any other
+   * failure (a row that will not decode, a store fault) is never taken
+   * for a delete: it raises ReadInFull.
+   */
+  const reread = async (
+    sessionId: string,
+    id: string,
+  ): Promise<AgentExecution | undefined> => {
+    try {
+      return await store.getResource(
+        ApiResourceKind.agent_execution,
+        id,
+        AgentExecutionSchema,
+      );
+    } catch (error) {
+      if (error instanceof ResourceNotFoundError) {
+        return undefined;
+      }
+      logger.warn("Failed to re-read execution; reading the session in full", {
+        sessionId,
+        executionId: id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new ReadInFull();
+    }
+  };
+
+  /** The cheap read over an entry (module header); raises ReadInFull when only the full read can answer. */
+  const recent = async (
+    sessionId: string,
+    entry: SessionEntry,
+    readAtMs: number,
+  ): Promise<SessionActivity> => {
+    const rows = await store.queryResources(agentExecutionListIndex, {
+      anyKey: [{ name: "session", value: sessionId }],
+      createdAtOrAfter: listIndexInstantOfMillis(
+        entry.readAtMs - RECENT_LOOKBACK_MS,
+      ),
+    });
+    const nowMs = now();
+    const nextBound = listIndexInstantOfMillis(readAtMs - RECENT_LOOKBACK_MS);
+    // The execution holding the latest stamp is read on every pass:
+    // only its delete, its Recover or a late report rewriting its
+    // completion can make the full read's latest stamp earlier.
+    const latest = entry.lastActiveId;
+    const latestMs = entry.lastActiveMs;
+    let latestNow: AgentExecution | undefined;
+    let latestRead = false;
+    // An execution the entry holds (active, or holding the latest stamp)
+    // that cannot be read now is one only the full read answers for: it
+    // skips a row that will not decode, and fails on a store fault.
+    const held = (id: string): boolean =>
+      id === latest || entry.busyIds.has(id);
+    const present = new Set<string>();
+    /** Executions decoded on this read, so current as of it. */
+    const current = new Set<string>();
+    for (const row of rows) {
+      present.add(row.id);
+      if (entry.foldedIds.has(row.id) && row.id !== latest) {
+        continue;
+      }
+      const execution = decode(sessionId, row);
+      if (execution === undefined) {
+        if (held(row.id)) {
+          throw new ReadInFull();
+        }
+        continue;
+      }
+      if (row.id === latest) {
+        latestNow = execution;
+        latestRead = true;
+      }
+      current.add(row.id);
+      foldRow(entry, row, execution, nowMs, nextBound);
+    }
+    for (const id of [...entry.busyIds]) {
+      if (present.has(id)) {
+        continue;
+      }
+      const execution = await reread(sessionId, id);
+      if (id === latest) {
+        latestNow = execution;
+        latestRead = true;
+      }
+      if (execution === undefined) {
+        entry.busyIds.delete(id);
+        continue;
+      }
+      current.add(id);
+      foldExecution(entry, id, execution, nowMs);
+    }
+    if (latest !== undefined && !latestRead) {
+      latestNow = await reread(sessionId, latest);
+      if (latestNow !== undefined) {
+        current.add(latest);
+        foldExecution(entry, latest, latestNow, nowMs);
+      }
+    }
+    if (
+      latest !== undefined &&
+      latestMs !== undefined &&
+      (latestNow === undefined ||
+        (latestStampOf(latestNow, nowMs) ?? -Infinity) < latestMs)
+    ) {
+      throw new ReadInFull();
+    }
+    // A held-back stamp the clock has reached counts only through a
+    // fresh read of its execution, so a stamp it no longer carries never
+    // does.
+    const reachedIds = new Set(
+      entry.aheadStamps
+        .filter(
+          (ahead) => reached(ahead.stamp, nowMs) && !current.has(ahead.id),
+        )
+        .map((ahead) => ahead.id),
+    );
+    for (const id of reachedIds) {
+      const execution = await reread(sessionId, id);
+      if (execution === undefined) {
+        removeAheadStamps(entry, id);
+      } else {
+        foldExecution(entry, id, execution, nowMs);
+      }
+    }
+    for (const [id, instant] of entry.foldedIds) {
+      if (instant !== "" && instant < nextBound) {
+        entry.foldedIds.delete(id);
+      }
+    }
+    entry.readAtMs = readAtMs;
+    entry.touchedAtMs = nowMs;
+    return activityOfEntry(entry);
+  };
+
+  return {
+    activity,
+
+    async recentActivity(sessionId: string): Promise<SessionActivity> {
+      const readAtMs = now();
+      evictUntouched(readAtMs);
+      const entry = entries.get(sessionId);
+      if (entry === undefined) {
+        return activity(sessionId);
+      }
+      try {
+        return await recent(sessionId, entry, readAtMs);
+      } catch (error) {
+        if (error instanceof ReadInFull) {
+          return activity(sessionId);
+        }
+        throw error;
+      }
     },
 
     async *sessionIds(): AsyncIterable<string> {
@@ -91,35 +367,113 @@ export function sessionActivityOf(
   executions: readonly AgentExecution[],
   nowMs: number,
 ): SessionActivity {
-  let busy = false;
-  let last: number | undefined;
-  const seen = (stamp: number | undefined): void => {
-    if (stamp === undefined || stamp > nowMs + FUTURE_STAMP_ALLOWANCE_MS) {
-      return;
-    }
-    if (last === undefined || stamp > last) {
-      last = stamp;
-    }
-  };
-  for (const execution of executions) {
-    const status = execution.status;
-    if (status === undefined) {
+  const entry = newEntry(nowMs);
+  executions.forEach((execution, index) => {
+    foldExecution(
+      entry,
+      execution.metadata?.id || `#${index}`,
+      execution,
+      nowMs,
+    );
+  });
+  return activityOfEntry(entry);
+}
+
+/**
+ * Folds one execution into a session's entry: busy while it is active,
+ * and its creation and completion as activity stamps, a stamp more than
+ * the allowance ahead of `nowMs` held back until the clock reaches it
+ * (module header). Folding an execution again only moves the entry
+ * forward, so the cheap read may re-read one it has folded.
+ */
+function foldExecution(
+  entry: SessionEntry,
+  id: string,
+  execution: AgentExecution,
+  nowMs: number,
+): void {
+  const status = execution.status;
+  if (status === undefined) {
+    entry.busyIds.delete(id);
+    removeAheadStamps(entry, id);
+    return;
+  }
+  if (isActiveExecutionPhase(status.phase)) {
+    entry.busyIds.add(id);
+    // An active run is read on every pass, so it is never one the
+    // window may skip as already folded (a recovered run read by id).
+    entry.foldedIds.delete(id);
+  } else {
+    entry.busyIds.delete(id);
+  }
+  // The execution as read now replaces whatever it held back before.
+  removeAheadStamps(entry, id);
+  for (const stamp of stampsOf(execution)) {
+    if (!reached(stamp, nowMs)) {
+      entry.aheadStamps.push({ id, stamp });
       continue;
     }
-    if (isActiveExecutionPhase(status.phase)) {
-      busy = true;
-    }
-    const createdAt = status.audit?.specAudit?.createdAt;
-    seen(
-      createdAt === undefined ? undefined : timestampDate(createdAt).getTime(),
-    );
-    if (status.completedAt !== "") {
-      const completed = Date.parse(status.completedAt);
-      seen(Number.isNaN(completed) ? undefined : completed);
+    counted(entry, id, stamp);
+  }
+}
+
+function removeAheadStamps(entry: SessionEntry, id: string): void {
+  for (let i = entry.aheadStamps.length - 1; i >= 0; i -= 1) {
+    if (entry.aheadStamps[i]?.id === id) {
+      entry.aheadStamps.splice(i, 1);
     }
   }
+}
+
+/** An execution's creation and completion, each when it has a parsable one. */
+function stampsOf(execution: AgentExecution): number[] {
+  const stamps: number[] = [];
+  const createdAt = execution.status?.audit?.specAudit?.createdAt;
+  if (createdAt !== undefined) {
+    stamps.push(timestampDate(createdAt).getTime());
+  }
+  const completedAt = execution.status?.completedAt ?? "";
+  if (completedAt !== "") {
+    const completed = Date.parse(completedAt);
+    if (!Number.isNaN(completed)) {
+      stamps.push(completed);
+    }
+  }
+  return stamps;
+}
+
+/** An execution's latest stamp that counts at `nowMs`, undefined when none does. */
+function latestStampOf(
+  execution: AgentExecution,
+  nowMs: number,
+): number | undefined {
+  let latest: number | undefined;
+  for (const stamp of stampsOf(execution)) {
+    if (reached(stamp, nowMs) && (latest === undefined || stamp > latest)) {
+      latest = stamp;
+    }
+  }
+  return latest;
+}
+
+function counted(entry: SessionEntry, id: string, stamp: number): void {
+  if (entry.lastActiveMs === undefined || stamp > entry.lastActiveMs) {
+    entry.lastActiveMs = stamp;
+    entry.lastActiveId = id;
+  }
+}
+
+/** Whether a stamp counts at `nowMs`: not more than the allowance ahead (module header). */
+function reached(stamp: number, nowMs: number): boolean {
+  return stamp <= nowMs + FUTURE_STAMP_ALLOWANCE_MS;
+}
+
+function activityOfEntry(entry: SessionEntry): SessionActivity {
   return {
-    busy,
-    lastActiveAt: last === undefined ? undefined : new Date(last),
+    busy: entry.busyIds.size > 0,
+    lastActiveAt:
+      entry.lastActiveMs === undefined
+        ? undefined
+        : new Date(entry.lastActiveMs),
   };
 }

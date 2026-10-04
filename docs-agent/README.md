@@ -62,9 +62,29 @@ stigmer apply --org stigmer -f agents/stigmer-docs.yaml
 stigmer apply --org stigmer -f shares/stigmer-docs.yaml
 ```
 
-The hosted chat goes live at `https://app.stigmer.ai/chat/stigmer/stigmer-docs`.
-The docs site embeds the same share via `@stigmer/embed`'s `<stigmer-agent>`
+The hosted chat goes live at `https://app.stigmer.ai/chat/<share id>`. The
+docs site embeds the same share via `@stigmer/embed`'s `<stigmer-agent>`
 element (see `site/src/components/docs/ask-ai/` in this repo).
+
+### Wire the docs site
+
+A chat link names a share only by its id, which the server mints on the
+share's first apply, so the docs site learns it from the deployment:
+
+1. Read the share's id (`metadata.id`, `ash_…`) from its link. On a share
+   that is already on, this changes nothing and prints the link, whose last
+   segment is the id:
+
+   ```bash
+   stigmer share agent stigmer/stigmer-docs
+   ```
+
+2. Set `ASK_AI_SHARE` in `site/src/components/docs/ask-ai/config.ts` to that
+   id and merge it. While the constant is empty, the docs site hides its Ask
+   AI button.
+
+The id never changes while the share exists. Deleting and re-applying the
+share mints a new one, and the constant must be set again.
 
 ## Operational notes
 

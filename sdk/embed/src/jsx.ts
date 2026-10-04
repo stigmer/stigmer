@@ -37,7 +37,7 @@ import type { StigmerAgentElement } from "./element.js";
  * (like a theme) once, before mounting.
  *
  * Every attribute is optional, including the two the element requires at
- * runtime (`org`, `agent`, which it enforces with a console error). This is
+ * runtime (`share`, which it enforces with a console error). This is
  * NOT laziness: libraries like react-markdown build mapped types over
  * `JSX.IntrinsicElements`, and an intrinsic with required props breaks their
  * assignability for every project that imports this augmentation. All
@@ -49,15 +49,11 @@ interface StigmerAgentAttributes
   extends ClassAttributes<StigmerAgentElement>,
     Omit<HTMLAttributes<StigmerAgentElement>, "children"> {
   /**
-   * Organization slug — first path segment of the hosted chat URL.
-   * Required at runtime (see above for why the type cannot enforce it).
+   * The share's id (`ash_…`), the one path segment of the hosted chat
+   * link. Required at runtime (see above for why the type cannot enforce
+   * it).
    */
-  org?: string;
-  /**
-   * Agent share slug — second path segment of the hosted chat URL.
-   * Required at runtime (see above for why the type cannot enforce it).
-   */
-  agent?: string;
+  share?: string;
   /** Link token for a locked share; forwarded as the `?k=` parameter. */
   token?: string;
   /**

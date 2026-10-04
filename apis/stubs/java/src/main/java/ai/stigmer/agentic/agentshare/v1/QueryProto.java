@@ -42,7 +42,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "o.proto\032\'ai/stigmer/commons/apiresource/" +
       "io.proto\0328ai/stigmer/commons/apiresource" +
       "/rpc_service_options.proto\032+ai/stigmer/c" +
-      "ommons/rpc/method_options.proto2\322\006\n\031Agen" +
+      "ommons/rpc/method_options.proto2\314\006\n\031Agen" +
       "tShareQueryController\022\225\001\n\003get\022..ai.stigm" +
       "er.agentic.agentshare.v1.AgentShareId\032,." +
       "ai.stigmer.agentic.agentshare.v1.AgentSh" +
@@ -60,15 +60,15 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "etSharedProfile\0229.ai.stigmer.agentic.age" +
       "ntshare.v1.GetSharedProfileRequest\0324.ai." +
       "stigmer.agentic.agentshare.v1.SharedAgen" +
-      "tProfile\"\004\310\270\030\001\022\215\001\n\031getSharedProfileForMe" +
-      "mber\0224.ai.stigmer.commons.apiresource.Ap" +
-      "iResourceReference\0324.ai.stigmer.agentic." +
-      "agentshare.v1.SharedAgentProfile\"\004\320\270\030\001\032\004" +
-      "\240\377+.B\261\001B\nQueryProtoP\001\242\002\004ASAA\252\002 Ai.Stigme" +
-      "r.Agentic.Agentshare.V1\312\002 Ai\\Stigmer\\Age" +
-      "ntic\\Agentshare\\V1\342\002,Ai\\Stigmer\\Agentic\\" +
-      "Agentshare\\V1\\GPBMetadata\352\002$Ai::Stigmer:" +
-      ":Agentic::Agentshare::V1b\006proto3"
+      "tProfile\"\004\310\270\030\001\022\207\001\n\031getSharedProfileForMe" +
+      "mber\022..ai.stigmer.agentic.agentshare.v1." +
+      "AgentShareId\0324.ai.stigmer.agentic.agents" +
+      "hare.v1.SharedAgentProfile\"\004\320\270\030\001\032\004\240\377+.B\261" +
+      "\001B\nQueryProtoP\001\242\002\004ASAA\252\002 Ai.Stigmer.Agen" +
+      "tic.Agentshare.V1\312\002 Ai\\Stigmer\\Agentic\\A" +
+      "gentshare\\V1\342\002,Ai\\Stigmer\\Agentic\\Agents" +
+      "hare\\V1\\GPBMetadata\352\002$Ai::Stigmer::Agent" +
+      "ic::Agentshare::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

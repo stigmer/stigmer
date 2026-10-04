@@ -48,9 +48,10 @@ stigmer share agent acme-corp/support-agent
 ```
 
 The command enables sharing and prints the public chat link
-(`https://app.stigmer.ai/chat/acme-corp/support-agent`) plus an embed snippet
-for your website. Sharing is idempotent — running it again reports the link
-without another write.
+(`https://app.stigmer.ai/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2`) plus an embed
+snippet for your website. The link names the share by its permanent ID, so
+renaming your Organization never breaks it. Sharing is idempotent — running it
+again reports the link without another write.
 
 Any embed origins or visitor messages you configured in the console's Share
 dialog are preserved; the CLI only flips the sharing switch.
@@ -101,8 +102,8 @@ for the next time you enable sharing.
 - To restrict which websites may embed the Agent, customize visitor messages, or
   bind tool credentials, use the Share dialog in the web console.
 - Sharing is stored as its own AgentShare resource, separate from the Agent.
-  Manage it declaratively with `stigmer apply`, and inspect it with
-  `stigmer get agent-share <ref>`.
+  Manage it declaratively with `stigmer apply`. Run `stigmer share agent` on a
+  share that is already on to print its link again: it changes nothing.
 
 ## Subcommands
 

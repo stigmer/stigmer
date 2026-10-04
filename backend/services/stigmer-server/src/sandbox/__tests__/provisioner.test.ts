@@ -125,7 +125,7 @@ describe("newSandboxProvisioner selection", () => {
       { config: driverConfig, logger: silentLogger },
       new Map([
         ["docker", fakeFactory(selected)],
-        ["kubernetes", fakeFactory(bystander)],
+        ["agent-sandbox", fakeFactory(bystander)],
       ]),
       new Map(),
     );
@@ -136,7 +136,7 @@ describe("newSandboxProvisioner selection", () => {
     expect([...BUILT_IN_SANDBOX_PROVISIONER_TYPES]).toEqual([
       "local-process",
       "docker",
-      "kubernetes",
+      "agent-sandbox",
       "substrate",
     ]);
   });

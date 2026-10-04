@@ -1,9 +1,11 @@
 An AgentShare turns an agent into a hosted chat link. It controls who can
-chat with the agent at `/chat/<org>/<slug>` (anyone with the link, or org
+chat with the agent at `/chat/<share id>` (anyone with the link, or org
 members only), which sites may embed the chat widget, the messages visitors
 see when a limit refuses them, and the environment credentials guest
-conversations receive. The referenced agent is never modified by share
-operations — applying an agent manifest cannot touch a share.
+conversations receive. The link names the share only by its permanent ID, so
+renaming the organization never breaks it; the share's slug names it within
+its organization for the CLI and API. The referenced agent is never modified
+by share operations — applying an agent manifest cannot touch a share.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
