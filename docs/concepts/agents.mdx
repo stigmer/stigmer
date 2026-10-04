@@ -168,8 +168,9 @@ stigmer tag agent acme-corp/code-reviewer <version-hash> stable
 
 Every Execution records the Agent version it ran, and runs that version to the
 end. If someone changes the Agent while your message is queued or running, your
-Execution keeps the instructions it started with, and anyone can later open that
-version to see exactly what the Agent was told.
+Execution keeps the instructions it started with, and anyone who can view the
+Agent can later open that version, for as long as the Agent exists, to see
+exactly what it was told.
 
 Schedules, channels, and shares run the Agent's current version. A reference
 from one of them that names a version is refused.

@@ -6,8 +6,9 @@
  * each kind — no org refused, a same-organization target must exist, the
  * floor applies to the kinds the run reads as the person and to no other,
  * a relative reference's floor is capped at org and its target must still
- * exist in the resource's organization, a version named on a reference to
- * a kind whose references may not name one (agents) is malformed input, a cross-organization target is admitted only at platform visibility with
+ * exist in the resource's organization, a version a write introduces on a
+ * reference to a kind whose references may not name one (agents) is
+ * malformed input while one the stored row already carries is kept, a cross-organization target is admitted only at platform visibility with
  * ONE sentence whether it is missing or merely not shared; the MCP-server
  * copy that predates the rule is byte-identical and its siblings take its
  * shape; the walk reads a reference's kind from its field, not from the
@@ -51,6 +52,7 @@ import {
   REFERENCE_TARGET_KINDS,
   belowFloorMessage,
   checkReference,
+  checkReferenceVersion,
   checkReferences,
   collectSpecReferences,
   loadReferenceTargets,
@@ -274,22 +276,17 @@ describe("checkReference", () => {
     ).toEqual({ kind: "no-org" });
   });
 
-  it("a reference naming a version is refused for a kind whose references may not name one (agents), and only for it", () => {
-    const versioned = (kind: ApiResourceKind, slug: string): SpecReference => ({
+  it("a version clause on the write path: a version a write introduces on an agent reference is refused, and only for agents", () => {
+    const versioned = (kind: ApiResourceKind, slug: string, version = "stable"): SpecReference => ({
       kind,
       org: "acme",
       slug,
-      version: "stable",
+      version,
     });
-    expect(
-      checkReference(targets, ACME_ORG, versioned(K.agent, "anything")),
-    ).toEqual({ kind: "version-named" });
-    expect(
-      checkReference(targets, ACME_ORG, versioned(K.skill, "org-skill")),
-    ).toEqual({ kind: "ok" });
-    expect(
-      checkReference(targets, ACME_ORG, versioned(K.mcp_server, "github")),
-    ).toEqual({ kind: "ok" });
+    expect(checkReferenceVersion(versioned(K.agent, "reviewer"), [])).toEqual({ kind: "version-named" });
+    expect(checkReferenceVersion(versioned(K.skill, "org-skill"), [])).toBeUndefined();
+    expect(checkReferenceVersion(versioned(K.mcp_server, "github"), [])).toBeUndefined();
+    expect(checkReferenceVersion({ kind: K.agent, org: "acme", slug: "reviewer" }, [])).toBeUndefined();
     expect(
       REFERENCE_TARGET_KINDS.filter((e) => !e.mayNameVersion).map((e) => e.kind),
     ).toEqual([K.agent]);
@@ -298,11 +295,27 @@ describe("checkReference", () => {
     ]);
     expect(refusal?.code).toBe(Code.InvalidArgument);
     expect(refusal?.rawMessage).toBe(
-      versionNamedMessage(
-        referenceTargetKind(K.agent)!,
-        versioned(K.agent, "reviewer"),
-      ),
+      versionNamedMessage(referenceTargetKind(K.agent)!, versioned(K.agent, "reviewer")),
     );
+  });
+
+  it("the version clause keeps what the stored row already carries: an unrelated edit passes, a changed version does not", () => {
+    const stored = [{ kind: K.agent, org: "acme", slug: "reviewer", version: "stable" }];
+    expect(
+      checkReferenceVersion({ kind: K.agent, org: "acme", slug: "reviewer", version: "stable" }, stored),
+    ).toBeUndefined();
+    expect(
+      checkReferenceVersion({ kind: K.agent, org: "acme", slug: "reviewer", version: "canary" }, stored),
+    ).toEqual({ kind: "version-named" });
+    expect(
+      checkReferenceVersion({ kind: K.agent, org: "acme", slug: "other", version: "stable" }, stored),
+    ).toEqual({ kind: "version-named" });
+  });
+
+  it("the three clauses say nothing about a version, so the escalation door still judges a versioned reference's floor", () => {
+    expect(
+      checkReference(targets, ACME_ORG, { kind: K.skill, org: "acme", slug: "my-skill", version: "v1" }),
+    ).toEqual({ kind: "below-floor", targetVisibility: V.visibility_private });
   });
 
   it("(ii) a same-organization target must exist, for every kind", () => {

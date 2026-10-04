@@ -106,7 +106,8 @@
  *
  * A reference that names a VERSION of a kind whose row says the version
  * may not be named (`mayNameVersion`) is refused as malformed input, before
- * any other clause. Agents are versioned, and every field that references
+ * any other clause, when the write introduces it: a stored row that already
+ * carries the reference with that version keeps it (checkReferenceVersion). Agents are versioned, and every field that references
  * one (an agent channel's, a share's, a schedule's invocation) is a surface
  * that runs the agent's current version and has no way to honour another:
  * accepting the version and running the current one would be a promise the
@@ -381,12 +382,6 @@ export function checkReference(
   if (ref.org === "") {
     return { kind: "no-org" };
   }
-  if (
-    (ref.version ?? "") !== "" &&
-    referenceTargetKind(ref.kind)?.mayNameVersion === false
-  ) {
-    return { kind: "version-named" };
-  }
   const target = targets.visibilityOf(ref);
   if (ref.org !== parent.org) {
     return target === ApiResourceVisibility.visibility_platform
@@ -404,6 +399,33 @@ export function checkReference(
     return { kind: "below-floor", targetVisibility: target };
   }
   return { kind: "ok" };
+}
+
+/**
+ * The version clause (the module header) for one reference a write carries:
+ * `version-named` when it names a version its kind's references may not
+ * name and the stored row does not already carry it exactly so. A row
+ * written before the clause existed keeps its reference through an
+ * unrelated edit, as the writer clause keeps an attachment someone else
+ * made; only a write that introduces or changes such a version is refused.
+ * Asked on the write path alone: the escalation door judges the floor, and
+ * a version says nothing about a level.
+ */
+export function checkReferenceVersion(
+  ref: SpecReference,
+  stored: ReadonlyArray<SpecReference>,
+): ReferenceVerdict | undefined {
+  const version = ref.version ?? "";
+  if (
+    version === "" ||
+    referenceTargetKind(ref.kind)?.mayNameVersion !== false ||
+    stored.some(
+      (held) => sameReference(held, ref) && (held.version ?? "") === version,
+    )
+  ) {
+    return undefined;
+  }
+  return { kind: "version-named" };
 }
 
 /** The writer a write's references are judged for (the module header's writer clause). */
@@ -774,8 +796,8 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
 
 /**
  * The rule over a collected list for one writer: load once, check each
- * against the three clauses and then the writer clause, render the
- * refusal.
+ * against the version clause, the three clauses and then the writer
+ * clause, render the refusal.
  */
 export async function checkReferences(
   store: Store,
@@ -786,7 +808,9 @@ export async function checkReferences(
   const targets = await loadReferenceTargets(store, refs);
   const verdicts: Array<{ ref: SpecReference; verdict: ReferenceVerdict }> = [];
   for (const ref of refs) {
-    const verdict = checkReference(targets, parent, ref);
+    const verdict =
+      checkReferenceVersion(ref, writer.stored) ??
+      checkReference(targets, parent, ref);
     verdicts.push({
       ref,
       verdict:

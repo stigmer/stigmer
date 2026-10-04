@@ -15,7 +15,8 @@
  *     head has no hash or no audit row, and a failing head-tag read is
  *     Internal;
  *   - the version-metadata rule leaves a head with no hash or no metadata as
- *     it is.
+ *     it is, and on an unchanged hash keeps the stored chain, repairing an
+ *     empty stored version id from the hash.
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
@@ -35,6 +36,7 @@ import {
   ResourceNotFoundError,
 } from "../../../store/interface.js";
 import type { AuditRecord, Store } from "../../../store/interface.js";
+import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { VERSION_HASH_KEY, newPopulateVersionStep } from "../version-archive.js";
 import {
   getVersionEntry,
@@ -260,6 +262,33 @@ describe("the version-metadata rule", () => {
     setHeadHash: (a, hash) => {
       a.status!.versionHash = hash;
     },
+  });
+
+  it("on an unchanged hash keeps the stored chain and message, repairs an empty stored id, and moves a named tag", () => {
+    const stored = create(AgentSchema, {
+      metadata: { id: "agt_1", version: { id: "", previousVersionId: OLD, message: "stored", tag: "old" } },
+      status: { versionHash: HEAD },
+    });
+    const ctx = new RequestContext(
+      AgentSchema,
+      create(AgentSchema, {
+        metadata: { id: "agt_1", version: { id: "", message: "client", tag: "new" } },
+        status: { versionHash: HEAD },
+      }),
+      testCallerIdentity(),
+      ApiResourceKind.agent,
+    );
+    ctx.set(EXISTING_RESOURCE_KEY, stored);
+    ctx.set(VERSION_HASH_KEY, HEAD);
+
+    populate.execute(ctx);
+
+    expect(ctx.newState.metadata?.version).toMatchObject({
+      id: HEAD,
+      previousVersionId: OLD,
+      message: "stored",
+      tag: "new",
+    });
   });
 
   it("leaves a head with no computed hash, or with no metadata, as it is", () => {

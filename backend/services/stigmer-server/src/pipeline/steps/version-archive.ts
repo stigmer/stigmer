@@ -100,7 +100,9 @@ export function newPopulateVersionStep<Desc extends DescMessage>(
         const existing = ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined;
         const stored =
           existing === undefined ? undefined : metadataOf(existing)?.version;
-        version.id = stored?.id ?? newHash;
+        // An earlier release saved an unchanged apply with the client's
+        // empty version id; the head's own hash repairs it.
+        version.id = stored?.id || newHash;
         version.previousVersionId = stored?.previousVersionId ?? "";
         version.message = stored?.message ?? "";
         if (version.tag === "") {
