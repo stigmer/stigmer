@@ -692,22 +692,13 @@ export function newSubstrateSandboxDriverOverGateway(
     name: string,
     guard: SubstrateSleepGuard | undefined,
   ): Promise<"done" | "skipped"> {
-    let gone = false;
-    const outcome = await serialize(
-      name,
-      async (): Promise<"done" | "skipped"> => {
-        if (guard !== undefined) {
-          const actor = await gateway.getActor(name);
-          gone = actor === undefined;
-          if (actor === undefined || !(await guard.proceed(summaryOf(actor))))
-            return "skipped";
-        }
-        await gateway.deleteActor(name);
-        return "done";
-      },
-    );
-    if (outcome === "done" || gone) forget(name);
-    return outcome;
+    const answer = await serialize(name, async () => {
+      const answer = await asked(name, guard);
+      if (answer === "proceed") await gateway.deleteActor(name);
+      return answer;
+    });
+    if (answer !== "refused") forget(name);
+    return answer === "proceed" ? "done" : "skipped";
   }
 
   /** Forgets what this process knew of a deleted actor. */
@@ -740,21 +731,25 @@ export function newSubstrateSandboxDriverOverGateway(
     },
   };
 
-  /** Asks a guard about the actor as it is now; an actor that is gone never proceeds. */
-  async function proceeds(
+  /**
+   * Asks a guard about the actor as it is now: no guard proceeds, and an
+   * actor that is gone never does (it is never asked about).
+   */
+  async function asked(
     name: string,
     guard: SubstrateSleepGuard | undefined,
-  ): Promise<boolean> {
-    if (guard === undefined) return true;
+  ): Promise<"proceed" | "refused" | "gone"> {
+    if (guard === undefined) return "proceed";
     const actor = await gateway.getActor(name);
-    return actor !== undefined && (await guard.proceed(summaryOf(actor)));
+    if (actor === undefined) return "gone";
+    return (await guard.proceed(summaryOf(actor))) ? "proceed" : "refused";
   }
 
   const lifecycle: SubstrateSandboxLifecycle = {
     pause: (scope, id, guard) => {
       const name = sandboxBaseName(scope, id);
       return serialize(name, async (): Promise<SubstrateSleepOutcome> => {
-        if (!(await proceeds(name, guard))) return "skipped";
+        if ((await asked(name, guard)) !== "proceed") return "skipped";
         await gateway.pauseActor(name);
         if (guard !== undefined && !(await guard.stillIdle())) {
           await gateway.resumeActor(name);
@@ -766,7 +761,7 @@ export function newSubstrateSandboxDriverOverGateway(
     suspend: (scope, id, guard) => {
       const name = sandboxBaseName(scope, id);
       return serialize(name, async (): Promise<SubstrateSleepOutcome> => {
-        if (!(await proceeds(name, guard))) return "skipped";
+        if ((await asked(name, guard)) !== "proceed") return "skipped";
         await gateway.suspendActor(name);
         return "done";
       });
