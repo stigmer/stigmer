@@ -32,6 +32,15 @@
  *   - RESUMING, PAUSING, SUSPENDING, REVERTING: wait for it to settle.
  *   - DELETING: refused.
  *
+ * The ensure's log line names, in `arm`, the path the ensure took from the
+ * first settled state it found, never the arm it ended in, because the
+ * wake budgets are measured per path: `created` (absent, created, then
+ * woken), `suspended` (woken from storage), `paused` (thawed in place),
+ * `paused-stale` (paused too long or before this process, so suspended
+ * and woken from storage), `running` (pushed only), `crashed` (reverted,
+ * then brought up). A state in transition that the ensure waits out names
+ * nothing.
+ *
  * Any call answering ABORTED (another operation holds the actor, or it
  * crashed while resuming) sends the ensure back to reading the actor; no
  * free worker is thrown unretried, so the session step stamps it and the
@@ -89,10 +98,12 @@
  * The lifecycle is everything an idle sweep needs except the decision of
  * what is idle, which belongs to whoever keeps the sweep: open source's
  * own (sweep.ts) or a composition that keeps records of its sandboxes and
- * runs its own. So pause and suspend take a guard the sweep answers inside
- * the actor's queue, from fresh reads, right before the call (and, after a
- * pause, once more: a turn that arrived while the pause was in flight
- * thaws the sandbox at once); `maintain` is a pass's upkeep over the
+ * runs its own. So pause, suspend and a delete by name take a guard the
+ * sweep answers inside the actor's queue, from fresh reads, right before
+ * the call (and, after a pause, once more: a turn that arrived while the
+ * pause was in flight thaws the sandbox at once); a delete's guard is how
+ * a composition reaping orphans never deletes a sandbox a turn woke while
+ * the delete waited in the queue; `maintain` is a pass's upkeep over the
  * sweep's own listing (a delete repeated, egress made current, a sleeping
  * sandbox moved to the current template, unused templates retired); and
  * `prepare` readies the template before the first turn needs it.
@@ -157,8 +168,8 @@ export interface SubstrateActorSummary {
 }
 
 /**
- * The sweep's answer, asked inside the actor's queue right before a pause
- * or suspend, from the actor as it is now: whether the call should still
+ * The sweep's answer, asked inside the actor's queue right before a sleep
+ * or a delete, from the actor as it is now: whether the call should still
  * be made. A turn that woke the sandbox, or a session that became busy,
  * since the sweep decided says no.
  */
@@ -175,8 +186,17 @@ export interface SubstratePauseGuard extends SubstrateSleepGuard {
   stillIdle(): Promise<boolean>;
 }
 
-/** What a guarded pause or suspend did. */
+/** What a guarded pause, suspend or delete did; only a pause thaws. */
 export type SubstrateSleepOutcome = "done" | "skipped" | "thawed";
+
+/** The paths an ensure takes, named by the state it first acts on (module header). */
+type EnsurePath =
+  | "created"
+  | "suspended"
+  | "paused"
+  | "paused-stale"
+  | "running"
+  | "crashed";
 
 /** What one pass of upkeep did (SubstrateSandboxLifecycle.maintain). */
 export interface SubstrateMaintenance {
@@ -219,9 +239,13 @@ export interface SubstrateSandboxLifecycle {
    * Deletes a sandbox known only by its listed name (list()): a
    * composition's orphan, whose owner is gone, so its scope and id are
    * not to hand. Refuses a name this driver never gives (a template's own
-   * actor).
+   * actor). With a guard, deletes only if it proceeds, and a sandbox that
+   * is gone is skipped.
    */
-  deleteByName(name: string): Promise<void>;
+  deleteByName(
+    name: string,
+    guard?: SubstrateSleepGuard,
+  ): Promise<Exclude<SubstrateSleepOutcome, "thawed">>;
   /**
    * A push with no lifecycle call: hands a running sandbox a fresh token
    * for its next restart, for a composition that renews tokens. A sandbox
@@ -498,10 +522,21 @@ export function newSubstrateSandboxDriverOverGateway(
     const started = now();
     await serialize(name, async () => {
       let recreatedTemplate = false;
+      /** Set the first time the walk acts on a settled state (module header). */
+      let path: EnsurePath | undefined;
+      const ensured = (): void =>
+        logger.info("Substrate sandbox ensured", {
+          scope,
+          id,
+          actor: name,
+          arm: path,
+          ms: now() - started,
+        });
       for (let transition = 0; transition < MAX_TRANSITIONS; transition += 1) {
         try {
           const actor = await gateway.getActor(name);
           if (actor === undefined) {
+            path ??= "created";
             const template = await keeper.ready();
             try {
               await gateway.createActor(name, template);
@@ -524,6 +559,7 @@ export function newSubstrateSandboxDriverOverGateway(
           }
           switch (actor.state) {
             case ActorState.SUSPENDED: {
+              path ??= "suspended";
               // A wake from storage starts a fresh waiter, so this push is
               // its first: a refusal means another push won it (attach).
               await moveToCurrent(actor);
@@ -531,13 +567,7 @@ export function newSubstrateSandboxDriverOverGateway(
               startedHere.add(name);
               await gateway.resumeActor(name);
               await attach(scope, name, env);
-              logger.info("Substrate sandbox ensured", {
-                scope,
-                id,
-                actor: name,
-                arm: "suspended",
-                ms: now() - started,
-              });
+              ensured();
               return;
             }
             case ActorState.PAUSED: {
@@ -547,34 +577,26 @@ export function newSubstrateSandboxDriverOverGateway(
                 pausedAt < processStartedAt + CLOCK_SKEW_ALLOWANCE_MS ||
                 now() - pausedAt > MAX_IN_PLACE_PAUSE_SECONDS * 1000
               ) {
+                path ??= "paused-stale";
                 await gateway.suspendActor(name);
                 continue;
               }
+              path ??= "paused";
               await reconcileEgress(name);
               await gateway.resumeActor(name);
               await attach(scope, name, env);
-              logger.info("Substrate sandbox ensured", {
-                scope,
-                id,
-                actor: name,
-                arm: "paused",
-                ms: now() - started,
-              });
+              ensured();
               return;
             }
             case ActorState.RUNNING: {
+              path ??= "running";
               await reconcileEgress(name);
               await attach(scope, name, env);
-              logger.info("Substrate sandbox ensured", {
-                scope,
-                id,
-                actor: name,
-                arm: "running",
-                ms: now() - started,
-              });
+              ensured();
               return;
             }
             case ActorState.CRASHED:
+              path ??= "crashed";
               logger.warn("Substrate sandbox crashed; reverting it", {
                 scope,
                 id,
@@ -655,14 +677,28 @@ export function newSubstrateSandboxDriverOverGateway(
 
   async function deprovision(scope: SandboxScope, id: string): Promise<void> {
     const name = sandboxBaseName(scope, id);
-    await deleteNamed(name);
+    await deleteNamed(name, undefined);
     logger.info("Substrate sandbox deleted", { scope, id, actor: name });
   }
 
-  /** Deletes the actor `name` and forgets what this process knew of it. */
-  async function deleteNamed(name: string): Promise<void> {
-    await serialize(name, () => gateway.deleteActor(name));
-    forget(name);
+  /**
+   * Deletes the actor `name`, with a guard only if it proceeds, and forgets
+   * what this process knew of it; a skipped delete forgets nothing.
+   */
+  async function deleteNamed(
+    name: string,
+    guard: SubstrateSleepGuard | undefined,
+  ): Promise<"done" | "skipped"> {
+    const outcome = await serialize(
+      name,
+      async (): Promise<"done" | "skipped"> => {
+        if (!(await proceeds(name, guard))) return "skipped";
+        await gateway.deleteActor(name);
+        return "done";
+      },
+    );
+    if (outcome === "done") forget(name);
+    return outcome;
   }
 
   /** Forgets what this process knew of a deleted actor. */
@@ -728,14 +764,17 @@ export function newSubstrateSandboxDriverOverGateway(
     },
     resume: (scope, id, env) => ensure(scope, id, env),
     delete: (scope, id) => deprovision(scope, id),
-    async deleteByName(name) {
+    async deleteByName(name, guard) {
       if (!isSandboxBaseName(name)) {
         throw new Error(
           `${name} is not a sandbox this driver names (sbx-<scope>-<12 hex>); refusing to delete it`,
         );
       }
-      await deleteNamed(name);
-      logger.info("Substrate sandbox deleted by name", { actor: name });
+      const outcome = await deleteNamed(name, guard);
+      if (outcome === "done") {
+        logger.info("Substrate sandbox deleted by name", { actor: name });
+      }
+      return outcome;
     },
     reattach: (scope, id, env) => {
       assertQueue(scope, id, env.taskQueue);
