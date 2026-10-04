@@ -2,8 +2,9 @@
  * Pins the identity-provider sign-in settings every provider form shares:
  *
  *   - turning SSO on starts from account creation on, viewer when no role
- *     is chosen, and no tenant claim; turning it off changes nothing the
- *     admin chose;
+ *     is chosen, and no tenant claim; turning it off again puts back every
+ *     field the switch filled and the admin left alone, and keeps what the
+ *     admin changed meanwhile;
  *   - an SSO provider never sends a tenant claim, because the claim names
  *     platform-managed organizations, which only a delegation provider
  *     manages; the section hides the field for SSO;
@@ -19,6 +20,7 @@ import {
   formatSignInRole,
   SignInSettingsSection,
   toSignInInput,
+  withoutSsoDefaults,
   withSsoDefaults,
   type SignInSettings,
 } from "../SignInSettings";
@@ -30,6 +32,31 @@ const DELEGATION: SignInSettings = {
   signInRole: IamRole.member,
   tenantOrgClaim: "org_id",
 };
+
+describe("withoutSsoDefaults", () => {
+  it("puts back every field the SSO switch filled and the admin left alone", () => {
+    const before = DELEGATION;
+    expect(withoutSsoDefaults(withSsoDefaults(before, true), before)).toEqual(
+      before,
+    );
+    expect(
+      withoutSsoDefaults(
+        withSsoDefaults(EMPTY_SIGN_IN_SETTINGS, true),
+        EMPTY_SIGN_IN_SETTINGS,
+      ),
+    ).toEqual(EMPTY_SIGN_IN_SETTINGS);
+  });
+
+  it("keeps a field the admin changed while SSO was on", () => {
+    const filled = withSsoDefaults(EMPTY_SIGN_IN_SETTINGS, true);
+    expect(
+      withoutSsoDefaults(
+        { ...filled, signInRole: IamRole.admin },
+        EMPTY_SIGN_IN_SETTINGS,
+      ),
+    ).toEqual({ ...EMPTY_SIGN_IN_SETTINGS, signInRole: IamRole.admin });
+  });
+});
 
 describe("withSsoDefaults", () => {
   it("leaves a non-SSO provider's settings as the admin chose them", () => {

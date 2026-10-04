@@ -10,7 +10,7 @@ import {
   SignInSettingsSection,
   signInSettingsComplete,
   toSignInInput,
-  withSsoDefaults,
+  useSignInSettings,
 } from "./SignInSettings.js";
 import { useCreateIdentityProvider } from "./useCreateIdentityProvider.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -72,13 +72,15 @@ export function CreateIdentityProviderForm({
   const [isSso, setIsSso] = useState(false);
   const [oidcClientId, setOidcClientId] = useState("");
 
-  const [signIn, setSignIn] = useState(EMPTY_SIGN_IN_SETTINGS);
+  const { signIn, setSignIn, switchSso } = useSignInSettings(
+    () => EMPTY_SIGN_IN_SETTINGS,
+  );
 
   const handleSsoToggle = useCallback(() => {
     const next = !isSso;
     setIsSso(next);
-    setSignIn((s) => withSsoDefaults(s, next));
-  }, [isSso]);
+    switchSso(next);
+  }, [isSso, switchSso]);
 
   const trimmedName = name.trim();
   const trimmedJwksUri = jwksUri.trim();

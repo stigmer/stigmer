@@ -14,13 +14,16 @@
  *
  * An SSO provider must create accounts and grant a role, so turning SSO on
  * locks account creation on and fills an unset role with viewer; the
- * forms refuse to submit an SSO provider without both. An SSO provider
+ * forms refuse to submit an SSO provider without both. Turning SSO off
+ * again puts back each field the switch filled and the admin has not
+ * changed since (`useSignInSettings`), so a provider never keeps a setting
+ * only the switch chose. An SSO provider
  * has no tenant claim: the claim names platform-managed organizations,
  * which only a delegation provider manages, so the field is hidden and
  * cleared for SSO.
  */
 
-import { useId } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { IdentityProviderInput } from "@stigmer/sdk";
 import type { IdentityProviderSpec } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
@@ -71,6 +74,66 @@ export function withSsoDefaults(
         ? IamRole.viewer
         : settings.signInRole,
   };
+}
+
+/**
+ * The settings after SSO is switched off again: each field the SSO
+ * defaults filled over `before`, and that still holds the filled value, is
+ * put back to `before`'s; a field the admin changed since is kept.
+ */
+export function withoutSsoDefaults(
+  settings: SignInSettings,
+  before: SignInSettings,
+): SignInSettings {
+  const filled = withSsoDefaults(before, true);
+  return {
+    createAccounts:
+      settings.createAccounts === filled.createAccounts
+        ? before.createAccounts
+        : settings.createAccounts,
+    signInRole:
+      settings.signInRole === filled.signInRole
+        ? before.signInRole
+        : settings.signInRole,
+    tenantOrgClaim:
+      settings.tenantOrgClaim === filled.tenantOrgClaim
+        ? before.tenantOrgClaim
+        : settings.tenantOrgClaim,
+  };
+}
+
+/**
+ * A form's sign-in settings with the SSO switch's effect: `switchSso(true)`
+ * fills the SSO defaults and remembers what they replaced,
+ * `switchSso(false)` puts it back (`withoutSsoDefaults`), and `reset` starts
+ * over from given settings with nothing remembered.
+ */
+export function useSignInSettings(initial: () => SignInSettings): {
+  readonly signIn: SignInSettings;
+  readonly setSignIn: (next: SignInSettings) => void;
+  readonly switchSso: (next: boolean) => void;
+  readonly reset: (next: SignInSettings) => void;
+} {
+  const [signIn, setSignIn] = useState(initial);
+  const beforeSso = useRef<SignInSettings | null>(null);
+  const switchSso = useCallback(
+    (next: boolean) => {
+      if (next) {
+        beforeSso.current = signIn;
+        setSignIn(withSsoDefaults(signIn, true));
+        return;
+      }
+      const before = beforeSso.current;
+      beforeSso.current = null;
+      setSignIn(before === null ? signIn : withoutSsoDefaults(signIn, before));
+    },
+    [signIn],
+  );
+  const reset = useCallback((next: SignInSettings) => {
+    beforeSso.current = null;
+    setSignIn(next);
+  }, []);
+  return { signIn, setSignIn, switchSso, reset };
 }
 
 /** Whether the settings satisfy the provider kind: an SSO provider needs a role. */

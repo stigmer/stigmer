@@ -11,7 +11,7 @@ import {
   SignInSettingsSection,
   signInSettingsComplete,
   toSignInInput,
-  withSsoDefaults,
+  useSignInSettings,
   type SignInSettings,
 } from "./SignInSettings.js";
 import { ProviderPicker } from "./ProviderPicker.js";
@@ -89,7 +89,9 @@ export function IdentityProviderWizard({
   const [oidcClientId, setOidcClientId] = useState("");
   const [discoveryFailed, setDiscoveryFailed] = useState(false);
 
-  const [signIn, setSignIn] = useState(EMPTY_SIGN_IN_SETTINGS);
+  const { signIn, setSignIn, switchSso, reset } = useSignInSettings(
+    () => EMPTY_SIGN_IN_SETTINGS,
+  );
 
   // Success step
   const [createdIdp, setCreatedIdp] = useState<IdentityProvider | null>(null);
@@ -116,9 +118,10 @@ export function IdentityProviderWizard({
     setIssuers(config?.allowedIssuers.join(", ") ?? "");
     setUserinfoEndpoint(config?.userinfoEndpoint ?? "");
     setIsSso(false);
+    reset(EMPTY_SIGN_IN_SETTINGS);
     setOidcClientId("");
     setDiscoveryFailed(!config);
-  }, []);
+  }, [reset]);
 
   const handleContinueToReview = useCallback(async () => {
     if (!preset) return;
@@ -143,10 +146,13 @@ export function IdentityProviderWizard({
 
   // -- Submit ----------------------------------------------------------
 
-  const handleIsSsoChange = useCallback((next: boolean) => {
-    setIsSso(next);
-    setSignIn((s) => withSsoDefaults(s, next));
-  }, []);
+  const handleIsSsoChange = useCallback(
+    (next: boolean) => {
+      setIsSso(next);
+      switchSso(next);
+    },
+    [switchSso],
+  );
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {

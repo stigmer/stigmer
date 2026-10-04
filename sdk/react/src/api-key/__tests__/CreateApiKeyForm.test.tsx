@@ -58,10 +58,10 @@ describe("CreateApiKeyForm initialName", () => {
 });
 
 describe("CreateApiKeyForm organization limit", () => {
-  function renderWithCreate() {
+  function renderWithCreate(org = "org_acme") {
     const create = vi.fn(async (_input: Record<string, unknown>) => ({}));
     const client = { apiKey: { create } } as unknown as Stigmer;
-    render(<CreateApiKeyForm org="org_acme" initialName="ci-key" />, {
+    render(<CreateApiKeyForm org={org} initialName="ci-key" />, {
       wrapper: ({ children }: { children: ReactNode }) => (
         <StigmerContext.Provider value={client}>
           {children}
@@ -86,11 +86,29 @@ describe("CreateApiKeyForm organization limit", () => {
     });
   });
 
+  it("holds a limited key until an organization is active, never sending an empty limit", async () => {
+    const create = renderWithCreate("");
+    expect(submitButton().disabled).toBe(true);
+    expect(
+      screen.getByText(
+        "Open an organization to limit the key to it, or clear the box.",
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText("This organization only"));
+    expect(submitButton().disabled).toBe(false);
+    fireEvent.click(submitButton());
+    await vi.waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("boundOrg");
+  });
+
   it("creates a key for every organization when the box is cleared", async () => {
     const create = renderWithCreate();
     fireEvent.click(screen.getByLabelText("This organization only"));
     expect(
-      screen.getByText("The key works in every organization you belong to."),
+      screen.getByText(
+        "The key works in every organization your sign-in reaches.",
+      ),
     ).toBeTruthy();
 
     fireEvent.click(submitButton());

@@ -83,6 +83,22 @@ describe("CreateIdentityProviderForm sign-in settings", () => {
     expect(input.tenantOrgClaim).toBe("org_id");
   });
 
+  it("sends none of the SSO defaults once SSO is switched back off", async () => {
+    const createIdp = vi.fn(async (_input: IdentityProviderInput) => CREATED);
+    renderForm(createIdp);
+
+    // The SSO switch is the form's first.
+    fireEvent.click(screen.getAllByRole("switch")[0]!);
+    fireEvent.click(screen.getAllByRole("switch")[0]!);
+    fireEvent.click(submitButton());
+
+    await waitFor(() => expect(createIdp).toHaveBeenCalledTimes(1));
+    const input = createIdp.mock.calls[0]![0];
+    expect(input.isSsoProvider).toBeUndefined();
+    expect(input.createAccountsOnSignIn).toBeUndefined();
+    expect(input.signInRole).toBeUndefined();
+  });
+
   it("creates an SSO provider with viewer, no tenant claim, and never with None", async () => {
     const createIdp = vi.fn(async (_input: IdentityProviderInput) => CREATED);
     renderForm(createIdp);

@@ -162,12 +162,12 @@ export class CloudTarget implements TargetProfile {
   // method itself is absent there and privileged-lane assertions skip.
   provisionPrivilegedScope?: () => Promise<PrivilegedScope>;
 
-  // Present only when the environment hands over the platform tenant's
-  // signing key (CLOUD_ENV.directLogin*) — the hermetic launcher's own
-  // tenant and the composition readout's mock tenant both do; a deployed
-  // endpoint never does (a real tenant's key is not conformance's to hold),
-  // so the method is absent there and the direct-login suite skips with the
-  // reason below.
+  // The platform tenant's signing key (CLOUD_ENV.directLogin*), which the
+  // hermetic launcher's own tenant and the composition readout's mock tenant
+  // both hand over. setup() requires it, because the target's people sign
+  // in through that tenant; a deployed endpoint never hands it over (a real
+  // tenant's key is not conformance's to hold), so this target does not run
+  // against one at all.
   directLoginTenant?: () => DirectLoginTenant;
 
   async setup(): Promise<void> {

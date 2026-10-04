@@ -64,8 +64,9 @@ export const CLOUD_ENV = {
   // over on the ready line (the same material minted the bootstrap
   // operator's first token); the composition readout's spike tenant writes
   // an env file. Deliberately UNSET on any deployed endpoint — a real
-  // tenant's key is never handed to conformance — so CloudTarget exposes no
-  // directLoginTenant and the suite skips VISIBLY. The API audience is
+  // tenant's key is never handed to conformance — and CloudTarget's setup
+  // requires it (its people sign in through the tenant), so the cloud
+  // target runs only where the tenant is handed over. The API audience is
   // required with the issuer; the MCP audience is optional (blank = the
   // tenant mints for the API alone).
   directLoginIssuer: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_ISSUER",

@@ -12,7 +12,7 @@ import {
   signInSettingsComplete,
   signInSettingsFromSpec,
   toSignInInput,
-  withSsoDefaults,
+  useSignInSettings,
 } from "./SignInSettings.js";
 import { useUpdateIdentityProvider } from "./useUpdateIdentityProvider.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
@@ -95,13 +95,15 @@ export function IdentityProviderDetailPanel({
     spec?.oidcClientId ?? "",
   );
 
-  const [signIn, setSignIn] = useState(() => signInSettingsFromSpec(spec));
+  const { signIn, setSignIn, switchSso, reset } = useSignInSettings(() =>
+    signInSettingsFromSpec(spec),
+  );
 
   const handleSsoToggle = useCallback(() => {
     const next = !isSso;
     setIsSso(next);
-    setSignIn((s) => withSsoDefaults(s, next));
-  }, [isSso]);
+    switchSso(next);
+  }, [isSso, switchSso]);
 
   const enterEdit = useCallback(() => {
     setDisplayName(spec?.displayName ?? "");
@@ -111,7 +113,7 @@ export function IdentityProviderDetailPanel({
     setUserinfoEndpoint(spec?.userinfoEndpoint ?? "");
     setIsSso(spec?.isSsoProvider ?? false);
     setOidcClientId(spec?.oidcClientId ?? "");
-    setSignIn(signInSettingsFromSpec(spec));
+    reset(signInSettingsFromSpec(spec));
     clearError();
     setMode("edit");
   }, [spec, clearError]);

@@ -5,7 +5,9 @@
 //
 // `--bound-org` limits the key to one organization (`spec.bound_org`, by
 // slug or id): the server refuses it in every other organization. Without
-// it, the key works in every organization its owner holds a role in.
+// it, the key works in every organization its owner holds a role in, unless
+// the CLI's own credential is limited to one, whose organization it then
+// takes.
 
 import { createHash } from "node:crypto";
 import { create } from "@bufbuild/protobuf";

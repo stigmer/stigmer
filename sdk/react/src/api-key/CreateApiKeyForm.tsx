@@ -46,7 +46,7 @@ type ExpiryOption = "30" | "60" | "90" | "never";
  * Collects a **name** (required), an **expiry** choice (30 / 60 /
  * 90 days or never) and **This organization only** (checked by default,
  * which limits the key to `org`: it is refused in every other organization;
- * unchecked, the key works in every organization its owner belongs to),
+ * unchecked, the key works in every organization the owner's sign-in reaches),
  * then creates the key via {@link useCreateApiKey}.
  * On success it fires `onCreated` with the full {@link ApiKey}
  * response, which includes the raw key in `spec.keyHash`.
@@ -77,7 +77,11 @@ export function CreateApiKeyForm({
   const [thisOrgOnly, setThisOrgOnly] = useState(true);
 
   const trimmedName = name.trim();
-  const canSubmit = trimmedName !== "" && !isCreating;
+  // A limit needs an organization to name: with none active yet, an empty
+  // `bound_org` would mint a key that works everywhere, so the limited
+  // key waits for one rather than silently becoming unlimited.
+  const limitWithoutOrg = thisOrgOnly && org === "";
+  const canSubmit = trimmedName !== "" && !isCreating && !limitWithoutOrg;
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -178,9 +182,11 @@ export function CreateApiKeyForm({
             id={`${baseId}-org-only-hint`}
             className="stg:text-[0.65rem] stg:text-muted-foreground"
           >
-            {thisOrgOnly
-              ? "The key works in this organization and is refused in every other one."
-              : "The key works in every organization you belong to."}
+            {limitWithoutOrg
+              ? "Open an organization to limit the key to it, or clear the box."
+              : thisOrgOnly
+                ? "The key works in this organization and is refused in every other one."
+                : "The key works in every organization your sign-in reaches."}
           </p>
         </div>
       </div>
