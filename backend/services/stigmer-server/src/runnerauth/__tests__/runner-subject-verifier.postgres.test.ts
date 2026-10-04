@@ -5,7 +5,9 @@
  * ASKED — for a run, the person the execution row's creator stamp
  * names, for exactly as long as that execution lives; for an MCP
  * connect, the person the connect's ExecutionContext row was created by,
- * for as long as that row exists — in the `runner` caller class. A
+ * for as long as that row exists — in the `runner` caller class, bound
+ * to the execution's organization (a run belongs to one, so its
+ * credential works there alone). A
  * clockless token bound to a connect is a shape no mint produces and is
  * refused as the credential it is not.
  *
@@ -255,12 +257,13 @@ describe.each(
     });
 
     describe("the run credential admits its bearer as the run's human", () => {
-      it("an agent execution stamped with the creator's account id: the account acting as itself, class runner, the raw token carried", async () => {
+      it("an agent execution stamped with the creator's account id: the account acting as itself, class runner, the raw token carried, bound to the run's organization", async () => {
         await agentExecution("aex_by_id", CAROL);
         const token = service.mintRunCredential("aex_by_id");
         expect(await verifier().verify(token)).toEqual({
           ...CAROL_IDENTITY,
           rawToken: token,
+          boundOrg: "acme",
         });
       });
 
@@ -279,6 +282,7 @@ describe.each(
         expect(await verifier().verify(token)).toEqual({
           ...CAROL_IDENTITY,
           rawToken: token,
+          boundOrg: "acme",
         });
       });
 
@@ -310,6 +314,7 @@ describe.each(
         expect(await verifier().verify(token)).toEqual({
           ...CAROL_IDENTITY,
           rawToken: token,
+          boundOrg: "acme",
         });
       });
 

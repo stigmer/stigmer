@@ -22,10 +22,13 @@
  *   - the bound organization itself;
  *   - a row of an organization-scoped or parent-scoped kind whose
  *     `metadata.org` is the bound organization (every such row carries it,
- *     an execution included, docs/single-organization.md);
+ *     an execution included, docs/single-organization.md), and an
+ *     execution context whose `metadata.org` is: the kind is owner-only,
+ *     but each row is its run's (or connect's) and holds that
+ *     organization's resolved environment values;
  *   - a kind that belongs to no organization: owner-only (the person's own
- *     account, keys and execution contexts) or unscoped (plans, the
- *     platform). These are nobody's organization data.
+ *     account and keys) or unscoped (plans, the platform). These are
+ *     nobody's organization data.
  * It is ADMITTED OUTSIDE only along the model's one path across
  * organizations, and only for a permission that reads or runs: a
  * blueprint (agent, MCP server, plugin, skill, workflow) shared at
@@ -410,8 +413,11 @@ function targetOf(check: AuthzCheck): BindingTarget {
   };
 }
 
-/** Whether rows of `kind` belong to one organization: organization-scoped, or scoped to a parent that is. */
+/** Whether rows of `kind` belong to one organization: organization-scoped, scoped to a parent that is, or an execution context (its run's). */
 function belongsToAnOrganization(kind: ApiResourceKind): boolean {
+  if (kind === ApiResourceKind.execution_context) {
+    return true;
+  }
   const scope = getKindMeta(kind).authorization?.scopeType;
   return (
     scope === AuthorizationScopeType.ORGANIZATION ||

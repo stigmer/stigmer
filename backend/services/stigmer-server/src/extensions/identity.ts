@@ -100,11 +100,12 @@ export interface CallerIdentity {
   /**
    * The organization this credential works in; absent means the credential
    * speaks for the person in every organization they hold a role in (a
-   * person signed in at a console, the trusted-local operator, runners, the
-   * server itself). Set by the verifier that vouched for a credential
-   * naming one organization: a PlatformClient user token (its `org` claim),
-   * an API key limited to one (`ApiKeySpec.org`), and a composition's own
-   * lanes that name one. Enforced once, where the composition resolves its
+   * person signed in at a console, the trusted-local operator, a runner's
+   * own process credential, the server itself). Set by the verifier that
+   * vouched for a credential naming one organization: a PlatformClient user
+   * token (its `org` claim), an API key limited to one
+   * (`ApiKeySpec.bound_org`), a run's credential (its run's organization),
+   * and a composition's own lanes that name one. Enforced once, where the composition resolves its
    * decision drivers (authorization/credential-binding.ts), so every
    * consumer of the composed Authorizer, list read scope and organization
    * directory is bound by construction. Rides in-process propagation with

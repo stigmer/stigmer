@@ -7,7 +7,8 @@
  *     for byte, on every decorator;
  *   - every scope class: the organization itself (by id), an
  *     organization-scoped row and a parent-scoped execution (by the row's
- *     organization), an owner-only kind and an unscoped one (inside);
+ *     organization), an execution context (owner-only, decided by its
+ *     row's organization), an owner-only kind and an unscoped one (inside);
  *   - a missing row reaches the inner driver, so not-found stays not-found;
  *   - the one admitted path and its limits: a blueprint at platform
  *     visibility for a read or run permission, a default instance of such
@@ -85,8 +86,7 @@ function row(
     row: fixtureRow(declaration, {
       id,
       org,
-      visibility:
-        extra.visibility ?? ApiResourceVisibility.visibility_org,
+      visibility: extra.visibility ?? ApiResourceVisibility.visibility_org,
       createdBy: "ida_bob",
       ...(extra.spec === undefined ? {} : { spec: extra.spec }),
       ...(extra.status === undefined ? {} : { status: extra.status }),
@@ -222,7 +222,6 @@ describe("the rule, for a caller bound to one organization", () => {
     for (const kind of [
       ApiResourceKind.api_key,
       ApiResourceKind.identity_account,
-      ApiResourceKind.execution_context,
       ApiResourceKind.platform,
       ApiResourceKind.plan,
     ]) {
@@ -231,6 +230,30 @@ describe("the rule, for a caller bound to one organization", () => {
       ).toBe("inside");
     }
     expect(f.reads).toEqual([]);
+  });
+
+  it("decides an execution context, owner-only but its run's, by the row's organization", async () => {
+    const f = fixture([
+      row("execution_context", "ectx_a", ALPHA),
+      row("execution_context", "ectx_b", BETA),
+    ]);
+    const binding = newCredentialBinding(f.deps);
+    const caller = boundTo(ALPHA);
+    const verdictOf = (id: string) =>
+      binding.verdict(caller, {
+        kind: ApiResourceKind.execution_context,
+        id,
+        permission: VIEW,
+      });
+    expect(await verdictOf("ectx_a")).toBe("inside");
+    expect(await verdictOf("ectx_b")).toBe("outside");
+    expect(
+      binding.keepsEntry(
+        caller,
+        ApiResourceKind.execution_context,
+        entry("ectx_b", BETA),
+      ),
+    ).toBe(false);
   });
 
   it("answers missing for an id no row has, so the inner driver keeps its not-found", async () => {
@@ -324,7 +347,9 @@ describe("the rule, for a caller bound to one organization", () => {
   it("refuses an instance that names no blueprint, or whose blueprint is gone", async () => {
     const f = fixture([
       row("agent_instance", "ain_orphan", BETA, { spec: { agentId: "" } }),
-      row("agent_instance", "ain_gone", BETA, { spec: { agentId: "agt_gone" } }),
+      row("agent_instance", "ain_gone", BETA, {
+        spec: { agentId: "agt_gone" },
+      }),
     ]);
     const binding = newCredentialBinding(f.deps);
     for (const id of ["ain_orphan", "ain_gone"]) {
@@ -341,11 +366,29 @@ describe("the rule, for a caller bound to one organization", () => {
   it("keeps list candidates by their facts: every one for an unbound caller, the organization by id, and kinds no organization owns", () => {
     const binding = newCredentialBinding(fixture([]).deps);
     const candidate = entry("x", BETA);
-    expect(binding.keepsEntry(unbound, ApiResourceKind.agent, candidate)).toBe(true);
-    expect(binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.organization, entry(ALPHA, ""))).toBe(true);
-    expect(binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.organization, entry(BETA, ""))).toBe(false);
-    expect(binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.api_key, candidate)).toBe(true);
-    expect(binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.agent, candidate)).toBe(false);
+    expect(binding.keepsEntry(unbound, ApiResourceKind.agent, candidate)).toBe(
+      true,
+    );
+    expect(
+      binding.keepsEntry(
+        boundTo(ALPHA),
+        ApiResourceKind.organization,
+        entry(ALPHA, ""),
+      ),
+    ).toBe(true);
+    expect(
+      binding.keepsEntry(
+        boundTo(ALPHA),
+        ApiResourceKind.organization,
+        entry(BETA, ""),
+      ),
+    ).toBe(false);
+    expect(
+      binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.api_key, candidate),
+    ).toBe(true);
+    expect(
+      binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.agent, candidate),
+    ).toBe(false);
   });
 
   it("reads a target once per caller object, and asks again after a failed read", async () => {

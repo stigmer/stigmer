@@ -771,10 +771,11 @@ whatever roles its person holds elsewhere.
   Stigmer resource type.
 - **Examples**: a PlatformClient user token (bound to the PlatformClient's
   Organization), a federated token through an Identity Provider (bound to the
-  Organization `tenant_org_claim` names, or the provider's own), and an API key
-  limited to an Organization (`ApiKeySpec.bound_org`). A person signed in at the
-  Stigmer Console with their own Stigmer sign-in is not bound and moves between
-  all their Organizations.
+  Organization `tenant_org_claim` names, or the provider's own), an API key
+  limited to an Organization (`ApiKeySpec.bound_org`), and the credential a
+  runner holds for one run (bound to the run's Organization). A person signed in
+  at the Stigmer Console with their own Stigmer sign-in is not bound and moves
+  between all their Organizations.
 - **Reach**: its Organization's resources; what belongs to no Organization (the
   person's own account and API keys); and reading and running Agents, Skills,
   Workflows, MCP Servers and Plugins shared at Platform visibility. It cannot

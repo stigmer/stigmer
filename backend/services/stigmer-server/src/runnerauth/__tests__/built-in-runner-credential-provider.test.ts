@@ -37,7 +37,11 @@
  *     included) is PERMISSION_DENIED with one sentence; the kind read is
  *     the id's, not the arm's; pool-claim, renewal and unset answer
  *     not-minted; so does keyless. Under trusted-local the controller's
- *     own arms mint for anyone, and this capability does not exist.
+ *     own arms mint for anyone, and this capability does not exist. A
+ *     caller bound to another organization than the run's is refused with
+ *     the binding's sentence, and the verifier admits a run credential's
+ *     person bound to the run's organization, so a credential limited to
+ *     one organization cannot widen itself through a run.
  *
  * Written failing on 2026-09-16, before src/runnerauth/built-in-runner-credential-provider.ts
  * existed; the module turned it green.
@@ -59,6 +63,7 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 
 import type { AccountsByCaller } from "../../domain/identityaccount/resolve.js";
 import { newConnectExecutionId } from "../../domain/mcpserver/connect-execution-id.js";
+import { BOUND_ELSEWHERE_DENY_REASON } from "../../authorization/credential-binding.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { BoundExecutionStore } from "../bound-execution.js";
@@ -72,6 +77,7 @@ import {
   WORKFLOW_LINEAGE_BINDING_MISMATCH_MESSAGE,
 } from "../constants.js";
 import type { RunnerScopedTokenExchange } from "../runner-credential-provider.js";
+import { newRunnerSubjectIdentityVerifier } from "../runner-subject-verifier.js";
 import {
   isClockedToken,
   RunnerAuthService,
@@ -284,6 +290,25 @@ describe("exchangeScopedToken — the mint gate", () => {
     );
   });
 
+  it("a credential bound to another organization than the run's is refused with the binding's sentence — it cannot swap itself for a credential that works there", async () => {
+    const failure = await refusal(
+      exchange(
+        { arm: "agent-execution", executionId: "aex_agent_run" },
+        { ...carol, boundOrg: "globex" },
+      ),
+    );
+    expect(failure.code).toBe(Code.PermissionDenied);
+    expect(failure.rawMessage).toBe(BOUND_ELSEWHERE_DENY_REASON);
+  });
+
+  it("a credential bound to the run's own organization is minted the run credential", async () => {
+    const minted = await exchange(
+      { arm: "workflow-execution", executionId: "wex_carols_flow" },
+      { ...carol, boundOrg: "acme" },
+    );
+    expect(minted.minted).toBe(true);
+  });
+
   it("a run whose creator stamp names nobody is nobody's to hold — refused with the same sentence", async () => {
     const failure = await refusal(
       exchange(
@@ -366,6 +391,29 @@ describe("exchangeScopedToken — the mint gate", () => {
         carol,
       ),
     ).toEqual({ minted: false });
+  });
+});
+
+describe("the runner-subject verifier binds the run's organization", () => {
+  const verifier = newRunnerSubjectIdentityVerifier({
+    store,
+    accounts,
+    credentials: provider,
+  });
+
+  it("a run credential admits the run's person bound to the run's organization — whoever started the run, it works there alone", async () => {
+    const identity = await verifier.verify(
+      service.mintRunCredential("aex_agent_run"),
+    );
+    expect(identity?.identityId).toBe(HUMAN);
+    expect(identity?.callerClass).toBe("runner");
+    expect(identity?.boundOrg).toBe("acme");
+  });
+
+  it("a connect token admits the person bound to the connect's organization", async () => {
+    const identity = await verifier.verify(service.mint(CONNECT_ID, 300).token);
+    expect(identity?.identityId).toBe(HUMAN);
+    expect(identity?.boundOrg).toBe("acme");
   });
 });
 
