@@ -692,6 +692,23 @@
       ]
     },
     {
+      "name": "HookFormat",
+      "description": "HookFormat is the hook format a plugin's hooks are written in.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.HookFormat",
+      "values": [
+        {
+          "name": "HOOK_FORMAT_CLAUDE_CODE",
+          "number": 1,
+          "description": "Claude Code's hook format, also used by Codex plugins."
+        },
+        {
+          "name": "HOOK_FORMAT_CURSOR",
+          "number": 2,
+          "description": "Cursor's hook format."
+        }
+      ]
+    },
+    {
       "name": "PluginDialect",
       "description": "PluginDialect names the manifest format a package was read from.\n\n Stigmer reads the open Agent Plugins format and the Cursor, Claude Code\n and Codex dialects unchanged; the dialect is recorded for display and\n support, never to branch behaviour after install.",
       "protoType": "ai.stigmer.agentic.plugin.v1.PluginDialect",
@@ -809,6 +826,17 @@
           }
         },
         "description": "Warnings the last push recorded: components Stigmer does not carry,\n model hints it did not apply, names that shadow built-ins.",
+        "required": false
+      },
+      {
+        "name": "Hooks",
+        "jsonName": "hooks",
+        "protoField": "hooks",
+        "type": {
+          "kind": "message",
+          "messageType": "HookConfig"
+        },
+        "description": "The plugin's tool-call hooks, as recorded at install; unset when the\n plugin carries none.",
         "required": false
       }
     ]
@@ -963,6 +991,152 @@
       ]
     },
     {
+      "name": "HookConfig",
+      "description": "HookConfig is a plugin's tool-call hooks, in the format the plugin wrote\n them.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.HookConfig",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/hooks.proto",
+      "fields": [
+        {
+          "name": "Format",
+          "jsonName": "format",
+          "protoField": "format",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.plugin.v1.HookFormat",
+            "enumValues": [
+              "HOOK_FORMAT_CLAUDE_CODE",
+              "HOOK_FORMAT_CURSOR"
+            ]
+          },
+          "description": "The format the hooks are written in, which decides their input and answer.",
+          "required": false
+        },
+        {
+          "name": "Groups",
+          "jsonName": "groups",
+          "protoField": "groups",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "HookGroup"
+            }
+          },
+          "description": "Hook groups, in the order the plugin declares them.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "HookGroup",
+      "description": "HookGroup is one event, an optional matcher, and the handlers that run when\n both match.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.HookGroup",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/hooks.proto",
+      "fields": [
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The event the handlers run on, spelled as the format spells it, e.g.\n \"PreToolUse\" or \"beforeShellExecution\".",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Matcher",
+          "jsonName": "matcher",
+          "protoField": "matcher",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Which calls the handlers run for, as written by the plugin; empty or \"*\"\n matches every call.",
+          "required": false
+        },
+        {
+          "name": "Handlers",
+          "jsonName": "handlers",
+          "protoField": "handlers",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "HookHandler"
+            }
+          },
+          "description": "The handlers to run, in order.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "HookHandler",
+      "description": "HookHandler is one command a hook runs.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.HookHandler",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/hooks.proto",
+      "fields": [
+        {
+          "name": "Command",
+          "jsonName": "command",
+          "protoField": "command",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The command to run, as written by the plugin.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Args",
+          "jsonName": "args",
+          "protoField": "args",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Arguments for the command's exec form; when set, the command runs without\n a shell.",
+          "required": false
+        },
+        {
+          "name": "TimeoutSeconds",
+          "jsonName": "timeoutSeconds",
+          "protoField": "timeout_seconds",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Seconds the command may run before it is stopped; zero means the format's\n default.",
+          "required": false
+        },
+        {
+          "name": "Condition",
+          "jsonName": "condition",
+          "protoField": "condition",
+          "type": {
+            "kind": "string"
+          },
+          "description": "A permission rule that narrows when the handler runs, e.g.\n \"Bash(git push *)\"; empty means whenever the group matches.",
+          "required": false
+        },
+        {
+          "name": "FailClosed",
+          "jsonName": "failClosed",
+          "protoField": "fail_closed",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether a crash, timeout or missing answer blocks the call instead of\n letting it through.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "PluginMaterialization",
       "description": "PluginMaterialization counts what a push produced, by kind.",
       "protoType": "ai.stigmer.agentic.plugin.v1.PluginMaterialization",
@@ -1023,7 +1197,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Stable warning kind, e.g. \"component-ignored\", \"member-adopted\",\n \"model-hint-unresolved\", \"sub-agent-name-builtin\", \"version-not-taggable\".",
+          "description": "Stable warning kind, e.g. \"component-ignored\", \"hooks-not-run-yet\",\n \"member-adopted\", \"model-hint-unresolved\", \"settings-agent-not-applied\",\n \"sub-agent-name-builtin\", \"sub-agent-not-installed\",\n \"tool-list-entry-dropped\", \"version-not-taggable\".",
           "required": false
         },
         {

@@ -44,6 +44,7 @@ const readOk = (overrides: Partial<Extract<EntryRead, { ok: true }>> = {}): Entr
   subAgents: [],
   servers: [],
   variables: [],
+  hookEvents: [],
   ignored: [],
   warnings: [],
   digest: "0".repeat(64),
@@ -106,11 +107,23 @@ describe("judgeEntry", () => {
     expect(judged.verdict.kind === "exclude" && judged.verdict.failures[0]?.detail).toBe("x/LICENSE reserves all rights");
   });
 
-  it("rule 2: a plugin of hooks and commands only fails with those components named", () => {
+  it("rule 2: a plugin of ignored components only fails with those components named", () => {
     const read = readOk({ skills: [], ignored: [{ kind: "hooks", path: "hooks" }, { kind: "commands", path: "commands" }, { kind: "hooks", path: "hooks/other" }] });
     const judged = judgeEntry(entry("hooks-only", read), PROBES);
     expect(failuresOf(judged)).toEqual(["2-becomes-something"]);
-    expect(judged.verdict.kind === "exclude" && judged.verdict.failures[0]?.detail).toBe("it carries only commands, hooks, which Stigmer does not install");
+    expect(judged.verdict.kind === "exclude" && judged.verdict.failures[0]?.detail).toBe(
+      "it carries no skill, sub-agent or MCP server, only commands, hooks, which Stigmer does not install",
+    );
+  });
+
+  it("rule 2: a plugin of hooks alone says whether they run, never that they are not installed", () => {
+    const notRun = readOk({ skills: [], warnings: [{ kind: "hook-event-not-run", message: "hooks on 'stop' are not run" }], ignored: [{ kind: "commands", path: "commands" }] });
+    const judged = judgeEntry(entry("loop", notRun), PROBES);
+    expect(judged.verdict.kind === "exclude" && judged.verdict.failures[0]?.detail).toBe(
+      "it carries no skill, sub-agent or MCP server, only hooks Stigmer does not run; and commands, which Stigmer does not install",
+    );
+    const running = judgeEntry(entry("guard", readOk({ skills: [], hookEvents: ["PreToolUse"] })), PROBES);
+    expect(running.verdict.kind === "exclude" && running.verdict.failures[0]?.detail).toBe("it carries no skill, sub-agent or MCP server, only hooks");
   });
 
   it("rule 2: an entry the reader refuses fails with the reader's sentence", () => {

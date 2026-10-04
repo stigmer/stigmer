@@ -9,12 +9,22 @@
  *
  * Warnings collected here join the library's in `PluginStatus.warnings`:
  * every ignored component (recorded once per component, as the library
- * records it), each unapplied model hint, each built-in name shadowed, and
- * a manifest version the tag pattern rejects.
+ * records it), each unapplied model hint, each built-in name shadowed, each
+ * tool-list entry dropped and sub-agent left out, settings an authored
+ * agent overrides, and a manifest version the tag pattern rejects. The
+ * hooks the library read ride on the plan unchanged, to become
+ * `PluginStatus.hooks`: they are not a member, so a plugin whose only
+ * content is hooks installs with no members. No engine runs them yet, and
+ * the receipt says so in one warning, so nobody relies on a guard hook
+ * that does not run.
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { PluginFiles, PluginPackage } from "@stigmer/plugin-package";
+import type {
+  PluginFiles,
+  PluginHooks,
+  PluginPackage,
+} from "@stigmer/plugin-package";
 import { PluginWarningSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -46,6 +56,8 @@ export interface MaterializationPlan {
   readonly members: readonly PlannedMember[];
   /** The audit tag this push assigns; empty when the version does not fit. */
   readonly tag: string;
+  /** The tool-call hooks read, for `PluginStatus.hooks`; absent when there are none. */
+  readonly hooks: PluginHooks | undefined;
   readonly warnings: readonly PluginWarning[];
 }
 
@@ -84,11 +96,21 @@ export function planMaterialization(
       create(PluginWarningSchema, {
         kind: SERVER_WARNING_KINDS.componentIgnored,
         path: ignored.path,
-        message: `${ignored.kind} at '${ignored.path}' is not installed; Stigmer reads skills, MCP servers, sub-agents and the ai.stigmer/ overlay`,
+        message: `${ignored.kind} at '${ignored.path}' is not installed; Stigmer reads skills, MCP servers, sub-agents, hooks, a Claude plugin's settings and the ai.stigmer/ overlay`,
       }),
     );
   }
   const tag = versionTag(plugin.version, warnings);
+  if (plugin.hooks !== undefined) {
+    warnings.push(
+      create(PluginWarningSchema, {
+        kind: SERVER_WARNING_KINDS.hooksNotRunYet,
+        message:
+          "the plugin's tool-call hooks are recorded but not run yet: this version of Stigmer runs no plugin hook, " +
+          "so none of them checks a call",
+      }),
+    );
+  }
 
   const skills = planSkills(plugin, files, identity, tag, message);
   const mcpServers = planMcpServers(
@@ -145,5 +167,14 @@ export function planMaterialization(
     })),
   ];
 
-  return { skills, mcpServers, agent, workflows, members, tag, warnings };
+  return {
+    skills,
+    mcpServers,
+    agent,
+    workflows,
+    members,
+    tag,
+    hooks: plugin.hooks,
+    warnings,
+  };
 }

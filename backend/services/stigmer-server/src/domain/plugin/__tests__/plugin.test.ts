@@ -5,6 +5,9 @@
  * contract the conformance suite proves per edition: a Cursor plugin with
  * skills, a sub-agent and an MCP server materialises exactly those
  * members with both labels; an MCP-only plugin materialises no agent; a
+ * Claude plugin's hooks reach the status while its settings' main agent
+ * and its agents' tool lists, rewritten to Stigmer's names, reach the
+ * agent; a plugin that is only hooks installs with no members; a
  * re-push of the same archive writes nothing; a client's edit, re-push or
  * delete of a member is refused naming the plugin while the plugin's own
  * upgrade drops what the archive dropped; uninstall removes every member
@@ -29,6 +32,7 @@ import { create as createMessage } from "@bufbuild/protobuf";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
+  claudePlugin,
   cursorPlugin,
   openPlugin,
   withFile,
@@ -46,6 +50,7 @@ import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/m
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { PluginState } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
@@ -339,6 +344,162 @@ describe("Plugin push — materialisation", () => {
     });
     expect(members.members.map((m) => ApiResourceKind[m.kind])).toEqual([
       "mcp_server",
+    ]);
+  });
+
+  it("installs a Claude plugin's hooks on the status and its main agent and tool lists, in Stigmer's names, on the agent", async () => {
+    const name = uniqueName("scanner");
+    const installed = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(
+        claudePlugin({
+          name,
+          version: "1.0.0",
+          description: "Scans for vulnerabilities",
+          mcpServers: {
+            [`${name}_db`]: { command: "npx", args: ["-y", "@acme/db-mcp"] },
+          },
+          hooks: {
+            PreToolUse: [
+              {
+                matcher: "Bash",
+                hooks: [
+                  {
+                    type: "command",
+                    command: 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"',
+                    if: "Bash(git push *)",
+                    timeout: 5,
+                  },
+                ],
+              },
+            ],
+            Stop: [{ hooks: [{ type: "command", command: "summary" }] }],
+          },
+          settings: { agent: `${name}:lead` },
+          agents: [
+            {
+              file: "lead",
+              frontmatter: {
+                description: "Leads the scan.",
+                tools: `Read, Agent(${name}:explore), mcp__plugin_${name}_${name}_db__query, mcp__claude_ai_Slack__post`,
+              },
+              body: "You lead the scan and delegate the exploring.",
+            },
+            {
+              file: "explore",
+              frontmatter: {
+                description: "Explores.",
+                tools: ["Read", "Grep"],
+                disallowedTools: `mcp__plugin_${name}_${name}_db`,
+              },
+            },
+            {
+              file: "notify",
+              frontmatter: {
+                description: "Notifies.",
+                tools: "mcp__claude_ai_Slack__post",
+              },
+            },
+          ],
+        }),
+      ),
+    });
+
+    expect(installed.status?.state).toBe(PluginState.READY);
+    expect(installed.status?.hooks?.format).toBe(HookFormat.CLAUDE_CODE);
+    expect(
+      installed.status?.hooks?.groups.map((g) => ({
+        event: g.event,
+        matcher: g.matcher,
+        handlers: g.handlers.map((h) => ({
+          command: h.command,
+          args: h.args,
+          timeoutSeconds: h.timeoutSeconds,
+          condition: h.condition,
+          failClosed: h.failClosed,
+        })),
+      })),
+    ).toEqual([
+      {
+        event: "PreToolUse",
+        matcher: "Bash",
+        handlers: [
+          {
+            command: 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"',
+            args: [],
+            timeoutSeconds: 5,
+            condition: "Bash(git push *)",
+            failClosed: false,
+          },
+        ],
+      },
+    ]);
+    expect(
+      installed.status?.warnings.map((w) => `${w.kind}:${w.path}`),
+    ).toEqual(
+      expect.arrayContaining([
+        "hook-event-not-run:hooks/hooks.json",
+        "tool-list-entry-dropped:agents/lead.md",
+        "tool-list-entry-dropped:agents/notify.md",
+        "sub-agent-not-installed:agents/notify.md",
+      ]),
+    );
+
+    const agent = await agentQuery.getByReference(
+      createMessage(ApiResourceReferenceSchema, {
+        org: ORG,
+        kind: ApiResourceKind.agent,
+        slug: name,
+      }),
+    );
+    expect(agent.spec?.instructions).toBe(
+      "You lead the scan and delegate the exploring.",
+    );
+    expect(agent.spec?.tools).toEqual([
+      "Read",
+      "Agent(explore)",
+      `mcp__${name}db__query`,
+    ]);
+    expect(
+      agent.spec?.subAgents.map((s) => [s.name, s.tools, s.disallowedTools]),
+    ).toEqual([["explore", ["Read", "Grep"], [`mcp__${name}db`]]]);
+    expect(
+      agent.spec?.mcpServerUsages.map((u) => u.mcpServerRef?.slug),
+    ).toEqual([`${name}db`]);
+  });
+
+  it("installs a plugin that is only hooks with no members, and a re-push keeps its hooks", async () => {
+    const name = uniqueName("guard");
+    const artifact = archiveOf(
+      claudePlugin({
+        name,
+        hooks: {
+          PreToolUse: [
+            { hooks: [{ type: "command", command: "node guard.js" }] },
+          ],
+        },
+      }),
+    );
+    const installed = await plugins.push({ org: ORG, artifact });
+    expect(installed.status?.state).toBe(PluginState.READY);
+    expect(installed.status?.materialized).toMatchObject({
+      skills: 0,
+      mcpServers: 0,
+      agents: 0,
+      workflows: 0,
+    });
+    expect(installed.status?.hooks?.groups.map((g) => g.event)).toEqual([
+      "PreToolUse",
+    ]);
+    const members = await pluginQuery.listMembers({
+      value: installed.metadata!.id,
+    });
+    expect(members.members).toEqual([]);
+
+    const again = await plugins.push({ org: ORG, artifact });
+    expect(again.status?.digest).toBe(installed.status?.digest);
+    expect(again.status?.hooks?.groups.map((g) => g.event)).toEqual([
+      "PreToolUse",
     ]);
   });
 
@@ -694,6 +855,42 @@ describe("Plugin push — refusals before any write", () => {
       "plugin cannot be installed, 1 problem found",
     );
     expect(error.rawMessage).toContain("has a variable in its 'url'");
+    await expectCode(
+      pluginQuery.getByReference(
+        createMessage(ApiResourceReferenceSchema, {
+          org: ORG,
+          kind: ApiResourceKind.plugin,
+          slug: name,
+        }),
+      ),
+      Code.NotFound,
+    );
+  });
+
+  it("refuses a plugin whose main agent keeps none of its tools, naming the agent", async () => {
+    const name = uniqueName("emptied");
+    await expectCode(
+      plugins.push({
+        org: ORG,
+        artifact: archiveOf(
+          claudePlugin({
+            name,
+            settings: { agent: "lead" },
+            agents: [
+              {
+                file: "lead",
+                frontmatter: {
+                  description: "Leads.",
+                  tools: "mcp__claude_ai_Slack__post",
+                },
+              },
+            ],
+          }),
+        ),
+      }),
+      Code.InvalidArgument,
+      "main agent 'lead' keeps none of the tools its 'tools' list names",
+    );
     await expectCode(
       pluginQuery.getByReference(
         createMessage(ApiResourceReferenceSchema, {

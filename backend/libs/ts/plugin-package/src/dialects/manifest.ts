@@ -3,8 +3,9 @@
  * field-reading helpers they share.
  *
  * A `DialectManifest` says what one manifest CONTRIBUTES: identity fields,
- * declared component paths, MCP configuration sources, a variables block,
- * and the fields it carries that Stigmer records as ignored. It does not
+ * declared component paths, MCP configuration and hooks sources, a
+ * variables block, Claude's inline settings, and the fields it carries that
+ * Stigmer records as ignored. It does not
  * decide anything across manifests: precedence, name conflicts and default
  * locations are `detect.ts`'s, and turning declarations into skills,
  * servers and variables is `normalise/`'s. Keeping the readers to "what
@@ -47,6 +48,16 @@ export type McpConfigSource =
   | { readonly kind: "file"; readonly path: string; readonly dialect: PluginDialect; readonly manifest: string }
   | { readonly kind: "inline"; readonly manifest: string; readonly servers: unknown; readonly dialect: PluginDialect };
 
+/**
+ * Where hooks come from: a hooks file, or an object inline in a manifest.
+ * An inline object from a Claude or Codex manifest is the bare event map
+ * (Claude's plugins reference); Cursor documents no inline form, so a
+ * Cursor inline object is read in its file's shape.
+ */
+export type HookSource =
+  | { readonly kind: "file"; readonly path: string; readonly dialect: PluginDialect; readonly manifest: string }
+  | { readonly kind: "inline"; readonly manifest: string; readonly value: JsonObject; readonly dialect: PluginDialect };
+
 /** A variables block, raw, tagged with the dialect whose shape it takes. */
 export type VariablesDeclaration =
   | { readonly dialect: "cursor"; readonly value: unknown; readonly manifest: string }
@@ -61,7 +72,11 @@ export interface DialectManifest {
   /** Declared agent paths; `undefined` leaves the default `agents/` scan in force. */
   readonly agentPaths?: readonly DeclaredPath[];
   readonly mcpConfigs: readonly McpConfigSource[];
+  /** Declared hooks sources; the default `hooks/hooks.json` is added by `detect.ts`. */
+  readonly hookSources: readonly HookSource[];
   readonly variables?: VariablesDeclaration;
+  /** A Claude manifest's inline `settings` object, raw. */
+  readonly settings?: unknown;
   readonly ignored: readonly IgnoredComponent[];
 }
 
@@ -173,13 +188,39 @@ export function readMcpSources(
 }
 
 /**
+ * A vendor `hooks` field: a path, an inline hooks object, or an array of
+ * either, read like `mcpServers`. Each becomes one source under the
+ * dialect's rules.
+ */
+export function readHookSources(object: JsonObject, path: string, dialect: PluginDialect, findings: Findings): readonly HookSource[] {
+  const value = object["hooks"];
+  if (value === undefined) return [];
+  const items = Array.isArray(value) ? value : [value];
+  const sources: HookSource[] = [];
+  for (const item of items) {
+    if (typeof item === "string") {
+      const resolved = resolveDeclaredPath(item);
+      if (!resolved.ok) {
+        findings.error(resolved.kind, { path, subject: item });
+        continue;
+      }
+      sources.push({ kind: "file", path: resolved.path, dialect, manifest: path });
+    } else if (isJsonObject(item)) {
+      sources.push({ kind: "inline", manifest: path, value: item, dialect });
+    } else {
+      findings.error("manifest-field-type", { path, subject: "hooks", detail: "a path, an object, or an array of either" });
+    }
+  }
+  return sources;
+}
+
+/**
  * Manifest fields Stigmer reads past, recorded as ignored components at
  * `<manifest>#<field>` when present. Shared across dialects; each names the
  * fields it knows through `known` so the same field is never also an
  * unknown-field warning.
  */
 export const IGNORED_FIELD_KINDS: Readonly<Record<string, IgnoredComponentKind>> = {
-  hooks: "hooks",
   rules: "rules",
   commands: "commands",
   workflows: "workflows",

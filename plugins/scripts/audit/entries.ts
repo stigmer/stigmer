@@ -72,7 +72,9 @@ export type EntryRead =
       readonly subAgents: readonly string[];
       readonly servers: readonly EntryServer[];
       readonly variables: readonly PluginVariable[];
-      /** Component kinds the reader passes over (hooks, commands, rules, ...), one per component. */
+      /** The events of the tool-call hooks an install records, each once; the hooks it does not read are in `warnings`. */
+      readonly hookEvents: readonly string[];
+      /** Component kinds the reader passes over (commands, rules, ...), one per component. */
       readonly ignored: readonly { readonly kind: string; readonly path: string }[];
       readonly warnings: readonly RenderedFinding[];
       /** SHA-256 of the archive an install would push: the identity the server records. */
@@ -207,6 +209,7 @@ async function readEntry(listing: DirectoryListing): Promise<EntryRead> {
     subAgents: plugin.subAgents.map((agent) => agent.name),
     servers,
     variables: plugin.variables,
+    hookEvents: [...new Set(plugin.hooks?.groups.map((group) => group.event) ?? [])],
     ignored: plugin.ignored.map((component) => ({ kind: component.kind, path: component.path })),
     warnings: warnings.map(render),
     digest,

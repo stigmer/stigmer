@@ -73,6 +73,15 @@ export type PluginErrorKind =
   | "sub-agent-frontmatter-unreadable"
   | "sub-agent-instructions-short"
   | "sub-agent-name-duplicate"
+  | "sub-agent-tool-list-invalid"
+  // Hooks
+  | "hooks-unreadable"
+  | "hooks-shape"
+  | "hook-command-missing"
+  | "hook-matcher-invalid"
+  | "hook-condition-invalid"
+  // Claude plugin settings
+  | "settings-unreadable"
   // Variables
   | "variable-name-invalid"
   // The ai.stigmer/ overlay
@@ -98,7 +107,14 @@ export type PluginWarningKind =
   | "sub-agent-name-defaulted"
   | "sub-agent-skill-unknown"
   | "sub-agent-model-unknown"
-  | "sub-agent-field-ignored";
+  | "sub-agent-field-ignored"
+  | "hook-event-not-run"
+  | "hook-handler-not-run"
+  | "hook-field-ignored"
+  | "hooks-format-not-run"
+  | "skill-hooks-not-run"
+  | "settings-agent-unknown"
+  | "settings-key-ignored";
 
 export type PluginFindingKind = PluginErrorKind | PluginWarningKind;
 
