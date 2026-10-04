@@ -92,6 +92,7 @@ import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
 import { registerIamPolicyServices } from "../domain/iampolicy/controller.js";
 import { newIamPolicyGrantPath } from "../domain/iampolicy/grant-path.js";
 import { asFetch, guardedFetch, nodeLookup } from "@stigmer/outbound/egress";
+import { isReleaseVersion } from "@stigmer/plugin-package/client";
 import { temporalConnectionEnv } from "@stigmer/temporal-codecs";
 import { newOrganizationOnlyGrantScope } from "../domain/iampolicy/grant-scope.js";
 import { newMembershipRules } from "../domain/iampolicy/membership.js";
@@ -370,6 +371,10 @@ export async function composeServer(
   options: ComposeOptions,
 ): Promise<ComposedServer> {
   const { config, logger } = options;
+  // The one version this server states: getServerInfo reports it, and the
+  // sandbox drivers hand it, when it is a release, to the runner layer's
+  // start script, which refuses a layer of another release.
+  const version = options.version ?? SERVER_VERSION;
 
   // Stage: extensions — resolves and validates BEFORE any stage has side
   // effects (a bad registry is a loud boot throw, never a
@@ -854,6 +859,7 @@ export async function composeServer(
         kubernetesNamespace: config.sandboxKubernetesNamespace,
         runnerEnv: config.sandboxRunnerEnv,
         runnerSecretEnv: config.sandboxRunnerSecretEnv,
+        serverRelease: isReleaseVersion(version) ? version : "",
       },
       logger,
     },
@@ -1780,7 +1786,7 @@ export async function composeServer(
       temporalNamespace: config.temporalNamespace,
       runnerAuthService: runnerCredentials,
       edition: extensions.edition,
-      version: options.version ?? SERVER_VERSION,
+      version,
       authenticationRequired: requireAuthentication,
       singleOrganization,
       // The built-in `absent` answer installs here, at the consumer, when

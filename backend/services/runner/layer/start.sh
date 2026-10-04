@@ -5,9 +5,10 @@
 #
 #   /runner/bin/start /runner/dist/main.js
 #
-# It checks the base image the layer was added to, then execs the layer's
-# own Node (/runner/bin/node, beside this file) with its arguments
-# unchanged: the same process, nothing left running.
+# It checks the base image the layer was added to, and the layer's release
+# against the server's, then execs the layer's own Node (/runner/bin/node,
+# beside this file) with its arguments unchanged: the same process, nothing
+# left running.
 #
 # Why a shell script: the layer's Node is linked against glibc's dynamic
 # loader. On a base without it (Alpine, which uses musl), exec of that Node
@@ -42,8 +43,22 @@
 # The server refuses both names in STIGMER_SANDBOX_RUNNER_ENV at boot, so an
 # operator's own value is refused there rather than dropped here.
 #
+# The release pairing: a layer runs only under the server release it was
+# built for, because the two share Temporal activities and payloads that
+# change from release to release (stigmer/stigmer#1831). The release lane
+# writes the layer's release to /runner/RELEASE (../RELEASE from here; empty
+# for a development build), and a driver passes the server's release as
+# STIGMER_SERVER_RELEASE, only when the server is a release. Neither side's
+# version is parsed here: the server decides what is a release, and the
+# lane does for the layer. Two releases that differ are refused; a release
+# server over a development layer (a `latest` or `main-<sha>` image, or a
+# reviewed emergency build) is warned about and starts; a development
+# server checks nothing.
+#
 # A refusal exits 78 (EX_CONFIG) with one line on stderr that lists every
 # problem found, so a pod's last-state message carries all of it at once.
+# The base image is checked first: a base that cannot run the layer is the
+# deeper problem, whatever release the layer is.
 
 GUIDE="https://stigmer.ai/docs/guides/self-hosting/runners#bring-your-own-base-image"
 
@@ -106,6 +121,20 @@ fi
 if [ -n "$problems" ]; then
   printf 'stigmer runner: this base image cannot run the runner layer: %s. The base image needs glibc 2.28 or newer, root, bash, git and standard text tools: %s\n' "$problems" "$GUIDE" >&2
   exit 78
+fi
+
+server_release="${STIGMER_SERVER_RELEASE-}"
+if [ -n "$server_release" ]; then
+  layer_release=""
+  if [ -r "${0%/*}/../RELEASE" ]; then
+    read -r layer_release <"${0%/*}/../RELEASE"
+  fi
+  if [ -z "$layer_release" ]; then
+    printf 'stigmer runner: warning: this runner layer names no release, so it is not checked against the server, which is %s (%s)\n' "$server_release" "$GUIDE" >&2
+  elif [ "$layer_release" != "$server_release" ]; then
+    printf 'stigmer runner: this runner layer is from release %s, but the server is %s: use the runner layer of release %s (re-join your image at every server upgrade): %s\n' "$layer_release" "$server_release" "$server_release" "$GUIDE" >&2
+    exit 78
+  fi
 fi
 
 for tool in python3 node rg; do

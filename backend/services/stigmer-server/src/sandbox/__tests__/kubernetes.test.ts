@@ -16,6 +16,9 @@
  *     pod's last-state message (runner-launch.ts);
  *   - the server's public address rides as STIGMER_MCP_PUBLIC_ENDPOINT
  *     only when configured (stigmer/stigmer#1447);
+ *   - the server's release rides as STIGMER_SERVER_RELEASE only for a
+ *     release server, for the start script's pairing check
+ *     (stigmer/stigmer#1831);
  *   - the operator's runner settings ride as values and its runner secrets
  *     ride the per-sandbox Secret, never a manifest value.
  */
@@ -28,7 +31,12 @@ import type {
 } from "@kubernetes/client-node";
 
 import { sandboxBaseName } from "../naming.js";
-import { RUNNER_HOME, RUNNER_UID, runnerCommand } from "../runner-launch.js";
+import {
+  RUNNER_HOME,
+  RUNNER_UID,
+  SERVER_RELEASE_ENV,
+  runnerCommand,
+} from "../runner-launch.js";
 import type { SandboxDriverConfig } from "../provisioner.js";
 import type { KubernetesSandboxGateway } from "../kubernetes.js";
 import {
@@ -50,6 +58,7 @@ const config: SandboxDriverConfig = {
   kubernetesNamespace: "stigmer-sandboxes",
   runnerEnv: {},
   runnerSecretEnv: {},
+  serverRelease: "",
 };
 
 function fakeGateway(
@@ -254,6 +263,14 @@ describe("the manifest shapes (the Java SandboxManifestFactory pins)", () => {
       deployment.spec?.template.spec?.containers[0]?.env ?? []
     ).map((entry) => entry.name);
     expect(names).not.toContain("STIGMER_MCP_PUBLIC_ENDPOINT");
+  });
+
+  it("a release server hands the start script its release; a development server hands none", () => {
+    const envOf = (serverRelease: string) =>
+      buildSandboxDeployment("session", "ses_1", env, { ...config, serverRelease })
+        .spec?.template.spec?.containers[0]?.env ?? [];
+    expect(envOf("3.42.0")).toContainEqual({ name: SERVER_RELEASE_ENV, value: "3.42.0" });
+    expect(envOf("").map((entry) => entry.name)).not.toContain(SERVER_RELEASE_ENV);
   });
 
   it("a token-less sandbox omits the token env but keeps the (empty) Secret", () => {

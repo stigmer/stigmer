@@ -55,8 +55,8 @@ jobs:
   # passes on to the runner's Node only as root on glibc, which no step
   # above runs as, so its success case (arguments through unchanged,
   # NODE_OPTIONS and NODE_PATH gone, a warning per missing optional tool)
-  # runs here, in Node's Debian image at the .nvmrc version, where
-  # STIGMER_TEST_AS_ROOT=1 makes that case's skip a failure. The checkout is
+  # and its release pairing cases run here, in Node's Debian image at the
+  # .nvmrc version, where STIGMER_TEST_AS_ROOT=1 makes their skip a failure. The checkout is
   # mounted read-only; the suite writes only to the container's temp dir.
   # Then the script alone, on Alpine: a musl base with none of the required
   # tools, which no Linux runner's own tree can stand in for, must be
