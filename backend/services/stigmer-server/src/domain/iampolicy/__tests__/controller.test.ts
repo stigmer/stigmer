@@ -719,6 +719,21 @@ describe("the self-query lanes under a credential bound to one organization", ()
     expect(h.engine?.calls).toEqual([]);
   });
 
+  it("checkMyPermission with contextual policies answers false for a resource outside the binding, and never asks the engine", async () => {
+    const h = await harness({
+      caller: boundAlice,
+      engine: true,
+      outsideIds: new Set(["agt_elsewhere"]),
+    });
+    const result = await h.query.checkMyPermission({
+      resource: ref("agent", "agt_elsewhere"),
+      relation: "can_view",
+      contextualPolicies: [orgRole(ALICE_ID, "viewer", "acme")],
+    });
+    expect(result.isAuthorized).toBe(false);
+    expect(h.engine?.calls).toEqual([]);
+  });
+
   it("answers INTERNAL, never a quiet answer, when the binding cannot read a target", async () => {
     const h = await harness({
       caller: boundAlice,

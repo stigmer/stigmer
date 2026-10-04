@@ -550,6 +550,9 @@ async function checkMyPermission(
       relation: input.relation,
       resource,
     });
+    if (!(await bindingReaches(deps, caller, policy))) {
+      return create(CheckAuthorizationResultSchema, { isAuthorized: false });
+    }
     const allowed = await engine.check(policy, input.contextualPolicies);
     return create(CheckAuthorizationResultSchema, { isAuthorized: allowed });
   }
@@ -610,7 +613,13 @@ async function checkAuthorization(
  * Whether the caller's credential may reach the policy's resource at all:
  * always for an unbound caller; for a bound one, the binding's verdict
  * (authorization/credential-binding.ts), so the engine is never asked about
- * another organization's resource on a bound person's behalf.
+ * another organization's resource on a bound person's behalf. Every lane
+ * that hands the engine a caller's question asks this first: the engine
+ * takes no caller and cannot be bound where it is composed. The relation
+ * is passed as asked, so the one cross-organization path (a blueprint
+ * shared at platform visibility) answers only to the permission names that
+ * read or run it; a role relation such as `viewer` on such a blueprint
+ * answers false for a bound caller, the narrower answer.
  */
 async function bindingReaches(
   deps: IamPolicyControllerDeps,

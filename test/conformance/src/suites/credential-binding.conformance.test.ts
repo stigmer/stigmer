@@ -230,6 +230,35 @@ describe("credential binding — a credential that names an organization works t
     expect(bound.isAuthorized, "the key limited to A may not").toBe(false);
   });
 
+  it("[rpc:IamPolicyQueryController.checkMyPermission] a key limited to A gets false when it asks, with contextual policies, about a resource of B", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    if (!target.capabilities.authorizationQueries) {
+      return ctx.skip("this target composes no authorization query engine");
+    }
+    const a = await tenancy(on);
+    const b = await tenancy(on);
+    const person = await on.provisionMember(a);
+    const personId = await on.accountIdOf(person);
+    const elsewhere = await founderEnvironment(on, b.org);
+    const question = {
+      resource: ref("environment", elsewhere),
+      relation: "can_view",
+      contextualPolicies: [
+        policyTriple({ kind: "identity_account", id: personId }, "member", {
+          kind: "organization",
+          id: b.org,
+        }),
+      ],
+    };
+
+    const unbound = await person.iamPolicyQuery.checkMyPermission(question);
+    expect(unbound.isAuthorized, "the person, as if a member of B, may view B's row").toBe(true);
+    const key = await keyOf(on, person, a.org);
+    const bound = await key.clients.iamPolicyQuery.checkMyPermission(question);
+    expect(bound.isAuthorized, "the key limited to A may not, whatever the context").toBe(false);
+  });
+
   it("[rpc:OrganizationCommandController.create] a key limited to A cannot found an organization", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;

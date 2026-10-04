@@ -56,7 +56,10 @@ export interface ComposedServices {
    * "Is this policy effectively held": the registered engine's `check`, or
    * under open source's own authorization the evaluator's
    * (authorization/policy-check.ts); undefined where neither exists (a
-   * unit Authorizer with no engine, or open source signed-out).
+   * unit Authorizer with no engine, or open source signed-out). Unlike the
+   * Authorizer above it is NOT bound: it takes no caller, so a unit that
+   * asks it on a caller's behalf first asks `credentialBinding.verdict`
+   * for the resource, as the server's own self-query lanes do.
    */
   readonly authorizationQueries:
     | Pick<AuthorizationQueryEngine, "check">
