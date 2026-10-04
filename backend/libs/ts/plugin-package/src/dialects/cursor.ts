@@ -11,8 +11,10 @@
  * either. `variables` is a JSON Schema object whose `properties` are the
  * variables a user is prompted for and whose `required` list marks the
  * mandatory ones; Cursor has no sensitivity flag, so Stigmer treats every
- * Cursor variable as a secret. `rules`, `commands`, `hooks`, `logo` and
- * `minClientVersions` are recorded as ignored; `displayName`, `publisher`,
+ * Cursor variable as a secret. `hooks` is a path, an inline object or an
+ * array of either, merged with `hooks/hooks.json` when that file exists.
+ * `rules`, `commands`, `logo` and `minClientVersions` are recorded as
+ * ignored; `displayName`, `publisher`,
  * `category` and `tags` are marketplace metadata Stigmer neither carries
  * nor warns about.
  */
@@ -23,6 +25,7 @@ import {
   type DialectManifest,
   ignoredFieldComponents,
   readDeclaredPaths,
+  readHookSources,
   readIdentity,
   readMcpSources,
   warnUnknownFields,
@@ -63,6 +66,7 @@ export function readCursorManifest(object: JsonObject, path: string, findings: F
     identity,
     skillPaths,
     mcpConfigs: readMcpSources(object, "mcpServers", path, "cursor", findings),
+    hookSources: readHookSources(object, path, "cursor", findings),
     ignored: ignoredFieldComponents(object, path),
   };
   if (agentPaths !== undefined) manifest.agentPaths = agentPaths;

@@ -2,12 +2,12 @@
  * Pins the `ai.stigmer/` overlay (the three document shapes located and
  * handed over as bytes with the server check) and the ignored-component
  * record (directories and files on disk, manifest fields, deduplicated,
- * never per file, with hook scripts never read).
+ * never per file; `hooks/` only where no vendor manifest reads it).
  */
 
 import { describe, expect, it } from "vitest";
 
-import { cursorPlugin, openPlugin } from "../testing.js";
+import { claudePlugin, cursorPlugin, openPlugin } from "../testing.js";
 import { accepted, kindsOf, read } from "../__test-utils__/read.js";
 
 describe("the ai.stigmer/ overlay", () => {
@@ -49,17 +49,30 @@ describe("ignored components", () => {
       },
     });
     const outcome = read(files);
-    expect(kindsOf(outcome)).toEqual({ errors: [], warnings: [] });
+    // The hooks file is read (its one event is named as not run), so neither hooks/ nor the field is ignored.
+    expect(kindsOf(outcome)).toEqual({ errors: [], warnings: ["hook-event-not-run"] });
     expect(accepted(outcome).ignored).toEqual([
       { kind: "assets", path: "assets/" },
-      { kind: "hooks", path: "hooks/" },
       { kind: "rules", path: "rules/" },
       { kind: "lsp-servers", path: ".lsp.json" },
       { kind: "settings", path: "settings.json" },
-      { kind: "hooks", path: ".cursor-plugin/plugin.json#hooks" },
       { kind: "rules", path: ".cursor-plugin/plugin.json#rules" },
       { kind: "logo", path: ".cursor-plugin/plugin.json#logo" },
       { kind: "min-client-versions", path: ".cursor-plugin/plugin.json#minClientVersions" },
     ]);
+  });
+
+  it("keeps hooks/ and settings.json ignored for a plugin with only the open manifest", () => {
+    const files = openPlugin({ files: { "hooks/hooks.json": '{"hooks":{}}', "settings.json": "{}" } });
+    expect(accepted(read(files)).ignored).toEqual([
+      { kind: "hooks", path: "hooks/" },
+      { kind: "settings", path: "settings.json" },
+    ]);
+  });
+
+  it("reads settings.json for a Claude plugin instead of ignoring it", () => {
+    const files = claudePlugin({ settings: {} });
+    expect(kindsOf(read(files))).toEqual({ errors: [], warnings: [] });
+    expect(accepted(read(files)).ignored).toEqual([]);
   });
 });

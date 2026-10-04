@@ -12,7 +12,11 @@
 //
 // `describePlugin` is the JSON projection for `--json`: the normalised
 // package with overlay documents reduced to their paths (the bytes are the
-// user's own files, and a byte array serialises badly).
+// user's own files, and a byte array serialises badly). Hooks are summarised
+// as their format and the handlers per event, offline from the package and
+// after an install from `status.hooks`; what is not run is in the warnings.
+// `get plugin` stays the generic resource view, whose YAML and JSON carry
+// `status.hooks` whole.
 //
 // The push half is two steps with a value between them: `preparePluginPush`
 // (the same selected file list, archived and digested by the shared module,
@@ -62,6 +66,10 @@ import {
   OAuthConnectionHealth,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { PluginDialect as PluginDialectProto } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
+import {
+  HookFormat as HookFormatProto,
+  type HookConfig,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
@@ -257,7 +265,23 @@ export function describePackageOn(
     "MCP servers",
     named(plugin.mcpServers.map((s) => `${s.name} (${s.transport})`)),
   );
-  contents.field("Sub-agents", named(plugin.subAgents.map((a) => a.name)));
+  // The main agent runs the main thread and is not installed as a sub-agent too.
+  contents.field(
+    "Sub-agents",
+    named(
+      plugin.subAgents
+        .map((a) => a.name)
+        .filter((name) => name !== plugin.mainAgent),
+    ),
+  );
+  if (plugin.mainAgent !== undefined)
+    contents.field("Main agent", plugin.mainAgent);
+  contents.field(
+    "Hooks",
+    plugin.hooks === undefined
+      ? "none"
+      : hooksSummary(HOOK_FORMAT_LABELS[plugin.hooks.format], plugin.hooks.groups),
+  );
   contents.field(
     "Variables",
     named(
@@ -292,6 +316,37 @@ export function count(n: number, noun: string): string {
 
 function named(items: readonly string[]): string {
   return items.length === 0 ? "none" : `${items.length}: ${items.join(", ")}`;
+}
+
+const HOOK_FORMAT_LABELS = {
+  "claude-code": "Claude Code",
+  cursor: "Cursor",
+} as const;
+
+/**
+ * `Claude Code format: PreToolUse 2, PostToolUse 1 (recorded, not run yet)`:
+ * handlers per event, in first-seen order. No engine runs a plugin hook
+ * yet, and the line says so wherever it is printed.
+ */
+export function hooksSummary(
+  format: string,
+  groups: readonly {
+    readonly event: string;
+    readonly handlers: readonly unknown[];
+  }[],
+): string {
+  const perEvent = new Map<string, number>();
+  for (const group of groups)
+    perEvent.set(group.event, (perEvent.get(group.event) ?? 0) + group.handlers.length);
+  return `${format} format: ${[...perEvent].map(([event, n]) => `${event} ${n}`).join(", ")} (recorded, not run yet)`;
+}
+
+function installedHooksSummary(hooks: HookConfig): string {
+  const format =
+    hooks.format === HookFormatProto.CURSOR
+      ? HOOK_FORMAT_LABELS.cursor
+      : HOOK_FORMAT_LABELS["claude-code"];
+  return hooksSummary(format, hooks.groups);
 }
 
 // ─── Push ────────────────────────────────────────────────────────────────
@@ -569,6 +624,8 @@ export function renderPushOutcome(
         slugs.join(", "),
       );
   }
+  if (plugin.status?.hooks !== undefined && plugin.status.hooks.groups.length > 0)
+    installed.field("Hooks", installedHooksSummary(plugin.status.hooks));
   if (warnings.length > 0) {
     const section = result.addSection("Warnings");
     for (const warning of warnings) section.item(warning.message);

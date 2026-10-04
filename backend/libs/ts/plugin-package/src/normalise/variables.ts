@@ -16,8 +16,9 @@
  * `${VAR}` in headers and arguments strictly, so a variable a server
  * references but no manifest declares would never reach it. Such a variable
  * is declared here as a required secret, with a warning naming the server.
- * A declared variable no server references is warned too; it is not wrong,
- * only useless.
+ * A declared variable no server and no hook references is warned too; it
+ * is not wrong, only useless. A hook references a variable through
+ * Claude's `${user_config.KEY}` in an exec-form handler (`normalise/hooks.ts`).
  */
 
 import type { ManifestSet } from "../detect.js";
@@ -27,7 +28,12 @@ import { VARIABLE_NAME_PATTERN } from "../placeholders.js";
 import type { PluginVariable } from "../types.js";
 import type { McpServersResult } from "./mcp-servers.js";
 
-export function normaliseVariables(set: ManifestSet, servers: McpServersResult, findings: Findings): readonly PluginVariable[] {
+export function normaliseVariables(
+  set: ManifestSet,
+  servers: McpServersResult,
+  hookReferences: ReadonlySet<string>,
+  findings: Findings,
+): readonly PluginVariable[] {
   const declared = new Map<string, PluginVariable>();
   const declaredIn = new Map<string, string>();
   for (const manifest of set.manifests) {
@@ -56,7 +62,7 @@ export function normaliseVariables(set: ManifestSet, servers: McpServersResult, 
   // warning would be a consequence of the refusal, not advice.
   if (servers.refused === 0) {
     for (const [name, variable] of declared) {
-      if (!referencedBy.has(name)) {
+      if (!referencedBy.has(name) && !hookReferences.has(name)) {
         findings.warn("variable-unreferenced", { subject: variable.name, path: declaredIn.get(name) });
       }
     }

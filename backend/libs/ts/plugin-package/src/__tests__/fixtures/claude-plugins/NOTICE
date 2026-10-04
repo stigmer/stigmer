@@ -1,0 +1,19 @@
+Vendored test fixtures from the Claude Code plugin directory.
+
+Source:  https://github.com/anthropics/claude-plugins-official
+Commit:  d182ca456ca09d31d139f7d3818d1d333b103cce
+License: each plugin directory carries its own LICENSE file (Apache License
+         2.0), vendored beside it unchanged.
+
+Directories and their paths in the source repository:
+
+  hookify/            <- plugins/hookify/
+  security-guidance/  <- plugins/security-guidance/
+  feature-dev/        <- plugins/feature-dev/
+
+Every file other than a script is a byte-for-byte copy of the source at that
+commit. The scripts (every *.py and *.sh file) are zero-byte placeholders of
+the same name: the reader never opens a hook's script, and these tests read
+what a plugin declares, never run it. Nothing under this directory is
+formatted, linted or edited; a change here is a re-vendoring at a new commit
+and updates this notice.

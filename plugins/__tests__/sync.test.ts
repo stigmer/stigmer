@@ -55,7 +55,7 @@ function audit(entries: readonly { source: typeof CURSOR; name: string; dir: str
           name: e.name,
           dir: e.dir,
           licence: e.licencePath === undefined ? { licence: "none" } : { licence: "mit", path: e.licencePath },
-          read: { ok: true, dialect: "cursor", skills: [], subAgents: [], servers: [], variables: [], ignored: [], warnings: [], digest: DIGEST, filesIncluded: 1 },
+          read: { ok: true, dialect: "cursor", skills: [], subAgents: [], servers: [], variables: [], hookEvents: [], ignored: [], warnings: [], digest: DIGEST, filesIncluded: 1 },
         },
         servers: [],
         verdict: e.verdict === "vendor" ? { kind: "vendor" } : { kind: "exclude", failures: [] },

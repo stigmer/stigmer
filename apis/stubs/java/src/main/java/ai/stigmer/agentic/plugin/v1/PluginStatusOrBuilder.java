@@ -191,4 +191,34 @@ public interface PluginStatusOrBuilder extends
    */
   ai.stigmer.agentic.plugin.v1.PluginWarningOrBuilder getWarningsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * The plugin's tool-call hooks, as recorded at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+   * @return Whether the hooks field is set.
+   */
+  boolean hasHooks();
+  /**
+   * <pre>
+   * The plugin's tool-call hooks, as recorded at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+   * @return The hooks.
+   */
+  ai.stigmer.agentic.plugin.v1.HookConfig getHooks();
+  /**
+   * <pre>
+   * The plugin's tool-call hooks, as recorded at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+   */
+  ai.stigmer.agentic.plugin.v1.HookConfigOrBuilder getHooksOrBuilder();
 }

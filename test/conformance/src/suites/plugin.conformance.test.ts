@@ -7,6 +7,10 @@
 // those labels on read. The contract pinned here, on every edition:
 //   - install materialises exactly the members the package describes, and an
 //     MCP-only package materialises no agent;
+//   - a Claude plugin's hooks that run land on status.hooks as written, the
+//     ones that do not are named in its warnings, its settings' main agent
+//     runs the agent's main thread, and its agents' tool lists arrive in
+//     Stigmer's names;
 //   - a re-push of the same archive is a no-op (one version, members untouched);
 //   - an upgrade removes what the new archive dropped and keeps the agent valid;
 //   - members are the plugin's to redefine: a client update, delete, level
@@ -33,6 +37,7 @@ import {
   AgentSpecSchema,
   McpServerUsageSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { PluginState } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -45,6 +50,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
 import {
   claudeLike,
+  claudePlugin,
   mcpOnly,
   pluginArchive,
   thermosLike,
@@ -233,6 +239,96 @@ describe("Plugin conformance — install", () => {
       Code.NotFound,
       "an MCP-only plugin has no agent",
     );
+  });
+
+  it("[rpc:PluginCommandController.push] installs a Claude plugin's hooks on its status, its settings' main agent as the agent, and its agents' tool lists in Stigmer's names", async () => {
+    const name = uniqueName("plg-hooks");
+    const plugin = await install(
+      pluginArchive(
+        claudePlugin({
+          name,
+          version: "1.0.0",
+          description: "Guards shell commands",
+          skills: [
+            { name: `${name}-guard`, description: "Guard", body: "# Guard" },
+          ],
+          mcpServers: {
+            [`${name}_db`]: { command: "npx", args: ["-y", "db-mcp"] },
+          },
+          hooks: {
+            PreToolUse: [
+              {
+                matcher: "Bash",
+                hooks: [
+                  {
+                    type: "command",
+                    command: 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"',
+                    if: "Bash(git push *)",
+                    timeout: 5,
+                  },
+                ],
+              },
+            ],
+            Stop: [{ hooks: [{ type: "command", command: "summary" }] }],
+          },
+          settings: { agent: "lead" },
+          agents: [
+            {
+              file: "lead",
+              frontmatter: {
+                description: "Leads.",
+                tools: `Read, Agent(${name}:helper), mcp__plugin_${name}_${name}_db__query`,
+              },
+              body: "You lead the work and delegate to the helper.",
+            },
+            {
+              file: "helper",
+              frontmatter: { description: "Helps.", tools: ["Read", "Grep"] },
+            },
+          ],
+        }),
+      ),
+    );
+
+    expect(plugin.status?.state).toBe(PluginState.READY);
+    const hooks = plugin.status?.hooks;
+    expect(hooks?.format).toBe(HookFormat.CLAUDE_CODE);
+    expect(hooks?.groups.map((g) => [g.event, g.matcher])).toEqual([
+      ["PreToolUse", "Bash"],
+    ]);
+    expect(
+      hooks?.groups[0]?.handlers.map((h) => [
+        h.command,
+        h.condition,
+        h.timeoutSeconds,
+        h.failClosed,
+      ]),
+    ).toEqual([
+      [
+        'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"',
+        "Bash(git push *)",
+        5,
+        false,
+      ],
+    ]);
+    expect(plugin.status?.warnings.map((w) => w.kind)).toContain(
+      "hook-event-not-run",
+    );
+
+    const agent = await clients.agentQuery.getByReference(
+      ref(ApiResourceKind.agent, name),
+    );
+    expect(agent.spec?.instructions).toBe(
+      "You lead the work and delegate to the helper.",
+    );
+    expect(agent.spec?.tools).toEqual([
+      "Read",
+      "Agent(helper)",
+      `mcp__${name}db__query`,
+    ]);
+    expect(agent.spec?.subAgents.map((s) => [s.name, s.tools])).toEqual([
+      ["helper", ["Read", "Grep"]],
+    ]);
   });
 
   it("[rpc:PluginCommandController.push] [rpc:PluginQueryController.listVersions] re-pushing the same archive is a no-op: same digest, one version, members untouched", async () => {
