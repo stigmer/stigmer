@@ -110,7 +110,7 @@ async function latestVersion() {
   return tag;
 }
 
-/** Whether a signal has interrupted the run: a child killed by one, or the run itself. */
+/** Whether an interrupt has stopped the run: a child ended by SIGINT or SIGTERM, or the run itself. */
 let interrupted = false;
 
 function run(command, args, options = {}) {
@@ -118,18 +118,27 @@ function run(command, args, options = {}) {
   try {
     return execFileSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], ...options });
   } catch (error) {
-    if (isInterrupt(error?.signal)) interrupted = true;
+    if (interruptedBy(error)) interrupted = true;
     throw error;
   }
 }
 
 /**
  * Whether a child's ending signal was an interrupt (a Ctrl-C, or a stop): a
- * child killed by anything else (the OOM killer's SIGKILL, a buffer cap) is
- * a red to diagnose, not an interrupt.
+ * child killed by anything else (the OOM killer's SIGKILL) is a red to
+ * diagnose, not an interrupt.
  */
 export function isInterrupt(signal) {
   return signal === "SIGINT" || signal === "SIGTERM";
+}
+
+/**
+ * Whether a failed execFileSync was an interrupt. Node ends a child whose
+ * output passes the buffer cap with SIGTERM too, but names it ENOBUFS: that
+ * is a red to diagnose, not an interrupt.
+ */
+export function interruptedBy(error) {
+  return isInterrupt(error?.signal) && error?.code !== "ENOBUFS";
 }
 
 /** Whether `kind get clusters` lists the named cluster. */
