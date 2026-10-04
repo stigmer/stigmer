@@ -820,7 +820,6 @@ AgentStatus contains system-managed state for an agent.
 <TypeTable
   type={{
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
-    defaultInstanceId: { type: "string", description: "ID of the default agent instance." },
     versionHash: { type: "string", description: "Content hash of the agent's current version: the SHA-256 of the canonical JSON rendering of the stored AgentSpec (unset and default fields omitted, object keys sorted at every depth, enums as numbers)." },
   }}
 />

@@ -22,13 +22,6 @@
       "components": 5
     },
     {
-      "slug": "agent-instance",
-      "title": "Agent Instance",
-      "description": "Hooks for deployed agent instances bound to an environment.",
-      "hooks": 7,
-      "components": 4
-    },
-    {
       "slug": "api-key",
       "title": "API Key",
       "description": "Hooks and components for API key creation, listing, and deletion.",
@@ -75,7 +68,7 @@
       "title": "Composer",
       "description": "The unified message input with model selection, workspace, and attachments.",
       "hooks": 1,
-      "components": 1
+      "components": 2
     },
     {
       "slug": "conversation",
@@ -264,7 +257,7 @@
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
       "hooks": 20,
-      "components": 7
+      "components": 8
     },
     {
       "slug": "settings",

@@ -487,9 +487,9 @@ dispatch the first message in a single call.
 
 Supports both secret delivery flows:
 
-- **Environment Flow** — Secrets are stored in Environment resources
-  and bound via AgentInstance. No `runtimeEnv` needed; the backend
-  resolves credentials from the session's agent instance.
+- **Environment Flow** — Secrets are stored in the running person's
+  personal environment. No `runtimeEnv` needed; the backend reads
+  every key the agent declares from there.
 - **Execution Flow** — Pass `runtimeEnv` to inject per-execution
   secrets. Values are merged with the highest priority and deleted
   when the execution completes.
@@ -512,7 +512,7 @@ function useCreateAgentExecution(): UseCreateAgentExecutionReturn
 />
 
 ```tsx
-// Environment Flow: secrets come from the agent instance's environments
+// Environment Flow: secrets come from the person's personal environment
 const { create } = useCreateAgentExecution();
 await create({ org: "acme", sessionId: "ses_abc", message: "Review the PR" });
 ```
@@ -537,7 +537,7 @@ const { sessionId } = await create({
   org: "acme",
   message: "Customize the landing page",
   sessionSpec: {
-    agentInstanceId: "ain_abc",
+    agentRef: { org: "acme", slug: "site-builder" },
     workspaceEntries: [{ name: "site", source: { localPath: { path: "/repos/site" } } }],
     executionTarget: "local",
   },
@@ -1817,6 +1817,7 @@ All visual properties flow through `--stgm-*` tokens.
 <TypeTable
   type={{
     activeStreamExecution: { type: "AgentExecution | null", description: "The currently streaming execution. Appended after `executions` to form a continuous thread. Pass `null` or `undefined` when no execution is actively streaming." },
+    agentVersionLabel: { type: "(versionHash: string) => string", description: "Marks the agent version each turn ran (`AgentExecutionStatus.agent_version_hash`): a quiet divider before the first turn that recorded one and wherever the version changes, so every turn reads under the version it ran. Receives a version hash and returns how it reads (a tag, else a short hash); the session view passes `useSessionAgentVersion`'s `labelOf`. Omit for no markers." },
     approvalErrors: { type: "ReadonlyMap<string, Error>", description: "Per-tool-call approval failures, keyed by `toolCallId` — surfaced in-card beside the gate that failed (an inline tool row or the bottom backstop card). Supply useSubmitApproval's `errorsByToolCallId`. Only meaningful when `onApprovalSubmit` is provided." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     contentColumn: { type: "ThreadContentColumn", description: "Constrain thread content to a max-width reading column (`max-w-3xl`, 768 px) inside the full-width scroll container — the scrollbar stays at the viewport edge.  - `\"center\"` — column horizontally centered (classic chat reading view). - `\"start\"` — column anchored to the left edge, so the thread's left   edge stays put when a sibling panel opens/closes beside it.  When omitted, content spans the full width. Opt-in — existing consumers see no layout change.", typeDescriptionLink: "#threadcontentcolumn" },
@@ -2386,13 +2387,13 @@ Carries the session shape — workspace, harness, execution target, MCP
 servers, skills — alongside the first message, so starting a session
 with a configured workspace is a single API call (stigmer/stigmer#249).
 
-When `agentInstanceId` is omitted, the server resolves the agent's
-default instance from the execution's `agentId` (creating the instance
-if missing), or falls back to the platform default agent.
+`agentRef` names the agent the new conversation runs; the server pins
+the version it names (the agent's current version when it names none).
+Omit it for a conversation with the built-in assistant.
 
 <TypeTable
   type={{
-    agentInstanceId: { type: "string", description: "Agent instance the session runs against. Omit to let the server resolve it." },
+    agentRef: { type: "ResourceRef", description: "The agent the new conversation runs. Omit for the built-in assistant." },
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities execute. Immutable after the first execution runs.", typeDescriptionLink: "/docs/sdk/react/session#executiontargetoption" },
     harness: { type: "HarnessOption", description: "Execution harness. Immutable after the first execution runs.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
@@ -2518,7 +2519,8 @@ session strategy must be provided:
   from the embedded spec and dispatches this execution in it. The new
   session's ID is returned on `CreateAgentExecutionResult.sessionId`.
 
-Providing both is a type error (and an `INVALID_ARGUMENT` server-side).
+The two map onto the execution's `target` oneof, which carries one;
+providing both is a type error.
 
 
 ### CreateAgentExecutionResult
@@ -3845,7 +3847,6 @@ Fields shared by both variants of [`CreateAgentExecutionInput`](#createagentexec
 
 <TypeTable
   type={{
-    agentId: { type: "string", description: "Explicit agent ID. When omitted, uses the session's agent instance." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments injected into the agent sandbox.  Each entry must include a `storageKey` obtained from `agentExecution.uploadAttachment()`. The agent can read attached files from their mount paths (default `/inputs/{filename}`)." },
     autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this execution.  When `true`, the human-in-the-loop approval gate is bypassed and no tool waits for approval. When `false` (default), mutating/destructive tools require approval per the configured policies. Maps to `AgentExecutionSpec.auto_approve_all` in the proto." },
     buildFromPlan: { type: "boolean", description: "Marks this execution as a Build-from-plan turn: the user approved a plan from a prior Plan-mode execution and asked the agent to implement it. The runner injects the implement-plan directive (pointing at the attached approved plan when present); the thread hides the turn's machine-written message entirely — the plan card above it is the visible cause. Surfaces without that treatment (the CLI, history) show the message text as-is.  Maps to `ExecutionConfig.build_from_plan` in the proto." },
@@ -3853,7 +3854,7 @@ Fields shared by both variants of [`CreateAgentExecutionInput`](#createagentexec
     message: { type: "string", description: "User message that initiates the execution.", required: true },
     modelName: { type: "string", description: "Override the default model for this execution." },
     org: { type: "string", description: "Id of the organization that owns the session (a slug is also accepted).", required: true },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They take the highest merge priority, overriding Environment values bound via the instance. Keys must be declared in the agent's env declarations (a whitelist, not a value source) or they are dropped.  Use this for B2B integrations where per-call credentials are injected at runtime, or for one-off secrets that should not persist.  For persistent credentials that are reused across executions, use the Environment Flow instead (store secrets in an Environment resource and bind them via an AgentInstance)." },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They take the highest merge priority, overriding every environment layer. Keys must be declared in the agent's env declarations (a whitelist, not a value source) or they are dropped.  Use this for B2B integrations where per-call credentials are injected at runtime, or for one-off secrets that should not persist.  For persistent credentials that are reused across executions, use the Environment Flow instead: the keys an agent declares are read from the running person's personal environment." },
     serviceTier: { type: "ServiceTierOption", description: "Service tier for this execution's model calls (stigmer/stigmer#357).  - `\"standard\"` (default): the model's base-priced configuration,   requested explicitly — never the provider account default. - `\"fast\"`: the provider's fast variant at fast rates. Valid only for   models whose registry entry prices a fast variant — the backend   refuses the create otherwise, so gate the option on   `ModelInfo.serviceTiers`.  Maps to `ExecutionConfig.service_tier` in the proto." },
     structuredOutputSchema: { type: "JsonObject", description: "JSON Schema that the agent's final output must conform to.  When set, the runner enforces structured output: - Native harness: ToolStrategy adds an extract tool; agent must call it - Cursor harness: prompt injection + 3-tier extraction fallback  The validated data is returned in `execution.status.structuredOutput`." },
     supersedesExecutionId: { type: "string", description: "ID of the execution this one supersedes via edit-and-resubmit.  Set when the user stopped an in-flight turn, edited its message, and resubmitted. Chat threads hide the superseded execution so the edited message replaces the original in place; history surfaces keep the full record. Maps to `AgentExecutionSpec.supersedes_execution_id`.  Display-level only — the runner does not rewind model context." },

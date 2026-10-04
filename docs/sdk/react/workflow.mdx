@@ -2174,7 +2174,7 @@ handling, and backdrop. Styled via `--stgm-*` design tokens.
 <TypeTable
   type={{
     defaultInstanceId: { type: "string", description: "The platform-managed default instance ID (from workflow.status.defaultInstanceId). Passed through to the form's instance picker to control visibility threshold." },
-    initialInstanceId: { type: "string | null", description: "Instance to preselect when the dialog opens — wire this from a row-level \"Run\" action so the form reflects the instance the user clicked. Applied on each open transition (after the form resets); ignored when the id is not in `instances`, so a stale id degrades to the default option. Omit (or pass `null`) for the server-resolved default. Same convention as SessionComposer's `initialInstanceId`." },
+    initialInstanceId: { type: "string | null", description: "Instance to preselect when the dialog opens — wire this from a row-level \"Run\" action so the form reflects the instance the user clicked. Applied on each open transition (after the form resets); ignored when the id is not in `instances`, so a stale id degrades to the default option. Omit (or pass `null`) for the server-resolved default." },
     instances: { type: "readonly WorkflowInstance[]", description: "Available workflow instances for the instance selector.", required: true },
     onError: { type: "(message: string) => void", description: "Called when submission fails. Receives a human-readable message. Use for toast notifications." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should close (cancel, backdrop click, Escape).", required: true },

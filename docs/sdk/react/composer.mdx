@@ -97,6 +97,27 @@ function ComposerToolbar() {
 ```
 
 
+### PersonalKeyDisclosure
+
+Names the keys `agentRef` declares, in the order a reader scans them
+(sorted), as the keys the agent can read from the person's personal
+environment.
+
+**Props** — `PersonalKeyDisclosureProps`
+
+<TypeTable
+  type={{
+    agentRef: { type: "ResourceRef", description: "The agent the conversation is about to start on.", required: true },
+    className: { type: "string", description: "Additional CSS classes for the line." },
+  }}
+/>
+
+```tsx
+<PersonalKeyDisclosure agentRef={{ org: "acme", slug: "pr-reviewer" }} />
+// This agent can read these keys from your personal environment: GITHUB_TOKEN, LINEAR_API_KEY
+```
+
+
 ## Types
 
 ### InteractionModeOption
@@ -147,6 +168,7 @@ Props for [`SessionComposer`](#sessioncomposer).
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultModelId: { type: "string", description: "Initial model ID for the model selector." },
     disabled: { type: "boolean", description: "Disables the entire composer (e.g., while an execution streams)." },
+    disclosePersonalKeys: { type: "boolean", description: "Name, below the composer, the keys the selected agent declares (`agent.spec.env`): every run of the agent reads those keys from the person's personal environment, so the person sees what the agent can read before sending the first message of a conversation on it. A disclosure, not a gate: nothing is withheld or asked. Shown only when an agent is selected and declares at least one key.  Opt-in: a host enables it where a conversation is about to start on an agent (the new-session launcher, or a conversation moving to a different agent), never for a guest, who has no personal environment." },
     enableAttachments: { type: "boolean", description: "Enable file attachment support in the composer.  When `true`, renders an attach button in the toolbar and enables drag-and-drop file upload plus clipboard paste on the textarea — pasting a screenshot attaches it exactly like a picked file, with a generated `pasted-image-*` filename. Attachments are uploaded immediately via `agentExecution.uploadAttachment()` and included in `context.attachments` on submit." },
     enableFileReferences: { type: "boolean", description: "Enable workspace file-reference support via drag-to-reference.  When `true`, dragging a file from the workspace tree into the composer creates a file-reference chip (no upload). Referenced paths are included in `context.workspaceFileRefs` on submit." },
     enableGitHub: { type: "boolean", description: "Show the GitHub Repo source button." },
@@ -155,7 +177,6 @@ Props for [`SessionComposer`](#sessioncomposer).
     harness: { type: "HarnessOption", description: "Currently selected execution harness.  Controls which models appear in the model selector and flows through to session creation. When omitted, defaults to `\"native\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     initialAgentRef: { type: "ResourceRef", description: "Agent to auto-select when the composer mounts.  When provided, the composer runs the full agent resolution flow on mount — exactly as if the user had picked this agent in the AgentPicker. If the agent requires credentials, the environment form appears automatically.  One-time: consumed on mount; subsequent changes are ignored. To change the agent after mount, use the picker or `onAgentRefChange` externally.  Requires `org` and `onAgentRefChange` to be set (same prerequisites as the agent picker)." },
     initialAttachments: { type: "File[]", description: "Files to attach programmatically when the composer mounts.  When provided, the composer uploads these files via the same attachment pipeline as user-selected files. Attachment chips appear in the UI so the user sees what is attached.  One-time: consumed when the value first becomes truthy. Subsequent changes are ignored. This allows async resource fetching — the effect waits for the files to be ready.  Requires `enableAttachments` to be `true` (default)." },
-    initialInstanceId: { type: "string", description: "Pre-bind the session to a specific, already-existing `AgentInstance` when the composer mounts.  Requires `initialAgentRef` (the agent the instance deploys). When both are provided, the composer resolves the agent directly to this instance — skipping the environment-collection flow entirely, since the chosen instance already binds its own environment(s). The resulting resolution is `{ mode: \"saved\", instanceId }`, so the session is created against this exact configured deployment.  This is the agent analog of running a specific WorkflowInstance: it powers the \"Start session\" action on an instance in the Agent detail page's Instances tab.  One-time: consumed on mount; subsequent changes are ignored." },
     initialRows: { type: "number", description: "Initial number of visible rows." },
     interactionMode: { type: "InteractionModeOption", description: "Currently selected interaction mode.  When `onInteractionModeChange` is provided, renders a mode picker in the toolbar. Defaults to `\"agent\"` when omitted.", typeDescriptionLink: "#interactionmodeoption" },
     isEditing: { type: "boolean", description: "Marks the composer as editing a previously sent message (edit-and-resubmit). Renders an \"Editing message\" banner above the textarea with a cancel (X) affordance; Escape in the textarea also cancels. The banner is purely presentational — the viewer owns the editing state and attaches the supersede link on submit.  Opt-in: when omitted, the composer behaves exactly as before." },
@@ -164,7 +185,7 @@ Props for [`SessionComposer`](#sessioncomposer).
     lockAgent: { type: "boolean", description: "Lock the current agent: the Agent entry is removed from the Configure menu so the user cannot swap or deselect it.  Locking does not unwire the agent machinery — `initialAgentRef` resolution still runs on mount, and when the agent requires credentials the environment form stays reachable in the Configure menu until setup completes (lock ≠ unwire). Pair with `initialAgentRef` to pin a pre-configured agent in end-user-facing embeds (see `SessionViewer` / `NewSessionViewer` `audience`)." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "Currently selected MCP server usages. When `onMcpServerUsagesChange` is provided, a MCP server trigger appears in the toolbar." },
     onAgentRefChange: { type: "(ref: ResourceRef | null) => void", description: "Called when the agent selection changes. Providing this enables the agent trigger." },
-    onAgentResolutionChange: { type: "(resolution: AgentResolution | null) => void", description: "Called when the agent setup flow resolves how the agent should be used for session creation.  The AgentResolution discriminated union tells the caller which session creation path to use: - `\"saved\"` — use `agentInstanceId` - `\"oneTime\"` — use `agentRef` + pass `runtimeEnv` to execution - `\"direct\"` — use `agentRef` (no secrets needed)  Set to `null` when the agent is deselected." },
+    onAgentResolutionChange: { type: "(resolution: AgentResolution | null) => void", description: "Called when the agent setup flow resolves how the agent should be used for session creation.  Every AgentResolution starts the session on `agentRef`; the mode says where the agent's declared keys come from: - `\"saved\"` — the user's personal environment holds them - `\"oneTime\"` — pass `runtimeEnv` to the execution - `\"direct\"` — nothing is needed from the user  Set to `null` when the agent is deselected." },
     onAgentSetupErrorChange: { type: "(error: Error | null) => void", description: "Called whenever the agent setup's error changes: an Error when resolution (or env submission) fails, `null` when the error clears.  This is the ONLY way an embedder can observe a failed mount-time resolution of SessionComposerProps.initialAgentRef: the failure is captured internally and rendered inside the Configure popover's agent panel — a surface a locked, end-user-facing embed never opens. A parent that gates behavior on `onAgentResolutionChange` alone waits forever on a resolution that already failed; wire this to surface the reason instead." },
     onAttachmentValidationError: { type: "(message: string) => void", description: "Called when a file is rejected (e.g., exceeds the 10 MB limit). Consumers can use this for toast notifications." },
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback passed through to WorkspaceEditor. When provided, clicking \"Local Folder\" opens a native dialog instead of the inline text input. See WorkspaceEditorProps.onBrowseLocalFolder." },
