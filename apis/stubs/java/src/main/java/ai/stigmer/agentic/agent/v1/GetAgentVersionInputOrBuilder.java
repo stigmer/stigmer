@@ -11,11 +11,19 @@ public interface GetAgentVersionInputOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * ID of the agent resource.
+   * </pre>
+   *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
    * @return The agentId.
    */
   java.lang.String getAgentId();
   /**
+   * <pre>
+   * ID of the agent resource.
+   * </pre>
+   *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
    * @return The bytes for agentId.
    */
@@ -23,11 +31,19 @@ public interface GetAgentVersionInputOrBuilder extends
       getAgentIdBytes();
 
   /**
+   * <pre>
+   * SHA-256 hash identifying the version to retrieve.
+   * </pre>
+   *
    * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
    * @return The versionHash.
    */
   java.lang.String getVersionHash();
   /**
+   * <pre>
+   * SHA-256 hash identifying the version to retrieve.
+   * </pre>
+   *
    * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
    * @return The bytes for versionHash.
    */

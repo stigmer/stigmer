@@ -383,6 +383,11 @@ export function newArchiveCurrentSkillStep(
       clearLiveTag: (skill) => {
         skill.spec!.tag = "";
       },
+      showArchivedTag: (skill, tag) => {
+        if (skill.spec !== undefined) {
+          skill.spec.tag = tag;
+        }
+      },
     },
   );
 }

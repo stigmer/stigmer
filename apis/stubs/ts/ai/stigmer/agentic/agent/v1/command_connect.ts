@@ -7,6 +7,7 @@ import { Agent } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
 import { AgentId } from "./io_pbjs";
+import { TagAgentVersionInput } from "./version_pbjs";
 
 /**
  * AgentCommandController handles write operations for AI agents.
@@ -84,6 +85,21 @@ export const AgentCommandController = {
     delete: {
       name: "delete",
       I: AgentId,
+      O: Agent,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Assign or move a tag to a specific agent version.
+     *
+     * Tags are human-readable pointers to immutable versions. Calling this
+     * with an existing tag name moves it from the previous version to the
+     * specified version. Common tags: "stable", "production", "v2.0".
+     *
+     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.tagVersion
+     */
+    tagVersion: {
+      name: "tagVersion",
+      I: TagAgentVersionInput,
       O: Agent,
       kind: MethodKind.Unary,
     },

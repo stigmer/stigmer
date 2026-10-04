@@ -31,6 +31,7 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
     listMessagingChannels: vi.fn().mockResolvedValue([]),
     listChannelTemplates: vi.fn().mockResolvedValue([]),
     getAgent: vi.fn().mockResolvedValue({}),
+    getAgentVersion: vi.fn().mockResolvedValue({}),
     getAgentInstance: vi.fn().mockResolvedValue({}),
     getMcpServer: vi.fn().mockResolvedValue({}),
     getMcpServerByReference: vi.fn().mockResolvedValue({}),

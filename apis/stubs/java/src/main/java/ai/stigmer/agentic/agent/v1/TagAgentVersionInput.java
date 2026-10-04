@@ -8,6 +8,9 @@ package ai.stigmer.agentic.agent.v1;
 /**
  * <pre>
  * TagAgentVersionInput assigns or moves a tag to a specific agent version.
+ *
+ * Tags are mutable pointers: calling tagVersion with a tag another version
+ * holds moves it to the version named here.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.TagAgentVersionInput}
@@ -59,6 +62,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object agentId_ = "";
   /**
+   * <pre>
+   * ID of the agent resource.
+   * </pre>
+   *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
    * @return The agentId.
    */
@@ -76,6 +83,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * ID of the agent resource.
+   * </pre>
+   *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
    * @return The bytes for agentId.
    */
@@ -98,6 +109,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object versionHash_ = "";
   /**
+   * <pre>
+   * SHA-256 hash of the version to tag.
+   * </pre>
+   *
    * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
    * @return The versionHash.
    */
@@ -115,6 +130,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * SHA-256 hash of the version to tag.
+   * </pre>
+   *
    * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
    * @return The bytes for versionHash.
    */
@@ -137,6 +156,11 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object tag_ = "";
   /**
+   * <pre>
+   * Tag to assign. Must be a non-empty alphanumeric string with dots,
+   * hyphens, or underscores (the pattern workflow and skill tags use).
+   * </pre>
+   *
    * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
    * @return The tag.
    */
@@ -154,6 +178,11 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Tag to assign. Must be a non-empty alphanumeric string with dots,
+   * hyphens, or underscores (the pattern workflow and skill tags use).
+   * </pre>
+   *
    * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
    * @return The bytes for tag.
    */
@@ -351,6 +380,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * TagAgentVersionInput assigns or moves a tag to a specific agent version.
+   *
+   * Tags are mutable pointers: calling tagVersion with a tag another version
+   * holds moves it to the version named here.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.TagAgentVersionInput}
@@ -520,6 +552,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object agentId_ = "";
     /**
+     * <pre>
+     * ID of the agent resource.
+     * </pre>
+     *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
      * @return The agentId.
      */
@@ -536,6 +572,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * ID of the agent resource.
+     * </pre>
+     *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
      * @return The bytes for agentId.
      */
@@ -553,6 +593,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * ID of the agent resource.
+     * </pre>
+     *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
      * @param value The agentId to set.
      * @return This builder for chaining.
@@ -566,6 +610,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * ID of the agent resource.
+     * </pre>
+     *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
@@ -576,6 +624,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * ID of the agent resource.
+     * </pre>
+     *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for agentId to set.
      * @return This builder for chaining.
@@ -592,6 +644,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object versionHash_ = "";
     /**
+     * <pre>
+     * SHA-256 hash of the version to tag.
+     * </pre>
+     *
      * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
      * @return The versionHash.
      */
@@ -608,6 +664,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * SHA-256 hash of the version to tag.
+     * </pre>
+     *
      * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
      * @return The bytes for versionHash.
      */
@@ -625,6 +685,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * SHA-256 hash of the version to tag.
+     * </pre>
+     *
      * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
      * @param value The versionHash to set.
      * @return This builder for chaining.
@@ -638,6 +702,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * SHA-256 hash of the version to tag.
+     * </pre>
+     *
      * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
@@ -648,6 +716,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * SHA-256 hash of the version to tag.
+     * </pre>
+     *
      * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for versionHash to set.
      * @return This builder for chaining.
@@ -664,6 +736,11 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object tag_ = "";
     /**
+     * <pre>
+     * Tag to assign. Must be a non-empty alphanumeric string with dots,
+     * hyphens, or underscores (the pattern workflow and skill tags use).
+     * </pre>
+     *
      * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
      * @return The tag.
      */
@@ -680,6 +757,11 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Tag to assign. Must be a non-empty alphanumeric string with dots,
+     * hyphens, or underscores (the pattern workflow and skill tags use).
+     * </pre>
+     *
      * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
      * @return The bytes for tag.
      */
@@ -697,6 +779,11 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Tag to assign. Must be a non-empty alphanumeric string with dots,
+     * hyphens, or underscores (the pattern workflow and skill tags use).
+     * </pre>
+     *
      * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
      * @param value The tag to set.
      * @return This builder for chaining.
@@ -710,6 +797,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Tag to assign. Must be a non-empty alphanumeric string with dots,
+     * hyphens, or underscores (the pattern workflow and skill tags use).
+     * </pre>
+     *
      * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
@@ -720,6 +812,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Tag to assign. Must be a non-empty alphanumeric string with dots,
+     * hyphens, or underscores (the pattern workflow and skill tags use).
+     * </pre>
+     *
      * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for tag to set.
      * @return This builder for chaining.

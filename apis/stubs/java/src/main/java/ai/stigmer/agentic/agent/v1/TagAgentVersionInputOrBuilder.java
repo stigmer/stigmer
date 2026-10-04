@@ -11,11 +11,19 @@ public interface TagAgentVersionInputOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * ID of the agent resource.
+   * </pre>
+   *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
    * @return The agentId.
    */
   java.lang.String getAgentId();
   /**
+   * <pre>
+   * ID of the agent resource.
+   * </pre>
+   *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
    * @return The bytes for agentId.
    */
@@ -23,11 +31,19 @@ public interface TagAgentVersionInputOrBuilder extends
       getAgentIdBytes();
 
   /**
+   * <pre>
+   * SHA-256 hash of the version to tag.
+   * </pre>
+   *
    * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
    * @return The versionHash.
    */
   java.lang.String getVersionHash();
   /**
+   * <pre>
+   * SHA-256 hash of the version to tag.
+   * </pre>
+   *
    * <code>string version_hash = 2 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
    * @return The bytes for versionHash.
    */
@@ -35,11 +51,21 @@ public interface TagAgentVersionInputOrBuilder extends
       getVersionHashBytes();
 
   /**
+   * <pre>
+   * Tag to assign. Must be a non-empty alphanumeric string with dots,
+   * hyphens, or underscores (the pattern workflow and skill tags use).
+   * </pre>
+   *
    * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
    * @return The tag.
    */
   java.lang.String getTag();
   /**
+   * <pre>
+   * Tag to assign. Must be a non-empty alphanumeric string with dots,
+   * hyphens, or underscores (the pattern workflow and skill tags use).
+   * </pre>
+   *
    * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
    * @return The bytes for tag.
    */

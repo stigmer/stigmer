@@ -33,6 +33,7 @@ private static final long serialVersionUID = 0L;
   }
   private AgentStatus() {
     defaultInstanceId_ = "";
+    versionHash_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -145,6 +146,75 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int VERSION_HASH_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object versionHash_ = "";
+  /**
+   * <pre>
+   * Content hash of the agent's current version: the SHA-256 of the
+   * canonical JSON rendering of the stored AgentSpec (unset and default
+   * fields omitted, object keys sorted at every depth, enums as numbers).
+   *
+   * Every write whose spec differs from every version the agent has had
+   * records a new version under this hash; a write that reproduces an
+   * earlier spec points back to that version, and an unchanged write
+   * records none. The history is read through AgentQueryController's
+   * listVersions and getVersion.
+   *
+   * Empty for an agent last written before agents were versioned, and when
+   * the version could not be recorded (the write still succeeds).
+   * </pre>
+   *
+   * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+   * @return The versionHash.
+   */
+  @java.lang.Override
+  public java.lang.String getVersionHash() {
+    java.lang.Object ref = versionHash_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      versionHash_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Content hash of the agent's current version: the SHA-256 of the
+   * canonical JSON rendering of the stored AgentSpec (unset and default
+   * fields omitted, object keys sorted at every depth, enums as numbers).
+   *
+   * Every write whose spec differs from every version the agent has had
+   * records a new version under this hash; a write that reproduces an
+   * earlier spec points back to that version, and an unchanged write
+   * records none. The history is read through AgentQueryController's
+   * listVersions and getVersion.
+   *
+   * Empty for an agent last written before agents were versioned, and when
+   * the version could not be recorded (the write still succeeds).
+   * </pre>
+   *
+   * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+   * @return The bytes for versionHash.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getVersionHashBytes() {
+    java.lang.Object ref = versionHash_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      versionHash_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -162,6 +232,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultInstanceId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, defaultInstanceId_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(versionHash_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, versionHash_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -176,6 +249,9 @@ private static final long serialVersionUID = 0L;
     size = 0;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultInstanceId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, defaultInstanceId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(versionHash_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, versionHash_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -203,6 +279,8 @@ private static final long serialVersionUID = 0L;
     }
     if (!getDefaultInstanceId()
         .equals(other.getDefaultInstanceId())) return false;
+    if (!getVersionHash()
+        .equals(other.getVersionHash())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -220,6 +298,8 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + DEFAULT_INSTANCE_ID_FIELD_NUMBER;
     hash = (53 * hash) + getDefaultInstanceId().hashCode();
+    hash = (37 * hash) + VERSION_HASH_FIELD_NUMBER;
+    hash = (53 * hash) + getVersionHash().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -367,6 +447,7 @@ private static final long serialVersionUID = 0L;
         auditBuilder_ = null;
       }
       defaultInstanceId_ = "";
+      versionHash_ = "";
       return this;
     }
 
@@ -410,6 +491,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.defaultInstanceId_ = defaultInstanceId_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.versionHash_ = versionHash_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -431,6 +515,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getDefaultInstanceId().isEmpty()) {
         defaultInstanceId_ = other.defaultInstanceId_;
         bitField0_ |= 0x00000002;
+        onChanged();
+      }
+      if (!other.getVersionHash().isEmpty()) {
+        versionHash_ = other.versionHash_;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -464,6 +553,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 10
+            case 26: {
+              versionHash_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -748,6 +842,153 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       defaultInstanceId_ = value;
       bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object versionHash_ = "";
+    /**
+     * <pre>
+     * Content hash of the agent's current version: the SHA-256 of the
+     * canonical JSON rendering of the stored AgentSpec (unset and default
+     * fields omitted, object keys sorted at every depth, enums as numbers).
+     *
+     * Every write whose spec differs from every version the agent has had
+     * records a new version under this hash; a write that reproduces an
+     * earlier spec points back to that version, and an unchanged write
+     * records none. The history is read through AgentQueryController's
+     * listVersions and getVersion.
+     *
+     * Empty for an agent last written before agents were versioned, and when
+     * the version could not be recorded (the write still succeeds).
+     * </pre>
+     *
+     * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+     * @return The versionHash.
+     */
+    public java.lang.String getVersionHash() {
+      java.lang.Object ref = versionHash_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        versionHash_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Content hash of the agent's current version: the SHA-256 of the
+     * canonical JSON rendering of the stored AgentSpec (unset and default
+     * fields omitted, object keys sorted at every depth, enums as numbers).
+     *
+     * Every write whose spec differs from every version the agent has had
+     * records a new version under this hash; a write that reproduces an
+     * earlier spec points back to that version, and an unchanged write
+     * records none. The history is read through AgentQueryController's
+     * listVersions and getVersion.
+     *
+     * Empty for an agent last written before agents were versioned, and when
+     * the version could not be recorded (the write still succeeds).
+     * </pre>
+     *
+     * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+     * @return The bytes for versionHash.
+     */
+    public com.google.protobuf.ByteString
+        getVersionHashBytes() {
+      java.lang.Object ref = versionHash_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        versionHash_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Content hash of the agent's current version: the SHA-256 of the
+     * canonical JSON rendering of the stored AgentSpec (unset and default
+     * fields omitted, object keys sorted at every depth, enums as numbers).
+     *
+     * Every write whose spec differs from every version the agent has had
+     * records a new version under this hash; a write that reproduces an
+     * earlier spec points back to that version, and an unchanged write
+     * records none. The history is read through AgentQueryController's
+     * listVersions and getVersion.
+     *
+     * Empty for an agent last written before agents were versioned, and when
+     * the version could not be recorded (the write still succeeds).
+     * </pre>
+     *
+     * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+     * @param value The versionHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setVersionHash(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      versionHash_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Content hash of the agent's current version: the SHA-256 of the
+     * canonical JSON rendering of the stored AgentSpec (unset and default
+     * fields omitted, object keys sorted at every depth, enums as numbers).
+     *
+     * Every write whose spec differs from every version the agent has had
+     * records a new version under this hash; a write that reproduces an
+     * earlier spec points back to that version, and an unchanged write
+     * records none. The history is read through AgentQueryController's
+     * listVersions and getVersion.
+     *
+     * Empty for an agent last written before agents were versioned, and when
+     * the version could not be recorded (the write still succeeds).
+     * </pre>
+     *
+     * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearVersionHash() {
+      versionHash_ = getDefaultInstance().getVersionHash();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Content hash of the agent's current version: the SHA-256 of the
+     * canonical JSON rendering of the stored AgentSpec (unset and default
+     * fields omitted, object keys sorted at every depth, enums as numbers).
+     *
+     * Every write whose spec differs from every version the agent has had
+     * records a new version under this hash; a write that reproduces an
+     * earlier spec points back to that version, and an unchanged write
+     * records none. The history is read through AgentQueryController's
+     * listVersions and getVersion.
+     *
+     * Empty for an agent last written before agents were versioned, and when
+     * the version could not be recorded (the write still succeeds).
+     * </pre>
+     *
+     * <code>string version_hash = 3 [json_name = "versionHash"];</code>
+     * @param value The bytes for versionHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setVersionHashBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      versionHash_ = value;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }

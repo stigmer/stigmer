@@ -10,11 +10,12 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, type ToolApprovalOverride, type McpServerUsage, type McpAccess, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { TagAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVersionsResponseSchema, GetAgentVersionInputSchema, AgentVersionEntrySchema, type TagAgentVersionInput, type ListAgentVersionsInput, type ListAgentVersionsResponse, type GetAgentVersionInput, type AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
@@ -61,6 +62,12 @@ export class AgentClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async tagVersion(input: TagAgentVersionInput): Promise<Agent> {
+    try {
+      return await this.command.tagVersion(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<Agent> {
     try {
       return await this.query.get(create(AgentIdSchema, { value: id }));
@@ -70,6 +77,18 @@ export class AgentClient {
   async getByReference(ref: ResourceRef): Promise<Agent> {
     try {
       return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.agent }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listVersions(input: ListAgentVersionsInput): Promise<ListAgentVersionsResponse> {
+    try {
+      return await this.query.listVersions(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getVersion(input: GetAgentVersionInput): Promise<AgentVersionEntry> {
+    try {
+      return await this.query.getVersion(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -104,6 +123,7 @@ export interface AgentInput {
   org: string;
   labels?: Record<string, string>;
   visibility?: ApiResourceVisibility;
+  versionMessage?: string;
   description?: string;
   iconUrl?: string;
   instructions?: string;
@@ -210,6 +230,7 @@ export function buildAgentProto(input: AgentInput): Agent {
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
       ...(input.visibility && { visibility: input.visibility }),
+      ...(input.versionMessage && { version: Object.assign(create(ApiResourceMetadataVersionSchema), { message: input.versionMessage }) }),
     }),
     spec: Object.assign(create(AgentSpecSchema), stripUndefined({
       description: input.description,
@@ -290,6 +311,8 @@ export function toAgentUpdateInput(resource: Agent): AgentInput {
     org: meta?.org ?? "",
     labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
     visibility: meta?.visibility || undefined,
+    // Never carried over: a version message describes the NEXT update.
+    versionMessage: undefined,
     description: spec.description || undefined,
     iconUrl: spec.iconUrl || undefined,
     instructions: spec.instructions || undefined,

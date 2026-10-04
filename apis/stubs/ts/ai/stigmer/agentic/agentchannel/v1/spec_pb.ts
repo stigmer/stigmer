@@ -33,6 +33,9 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
   /**
    * Reference to the agent this channel serves.
    *
+   * The reference names no version (or "latest"): this runs the agent's
+   * current version, and a reference naming another version is refused.
+   *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1;
    */
   agentRef?: ApiResourceReference;

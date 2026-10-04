@@ -17,75 +17,69 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/version.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_version: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvdmVyc2lvbi5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxItkCChFBZ2VudFZlcnNpb25FbnRyeRIUCgx2ZXJzaW9uX2hhc2gYASABKAkSLgoKYXBwbGllZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASSQoKYXBwbGllZF9ieRgDIAEoCzI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCwoDdGFnGAQgASgJEhIKCmlzX2N1cnJlbnQYBSABKAgSDwoHbWVzc2FnZRgGIAEoCRI9Cg1zcGVjX3NuYXBzaG90GAcgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U3BlYxJCCg5naXRfcHJvdmVuYW5jZRgIIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5HaXRQcm92ZW5hbmNlIlAKDUdpdFByb3ZlbmFuY2USEgoKcmVtb3RlX3VybBgBIAEoCRILCgNyZWYYAiABKAkSDgoGY29tbWl0GAMgASgJEg4KBnN1YmRpchgEIAEoCSJqChZMaXN0QWdlbnRWZXJzaW9uc0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEhQKBHNsdWcYAiABKAlCBrpIA8gBARISCgpwYWdlX3Rva2VuGAMgASgJEhEKCXBhZ2Vfc2l6ZRgEIAEoBSKLAQoZTGlzdEFnZW50VmVyc2lvbnNSZXNwb25zZRJACgh2ZXJzaW9ucxgBIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFZlcnNpb25FbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLdG90YWxfY291bnQYAyABKAUiXQoUR2V0QWdlbnRWZXJzaW9uSW5wdXQSGAoIYWdlbnRfaWQYASABKAlCBrpIA8gBARIrCgx2ZXJzaW9uX2hhc2gYAiABKAlCFbpIEnIQMg5eW2EtZjAtOV17NjR9JCKGAQoUVGFnQWdlbnRWZXJzaW9uSW5wdXQSGAoIYWdlbnRfaWQYASABKAlCBrpIA8gBARIrCgx2ZXJzaW9uX2hhc2gYAiABKAlCFbpIEnIQMg5eW2EtZjAtOV17NjR9JBInCgN0YWcYAyABKAlCGrpIF3IVEAEyEV5bYS16QS1aMC05Ll8tXSskYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvdmVyc2lvbi5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIqsCChFBZ2VudFZlcnNpb25FbnRyeRIUCgx2ZXJzaW9uX2hhc2gYASABKAkSLgoKYXBwbGllZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASSQoKYXBwbGllZF9ieRgDIAEoCzI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCwoDdGFnGAQgASgJEhIKCmlzX2N1cnJlbnQYBSABKAgSDwoHbWVzc2FnZRgGIAEoCRI9Cg1zcGVjX3NuYXBzaG90GAcgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U3BlY0oECAgQCVIOZ2l0X3Byb3ZlbmFuY2UiagoWTGlzdEFnZW50VmVyc2lvbnNJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQESEgoKcGFnZV90b2tlbhgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUiiwEKGUxpc3RBZ2VudFZlcnNpb25zUmVzcG9uc2USQAoIdmVyc2lvbnMYASADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRWZXJzaW9uRW50cnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEhMKC3RvdGFsX2NvdW50GAMgASgFIl0KFEdldEFnZW50VmVyc2lvbklucHV0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESKwoMdmVyc2lvbl9oYXNoGAIgASgJQhW6SBJyEDIOXlthLWYwLTldezY0fSQihgEKFFRhZ0FnZW50VmVyc2lvbklucHV0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESKwoMdmVyc2lvbl9oYXNoGAIgASgJQhW6SBJyEDIOXlthLWYwLTldezY0fSQSJwoDdGFnGAMgASgJQhq6SBdyFRABMhFeW2EtekEtWjAtOS5fLV0rJGIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
- * AgentVersionEntry represents a single historical version of an agent.
- *
- * Each apply/update that changes the agent spec creates a new immutable
- * version entry. The version is identified by its content hash (SHA-256 of
- * the canonical protojson representation of AgentSpec).
+ * AgentVersionEntry is one historical version of an agent.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.AgentVersionEntry
  */
 export type AgentVersionEntry = Message<"ai.stigmer.agentic.agent.v1.AgentVersionEntry"> & {
   /**
-   * SHA-256 hash of the canonical protojson of AgentSpec.
+   * SHA-256 of the canonical JSON rendering of the version's AgentSpec: the
+   * immutable version identifier.
    *
    * @generated from field: string version_hash = 1;
    */
   versionHash: string;
 
   /**
-   * When this version was created.
+   * When this version was applied.
    *
    * @generated from field: google.protobuf.Timestamp applied_at = 2;
    */
   appliedAt?: Timestamp;
 
   /**
-   * Who created this version.
+   * Who applied this version.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3;
    */
   appliedBy?: ApiResourceAuditActor;
 
   /**
-   * Tag assigned to this version.
+   * The tag this version holds now, if any. A tag names at most one version,
+   * so moving it to another version clears it here.
+   * Examples: "stable", "v1.0", "production"
    *
    * @generated from field: string tag = 4;
    */
   tag: string;
 
   /**
-   * Whether this is the currently active version.
+   * Whether this is the agent's current version.
    *
    * @generated from field: bool is_current = 5;
    */
   isCurrent: boolean;
 
   /**
-   * Human-readable message describing what changed.
+   * Human-readable message describing what changed in this version, from
+   * metadata.version.message at apply time. Analogous to a git commit
+   * message.
    *
    * @generated from field: string message = 6;
    */
   message: string;
 
   /**
-   * Full agent spec snapshot for this version.
-   * Unlike workflows (which store YAML), agents store the typed proto spec
-   * directly since AgentSpec has no Struct fields and is self-describing.
+   * The agent spec exactly as this version stored it: the instructions,
+   * sub-agents, skill and MCP server references and environment a turn on
+   * this version runs with.
    *
    * @generated from field: ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7;
    */
   specSnapshot?: AgentSpec;
-
-  /**
-   * Git provenance tracking.
-   *
-   * @generated from field: ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8;
-   */
-  gitProvenance?: GitProvenance;
 };
 
 /**
@@ -96,61 +90,40 @@ export const AgentVersionEntrySchema: GenMessage<AgentVersionEntry> = /*@__PURE_
   messageDesc(file_ai_stigmer_agentic_agent_v1_version, 0);
 
 /**
- * GitProvenance tracks the git origin of an agent version.
- *
- * @generated from message ai.stigmer.agentic.agent.v1.GitProvenance
- */
-export type GitProvenance = Message<"ai.stigmer.agentic.agent.v1.GitProvenance"> & {
-  /**
-   * @generated from field: string remote_url = 1;
-   */
-  remoteUrl: string;
-
-  /**
-   * @generated from field: string ref = 2;
-   */
-  ref: string;
-
-  /**
-   * @generated from field: string commit = 3;
-   */
-  commit: string;
-
-  /**
-   * @generated from field: string subdir = 4;
-   */
-  subdir: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agent.v1.GitProvenance.
- * Use `create(GitProvenanceSchema)` to create a new message.
- */
-export const GitProvenanceSchema: GenMessage<GitProvenance> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_version, 1);
-
-/**
  * ListAgentVersionsInput requests the version history for an agent.
+ *
+ * Returns every version, newest first. Used by the console, SDK and CLI to
+ * render version timelines.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.ListAgentVersionsInput
  */
 export type ListAgentVersionsInput = Message<"ai.stigmer.agentic.agent.v1.ListAgentVersionsInput"> & {
   /**
+   * Organization that owns the agent.
+   *
    * @generated from field: string org = 1;
    */
   org: string;
 
   /**
+   * Agent slug (unique within the organization).
+   *
    * @generated from field: string slug = 2;
    */
   slug: string;
 
   /**
+   * Opaque token for offset pagination.
+   * Empty string or omitted for the first page.
+   *
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
 
   /**
+   * Maximum number of versions to return per page.
+   * Server may return fewer. Default is 50, max is 100.
+   *
    * @generated from field: int32 page_size = 4;
    */
   pageSize: number;
@@ -161,7 +134,7 @@ export type ListAgentVersionsInput = Message<"ai.stigmer.agentic.agent.v1.ListAg
  * Use `create(ListAgentVersionsInputSchema)` to create a new message.
  */
 export const ListAgentVersionsInputSchema: GenMessage<ListAgentVersionsInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_version, 2);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_version, 1);
 
 /**
  * ListAgentVersionsResponse contains a page of agent version history.
@@ -170,16 +143,22 @@ export const ListAgentVersionsInputSchema: GenMessage<ListAgentVersionsInput> = 
  */
 export type ListAgentVersionsResponse = Message<"ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse"> & {
   /**
+   * Ordered list of versions (newest first).
+   *
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1;
    */
   versions: AgentVersionEntry[];
 
   /**
+   * Token for fetching the next page. Empty when no more pages exist.
+   *
    * @generated from field: string next_page_token = 2;
    */
   nextPageToken: string;
 
   /**
+   * Total number of versions across all pages.
+   *
    * @generated from field: int32 total_count = 3;
    */
   totalCount: number;
@@ -190,20 +169,27 @@ export type ListAgentVersionsResponse = Message<"ai.stigmer.agentic.agent.v1.Lis
  * Use `create(ListAgentVersionsResponseSchema)` to create a new message.
  */
 export const ListAgentVersionsResponseSchema: GenMessage<ListAgentVersionsResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_version, 3);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_version, 2);
 
 /**
- * GetAgentVersionInput requests a specific historical version.
+ * GetAgentVersionInput requests one version of an agent by its hash.
+ *
+ * Used by the runner and the server to run a turn on the version it
+ * recorded, and by clients to show what a past version said.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.GetAgentVersionInput
  */
 export type GetAgentVersionInput = Message<"ai.stigmer.agentic.agent.v1.GetAgentVersionInput"> & {
   /**
+   * ID of the agent resource.
+   *
    * @generated from field: string agent_id = 1;
    */
   agentId: string;
 
   /**
+   * SHA-256 hash identifying the version to retrieve.
+   *
    * @generated from field: string version_hash = 2;
    */
   versionHash: string;
@@ -214,25 +200,35 @@ export type GetAgentVersionInput = Message<"ai.stigmer.agentic.agent.v1.GetAgent
  * Use `create(GetAgentVersionInputSchema)` to create a new message.
  */
 export const GetAgentVersionInputSchema: GenMessage<GetAgentVersionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_version, 4);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_version, 3);
 
 /**
  * TagAgentVersionInput assigns or moves a tag to a specific agent version.
+ *
+ * Tags are mutable pointers: calling tagVersion with a tag another version
+ * holds moves it to the version named here.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.TagAgentVersionInput
  */
 export type TagAgentVersionInput = Message<"ai.stigmer.agentic.agent.v1.TagAgentVersionInput"> & {
   /**
+   * ID of the agent resource.
+   *
    * @generated from field: string agent_id = 1;
    */
   agentId: string;
 
   /**
+   * SHA-256 hash of the version to tag.
+   *
    * @generated from field: string version_hash = 2;
    */
   versionHash: string;
 
   /**
+   * Tag to assign. Must be a non-empty alphanumeric string with dots,
+   * hyphens, or underscores (the pattern workflow and skill tags use).
+   *
    * @generated from field: string tag = 3;
    */
   tag: string;
@@ -243,5 +239,5 @@ export type TagAgentVersionInput = Message<"ai.stigmer.agentic.agent.v1.TagAgent
  * Use `create(TagAgentVersionInputSchema)` to create a new message.
  */
 export const TagAgentVersionInputSchema: GenMessage<TagAgentVersionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_version, 5);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_version, 4);
 

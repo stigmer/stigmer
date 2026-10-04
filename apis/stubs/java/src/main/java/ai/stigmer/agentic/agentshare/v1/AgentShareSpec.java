@@ -71,6 +71,9 @@ private static final long serialVersionUID = 0L;
    * offers an agent its own organization owns, billed to that organization,
    * with tool credentials bound from it. To share another organization's
    * agent, install the plugin that carries it and share the installed copy.
+   *
+   * The reference names no version (or "latest"): a share runs the agent's
+   * current version, and a reference naming another version is refused.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -88,6 +91,9 @@ private static final long serialVersionUID = 0L;
    * offers an agent its own organization owns, billed to that organization,
    * with tool credentials bound from it. To share another organization's
    * agent, install the plugin that carries it and share the installed copy.
+   *
+   * The reference names no version (or "latest"): a share runs the agent's
+   * current version, and a reference naming another version is refused.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -105,6 +111,9 @@ private static final long serialVersionUID = 0L;
    * offers an agent its own organization owns, billed to that organization,
    * with tool credentials bound from it. To share another organization's
    * agent, install the plugin that carries it and share the installed copy.
+   *
+   * The reference names no version (or "latest"): a share runs the agent's
+   * current version, and a reference naming another version is refused.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1011,6 +1020,9 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
+     *
+     * The reference names no version (or "latest"): a share runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1027,6 +1039,9 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
+     *
+     * The reference names no version (or "latest"): a share runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1047,6 +1062,9 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
+     *
+     * The reference names no version (or "latest"): a share runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1072,6 +1090,9 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
+     *
+     * The reference names no version (or "latest"): a share runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1095,6 +1116,9 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
+     *
+     * The reference names no version (or "latest"): a share runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1125,6 +1149,9 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
+     *
+     * The reference names no version (or "latest"): a share runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1147,6 +1174,9 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
+     *
+     * The reference names no version (or "latest"): a share runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1164,6 +1194,9 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
+     *
+     * The reference names no version (or "latest"): a share runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1184,6 +1217,9 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
+     *
+     * The reference names no version (or "latest"): a share runs the agent's
+     * current version, and a reference naming another version is refused.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>

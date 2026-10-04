@@ -11,11 +11,19 @@ public interface ListAgentVersionsInputOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Organization that owns the agent.
+   * </pre>
+   *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
    * @return The org.
    */
   java.lang.String getOrg();
   /**
+   * <pre>
+   * Organization that owns the agent.
+   * </pre>
+   *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
    * @return The bytes for org.
    */
@@ -23,11 +31,19 @@ public interface ListAgentVersionsInputOrBuilder extends
       getOrgBytes();
 
   /**
+   * <pre>
+   * Agent slug (unique within the organization).
+   * </pre>
+   *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
    * @return The slug.
    */
   java.lang.String getSlug();
   /**
+   * <pre>
+   * Agent slug (unique within the organization).
+   * </pre>
+   *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
    * @return The bytes for slug.
    */
@@ -35,11 +51,21 @@ public interface ListAgentVersionsInputOrBuilder extends
       getSlugBytes();
 
   /**
+   * <pre>
+   * Opaque token for offset pagination.
+   * Empty string or omitted for the first page.
+   * </pre>
+   *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
    * @return The pageToken.
    */
   java.lang.String getPageToken();
   /**
+   * <pre>
+   * Opaque token for offset pagination.
+   * Empty string or omitted for the first page.
+   * </pre>
+   *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
    * @return The bytes for pageToken.
    */
@@ -47,6 +73,11 @@ public interface ListAgentVersionsInputOrBuilder extends
       getPageTokenBytes();
 
   /**
+   * <pre>
+   * Maximum number of versions to return per page.
+   * Server may return fewer. Default is 50, max is 100.
+   * </pre>
+   *
    * <code>int32 page_size = 4 [json_name = "pageSize"];</code>
    * @return The pageSize.
    */

@@ -32,8 +32,21 @@ type AgentStatus struct {
 	// and requires no additional configuration. Created automatically when the
 	// agent is created.
 	DefaultInstanceId string `protobuf:"bytes,1,opt,name=default_instance_id,json=defaultInstanceId,proto3" json:"default_instance_id,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Content hash of the agent's current version: the SHA-256 of the
+	// canonical JSON rendering of the stored AgentSpec (unset and default
+	// fields omitted, object keys sorted at every depth, enums as numbers).
+	//
+	// Every write whose spec differs from every version the agent has had
+	// records a new version under this hash; a write that reproduces an
+	// earlier spec points back to that version, and an unchanged write
+	// records none. The history is read through AgentQueryController's
+	// listVersions and getVersion.
+	//
+	// Empty for an agent last written before agents were versioned, and when
+	// the version could not be recorded (the write still succeeds).
+	VersionHash   string `protobuf:"bytes,3,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentStatus) Reset() {
@@ -80,14 +93,22 @@ func (x *AgentStatus) GetDefaultInstanceId() string {
 	return ""
 }
 
+func (x *AgentStatus) GetVersionHash() string {
+	if x != nil {
+		return x.VersionHash
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agent_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/agent/v1/status.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\x9d\x01\n" +
+	"(ai/stigmer/agentic/agent/v1/status.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xc0\x01\n" +
 	"\vAgentStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12.\n" +
-	"\x13default_instance_id\x18\x01 \x01(\tR\x11defaultInstanceIdJ\x04\b\x02\x10\x03R\x10share_link_tokenB\x8f\x02\n" +
+	"\x13default_instance_id\x18\x01 \x01(\tR\x11defaultInstanceId\x12!\n" +
+	"\fversion_hash\x18\x03 \x01(\tR\vversionHashJ\x04\b\x02\x10\x03R\x10share_link_tokenB\x8f\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\vStatusProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (

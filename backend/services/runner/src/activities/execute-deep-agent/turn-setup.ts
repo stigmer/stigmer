@@ -407,7 +407,7 @@ export async function buildEngine(
     : buildShellEnv(
         shellRunValues(
           input.environment.envVars,
-          blueprint.agent?.spec?.env,
+          blueprint.agent?.spec.env,
           input.mcp.servers,
           input.workspace.provision.provisionResults,
         ),

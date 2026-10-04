@@ -57,12 +57,15 @@ Agent agent = client.agents().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get a single agent by ID. |
-| [`getByReference`](#getbyreference) | Get an agent by its organization-scoped reference (org/slug). |
+| [`getByReference`](#getbyreference) | Get an agent by its organization-scoped reference (org/slug) with version support. |
+| [`getVersion`](#getversion) | Get a specific version of an agent by its content hash. |
+| [`listVersions`](#listversions) | List version history for an agent. |
 | [`apply`](#apply) | Create or update an agent. |
 | [`create`](#create) | Create an agent. |
 | [`update`](#update) | Update an existing agent. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing agent. |
 | [`delete`](#delete) | Delete an agent. |
+| [`tagVersion`](#tagversion) | Assign or move a tag to a specific agent version. |
 
 ### get
 
@@ -101,7 +104,9 @@ Agent agent = client.agents().get(id);
 
 ### getByReference
 
-Get an agent by its organization-scoped reference (org/slug). Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+Get an agent by its organization-scoped reference (org/slug) with version support. Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+
+Version resolution (via ApiResourceReference.version field): - Empty/"latest" → Returns the current version - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag - SHA256 hash (64 hex chars) → Returns the exact immutable version
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -149,6 +154,104 @@ Agent agent = client.agents().getByReference(ApiResourceReference.builder()
 **Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`Agent`](#agent)
+
+### getVersion
+
+Get a specific version of an agent by its content hash.
+
+Used by the runner and the server to run a turn on the version it recorded (AgentExecutionStatus.agent_version_hash), and by clients to show what a past version said.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const agentVersionEntry = await stigmer.agent.getVersion({
+  agentId: "...",
+  versionHash: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+agentVersionEntry, err := client.Agent.GetVersion(ctx, &stigmer.GetAgentVersionInput{
+  AgentId:     "...",
+  VersionHash: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+agent_version_entry = client.agents.get_version(GetAgentVersionInput(
+    agent_id="...",
+    version_hash="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AgentVersionEntry agentVersionEntry = client.agents().getVersion(GetAgentVersionInput.builder()
+    .agentId("...")
+    .versionHash("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetAgentVersionInput`](#getagentversioninput)
+
+**Returns**: [`AgentVersionEntry`](#agentversionentry)
+
+### listVersions
+
+List version history for an agent.
+
+Returns all historical versions, newest first. Each entry carries the version hash, when and by whom it was applied, its tag, its message and the full spec of that version.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const listAgentVersionsResponse = await stigmer.agent.listVersions({
+  org: "...",
+  slug: "...",
+  pageToken: "...",
+  pageSize: 0,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+listAgentVersionsResponse, err := client.Agent.ListVersions(ctx, &stigmer.ListAgentVersionsInput{
+  Org:       "...",
+  Slug:      "...",
+  PageToken: "...",
+  PageSize:  0,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+list_agent_versions_response = client.agents.list_versions(ListAgentVersionsInput(
+    org="...",
+    slug="...",
+    page_token="...",
+    page_size=0,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ListAgentVersionsResponse listAgentVersionsResponse = client.agents().listVersions(ListAgentVersionsInput.builder()
+    .org("...")
+    .slug("...")
+    .pageToken("...")
+    .pageSize(0)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListAgentVersionsInput`](#listagentversionsinput)
+
+**Returns**: [`ListAgentVersionsResponse`](#listagentversionsresponse)
 
 ### apply
 
@@ -471,6 +574,55 @@ Agent agent = client.agents().delete(id);
 
 **Returns**: [`Agent`](#agent)
 
+### tagVersion
+
+Assign or move a tag to a specific agent version.
+
+Tags are human-readable pointers to immutable versions. Calling this with an existing tag name moves it from the previous version to the specified version. Common tags: "stable", "production", "v2.0".
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const agent = await stigmer.agent.tagVersion({
+  agentId: "...",
+  versionHash: "...",
+  tag: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.TagVersion(ctx, &stigmer.TagAgentVersionInput{
+  AgentId:     "...",
+  VersionHash: "...",
+  Tag:         "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+agent = client.agents.tag_version(TagAgentVersionInput(
+    agent_id="...",
+    version_hash="...",
+    tag="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Agent agent = client.agents().tagVersion(TagAgentVersionInput.builder()
+    .agentId("...")
+    .versionHash("...")
+    .tag("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`TagAgentVersionInput`](#tagagentversioninput)
+
+**Returns**: [`Agent`](#agent)
+
 ## Types
 
 ### AgentInput
@@ -579,6 +731,70 @@ Input for updating the visibility of any API resource.
   }}
 />
 
+### TagAgentVersionInput
+
+TagAgentVersionInput assigns or moves a tag to a specific agent version.
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "ID of the agent resource.", required: true },
+    versionHash: { type: "string", description: "SHA-256 hash of the version to tag." },
+    tag: { type: "string", description: "Tag to assign." },
+  }}
+/>
+
+### ListAgentVersionsInput
+
+ListAgentVersionsInput requests the version history for an agent.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the agent.", required: true },
+    slug: { type: "string", description: "Agent slug (unique within the organization).", required: true },
+    pageToken: { type: "string", description: "Opaque token for offset pagination." },
+    pageSize: { type: "number", description: "Maximum number of versions to return per page." },
+  }}
+/>
+
+### ListAgentVersionsResponse
+
+ListAgentVersionsResponse contains a page of agent version history.
+
+<TypeTable
+  type={{
+    versions: { type: "AgentVersionEntryInput[]", description: "Ordered list of versions (newest first)." },
+    nextPageToken: { type: "string", description: "Token for fetching the next page." },
+    totalCount: { type: "number", description: "Total number of versions across all pages." },
+  }}
+/>
+
+### GetAgentVersionInput
+
+GetAgentVersionInput requests one version of an agent by its hash.
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "ID of the agent resource.", required: true },
+    versionHash: { type: "string", description: "SHA-256 hash identifying the version to retrieve." },
+  }}
+/>
+
+### AgentVersionEntry
+
+AgentVersionEntry is one historical version of an agent.
+
+<TypeTable
+  type={{
+    versionHash: { type: "string", description: "SHA-256 of the canonical JSON rendering of the version's AgentSpec: the immutable version identifier." },
+    appliedAt: { type: "string", description: "When this version was applied." },
+    appliedBy: { type: "ApiResourceAuditActorInput", description: "Who applied this version.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceauditactor" },
+    tag: { type: "string", description: "The tag this version holds now, if any." },
+    isCurrent: { type: "boolean", description: "Whether this is the agent's current version." },
+    message: { type: "string", description: "Human-readable message describing what changed in this version, from metadata.version.message at apply time." },
+    specSnapshot: { type: "AgentSpecInput", description: "The agent spec exactly as this version stored it: the instructions, sub-agents, skill and MCP server references and environment a turn on this version runs with." },
+  }}
+/>
+
 ### Agent
 
 Agent defines an AI assistant's identity, tools, skills, and delegation model.
@@ -601,6 +817,7 @@ AgentStatus contains system-managed state for an agent.
   type={{
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
     defaultInstanceId: { type: "string", description: "ID of the default agent instance." },
+    versionHash: { type: "string", description: "Content hash of the agent's current version: the SHA-256 of the canonical JSON rendering of the stored AgentSpec (unset and default fields omitted, object keys sorted at every depth, enums as numbers)." },
   }}
 />
 

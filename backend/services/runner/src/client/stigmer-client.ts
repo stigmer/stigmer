@@ -31,6 +31,7 @@ import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/execut
 import { ExecutionContextExecutionIdInputSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/io_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -576,6 +577,11 @@ export class StigmerClient {
 
   async getAgent(agentId: string): Promise<Agent> {
     return this.agentQuery.get({ value: agentId });
+  }
+
+  /** One version of an agent, with its full spec: what a turn recorded on it runs. */
+  async getAgentVersion(agentId: string, versionHash: string): Promise<AgentVersionEntry> {
+    return this.agentQuery.getVersion({ agentId, versionHash });
   }
 
   async getAgentInstance(instanceId: string): Promise<AgentInstance> {

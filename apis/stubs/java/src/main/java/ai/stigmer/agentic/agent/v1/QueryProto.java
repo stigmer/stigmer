@@ -38,28 +38,37 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "\n\'ai/stigmer/agentic/agent/v1/query.prot" +
       "o\022\033ai.stigmer.agentic.agent.v1\032%ai/stigm" +
       "er/agentic/agent/v1/api.proto\032$ai/stigme" +
-      "r/agentic/agent/v1/io.proto\032\'ai/stigmer/" +
-      "commons/apiresource/io.proto\0328ai/stigmer" +
-      "/commons/apiresource/rpc_service_options" +
-      ".proto\032+ai/stigmer/commons/rpc/method_op" +
-      "tions.proto2\213\002\n\024AgentQueryController\022{\n\003" +
-      "get\022$.ai.stigmer.agentic.agent.v1.AgentI" +
-      "d\032\".ai.stigmer.agentic.agent.v1.Agent\"*\302" +
-      "\270\030&\010\001\020(\"\005value*\031unauthorized to get agen" +
-      "t\022p\n\016getByReference\0224.ai.stigmer.commons" +
-      ".apiresource.ApiResourceReference\032\".ai.s" +
-      "tigmer.agentic.agent.v1.Agent\"\004\320\270\030\001\032\004\240\377+" +
-      "(B\235\001B\nQueryProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.A" +
-      "gentic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Age" +
-      "nt\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBM" +
-      "etadata\352\002\037Ai::Stigmer::Agentic::Agent::V" +
-      "1b\006proto3"
+      "r/agentic/agent/v1/io.proto\032)ai/stigmer/" +
+      "agentic/agent/v1/version.proto\032\'ai/stigm" +
+      "er/commons/apiresource/io.proto\0328ai/stig" +
+      "mer/commons/apiresource/rpc_service_opti" +
+      "ons.proto\032+ai/stigmer/commons/rpc/method" +
+      "_options.proto2\270\004\n\024AgentQueryController\022" +
+      "{\n\003get\022$.ai.stigmer.agentic.agent.v1.Age" +
+      "ntId\032\".ai.stigmer.agentic.agent.v1.Agent" +
+      "\"*\302\270\030&\010\001\020(\"\005value*\031unauthorized to get a" +
+      "gent\022p\n\016getByReference\0224.ai.stigmer.comm" +
+      "ons.apiresource.ApiResourceReference\032\".a" +
+      "i.stigmer.agentic.agent.v1.Agent\"\004\320\270\030\001\022\201" +
+      "\001\n\014listVersions\0223.ai.stigmer.agentic.age" +
+      "nt.v1.ListAgentVersionsInput\0326.ai.stigme" +
+      "r.agentic.agent.v1.ListAgentVersionsResp" +
+      "onse\"\004\320\270\030\001\022\246\001\n\ngetVersion\0221.ai.stigmer.a" +
+      "gentic.agent.v1.GetAgentVersionInput\032..a" +
+      "i.stigmer.agentic.agent.v1.AgentVersionE" +
+      "ntry\"5\302\270\0301\010\001\020(\"\010agent_id*!unauthorized t" +
+      "o get agent version\032\004\240\377+(B\235\001B\nQueryProto" +
+      "P\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312" +
+      "\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigm" +
+      "er\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::St" +
+      "igmer::Agentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.agent.v1.ApiProto.getDescriptor(),
           ai.stigmer.agentic.agent.v1.IoProto.getDescriptor(),
+          ai.stigmer.agentic.agent.v1.VersionProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
@@ -67,6 +76,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agent.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.agent.v1.IoProto.getDescriptor();
+    ai.stigmer.agentic.agent.v1.VersionProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();

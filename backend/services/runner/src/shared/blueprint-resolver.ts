@@ -1,10 +1,19 @@
 /**
- * Resolves the agent blueprint chain: execution -> session -> agentInstance -> agent.
+ * Resolves the agent blueprint of a turn: the agent spec the turn runs, and
+ * the merge of its MCP usages and skill refs with the session's own.
  *
- * Replicates the Python agent-runner's setup.py pipeline where the full agent
- * resource is fetched to access instructions, sub_agents, skill_refs, and
- * mcp_server_usages. Also merges agent-level and session-level MCP usages
- * and skill refs following the same merge semantics.
+ * The agent is the one the execution recorded when it was created
+ * (status.agent_id and agent_version_hash): the spec is that version's
+ * snapshot, read through getAgentVersion, so an author saving a new
+ * version while the turn is queued or running never changes what runs,
+ * and a session repointed to another agent afterwards never changes which
+ * agent this turn runs. A recorded version that no longer resolves (the
+ * agent was deleted, the run's person may no longer see it, a store fault)
+ * fails the turn naming the version: running the agent's current version
+ * would run, and record, something nobody asked for. An execution that
+ * recorded an agent with no version runs that agent as it is now; one that
+ * recorded nothing (created before turns recorded their agent) walks
+ * session -> agentInstance -> agent, the only route it has.
  *
  * A session with an EMPTY agent_instance_id is the built-in assistant
  * (session/v1/spec.proto): the chain stops at the session, `agent` is
@@ -19,8 +28,9 @@
  * containing runner-internal markers are rejected with a warning.
  */
 
+import { ConnectError } from "@connectrpc/connect";
 import type { StigmerClient } from "../client/stigmer-client.js";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentSpec, McpServerUsage, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -39,9 +49,20 @@ export interface CloudRepo {
   startingRef?: string;
 }
 
+/** The agent a turn runs: its id, the version it recorded, and that version's spec. */
+export interface RunAgent {
+  readonly id: string;
+  /** Empty when the turn recorded no version (the agent runs as it is now). */
+  readonly versionHash: string;
+  readonly spec: AgentSpec;
+}
+
+/** The agent a turn recorded at create (AgentExecutionStatus). */
+export type RecordedRunAgent = Pick<AgentExecutionStatus, "agentId" | "agentVersionHash">;
+
 export interface ResolvedBlueprint {
-  /** The agent the session is bound to; undefined for the built-in assistant. */
-  agent: Agent | undefined;
+  /** The agent the turn runs; undefined for the built-in assistant. */
+  agent: RunAgent | undefined;
   session: Session;
   sessionSpec: SessionSpec;
   instructions: string;
@@ -52,27 +73,19 @@ export interface ResolvedBlueprint {
 }
 
 /**
- * Resolve the full agent blueprint from the execution chain.
- *
- * Chain: execution.spec.sessionId -> session.spec.agentInstanceId ->
- *        agentInstance.spec.agentId -> agent (with full spec); an empty
- *        agent_instance_id ends the chain at the session (the built-in
- *        assistant).
+ * Resolve the full agent blueprint of a turn: the recorded agent (the
+ * module doc), else the session's chain; an empty agent_instance_id with
+ * nothing recorded is the built-in assistant.
  */
 export async function resolveBlueprint(
   client: StigmerClient,
   session: Session,
+  recorded: RecordedRunAgent | undefined,
 ): Promise<ResolvedBlueprint> {
   const sessionSpec = session.spec!;
 
-  let agent: Agent | undefined;
-  let agentSpec: AgentSpec | undefined;
-  if (sessionSpec.agentInstanceId !== "") {
-    const agentInstance = await client.getAgentInstance(sessionSpec.agentInstanceId);
-    const agentId = agentInstance.spec!.agentId;
-    agent = await client.getAgent(agentId);
-    agentSpec = agent.spec!;
-  }
+  const agent = await resolveRunAgent(client, sessionSpec, recorded);
+  const agentSpec = agent?.spec;
 
   const mergedMcpServerUsages = mergeMcpServerUsages(
     agentSpec?.mcpServerUsages ?? [],
@@ -96,6 +109,39 @@ export async function resolveBlueprint(
     mergedSkillRefs,
     cloudRepos,
   };
+}
+
+/** The agent a turn runs, from what the execution recorded, else the session's chain. */
+async function resolveRunAgent(
+  client: StigmerClient,
+  sessionSpec: SessionSpec,
+  recorded: RecordedRunAgent | undefined,
+): Promise<RunAgent | undefined> {
+  const agentId = recorded?.agentId ?? "";
+  const versionHash = recorded?.agentVersionHash ?? "";
+  if (agentId !== "" && versionHash !== "") {
+    try {
+      const version = await client.getAgentVersion(agentId, versionHash);
+      return { id: agentId, versionHash, spec: version.specSnapshot! };
+    } catch (error) {
+      const what = `the agent version this turn recorded (agent ${agentId}, version ${versionHash}) could not be loaded`;
+      if (error instanceof ConnectError) {
+        throw new ConnectError(`${what}: ${error.rawMessage}`, error.code);
+      }
+      throw new Error(`${what}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  if (agentId !== "") {
+    const agent = await client.getAgent(agentId);
+    return { id: agentId, versionHash: "", spec: agent.spec! };
+  }
+  if (sessionSpec.agentInstanceId === "") {
+    return undefined;
+  }
+  const agentInstance = await client.getAgentInstance(sessionSpec.agentInstanceId);
+  const instanceAgentId = agentInstance.spec!.agentId;
+  const agent = await client.getAgent(instanceAgentId);
+  return { id: instanceAgentId, versionHash: "", spec: agent.spec! };
 }
 
 // ---------------------------------------------------------------------------

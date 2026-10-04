@@ -4,6 +4,7 @@ package ai.stigmer.agentic.agent.v1;
 
 import "ai/stigmer/agentic/agent/v1/api.proto";
 import "ai/stigmer/agentic/agent/v1/io.proto";
+import "ai/stigmer/agentic/agent/v1/version.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
@@ -90,5 +91,22 @@ service AgentCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_delete;
     option (ai.stigmer.commons.rpc.config).field_path = "value";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete agent";
+  }
+
+  // Assign or move a tag to a specific agent version.
+  //
+  // Tags are human-readable pointers to immutable versions. Calling this
+  // with an existing tag name moves it from the previous version to the
+  // specified version. Common tags: "stable", "production", "v2.0".
+  //
+  // @internal
+  // Authorization: Requires can_edit permission on the agent resource.
+  // The handler validates that the version_hash exists in the agent's
+  // version history before assigning the tag.
+  rpc tagVersion(TagAgentVersionInput) returns (Agent) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "agent_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to tag agent version";
   }
 }

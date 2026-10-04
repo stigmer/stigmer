@@ -37,6 +37,8 @@ import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
 import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useOrgIdForRef, useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { AgentVersionsTab } from "./AgentVersionsTab.js";
+import { useAgentVersionCount } from "./useAgentVersions.js";
 
 const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
@@ -44,6 +46,7 @@ const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const INSTANCES_TAB: TabItem = { id: "instances", label: "Instances" };
 const SHARES_TAB: TabItem = { id: "shares", label: "Shares" };
 const DEPENDENCIES_TAB: TabItem = { id: "dependencies", label: "Dependencies" };
+const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
 
 /** Props for {@link AgentDetailView}. */
 export interface AgentDetailViewProps {
@@ -295,12 +298,21 @@ export function AgentDetailView({
     spec: agent?.spec,
   });
 
+  // The badge reads the count alone; the tab loads the history when opened.
+  const versionCount = useAgentVersionCount(
+    agent?.metadata?.org ?? null,
+    agent?.metadata?.slug ?? null,
+  );
+
   const builtInTabs = useMemo<readonly TabItem[]>(
-    () =>
-      noDeps
-        ? [OVERVIEW_TAB, INSTANCES_TAB, SHARES_TAB]
-        : [OVERVIEW_TAB, INSTANCES_TAB, SHARES_TAB, DEPENDENCIES_TAB],
-    [noDeps],
+    () => [
+      OVERVIEW_TAB,
+      INSTANCES_TAB,
+      SHARES_TAB,
+      ...(noDeps ? [] : [DEPENDENCIES_TAB]),
+      { ...VERSIONS_TAB, ...(versionCount > 0 && { badge: versionCount }) },
+    ],
+    [noDeps, versionCount],
   );
 
   const {
@@ -454,6 +466,8 @@ export function AgentDetailView({
         onNodeClick={handleNodeClick}
       />
     );
+  } else if (effectiveActiveTab === "versions") {
+    tabContent = <AgentVersionsTab agent={agent} />;
   } else {
     tabContent = (
       <AgentOverview

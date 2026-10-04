@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEigwEKC0FnZW50U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSGwoTZGVmYXVsdF9pbnN0YW5jZV9pZBgBIAEoCUoECAIQA1IQc2hhcmVfbGlua190b2tlbmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEimQEKC0FnZW50U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSGwoTZGVmYXVsdF9pbnN0YW5jZV9pZBgBIAEoCRIUCgx2ZXJzaW9uX2hhc2gYAyABKAlKBAgCEANSEHNoYXJlX2xpbmtfdG9rZW5iBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * AgentStatus contains system-managed state for an agent.
@@ -36,6 +36,24 @@ export type AgentStatus = Message<"ai.stigmer.agentic.agent.v1.AgentStatus"> & {
    * @generated from field: string default_instance_id = 1;
    */
   defaultInstanceId: string;
+
+  /**
+   * Content hash of the agent's current version: the SHA-256 of the
+   * canonical JSON rendering of the stored AgentSpec (unset and default
+   * fields omitted, object keys sorted at every depth, enums as numbers).
+   *
+   * Every write whose spec differs from every version the agent has had
+   * records a new version under this hash; a write that reproduces an
+   * earlier spec points back to that version, and an unchanged write
+   * records none. The history is read through AgentQueryController's
+   * listVersions and getVersion.
+   *
+   * Empty for an agent last written before agents were versioned, and when
+   * the version could not be recorded (the write still succeeds).
+   *
+   * @generated from field: string version_hash = 3;
+   */
+  versionHash: string;
 };
 
 /**

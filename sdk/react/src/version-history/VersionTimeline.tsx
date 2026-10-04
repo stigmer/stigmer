@@ -12,7 +12,7 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
  * Renders a chronologically-ordered list of version entries with a
  * connecting line, selection state, and optional compare mode. Designed
  * as a generic SDK primitive usable for any versioned resource (skills,
- * and in future, agents, MCP servers).
+ * plugins, workflows, agents).
  *
  * Supports two interaction modes:
  * - **Select mode** (default): single-click selects an entry, fires `onEntrySelect`

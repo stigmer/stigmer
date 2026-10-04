@@ -20,6 +20,11 @@
  * and the layer survives the runner's status writes, so recovery — which
  * rebuilds from the persisted execution with no minted caller — delivers
  * it again.
+ *
+ * And the agent half is the agent the turn recorded at create: a turn with
+ * a recorded version rebuilds from that version's spec, never the agent's
+ * head, so recovery after an author's edit declares what the turn ran with;
+ * a recorded version that no longer resolves refuses, naming it.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -30,6 +35,8 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
+import type { AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -92,6 +99,9 @@ it("an unresolvable environment ref surfaces the inner status code with Go's wra
     agentLoader: () => ({
       get: async () =>
         create(AgentSchema, { metadata: { id: "agt_x", org: "acme" } }),
+      getVersion: async () => {
+        throw new Error("this turn records no agent version");
+      },
     }),
     agentInstanceLoader: () => ({
       get: async (instanceId) =>
@@ -237,7 +247,12 @@ it("assembles merge → filter → OAuth injection → EC persist over a non-emp
   const deps: ExecutionContextBuilderDeps = {
     store,
     logger: silentLogger,
-    agentLoader: () => ({ get: async () => agent }),
+    agentLoader: () => ({
+      get: async () => agent,
+      getVersion: async () => {
+        throw new Error("this turn records no agent version");
+      },
+    }),
     agentInstanceLoader: () => ({
       get: async (instanceId) =>
         create(AgentInstanceSchema, {
@@ -400,7 +415,12 @@ it("a session-level server's declared key saved in the personal environment reac
   const deps: ExecutionContextBuilderDeps = {
     store,
     logger: silentLogger,
-    agentLoader: () => ({ get: async () => agent }),
+    agentLoader: () => ({
+      get: async () => agent,
+      getVersion: async () => {
+        throw new Error("this turn records no agent version");
+      },
+    }),
     agentInstanceLoader: () => ({
       get: async (instanceId) =>
         create(AgentInstanceSchema, {
@@ -499,6 +519,9 @@ it("the built-in assistant: no instance, no agent, the session's servers are the
     // Neither lane may be reached: there is no instance and no agent.
     agentLoader: () => ({
       get: async () => {
+        throw new Error("agent loader must not be reached");
+      },
+      getVersion: async () => {
         throw new Error("agent loader must not be reached");
       },
     }),
@@ -638,6 +661,9 @@ function platformClientLayerDeps(opts: {
     agentLoader: () => ({
       get: async () =>
         create(AgentSchema, { metadata: { id: "agt_pc", org: PC_ORG } }),
+      getVersion: async () => {
+        throw new Error("this turn records no agent version");
+      },
     }),
     agentInstanceLoader: () => ({
       get: async (instanceId) =>
@@ -858,4 +884,238 @@ it("the layer survives the runner's status writes, so recovery delivers it again
   expect(createdEcs[0]?.spec?.data["SHARED_API_SECRET"]?.value).toBe(
     "client-secret",
   );
+});
+
+/**
+ * The recorded-agent deps: an instance whose environment holds both the
+ * key the recorded version declares and the key the head declares now, a
+ * head that must never be read, and the recorded version as `version`
+ * answers it.
+ */
+function recordedAgentDeps(
+  version: () => Promise<AgentVersionEntry>,
+  createdEcs: ExecutionContext[],
+): ExecutionContextBuilderDeps {
+  const environment = create(EnvironmentSchema, {
+    metadata: { id: "env_rec", org: "acme", slug: "rec-env" },
+    spec: {
+      data: {
+        RECORDED_KEY: { value: "declared-by-the-recorded-version" },
+        HEAD_KEY: { value: "declared-by-the-head-only" },
+      },
+    },
+  });
+  return {
+    store,
+    logger: silentLogger,
+    agentLoader: () => ({
+      get: async () => {
+        throw new Error("the agent's head must not be read for a recorded version");
+      },
+      getVersion: version,
+    }),
+    agentInstanceLoader: () => ({
+      get: async (instanceId) =>
+        create(AgentInstanceSchema, {
+          metadata: { id: instanceId, org: "acme" },
+          spec: {
+            agentId: "agt_rec",
+            environmentRefs: [
+              { kind: ApiResourceKind.environment, org: "acme", slug: "rec-env" },
+            ],
+          },
+        }),
+    }),
+    sessionLoader: () => ({
+      get: async (sessionId) =>
+        create(SessionSchema, {
+          metadata: { id: sessionId, org: "acme" },
+          spec: { agentInstanceId: "agi_rec" },
+        }),
+    }),
+    environmentReader: () => ({
+      getSecretValue: async () => {
+        throw new Error("unreached");
+      },
+    }),
+    environmentResolution: {
+      resolveByReference: async () => environment,
+    } as unknown as ExecutionContextBuilderDeps["environmentResolution"],
+    executionContextCreator: () => ({
+      create: async (ec) => {
+        createdEcs.push(ec);
+        return ec;
+      },
+    }),
+    executionContextDeleter: () => ({
+      delete: () => Promise.reject(new Error("unused here")),
+    }),
+    managedEnvService: {} as ManagedEnvironmentService,
+    platformClients: unreadPlatformClients,
+  };
+}
+
+/** A persisted turn that recorded agt_rec at RECORDED_HASH, as recover reads it. */
+const RECORDED_HASH = "e".repeat(64);
+function recordedTurn(id: string): AgentExecution {
+  return create(AgentExecutionSchema, {
+    metadata: { id, org: "acme" },
+    spec: { sessionId: "ses_rec", message: "hi" },
+    status: { agentId: "agt_rec", agentVersionHash: RECORDED_HASH },
+  });
+}
+
+it("rebuilds the context from the version the turn recorded, after the head moved (the recover path)", async () => {
+  const createdEcs: ExecutionContext[] = [];
+  const asked: Array<[string, string]> = [];
+  const deps = recordedAgentDeps(async () => {
+    asked.push(["agt_rec", RECORDED_HASH]);
+    return create(AgentVersionEntrySchema, {
+      versionHash: RECORDED_HASH,
+      specSnapshot: { env: { RECORDED_KEY: {} } },
+    });
+  }, createdEcs);
+
+  await buildAndPersistExecutionContext(deps, recordedTurn("aex_recorded"), "");
+
+  expect(asked).toEqual([["agt_rec", RECORDED_HASH]]);
+  const data = createdEcs[0]?.spec?.data ?? {};
+  expect(data["RECORDED_KEY"]?.value).toBe("declared-by-the-recorded-version");
+  expect(data["HEAD_KEY"]).toBeUndefined();
+});
+
+it("refuses, naming the version, when the recorded version no longer resolves", async () => {
+  const deps = recordedAgentDeps(async () => {
+    throw new ConnectError("agent version not found", Code.NotFound);
+  }, []);
+
+  const failure = await buildAndPersistExecutionContext(
+    deps,
+    recordedTurn("aex_recorded_gone"),
+    "",
+  ).catch((e: unknown) => e);
+
+  expect(failure).toBeInstanceOf(ConnectError);
+  expect((failure as ConnectError).code).toBe(Code.NotFound);
+  expect((failure as ConnectError).rawMessage).toContain(RECORDED_HASH);
+});
+
+it("keeps a recorded-version load failure that is not a status as its message, naming the version", async () => {
+  const deps = recordedAgentDeps(async () => {
+    throw new Error("socket hang up");
+  }, []);
+
+  const failure = await buildAndPersistExecutionContext(
+    deps,
+    recordedTurn("aex_recorded_fault"),
+    "",
+  ).catch((e: unknown) => e);
+
+  expect(failure).toBeInstanceOf(Error);
+  expect((failure as Error).message).toContain(RECORDED_HASH);
+  expect((failure as Error).message).toContain("socket hang up");
+});
+
+it("loads a turn that recorded its agent without a version as the agent is now, keeping a refusal's code", async () => {
+  const deps: ExecutionContextBuilderDeps = {
+    ...recordedAgentDeps(async () => {
+      throw new Error("no version is recorded on this turn");
+    }, []),
+    agentLoader: () => ({
+      get: async () => {
+        throw new ConnectError("agent not found", Code.NotFound);
+      },
+      getVersion: async () => {
+        throw new Error("no version is recorded on this turn");
+      },
+    }),
+  };
+  const turn = create(AgentExecutionSchema, {
+    metadata: { id: "aex_unversioned", org: "acme" },
+    spec: { sessionId: "ses_rec", message: "hi" },
+    status: { agentId: "agt_rec" },
+  });
+
+  const failure = await buildAndPersistExecutionContext(deps, turn, "").catch(
+    (e: unknown) => e,
+  );
+
+  expect(failure).toBeInstanceOf(ConnectError);
+  expect((failure as ConnectError).code).toBe(Code.NotFound);
+  expect((failure as ConnectError).rawMessage).toContain("load agent agt_rec");
+});
+
+it("keeps a head-load failure that is not a status as its message, for a turn that recorded no version", async () => {
+  const deps: ExecutionContextBuilderDeps = {
+    ...recordedAgentDeps(async () => {
+      throw new Error("no version is recorded on this turn");
+    }, []),
+    agentLoader: () => ({
+      get: async () => {
+        throw new Error("socket hang up");
+      },
+      getVersion: async () => {
+        throw new Error("no version is recorded on this turn");
+      },
+    }),
+  };
+  const turn = create(AgentExecutionSchema, {
+    metadata: { id: "aex_unversioned_fault", org: "acme" },
+    spec: { sessionId: "ses_rec", message: "hi" },
+  });
+
+  const failure = await buildAndPersistExecutionContext(deps, turn, "").catch(
+    (e: unknown) => e,
+  );
+
+  expect(failure).toBeInstanceOf(Error);
+  expect(failure).not.toBeInstanceOf(ConnectError);
+  expect((failure as Error).message).toBe("load agent agt_rec: socket hang up");
+});
+
+it("declares for the recorded agent when the session has since moved to the built-in assistant", async () => {
+  const createdEcs: ExecutionContext[] = [];
+  const deps: ExecutionContextBuilderDeps = {
+    ...recordedAgentDeps(
+      async () =>
+        create(AgentVersionEntrySchema, {
+          versionHash: RECORDED_HASH,
+          specSnapshot: { env: { RECORDED_KEY: {} } },
+        }),
+      createdEcs,
+    ),
+    sessionLoader: () => ({
+      get: async (sessionId) =>
+        create(SessionSchema, {
+          metadata: { id: sessionId, org: "acme" },
+          spec: { agentInstanceId: "" },
+        }),
+    }),
+    agentInstanceLoader: () => ({
+      get: async () => {
+        throw new Error("a session with no instance loads none");
+      },
+    }),
+  };
+
+  const turn = create(AgentExecutionSchema, {
+    metadata: { id: "aex_moved", org: "acme" },
+    spec: {
+      sessionId: "ses_rec",
+      message: "hi",
+      runtimeEnv: {
+        RECORDED_KEY: { value: "kept" },
+        HEAD_KEY: { value: "dropped" },
+      },
+    },
+    status: { agentId: "agt_rec", agentVersionHash: RECORDED_HASH },
+  });
+
+  await buildAndPersistExecutionContext(deps, turn, "");
+
+  // The least-privilege filter keeps exactly what the recorded version
+  // declares; with no agent the run would declare nothing and keep neither.
+  const data = createdEcs[0]?.spec?.data ?? {};
+  expect(data["RECORDED_KEY"]?.value).toBe("kept");
+  expect(data["HEAD_KEY"]).toBeUndefined();
 });
