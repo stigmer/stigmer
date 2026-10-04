@@ -54,6 +54,12 @@ export const SERVER_WARNING_KINDS = {
   /** A system-content row the plugin took over in place (members.ts, judgeSlug). */
   memberAdopted: "member-adopted",
   modelHintUnresolved: "model-hint-unresolved",
+  /** A plugin's settings name a main agent, but its `ai.stigmer/agent.yaml` defines the agent. */
+  settingsAgentNotApplied: "settings-agent-not-applied",
   subAgentNameBuiltin: "sub-agent-name-builtin",
+  /** A sub-agent left out because every entry of its `tools` list was dropped. */
+  subAgentNotInstalled: "sub-agent-not-installed",
+  /** A tool-list entry the contract cannot store, after Stigmer's names apply. */
+  toolListEntryDropped: "tool-list-entry-dropped",
   versionNotTaggable: "version-not-taggable",
 } as const;

@@ -141,7 +141,9 @@ export const PluginMaterializationSchema: GenMessage<PluginMaterialization> = /*
 export type PluginWarning = Message<"ai.stigmer.agentic.plugin.v1.PluginWarning"> & {
   /**
    * Stable warning kind, e.g. "component-ignored", "member-adopted",
-   * "model-hint-unresolved", "sub-agent-name-builtin", "version-not-taggable".
+   * "model-hint-unresolved", "settings-agent-not-applied",
+   * "sub-agent-name-builtin", "sub-agent-not-installed",
+   * "tool-list-entry-dropped", "version-not-taggable".
    *
    * @generated from field: string kind = 1;
    */

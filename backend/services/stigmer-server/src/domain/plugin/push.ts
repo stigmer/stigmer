@@ -38,7 +38,7 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { PluginFinding, PluginPackage } from "@stigmer/plugin-package";
+import type { PluginFinding, PluginHooks, PluginPackage } from "@stigmer/plugin-package";
 import { readPluginPackage } from "@stigmer/plugin-package";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -48,6 +48,13 @@ import {
   PluginDialect,
   PluginSpecSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
+import {
+  HookConfigSchema,
+  HookFormat,
+  HookGroupSchema,
+  HookHandlerSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import {
   PluginMaterializationSchema,
   PluginState,
@@ -101,6 +108,7 @@ import { SERVER_WARNING_KINDS, VERSION_TAG_PATTERN } from "./constants.js";
 import type { OpenedPluginArchive } from "./archive.js";
 import type { PluginIdentity } from "./materialize/identity.js";
 import { McpServerOverlayError } from "./materialize/mcp-servers.js";
+import { ToolListEmptiedError } from "./materialize/tool-lists.js";
 import { planMaterialization } from "./materialize/plan.js";
 import type { MaterializationPlan } from "./materialize/plan.js";
 import type { PluginMaterializerProvider } from "./materialize/ports.js";
@@ -385,7 +393,10 @@ export function newPlanMaterializationStep(
           ctx.input.message,
         );
       } catch (error) {
-        if (error instanceof McpServerOverlayError) {
+        if (
+          error instanceof McpServerOverlayError ||
+          error instanceof ToolListEmptiedError
+        ) {
           throw invalidArgumentError(error.message);
         }
         throw error;
@@ -879,7 +890,7 @@ export function orderForDeletion(members: readonly Member[]): Member[] {
 
 /**
  * FinalizePluginStatus — the install receipt: counts, every warning (the
- * library's and the plan's), READY.
+ * library's and the plan's), the hooks that run, READY.
  */
 export function newFinalizePluginStatusStep(): PipelineStep<PushDesc> {
   return {
@@ -909,6 +920,7 @@ export function newFinalizePluginStatusStep(): PipelineStep<PushDesc> {
         ),
         ...plan.warnings,
       ];
+      status.hooks = plan.hooks === undefined ? undefined : hooksOf(plan.hooks);
     },
   };
 }
@@ -1105,6 +1117,31 @@ async function recordFailure(
     return new ConnectError(sentence, error.code, undefined, undefined, error);
   }
   return internalError(error, sentence);
+}
+
+/** The library's hooks in the contract's shape, field for field. */
+export function hooksOf(hooks: PluginHooks): HookConfig {
+  return create(HookConfigSchema, {
+    format:
+      hooks.format === "cursor"
+        ? HookFormat.CURSOR
+        : HookFormat.CLAUDE_CODE,
+    groups: hooks.groups.map((group) =>
+      create(HookGroupSchema, {
+        event: group.event,
+        matcher: group.matcher,
+        handlers: group.handlers.map((handler) =>
+          create(HookHandlerSchema, {
+            command: handler.command,
+            args: [...handler.args],
+            timeoutSeconds: handler.timeoutSeconds ?? 0,
+            condition: handler.condition ?? "",
+            failClosed: handler.failClosed,
+          }),
+        ),
+      }),
+    ),
+  });
 }
 
 function dialectOf(dialect: PluginPackage["dialect"]): PluginDialect {

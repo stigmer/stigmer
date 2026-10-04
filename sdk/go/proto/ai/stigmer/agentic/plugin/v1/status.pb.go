@@ -270,7 +270,9 @@ func (x *PluginMaterialization) GetWorkflows() int32 {
 type PluginWarning struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Stable warning kind, e.g. "component-ignored", "member-adopted",
-	// "model-hint-unresolved", "sub-agent-name-builtin", "version-not-taggable".
+	// "model-hint-unresolved", "settings-agent-not-applied",
+	// "sub-agent-name-builtin", "sub-agent-not-installed",
+	// "tool-list-entry-dropped", "version-not-taggable".
 	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
 	// The warning as one user-facing sentence.
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`

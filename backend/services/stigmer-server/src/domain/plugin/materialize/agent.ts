@@ -12,10 +12,18 @@
  * ValidateReferences), otherwise the composed default — instructions from
  * the versioned template, every skill as a `skill_ref`, every server as an
  * `mcp_server_usage`, every `agents/*.md` as a `sub_agent` with the skills
- * it asked for. A sub-agent carries no tool lists of its own, so it inherits
- * the agent's whole toolset, every plugin server included; the composed
- * agent carries none either, so a plugin's agent may use every tool the
- * turn has.
+ * it asked for and its Claude tool lists. When a Claude plugin's settings
+ * name one of its agents as the main agent, that agent runs the main
+ * thread, as in Claude Code: its body is the instructions, verbatim (the
+ * runner advertises skills itself, so the template would only repeat it),
+ * its two lists are the agent's, and it is not also a sub-agent. An
+ * author's `agent.yaml` still wins over such settings, with a warning.
+ *
+ * Lists are rewritten to Stigmer's names and checked (`tool-lists.ts`): an
+ * entry the contract cannot store is dropped with a warning, a sub-agent
+ * whose `tools` list empties is left out with a warning, and a main agent
+ * in that state refuses the install. Without a list, an agent or sub-agent
+ * may use every tool its parent may.
  *
  * The composed agent declares in `env` the union of its servers' variables,
  * OAuth-managed target variables excluded. An execution filters its
@@ -59,6 +67,12 @@ import {
   SERVER_WARNING_KINDS,
 } from "../constants.js";
 import { renderDefaultAgentInstructions } from "./default-agent-instructions.js";
+import {
+  checkToolList,
+  ToolListEmptiedError,
+  type ToolListField,
+  type ToolListScope,
+} from "./tool-lists.js";
 import { memberMetadata } from "./identity.js";
 import type { PluginIdentity } from "./identity.js";
 import { mcpServerSlugOf } from "./mcp-servers.js";
@@ -93,6 +107,17 @@ export function planAgent(
   const member = { name: identity.name, slug: identity.slug };
 
   if (overlayAgent !== undefined) {
+    if (plugin.mainAgent !== undefined) {
+      warnings.push(
+        create(PluginWarningSchema, {
+          kind: SERVER_WARNING_KINDS.settingsAgentNotApplied,
+          path: plugin.overlay.agent?.path ?? "",
+          message:
+            `the plugin's settings name '${plugin.mainAgent}' as the main agent, but 'ai.stigmer/agent.yaml' defines the agent, ` +
+            "so the settings are not applied",
+        }),
+      );
+    }
     return {
       ...member,
       resource: create(AgentSchema, {
@@ -108,10 +133,28 @@ export function planAgent(
   const skillSlugByName = new Map(
     plugin.skills.map((skill) => [skill.name, skillSlugOf(skill)]),
   );
+  const scope: ToolListScope = {
+    pluginName: plugin.name,
+    servers: plugin.mcpServers,
+    agentNames: new Set(plugin.subAgents.map((subAgent) => subAgent.name)),
+  };
+  const main = plugin.subAgents.find(
+    (subAgent) => subAgent.name === plugin.mainAgent,
+  );
+  const mainLists =
+    main === undefined ? undefined : listsOf(main, scope, warnings);
+  if (main !== undefined) {
+    if (mainLists === undefined) {
+      throw new ToolListEmptiedError(main.name, droppedTools(main, scope));
+    }
+    warnModelHint(main, "main agent", warnings);
+  }
 
   const spec = create(AgentSpecSchema, {
     description: plugin.description ?? "",
-    instructions: renderDefaultAgentInstructions(plugin),
+    instructions: main?.instructions ?? renderDefaultAgentInstructions(plugin),
+    tools: [...(mainLists?.tools ?? [])],
+    disallowedTools: [...(mainLists?.disallowedTools ?? [])],
     env: toolVariables(mcpServers),
     skillRefs: [...skillSlugByName.values()].map((slug) =>
       create(ApiResourceReferenceSchema, {
@@ -129,9 +172,18 @@ export function planAgent(
         }),
       }),
     ),
-    subAgents: plugin.subAgents.map((subAgent) =>
-      planSubAgent(subAgent, identity, skillSlugByName, warnings),
-    ),
+    subAgents: plugin.subAgents
+      .filter((subAgent) => subAgent !== main)
+      .flatMap((subAgent) => {
+        const planned = planSubAgent(
+          subAgent,
+          identity,
+          skillSlugByName,
+          scope,
+          warnings,
+        );
+        return planned === undefined ? [] : [planned];
+      }),
   });
 
   return {
@@ -167,23 +219,50 @@ export function toolVariables(
   return declarations;
 }
 
-function planSubAgent(
+/** The checked lists of one agent; `undefined` when its `tools` list emptied. */
+interface AgentLists {
+  readonly tools: readonly string[];
+  readonly disallowedTools: readonly string[];
+}
+
+function listsOf(
   subAgent: PluginSubAgent,
-  identity: PluginIdentity,
-  skillSlugByName: ReadonlyMap<string, string>,
+  scope: ToolListScope,
   warnings: PluginWarning[],
-): SubAgent {
-  if (BUILT_IN_SUB_AGENT_NAMES.has(subAgent.name)) {
-    warnings.push(
-      create(PluginWarningSchema, {
-        kind: SERVER_WARNING_KINDS.subAgentNameBuiltin,
-        path: subAgent.path,
-        message:
-          `sub-agent '${subAgent.name}' shares its name with a built-in sub-agent; ` +
-          "the runner warns and runs the plugin's",
-      }),
-    );
-  }
+): AgentLists | undefined {
+  const check = (field: ToolListField): readonly string[] | undefined => {
+    const checked = checkToolList(subAgent[field] ?? [], field, scope);
+    for (const entry of checked.dropped) {
+      warnings.push(
+        create(PluginWarningSchema, {
+          kind: SERVER_WARNING_KINDS.toolListEntryDropped,
+          path: subAgent.path,
+          message:
+            `agent '${subAgent.name}' lists '${entry}' in '${field}', which is not a tool name Stigmer can store; ` +
+            "the entry is dropped",
+        }),
+      );
+    }
+    return checked.emptied ? undefined : checked.entries;
+  };
+  const tools = check("tools");
+  const disallowedTools = check("disallowedTools");
+  if (tools === undefined || disallowedTools === undefined) return undefined;
+  return { tools, disallowedTools };
+}
+
+function droppedTools(
+  subAgent: PluginSubAgent,
+  scope: ToolListScope,
+): readonly string[] {
+  return checkToolList(subAgent.tools ?? [], "tools", scope).dropped;
+}
+
+function warnModelHint(
+  subAgent: PluginSubAgent,
+  noun: string,
+  warnings: PluginWarning[],
+): void {
   const hint = subAgent.modelHint;
   if (
     hint !== undefined &&
@@ -196,15 +275,51 @@ function planSubAgent(
         kind: SERVER_WARNING_KINDS.modelHintUnresolved,
         path: subAgent.path,
         message:
-          `sub-agent '${subAgent.name}' names model '${hint.raw}'; Stigmer does not pin a model ` +
+          `${noun} '${subAgent.name}' names model '${hint.raw}'; Stigmer does not pin a model ` +
           "from a plugin, so it runs on the session's model",
       }),
     );
   }
+}
+
+function planSubAgent(
+  subAgent: PluginSubAgent,
+  identity: PluginIdentity,
+  skillSlugByName: ReadonlyMap<string, string>,
+  scope: ToolListScope,
+  warnings: PluginWarning[],
+): SubAgent | undefined {
+  const lists = listsOf(subAgent, scope, warnings);
+  if (lists === undefined) {
+    warnings.push(
+      create(PluginWarningSchema, {
+        kind: SERVER_WARNING_KINDS.subAgentNotInstalled,
+        path: subAgent.path,
+        message:
+          `sub-agent '${subAgent.name}' is not installed: every entry of its 'tools' list was dropped, ` +
+          "and an empty list would give it every tool",
+      }),
+    );
+    return undefined;
+  }
+  if (BUILT_IN_SUB_AGENT_NAMES.has(subAgent.name)) {
+    warnings.push(
+      create(PluginWarningSchema, {
+        kind: SERVER_WARNING_KINDS.subAgentNameBuiltin,
+        path: subAgent.path,
+        message:
+          `sub-agent '${subAgent.name}' shares its name with a built-in sub-agent; ` +
+          "the runner warns and runs the plugin's",
+      }),
+    );
+  }
+  warnModelHint(subAgent, "sub-agent", warnings);
   return create(SubAgentSchema, {
     name: subAgent.name,
     description: subAgent.description ?? "",
     instructions: subAgent.instructions,
+    tools: [...lists.tools],
+    disallowedTools: [...lists.disallowedTools],
     skillRefs: subAgent.skillNames.flatMap((name) => {
       const slug = skillSlugByName.get(name);
       // An unknown skill name already carries the library's own warning.
