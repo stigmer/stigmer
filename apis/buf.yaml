@@ -29,36 +29,20 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # Two pull requests each delete fields under a one-PR exemption, and each
-  # exemption's removal lands straight after its merge.
-  #
-  # One moves the hosted chat link, the guest-token mint and the embed from an
-  # organization and a share slug to the share's own id: it deletes
-  # GetSharedProfileRequest's and MintGuestTokenRequest's org and slug (their
-  # numbers and names are reserved) for share_id, and getSharedProfileForMember
-  # takes AgentShareId. It is made before launch: no outside consumer uses these
-  # messages, and the release notes name every change under Upgrading
-  # (https://github.com/stigmer/stigmer/issues/1856).
-  #
-  # One removes the per-tool approval model: the connect-time classifier's
-  # tool_approvals, a server's default_enabled_tools and pinned_tool_approvals,
-  # an agent's enabled_tools and tool_approval_overrides, a sub-agent's
-  # mcp_access, their messages, and the three ApprovalPolicySource values that
-  # recorded them. Every number and name is reserved, and every edition starts
-  # from an empty database, so no stored row or client reads them
+  # One pull request removes the per-tool approval model: the connect-time
+  # classifier's tool_approvals, a server's default_enabled_tools and
+  # pinned_tool_approvals, an agent's enabled_tools and
+  # tool_approval_overrides, a sub-agent's mcp_access, their messages, and the
+  # three ApprovalPolicySource values that recorded them. Every number and
+  # name is reserved, and every edition starts from an empty database, so no
+  # stored row or client reads them. This block exists for that one pull
+  # request; the pull request that removes it lands straight after the merge
   # (https://github.com/stigmer/stigmer/issues/1865).
-  #
-  # While an entry stays, buf breaking does not report its rule on the listed
-  # file.
   ignore_only:
     FIELD_NO_DELETE:
-      - ai/stigmer/agentic/agentshare/v1/io.proto
-      - ai/stigmer/iam/platformclient/v1/token.proto
       - ai/stigmer/agentic/agent/v1/spec.proto
       - ai/stigmer/agentic/mcpserver/v1/spec.proto
       - ai/stigmer/agentic/mcpserver/v1/status.proto
-    RPC_SAME_REQUEST_TYPE:
-      - ai/stigmer/agentic/agentshare/v1/query.proto
     MESSAGE_NO_DELETE:
       - ai/stigmer/agentic/agent/v1/spec.proto
       - ai/stigmer/agentic/mcpserver/v1/spec.proto
