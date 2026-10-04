@@ -46,8 +46,8 @@ export function AgentVersionsTab({ agent, className }: AgentVersionsTabProps) {
   const hunks = useMemo(() => {
     if (!showDiff) return [];
     return computeDiff(
-      getSpec(selectedHash)?.instructions ?? "",
-      getSpec(currentHash)?.instructions ?? "",
+      withFinalNewline(getSpec(selectedHash)?.instructions ?? ""),
+      withFinalNewline(getSpec(currentHash)?.instructions ?? ""),
     );
   }, [showDiff, selectedHash, currentHash, getSpec]);
 
@@ -88,4 +88,12 @@ export function AgentVersionsTab({ agent, className }: AgentVersionsTabProps) {
       )}
     </div>
   );
+}
+
+/**
+ * Instructions end without a newline as often as with one; diffing them as
+ * written would mark an unchanged last line as removed and re-added.
+ */
+function withFinalNewline(text: string): string {
+  return text === "" || text.endsWith("\n") ? text : `${text}\n`;
 }

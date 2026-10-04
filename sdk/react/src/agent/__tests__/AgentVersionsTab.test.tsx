@@ -63,6 +63,8 @@ describe("AgentDetailView — the Versions tab", () => {
     expect(await screen.findByText(/Comparing/)).toBeTruthy();
     expect(screen.getByText("instructions")).toBeTruthy();
     expect(screen.getByText("Flag missing tests.")).toBeTruthy();
+    // The line both versions share is context, not removed and re-added.
+    expect(screen.getAllByText("Review pull requests.")).toHaveLength(1);
   });
 
   it("says an agent with no recorded version records its first on its next change", async () => {
