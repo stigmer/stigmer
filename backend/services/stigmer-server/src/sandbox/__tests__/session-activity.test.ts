@@ -691,8 +691,9 @@ describe("recentActivity(sessionId)", () => {
     expect(r.warnings).toEqual([]);
   });
 
-  it("counts a held-back stamp only while its run still carries it", async () => {
+  it("counts a held-back stamp once the clock reaches it, only while its run still carries it, and then stops re-reading the run", async () => {
     const cases: Array<[string, () => Promise<void>]> = [
+      ["the run is unchanged", async () => {}],
       [
         "a late report rewrote the completion",
         () =>
@@ -733,15 +734,20 @@ describe("recentActivity(sessionId)", () => {
       const r = rig();
       await r.reader.recentActivity("ses_a");
       await act();
+      let byIdOnLastPass = 0;
       for (let pass = 0; pass < 12; pass += 1) {
         r.advance(PASS_MS);
+        const before = r.counts.byId;
         const cheap = await r.reader.recentActivity("ses_a");
+        byIdOnLastPass = r.counts.byId - before;
         expect({ name, pass, ...cheap }).toEqual({
           name,
           pass,
           ...(await r.truth()),
         });
       }
+      // Past the stamp, only the run holding the latest stamp is re-read.
+      expect({ name, byIdOnLastPass }).toEqual({ name, byIdOnLastPass: 1 });
     }
   });
 
