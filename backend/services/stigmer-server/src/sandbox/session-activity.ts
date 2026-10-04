@@ -269,8 +269,9 @@ export function newStoreSessionActivityReader(
       ) {
         return activity(sessionId);
       }
-      // A held-back stamp is about to count: read its execution first, so
-      // a stamp it no longer carries never does.
+      // A held-back stamp the clock has reached counts only through a
+      // fresh read of its execution, so a stamp it no longer carries never
+      // does.
       const reachedIds = new Set(
         entry.aheadStamps
           .filter(
@@ -286,7 +287,6 @@ export function newStoreSessionActivityReader(
           foldExecution(entry, id, execution, nowMs);
         }
       }
-      promoteAheadStamps(entry, nowMs);
       for (const [id, instant] of entry.foldedIds) {
         if (instant !== "" && instant < nextBound) {
           entry.foldedIds.delete(id);
@@ -361,7 +361,7 @@ function foldExecution(
   // The execution as read now replaces whatever it held back before.
   removeAheadStamps(entry, id);
   for (const stamp of stampsOf(execution)) {
-    if (stamp > nowMs + FUTURE_STAMP_ALLOWANCE_MS) {
+    if (!reached(stamp, nowMs)) {
       entry.aheadStamps.push({ id, stamp });
       continue;
     }
@@ -379,17 +379,14 @@ function removeAheadStamps(entry: SessionEntry, id: string): void {
 
 /** An execution's creation and completion, each when it has a parsable one. */
 function stampsOf(execution: AgentExecution): number[] {
-  const status = execution.status;
-  if (status === undefined) {
-    return [];
-  }
   const stamps: number[] = [];
-  const createdAt = status.audit?.specAudit?.createdAt;
+  const createdAt = execution.status?.audit?.specAudit?.createdAt;
   if (createdAt !== undefined) {
     stamps.push(timestampDate(createdAt).getTime());
   }
-  if (status.completedAt !== "") {
-    const completed = Date.parse(status.completedAt);
+  const completedAt = execution.status?.completedAt ?? "";
+  if (completedAt !== "") {
+    const completed = Date.parse(completedAt);
     if (!Number.isNaN(completed)) {
       stamps.push(completed);
     }
@@ -404,10 +401,7 @@ function latestStampOf(
 ): number | undefined {
   let latest: number | undefined;
   for (const stamp of stampsOf(execution)) {
-    if (
-      stamp <= nowMs + FUTURE_STAMP_ALLOWANCE_MS &&
-      (latest === undefined || stamp > latest)
-    ) {
+    if (reached(stamp, nowMs) && (latest === undefined || stamp > latest)) {
       latest = stamp;
     }
   }
@@ -421,21 +415,9 @@ function counted(entry: SessionEntry, id: string, stamp: number): void {
   }
 }
 
-/** Whether a held-back stamp counts at `nowMs`. */
+/** Whether a stamp counts at `nowMs`: not more than the allowance ahead (module header). */
 function reached(stamp: number, nowMs: number): boolean {
   return stamp <= nowMs + FUTURE_STAMP_ALLOWANCE_MS;
-}
-
-/** Counts every held-back stamp the clock has reached. */
-function promoteAheadStamps(entry: SessionEntry, nowMs: number): void {
-  const held = entry.aheadStamps.splice(0);
-  for (const ahead of held) {
-    if (!reached(ahead.stamp, nowMs)) {
-      entry.aheadStamps.push(ahead);
-    } else {
-      counted(entry, ahead.id, ahead.stamp);
-    }
-  }
 }
 
 function activityOfEntry(entry: SessionEntry): SessionActivity {

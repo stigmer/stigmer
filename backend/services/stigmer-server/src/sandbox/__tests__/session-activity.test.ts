@@ -745,6 +745,32 @@ describe("recentActivity(sessionId)", () => {
     }
   });
 
+  it("never takes a store fault on a by-id read for a delete: the read fails", async () => {
+    const r = rig();
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        at(-60 * 60_000),
+      ),
+    );
+    const failing = new Proxy(store, {
+      get(target, prop, receiver) {
+        if (prop === "getResource") {
+          return () => Promise.reject(new Error("database is locked"));
+        }
+        return Reflect.get(target, prop, receiver) as unknown;
+      },
+    });
+    const reader = newStoreSessionActivityReader(failing, silentLogger, r.now);
+    await reader.recentActivity("ses_a");
+    r.advance(PASS_MS);
+    await expect(reader.recentActivity("ses_a")).rejects.toThrow(
+      "database is locked",
+    );
+  });
+
   it("drops an entry no read has touched for ten minutes, so a stale memory is never read from", async () => {
     const r = rig();
     await save(
