@@ -27,13 +27,47 @@ export function runAgentDeniedMessage(agentId: string): string {
 }
 
 /**
- * Identical to the session domain's instance copy on purpose — one fact,
- * one sentence (the ENGINE_UNAVAILABLE_MESSAGE precedent for cross-domain
- * twins: each domain owns its constant, the twin is named here).
+ * A turn's refusal when the agent its session pins has been deleted: the
+ * session the caller may add to is named, and the agent by the id the
+ * session recorded, with what to do about it. FAILED_PRECONDITION: the
+ * request is well formed and the caller admitted, but the conversation's
+ * agent is gone.
  */
-export function runAgentInstanceDeniedMessage(agentInstanceId: string): string {
-  return `unauthorized to run agent instance '${agentInstanceId}'`;
+export function sessionAgentGoneMessage(
+  sessionId: string,
+  agentId: string,
+): string {
+  return `session '${sessionId}' runs agent '${agentId}', which no longer exists; update the session to another agent, or to none for the built-in assistant`;
 }
+
+/**
+ * create's refusal of a `parent` link the request may not set: only the
+ * workflow run it names (its runner, vouched by the composed credential
+ * provider), the server itself, or a holder of the platform's
+ * can_write_reserved_labels may link a turn to a workflow run.
+ * INVALID_ARGUMENT, the reserved-label guard's code for the same rule.
+ */
+export const WORKFLOW_PARENT_NOT_VOUCHED_MESSAGE =
+  "parent links this execution to a workflow run, which only that workflow run's runner may do; remove parent";
+
+/**
+ * create's refusal of a `parent` link that names another workflow run than
+ * the execution's stigmer.ai/workflow-execution-id label: a turn belongs
+ * to one workflow run.
+ */
+export function workflowParentMismatchMessage(
+  parentId: string,
+  labelId: string,
+): string {
+  return `parent.workflow_execution_id '${parentId}' differs from the stigmer.ai/workflow-execution-id label '${labelId}'; a turn belongs to one workflow run`;
+}
+
+/**
+ * update's refusal of a changed `parent` link: the workflow run a turn was
+ * started by is a fact of its creation, as its session is.
+ */
+export const WORKFLOW_PARENT_IMMUTABLE_MESSAGE =
+  "parent cannot be changed — an execution keeps the workflow run it was started by";
 
 export function addExecutionToSessionDeniedMessage(sessionId: string): string {
   return `unauthorized to add an execution to session '${sessionId}'`;

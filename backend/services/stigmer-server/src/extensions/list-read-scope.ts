@@ -85,7 +85,7 @@
  *     store's indexed read (store/list-index.ts; every posture honours the
  *     request) and page there (pipeline/steps/list-page.ts, one batch per
  *     scope call), passing `""`; the small org-scoped lists (environment,
- *     memory, schedule, agent-instance, agent-share and agent-channel; the
+ *     memory, schedule, agent-share and agent-channel; the
  *     getBy* parent filters) apply their own filter above the helper call
  *     and pass `""` too. `apiKey.findAll` has no org on the wire and offers
  *     the kind: a few rows per person.

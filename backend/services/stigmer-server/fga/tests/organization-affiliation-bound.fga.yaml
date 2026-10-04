@@ -76,11 +76,6 @@ tuples:
   - {user: identity_account:left, relation: owner, object: artifact:x}
   - {user: identity_account:back, relation: owner, object: artifact:x}
   - {user: identity_account:left, relation: viewer, object: artifact:x}
-  - {user: organization:acme, relation: organization, object: agent_instance:x}
-  - {user: identity_account:stays, relation: owner, object: agent_instance:x}
-  - {user: identity_account:left, relation: owner, object: agent_instance:x}
-  - {user: identity_account:back, relation: owner, object: agent_instance:x}
-  - {user: identity_account:left, relation: viewer, object: agent_instance:x}
   - {user: organization:acme, relation: organization, object: workflow_instance:x}
   - {user: identity_account:stays, relation: owner, object: workflow_instance:x}
   - {user: identity_account:left, relation: owner, object: workflow_instance:x}
@@ -140,7 +135,6 @@ tests:
       - {user: identity_account:left, object: channel_app:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: schedule:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: artifact:x, assertions: {owner: false, viewer: false, can_view: false}}
-      - {user: identity_account:left, object: agent_instance:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: workflow_instance:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: environment:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: session:x, assertions: {owner: false, viewer: false, can_view: false}}
@@ -167,7 +161,6 @@ tests:
       - {user: identity_account:stays, object: channel_app:x, assertions: {viewer: true, can_view: true}}
       - {user: identity_account:stays, object: schedule:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: artifact:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:stays, object: agent_instance:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: workflow_instance:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: environment:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: session:x, assertions: {owner: true, can_view: true}}
@@ -188,7 +181,6 @@ tests:
       - {user: identity_account:back, object: agent_share:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: schedule:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: artifact:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:back, object: agent_instance:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: workflow_instance:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: environment:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: session:x, assertions: {owner: true, can_view: true}}

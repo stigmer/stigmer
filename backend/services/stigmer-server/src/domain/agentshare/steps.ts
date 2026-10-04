@@ -466,8 +466,9 @@ export function newValidateShareUpdateStep(): PipelineStep<AgentShareDesc> {
 /**
  * Projects a share and its referenced agent to the trimmed public profile
  * — Go buildSharedAgentProfile, the single projection shared by the
- * anonymous and member paths. The share's org and slug come from the
- * SHARE; display fields and default_instance_id from the AGENT. Three
+ * anonymous and member paths. The share's org, slug and agent reference
+ * come from the SHARE (the hosted page starts its sessions on exactly that
+ * reference, version included); display fields from the AGENT. Three
  * misses all fail closed with the uniform refusal, naming the share's id
  * as every other miss does, indistinguishable from absence: a dangling agent_ref, a stale agent-id pin (the rebind guard),
  * and an agent in another organization (a share written before the
@@ -502,6 +503,6 @@ export async function buildSharedAgentProfile(
     name: agent.metadata?.name ?? "",
     description: agent.spec?.description ?? "",
     iconUrl: agent.spec?.iconUrl ?? "",
-    defaultInstanceId: agent.status?.defaultInstanceId ?? "",
+    agentRef: ref,
   });
 }

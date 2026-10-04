@@ -39,7 +39,9 @@
  * the credit reservation included, ever sees a turn filed under another
  * organization. A dangling session id passes: the loading steps own that
  * refusal, with its own NotFound. A store fault is Internal, never a
- * reading of the session.
+ * reading of the session. The step is the chain's one read of the stored
+ * session: it records the row under STORED_SESSION_KEY, and the later steps
+ * that need it (ValidateThinkingMode, ResolveRunAgent) read it there.
  *
  * ValidateSessionImmutability (update, stigmer/stigmer#1588). Update
  * replaces the spec in full, and without this step a caller who may edit an
@@ -47,11 +49,12 @@
  * its `session` tuple kept naming the first. A `session_id` different from
  * the stored one is refused with FailedPrecondition, as a session refuses a
  * changed harness (ValidateHarnessImmutability), and that includes naming
- * a session for an execution stored without one: it would join a session
- * nobody admitted it to. An empty one, or an update with no spec at all,
- * keeps the stored session, so a replacement that leaves the field out
- * stays valid. It runs after BuildUpdateState, on the merged state,
- * because that is where the stored value can be carried over.
+ * a session for an execution stored without one, or a new session_spec:
+ * either would join a session nobody admitted it to. An empty one, or an
+ * update with no spec at all, keeps the stored session, so a replacement
+ * that leaves the field out stays valid. It runs after BuildUpdateState, on
+ * the merged state, because that is where the stored value can be carried
+ * over.
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -76,6 +79,21 @@ import {
   sessionIdImmutableMessage,
   sessionOrganizationMismatchMessage,
 } from "./constants.js";
+import { sessionIdOf } from "./target.js";
+
+/**
+ * The request-context key ValidateSessionOrganization records the stored
+ * session under, for a turn that continues one; absent for a new
+ * conversation and for a session id that names no row.
+ */
+export const STORED_SESSION_KEY = "storedSession";
+
+/** The stored session ValidateSessionOrganization read, when it read one. */
+export function storedSessionOf(ctx: {
+  get(key: string): unknown;
+}): Session | undefined {
+  return ctx.get(STORED_SESSION_KEY) as Session | undefined;
+}
 
 export function newValidateSessionOrganizationStep(
   store: Store,
@@ -84,7 +102,7 @@ export function newValidateSessionOrganizationStep(
     name: "ValidateSessionOrganization",
     async execute(ctx) {
       const execution = ctx.newState;
-      const sessionId = execution.spec?.sessionId ?? "";
+      const sessionId = sessionIdOf(execution.spec);
       if (sessionId === "") {
         return;
       }
@@ -93,6 +111,7 @@ export function newValidateSessionOrganizationStep(
       if (session === undefined) {
         return;
       }
+      ctx.set(STORED_SESSION_KEY, session);
       const sessionOrg = session.metadata?.org ?? "";
       if (sessionOrg === "") {
         return;
@@ -122,16 +141,23 @@ export function newValidateSessionImmutabilityStep(): PipelineStep<
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as
         | AgentExecution
         | undefined;
-      const storedSessionId = existing?.spec?.sessionId ?? "";
+      const storedSessionId = sessionIdOf(existing?.spec);
       // An update that leaves the spec out replaces it with nothing; the
       // session is carried over all the same, as for an empty session_id.
       const merged = ctx.newState;
       merged.spec ??= create(AgentExecutionSpecSchema);
-      if (merged.spec.sessionId === "") {
-        merged.spec.sessionId = storedSessionId;
+      const requested =
+        merged.spec.target.case === "sessionSpec"
+          ? undefined
+          : sessionIdOf(merged.spec);
+      if (requested === "") {
+        merged.spec.target =
+          storedSessionId === ""
+            ? { case: undefined }
+            : { case: "sessionId", value: storedSessionId };
         return;
       }
-      if (merged.spec.sessionId !== storedSessionId) {
+      if (requested !== storedSessionId) {
         throw failedPreconditionError(
           sessionIdImmutableMessage(storedSessionId),
         );

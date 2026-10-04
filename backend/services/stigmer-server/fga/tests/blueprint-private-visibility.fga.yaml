@@ -125,7 +125,6 @@ tests:
         assertions:
           can_view: false
           can_execute: false
-          can_create_instance: false
       - user: identity_account:dave
         object: skill:secret-notes
         assertions:
@@ -185,7 +184,6 @@ tests:
         assertions:
           can_view: true
           can_execute: true
-          can_create_instance: true
           can_edit: true
           can_delete: true
       - user: identity_account:carol
@@ -202,7 +200,6 @@ tests:
         assertions:
           can_view: true
           can_execute: true
-          can_create_instance: true
           can_edit: false
           can_delete: false
       - user: identity_account:mallory

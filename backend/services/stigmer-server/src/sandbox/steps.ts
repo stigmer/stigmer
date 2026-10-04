@@ -62,6 +62,9 @@ import {
 import { resolveWorkflowTaskQueue } from "../temporal/workflowexecution/dispatch.js";
 import type { Store } from "../store/interface.js";
 import { mintSandboxToken, type SandboxLane } from "./lane.js";
+import { sessionIdOf } from "../domain/agentexecution/target.js";
+import { parentRunQueueOf } from "../domain/agentexecution/vouch-workflow-parent.js";
+import type { WorkflowRunQueue } from "../temporal/workflowexecution/dispatch.js";
 
 /**
  * The pre-stamped root-cause prefix — the cloud edition's
@@ -89,6 +92,11 @@ export interface EnsureSessionSandboxDeps {
   readonly logger: Logger;
   readonly lane: SandboxLane;
   readonly temporalConfig: AgentExecutionTemporalConfig;
+  /**
+   * The queue a turn's vouched parent link routes it to; absent on the
+   * recover chain, which never carries the link (lifecycle.ts).
+   */
+  readonly workflowRunQueue?: WorkflowRunQueue;
 }
 
 /**
@@ -142,11 +150,15 @@ export async function ensureSessionSandboxForExecution(
   }
   const lane = deps.lane;
   const executionId = execution.metadata?.id ?? "";
-  const sessionId = execution.spec?.sessionId ?? "";
-  // The wfexec: override lane shares the parent workflow's sandbox —
-  // dispatch forces LOCAL there, but skipping before the store read
-  // keeps the child-execution hot path free of it.
-  if (sessionId === "" || (execution.spec?.activityTaskQueue ?? "") !== "") {
+  const sessionId = sessionIdOf(execution.spec);
+  // A workflow run's child turn routed to its parent's queue shares the
+  // parent's sandbox — dispatch forces LOCAL there, but skipping before
+  // the store read keeps the child-execution hot path free of it.
+  if (
+    sessionId === "" ||
+    (deps.workflowRunQueue !== undefined &&
+      parentRunQueueOf(execution, deps.workflowRunQueue) !== "")
+  ) {
     return;
   }
   try {

@@ -36,6 +36,17 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import {
+  AGENT_KIND,
+  RETIRED_INSTANCE_KIND,
+  RETIREMENT_PAGE_SIZE,
+  SESSION_KIND,
+  agentFactsOf,
+  instanceAgentIdOf,
+  migrateSessionRow,
+  unreadableRowError,
+} from "../agent-instance-retired.js";
+import type { InstanceAgent } from "../agent-instance-retired.js";
+import {
   HISTORY_PAGE_SIZE,
   ORGANIZATION_SCOPED_KINDS_AT_LEDGER,
   organizationNamedBy,
@@ -66,9 +77,11 @@ export const SCHEMA_VERSION_11 = 11;
 export const SCHEMA_VERSION_12 = 12;
 /** v13: the resource-name table replaces the organization-slug ledger. */
 export const SCHEMA_VERSION_13 = 13;
+/** v14: sessions name their agent directly; the agent instance rows removed. */
+export const SCHEMA_VERSION_14 = 14;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_13;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_14;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -106,6 +119,7 @@ export function runMigrations(
     [SCHEMA_VERSION_11, migrateToV11],
     [SCHEMA_VERSION_12, migrateToV12],
     [SCHEMA_VERSION_13, migrateToV13],
+    [SCHEMA_VERSION_14, migrateToV14],
   ];
 
   for (const [version, migrate] of chain) {
@@ -587,4 +601,101 @@ function migrateToV13(db: DatabaseSync): void {
     FROM organization_slugs
   `);
   db.exec(`DROP TABLE organization_slugs`);
+}
+
+/**
+ * v14: the agent instance kind is removed — the Postgres driver's v9 in
+ * this engine's terms (agent-instance-retired.ts says what each session
+ * becomes and why an unreadable row fails the step). Every instance row is
+ * read in keyset pages for the agent it names, each named agent once by
+ * point read, then every session in keyset pages, rewritten when it names
+ * an instance with `updated_at` bumped (the list index re-derives a row
+ * whose stamp no longer matches, at open). The instance rows, their
+ * history, their search entries and their list keys are then deleted.
+ * Runs inside applyInTransaction's BEGIN, so a throw rolls the whole step
+ * back and the boot stops on the row it names.
+ */
+function migrateToV14(db: DatabaseSync): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const pages = function* (
+    kind: string,
+  ): Generator<{ id: string; data: Uint8Array }> {
+    let after = "";
+    for (;;) {
+      const rows = page.all(kind, after, RETIREMENT_PAGE_SIZE) as Array<{
+        id: string;
+        data: Uint8Array;
+      }>;
+      yield* rows;
+      if (rows.length < RETIREMENT_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+
+  const instanceAgents = new Map<string, string>();
+  for (const row of pages(RETIRED_INSTANCE_KIND)) {
+    try {
+      instanceAgents.set(row.id, instanceAgentIdOf(row.data));
+    } catch (error) {
+      throw unreadableRowError(RETIRED_INSTANCE_KIND, row.id, error);
+    }
+  }
+  const readAgent = db.prepare(
+    `SELECT data FROM resources WHERE kind = ? AND id = ?`,
+  );
+  const agents = new Map<string, InstanceAgent>();
+  for (const agentId of new Set(instanceAgents.values())) {
+    if (agentId === "") {
+      continue;
+    }
+    const row = readAgent.get(AGENT_KIND, agentId) as
+      | { data: Uint8Array }
+      | undefined;
+    try {
+      agents.set(
+        agentId,
+        row === undefined
+          ? { kind: "agent-gone", agentId }
+          : agentFactsOf(row.data),
+      );
+    } catch (error) {
+      throw unreadableRowError(AGENT_KIND, agentId, error);
+    }
+  }
+  const agentOf = (instanceId: string): InstanceAgent | undefined => {
+    const agentId = instanceAgents.get(instanceId);
+    return agentId === undefined || agentId === ""
+      ? undefined
+      : agents.get(agentId);
+  };
+
+  const update = db.prepare(
+    `UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ?`,
+  );
+  for (const row of pages(SESSION_KIND)) {
+    let migrated: Uint8Array | undefined;
+    try {
+      migrated = migrateSessionRow(row.data, agentOf);
+    } catch (error) {
+      throw unreadableRowError(SESSION_KIND, row.id, error);
+    }
+    if (migrated !== undefined) {
+      update.run(migrated, SESSION_KIND, row.id);
+    }
+  }
+
+  for (const table of [
+    "resource_audit",
+    "search_index",
+    "resource_list_keys",
+    "resources",
+  ]) {
+    db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(
+      RETIRED_INSTANCE_KIND,
+    );
+  }
 }

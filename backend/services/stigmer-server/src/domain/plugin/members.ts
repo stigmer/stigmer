@@ -162,8 +162,8 @@ export async function slugHolder(
  *   adopt             system content no plugin manages, and the plugin
  *                     brings system content for the same slug: the child's
  *                     apply (upsert-by-slug) rewrites the row in place, so
- *                     its id, its default instance, every personal instance
- *                     and every session bound to them survive
+ *                     its id, and every session and instance that names
+ *                     it by that id, survive
  *   held-unmanaged    a resource no plugin manages and the rule above does
  *                     not admit; refused naming it
  *   held-by-plugin    another plugin's member; refused naming that plugin

@@ -9,10 +9,9 @@
  * discovery run a person triggers from the console) resolves a server's
  * declared variables here when no one-time runtime_env was supplied, for
  * the person connecting. The agent-execution ExecutionContext build
- * resolves, for the run's person (agentexecution/run-person.ts), a
- * SESSION-level MCP server's declared variables the merge chain did not
- * carry — a session's own servers ride no agent instance and so have no
- * environment_refs of their own — and the GITHUB_TOKEN a session's git
+ * resolves, for the run's person (agentexecution/run-person.ts), the run's
+ * declared variables the merge chain did not carry — the agent's and its
+ * session's MCP servers' alike — and the GITHUB_TOKEN a session's git
  * repository needs. Before the build learned this rule a key saved through
  * the console's "save for future" reached the connect lane and never the
  * run.

@@ -16,7 +16,7 @@
 # credentials, so `owner` is the organization's admins alone and a creator
 # keeps nothing past the role (channel-app-administration.fga.yaml).
 #
-# The four personal/secret kinds — agent_instance, environment, session,
+# The three personal/secret kinds — environment, session,
 # workflow_instance — deliberately do NOT inherit. Their fixtures below
 # carry the organization tuple, so these tests would fail loudly if
 # inheritance were ever wrongly added to them.
@@ -110,15 +110,6 @@ tuples:
 
   # --- carol's personal resources (organization tuple present, so a
   #     wrongly-added inheritance WOULD resolve — these must stay denied) ---
-  - user: organization:acme
-    relation: organization
-    object: agent_instance:carols-instance
-  - user: agent:carols-bot
-    relation: agent
-    object: agent_instance:carols-instance
-  - user: identity_account:carol
-    relation: owner
-    object: agent_instance:carols-instance
   - user: organization:acme
     relation: organization
     object: environment:carols-secrets
@@ -250,12 +241,6 @@ tests:
   - name: personal kinds stay admin-excluded (privacy invariant)
     check:
       - user: identity_account:ana
-        object: agent_instance:carols-instance
-        assertions:
-          can_view: false
-          can_edit: false
-          can_delete: false
-      - user: identity_account:ana
         object: environment:carols-secrets
         assertions:
           can_view: false
@@ -295,10 +280,6 @@ tests:
             - agent:carols-bot
           can_edit:
             - agent:carols-bot
-      - user: identity_account:ana
-        type: agent_instance
-        assertions:
-          can_view: []
       - user: identity_account:ana
         type: session
         assertions:

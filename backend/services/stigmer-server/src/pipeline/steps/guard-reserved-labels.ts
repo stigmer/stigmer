@@ -55,6 +55,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../extensions/authorizer.js";
 import { isServerComposedRequest } from "../../extensions/identity.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
@@ -145,39 +146,57 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
 
       // Lazy operator check — only a request that actually mutates a
       // reserved key ever reaches the Authorizer.
-      let decision;
-      try {
-        decision = await authorizer.authorize(ctx.callerIdentity, {
-          permission: IamPermission.can_write_reserved_labels,
-          resourceKind: ApiResourceKind.platform,
-          resourceId: "stigmer",
-        });
-      } catch (error) {
-        throw reservedLabelCheckFailure(error);
+      if (await mayWriteReservedLabels(authorizer, ctx.callerIdentity)) {
+        return;
       }
-      switch (decision.kind) {
-        case "allow":
-          return;
-        case "deny":
-        case "not-found":
-          throw new ConnectError(
-            `Labels in the reserved '${RESERVED_LABEL_PREFIX}' namespace ` +
-              "are platform-managed and cannot be set or changed by this " +
-              `request: ${mutations.join(", ")}. Stored reserved labels ` +
-              "may be echoed back unchanged or removed.",
-            Code.InvalidArgument,
-          );
-        case "unavailable":
-          throw reservedLabelCheckFailure(decision.cause);
-        default: {
-          const exhaustive: never = decision;
-          throw reservedLabelCheckFailure(
-            new Error(`unknown decision ${JSON.stringify(exhaustive)}`),
-          );
-        }
-      }
+      throw new ConnectError(
+        `Labels in the reserved '${RESERVED_LABEL_PREFIX}' namespace ` +
+          "are platform-managed and cannot be set or changed by this " +
+          `request: ${mutations.join(", ")}. Stored reserved labels ` +
+          "may be echoed back unchanged or removed.",
+        Code.InvalidArgument,
+      );
     },
   };
+}
+
+/**
+ * The operator question the guard asks of a mutation no step vouched for:
+ * does the caller hold `can_write_reserved_labels` on `platform:stigmer`?
+ * Exported for the one other write a caller cannot vouch for by itself
+ * under the same rule — a turn's link to a workflow run
+ * (domain/agentexecution/vouch-workflow-parent.ts). An authorization
+ * outage fails closed as a sanitized Internal (#478), never an answer.
+ */
+export async function mayWriteReservedLabels(
+  authorizer: Authorizer,
+  caller: CallerIdentity,
+): Promise<boolean> {
+  let decision;
+  try {
+    decision = await authorizer.authorize(caller, {
+      permission: IamPermission.can_write_reserved_labels,
+      resourceKind: ApiResourceKind.platform,
+      resourceId: "stigmer",
+    });
+  } catch (error) {
+    throw reservedLabelCheckFailure(error);
+  }
+  switch (decision.kind) {
+    case "allow":
+      return true;
+    case "deny":
+    case "not-found":
+      return false;
+    case "unavailable":
+      throw reservedLabelCheckFailure(decision.cause);
+    default: {
+      const exhaustive: never = decision;
+      throw reservedLabelCheckFailure(
+        new Error(`unknown decision ${JSON.stringify(exhaustive)}`),
+      );
+    }
+  }
 }
 
 /** Authorization infrastructure failure: fail closed, sanitized (#478). */

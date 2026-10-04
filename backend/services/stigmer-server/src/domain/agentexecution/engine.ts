@@ -138,8 +138,8 @@ export type ExecutionEngineStateProvider = () => ExecutionEngineState;
  * create fast — before any persistence or side effect — when the engine is
  * not connected. Placed after input validation but before the first
  * side-effecting step, so a malformed request still gets InvalidArgument
- * first and a down engine orphans nothing (no default instance, no
- * auto-created session, no ExecutionContext, no execution record).
+ * first and a down engine orphans nothing (no auto-created session, no
+ * ExecutionContext, no execution record).
  */
 export function newEnsureEngineAvailableStep(
   engineState: ExecutionEngineStateProvider,

@@ -4,20 +4,17 @@
  * compose_recalled_memories_step.go. The chain itself is assembled in
  * controller.ts, mirroring Go buildCreatePipeline order exactly.
  *
- * An execution names its target one of three ways (session_id, agent_id,
- * session_spec.agent_instance_id) or not at all: the all-empty shape is the
- * built-in assistant (agentexecution/v1/spec.proto), for which
- * CreateSessionIfNeeded creates a session with no agent and the runner
- * resolves an agent-less blueprint. Nothing here resolves a stored default
- * agent into that shape.
+ * An execution names its conversation one of two ways (an existing
+ * session_id, or a new session_spec whose agent_ref names its agent) or
+ * not at all: the empty target is the built-in assistant
+ * (agentexecution/v1/spec.proto), for which CreateSessionIfNeeded creates
+ * a session with no agent and the runner resolves an agent-less blueprint.
+ * Nothing here resolves a stored default agent into that shape.
  */
 import { create } from "@bufbuild/protobuf";
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
 import type { AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -43,8 +40,6 @@ import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { isFirstPartyHumanOperator } from "../../extensions/identity.js";
 import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
-import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
 import {
   failedPreconditionError,
   goWrappedStatusError,
@@ -58,7 +53,6 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { buildDefaultInstanceRequest } from "../agentinstance/defaultinstance.js";
 import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import { accountForCaller } from "../identityaccount/resolve.js";
 import { listSubjectMemories } from "../memory/queries.js";
@@ -68,13 +62,16 @@ import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError } from "./engine.js";
 import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
+import { stampRunAgent } from "./resolve-run-agent.js";
 import { notifyStatusObservers } from "./status-observers.js";
+import { newSessionSpecOf, sessionIdOf } from "./target.js";
+import type { WorkflowRunQueue } from "../../temporal/workflowexecution/dispatch.js";
+import { parentRunQueueOf } from "./vouch-workflow-parent.js";
 import { unavailableError } from "../../pipeline/errors.js";
 
 type CreateDesc = typeof AgentExecutionSchema;
 
-// Context keys for inter-step communication — Go's key strings, verbatim.
-export const DEFAULT_INSTANCE_ID_KEY = "default_instance_id";
+// Context key for inter-step communication — Go's key string, verbatim.
 export const CREATED_SESSION_ID_KEY = "created_session_id";
 
 /**
@@ -109,176 +106,6 @@ export type SessionCreatorProvider = () => SessionCreator;
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// CreateDefaultInstanceIfNeeded — create.go createDefaultInstanceIfNeededStep.
-// ---------------------------------------------------------------------------
-
-/**
- * The narrow agentinstance CREATE edge — as the ORIGINAL caller: real owner
- * attribution for the created instance under an enforcing Authorizer.
- */
-export interface ExecutionAgentInstanceCreator {
-  createAsCaller(
-    instance: AgentInstance,
-    caller: CallerIdentity,
-  ): Promise<AgentInstance>;
-}
-export type ExecutionAgentInstanceCreatorProvider =
-  () => ExecutionAgentInstanceCreator;
-
-/**
- * Ensures the referenced agent has a default instance: skips when a
- * session or explicit session_spec instance names the target, and when no
- * agent is named at all (the built-in assistant: there is no agent whose
- * instance could be created); otherwise loads the agent via the in-process
- * client, creates the default instance when the status lacks one, saves
- * the agent status DIRECTLY to the store (matching Go/Java: repo save, not
- * the Update pipeline), and stores the instance id in the context for the
- * next step.
- */
-export function newCreateDefaultInstanceIfNeededStep(deps: {
-  store: Store;
-  logger: Logger;
-  agentLoader: AgentLoaderProvider;
-  agentInstanceCreator: ExecutionAgentInstanceCreatorProvider;
-  authorizationLifecycle?: ResourceAuthorizationLifecycle;
-}): PipelineStep<CreateDesc> {
-  return {
-    name: "CreateDefaultInstanceIfNeeded",
-    async execute(ctx) {
-      const execution = ctx.newState;
-      const sessionId = execution.spec?.sessionId ?? "";
-      const agentId = execution.spec?.agentId ?? "";
-
-      if (sessionId !== "") {
-        deps.logger.debug(
-          "Session ID already provided, skipping default instance check",
-          { sessionId },
-        );
-        return;
-      }
-      // An explicit session_spec instance fully specifies the target — no
-      // agent load or default-instance creation needed.
-      const specInstanceId = execution.spec?.sessionSpec?.agentInstanceId ?? "";
-      if (specInstanceId !== "") {
-        deps.logger.debug(
-          "session_spec carries an explicit agent instance, skipping default instance check",
-          { agentInstanceId: specInstanceId },
-        );
-        return;
-      }
-      // No agent named: the built-in assistant runs in a session with no
-      // instance, so there is nothing to load or create here.
-      if (agentId === "") {
-        deps.logger.debug(
-          "No agent named, the built-in assistant runs; skipping default instance check",
-        );
-        return;
-      }
-
-      // 1. Load agent via in-process gRPC (single source of truth). Go
-      // returns the client error AS-IS here (create.go: "already a gRPC
-      // error from the client") — rethrownStatusError preserves that wire
-      // shape while shedding the in-process response metadata a raw
-      // rethrow would corrupt the outer trailers with.
-      let agent: Agent;
-      try {
-        agent = await deps.agentLoader().get(agentId);
-      } catch (error) {
-        if (error instanceof ConnectError) {
-          throw rethrownStatusError(error);
-        }
-        throw error;
-      }
-
-      const defaultInstanceId = agent.status?.defaultInstanceId ?? "";
-      if (defaultInstanceId !== "") {
-        deps.logger.debug("Agent already has default instance", {
-          defaultInstanceId,
-          agentId,
-        });
-        ctx.set(DEFAULT_INSTANCE_ID_KEY, defaultInstanceId);
-        return;
-      }
-
-      // 2. Default instance missing — create it via the in-process edge
-      // (system credentials = the process-global operator identity). The
-      // request builder reads the agent's SLUG at its single source
-      // (defaultinstance.ts, stigmer/stigmer#355).
-      deps.logger.info("Agent missing default instance, creating one", {
-        agentId,
-      });
-      const metadata = agent.metadata;
-      if (metadata === undefined) {
-        throw internalError(
-          new Error(`agent ${agentId} has no metadata`),
-          "internal server error",
-        );
-      }
-      // Go create.go wraps the downstream error with %w and the pipeline's
-      // errors.As branch keeps the inner CODE with the wrapped text on the
-      // wire (the #852 leak, mirrored via goWrappedStatusError, exactly as
-      // the agent domain's apply-default-instance arm). Unstatused
-      // failures fall to the pipeline's Internal fallback.
-      let createdId: string;
-      try {
-        const created = await deps
-          .agentInstanceCreator()
-          .createAsCaller(
-            buildDefaultInstanceRequest(metadata),
-            ctx.callerIdentity,
-          );
-        createdId = created.metadata?.id ?? "";
-      } catch (error) {
-        if (error instanceof ConnectError) {
-          throw goWrappedStatusError(
-            "failed to create default instance",
-            error,
-          );
-        }
-        throw new Error(
-          `failed to create default instance: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-
-      // 3. Update agent status with default_instance_id — direct store
-      // save (matching Java agentRepo.save), bypassing the Update
-      // pipeline; the AGENT kind is explicit since the pipeline's kind is
-      // agent_execution. A store failure is a plain (non-status) error in
-      // Go, so both editions land on the pipeline's Internal fallback
-      // ("internal server error" — the #478 sanitization posture).
-      const status = (agent.status ??= create(AgentStatusSchema));
-      status.defaultInstanceId = createdId;
-      try {
-        await deps.store.saveResource(
-          ApiResourceKind.agent,
-          agentId,
-          AgentSchema,
-          agent,
-        );
-      } catch (error) {
-        throw new Error(
-          `failed to update agent with default instance: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-
-      // The default_of invariant rides the pointer persist.
-      await notifyDefaultInstanceLinked(deps.authorizationLifecycle, {
-        instanceKind: ApiResourceKind.agent_instance,
-        instanceId: createdId,
-        blueprintKind: ApiResourceKind.agent,
-        blueprintId: agentId,
-      });
-
-      ctx.set(DEFAULT_INSTANCE_ID_KEY, createdId);
-      deps.logger.info("Successfully ensured default instance exists", {
-        instanceId: createdId,
-        agentId,
-      });
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
 // CreateSessionIfNeeded — create.go createSessionIfNeededStep.
 // ---------------------------------------------------------------------------
 
@@ -286,23 +113,17 @@ export function newCreateDefaultInstanceIfNeededStep(deps: {
  * Builds the spec for an auto-created session (Go
  * buildAutoCreateSessionSpec): a caller-provided spec (the one-call
  * bootstrap, stigmer/stigmer#249) is CLONED and forwarded so the session
- * carries workspace_entries, harness, execution_target, MCP servers, and
- * skills from a single create call; defaults fill in the instance (when
- * the spec names none and an agent's default instance was resolved; an
- * empty id here and there is the built-in assistant) and the subject
- * sentinel (when empty).
+ * carries its agent, workspace_entries, harness, execution_target, MCP
+ * servers, and skills from a single create call; the subject sentinel
+ * fills an empty subject. No spec at all is the built-in assistant.
  */
 export function buildAutoCreateSessionSpec(
   callerSpec: SessionSpec | undefined,
-  defaultInstanceId: string,
 ): SessionSpec {
   const spec =
     callerSpec !== undefined
       ? clone(SessionSpecSchema, callerSpec)
       : create(SessionSpecSchema);
-  if (spec.agentInstanceId === "") {
-    spec.agentInstanceId = defaultInstanceId;
-  }
   if (spec.subject === "") {
     spec.subject = AUTO_CREATED_SESSION_SUBJECT;
   }
@@ -311,13 +132,15 @@ export function buildAutoCreateSessionSpec(
 
 /**
  * Auto-creates the session when session_id is absent: forwards the
- * caller's session_spec, fills the instance from the previous step's
- * context key when an agent was named, leaves it empty for the built-in
- * assistant, owns the session under the CALLER's org (never the agent's —
- * cross-org agents stay usable), updates the execution with the created
- * id, and CLEARS session_spec (the Session resource is the single source
- * of truth; the persisted execution never carries a second copy that
- * could drift).
+ * caller's session_spec (its agent_ref included; none is the built-in
+ * assistant), owns the session under the CALLER's org (never the agent's —
+ * a platform-visible agent of another organization stays usable), points
+ * the execution at the created id in place of the embedded spec (the
+ * Session resource is the single source of truth; the persisted execution
+ * never carries a second copy that could drift), and re-takes the turn's
+ * agent stamp from the created session: the session's own chain resolved
+ * and gated the same reference, so the turn records exactly the version
+ * its conversation runs (resolve-run-agent.ts).
  */
 export function newCreateSessionIfNeededStep(deps: {
   logger: Logger;
@@ -327,8 +150,7 @@ export function newCreateSessionIfNeededStep(deps: {
     name: "CreateSessionIfNeeded",
     async execute(ctx) {
       const execution = ctx.newState;
-      let sessionId = execution.spec?.sessionId ?? "";
-      const agentId = execution.spec?.agentId ?? "";
+      let sessionId = sessionIdOf(execution.spec);
 
       if (sessionId !== "") {
         deps.logger.debug(
@@ -340,32 +162,12 @@ export function newCreateSessionIfNeededStep(deps: {
         return;
       }
 
-      const callerSpec = execution.spec?.sessionSpec;
+      const callerSpec = newSessionSpecOf(execution.spec);
       deps.logger.info("Session ID not provided, auto-creating session", {
-        agentId,
         hasSessionSpec: callerSpec !== undefined,
       });
 
-      // 1. Resolve the instance when the caller's spec does not name one
-      // and an agent was named: the previous step put the agent's default
-      // instance under the context key exactly then. With no agent the
-      // session is created with no instance — the built-in assistant.
-      let defaultInstanceId = "";
-      if ((callerSpec?.agentInstanceId ?? "") === "" && agentId !== "") {
-        const resolved = ctx.get(DEFAULT_INSTANCE_ID_KEY);
-        if (typeof resolved !== "string" || resolved === "") {
-          deps.logger.error("DEFAULT_INSTANCE_ID not found in context", {
-            agentId,
-          });
-          throw internalError(
-            new Error("default instance ID not found in context"),
-            "internal server error",
-          );
-        }
-        defaultInstanceId = resolved;
-      }
-
-      // 2.–3. Build the session request: the caller's org from the
+      // 1. Build the session request: the caller's org from the
       // execution metadata (not the agent's org).
       let orgId = execution.metadata?.org ?? "";
       if (orgId === "") {
@@ -379,10 +181,10 @@ export function newCreateSessionIfNeededStep(deps: {
           name: `session-${Date.now()}`,
           org: orgId,
         },
-        spec: buildAutoCreateSessionSpec(callerSpec, defaultInstanceId),
+        spec: buildAutoCreateSessionSpec(callerSpec),
       });
 
-      // 4. Create via in-process gRPC (single source of truth). Go wraps
+      // 2. Create via in-process gRPC (single source of truth). Go wraps
       // with %w — the inner code survives to the wire (a session_spec
       // failing session validation answers InvalidArgument, not
       // Internal); goWrappedStatusError mirrors the #852 wire shape.
@@ -400,18 +202,19 @@ export function newCreateSessionIfNeededStep(deps: {
         );
       }
       sessionId = createdSession.metadata?.id ?? "";
-      deps.logger.info("Successfully auto-created session", {
-        sessionId,
-        agentId,
+      deps.logger.info("Successfully auto-created session", { sessionId });
+
+      // 3. Point the execution at the created session in place of the
+      // embedded spec (single source of truth — see the step doc), and
+      // record the agent version that session pinned.
+      execution.spec ??= create(AgentExecutionSpecSchema);
+      execution.spec.target = { case: "sessionId", value: sessionId };
+      stampRunAgent(execution, {
+        agentId: createdSession.status?.agentId ?? "",
+        versionHash: createdSession.status?.agentVersionHash ?? "",
       });
 
-      // 5. Update the execution and clear the embedded spec (single
-      // source of truth — see the step doc).
-      execution.spec ??= create(AgentExecutionSpecSchema);
-      execution.spec.sessionId = sessionId;
-      execution.spec.sessionSpec = undefined;
-
-      // 6. Track the created session for observability.
+      // 4. Track the created session for observability.
       ctx.set(CREATED_SESSION_ID_KEY, sessionId);
     },
   };
@@ -422,7 +225,7 @@ export function newCreateSessionIfNeededStep(deps: {
 // ---------------------------------------------------------------------------
 
 /**
- * Snapshots the declared standing context onto the execution spec
+ * Snapshots the declared standing context onto the execution's status
  * (stigmer/stigmer#293). SERVER-OWNED: stamped unconditionally,
  * overwriting anything the caller supplied. Two independent halves:
  *
@@ -462,9 +265,10 @@ export function newComposeDeclaredPreferencesStep(
     name: "ComposeDeclaredPreferences",
     async execute(ctx) {
       const execution = ctx.newState;
-      execution.spec ??= create(AgentExecutionSpecSchema);
+      execution.status ??= create(AgentExecutionStatusSchema);
       // Claim the server-owned field first, before any load can fail.
-      execution.spec.declaredPreferences = create(DeclaredPreferencesSchema);
+      const declared = create(DeclaredPreferencesSchema);
+      execution.status.declaredPreferences = declared;
 
       // Verbatim: the server stamps content only;
       // blank-is-absent is the runner's read-side convention.
@@ -474,8 +278,11 @@ export function newComposeDeclaredPreferencesStep(
           { identityId: ctx.callerIdentity.identityId },
         );
       } else {
-        execution.spec.declaredPreferences.orgContext =
-          await loadOrgStandingContext(store, logger, orgIdOf(ctx));
+        declared.orgContext = await loadOrgStandingContext(
+          store,
+          logger,
+          orgIdOf(ctx),
+        );
       }
 
       if (personAccounts === undefined) {
@@ -487,8 +294,7 @@ export function newComposeDeclaredPreferencesStep(
         logger,
         "Failed to load the run's person for declared preferences - degrading user context to none (best-effort contract)",
       );
-      execution.spec.declaredPreferences.userContext =
-        person?.spec?.preferences?.standingContext ?? "";
+      declared.userContext = person?.spec?.preferences?.standingContext ?? "";
     },
   };
 }
@@ -601,7 +407,7 @@ async function runPersonOf(
 // ---------------------------------------------------------------------------
 
 /**
- * Snapshots the subject's CONFIRMED memories onto the execution spec
+ * Snapshots the subject's CONFIRMED memories onto the execution's status
  * (stigmer/stigmer#293) — the recall half of the
  * memory loop, sibling of ComposeDeclaredPreferences in every invariant:
  * server-owned (enabled=false stamped on every ineligible/degraded path),
@@ -630,9 +436,10 @@ export function newComposeRecalledMemoriesStep(
     name: "ComposeRecalledMemories",
     async execute(ctx) {
       const execution = ctx.newState;
-      execution.spec ??= create(AgentExecutionSpecSchema);
+      execution.status ??= create(AgentExecutionStatusSchema);
       // Claim the server-owned field first.
-      execution.spec.recalledMemories = create(RecalledMemoriesSchema);
+      const recalled = create(RecalledMemoriesSchema);
+      execution.status.recalledMemories = recalled;
 
       const orgId = orgIdOf(ctx);
       if (orgId === "") {
@@ -715,8 +522,8 @@ export function newComposeRecalledMemoriesStep(
         return;
       }
 
-      execution.spec.recalledMemories.enabled = true;
-      execution.spec.recalledMemories.facts = facts;
+      recalled.enabled = true;
+      recalled.facts = facts;
       logger.debug("Composed recalled memories snapshot", {
         orgId,
         factCount: facts.length,
@@ -848,6 +655,8 @@ export function newStartWorkflowStep(deps: {
   engineState: ExecutionEngineStateProvider;
   /** The failure arm's PENDING→FAILED stamp is a notified transition. */
   statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
+  /** The queue a vouched parent link routes the turn to (vouch-workflow-parent.ts). */
+  workflowRunQueue: WorkflowRunQueue;
 }): PipelineStep<CreateDesc> {
   return {
     name: "StartWorkflow",
@@ -863,9 +672,12 @@ export function newStartWorkflowStep(deps: {
         throw unavailableError(ENGINE_UNAVAILABLE_MESSAGE);
       }
 
+      // The vouched workflow link (vouch-workflow-parent.ts) carries the
+      // parent coordinates; the queue is derived from it, never named.
+      const parent = execution.spec?.parent;
       // Log callback token presence (Temporal's asynchronous activity
       // completion); Base64 preview only, never the bytes.
-      const callbackToken = execution.spec?.callbackToken ?? new Uint8Array();
+      const callbackToken = parent?.callbackToken ?? new Uint8Array();
       if (callbackToken.length > 0) {
         const tokenBase64 = Buffer.from(callbackToken).toString("base64");
         deps.logger.info(
@@ -884,12 +696,15 @@ export function newStartWorkflowStep(deps: {
       try {
         await engine.engine.startInvokeWorkflow({
           executionId,
-          sessionId: execution.spec?.sessionId ?? "",
-          agentId: execution.spec?.agentId ?? "",
+          sessionId: sessionIdOf(execution.spec),
+          agentId: execution.status?.agentId ?? "",
           callbackToken,
           autoApproveAll: execution.spec?.autoApproveAll ?? false,
-          parentWorkflowId: execution.spec?.parentWorkflowId ?? "",
-          activityTaskQueueOverride: execution.spec?.activityTaskQueue ?? "",
+          parentWorkflowId: parent?.signalWorkflowId ?? "",
+          activityTaskQueueOverride: parentRunQueueOf(
+            execution as AgentExecution,
+            deps.workflowRunQueue,
+          ),
         });
       } catch (error) {
         if (error instanceof EngineDispatchError) {

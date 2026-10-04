@@ -40,6 +40,17 @@
 import type { PoolClient } from "pg";
 
 import {
+  AGENT_KIND,
+  RETIRED_INSTANCE_KIND,
+  RETIREMENT_PAGE_SIZE,
+  SESSION_KIND,
+  agentFactsOf,
+  instanceAgentIdOf,
+  migrateSessionRow,
+  unreadableRowError,
+} from "../agent-instance-retired.js";
+import type { InstanceAgent } from "../agent-instance-retired.js";
+import {
   HISTORY_PAGE_SIZE,
   ORGANIZATION_SCOPED_KINDS_AT_LEDGER,
   organizationNamedBy,
@@ -63,9 +74,11 @@ export const SCHEMA_VERSION_6 = 6;
 export const SCHEMA_VERSION_7 = 7;
 /** v8: the resource-name table replaces the organization-slug ledger. */
 export const SCHEMA_VERSION_8 = 8;
+/** v9: sessions name their agent directly; the agent instance rows removed. */
+export const SCHEMA_VERSION_9 = 9;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_8;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_9;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -113,6 +126,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_6, migrateToV6],
       [SCHEMA_VERSION_7, migrateToV7],
       [SCHEMA_VERSION_8, migrateToV8],
+      [SCHEMA_VERSION_9, migrateToV9],
     ];
 
     for (const [version, migrate] of chain) {
@@ -566,4 +580,115 @@ async function migrateToV8(client: PoolClient): Promise<void> {
      ON CONFLICT (kind, org, name) DO NOTHING`,
   );
   await client.query(`DROP TABLE organization_slugs`);
+}
+
+/**
+ * v9: the agent instance kind is removed (agent-instance-retired.ts says
+ * what each session becomes and why an unreadable row fails the step).
+ *
+ * - Every instance row is read in keyset pages on `(kind, id)` for the
+ *   agent it names, and each named agent once by primary key; the map of
+ *   instance to agent is ids only, so it stays small beside the rows.
+ * - Every session is read in keyset pages and rewritten when it names an
+ *   instance, with `updated_at` bumped the way the store's writes bump it,
+ *   so the list index re-derives the row (its key changed with the
+ *   session's revision) the way it re-derives any unproven row.
+ * - The instance rows, their history, their search entries and their list
+ *   keys are then deleted. The chain's advisory lock keeps a second
+ *   instance's boot out of the step, and the transaction makes it whole or
+ *   nothing.
+ */
+async function migrateToV9(client: PoolClient): Promise<void> {
+  const pageOf = async (
+    kind: string,
+    after: string,
+  ): Promise<Array<{ id: string; data: Buffer }>> =>
+    (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [kind, after, RETIREMENT_PAGE_SIZE],
+      )
+    ).rows;
+
+  const instanceAgents = new Map<string, string>();
+  for (let after = ""; ; ) {
+    const rows = await pageOf(RETIRED_INSTANCE_KIND, after);
+    for (const row of rows) {
+      try {
+        instanceAgents.set(row.id, instanceAgentIdOf(new Uint8Array(row.data)));
+      } catch (error) {
+        throw unreadableRowError(RETIRED_INSTANCE_KIND, row.id, error);
+      }
+    }
+    if (rows.length < RETIREMENT_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+
+  const agents = new Map<string, InstanceAgent>();
+  for (const agentId of new Set(instanceAgents.values())) {
+    if (agentId === "") {
+      continue;
+    }
+    const found = await client.query<{ data: Buffer }>(
+      `SELECT data FROM resources WHERE kind = $1 AND id = $2`,
+      [AGENT_KIND, agentId],
+    );
+    const row = found.rows[0];
+    try {
+      agents.set(
+        agentId,
+        row === undefined
+          ? { kind: "agent-gone", agentId }
+          : agentFactsOf(new Uint8Array(row.data)),
+      );
+    } catch (error) {
+      throw unreadableRowError(AGENT_KIND, agentId, error);
+    }
+  }
+  const agentOf = (instanceId: string): InstanceAgent | undefined => {
+    const agentId = instanceAgents.get(instanceId);
+    return agentId === undefined || agentId === ""
+      ? undefined
+      : agents.get(agentId);
+  };
+
+  for (let after = ""; ; ) {
+    const rows = await pageOf(SESSION_KIND, after);
+    for (const row of rows) {
+      let migrated: Uint8Array | undefined;
+      try {
+        migrated = migrateSessionRow(new Uint8Array(row.data), agentOf);
+      } catch (error) {
+        throw unreadableRowError(SESSION_KIND, row.id, error);
+      }
+      if (migrated !== undefined) {
+        await client.query(
+          `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`,
+          [Buffer.from(migrated), SESSION_KIND, row.id],
+        );
+      }
+    }
+    if (rows.length < RETIREMENT_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+
+  await client.query(`DELETE FROM resource_audit WHERE kind = $1`, [
+    RETIRED_INSTANCE_KIND,
+  ]);
+  await client.query(`DELETE FROM search_index WHERE kind = $1`, [
+    RETIRED_INSTANCE_KIND,
+  ]);
+  await client.query(`DELETE FROM resource_list_keys WHERE kind = $1`, [
+    RETIRED_INSTANCE_KIND,
+  ]);
+  await client.query(`DELETE FROM resources WHERE kind = $1`, [
+    RETIRED_INSTANCE_KIND,
+  ]);
 }

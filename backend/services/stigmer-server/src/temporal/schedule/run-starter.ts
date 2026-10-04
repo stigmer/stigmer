@@ -44,6 +44,7 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -494,13 +495,20 @@ export class RunStarter {
       executionConfig.thinkingMode = runConfig.thinkingMode;
     }
 
-    // The fresh per-fire session speaks the invocation's session half:
-    // harness and workspace come from the owner's spec. An
-    // unspecified harness stays unset — the platform default applies (OSS:
-    // native). Workspace entries are git-only by write-time validation;
-    // credentials, when a repo is private, ride an org-shared environment
-    // holding GITHUB_TOKEN.
+    // The fresh per-fire session speaks the invocation's session half: it
+    // runs the schedule's agent at the version the schedule names (none:
+    // the agent's current version when the fire starts), and harness and
+    // workspace come from the owner's spec. An unspecified harness stays
+    // unset — the platform default applies (OSS: native). Workspace entries
+    // are git-only by write-time validation; credentials, when a repo is
+    // private, ride an org-shared environment holding GITHUB_TOKEN.
     const sessionSpec = create(SessionSpecSchema, {
+      agentRef: create(ApiResourceReferenceSchema, {
+        kind: ApiResourceKind.agent,
+        org: agent.metadata?.org ?? "",
+        slug: agent.metadata?.slug ?? "",
+        version: invocation?.agentRef?.version ?? "",
+      }),
       subject: SESSION_SUBJECT_PREFIX + (schedule.metadata?.slug ?? ""),
       workspaceEntries: invocation?.workspaceEntries ?? [],
     });
@@ -526,9 +534,8 @@ export class RunStarter {
         labels: { [SCHEDULE_ID_LABEL_KEY]: schedule.metadata?.id ?? "" },
       }),
       spec: create(AgentExecutionSpecSchema, {
-        agentId: agent.metadata?.id ?? "",
+        target: { case: "sessionSpec", value: sessionSpec },
         message: composeMessage(schedule, nominalFireTime),
-        sessionSpec,
         executionConfig,
       }),
     });

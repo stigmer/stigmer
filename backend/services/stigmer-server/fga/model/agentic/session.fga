@@ -3,13 +3,16 @@ module agentic
 # ========================================
 # SESSION TYPE (Organization-scoped, Personal Resource)
 # ========================================
-# Conversation sessions with an agent instance.
+# Conversation sessions with an agent, or with the built-in assistant.
 # Every session belongs to an organization with user attribution.
 #
 # Authorization model (PERSONAL RESOURCE — always private):
-# Sessions are always personal by default. Even if the parent agent instance
-# has ORG or PUBLIC visibility, the session does NOT inherit that visibility.
-# This preserves conversation privacy: my chat with a public bot is private.
+# Sessions are always personal by default. Even if the agent a session names
+# has ORG or PLATFORM visibility, the session does NOT inherit that
+# visibility. This preserves conversation privacy: my chat with a shared bot
+# is private. The agent a session names is a server check, not a relation:
+# naming or changing it asks agent#can_execute, and so does every turn
+# (the AuthorizeRunTarget and AuthorizeRunAgent steps).
 #
 # Sharing a session requires explicit viewer grants per-session.
 # Agent executions inherit permissions from their parent session.
@@ -24,8 +27,8 @@ module agentic
 # (Slack/WhatsApp turns, owned by the per-org system-channel account) carry
 # a single session#channel@agent_channel:<id> tuple and inherit the parent
 # channel's viewer set (connector + org admins) into can_view ONLY. Unlike
-# default_of — which composes into full `viewer` because default instances
-# must be runnable — the channel link deliberately bypasses `viewer` so
+# a workflow instance's default_of — which composes into full `viewer`
+# because default instances must be runnable — the channel link deliberately bypasses `viewer` so
 # channel observers never gain can_create_execution_in (injecting a console
 # message into a live external conversation would run an execution whose
 # reply never reaches the channel). Console sessions never get a channel
@@ -48,7 +51,6 @@ module agentic
 #
 # FGA tuples on creation:
 # - session:<id>#organization@organization:<org>
-# - session:<id>#agent_instance@agent_instance:<instance>
 # - session:<id>#owner@identity_account:<creator>
 # - session:<id>#channel@agent_channel:<channel>  (channel sessions only)
 # - session:<id>#schedule@schedule:<schedule>     (schedule sessions only)
@@ -60,14 +62,6 @@ type session
     # ========================================
     define organization: [organization]
     
-    # ========================================
-    # PARENT AGENT INSTANCE
-    # ========================================
-    # Tracks which agent instance this session belongs to for audit
-    # and query purposes. Does NOT propagate visibility — sessions
-    # are always personal regardless of instance visibility.
-    define agent_instance: [agent_instance]
-
     # ========================================
     # CHANNEL LINK (Structural Read-Only Inheritance)
     # ========================================

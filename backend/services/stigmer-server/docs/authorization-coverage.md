@@ -115,32 +115,18 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | AgentQueryController.listVersions | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedAgent — can_view on the resolved id, the workflow lane's check) |
 | AgentQueryController.getVersion | config: can_view on agent (field agent_id), error_msg yes | direct: authorizeDirect, then live-then-audit version read. The runner's read of the version a turn recorded goes out under the run's own credential, so it asks what `get` asks |
 
-## 7. AgentInstance (`src/domain/agentinstance/controller.ts`)
-
-| Method | Annotation | Handler |
-|---|---|---|
-| AgentInstanceCommandController.apply | none | chain-with-Authorize |
-| AgentInstanceCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_create_agent_instance on metadata.org, then can_create_instance on the parent agent LoadParentAgent stashed; a default instance the server composed in-process for the parent's organization asks nothing) |
-| AgentInstanceCommandController.update | config: can_edit on agent_instance (field metadata.id), error_msg yes | chain-with-Authorize |
-| AgentInstanceCommandController.updateVisibility | config: can_manage_audience on agent_instance (field resource_id), error_msg yes | chain-with-Authorize |
-| AgentInstanceCommandController.delete | config: can_delete on agent_instance (field value), error_msg yes | chain-with-Authorize |
-| AgentInstanceQueryController.get | config: can_view on agent_instance (field value), error_msg yes | chain-with-Authorize |
-| AgentInstanceQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
-| AgentInstanceQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
-| AgentInstanceQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
-
 ## 8. Session (`src/domain/session/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
 | SessionCommandController.apply | none | chain-with-Authorize |
-| SessionCommandController.create | config: can_create_session on organization (field metadata.org), error_msg yes | chain-with-Authorize (plus the AuthorizeRunTarget mid-chain can_execute on the agent_instance the session binds to — the caller's or the resolved default — right after ResolveDefaultAgentInstance. `apply` routes here on the create arm.) |
-| SessionCommandController.update | config: can_edit on session (field metadata.id), error_msg yes | chain-with-Authorize |
+| SessionCommandController.create | config: can_create_session on organization (field metadata.org), error_msg yes | chain-with-Authorize (plus the AuthorizeRunTarget mid-chain can_execute on the agent spec.agent_ref names, by the id ResolveSessionAgent pinned right before it; none for the built-in assistant. `apply` routes here on the create arm.) |
+| SessionCommandController.update | config: can_edit on session (field metadata.id), error_msg yes | chain-with-Authorize (plus the AuthorizeRunTarget mid-chain can_execute on the pinned agent when the update introduces or changes it, after ValidateReferences and ResolveSessionAgent; an unchanged agent is not re-asked, since every turn asks) |
 | SessionCommandController.updateSubject | config: can_edit on session (field id), error_msg yes | direct: field-level read-modify-write (ports Go update_subject.go); authorizeDirect AFTER the load — the Java load-before-authorize order (#224) |
 | SessionCommandController.delete | config: can_delete on session (field value), error_msg yes | chain-with-Authorize |
 | SessionQueryController.get | config: can_view on session (field value), error_msg yes | chain-with-Authorize |
 | SessionQueryController.list | is_skip_authorization | chain-with-Authorize (the request org through the list index, paged; driver: ListReadScope — a composed scope narrows each batch to the caller's authorized rows; the guest cookie rule is driver-internal) |
-| SessionQueryController.listByAgentInstance | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
+| SessionQueryController.listByAgent | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 | SessionQueryController.listByChannel | is_skip_authorization | chain-with-Authorize (guard: AuthorizeChannelAccess — can_view on the agent_channel before any session work, the Java two-stage shape; driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 
 ## 9. AgentShare (`src/domain/agentshare/controller.ts`)
@@ -244,7 +230,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 | Method | Annotation | Handler |
 |---|---|---|
-| AgentExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeRunTarget — by request shape, right after EnsureSessionOrAgentResolved: can_create_execution_in on the session (session_id), can_execute on the agent_instance (session_spec.agent_instance_id) or on the agent (agent_id) — the annotation cannot express the three-shape dispatch; under the built-in posture every caller is checked as the person it acts for, a workflow-bound runner included: a workflow's `agent_call` child is created as the person who ran the workflow, who must be able to view the agent it calls) |
+| AgentExecutionCommandController.create | is_skip_authorization | chain-with-Authorize (guards: AuthorizeRunTarget — can_create_execution_in on the session a turn continues, before anything about it is read; then AuthorizeRunAgent — can_execute on the agent ResolveRunAgent stamped, the session's pinned agent or the new session_spec's agent_ref, none for the built-in assistant. The annotation cannot express either. Under the built-in posture every caller is checked as the person it acts for, a workflow-bound runner included: a workflow's `agent_call` child is created as the person who ran the workflow, who must be able to view the agent it calls. VouchWorkflowParent admits spec.parent only from the workflow run it names, the server, or a holder of can_write_reserved_labels) |
 | AgentExecutionCommandController.update | config: can_edit on agent_execution (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentExecutionCommandController.updateStatus | config: can_edit on agent_execution (field execution_id), error_msg yes | chain-with-Authorize (update-status.ts) |
 | AgentExecutionCommandController.submitApproval | config: can_edit on agent_execution (field agent_execution_id), error_msg yes | chain-with-Authorize (submit-approval.ts) |
