@@ -62,6 +62,7 @@ describe.skipIf(process.platform === "win32")(
       kubernetesNamespace: "unused-by-this-driver",
       runnerEnv: { ANTHROPIC_BASE_URL: "http://127.0.0.1:18555" },
       runnerSecretEnv: { ANTHROPIC_API_KEY: "k-model-smoke" },
+      serverRelease: "",
     };
     const driver = newLocalProcessSandboxProvisioner({
       config,

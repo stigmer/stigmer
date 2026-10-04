@@ -23,6 +23,12 @@
  *   - `/runner/dist/attach/main.js`: the attach waiter, the entry of a
  *     sandbox that is snapshotted before it is attached (the Substrate
  *     driver's template); it starts `../main.js` with the same Node.
+ *   - `/runner/RELEASE`: the release the layer was built for, one line, or
+ *     empty for a development build. The start script refuses a layer of
+ *     one release under a server of another: a driver hands the server's
+ *     release to the script as `STIGMER_SERVER_RELEASE`, and only when the
+ *     server is a release, so a development server or layer is never
+ *     refused (stigmer/stigmer#1831).
  *
  * The base image contract has two halves: what the start script checks,
  * and what the drivers set. A driver runs the runner as root (uid 0, which
@@ -53,6 +59,20 @@ export const RUNNER_ENTRY = "/runner/dist/main.js";
 
 /** The attach waiter's entry in the image. */
 export const WAITER_ENTRY = "/runner/dist/attach/main.js";
+
+/**
+ * The layer's release file, which the start script reads beside its own
+ * directory (`${0%/*}/../RELEASE`); the release lane writes it.
+ */
+export const RUNNER_RELEASE_FILE = "/runner/RELEASE";
+
+/**
+ * The variable a driver hands the start script the server's release in
+ * (SandboxDriverConfig.serverRelease), set only when the server is a
+ * release. Not `STIGMER_SERVER_VERSION`, which is the server bundle's
+ * build-time input.
+ */
+export const SERVER_RELEASE_ENV = "STIGMER_SERVER_RELEASE";
 
 /** The uid (and gid) a driver runs the runner as: root. */
 export const RUNNER_UID = 0;

@@ -582,10 +582,11 @@ function defaultArtifactPath(): string {
  * (SANDBOX_DRIVER_OWNED_RUNNER_ENV and the Temporal connection names): a
  * list must not be able to replace a sandbox's queue, token or endpoints.
  * Under a driver that starts a runner image (every driver but
- * SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE), nor HOME, which that driver sets
- * (SANDBOX_IMAGE_DRIVER_OWNED_RUNNER_ENV), nor a Node setting the runner
- * layer clears at start (SANDBOX_CLEARED_RUNNER_ENV), which would never
- * reach the runner; `local-process` passes all three through.
+ * SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE), nor HOME or the server's release,
+ * which that driver sets (SANDBOX_IMAGE_DRIVER_OWNED_RUNNER_ENV), nor a
+ * Node setting the runner layer clears at start (SANDBOX_CLEARED_RUNNER_ENV),
+ * which would never reach the runner; `local-process` passes them all
+ * through.
  */
 function loadSandboxRunnerEnv(env: NodeJS.ProcessEnv): {
   sandboxRunnerEnv: Readonly<Record<string, string>>;

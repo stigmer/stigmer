@@ -29,6 +29,7 @@ const CONFIG: SandboxDriverConfig = {
   kubernetesNamespace: "unused-by-this-driver",
   runnerEnv: { ANTHROPIC_BASE_URL: "http://model.example:18555" },
   runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-ensure" },
+  serverRelease: "",
 };
 
 const ENV: SandboxEnvironment = {

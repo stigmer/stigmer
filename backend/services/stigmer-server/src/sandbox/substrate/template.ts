@@ -30,7 +30,8 @@
  * deleted and created once more per process; after that its error is
  * thrown into every ensure until the operator fixes the cause.
  *
- * The runner's HOME is set here, as every driver sets it (runner-launch.ts).
+ * The runner's HOME is set here, as every image driver sets it, and so is
+ * the server's release when it is one (runner-launch.ts).
  * Its user is not: Substrate's container carries no user or working
  * directory, so the base image's own USER decides, and the layer's start
  * script refuses one that is not root.
@@ -40,7 +41,11 @@ import { createHash } from "node:crypto";
 import { create, toBinary } from "@bufbuild/protobuf";
 
 import type { SandboxDriverConfig } from "../provisioner.js";
-import { RUNNER_HOME, waiterCommand } from "../runner-launch.js";
+import {
+  RUNNER_HOME,
+  SERVER_RELEASE_ENV,
+  waiterCommand,
+} from "../runner-launch.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import {
   ActorMetadataField,
@@ -123,6 +128,11 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
   };
   if (config.mcpPublicEndpoint !== "") {
     env["STIGMER_MCP_PUBLIC_ENDPOINT"] = config.mcpPublicEndpoint;
+  }
+  // Only a release server names its release, so a re-pin between
+  // development builds leaves the template's content, and its name, alone.
+  if (config.serverRelease !== "") {
+    env[SERVER_RELEASE_ENV] = config.serverRelease;
   }
   if (https) {
     for (const name of TRUST_VARIABLES) env[name] = trustBundlePath;

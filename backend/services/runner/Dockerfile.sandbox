@@ -46,7 +46,7 @@
 #   runner-layer   — FROM scratch, /runner only. Published as
 #                    ghcr.io/stigmer/runner-layer, and `base` as
 #                    ghcr.io/stigmer/runner-base (release.sandbox-cloud)
-#   sandbox        — base plus the runner layer's four layers. The
+#   sandbox        — base plus the runner layer's five layers. The
 #                    CLOUD sandbox image (release.sandbox-cloud builds
 #                    `--target sandbox`). The runner process is started by
 #                    the control plane (the drivers set the command), so CMD
@@ -207,13 +207,34 @@ RUN npm run build:slim && rm dist-slim/meta.json && \
     mv dist-slim /build/slim/dist && cp layer/start.sh /build/slim/start && \
     find /build/slim -exec touch -h -d 1985-10-26T08:15:00Z {} +
 
+# The release the layer is built for, which the start script holds against
+# the server's (layer/start.sh): one line, or an empty file for a
+# development build. Only the release lane passes it, as the release tag
+# without its v; declared after the build so it never invalidates the
+# build's cache, and given the same fixed time so an unchanged value is the
+# same layer bytes. The guard refuses a v prefix or a development stamp
+# passed by mistake; which builds are releases is the lane's decision.
+ARG RUNNER_LAYER_RELEASE=""
+RUN release="${RUNNER_LAYER_RELEASE}" && \
+    if [ -n "$release" ]; then \
+      printf '%s\n' "$release" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' && \
+        case "$release" in *-dev*) false ;; esac || \
+        { echo "RUNNER_LAYER_RELEASE is ${release}, not a release such as 3.42.0 or 3.42.0-rc.1 (no v, no development stamp)" >&2; exit 1; }; \
+      printf '%s\n' "$release" >/build/slim/RELEASE; \
+    else \
+      : >/build/slim/RELEASE; \
+    fi && \
+    touch -h -d 1985-10-26T08:15:00Z /build/slim/RELEASE
+
 # ---------- The runner layer ----------
 # Everything Stigmer adds to a base image, under /runner and nowhere else,
-# as four layers ordered by how often they change: the Node binary alone
+# as five layers ordered by how often they change: the Node binary alone
 # (no npm: the runner needs nothing else of it), the start script every
-# driver launches (it checks the base, then execs that Node: layer/start.sh),
-# the staged packages, the bundles. The last two are the slim artifact's
-# self-contained directory at /runner/dist. Published per release as
+# driver launches (it checks the base and the release, then execs that
+# Node: layer/start.sh), the staged packages, the bundles, and last the
+# release file, so a release's bundles are the same layer bytes as the
+# same commit's development build. The packages and bundles are the slim
+# artifact's self-contained directory at /runner/dist. Published per release as
 # ghcr.io/stigmer/runner-layer, which deploy/runner-layer/Dockerfile adds to
 # a base image Stigmer did not build.
 FROM scratch AS runner-layer
@@ -222,18 +243,20 @@ COPY --from=node-runtime /usr/local/bin/node /runner/bin/node
 COPY --from=builder /build/slim/start /runner/bin/start
 COPY --from=builder /build/slim/node_modules/ /runner/dist/node_modules/
 COPY --from=builder /build/slim/dist/ /runner/dist/
+COPY --from=builder /build/slim/RELEASE /runner/RELEASE
 
 # ---------- The cloud sandbox image ----------
-# The default base plus the runner layer: the same four COPY lines as the
+# The default base plus the runner layer: the same five COPY lines as the
 # runner-layer stage (scripts/runner-launch-contract.test.mjs holds them
-# equal), so the image keeps the runner layer's four layers rather than
-# one, and a runner-only release changes only the bundles.
+# equal), so the image keeps the runner layer's five layers rather than
+# one, and a runner-only release changes only the bundles and the release.
 FROM base AS sandbox
 
 COPY --from=node-runtime /usr/local/bin/node /runner/bin/node
 COPY --from=builder /build/slim/start /runner/bin/start
 COPY --from=builder /build/slim/node_modules/ /runner/dist/node_modules/
 COPY --from=builder /build/slim/dist/ /runner/dist/
+COPY --from=builder /build/slim/RELEASE /runner/RELEASE
 
 # ---------- Compose runner (the self-host stack's runner) ----------
 # The sandbox stage plus the stigmer CLI. Why the CLI: in the OSS/local

@@ -2,16 +2,22 @@
  * Pins one docker sandbox's `docker run` (docker.ts, buildDockerRun) with
  * no Docker: the label and env contract in argv, the runner as root with
  * root's HOME in /workspace (runner-launch.ts), the operator's plain
- * runner settings by value, and every credential (the token, the Temporal
- * connection settings, the operator's runner secrets) as a value-less
- * `--env NAME` whose value only the CLI's environment holds.
+ * runner settings by value, the server's release only for a release
+ * server (stigmer/stigmer#1831), and every credential (the token, the
+ * Temporal connection settings, the operator's runner secrets) as a
+ * value-less `--env NAME` whose value only the CLI's environment holds.
  */
 import { describe, expect, it } from "vitest";
 
 import { buildDockerRun } from "../docker.js";
 import { sandboxBaseName } from "../naming.js";
 import type { SandboxDriverConfig } from "../provisioner.js";
-import { RUNNER_HOME, RUNNER_UID, runnerCommand } from "../runner-launch.js";
+import {
+  RUNNER_HOME,
+  RUNNER_UID,
+  SERVER_RELEASE_ENV,
+  runnerCommand,
+} from "../runner-launch.js";
 
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://host.docker.internal:7234",
@@ -24,6 +30,7 @@ const config: SandboxDriverConfig = {
   kubernetesNamespace: "unused",
   runnerEnv: { ANTHROPIC_BASE_URL: "http://gateway.example:8080" },
   runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-test" },
+  serverRelease: "",
 };
 const env = {
   taskQueue: "session:ses_1",
@@ -59,6 +66,14 @@ describe("buildDockerRun", () => {
     expect(args[args.indexOf("--workdir") + 1]).toBe("/workspace");
     expect(args).toContain(`HOME=${RUNNER_HOME}`);
     expect(args.indexOf("--user")).toBeLessThan(args.indexOf(config.runnerImage));
+  });
+
+  it("hands the start script the server's release only when the server is a release", () => {
+    const released = buildDockerRun("session", "ses_1", env, { ...config, serverRelease: "3.42.0" }).args;
+    expect(released[released.indexOf(`${SERVER_RELEASE_ENV}=3.42.0`) - 1]).toBe("--env");
+    expect(released.indexOf(`${SERVER_RELEASE_ENV}=3.42.0`)).toBeLessThan(released.indexOf(config.runnerImage));
+    const dev = buildDockerRun("session", "ses_1", env, config).args;
+    expect(dev.filter((arg) => arg.startsWith(`${SERVER_RELEASE_ENV}=`))).toEqual([]);
   });
 
   it("passes every credential by name only, its value through the CLI's environment", () => {

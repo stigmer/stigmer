@@ -28,6 +28,7 @@ const config: SandboxDriverConfig = {
   kubernetesNamespace: "",
   runnerEnv: {},
   runnerSecretEnv: {},
+  serverRelease: "",
 };
 
 const settings: SubstrateDriverSettings = {
