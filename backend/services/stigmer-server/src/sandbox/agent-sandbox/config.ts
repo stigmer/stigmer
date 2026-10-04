@@ -15,9 +15,13 @@
  * The defaults are those the substrate driver measured and chose (an idle
  * session stores at 5.5 minutes, on a 30-second sweep: substrate/config.ts),
  * so a session sleeps on the same schedule whichever driver runs it. A wake
- * here is a pod start over a kept claim, measured on kind in the range the
- * substrate driver's wake from storage measured (this driver's M2 record).
- * A cluster that pulls a large runner image on a cold node wakes slower, and
+ * here is a pod start over a kept claim. Measured on kind (agent-sandbox
+ * v1.0.5, the runner image already on the node, 2026-10-04), a woken
+ * session's turn completed within about 2 s of its message at the 95th
+ * percentile against about 1 s on a running pod, at the one-second
+ * resolution of the measurement: about a second more, in the range of the
+ * substrate driver's wake from storage (1.73 s at the 95th percentile). A
+ * cluster that pulls a large runner image on a cold node wakes slower, and
  * its operator lengthens the window.
  */
 

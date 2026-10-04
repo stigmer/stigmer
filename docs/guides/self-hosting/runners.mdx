@@ -207,14 +207,15 @@ settings, not the ones it was created with.
 
 An idle Session's sandbox goes to sleep. After 330 seconds with no run, its pod
 is removed and its workspace claim kept; the Session's next message starts a pod
-again over the same files, on a node that already holds the runner image in a
-few seconds. A Session that is running, or waiting on a person's approval, is
-never put to sleep. `STIGMER_SANDBOX_AGENT_SANDBOX_SUSPEND_AFTER_SECONDS` sets
-the idle time, and `STIGMER_SANDBOX_AGENT_SANDBOX_SWEEP_INTERVAL_SECONDS` how
-often the server looks (30 seconds), so a sandbox sleeps within one interval of
-its idle time. A cluster whose nodes pull the runner image afresh wakes more
-slowly; lengthen the idle time there. A sleeping sandbox is never deleted: it
-goes when its Session does.
+again over the same files. On a node that already holds the runner image, that
+adds about a second to the message's turn. A Session that is running, or waiting
+on a person's approval, is never put to sleep.
+`STIGMER_SANDBOX_AGENT_SANDBOX_SUSPEND_AFTER_SECONDS` sets the idle time, and
+`STIGMER_SANDBOX_AGENT_SANDBOX_SWEEP_INTERVAL_SECONDS` how often the server
+looks (30 seconds), so a sandbox sleeps within one interval of its idle time. A
+cluster whose nodes pull the runner image afresh wakes more slowly; lengthen the
+idle time there. A sleeping sandbox is never deleted: it goes when its Session
+does.
 
 The server needs a Role in that namespace allowing `get`, `list`, `create`,
 `patch` and `delete` on `sandboxes.agents.x-k8s.io`, and `create`, `update` and
