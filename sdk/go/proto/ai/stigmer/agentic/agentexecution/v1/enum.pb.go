@@ -1114,18 +1114,10 @@ func (ApprovalAction) EnumDescriptor() ([]byte, []int) {
 type ApprovalPolicySource int32
 
 const (
-	// Default — the execution predates this field, or the tool was never evaluated
-	// by the approval gate (e.g. a read-only built-in). Clients show no provenance.
+	// Default — the execution predates this field, or no approval was required
+	// (a read-only built-in, or an MCP tool its server does not mark
+	// destructive). Clients show no provenance.
 	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNSPECIFIED ApprovalPolicySource = 0
-	// Layer 1: the connect-time classifier's default for an MCP tool
-	// (McpServerStatus.tool_approvals).
-	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT ApprovalPolicySource = 1
-	// Layer 2: an operator's pinned override on the MCP server blueprint
-	// (McpServerSpec.pinned_tool_approvals).
-	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE ApprovalPolicySource = 2
-	// Layer 3: an agent-level override for an MCP tool
-	// (Agent McpServerUsage.tool_approval_overrides).
-	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE ApprovalPolicySource = 3
 	// Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global
 	// bypass cleared this call.
 	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL ApprovalPolicySource = 4
@@ -1133,13 +1125,12 @@ const (
 	// all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched
 	// the leased class.
 	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_APPROVAL_LEASE ApprovalPolicySource = 5
-	// A non-MCP built-in tool gated by the shared tool taxonomy
+	// The default asked for a built-in tool of an approval class
 	// (write / delete / shell).
 	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY ApprovalPolicySource = 6
-	// The connect-time MCP destructiveHint tightener forced this tool to require
-	// approval, overriding a more permissive classifier verdict. First-class
-	// provenance so a tightened tool is distinguishable from a plain classifier
-	// default. See applyDestructiveHintTightener.
+	// The default asked for an MCP tool because its server marks it destructive
+	// (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint
+	// annotation).
 	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN ApprovalPolicySource = 7
 	// The unattended approval mode (ExecutionConfig.approval_mode =
 	// APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
@@ -1157,9 +1148,6 @@ const (
 var (
 	ApprovalPolicySource_name = map[int32]string{
 		0: "APPROVAL_POLICY_SOURCE_UNSPECIFIED",
-		1: "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT",
-		2: "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE",
-		3: "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE",
 		4: "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
 		5: "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
 		6: "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
@@ -1168,9 +1156,6 @@ var (
 	}
 	ApprovalPolicySource_value = map[string]int32{
 		"APPROVAL_POLICY_SOURCE_UNSPECIFIED":                    0,
-		"APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT":             1,
-		"APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE":                2,
-		"APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE":                 3,
 		"APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL":               4,
 		"APPROVAL_POLICY_SOURCE_APPROVAL_LEASE":                 5,
 		"APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY":               6,
@@ -1440,10 +1425,9 @@ func (InteractionMode) EnumDescriptor() ([]byte, []int) {
 
 // ApprovalMode controls how an execution resolves HITL approval gates.
 //
-// The four-level approval policy chain (McpServerStatus.tool_approvals →
-// McpServerSpec.pinned_tool_approvals → Agent tool_approval_overrides →
-// AgentExecutionSpec.auto_approve_all) decides WHICH tools are gated; this
-// mode decides WHAT HAPPENS when a gate fires. It exists for surfaces where
+// The approval default (shell commands, file writes and deletes, and MCP tools
+// their server marks destructive) decides WHICH tools are gated; this mode
+// decides WHAT HAPPENS when a gate fires. It exists for surfaces where
 // no approver is present at the conversation — messaging channels
 // (Slack/WhatsApp) and guest shares — where an interactive pause would park
 // the execution in EXECUTION_WAITING_FOR_APPROVAL forever.
@@ -1459,8 +1443,7 @@ func (InteractionMode) EnumDescriptor() ([]byte, []int) {
 //     never delegated to an external user — a channel guest cannot authorize
 //     the org's destructive operations.
 //   - End-user intent confirmation ("book Monday 10 AM — shall I?") is
-//     conversational, owned by the agent's instructions; the tool itself is
-//     then un-gated per agent via tool_approval_overrides.
+//     conversational, owned by the agent's instructions.
 type ApprovalMode int32
 
 const (
@@ -2589,17 +2572,14 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x17APPROVAL_ACTION_APPROVE\x10\x01\x12\x18\n" +
 	"\x14APPROVAL_ACTION_SKIP\x10\x02\x12\x1a\n" +
 	"\x16APPROVAL_ACTION_REJECT\x10\x03\x12\x1f\n" +
-	"\x1bAPPROVAL_ACTION_APPROVE_ALL\x10\x04*\xb0\x03\n" +
+	"\x1bAPPROVAL_ACTION_APPROVE_ALL\x10\x04*\xb6\x03\n" +
 	"\x14ApprovalPolicySource\x12&\n" +
-	"\"APPROVAL_POLICY_SOURCE_UNSPECIFIED\x10\x00\x12-\n" +
-	")APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT\x10\x01\x12*\n" +
-	"&APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE\x10\x02\x12)\n" +
-	"%APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE\x10\x03\x12+\n" +
+	"\"APPROVAL_POLICY_SOURCE_UNSPECIFIED\x10\x00\x12+\n" +
 	"'APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL\x10\x04\x12)\n" +
 	"%APPROVAL_POLICY_SOURCE_APPROVAL_LEASE\x10\x05\x12+\n" +
 	"'APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY\x10\x06\x129\n" +
 	"5APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN\x10\a\x12*\n" +
-	"&APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP\x10\b*\xe3\x01\n" +
+	"&APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP\x10\b\"\x04\b\x01\x10\x01\"\x04\b\x02\x10\x02\"\x04\b\x03\x10\x03*)APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT*&APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE*%APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE*\xe3\x01\n" +
 	"\x11ApprovalEventType\x12#\n" +
 	"\x1fAPPROVAL_EVENT_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dAPPROVAL_EVENT_TYPE_REQUESTED\x10\x01\x12 \n" +

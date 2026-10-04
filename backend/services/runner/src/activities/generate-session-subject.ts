@@ -15,13 +15,13 @@
  * identically. The previous owner was the retired Python agent-runner
  * (stigmer/stigmer#665).
  *
- * Model + credential resolution follows ClassifyToolApprovals: the economy
- * model for the configured primary (registry costTier=economy, graceful
- * degrade to the primary), routed through the Stigmer proxy when one is
- * configured, else called directly with the operator's provider key. Unlike
- * classification — a security gate that fails closed — a missing credential
- * here degrades to a heuristic title (the first words of the user message):
- * a title is worth having even when no model is reachable.
+ * Model + credential resolution: the economy model for the configured
+ * primary (registry costTier=economy, graceful degrade to the primary),
+ * routed through the Stigmer proxy when one is configured, else called
+ * directly with the operator's provider key. A missing credential degrades
+ * to a heuristic title (the first words of the user message): a title is
+ * worth having even when no model is reachable, so nothing here fails
+ * closed.
  *
  * Activity contract — exactly ONE argument, in one of two shapes:
  *   Name:   "GenerateSessionSubject"
@@ -196,8 +196,8 @@ async function generateTitle(params: GenerateTitleParams): Promise<string> {
   const model = await getSummarizationModel(options.primaryModel);
 
   // Direct mode with no credential path degrades up front with one actionable
-  // message (the ClassifyToolApprovals idiom — the provider follows the
-  // economy-model resolution, not the operator's key, so the log names it).
+  // message. The provider follows the economy-model resolution, not the
+  // operator's key, so the log names it.
   if (!options.proxyEndpoint) {
     const provider = tryInferProvider(model);
     const missing = provider === null ? null : checkDirectCredentials(provider);

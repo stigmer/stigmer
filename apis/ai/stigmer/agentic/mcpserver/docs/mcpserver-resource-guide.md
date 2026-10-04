@@ -28,18 +28,11 @@ spec:
   stdio:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-github"]
-  default_enabled_tools:
-    - search_code
-    - get_file_contents
-    - create_pull_request
   env_spec:
     data:
       GITHUB_TOKEN:
         description: "GitHub personal access token with repo scope"
         is_secret: true
-  default_tool_approvals:
-    - tool_name: delete_repository
-      message: "Delete repository: {{args.repo}}"
 status: {}  # System-managed, never set by users
 ```
 
@@ -103,7 +96,7 @@ mcp_server_ref:
   slug: github    # matches metadata.slug of the McpServer resource
 ```
 
-The `slug` is what agents use in `mcp_server_ref.slug` and in sub-agent `mcp_access.mcp_server`. Choose a slug that is short, descriptive, and stable — it forms part of the identity referenced by every agent using this server.
+The `slug` is what agents use in `mcp_server_ref.slug` and in tool-list entries such as `mcp__<slug>` and `mcp__<slug>__<tool>`. Choose a slug that is short, descriptive, and stable — it forms part of the identity referenced by every agent using this server.
 
 ## Spec Fields
 
@@ -116,9 +109,7 @@ All spec fields are defined by `McpServerSpec` in `ai/stigmer/agentic/mcpserver/
 | `spec.tags` | No | Categorization tags for marketplace discoverability. Use lowercase, hyphenated values. Tags here are separate from `metadata.tags` — these describe the server's domain and capabilities. |
 | `spec.stdio` | Conditionally required | Configuration for a subprocess-based server. Exactly one of `stdio` or `http` must be specified. See [server-types.md](server-types.md). |
 | `spec.http` | Conditionally required | Configuration for an HTTP-based server. Exactly one of `stdio` or `http` must be specified. See [server-types.md](server-types.md). |
-| `spec.default_enabled_tools` | No | Tools enabled from this server by default. Empty list = all tools are enabled. Agents can restrict further via `enabled_tools` in `mcp_server_usages`. Tool names must match exactly what the server reports via `tools/list`. **Only names from `discovered_capabilities.tools` are valid — never include names from `discovered_capabilities.resource_templates`.** |
 | `spec.env_spec` | No | Required environment variables (schema only). Actual values are provided when each run starts. See [Environment Specification](#environment-specification). |
-| `spec.default_tool_approvals` | No | Tools that require user approval by default for all agents using this server. The base layer of the approval policy chain. See [tool-approval-policies.md](tool-approval-policies.md). |
 
 ### Server Type (oneof — required)
 
@@ -139,28 +130,11 @@ spec:
 
 See [server-types.md](server-types.md) for the complete field reference and guidance on choosing between them.
 
-### Default Enabled Tools
+### Tools and Approval
 
-`default_enabled_tools` acts as the **McpServer-level tool gate** — the default set of tools that are available when an agent references this server without specifying `enabled_tools`.
+An McpServer declares no tool settings. Every tool the server reports is available to an agent that uses it, unless the agent's `tools` and `disallowed_tools` lists leave it out (`mcp__<server-slug>`, `mcp__<server-slug>__<tool>`). See [Agent docs: mcp-server-integration.md](../../agent/docs/mcp-server-integration.md).
 
-```yaml
-spec:
-  default_enabled_tools:
-    - search_code
-    - get_file_contents
-    - list_issues
-    - create_pull_request
-    # delete_repository is NOT here — too dangerous to enable by default
-```
-
-The override chain for tool availability:
-
-| Priority | Where Set | What It Controls |
-|---|---|---|
-| 1 (lowest) | `McpServer.default_enabled_tools` | Default tools enabled for all agents |
-| 2 | `Agent.McpServerUsage.enabled_tools` | Per-agent tool restriction (subset of McpServer defaults, or full set if McpServer default is empty) |
-
-An empty `default_enabled_tools` means all tools are available — agents then restrict using `enabled_tools`. A non-empty list acts as a platform-level gate that agents can only further restrict, never expand.
+A tool asks for approval before it runs when the server itself marks it destructive: its MCP annotation `destructiveHint` is `true`. Connecting records that on `status.discovered_capabilities.tools[].destructive_hint`. No other MCP tool asks. See [capability-discovery.md](capability-discovery.md).
 
 ### Environment Specification
 
@@ -247,8 +221,7 @@ See [capability-discovery.md](capability-discovery.md) for the full `stigmer dis
 
 - [README.md](README.md) — Overview, lifecycle, and table of contents
 - [server-types.md](server-types.md) — Stdio vs HTTP: when to use each, full field reference
-- [tool-approval-policies.md](tool-approval-policies.md) — Default approval policies and message templates
 - [capability-discovery.md](capability-discovery.md) — Discovered capabilities and the CLI discovery workflow
 - [examples.md](examples.md) — Complete YAML examples from minimal to marketplace-ready
 - [validation-checklist.md](validation-checklist.md) — Pre-apply checklist and common pitfalls
-- [Agent docs: mcp-server-integration.md](../agent/docs/mcp-server-integration.md) — How agents reference and configure McpServers
+- [Agent docs: mcp-server-integration.md](../../agent/docs/mcp-server-integration.md) — How agents reference and configure McpServers

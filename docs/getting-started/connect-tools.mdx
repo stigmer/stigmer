@@ -1,15 +1,15 @@
 ---
 title: Connect your tools
 description:
-  Give your agent tools and add approval policies so it can look up data, take
-  actions, and ask for human approval before doing anything risky.
+  Give your agent tools so it can look up data, take actions, and ask for human
+  approval before doing anything risky.
 ---
 
 ## What you'll build
 
 An Agent that can **look up real data**, **take actions on your behalf**, and
 **ask for human approval** before doing anything risky. You will connect an MCP
-server, see its tools and approval policies appear automatically, and wire
+server, see its tools appear automatically, with the risky ones marked, and wire
 everything into your code.
 
 **Time**: ~15 minutes **Prerequisites**: Completed
@@ -97,8 +97,8 @@ Here is what that flow looks like:
 ## Connect
 
 Your MCP server is registered, but Stigmer doesn't know what tools it provides
-yet. Connecting reaches out to the live server, catalogs every tool, and
-classifies each one for approval — one flow, started from one button.
+yet. Connecting reaches out to the live server and catalogs every tool, with the
+notes the server keeps about each one — one flow, started from one button.
 
 1. Open the MCP server detail page.
 2. Click **Connect**. If the server needs credentials (API keys, tokens),
@@ -108,24 +108,25 @@ classifies each one for approval — one flow, started from one button.
    connects to the live server, and starts discovery. This takes a few seconds —
    it's talking to the real endpoint.
 
-When discovery finishes, the Tools tab fills in and every tool carries a
-classification. Read-only tools pass through. Tools that modify data, move
-money, or have side effects get flagged for human approval:
+When discovery finishes, the Tools tab fills in. A tool the server marks
+destructive (its author set the MCP annotation `destructiveHint: true`) asks for
+human approval before it runs. Every other tool runs without asking:
 
 <ScenarEmbed
   id="mcp-server-connect-tour"
   title="Connect and discover tools walkthrough"
 />
 
-In this example, three tools were found: `get_order` (read), `list_orders`
-(read), and `process_return` (write). The first two run automatically.
-`process_return` requires human approval — the Agent will pause and present the
-action details before executing.
+In this example, three tools were found: `get_order`, `list_orders`, and
+`process_return`. The server marks `process_return` destructive, so it asks for
+human approval — the Agent will pause and present the action details before
+executing. The first two run automatically.
 
 <Callout type="info">
-  Approval policies are stored on the MCP server resource. Every Agent that uses
-  this server inherits the same policies. You can pin manual overrides or let
-  Stigmer re-classify on each reconnect.
+  The server's author decides which tools are destructive, and every Agent that
+  uses the server asks before those tools. To keep an Agent away from a tool
+  altogether, leave it out of the Agent's `tools` list — see [Approval
+  Flows](/docs/concepts/approval-flows).
 </Callout>
 
 </Step>
@@ -263,7 +264,7 @@ Order #ORD-4821 has been shipped.
 
 ## Handle approvals in your code
 
-Now try a request that triggers the approval policy. Update the message:
+Now try a request that needs an approval. Update the message:
 
 ```
 "Process a return for order #ORD-4821 — the headphones are defective."
@@ -451,12 +452,12 @@ The return has been processed.
 ## What just happened
 
 You connected tools to your Agent through an MCP server. Connect discovered the
-tools and classified approval policies automatically. In your code, two changes
-made the difference: `mcpServerRefs` to give the Agent access to tools, and
-`submitApproval` to handle the human-in-the-loop flow.
+tools and which of them ask for approval automatically. In your code, two
+changes made the difference: `mcpServerRefs` to give the Agent access to tools,
+and `submitApproval` to handle the human-in-the-loop flow.
 
 Your Agent now knows your domain (Skills), uses your tools (MCP servers), and
-follows your rules (approval policies). But look at your Session creation code —
+asks before risky actions (approvals). But look at your Session creation code —
 every time you create a Session, you list every Skill and every MCP server. Add
 a new feature tomorrow, and you'll copy-paste that list again. A colleague
 building the checkout page won't know which references to include. And the Agent
@@ -483,7 +484,6 @@ name, role, and instructions — then reference it with a single line.
     and Figma.
   </Card>
   <Card href="/docs/concepts/tools" title="Tools concept">
-    How tool discovery, approval policies, and sandbox isolation work under the
-    hood.
+    How tool discovery, approvals, and sandbox isolation work under the hood.
   </Card>
 </Cards>

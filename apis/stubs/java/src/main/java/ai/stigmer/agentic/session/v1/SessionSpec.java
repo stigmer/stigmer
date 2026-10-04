@@ -553,7 +553,8 @@ java.lang.String defaultValue) {
    *
    * Augments the agent's tool set for this specific conversation without
    * modifying the agent blueprint. Each usage references an McpServer
-   * resource.
+   * resource. The agent's tool lists govern these servers like its own: an
+   * agent whose tools list does not name a session server cannot use it.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -568,7 +569,8 @@ java.lang.String defaultValue) {
    *
    * Augments the agent's tool set for this specific conversation without
    * modifying the agent blueprint. Each usage references an McpServer
-   * resource.
+   * resource. The agent's tool lists govern these servers like its own: an
+   * agent whose tools list does not name a session server cannot use it.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -584,7 +586,8 @@ java.lang.String defaultValue) {
    *
    * Augments the agent's tool set for this specific conversation without
    * modifying the agent blueprint. Each usage references an McpServer
-   * resource.
+   * resource. The agent's tool lists govern these servers like its own: an
+   * agent whose tools list does not name a session server cannot use it.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -599,7 +602,8 @@ java.lang.String defaultValue) {
    *
    * Augments the agent's tool set for this specific conversation without
    * modifying the agent blueprint. Each usage references an McpServer
-   * resource.
+   * resource. The agent's tool lists govern these servers like its own: an
+   * agent whose tools list does not name a session server cannot use it.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -614,7 +618,8 @@ java.lang.String defaultValue) {
    *
    * Augments the agent's tool set for this specific conversation without
    * modifying the agent blueprint. Each usage references an McpServer
-   * resource.
+   * resource. The agent's tool lists govern these servers like its own: an
+   * agent whose tools list does not name a session server cannot use it.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -2958,7 +2963,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -2976,7 +2982,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -2994,7 +3001,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3012,7 +3020,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3037,7 +3046,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3059,7 +3069,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3083,7 +3094,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3108,7 +3120,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3130,7 +3143,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3152,7 +3166,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3175,7 +3190,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3196,7 +3212,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3217,7 +3234,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3232,7 +3250,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3250,7 +3269,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3269,7 +3289,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3284,7 +3305,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -3300,7 +3322,8 @@ java.lang.String defaultValue) {
      *
      * Augments the agent's tool set for this specific conversation without
      * modifying the agent blueprint. Each usage references an McpServer
-     * resource.
+     * resource. The agent's tool lists govern these servers like its own: an
+     * agent whose tools list does not name a session server cannot use it.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>

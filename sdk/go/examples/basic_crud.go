@@ -32,9 +32,12 @@ func BasicCRUD() {
 		McpServerUsages: []*stigmer.McpServerUsageInput{
 			{
 				McpServerRef: stigmer.ResourceRef{Org: "acme", Slug: "github"},
-				EnabledTools: []string{"get_file_contents", "create_pull_request_review"},
 			},
 		},
+		// Claude Code's tool-list names: this reviewer reads code and posts a
+		// review, and never runs shell commands.
+		Tools:           []string{"Read", "Grep", "Glob", "mcp__github__get_file_contents", "mcp__github__create_pull_request_review"},
+		DisallowedTools: []string{"Bash"},
 	})
 	if err != nil {
 		log.Fatal(err)

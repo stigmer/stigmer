@@ -39,10 +39,8 @@ from ._search import ApiResourceKind, SearchClient, SearchParams, SearchResponse
 from ._gen._agent import (
     AgentClient,
     AgentInput,
-    McpAccessInput,
     McpServerUsageInput,
     SubAgentInput,
-    ToolApprovalOverrideInput,
 )
 from ._gen._agentexecution import (
     AgentExecutionClient,
@@ -62,7 +60,6 @@ from ._gen._mcpserver import (
     McpServerClient,
     McpServerInput,
     StdioServerConfigInput,
-    ToolApprovalPolicyInput,
 )
 from ._gen._oauthapp import OAuthAppClient, OAuthAppInput
 from ._gen._organization import OrganizationClient, OrganizationInput
@@ -188,7 +185,6 @@ __all__ = [
     "IdentityAccountInput",
     "IdentityProviderInput",
     "LocalPathSourceInput",
-    "McpAccessInput",
     "McpServerInput",
     "McpServerUsageInput",
     "OAuthAppInput",
@@ -197,8 +193,6 @@ __all__ = [
     "SkillInput",
     "StdioServerConfigInput",
     "SubAgentInput",
-    "ToolApprovalOverrideInput",
-    "ToolApprovalPolicyInput",
     "WorkflowDocumentInput",
     "WorkflowExecutionInput",
     "WorkflowInput",

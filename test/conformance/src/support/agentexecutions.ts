@@ -29,12 +29,16 @@ import type {
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ConformanceClients } from "../harness/clients";
-import type { McpToolFixture } from "../harness/mcp-server";
+import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
+import type { FixtureTracker } from "../harness/fixtures";
+import { DESTRUCTIVE_ECHO_TOOL_NAME, type FixtureTool, type McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import type { TargetProfile } from "../targets/target";
 import { type AgentRefInit, makeAgentRef } from "./agents";
 import { type ExecutionValueInit, makeExecutionValues } from "./executioncontexts";
 import { type PollCoreOptions, pollUntil } from "./execution-poll";
+import { makeHttpMcpServer } from "./mcpservers";
 
 export const AGENT_EXECUTION_API_VERSION = "agentic.stigmer.ai/v1";
 export const AGENT_EXECUTION_KIND = "AgentExecution";
@@ -312,4 +316,46 @@ export function requireMcpFixture(target: TargetProfile): McpToolFixture {
     );
   }
   return target.mcpFixture();
+}
+
+export interface ConnectedMcpServerOptions {
+  org: string;
+  name: string;
+  // The fixture's tool surface to register (McpToolFixture.url).
+  tools: readonly FixtureTool[];
+}
+
+// An McpServer on the fixture, created AND connected. The approval default
+// asks before a tool its server marks destructive, and the runner reads that
+// mark only from the stored discovery (DiscoveredTool.destructive_hint), so an
+// arm that needs the gate connects first. The connect's outcome and the stored
+// hints are asserted here, so an arm whose gate never parks is red at its
+// cause rather than as a timeout waiting for WAITING_FOR_APPROVAL. The delete
+// is deferred on the caller's tracker. `expect` is imported at the call for
+// the reason submitApprovalPerContract gives.
+export async function createConnectedMcpServer(
+  clients: ConformanceClients,
+  mcp: McpToolFixture,
+  fixtures: FixtureTracker,
+  opts: ConnectedMcpServerOptions,
+): Promise<McpServer> {
+  const { expect } = await import("vitest");
+  const created = await clients.mcpServerCommand.create(
+    makeHttpMcpServer({ org: opts.org, name: opts.name, url: mcp.url(opts.tools) }),
+  );
+  fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: created.metadata!.id }));
+
+  const connected = await clients.mcpServerCommand.connect({ mcpServerId: created.metadata!.id, org: opts.org });
+  const connect = connected.status?.connectStatus;
+  expect(
+    connect?.phase,
+    `connect of ${created.metadata!.id}: ${connect?.failureCode ?? ""} ${connect?.failureMessage ?? ""}`,
+  ).toBe(ConnectPhase.succeeded);
+  const hints = Object.fromEntries(
+    (connected.status?.discoveredCapabilities?.tools ?? []).map((tool) => [tool.name, tool.destructiveHint]),
+  );
+  expect(hints, "the stored discovery marks exactly the fixture's destructive tool").toEqual(
+    Object.fromEntries(opts.tools.map((tool) => [tool, tool === DESTRUCTIVE_ECHO_TOOL_NAME])),
+  );
+  return connected;
 }

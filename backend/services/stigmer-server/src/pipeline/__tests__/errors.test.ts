@@ -16,7 +16,7 @@ import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { Health, HealthCheckRequestSchema } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { describe, expect, it } from "vitest";
 
-import { ERROR_REASON_DOMAIN, failedPreconditionError } from "../errors.js";
+import { ERROR_REASON_DOMAIN, failedPreconditionError, quoteJoin } from "../errors.js";
 
 describe("failedPreconditionError", () => {
   it("carries no detail without a reason", () => {
@@ -68,5 +68,15 @@ describe("failedPreconditionError", () => {
     expect(info?.reason).toBe("PAYMENT_METHOD_REQUIRED");
     expect(info?.domain).toBe(ERROR_REASON_DOMAIN);
     expect(info?.metadata).toEqual({ org: "org_2" });
+  });
+});
+
+describe("quoteJoin", () => {
+  it("quotes each name in single quotes, comma-separated", () => {
+    expect(quoteJoin(["a", "b c"])).toBe("'a', 'b c'");
+  });
+
+  it("renders an empty list as an empty string", () => {
+    expect(quoteJoin([])).toBe("");
   });
 });

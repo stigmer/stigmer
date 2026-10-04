@@ -64,6 +64,7 @@ import {
   hookWrite,
   hookShell,
   hookMcp,
+  NO_MCP_DEFAULT,
 } from "../__test-utils__/cursor-hook-harness.js";
 import {
   SubAgentExecutionSchema,
@@ -305,15 +306,11 @@ describe("Cursor HITL resume — append-only transcript", () => {
   it.skipIf(!hasBash)("FIX: the approved tools are ALLOWED by the hook on resume — not re-denied (the loop's source)", () => {
     const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(persistedRunOneMessages());
     const grants = buildApprovalGrants(pendingApprovals, decisions);
-    const state = buildApprovalState(new Map(), false, new Set(), grants);
+    const state = buildApprovalState(NO_MCP_DEFAULT, false, new Set(), grants);
 
     const harness = setupCursorHookHarness({
       grants: state.approvedGrants,
-      mcpPolicies: {
-        list_apps: { requiresApproval: true },
-        get_app_state: { requiresApproval: true },
-        click: { requiresApproval: true },
-      },
+      destructiveMcpTools: ["list_apps", "get_app_state", "click"],
     });
 
     // Both approved tools are allowed on the resumed turn (fresh ids, same name).
@@ -428,7 +425,7 @@ describe("Cursor HITL resume — two approvals then clean completion (no loop)",
   it.skipIf(!hasBash)("the built-in grants actually let the hook allow both re-issues (full closure)", () => {
     const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(committedBuiltInApprovals());
     const grants = buildApprovalGrants(pendingApprovals, decisions);
-    const state = buildApprovalState(new Map(), false, new Set(), grants);
+    const state = buildApprovalState(NO_MCP_DEFAULT, false, new Set(), grants);
 
     const harness = setupCursorHookHarness({ grants: state.approvedGrants });
     // Exactly the two approved resources are allowed on resume...

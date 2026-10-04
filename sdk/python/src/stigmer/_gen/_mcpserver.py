@@ -166,9 +166,7 @@ class McpServerInput:
     tags: list[str] = field(default_factory=list)
     stdio: StdioServerConfigInput | None = None
     http: HttpServerConfigInput | None = None
-    default_enabled_tools: list[str] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
-    pinned_tool_approvals: list[ToolApprovalPolicyInput] = field(default_factory=list)
     repository_url: str = ""
     github_stars: int = 0
     auth: McpServerAuthInput | None = None
@@ -186,12 +184,8 @@ class McpServerInput:
             spec.stdio.CopyFrom(self.stdio._to_proto())
         if self.http is not None:
             spec.http.CopyFrom(self.http._to_proto())
-        if self.default_enabled_tools:
-            spec.default_enabled_tools.extend(self.default_enabled_tools)
         for k, v in self.env.items():
             spec.env[k].CopyFrom(v._to_proto())
-        for item in self.pinned_tool_approvals:
-            spec.pinned_tool_approvals.append(item._to_proto())
         if self.auth is not None:
             spec.auth.CopyFrom(self.auth._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
@@ -250,23 +244,6 @@ class HttpServerConfigInput:
             msg.headers.update(self.headers)
         if self.query_params:
             msg.query_params.update(self.query_params)
-        return msg
-
-
-@dataclass
-class ToolApprovalPolicyInput:
-    """SDK input type for ToolApprovalPolicy."""
-
-    tool_name: str = ""
-    message: str = ""
-    from_destructive_hint: bool = False
-
-    def _to_proto(self) -> spec_pb2.ToolApprovalPolicy:
-        msg = spec_pb2.ToolApprovalPolicy(
-            tool_name=self.tool_name,
-            message=self.message,
-            from_destructive_hint=self.from_destructive_hint,
-        )
         return msg
 
 

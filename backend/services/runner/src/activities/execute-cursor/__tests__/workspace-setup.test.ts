@@ -27,6 +27,7 @@ import {
   buildMergedConfig,
 } from "../workspace-setup.js";
 import { buildApprovalState } from "../approval-state.js";
+import { NO_MCP_DEFAULT } from "../__test-utils__/cursor-hook-harness.js";
 import { getHitlGateDir } from "../../../shared/workspace/platform-dir.js";
 
 const tempDirs: string[] = [];
@@ -276,7 +277,7 @@ describe("buildMergedConfig — foreign gating hook reporting (issue #205)", () 
 });
 
 describe("installHitlGate / removeHitlGate", () => {
-  const approvalState = buildApprovalState(new Map(), false, new Set());
+  const approvalState = buildApprovalState(NO_MCP_DEFAULT, false, new Set());
 
   // Sandbox HOME so the workspace-scoped gate dir (`~/.stigmer/hitl-gate/<hash>`)
   // lands under the per-test temp root, asserted and cleaned with everything else.

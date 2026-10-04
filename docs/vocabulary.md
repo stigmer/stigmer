@@ -65,7 +65,7 @@ definitions, API names, and examples follow below.
 | **Runner**        | compute               | runner ("where your Agent runs")       | Runner              | Runner                                 | runner         |
 | **Workflow**      | multi-step automation | Workflow                               | Workflow            | Workflow, `kind: Workflow`             | Workflow       |
 | **Harness**       | execution engine      | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`         | harness        |
-| **Approval flow** | approval flow         | approval flow                          | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
+| **Approval flow** | approval flow         | approval flow                          | approval flow, HITL | `destructive_hint`, `submitApproval`   | HITL, approval |
 | **Organization**  | Organization          | Organization                           | Organization        | Organization, `kind: organization`     | Organization   |
 | **Team**          | teams                 | ---                                    | Team                | Team, `kind: team`                     | Team           |
 | **Environment**   | Environment           | Environment                            | Environment         | Environment, `kind: Environment`       | Environment    |
@@ -311,22 +311,23 @@ An external tool connection that lets an Agent interact with other systems.
   `stigmer mcp-server` (start the Stigmer MCP server),
   `stigmer apply -f mcpserver.yaml`, `stigmer get mcp-server <name>`.
 - **YAML fields**: `spec.stdio_server_config`, `spec.http_server_config`,
-  `spec.default_enabled_tools`, `spec.pinned_tool_approvals` (manual overrides),
-  `status.tool_approvals` (classified automatically by Connect). Agent
-  references via: `spec.mcp_server_usages` (repeated `McpServerUsage` entries
-  with `mcp_server_ref` and `enabled_tools`).
+  `status.discovered_capabilities.tools[].destructive_hint` (recorded by Connect
+  from the tool's MCP `destructiveHint` annotation). Agent references via:
+  `spec.mcp_server_usages` (repeated `McpServerUsage` entries with
+  `mcp_server_ref`); the Agent narrows a server's tools with `spec.tools` and
+  `spec.disallowed_tools` (`mcp__<server-slug>`, `mcp__<server-slug>__<tool>`).
 - **Protocol**: MCP stands for Model Context Protocol, an open standard. Spell
   out on first use in any context. Link to `https://modelcontextprotocol.io` in
   docs.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                                                           |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Connect your Agent to your systems. It checks inventory, creates tickets, updates records---with the same APIs your team already uses."                                                       |
-| Quickstart | "Give your Agent tools by adding an MCP server---a connection to an external system like GitHub, a database, or a file store."                                                                 |
-| Concepts   | "An MCP Server is a bridge between your Agent and an external system. The Agent discovers what tools are available, and Stigmer handles input validation and execution sandboxing."            |
-| Reference  | "`McpServer`---a managed resource defining an MCP server connection. Supports `stdio` and `http` transport. Tools are discovered via the MCP protocol or declared in `default_enabled_tools`." |
+| Context    | Copy                                                                                                                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sales site | "Connect your Agent to your systems. It checks inventory, creates tickets, updates records---with the same APIs your team already uses."                                             |
+| Quickstart | "Give your Agent tools by adding an MCP server---a connection to an external system like GitHub, a database, or a file store."                                                       |
+| Concepts   | "An MCP Server is a bridge between your Agent and an external system. The Agent discovers what tools are available, and Stigmer handles input validation and execution sandboxing."  |
+| Reference  | "`McpServer`---a managed resource defining an MCP server connection. Supports `stdio` and `http` transport. Tools are discovered via the MCP protocol when the server is connected." |
 
 **Bad examples**:
 
@@ -351,7 +352,8 @@ An ongoing conversation with an Agent across multiple messages.
   built-in assistant), `status.agent_version_hash` (the Agent version the
   conversation runs until someone updates it), `thread_id` (persists across
   executions), `subject` (display title), `workspace_entries`, `sandbox_id`.
-  Sessions can override Agent-level `mcp_server_usages` and `skill_refs`.
+  Sessions can add `mcp_server_usages` and `skill_refs` to the Agent's; the
+  Agent's tool lists still govern every tool.
 - **Related terms**: A Session contains multiple Agent Executions. Each message
   exchange within a Session is one execution. The proto also uses `MessageType`
   (HUMAN, AI, TOOL, SYSTEM) for individual messages.
@@ -511,8 +513,10 @@ action before proceeding.
   name in marketing.
 - **API surface**: There is no single `ApprovalFlow` resource. Approvals are
   configured through two mechanisms:
-  1. **Tool-call approval**---configured via `ToolApprovalPolicy` on McpServer
-     or `tool_approval_overrides` on Agent. Submitted via
+  1. **Tool-call approval**---not configured: Stigmer asks before shell
+     commands, file writes and deletes, and MCP tools whose server marks them
+     destructive (`destructive_hint`). An Agent's `tools` and `disallowed_tools`
+     lists decide which tools it has at all. Submitted via
      `AgentExecutionCommandController.submitApproval`. Statuses:
      `TOOL_CALL_WAITING_APPROVAL`, `TOOL_CALL_SKIPPED`. Actions: `APPROVE`,
      `SKIP`, `REJECT`.
@@ -525,19 +529,19 @@ action before proceeding.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                                                                                                             |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sales site | "Your Agent handles routine requests on its own. For anything sensitive, it asks a human first. You set the rules."                                                                                                                              |
-| Quickstart | "Add an approval flow---tell your Agent which actions need human approval before it proceeds."                                                                                                                                                   |
-| Concepts   | "An approval flow is a checkpoint. The Agent pauses, presents what it wants to do and why, and waits for a human to approve or reject. The Agent's execution is durable---it waits indefinitely without losing state."                           |
-| Reference  | "Tool-call approvals are configured via `ToolApprovalPolicy` on the `McpServer` resource or overridden per-Agent via `tool_approval_overrides`. The policy chain is: McpServer defaults → Agent overrides → Execution-level `auto_approve_all`." |
+| Context    | Copy                                                                                                                                                                                                                           |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sales site | "Your Agent handles routine requests on its own. For anything risky, it asks a human first. You decide which tools it can use."                                                                                                |
+| Quickstart | "Your Agent asks before risky actions---shell commands, file changes, and any tool its server marks destructive."                                                                                                              |
+| Concepts   | "An approval flow is a checkpoint. The Agent pauses, presents what it wants to do and why, and waits for a human to approve or reject. The Agent's execution is durable---it waits indefinitely without losing state."         |
+| Reference  | "Tool-call approval is required for shell commands, file writes and deletes, and MCP tools with `destructive_hint`. `auto_approve_all` resolves every approval for one execution; `tools` and `disallowed_tools` still apply." |
 
 **Bad examples**:
 
 | Context    | Copy                                    | Problem                                                                    |
 | ---------- | --------------------------------------- | -------------------------------------------------------------------------- |
 | Sales site | "Enable HITL for sensitive operations." | "HITL" is internal jargon.                                                 |
-| Quickstart | "Configure the ToolApprovalPolicy."     | API-level detail in a tutorial. Say "add an approval rule."                |
+| Quickstart | "Set `destructive_hint` on the tool."   | API-level detail in a tutorial. Say "the server marks the tool risky."     |
 | Any        | "Set up human-in-the-loop."             | Hyphenated compound used as an instruction. Prefer "add an approval flow." |
 
 ---
@@ -952,8 +956,9 @@ A delegated specialist Agent that a parent Agent can call to handle a specific
 subtask.
 
 - **Capitalize**: Yes, hyphenated: "Sub-Agent."
-- **API surface**: `SubAgent` message in `agent/v1/spec.proto`. Fields:
-  `mcp_access`, `skill_refs`, `model_override`. Execution tracking:
+- **API surface**: `SubAgent` message in `agent/v1/spec.proto`. Fields: `tools`,
+  `disallowed_tools` (narrow the parent's tools, never widen them),
+  `skill_refs`, `model_override`. Execution tracking:
   `agentexecution/v1/subagent.proto`.
 - **Context rule**: Concepts and reference only. Never on the sales site. In
   tutorials, if needed, describe as "an Agent that calls another Agent."
@@ -1264,7 +1269,7 @@ description.
 
 **What**: The OSS README showed `mcpServers:` as a YAML field on Agent
 definitions. The proto field is `mcp_server_usages` (a repeated `McpServerUsage`
-message containing `mcp_server_ref` and `enabled_tools`).
+message containing `mcp_server_ref`).
 
 **Investigation**: The CLI Agent loader (`agent/loader.go`) uses strict
 `protojson` `Unmarshal` with `DiscardUnknown: false`. There is no alias or
@@ -1282,8 +1287,8 @@ shorthand exists or is planned.
 **What**: The word "approval" refers to two distinct mechanisms:
 
 1. **Tool-call approval**---an Agent pauses before executing a tool and asks a
-   human to approve. Configured via `ToolApprovalPolicy` on McpServer or
-   overridden per-Agent. Submitted via
+   human to approve. Required for shell commands, file writes and deletes, and
+   MCP tools their server marks destructive. Submitted via
    `AgentExecutionCommandController.submitApproval`.
 
 2. **Workflow-task approval**---a dedicated Workflow task kind
@@ -1298,8 +1303,8 @@ both creates ambiguity in documentation.
 
 - `agentexecution/v1/approval.proto`, `agentexecution/v1/command.proto`
 - `workflowexecution/v1/api.proto` (WorkflowTask with WORKFLOW_TASK_APPROVAL)
-- `mcpserver/v1/spec.proto` (ToolApprovalPolicy)
-- `agent/v1/spec.proto` (`tool_approval_overrides`)
+- `mcpserver/v1/status.proto` (`DiscoveredTool.destructive_hint`)
+- `agent/v1/spec.proto` (`tools`, `disallowed_tools`)
 
 **Recommendation**: In customer-facing documentation, distinguish between:
 

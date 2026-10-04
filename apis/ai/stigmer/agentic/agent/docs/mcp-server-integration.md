@@ -1,16 +1,24 @@
 # MCP Server Integration
 
-How Agents declare and use MCP servers, including tool selection, approval overrides, and runtime resolution.
+How Agents declare and use MCP servers, narrow them with the two tool lists, and
+which MCP tools ask for approval before they run.
 
 ## What Are MCP Servers?
 
-MCP (Model Context Protocol) servers provide external tools and capabilities to AI agents through a standardized protocol. They enable agents to interact with external systems (GitHub, Slack, databases), access local resources, and execute custom operations.
+MCP (Model Context Protocol) servers provide external tools and capabilities to
+AI agents through a standardized protocol. They enable agents to interact with
+external systems (GitHub, Slack, databases), access local resources, and execute
+custom operations.
 
-MCP servers are first-class platform resources (`kind: mcp_server`, enum value 44). They are created and managed independently, then referenced by agents. See [resource-references.md](resource-references.md) for the reference format.
+MCP servers are first-class platform resources (`kind: mcp_server`, enum value
+44). They are created and managed independently, then referenced by agents. See
+[resource-references.md](resource-references.md) for the reference format.
 
 ## How Agents Reference MCP Servers
 
-Agents declare MCP server usage via `spec.mcp_server_usages`. Each entry references a McpServer resource and optionally restricts which tools are available and customizes approval policies.
+Agents declare MCP server usage via `spec.mcp_server_usages`. Each entry
+references one McpServer resource. Every tool of a used server is available to
+the agent unless the agent's tool lists say otherwise.
 
 ```yaml
 spec:
@@ -18,99 +26,98 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: github
-      enabled_tools:
-        - search_code
-        - create_pr
-        - get_file
-      tool_approval_overrides:
-        - tool_name: delete_repository
-          requires_approval: true
-          message: "Delete repository: {{args.repo_name}}"
+  tools: [Read, Grep, mcp__github]
+  disallowed_tools: [mcp__github__delete_repository]
 ```
 
 ## McpServerUsage Fields
 
 Defined by `McpServerUsage` in `ai/stigmer/agentic/agent/v1/spec.proto`.
 
-| Field | Required | Description |
-|---|---|---|
-| `mcp_server_ref` | Yes | Reference to a McpServer resource. Must have `kind: mcp_server`. See [resource-references.md](resource-references.md). |
-| `enabled_tools` | No | Tools to enable from this MCP server. Empty list = use the McpServer's `default_enabled_tools` (or all tools if not set). Tool names must match exactly what the MCP server reports via `tools/list`. **Only names from `discovered_capabilities.tools` are valid here — never include names from `discovered_capabilities.resource_templates` (resource templates are read-only data endpoints, not callable tools; including them causes a fatal runtime error).** |
-| `tool_approval_overrides` | No | Per-agent approval policy customization (see below). |
+| Field            | Required | Description                                                                                                            |
+| ---------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `mcp_server_ref` | Yes      | Reference to a McpServer resource. Must have `kind: mcp_server`. See [resource-references.md](resource-references.md). |
 
-The `mcp_server_ref.slug` from each entry must be **unique** within a single agent's `mcp_server_usages`. You cannot reference the same MCP server twice.
+The `mcp_server_ref.slug` from each entry must be **unique** within a single
+agent's `mcp_server_usages`. You cannot reference the same MCP server twice.
 
-The slug from `mcp_server_ref` is also how sub-agents identify which MCP server to access — see [sub-agents.md](sub-agents.md).
+The slug is also how the tool lists name the server's tools:
+`mcp__<server-slug>` for all of them, `mcp__<server-slug>__<tool>` for one.
 
-## Tool Approval Overrides
+## Narrowing Tools: `tools` and `disallowed_tools`
 
-Agents can customize which tools require user approval before execution. This is the per-agent layer of the approval policy chain.
+An agent and each of its sub-agents can carry Claude Code's two lists, in Claude
+Code's names:
 
-```yaml
-tool_approval_overrides:
-  - tool_name: send_email
-    requires_approval: true
-    message: "Send email to {{args.recipient}}"
-  - tool_name: delete_repository
-    requires_approval: false
-```
+- `tools`: only these. Empty means every tool the agent has.
+- `disallowed_tools`: never these.
 
-### Fields
+`disallowed_tools` is applied first, then `tools` against what remains, so a
+tool named in both is excluded.
 
-Defined by `ToolApprovalOverride` in `ai/stigmer/agentic/agent/v1/spec.proto`.
+| Entry                                                       | Means                                                                                                                       |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `Read`, `Grep`, `Glob`, `Write`, `Edit`, `Bash`, `WebFetch` | One built-in tool.                                                                                                          |
+| `Bash(git push *)`                                          | A specifier in parentheses is accepted and governs the whole tool.                                                          |
+| `Agent(explore)`                                            | In the main agent's `tools`, limits which sub-agents it may start (native harness; the Cursor harness refuses such a turn). |
+| `mcp__<server-slug>`                                        | Every tool of one MCP server.                                                                                               |
+| `mcp__<server-slug>__<tool>`                                | One tool of one MCP server, by the name the server reports in `tools/list`.                                                 |
+| `mcp__*`                                                    | Every MCP tool.                                                                                                             |
 
-| Field | Required | Description |
-|---|---|---|
-| `tool_name` | Yes | Must match the MCP server's tool name exactly (case-sensitive). Minimum 1 character. |
-| `requires_approval` | Yes | `true`: requires approval (even if the McpServer default doesn't). `false`: no approval needed (overrides any McpServer default). |
-| `message` | No | Approval prompt shown to users. Supports `{{args.field}}` template placeholders; a placeholder naming a secret argument (`password`, `token`, `secret`, `api_key`, `apikey`, `credentials`, `auth`, `authorization`) shows `[REDACTED]`. See [Message Inheritance](#message-inheritance). |
+Rules that follow from the lists:
 
-### Message Inheritance
+- They hold on both engines, and when a run is set to approve everything.
+- A sub-agent starts from the parent's tools and can narrow them, never widen
+  them. See [sub-agents.md](sub-agents.md).
+- With `Read` excluded, the agent still reads its own skills, inputs and plan.
+- The platform's own tools (channel messaging, conversation participation,
+  memory, and `think`) are outside the lists.
+- The shape of each entry is checked at apply. Names are resolved at run time:
+  an entry that names no tool the run has is ignored, and a `tools` list in
+  which no entry resolves refuses the run, naming the entries.
+- Servers attached to a session are governed by the agent's lists like its own
+  servers.
 
-When `requires_approval` is `true` and `message` is empty, the system resolves the approval message using this fallback chain:
+Find a server's tool names by querying it:
 
-1. If the McpServer has a `default_tool_approvals` entry for this tool with a message, that message is used.
-2. Otherwise, the system auto-generates: `"Execute tool: {tool_name}"`.
-
-When `message` is provided, it **overrides** any McpServer default message for this tool.
-
-Guidelines for effective approval messages:
-- Be specific to this agent's context
-- Include the most important argument values via `{{args.field}}` placeholders
-- Keep under 100 characters for clean UI display
-
-### Silent Failure for Invalid Tool Names
-
-If a `tool_name` in `tool_approval_overrides` does not match any tool in the referenced McpServer's `tools/list`, the override is **silently ignored** — no error, no approval applied.
-
-This is intentional for forward-compatibility: MCP servers can add or remove tools without breaking existing agent configurations. However, it means a **typo in `tool_name` will silently disable the approval policy** for that tool. There is no runtime warning.
-
-Verify tool names by querying the MCP server before writing overrides:
 ```bash
 stigmer get mcp-server github --output yaml
 ```
 
-## Tool Approval Policy Chain
+Only names under `discovered_capabilities.tools` are tools. Resource templates
+are read-only data endpoints, and a tool list never names them.
 
-Approval policies are resolved in order of increasing priority:
+## Which MCP Tools Ask for Approval
 
-| Priority | Source | Description |
-|---|---|---|
-| 1 (lowest) | `McpServer.default_tool_approvals` | Platform/org defaults set on the MCP server resource |
-| 2 | `Agent.McpServerUsage.tool_approval_overrides` | Per-agent customization (this document) |
-| 3 (highest) | `AgentExecution.auto_approve_all` | Runtime bypass — when set to `true` on an AgentExecution, all tools run without approval regardless of other policies |
+Stigmer asks before shell commands, file writes and deletes, and any MCP tool
+whose server marks it destructive (`destructiveHint: true` in the tool's MCP
+annotations, recorded at connect as
+`discovered_capabilities.tools[].destructive_hint`). Nothing else asks. The
+approval card reads `Execute <tool>`.
 
-Each layer can override the one below it. An agent can make a tool require approval even if the McpServer default says it doesn't, and a specific execution can bypass all approvals entirely.
+There is no per-agent or per-server approval setting. To keep an agent away from
+a tool, leave it out with the tool lists.
 
-`AgentExecution.auto_approve_all` is a field on the `AgentExecutionSpec` resource. It is set at execution time (not in the Agent YAML) and is typically used for trusted automation pipelines where human-in-the-loop approval is not needed.
+`AgentExecution.auto_approve_all` bypasses approval for one execution. It is set
+at execution time (not in the Agent YAML) and is typically used for trusted
+automation where human-in-the-loop approval is not needed. It never widens the
+tool lists.
 
 ## Runtime Resolution Flow
 
 At runtime, the Agent does not connect to MCP servers directly. The flow is:
 
-1. **Agent** declares `mcp_server_usages` (references only — no connections, no secrets)
-2. **The run** resolves the declared keys when it starts: from the Environments bound to the schedule, workflow task or PlatformClient that started it, from `runtime_env`, then OAuth tokens and the personal environment of the person who sent the message for keys still missing
-3. **Agent Runner** resolves each McpServer reference, passes each server the keys it declares, and starts the actual MCP server process
-4. The running MCP server's tools become available to the agent during the AgentExecution
+1. **Agent** declares `mcp_server_usages` (references only — no connections, no
+   secrets)
+2. **The run** resolves the declared keys when it starts: from the Environments
+   bound to the schedule, workflow task or PlatformClient that started it, from
+   `runtime_env`, then OAuth tokens and the personal environment of the person
+   who sent the message for keys still missing
+3. **Agent Runner** resolves each McpServer reference, passes each server the
+   keys it declares, and starts the actual MCP server process
+4. The running MCP server's tools become available to the agent during the
+   AgentExecution
 
-This separation means the Agent YAML is portable and contains no secrets. Different schedules or workflow tasks can bind the same Agent to different environments (e.g., staging vs production credentials).
+This separation means the Agent YAML is portable and contains no secrets.
+Different schedules or workflow tasks can bind the same Agent to different
+environments (e.g., staging vs production credentials).

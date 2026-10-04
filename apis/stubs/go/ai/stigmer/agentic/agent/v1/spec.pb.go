@@ -40,13 +40,29 @@ type AgentSpec struct {
 	// Skill resources providing additional knowledge to the agent.
 	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
 	// Sub-agents that can be delegated to.
-	// Sub-agents can access a subset of the parent's MCP servers and tools.
+	// A sub-agent starts from this agent's tools and may narrow them with its
+	// own tool lists, never widen them.
 	SubAgents []*SubAgent `protobuf:"bytes,6,rep,name=sub_agents,json=subAgents,proto3" json:"sub_agents,omitempty"`
 	// Environment variable declarations for this agent.
 	// Keys are variable names; values describe their metadata and optionality.
-	Env           map[string]*v1.EnvVarDeclaration `protobuf:"bytes,7,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,7,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Tools this agent may use; empty means every tool it has.
+	//
+	// Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+	// Write, Edit, Glob, Agent or WebFetch; mcp__<server-slug> for every tool of
+	// one MCP server, mcp__<server-slug>__<tool> for one tool, and mcp__* for
+	// every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+	// accepted and governs the whole tool. Agent(explore, shell) also limits
+	// which sub-agents this agent may start; the Cursor engine cannot hold its
+	// built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+	// types. The lists hold on both engines, and under "approve everything"
+	// too.
+	Tools []string `protobuf:"bytes,10,rep,name=tools,proto3" json:"tools,omitempty"`
+	// Tools this agent may never use, in the same names as tools.
+	// Applied before tools, so a tool named in both is excluded.
+	DisallowedTools []string `protobuf:"bytes,11,rep,name=disallowed_tools,json=disallowedTools,proto3" json:"disallowed_tools,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *AgentSpec) Reset() {
@@ -128,11 +144,24 @@ func (x *AgentSpec) GetEnv() map[string]*v1.EnvVarDeclaration {
 	return nil
 }
 
+func (x *AgentSpec) GetTools() []string {
+	if x != nil {
+		return x.Tools
+	}
+	return nil
+}
+
+func (x *AgentSpec) GetDisallowedTools() []string {
+	if x != nil {
+		return x.DisallowedTools
+	}
+	return nil
+}
+
 // SubAgent defines a specialized agent that the parent can delegate to.
 //
-// A sub-agent can only access MCP servers that the parent has in
-// mcp_server_usages, and its tools must be a subset of the parent's
-// enabled tools. Skills are independent of the parent.
+// A sub-agent starts from the parent's tools and may narrow them with its own
+// tool lists, never widen them. Skills are independent of the parent.
 type SubAgent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique name of the sub-agent within the parent agent.
@@ -141,18 +170,22 @@ type SubAgent struct {
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// System prompt for this sub-agent.
 	Instructions string `protobuf:"bytes,3,opt,name=instructions,proto3" json:"instructions,omitempty"`
-	// MCP server access grants for this sub-agent.
-	// Each entry references a parent McpServerUsage by slug and optionally
-	// restricts which tools are available.
-	McpAccess []*McpAccess `protobuf:"bytes,4,rep,name=mcp_access,json=mcpAccess,proto3" json:"mcp_access,omitempty"`
 	// Skill resources for this sub-agent.
 	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
 	// Model override for this sub-agent.
 	// When set, uses this model instead of the parent's model.
 	// When empty, inherits the parent agent's model.
 	ModelOverride string `protobuf:"bytes,6,opt,name=model_override,json=modelOverride,proto3" json:"model_override,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Tools this sub-agent may use, from what the parent may use; empty means
+	// all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
+	// the type list of an Agent(...) entry is ignored, as in Claude Code. The
+	// Cursor engine cannot tell which sub-agent made a call, so it refuses a
+	// turn whose sub-agent carries its own lists; the native engine runs it.
+	Tools []string `protobuf:"bytes,7,rep,name=tools,proto3" json:"tools,omitempty"`
+	// Tools this sub-agent may never use, in the same names as tools.
+	DisallowedTools []string `protobuf:"bytes,8,rep,name=disallowed_tools,json=disallowedTools,proto3" json:"disallowed_tools,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *SubAgent) Reset() {
@@ -206,13 +239,6 @@ func (x *SubAgent) GetInstructions() string {
 	return ""
 }
 
-func (x *SubAgent) GetMcpAccess() []*McpAccess {
-	if x != nil {
-		return x.McpAccess
-	}
-	return nil
-}
-
 func (x *SubAgent) GetSkillRefs() []*apiresource.ApiResourceReference {
 	if x != nil {
 		return x.SkillRefs
@@ -227,27 +253,31 @@ func (x *SubAgent) GetModelOverride() string {
 	return ""
 }
 
+func (x *SubAgent) GetTools() []string {
+	if x != nil {
+		return x.Tools
+	}
+	return nil
+}
+
+func (x *SubAgent) GetDisallowedTools() []string {
+	if x != nil {
+		return x.DisallowedTools
+	}
+	return nil
+}
+
 // McpServerUsage declares that this agent uses a McpServer resource.
 //
-// The slug from mcp_server_ref identifies this server for SubAgent access
-// grants via McpAccess.
+// Every tool of a used server is available to the agent unless its tool
+// lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the
+// server is named by its slug, as in mcp__<server-slug>.
 type McpServerUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Reference to the McpServer resource.
-	McpServerRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=mcp_server_ref,json=mcpServerRef,proto3" json:"mcp_server_ref,omitempty"`
-	// Tools to enable from this MCP server for this agent.
-	// Empty list uses the McpServer's default_enabled_tools.
-	// Sub-agents can only restrict this set further, not expand it.
-	EnabledTools []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
-	// Override approval requirements for specific tools.
-	// Takes precedence over McpServerSpec.pinned_tool_approvals and
-	// McpServerStatus.tool_approvals.
-	// Scoped to THIS usage's server: an override applies only to tools of
-	// the McpServer referenced by mcp_server_ref — a same-named tool on
-	// another server is unaffected.
-	ToolApprovalOverrides []*ToolApprovalOverride `protobuf:"bytes,3,rep,name=tool_approval_overrides,json=toolApprovalOverrides,proto3" json:"tool_approval_overrides,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	McpServerRef  *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=mcp_server_ref,json=mcpServerRef,proto3" json:"mcp_server_ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *McpServerUsage) Reset() {
@@ -287,159 +317,11 @@ func (x *McpServerUsage) GetMcpServerRef() *apiresource.ApiResourceReference {
 	return nil
 }
 
-func (x *McpServerUsage) GetEnabledTools() []string {
-	if x != nil {
-		return x.EnabledTools
-	}
-	return nil
-}
-
-func (x *McpServerUsage) GetToolApprovalOverrides() []*ToolApprovalOverride {
-	if x != nil {
-		return x.ToolApprovalOverrides
-	}
-	return nil
-}
-
-// McpAccess grants a sub-agent access to one of the parent's MCP servers.
-type McpAccess struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Slug of the McpServer to grant access to.
-	// Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
-	McpServer string `protobuf:"bytes,1,opt,name=mcp_server,json=mcpServer,proto3" json:"mcp_server,omitempty"`
-	// Tools this sub-agent can use from this MCP server.
-	// Must be a subset of the parent's enabled_tools for this server.
-	// Empty list grants access to all tools the parent has enabled.
-	EnabledTools  []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *McpAccess) Reset() {
-	*x = McpAccess{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *McpAccess) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*McpAccess) ProtoMessage() {}
-
-func (x *McpAccess) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use McpAccess.ProtoReflect.Descriptor instead.
-func (*McpAccess) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *McpAccess) GetMcpServer() string {
-	if x != nil {
-		return x.McpServer
-	}
-	return ""
-}
-
-func (x *McpAccess) GetEnabledTools() []string {
-	if x != nil {
-		return x.EnabledTools
-	}
-	return nil
-}
-
-// ToolApprovalOverride allows per-agent customization of approval requirements.
-//
-// Set requires_approval to true to require approval even when the McpServer
-// has no default, or to false to skip approval even when the McpServer
-// requires it. These overrides take precedence over
-// McpServerSpec.pinned_tool_approvals and McpServerStatus.tool_approvals,
-// but can be bypassed at execution time by AgentExecution.auto_approve_all.
-//
-// An override is scoped to the McpServer referenced by its parent usage:
-// it never affects a same-named tool on another server.
-type ToolApprovalOverride struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Name of the tool to override.
-	ToolName string `protobuf:"bytes,1,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
-	// Whether this tool requires approval for this agent.
-	RequiresApproval bool `protobuf:"varint,2,opt,name=requires_approval,json=requiresApproval,proto3" json:"requires_approval,omitempty"`
-	// Custom approval message shown to the reviewer.
-	// Supports {{args.field}} placeholders.
-	// When empty, falls back to the McpServer default or auto-generates
-	// "Execute tool: {tool_name}".
-	Message       string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ToolApprovalOverride) Reset() {
-	*x = ToolApprovalOverride{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ToolApprovalOverride) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ToolApprovalOverride) ProtoMessage() {}
-
-func (x *ToolApprovalOverride) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ToolApprovalOverride.ProtoReflect.Descriptor instead.
-func (*ToolApprovalOverride) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *ToolApprovalOverride) GetToolName() string {
-	if x != nil {
-		return x.ToolName
-	}
-	return ""
-}
-
-func (x *ToolApprovalOverride) GetRequiresApproval() bool {
-	if x != nil {
-		return x.RequiresApproval
-	}
-	return false
-}
-
-func (x *ToolApprovalOverride) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
 var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb3\x06\n" +
+	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xe2\b\n" +
 	"\tAgentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12+\n" +
@@ -452,35 +334,29 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12D\n" +
 	"\n" +
 	"sub_agents\x18\x06 \x03(\v2%.ai.stigmer.agentic.agent.v1.SubAgentR\tsubAgents\x12A\n" +
-	"\x03env\x18\a \x03(\v2/.ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntryR\x03env\x1al\n" +
+	"\x03env\x18\a \x03(\v2/.ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntryR\x03env\x12\x8a\x01\n" +
+	"\x05tools\x18\n" +
+	" \x03(\tBt\xbaHq\x92\x01n\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\x9f\x01\n" +
+	"\x10disallowed_tools\x18\v \x03(\tBt\xbaHq\x92\x01n\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x0fdisallowedTools\x1al\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
 	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\b\x10\tJ\x04\b\t\x10\n" +
-	"R\asharingR\x10datastore_usages\"\xa1\x03\n" +
+	"R\asharingR\x10datastore_usages\"\x9b\x05\n" +
 	"\bSubAgent\x12\x1a\n" +
 	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12+\n" +
 	"\finstructions\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\n" +
-	"R\finstructions\x12E\n" +
-	"\n" +
-	"mcp_access\x18\x04 \x03(\v2&.ai.stigmer.agentic.agent.v1.McpAccessR\tmcpAccess\x12\xbb\x01\n" +
+	"R\finstructions\x12\xbb\x01\n" +
 	"\n" +
 	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBf\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
 	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12%\n" +
-	"\x0emodel_override\x18\x06 \x01(\tR\rmodelOverride\"\x88\x02\n" +
+	"\x0emodel_override\x18\x06 \x01(\tR\rmodelOverride\x12\x8a\x01\n" +
+	"\x05tools\x18\a \x03(\tBt\xbaHq\x92\x01n\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\x9f\x01\n" +
+	"\x10disallowed_tools\x18\b \x03(\tBt\xbaHq\x92\x01n\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x0fdisallowedToolsJ\x04\b\x04\x10\x05R\n" +
+	"mcp_access\"\xac\x01\n" +
 	"\x0eMcpServerUsage\x12f\n" +
 	"\x0emcp_server_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
-	"\xbaH\x03\xc8\x01\x01\xe0\x85,,R\fmcpServerRef\x12#\n" +
-	"\renabled_tools\x18\x02 \x03(\tR\fenabledTools\x12i\n" +
-	"\x17tool_approval_overrides\x18\x03 \x03(\v21.ai.stigmer.agentic.agent.v1.ToolApprovalOverrideR\x15toolApprovalOverrides\"W\n" +
-	"\tMcpAccess\x12%\n" +
-	"\n" +
-	"mcp_server\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tmcpServer\x12#\n" +
-	"\renabled_tools\x18\x02 \x03(\tR\fenabledTools\"\x83\x01\n" +
-	"\x14ToolApprovalOverride\x12$\n" +
-	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12+\n" +
-	"\x11requires_approval\x18\x02 \x01(\bR\x10requiresApproval\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessageB\x8b\x02\n" +
+	"\xbaH\x03\xc8\x01\x01\xe0\x85,,R\fmcpServerRefJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\renabled_toolsR\x17tool_approval_overridesB\x8b\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\tSpecProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (
@@ -495,32 +371,28 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	(*AgentSpec)(nil),                        // 0: ai.stigmer.agentic.agent.v1.AgentSpec
 	(*SubAgent)(nil),                         // 1: ai.stigmer.agentic.agent.v1.SubAgent
 	(*McpServerUsage)(nil),                   // 2: ai.stigmer.agentic.agent.v1.McpServerUsage
-	(*McpAccess)(nil),                        // 3: ai.stigmer.agentic.agent.v1.McpAccess
-	(*ToolApprovalOverride)(nil),             // 4: ai.stigmer.agentic.agent.v1.ToolApprovalOverride
-	nil,                                      // 5: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
-	(*apiresource.ApiResourceReference)(nil), // 6: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvVarDeclaration)(nil),             // 7: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	nil,                                      // 3: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	(*apiresource.ApiResourceReference)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.EnvVarDeclaration)(nil),             // 5: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
-	6, // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4, // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
-	5, // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
-	3, // 4: ai.stigmer.agentic.agent.v1.SubAgent.mcp_access:type_name -> ai.stigmer.agentic.agent.v1.McpAccess
-	6, // 5: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	6, // 6: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4, // 7: ai.stigmer.agentic.agent.v1.McpServerUsage.tool_approval_overrides:type_name -> ai.stigmer.agentic.agent.v1.ToolApprovalOverride
-	7, // 8: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	3, // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	4, // 4: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4, // 5: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5, // 6: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_spec_proto_init() }
@@ -534,7 +406,7 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

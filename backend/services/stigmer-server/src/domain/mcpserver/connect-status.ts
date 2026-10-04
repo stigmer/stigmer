@@ -2,8 +2,8 @@
  * Connect-status bookkeeping and result persistence — ports the
  * persistence family shared by all three connect lanes:
  * persistConnectResult / settleConnectStatus / convertToDiscovered-
- * Capabilities / convertToToolApprovals / setToolApprovalsFromConnect
- * (connect.go:733-889) and persistConnectStarting / persistConnectFailure
+ * Capabilities (connect.go:733-889) and persistConnectStarting /
+ * persistConnectFailure
  * (start_connect.go:212-285). One module because these helpers are the
  * shared bookkeeping BOTH connect.ts and start-connect.ts consume — Go's
  * single package makes the split invisible; in ESM this placement keeps
@@ -19,8 +19,6 @@ import type { ConnectError } from "@connectrpc/connect";
 
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
-import { ToolApprovalPolicySchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type {
   DiscoveredCapabilities,
   McpServerStatus,
@@ -50,6 +48,11 @@ import type { ConnectWorkflowOutput } from "./engine.js";
  * structpb.NewStruct error arm has no TS equivalent (the value arrived
  * through JSON and is representable by construction).
  *
+ * destructive_hint is the server author's own annotation, carried as the
+ * runner read it: true only for an explicit `destructiveHint: true`. The
+ * approval default asks before such a tool, so a missing or non-boolean
+ * value persists as false rather than guessing.
+ *
  * Watch item (oss#862): Go persists the Struct with
  * SORTED JSON keys while this path keeps the runner's insertion order —
  * the runner's reconnect signature compares stringified schemas, so
@@ -68,6 +71,7 @@ export function convertToDiscoveredCapabilities(
     const tool = create(DiscoveredToolSchema, {
       name: t.name ?? "",
       description: t.description ?? "",
+      destructiveHint: t.destructiveHint === true,
     });
     if (t.input_schema !== undefined) {
       tool.inputSchema = t.input_schema as JsonObject;
@@ -87,54 +91,6 @@ export function convertToDiscoveredCapabilities(
   }
 
   return capabilities;
-}
-
-/**
- * Converts the classifier output to the ToolApprovalPolicy list (Go
- * convertToToolApprovals). Presence in the list means "requires
- * approval" — there is no boolean on the proto — so any entry explicitly
- * marked requires_approval=false is dropped. Mirrors the Cloud (Java)
- * StoreConnectResults converter so both editions persist identical
- * classifier output.
- */
-export function convertToToolApprovals(
-  output: ConnectWorkflowOutput,
-): ToolApprovalPolicy[] {
-  const approvals: ToolApprovalPolicy[] = [];
-  for (const a of output.tool_approvals ?? []) {
-    if (a.requires_approval !== true || (a.tool_name ?? "") === "") {
-      continue;
-    }
-    approvals.push(
-      create(ToolApprovalPolicySchema, {
-        toolName: a.tool_name,
-        message: a.message ?? "",
-        fromDestructiveHint: a.from_destructive_hint ?? false,
-      }),
-    );
-  }
-  return approvals;
-}
-
-/**
- * Writes the freshly classified tool approvals onto the status, returning
- * how many were applied (Go setToolApprovalsFromConnect).
- *
- * Overwrite-on-reconnect: a new non-empty result replaces the prior list
- * so a reclassification takes effect. Preserve-on-empty: an empty result
- * leaves the existing list untouched, so a degraded or older runner that
- * returns nothing can never silently disarm previously persisted approval
- * gates.
- */
-export function setToolApprovalsFromConnect(
-  status: McpServerStatus,
-  output: ConnectWorkflowOutput,
-): number {
-  const approvals = convertToToolApprovals(output);
-  if (approvals.length > 0) {
-    status.toolApprovals = approvals;
-  }
-  return approvals.length;
 }
 
 /**
@@ -179,8 +135,8 @@ export function settleConnectStatus(
 
 /**
  * Writes the connect workflow's output onto the McpServer status as a
- * single atomic read-modify-write, returning the updated resource and the
- * number of tool-approval gates applied (Go persistConnectResult).
+ * single atomic read-modify-write, returning the updated resource (Go
+ * persistConnectResult).
  *
  * This is the one place connect output lands on the resource — the
  * blocking Connect path, the async StartConnect path, and the best-effort
@@ -189,12 +145,12 @@ export function settleConnectStatus(
  * RPC returned, so a plain read-modify-write would risk clobbering a
  * concurrent update (a manual reconnect or an edit) made in that window.
  *
- * The result fields follow the deliberate asymmetry, unchanged:
  * discovered_capabilities is a point-in-time snapshot, overwritten on
- * every connect; tool_approvals are safety-critical gates (see
- * setToolApprovalsFromConnect). The connect_status settle rides the same
- * atomic write so pollers can never observe results without the terminal
- * phase (or vice versa).
+ * every connect, destructive_hint included: the annotation is the
+ * server's current word, so a tool its author stops marking destructive
+ * stops asking after the next connect. The connect_status settle rides the
+ * same atomic write so pollers can never observe results without the
+ * terminal phase (or vice versa).
  *
  * Throws ResourceNotFoundError if the resource was deleted between the
  * connect trigger and its completion (a real case for the background
@@ -205,9 +161,8 @@ export async function persistConnectResult(
   mcpServerId: string,
   workflowId: string,
   output: ConnectWorkflowOutput,
-): Promise<{ persisted: McpServer; toolApprovalCount: number }> {
-  let toolApprovalCount = 0;
-  const persisted = await store.updateResource(
+): Promise<McpServer> {
+  return store.updateResource(
     ApiResourceKind.mcp_server,
     mcpServerId,
     McpServerSchema,
@@ -217,11 +172,9 @@ export async function persistConnectResult(
       }
       mcpServer.status.discoveredCapabilities =
         convertToDiscoveredCapabilities(output);
-      toolApprovalCount = setToolApprovalsFromConnect(mcpServer.status, output);
       settleConnectStatus(mcpServer.status, workflowId, undefined);
     },
   );
-  return { persisted, toolApprovalCount };
 }
 
 /**

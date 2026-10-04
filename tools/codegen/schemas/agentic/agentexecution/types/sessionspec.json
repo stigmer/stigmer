@@ -90,7 +90,7 @@
           "messageType": "McpServerUsage"
         }
       },
-      "description": "MCP servers to make available in this session.\n\n Augments the agent's tool set for this specific conversation without\n modifying the agent blueprint. Each usage references an McpServer\n resource.",
+      "description": "MCP servers to make available in this session.\n\n Augments the agent's tool set for this specific conversation without\n modifying the agent blueprint. Each usage references an McpServer\n resource. The agent's tool lists govern these servers like its own: an\n agent whose tools list does not name a session server cannot use it.",
       "required": false
     },
     {

@@ -38,8 +38,9 @@ export type CursorMcpServerConfig =
  * Call it ONCE, after the last mutation of the resolved-server list (backfill,
  * synthesized-attachment injection): the config is a projection of that list,
  * and building it early just creates a stale copy someone must remember to
- * rebuild. The Cursor SDK config cannot hide tools, so enabledTools is NOT
- * expressed here — the HITL hook enforces it (see ResolvedMcpServer.enabledTools).
+ * rebuild. An agent's tool lists are not expressed here: the SDK's `mcp` tool
+ * option is all-or-nothing and a server config has no tool filter, so MCP
+ * narrowing by server and tool is the HITL hook's (`hook-scope.ts`).
  */
 export function toCursorMcpConfig(
   servers: readonly ResolvedMcpServer[],

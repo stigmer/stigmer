@@ -180,9 +180,9 @@ Errors are API surface: the CLI, the console and the SDKs render them directly.
   error it caught.
 - Quoting: new messages quote identifiers with single quotes (`'${x}'`) and
   render lists with `quoteJoin` from
-  `backend/services/stigmer-server/src/domain/mcpserver/enabledtools/enabledtools.ts`.
-  The existing double-quoted messages are frozen wire constants shared with the
-  cloud edition: contract, not a style to imitate.
+  `backend/services/stigmer-server/src/pipeline/errors.ts`. The existing
+  double-quoted messages are frozen wire constants shared with the cloud
+  edition: contract, not a style to imitate.
 - Log the real error; the wire carries the sanitized message. Never log secrets:
   the redaction conventions (`***REDACTED***`, the `enc:v1:` prefix) extend to
   logs and to Temporal payloads.

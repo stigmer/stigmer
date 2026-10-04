@@ -1,14 +1,23 @@
 // Unit arms for the MCP tool fixture's path-named tool surfaces: the default
 // `/mcp` stays the one-tool echo server every existing suite pins by exact
 // tool list, an explicit `/mcp/echo,fail` exposes both, `/mcp/lookup_order`
-// serves the fixed order table and refuses an unknown id as a tool error, and
-// an unknown name is refused rather than served as a guess. Driven over
-// loopback with the real MCP client; no runner, no target. Domain: conformance
-// harness (execution engine).
+// serves the fixed order table and refuses an unknown id as a tool error,
+// `echo_destructive` alone carries `destructiveHint: true` (the mark the
+// approval default asks on), and an unknown name is refused rather than served
+// as a guess. Driven over loopback with the real MCP client; no runner, no
+// target. Domain: conformance harness (execution engine).
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ECHO_TOOL_NAME, FAIL_TOOL_NAME, FIXTURE_ORDERS, LOOKUP_ORDER_TOOL_NAME, McpToolFixture, toolsForPath } from "../mcp-server";
+import {
+  DESTRUCTIVE_ECHO_TOOL_NAME,
+  ECHO_TOOL_NAME,
+  FAIL_TOOL_NAME,
+  FIXTURE_ORDERS,
+  LOOKUP_ORDER_TOOL_NAME,
+  McpToolFixture,
+  toolsForPath,
+} from "../mcp-server";
 
 const fixture = new McpToolFixture();
 
@@ -79,6 +88,21 @@ describe("McpToolFixture tool surfaces", () => {
       const missing = await client.callTool({ name: LOOKUP_ORDER_TOOL_NAME, arguments: { order_id: "ORD-0000" } });
       expect(missing.isError).toBe(true);
       expect(JSON.stringify(missing.content)).toContain("ORD-0000");
+    } finally {
+      await client.close();
+    }
+  });
+
+  it("marks echo_destructive, and only it, destructive; it echoes like echo", async () => {
+    const client = await connect(fixture.url([ECHO_TOOL_NAME, DESTRUCTIVE_ECHO_TOOL_NAME]));
+    try {
+      const { tools } = await client.listTools();
+      const hints = Object.fromEntries(tools.map((t) => [t.name, t.annotations?.destructiveHint]));
+      expect(hints).toEqual({ [ECHO_TOOL_NAME]: undefined, [DESTRUCTIVE_ECHO_TOOL_NAME]: true });
+
+      const result = await client.callTool({ name: DESTRUCTIVE_ECHO_TOOL_NAME, arguments: { text: "same bytes" } });
+      expect(result.isError).toBeFalsy();
+      expect(result.content).toEqual([{ type: "text", text: "same bytes" }]);
     } finally {
       await client.close();
     }

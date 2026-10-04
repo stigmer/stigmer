@@ -38,6 +38,10 @@ private static final long serialVersionUID = 0L;
     mcpServerUsages_ = java.util.Collections.emptyList();
     skillRefs_ = java.util.Collections.emptyList();
     subAgents_ = java.util.Collections.emptyList();
+    tools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    disallowedTools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -346,7 +350,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Sub-agents that can be delegated to.
-   * Sub-agents can access a subset of the parent's MCP servers and tools.
+   * A sub-agent starts from this agent's tools and may narrow them with its
+   * own tool lists, never widen them.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -358,7 +363,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Sub-agents that can be delegated to.
-   * Sub-agents can access a subset of the parent's MCP servers and tools.
+   * A sub-agent starts from this agent's tools and may narrow them with its
+   * own tool lists, never widen them.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -371,7 +377,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Sub-agents that can be delegated to.
-   * Sub-agents can access a subset of the parent's MCP servers and tools.
+   * A sub-agent starts from this agent's tools and may narrow them with its
+   * own tool lists, never widen them.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -383,7 +390,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Sub-agents that can be delegated to.
-   * Sub-agents can access a subset of the parent's MCP servers and tools.
+   * A sub-agent starts from this agent's tools and may narrow them with its
+   * own tool lists, never widen them.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -395,7 +403,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Sub-agents that can be delegated to.
-   * Sub-agents can access a subset of the parent's MCP servers and tools.
+   * A sub-agent starts from this agent's tools and may narrow them with its
+   * own tool lists, never widen them.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -505,6 +514,156 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     return map.get(key);
   }
 
+  public static final int TOOLS_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList tools_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Tools this agent may use; empty means every tool it has.
+   *
+   * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * accepted and governs the whole tool. Agent(explore, shell) also limits
+   * which sub-agents this agent may start; the Cursor engine cannot hold its
+   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+   * types. The lists hold on both engines, and under "approve everything"
+   * too.
+   * </pre>
+   *
+   * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the tools.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getToolsList() {
+    return tools_;
+  }
+  /**
+   * <pre>
+   * Tools this agent may use; empty means every tool it has.
+   *
+   * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * accepted and governs the whole tool. Agent(explore, shell) also limits
+   * which sub-agents this agent may start; the Cursor engine cannot hold its
+   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+   * types. The lists hold on both engines, and under "approve everything"
+   * too.
+   * </pre>
+   *
+   * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return The count of tools.
+   */
+  public int getToolsCount() {
+    return tools_.size();
+  }
+  /**
+   * <pre>
+   * Tools this agent may use; empty means every tool it has.
+   *
+   * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * accepted and governs the whole tool. Agent(explore, shell) also limits
+   * which sub-agents this agent may start; the Cursor engine cannot hold its
+   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+   * types. The lists hold on both engines, and under "approve everything"
+   * too.
+   * </pre>
+   *
+   * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The tools at the given index.
+   */
+  public java.lang.String getTools(int index) {
+    return tools_.get(index);
+  }
+  /**
+   * <pre>
+   * Tools this agent may use; empty means every tool it has.
+   *
+   * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+   * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+   * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+   * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+   * accepted and governs the whole tool. Agent(explore, shell) also limits
+   * which sub-agents this agent may start; the Cursor engine cannot hold its
+   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+   * types. The lists hold on both engines, and under "approve everything"
+   * too.
+   * </pre>
+   *
+   * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the tools at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getToolsBytes(int index) {
+    return tools_.getByteString(index);
+  }
+
+  public static final int DISALLOWED_TOOLS_FIELD_NUMBER = 11;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList disallowedTools_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Tools this agent may never use, in the same names as tools.
+   * Applied before tools, so a tool named in both is excluded.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the disallowedTools.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getDisallowedToolsList() {
+    return disallowedTools_;
+  }
+  /**
+   * <pre>
+   * Tools this agent may never use, in the same names as tools.
+   * Applied before tools, so a tool named in both is excluded.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return The count of disallowedTools.
+   */
+  public int getDisallowedToolsCount() {
+    return disallowedTools_.size();
+  }
+  /**
+   * <pre>
+   * Tools this agent may never use, in the same names as tools.
+   * Applied before tools, so a tool named in both is excluded.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The disallowedTools at the given index.
+   */
+  public java.lang.String getDisallowedTools(int index) {
+    return disallowedTools_.get(index);
+  }
+  /**
+   * <pre>
+   * Tools this agent may never use, in the same names as tools.
+   * Applied before tools, so a tool named in both is excluded.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the disallowedTools at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getDisallowedToolsBytes(int index) {
+    return disallowedTools_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -543,6 +702,12 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         internalGetEnv(),
         EnvDefaultEntryHolder.defaultEntry,
         7);
+    for (int i = 0; i < tools_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, tools_.getRaw(i));
+    }
+    for (int i = 0; i < disallowedTools_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 11, disallowedTools_.getRaw(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -598,6 +763,22 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(7, env__);
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < tools_.size(); i++) {
+        dataSize += computeStringSizeNoTag(tools_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getToolsList().size();
+    }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < disallowedTools_.size(); i++) {
+        dataSize += computeStringSizeNoTag(disallowedTools_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getDisallowedToolsList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -627,6 +808,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         .equals(other.getSubAgentsList())) return false;
     if (!internalGetEnv().equals(
         other.internalGetEnv())) return false;
+    if (!getToolsList()
+        .equals(other.getToolsList())) return false;
+    if (!getDisallowedToolsList()
+        .equals(other.getDisallowedToolsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -659,6 +844,14 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     if (!internalGetEnv().getMap().isEmpty()) {
       hash = (37 * hash) + ENV_FIELD_NUMBER;
       hash = (53 * hash) + internalGetEnv().hashCode();
+    }
+    if (getToolsCount() > 0) {
+      hash = (37 * hash) + TOOLS_FIELD_NUMBER;
+      hash = (53 * hash) + getToolsList().hashCode();
+    }
+    if (getDisallowedToolsCount() > 0) {
+      hash = (37 * hash) + DISALLOWED_TOOLS_FIELD_NUMBER;
+      hash = (53 * hash) + getDisallowedToolsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -842,6 +1035,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       }
       bitField0_ = (bitField0_ & ~0x00000020);
       internalGetMutableEnv().clear();
+      tools_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
+      disallowedTools_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -917,6 +1114,14 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.env_ = internalGetEnv().build(EnvDefaultEntryHolder.defaultEntry);
+      }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        tools_.makeImmutable();
+        result.tools_ = tools_;
+      }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        disallowedTools_.makeImmutable();
+        result.disallowedTools_ = disallowedTools_;
       }
     }
 
@@ -1028,6 +1233,26 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       internalGetMutableEnv().mergeFrom(
           other.internalGetEnv());
       bitField0_ |= 0x00000040;
+      if (!other.tools_.isEmpty()) {
+        if (tools_.isEmpty()) {
+          tools_ = other.tools_;
+          bitField0_ |= 0x00000080;
+        } else {
+          ensureToolsIsMutable();
+          tools_.addAll(other.tools_);
+        }
+        onChanged();
+      }
+      if (!other.disallowedTools_.isEmpty()) {
+        if (disallowedTools_.isEmpty()) {
+          disallowedTools_ = other.disallowedTools_;
+          bitField0_ |= 0x00000100;
+        } else {
+          ensureDisallowedToolsIsMutable();
+          disallowedTools_.addAll(other.disallowedTools_);
+        }
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1117,6 +1342,16 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               bitField0_ |= 0x00000040;
               break;
             } // case 58
+            case 82: {
+              ensureToolsIsMutable();
+              tools_.add(input.readStringRequireUtf8());
+              break;
+            } // case 82
+            case 90: {
+              ensureDisallowedToolsIsMutable();
+              disallowedTools_.add(input.readStringRequireUtf8());
+              break;
+            } // case 90
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2072,7 +2307,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2087,7 +2323,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2102,7 +2339,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2117,7 +2355,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2139,7 +2378,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2158,7 +2398,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2179,7 +2420,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2201,7 +2443,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2220,7 +2463,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2239,7 +2483,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2259,7 +2504,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2277,7 +2523,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2295,7 +2542,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2307,7 +2555,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2322,7 +2571,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2338,7 +2588,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2350,7 +2601,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2363,7 +2615,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Sub-agents that can be delegated to.
-     * Sub-agents can access a subset of the parent's MCP servers and tools.
+     * A sub-agent starts from this agent's tools and may narrow them with its
+     * own tool lists, never widen them.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
@@ -2580,6 +2833,399 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         builderMap.put(key, entry);
       }
       return (ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder) entry;
+    }
+
+    private com.google.protobuf.LazyStringArrayList tools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureToolsIsMutable() {
+      if (!tools_.isModifiable()) {
+        tools_ = new com.google.protobuf.LazyStringArrayList(tools_);
+      }
+      bitField0_ |= 0x00000080;
+    }
+    /**
+     * <pre>
+     * Tools this agent may use; empty means every tool it has.
+     *
+     * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * accepted and governs the whole tool. Agent(explore, shell) also limits
+     * which sub-agents this agent may start; the Cursor engine cannot hold its
+     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+     * types. The lists hold on both engines, and under "approve everything"
+     * too.
+     * </pre>
+     *
+     * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the tools.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getToolsList() {
+      tools_.makeImmutable();
+      return tools_;
+    }
+    /**
+     * <pre>
+     * Tools this agent may use; empty means every tool it has.
+     *
+     * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * accepted and governs the whole tool. Agent(explore, shell) also limits
+     * which sub-agents this agent may start; the Cursor engine cannot hold its
+     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+     * types. The lists hold on both engines, and under "approve everything"
+     * too.
+     * </pre>
+     *
+     * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @return The count of tools.
+     */
+    public int getToolsCount() {
+      return tools_.size();
+    }
+    /**
+     * <pre>
+     * Tools this agent may use; empty means every tool it has.
+     *
+     * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * accepted and governs the whole tool. Agent(explore, shell) also limits
+     * which sub-agents this agent may start; the Cursor engine cannot hold its
+     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+     * types. The lists hold on both engines, and under "approve everything"
+     * too.
+     * </pre>
+     *
+     * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The tools at the given index.
+     */
+    public java.lang.String getTools(int index) {
+      return tools_.get(index);
+    }
+    /**
+     * <pre>
+     * Tools this agent may use; empty means every tool it has.
+     *
+     * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * accepted and governs the whole tool. Agent(explore, shell) also limits
+     * which sub-agents this agent may start; the Cursor engine cannot hold its
+     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+     * types. The lists hold on both engines, and under "approve everything"
+     * too.
+     * </pre>
+     *
+     * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the tools at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getToolsBytes(int index) {
+      return tools_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Tools this agent may use; empty means every tool it has.
+     *
+     * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * accepted and governs the whole tool. Agent(explore, shell) also limits
+     * which sub-agents this agent may start; the Cursor engine cannot hold its
+     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+     * types. The lists hold on both engines, and under "approve everything"
+     * too.
+     * </pre>
+     *
+     * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The tools to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTools(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureToolsIsMutable();
+      tools_.set(index, value);
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this agent may use; empty means every tool it has.
+     *
+     * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * accepted and governs the whole tool. Agent(explore, shell) also limits
+     * which sub-agents this agent may start; the Cursor engine cannot hold its
+     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+     * types. The lists hold on both engines, and under "approve everything"
+     * too.
+     * </pre>
+     *
+     * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param value The tools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addTools(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureToolsIsMutable();
+      tools_.add(value);
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this agent may use; empty means every tool it has.
+     *
+     * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * accepted and governs the whole tool. Agent(explore, shell) also limits
+     * which sub-agents this agent may start; the Cursor engine cannot hold its
+     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+     * types. The lists hold on both engines, and under "approve everything"
+     * too.
+     * </pre>
+     *
+     * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param values The tools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllTools(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureToolsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, tools_);
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this agent may use; empty means every tool it has.
+     *
+     * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * accepted and governs the whole tool. Agent(explore, shell) also limits
+     * which sub-agents this agent may start; the Cursor engine cannot hold its
+     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+     * types. The lists hold on both engines, and under "approve everything"
+     * too.
+     * </pre>
+     *
+     * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTools() {
+      tools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000080);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this agent may use; empty means every tool it has.
+     *
+     * Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
+     * Write, Edit, Glob, Agent or WebFetch; mcp__&lt;server-slug&gt; for every tool of
+     * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
+     * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
+     * accepted and governs the whole tool. Agent(explore, shell) also limits
+     * which sub-agents this agent may start; the Cursor engine cannot hold its
+     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+     * types. The lists hold on both engines, and under "approve everything"
+     * too.
+     * </pre>
+     *
+     * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the tools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addToolsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureToolsIsMutable();
+      tools_.add(value);
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList disallowedTools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureDisallowedToolsIsMutable() {
+      if (!disallowedTools_.isModifiable()) {
+        disallowedTools_ = new com.google.protobuf.LazyStringArrayList(disallowedTools_);
+      }
+      bitField0_ |= 0x00000100;
+    }
+    /**
+     * <pre>
+     * Tools this agent may never use, in the same names as tools.
+     * Applied before tools, so a tool named in both is excluded.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the disallowedTools.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getDisallowedToolsList() {
+      disallowedTools_.makeImmutable();
+      return disallowedTools_;
+    }
+    /**
+     * <pre>
+     * Tools this agent may never use, in the same names as tools.
+     * Applied before tools, so a tool named in both is excluded.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @return The count of disallowedTools.
+     */
+    public int getDisallowedToolsCount() {
+      return disallowedTools_.size();
+    }
+    /**
+     * <pre>
+     * Tools this agent may never use, in the same names as tools.
+     * Applied before tools, so a tool named in both is excluded.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The disallowedTools at the given index.
+     */
+    public java.lang.String getDisallowedTools(int index) {
+      return disallowedTools_.get(index);
+    }
+    /**
+     * <pre>
+     * Tools this agent may never use, in the same names as tools.
+     * Applied before tools, so a tool named in both is excluded.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the disallowedTools at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getDisallowedToolsBytes(int index) {
+      return disallowedTools_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Tools this agent may never use, in the same names as tools.
+     * Applied before tools, so a tool named in both is excluded.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The disallowedTools to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDisallowedTools(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureDisallowedToolsIsMutable();
+      disallowedTools_.set(index, value);
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this agent may never use, in the same names as tools.
+     * Applied before tools, so a tool named in both is excluded.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param value The disallowedTools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addDisallowedTools(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureDisallowedToolsIsMutable();
+      disallowedTools_.add(value);
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this agent may never use, in the same names as tools.
+     * Applied before tools, so a tool named in both is excluded.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param values The disallowedTools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllDisallowedTools(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureDisallowedToolsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, disallowedTools_);
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this agent may never use, in the same names as tools.
+     * Applied before tools, so a tool named in both is excluded.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDisallowedTools() {
+      disallowedTools_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000100);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools this agent may never use, in the same names as tools.
+     * Applied before tools, so a tool named in both is excluded.
+     * </pre>
+     *
+     * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the disallowedTools to add.
+     * @return This builder for chaining.
+     */
+    public Builder addDisallowedToolsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureDisallowedToolsIsMutable();
+      disallowedTools_.add(value);
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentSpec)

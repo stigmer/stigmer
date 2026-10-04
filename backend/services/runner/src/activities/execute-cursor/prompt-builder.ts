@@ -488,14 +488,8 @@ export function formatSkillsSection(skills: readonly SkillMetadata[]): string {
 }
 
 export function formatSubAgentsSection(subAgents: SubAgent[]): string {
-  let anyAdvisoryMcp = false;
   const entries = subAgents.map((sa) => {
     const parts = [`- **${sa.name}**: ${sa.description}`];
-    if (sa.mcpAccess.length > 0) {
-      anyAdvisoryMcp = true;
-      const servers = sa.mcpAccess.map((a) => a.mcpServer).join(", ");
-      parts.push(`  MCP access (advisory): ${servers}`);
-    }
     if (sa.modelOverride) {
       parts.push(`  Model: ${sa.modelOverride}`);
     }
@@ -516,16 +510,8 @@ export function formatSubAgentsSection(subAgents: SubAgent[]): string {
     "- Delegate a task to the sub-agent whose specialization matches it.",
     "- Give a clear, self-contained task description — sub-agents do not share your conversation context.",
     "- Sub-agents run independently and return their results when done.",
+    "</sub_agent_delegation>",
   ];
-
-  if (anyAdvisoryMcp) {
-    lines.push(
-      "- \"MCP access (advisory)\" lists the tools a sub-agent is intended to use; " +
-        "sub-agents inherit this agent's tool access, so treat it as guidance, not a hard limit.",
-    );
-  }
-
-  lines.push("</sub_agent_delegation>");
   return lines.join("\n");
 }
 

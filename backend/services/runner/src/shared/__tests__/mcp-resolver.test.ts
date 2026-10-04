@@ -1,3 +1,9 @@
+/**
+ * Pins MCP server resolution: the transport guard fails a whole resolution
+ * rather than skip a server, the destructive set and discovered names a
+ * resolved server carries from its last discovery, the run values a server
+ * claims, the platform address fill (stigmer#1433), and one usage per slug.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { declaredEnvKeysOf, mcpServerToResolved, mergeMcpServerUsages, resolveMcpServers } from "../mcp-resolver.js";
 import { McpTransportError } from "../mcp-transport-guard.js";
@@ -6,17 +12,8 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 /** The runner endpoints resolution fills STIGMER_SERVER_ADDRESS from. */
 const PLATFORM_ENDPOINTS = testConfig();
 
-function makeUsage(
-  slug: string,
-  org = "test-org",
-  enabledTools: string[] = [],
-  toolApprovalOverrides: Array<{ toolName: string; requiresApproval: boolean }> = [],
-) {
-  return {
-    mcpServerRef: { slug, org, kind: 0 },
-    enabledTools,
-    toolApprovalOverrides,
-  } as any;
+function makeUsage(slug: string, org = "test-org") {
+  return { mcpServerRef: { slug, org, kind: 0 } } as any;
 }
 
 function stdioMcpServer(slug: string) {
@@ -117,52 +114,36 @@ describe("resolveMcpServers — transport guard integration", () => {
   });
 });
 
-describe("resolveMcpServers — enabled_tools threading (issue #350)", () => {
-  function withDefaults(server: any, defaultEnabledTools: string[]) {
-    server.spec.defaultEnabledTools = defaultEnabledTools;
+describe("a resolved server's discovered tools", () => {
+  function discovered(server: any, tools: Array<{ name: string; destructiveHint?: boolean }>) {
+    server.status = {
+      discoveredCapabilities: {
+        tools: tools.map((t) => ({ name: t.name, destructiveHint: t.destructiveHint ?? false })),
+        resourceTemplates: [],
+      },
+    };
     return server;
   }
 
-  it("carries the usage's enabled_tools as the effective allow-list", async () => {
-    const client = clientReturning({ github: httpMcpServer("github") });
-
-    const result = await resolveMcpServers(
-      client, [makeUsage("github", "test-org", ["create_pr"])], {}, "stdio-allowed", PLATFORM_ENDPOINTS,
-    );
-
-    expect(result.resolvedServers[0].enabledTools).toEqual(["create_pr"]);
-  });
-
-  it("falls back to the server's default_enabled_tools for an empty usage list", async () => {
-    const client = clientReturning({
-      github: withDefaults(httpMcpServer("github"), ["search_code"]),
-    });
-
-    const result = await resolveMcpServers(
-      client, [makeUsage("github")], {}, "stdio-allowed", PLATFORM_ENDPOINTS,
-    );
-
-    expect(result.resolvedServers[0].enabledTools).toEqual(["search_code"]);
-  });
-
-  it("resolves unrestricted (absent field) when both lists are empty", async () => {
-    const client = clientReturning({ github: httpMcpServer("github") });
-
-    const result = await resolveMcpServers(
-      client, [makeUsage("github")], {}, "stdio-allowed", PLATFORM_ENDPOINTS,
-    );
-
-    expect(result.resolvedServers[0].enabledTools).toBeUndefined();
-  });
-
-  it("mcpServerToResolved without a usage keeps only the default fallback (the discovery path)", () => {
-    const server = withDefaults(httpMcpServer("github"), ["search_code"]);
+  it("carries the tools its server marks destructive, and every discovered name", () => {
+    const server = discovered(httpMcpServer("github"), [
+      { name: "search_code" },
+      { name: "delete_repo", destructiveHint: true },
+    ]);
 
     const resolved = mcpServerToResolved(server, "github", {});
 
-    // No usage in hand (discovery) — a per-agent restriction cannot apply,
-    // only the server-declared default does.
-    expect(resolved?.enabledTools).toEqual(["search_code"]);
+    expect(resolved?.destructiveTools).toEqual(["delete_repo"]);
+    expect(resolved?.discoveredToolNames).toEqual(["search_code", "delete_repo"]);
+    expect(resolved?.discoveredCapabilitiesEmpty).toBe(false);
+  });
+
+  it("a server never discovered marks nothing and knows no names", () => {
+    const resolved = mcpServerToResolved(httpMcpServer("github"), "github", {});
+
+    expect(resolved?.destructiveTools).toEqual([]);
+    expect(resolved?.discoveredToolNames).toBeNull();
+    expect(resolved?.discoveredCapabilitiesEmpty).toBe(true);
   });
 });
 
@@ -181,60 +162,6 @@ describe("a resolved server's claimed run values", () => {
 
   it("a server that declares nothing and signs in with nothing claims nothing", () => {
     expect(declaredEnvKeysOf(httpMcpServer("plain"))).toEqual([]);
-  });
-});
-
-describe("resolveMcpServers — tool_approval_overrides threading (issue #349)", () => {
-  it("carries the usage's overrides on its own resolved server only", async () => {
-    // Riding the server is the scoping mechanism: an override can no longer
-    // reach a same-named tool on another server, because it never exists
-    // anywhere but its own server's object.
-    const client = clientReturning({
-      github: httpMcpServer("github"),
-      slack: httpMcpServer("slack"),
-    });
-
-    const result = await resolveMcpServers(
-      client,
-      [
-        makeUsage("github", "test-org", [], [{ toolName: "delete_item", requiresApproval: false }]),
-        makeUsage("slack"),
-      ],
-      {},
-      "stdio-allowed", PLATFORM_ENDPOINTS,
-    );
-
-    const bySlug = new Map(result.resolvedServers.map((s) => [s.slug, s]));
-    expect(bySlug.get("github")!.toolApprovalOverrides).toEqual([
-      { toolName: "delete_item", requiresApproval: false },
-    ]);
-    expect(bySlug.get("slack")!.toolApprovalOverrides).toEqual([]);
-  });
-
-  it("mcpServerToResolved without a usage carries no overrides (the discovery path)", () => {
-    const resolved = mcpServerToResolved(httpMcpServer("github"), "github", {});
-
-    // No usage in hand (discovery) — there is no agent context, so no
-    // layer-3 overrides can exist.
-    expect(resolved?.toolApprovalOverrides).toEqual([]);
-  });
-
-  it("session-wins merge feeds the SESSION usage's overrides to the resolver (native-harness parity)", async () => {
-    // Pins the end-to-end path that was broken before #349: the deep-agent
-    // harness resolved servers from the merged usages but flattened
-    // overrides from the AGENT usages only, so a session's overrides were
-    // silently ignored there (and honored by the Cursor harness).
-    const client = clientReturning({ github: httpMcpServer("github") });
-    const merged = mergeMcpServerUsages(
-      [makeUsage("github", "test-org", [], [{ toolName: "push", requiresApproval: true }])],
-      [makeUsage("github", "test-org", [], [{ toolName: "push", requiresApproval: false }])],
-    );
-
-    const result = await resolveMcpServers(client, merged, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
-
-    expect(result.resolvedServers[0].toolApprovalOverrides).toEqual([
-      { toolName: "push", requiresApproval: false },
-    ]);
   });
 });
 
@@ -297,32 +224,19 @@ describe("resolveMcpServers — the platform STIGMER_SERVER_ADDRESS (stigmer/sti
 });
 
 describe("mergeMcpServerUsages — session-wins-per-slug (shared by both harnesses)", () => {
-  it("session usage replaces the agent's WHOLE usage for the same slug, including enabled_tools", () => {
+  it("names a slug both carry once, by the session's usage", () => {
     const merged = mergeMcpServerUsages(
-      [makeUsage("github", "test-org", ["create_pr"])],
-      [makeUsage("github", "test-org", ["search_code"])],
+      [makeUsage("github", "agent-org")],
+      [makeUsage("github", "session-org")],
     );
 
     expect(merged).toHaveLength(1);
-    expect(merged[0].enabledTools).toEqual(["search_code"]);
-  });
-
-  it("a session usage with an empty list overrides to the server-default/unrestricted shape", () => {
-    // Session-wins is whole-usage precedence, not a list union: an empty
-    // session list means "back to the server's defaults", exactly as if the
-    // agent-level usage did not exist.
-    const merged = mergeMcpServerUsages(
-      [makeUsage("github", "test-org", ["create_pr"])],
-      [makeUsage("github")],
-    );
-
-    expect(merged).toHaveLength(1);
-    expect(merged[0].enabledTools).toEqual([]);
+    expect(merged[0].mcpServerRef?.org).toBe("session-org");
   });
 
   it("unions distinct slugs and skips usages without one", () => {
     const merged = mergeMcpServerUsages(
-      [makeUsage("github"), { toolApprovalOverrides: [] } as any],
+      [makeUsage("github"), {} as any],
       [makeUsage("planton")],
     );
 

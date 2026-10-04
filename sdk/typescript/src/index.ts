@@ -192,9 +192,7 @@ export {
   toAgentUpdateInput,
   type AgentInput,
   type McpServerUsageInput,
-  type ToolApprovalOverrideInput,
   type SubAgentInput,
-  type McpAccessInput,
   type EnvVarDeclarationInput,
 } from "./gen/agent.js";
 export {
@@ -270,7 +268,6 @@ export {
   type McpServerInput,
   type StdioServerConfigInput,
   type HttpServerConfigInput,
-  type ToolApprovalPolicyInput,
 } from "./gen/mcpserver.js";
 export {
   MemoryClient,

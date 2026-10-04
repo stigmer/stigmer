@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { mergeApprovalPolicies, type ActiveLeases } from "../approval-policy.js";
+import { buildMcpApprovalDefault, type ActiveLeases } from "../approval-policy.js";
 import { needsBackfill } from "../connect-backfill.js";
 import {
   CHANNEL_ID_LABEL,
@@ -120,14 +120,14 @@ describe("synthesizeConversationAttachment", () => {
     expect(attachment?.headers).toBeUndefined();
   });
 
-  it("is approval-free by construction: zero entries in the merged approval map", () => {
+  it("is approval-free by construction: the approval default marks none of its tools destructive", () => {
     const attachment = synthesizeConversationAttachment("agch_1", cloudOptions)!;
 
     // Channel surfaces run APPROVAL_MODE_UNATTENDED, where a gated tool
     // resolves as skip-and-adapt — a gated escalation would never fire
     // (synthesized attachments are approval-free by construction).
-    const merged = mergeApprovalPolicies([attachment], noLeases);
-    expect(merged.size).toBe(0);
+    const mcpDefault = buildMcpApprovalDefault([attachment], noLeases);
+    expect(mcpDefault.destructive.size).toBe(0);
   });
 
   it("is structurally immune to the connect backfill", () => {

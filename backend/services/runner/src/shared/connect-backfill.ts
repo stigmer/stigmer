@@ -1,17 +1,22 @@
 /**
- * Connect backfill for MCP servers without discovered capabilities.
+ * Connect backfill for MCP servers never discovered.
  *
- * When an MCP server has empty discovered_capabilities, triggers the
- * connect RPC to discover tools and classify approval policies via
- * the LLM classifier. The connect RPC starts a Temporal workflow
- * (discover + classify) and blocks until completion (~30 seconds).
+ * The approval default asks before an MCP tool only when its server marks
+ * it destructive, and that mark (`DiscoveredTool.destructive_hint`) is
+ * recorded by discovery. A server attached before anyone connected it has
+ * no discovered capabilities, so nothing would ask for any of its tools.
+ * This module runs that discovery once, at turn start: the connect RPC
+ * starts the connect workflow (discovery only) and blocks until it
+ * completes, then the servers are re-resolved so the turn sees the marks.
  *
- * Backfill trigger: discovered_capabilities is empty or absent.
+ * Backfill trigger: discovered_capabilities is empty or absent. A server
+ * discovered at least once is never re-discovered here; reconnecting it
+ * is the owner's act.
  *
  * Non-fatal: if connect fails for any server (permissions, timeout,
  * unreachable), the original servers are kept and execution continues
- * with empty policies. All tools from that server will require
- * approval by default (fail-closed).
+ * with that server's destructive set empty, so none of its tools asks.
+ * The server-side connect is the place that surfaces the failure.
  *
  * This module is harness-agnostic — both ExecuteCursor and
  * ExecuteDeepAgent use the same backfill logic. Each harness maps
@@ -29,12 +34,12 @@ import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1
 const CONNECT_TIMEOUT_MS = 60_000;
 
 /**
- * When true, skip connect backfill entirely. The runner discovers
- * tools directly via stdio/HTTP when it connects MCP servers, so
- * the backfill (which routes through the Java service's Temporal
- * workflow) is only needed for LLM-based approval classification.
- * Offline tests set this because no worker polls the stigmer_runner
- * queue that the Connect workflow dispatches to.
+ * When true, skip connect backfill entirely. The engine binds whatever
+ * tools a server lists live when it connects, so the backfill (which
+ * routes through the server's connect workflow) only records the
+ * destructive marks the approval default reads. Offline tests set this
+ * because no worker polls the stigmer_runner queue that the connect
+ * workflow dispatches to.
  */
 const SKIP_BACKFILL = process.env.SKIP_MCP_CONNECT_BACKFILL === "true";
 
@@ -51,14 +56,14 @@ export function needsBackfill(server: ResolvedMcpServer): boolean {
 
 /**
  * Run connect backfill for MCP servers that need it, then re-resolve
- * to pick up the newly populated approval policies.
+ * to pick up the newly recorded destructive marks.
  *
  * Triggers the connect RPC synchronously for each server with empty
- * discovered_capabilities. The RPC starts a Temporal workflow
- * (discover + classify) and returns the updated McpServer.
+ * discovered_capabilities. The RPC starts the connect workflow
+ * (discovery) and returns the updated McpServer.
  *
  * After at least one successful backfill, re-resolves ALL servers
- * to pick up fresh policies. If no backfills succeed, returns the
+ * to pick up the fresh discovery. If no backfills succeed, returns the
  * original servers unchanged.
  */
 export async function backfillMcpServersIfNeeded(
@@ -111,10 +116,11 @@ export async function backfillMcpServersIfNeeded(
       );
 
       const toolCount = updated.status?.discoveredCapabilities?.tools.length ?? 0;
-      const approvalCount = updated.status?.toolApprovals?.length ?? 0;
+      const destructiveCount =
+        updated.status?.discoveredCapabilities?.tools.filter((t) => t.destructiveHint).length ?? 0;
       console.log(
         `[connect-backfill] "${server.slug}" — ` +
-        `discovered ${toolCount} tool(s), classified ${approvalCount} approval policy(ies)`,
+        `discovered ${toolCount} tool(s), ${destructiveCount} marked destructive`,
       );
       anyBackfilled = true;
       onHeartbeat?.();
@@ -122,7 +128,7 @@ export async function backfillMcpServersIfNeeded(
       console.warn(
         `[connect-backfill] Failed for "${server.slug}": ` +
         `${err instanceof Error ? err.message : err}. ` +
-        `Continuing with empty approval policies for this server.`,
+        `Continuing with no destructive marks for this server.`,
       );
     }
   }

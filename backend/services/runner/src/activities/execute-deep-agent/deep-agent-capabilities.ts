@@ -15,8 +15,9 @@
  *    ride `createDeepAgent`'s `systemPrompt` (`prompt-builder.ts`).
  *  - Sub-agents as compiled sub-graphs (`subagent-transformer.ts`), each
  *    with its own mounted skills from the runtime (`TurnSkills.bySubAgent`).
- *  - Tool restriction by tool list: an MCP server's `enabled_tools` is
- *    honoured at connect time, so the engine never sees a disabled tool.
+ *  - Tool restriction by the agent's tool lists: the tool-scope middleware
+ *    (`middleware/tool-scope.ts`) hides every out-of-scope tool from each
+ *    model call and refuses a call to one, on the parent and every sub-agent.
  *  - PNG, JPEG, WebP and GIF inline (`shared/attachment-vision.ts`).
  *  - File review under the `deep-agent` harness id with nothing excluded:
  *    this harness writes no transient file into the repo (the `.stigmer`

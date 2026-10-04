@@ -42,9 +42,7 @@ type WorkflowInstanceClient = gen.WorkflowInstanceClient
 // Input types for resource mutation (Create, Update, Apply).
 type AgentInput = gen.AgentInput
 type McpServerUsageInput = gen.McpServerUsageInput
-type ToolApprovalOverrideInput = gen.ToolApprovalOverrideInput
 type SubAgentInput = gen.SubAgentInput
-type McpAccessInput = gen.McpAccessInput
 type EnvVarDeclarationInput = gen.EnvVarDeclarationInput
 type AgentChannelInput = gen.AgentChannelInput
 type SlackChannelConfigInput = gen.SlackChannelConfigInput
@@ -85,7 +83,6 @@ type EntitlementLimitsInput = gen.EntitlementLimitsInput
 type McpServerInput = gen.McpServerInput
 type StdioServerConfigInput = gen.StdioServerConfigInput
 type HttpServerConfigInput = gen.HttpServerConfigInput
-type ToolApprovalPolicyInput = gen.ToolApprovalPolicyInput
 type McpServerAuthInput = gen.McpServerAuthInput
 type MemoryInput = gen.MemoryInput
 type MemoryProvenanceInput = gen.MemoryProvenanceInput

@@ -119,10 +119,7 @@ import {
   type AnthropicMessageBody,
 } from "@stigmer/test-support/llm-wire";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
-import {
-  connectClassifierVerdict,
-  type MockLlmProxy,
-} from "@stigmer/test-support/mock-llm";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitTerminal,
@@ -915,7 +912,6 @@ describe.skipIf(!runnerActsAsRunCreator)(
       // A redacted or refused secret read fails discovery loudly (the runner's
       // CredentialResolutionError), so SUCCEEDED with the fixture's tool is the
       // proof the secret was read as the member and decrypted for the runner.
-      mock.enqueue(connectClassifierVerdict(ECHO_TOOL_NAME, false));
       const connected = await people.member.mcpServerCommand.connect({
         mcpServerId: server.metadata!.id,
         org: people.org,
@@ -929,7 +925,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
           (t) => t.name,
         ),
       ).toEqual([ECHO_TOOL_NAME]);
-      expect(mock.consumed(), "one classifier turn").toBe(1);
+      expect(mock.requests(), "a connect asks no model").toEqual([]);
     });
 
     it("[rpc:McpServerCommandController.connect] a member's connect reads the member's own saved credential, never the founder's saved after it", async (ctx) => {
@@ -983,7 +979,6 @@ describe.skipIf(!runnerActsAsRunCreator)(
       );
 
       mcpTools.resetCaptured();
-      mock.enqueue(connectClassifierVerdict(ECHO_TOOL_NAME, false));
       const connected = await people.member.mcpServerCommand.connect({
         mcpServerId: server.metadata!.id,
         org: people.org,

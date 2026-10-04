@@ -13,6 +13,9 @@
  *   - the tool's attribution (`mcpServerSlug`) and authorization provenance,
  *     from the gate's posture (`resolveApprovalProvenance`, the gate's
  *     read-side twin);
+ *   - a call the agent's tool lists refused, from the tool-scope
+ *     middleware's custom-stream event (`normalizeCustom`): a failure with
+ *     no provenance, since the call never started;
  *   - the SCOPE of every event — the root's transcript or one sub-agent's —
  *     from LangGraph's namespace grammar, and the sub-agent's own lifecycle
  *     (`sub_agent_started/finished/failed`) from deepagents' `task` tool
@@ -25,7 +28,7 @@
  * the gate middleware BEFORE the tool handler, so a held call emits no
  * `tool-started` at all; the `tool-started` that does arrive is the engine's
  * own word that the call was authorized — capture mode let the file write
- * flow, a lease or the policy chain cleared it, or the user approved it on a
+ * flow, a lease or the default cleared it, or the user approved it on a
  * resume. The gate's decision has arms this side cannot evaluate (capture
  * mode asks the workspace's git state, asynchronously;
  * `middleware/approval-gate.ts`), and duplicating them would be a second copy
@@ -80,6 +83,7 @@ import type { V3ProtocolEvent } from "./v3-event-recorder.js";
 import type { ToolStartedEvent, TranscriptEvent } from "../../harness/transcript/events.js";
 import { resolveApprovalProvenance, type PolicySource } from "../../shared/approval-policy.js";
 import type { DeepAgentGateState } from "./turn-setup.js";
+import { TOOL_REFUSED_EVENT } from "../../middleware/tool-scope.js";
 
 const loggedUnknowns = new Set<string>();
 
@@ -104,6 +108,7 @@ export class DeepAgentTranslator {
   /** One raw event to its canonical events — `translate(raw)` is the one signature every harness's translator shares. */
   translate(raw: V3ProtocolEvent): TranscriptEvent[] {
     const namespace = raw.params.namespace;
+    if (raw.method === "custom") return this.refusal(normalize(raw), this.customScopeOf(namespace));
     const subAgentId = this.scopeOf(namespace);
     const out: TranscriptEvent[] = [];
     for (const event of normalize(raw)) {
@@ -162,6 +167,31 @@ export class DeepAgentTranslator {
     };
   }
 
+  /**
+   * The sub-agent a custom-stream event belongs to. A graph's custom writer
+   * stamps the namespace of the graph that streams, not of the node that
+   * wrote: the root's events arrive under `[]`, and a sub-agent's under the
+   * one segment its `task` call registered (read at @langchain/langgraph
+   * 1.4.18, `__tests__/hermetic/tool-lists.test.ts` pins both).
+   */
+  private customScopeOf(namespace: readonly string[]): string | undefined {
+    return namespace.length === 0 ? undefined : this.subAgentByPrefix.get(namespace[0]);
+  }
+
+  /**
+   * A refused call's events (`normalizeCustom`), scoped like any other: never
+   * a sub-agent opening (the `task` call never ran), and at the root the
+   * server attribution alone — no provenance, since the call never reached
+   * the approval default.
+   */
+  private refusal(events: readonly TranscriptEvent[], subAgentId: string | undefined): TranscriptEvent[] {
+    return events.map((event) => {
+      if (subAgentId !== undefined) return { ...event, subAgentId };
+      if (event.kind !== "tool_started") return event;
+      return { ...event, mcpServerSlug: this.gate?.toolServerMap.get(event.name) ?? "" };
+    });
+  }
+
   /** The attribution and provenance for one root-scope tool start. */
   private attribute(event: ToolStartedEvent): ToolStartedEvent {
     const gate = this.gate;
@@ -170,7 +200,7 @@ export class DeepAgentTranslator {
     const provenance: PolicySource | undefined = resolveApprovalProvenance(
       event.name,
       mcpServerSlug,
-      gate.policies,
+      gate.mcpDefault,
       gate.leasedCategories,
       gate.globalBypass,
     );
@@ -201,9 +231,34 @@ export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
   switch (method) {
     case "messages": return normalizeMessage(event);
     case "tools": return normalizeTool(event);
+    case "custom": return normalizeCustom(event);
     default:
       return [];
   }
+}
+
+// ── Custom Channel ────────────────────────────────────────────────
+
+/**
+ * The one custom-stream event this harness reads: the tool-scope
+ * middleware's refusal of a call the agent's tool lists exclude
+ * (`middleware/tool-scope.ts`). The call never ran, so the tools channel
+ * says nothing of it; its row is opened here (the call as the model made
+ * it, with no provenance and no approval fields) and fails at once with the
+ * refusal's message. Any other custom event is not this harness's and is
+ * ignored.
+ */
+function normalizeCustom(event: V3ProtocolEvent): TranscriptEvent[] {
+  const data = event.params.data as Record<string, unknown> | undefined;
+  if (!data || data.name !== TOOL_REFUSED_EVENT) return [];
+  const callId = typeof data.tool_call_id === "string" ? data.tool_call_id : "";
+  if (!callId) return [];
+  const name = typeof data.tool_name === "string" ? data.tool_name : "";
+  const message = typeof data.message === "string" ? data.message : "";
+  return [
+    { kind: "tool_started" as const, callId, name, input: parseToolInput(data.input), mcpServerSlug: "" },
+    { kind: "tool_error" as const, callId, message },
+  ];
 }
 
 // ── Usage ─────────────────────────────────────────────────────────

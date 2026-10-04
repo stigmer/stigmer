@@ -122,10 +122,7 @@ import { getOAuthGrantStatus } from "./get-oauth-grant-status.js";
 import { initiateOAuthConnect } from "./initiate-oauth-connect.js";
 import { mcpServerSearchExtractor } from "./search-extractor.js";
 import { startConnect } from "./start-connect.js";
-import {
-  newEnrichOAuthStatusStep,
-  newValidateDefaultEnabledToolsStep,
-} from "./steps.js";
+import { newEnrichOAuthStatusStep } from "./steps.js";
 
 export interface McpServerControllerDeps {
   readonly store: Store;
@@ -266,11 +263,7 @@ async function createMcpServer(
   return reqCtx.newState;
 }
 
-/**
- * Update — chain per Go buildUpdatePipeline. ValidateDefaultEnabledTools
- * (#402) runs AFTER BuildUpdateState: the check is self-referential
- * against the OWN status the merge just carried over.
- */
+/** Update — chain per Go buildUpdatePipeline. */
 async function update(
   deps: McpServerControllerDeps,
   server: McpServer,
@@ -301,7 +294,6 @@ async function update(
     // tell an author's own auth from the derived one (its header).
     .addStep(newCompleteEndpointAuthStep(endpointAuthDeps(deps)))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newValidateDefaultEnabledToolsStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistStep(deps.store))

@@ -68,7 +68,7 @@ const PRICING: ModelPricing = {
 
 function openGate(overrides: Partial<DeepAgentGateState> = {}): DeepAgentGateState {
   return {
-    policies: new Map(),
+    mcpDefault: { destructive: new Set(), leasedServers: new Set() },
     toolServerMap: new Map(),
     leasedCategories: new Set(),
     globalBypass: false,

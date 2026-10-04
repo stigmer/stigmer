@@ -1,13 +1,14 @@
 /**
  * Pins the McpServer CRUD slice against Go's mcpserver_controller_test.go
- * + validate_default_enabled_tools_test.go + enrich_oauth_status_test.go +
+ * + enrich_oauth_status_test.go +
  * org_oauth_app_unimplemented_test.go — through the REAL stack: a composed
  * server on an ephemeral port, a native gRPC client, the full interceptor
  * chain.
  *
  * The load-bearing pins the conformance suite CANNOT cover (needs direct
- * store access or surfaces it doesn't roster): the #402 enabledtools arms
- * (capabilities only exist post-connect, which needs store seeding here),
+ * store access or surfaces it doesn't roster): an update carrying the
+ * discovered capabilities and their destructive hints over (they only
+ * exist post-connect, which needs store seeding here),
  * the #523 oauth_status enrichment matrix (needs seeded OAuthApps), the
  * updateVisibility ordering (no conformance coverage for this domain —
  * a known gap), and the #558 UNIMPLEMENTED guard (unit-level in
@@ -105,7 +106,6 @@ let counter = 0;
 function serverInput(overrides?: {
   name?: string;
   org?: string;
-  defaultEnabledTools?: string[];
   oauthAppSlug?: string;
   /** An auth block WITHOUT an oauth_app_ref — the DCR/manual-token arm. */
   dcrAuth?: boolean;
@@ -124,7 +124,6 @@ function serverInput(overrides?: {
         case: "stdio" as const,
         value: { command: "npx", args: ["-y", "@example/mcp"] },
       },
-      defaultEnabledTools: overrides?.defaultEnabledTools ?? [],
       ...(overrides?.oauthAppSlug !== undefined
         ? {
             auth: {
@@ -164,12 +163,11 @@ async function expectCode(
 
 /**
  * Grafts discovered capabilities onto a stored server, modeling the state
- * a connect leaves behind — the direct way to reach the #402 arms without
- * running a connect.
+ * a connect leaves behind without running one.
  */
 async function seedCapabilities(
   serverId: string,
-  tools: string[],
+  tools: { name: string; destructiveHint: boolean }[],
   resourceTemplates: string[],
 ): Promise<void> {
   const stored = await server.store.getResource(
@@ -183,7 +181,7 @@ async function seedCapabilities(
   );
   patched.status ??= create(McpServerStatusSchema, {});
   patched.status.discoveredCapabilities = create(DiscoveredCapabilitiesSchema, {
-    tools: tools.map((name) => ({ name })),
+    tools,
     resourceTemplates: resourceTemplates.map((name) => ({ name })),
   });
   await server.store.saveResource(
@@ -264,7 +262,7 @@ describe("CRUD", () => {
       metadata: { id: "mcp_missing", name: "Ghost Server", org: ORG },
     });
     await expectCode(
-      command.update(updateInput(ghost, [])),
+      command.update(updateInput(ghost)),
       Code.NotFound,
       "update non-existent",
     );
@@ -320,7 +318,7 @@ describe("updateVisibility (no conformance coverage for this domain, a known gap
 });
 
 /** A fully-typed update request for an existing server (no casts). */
-function updateInput(created: McpServer, defaultEnabledTools: string[]) {
+function updateInput(created: McpServer) {
   return {
     apiVersion: API_VERSION,
     kind: KIND,
@@ -335,43 +333,29 @@ function updateInput(created: McpServer, defaultEnabledTools: string[]) {
         case: "stdio" as const,
         value: { command: "npx", args: ["-y", "@example/mcp"] },
       },
-      defaultEnabledTools,
     },
   };
 }
 
-describe("ValidateDefaultEnabledTools (#402)", () => {
-  it("accepts names the server exposes; skips when the list is empty or the server never connected", async () => {
-    // Never connected: any names pass (no authoritative toolset yet).
-    const fresh = await command.create(serverInput());
-    const freshUpdate = await command.update(
-      updateInput(fresh, ["anything-goes"]),
-    );
-    expect(freshUpdate.spec?.defaultEnabledTools).toEqual(["anything-goes"]);
-
-    // Connected: valid names pass.
-    const connected = await command.create(serverInput());
-    await seedCapabilities(connected.metadata!.id, ["search", "fetch"], []);
-    const ok = await command.update(updateInput(connected, ["search"]));
-    expect(ok.spec?.defaultEnabledTools).toEqual(["search"]);
-  });
-
-  it("rejects unknown tools and resource templates with the byte-pinned teaching copy", async () => {
+describe("update keeps what discovery recorded", () => {
+  it("carries the discovered tools and their destructive hints over an update", async () => {
     const created = await command.create(serverInput());
     await seedCapabilities(
       created.metadata!.id,
-      ["search", "fetch"],
+      [
+        { name: "search", destructiveHint: false },
+        { name: "drop_table", destructiveHint: true },
+      ],
       ["files"],
     );
 
-    const err = await expectCode(
-      command.update(updateInput(created, ["serch", "files"])),
-      Code.InvalidArgument,
-      "unknown + template",
-    );
-    expect(err.rawMessage).toBe(
-      `MCP server '${created.metadata!.slug}': default_enabled_tools names tool(s) this server does not expose: 'serch'; default_enabled_tools names resource template(s): 'files' — resource templates are read-only data endpoints, not callable tools, and must not appear in default_enabled_tools. Discovered tools: 'search', 'fetch'. If the server's toolset changed, run 'stigmer connect' on it to refresh discovered capabilities.`,
-    );
+    const updated = await command.update(updateInput(created));
+    expect(updated.spec?.description).toBe("updated by the domain test");
+    const tools = updated.status?.discoveredCapabilities?.tools ?? [];
+    expect(tools.map((tool) => [tool.name, tool.destructiveHint])).toEqual([
+      ["search", false],
+      ["drop_table", true],
+    ]);
   });
 });
 

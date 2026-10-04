@@ -41,7 +41,7 @@ const (
 	// reconciled).
 	ConnectPhase_connect_phase_connecting ConnectPhase = 1
 	// The connect completed and its results were persisted to
-	// discovered_capabilities / tool_approvals.
+	// discovered_capabilities.
 	ConnectPhase_connect_phase_succeeded ConnectPhase = 2
 	// The connect settled without usable results. failure_code and
 	// failure_message carry the same classification the blocking connect RPC
@@ -237,14 +237,12 @@ type McpServerStatus struct {
 	// Tools and resource templates discovered from the MCP server.
 	// Optional — absent until the connect RPC has been called.
 	DiscoveredCapabilities *DiscoveredCapabilities `protobuf:"bytes,3,opt,name=discovered_capabilities,json=discoveredCapabilities,proto3" json:"discovered_capabilities,omitempty"`
-	// System-generated tool approval policies.
-	ToolApprovals []*ToolApprovalPolicy `protobuf:"bytes,4,rep,name=tool_approvals,json=toolApprovals,proto3" json:"tool_approvals,omitempty"`
 	// OAuth-related enrichment state, populated at query time by the backend.
 	// Carries the vendor approval status resolved from the referenced OAuthApp
 	// (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
 	// None of these fields are persisted.
 	OauthStatus *OAuthStatus `protobuf:"bytes,5,opt,name=oauth_status,json=oauthStatus,proto3" json:"oauth_status,omitempty"`
-	// State of the most recent connect (discovery + classification) operation.
+	// State of the most recent connect (discovery) operation.
 	//
 	// Persisted (unlike oauth_status). Written by the backend when a connect
 	// operation starts and again when it settles; clients poll it through the
@@ -304,13 +302,6 @@ func (x *McpServerStatus) GetValidationMessage() string {
 func (x *McpServerStatus) GetDiscoveredCapabilities() *DiscoveredCapabilities {
 	if x != nil {
 		return x.DiscoveredCapabilities
-	}
-	return nil
-}
-
-func (x *McpServerStatus) GetToolApprovals() []*ToolApprovalPolicy {
-	if x != nil {
-		return x.ToolApprovals
 	}
 	return nil
 }
@@ -529,9 +520,15 @@ type DiscoveredTool struct {
 	// Human-readable description of the tool's purpose.
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// JSON Schema describing the tool's input parameters.
-	InputSchema   *structpb.Struct `protobuf:"bytes,3,opt,name=input_schema,json=inputSchema,proto3" json:"input_schema,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	InputSchema *structpb.Struct `protobuf:"bytes,3,opt,name=input_schema,json=inputSchema,proto3" json:"input_schema,omitempty"`
+	// True when the server's own MCP annotation marks the tool destructive
+	// (annotations.destructiveHint is exactly true), whatever readOnlyHint says.
+	// A destructive tool asks for approval before it runs. An absent annotation
+	// reads as false: Stigmer acts only on an explicit declaration, so a server
+	// that annotates nothing gates nothing.
+	DestructiveHint bool `protobuf:"varint,4,opt,name=destructive_hint,json=destructiveHint,proto3" json:"destructive_hint,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *DiscoveredTool) Reset() {
@@ -583,6 +580,13 @@ func (x *DiscoveredTool) GetInputSchema() *structpb.Struct {
 		return x.InputSchema
 	}
 	return nil
+}
+
+func (x *DiscoveredTool) GetDestructiveHint() bool {
+	if x != nil {
+		return x.DestructiveHint
+	}
+	return false
 }
 
 // DiscoveredResourceTemplate describes a parameterized resource template reported by an MCP server.
@@ -747,15 +751,14 @@ var File_ai_stigmer_agentic_mcpserver_v1_status_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/agentic/mcpserver/v1/status.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a*ai/stigmer/agentic/mcpserver/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a%ai/stigmer/iam/oauthapp/v1/spec.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdb\x04\n" +
+	",ai/stigmer/agentic/mcpserver/v1/status.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a%ai/stigmer/iam/oauthapp/v1/spec.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x95\x04\n" +
 	"\x0fMcpServerStatus\x12[\n" +
 	"\x10validation_state\x18\x01 \x01(\x0e20.ai.stigmer.agentic.mcpserver.v1.ValidationStateR\x0fvalidationState\x12-\n" +
 	"\x12validation_message\x18\x02 \x01(\tR\x11validationMessage\x12p\n" +
-	"\x17discovered_capabilities\x18\x03 \x01(\v27.ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilitiesR\x16discoveredCapabilities\x12Z\n" +
-	"\x0etool_approvals\x18\x04 \x03(\v23.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\rtoolApprovals\x12O\n" +
+	"\x17discovered_capabilities\x18\x03 \x01(\v27.ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilitiesR\x16discoveredCapabilities\x12O\n" +
 	"\foauth_status\x18\x05 \x01(\v2,.ai.stigmer.agentic.mcpserver.v1.OAuthStatusR\voauthStatus\x12U\n" +
 	"\x0econnect_status\x18\x06 \x01(\v2..ai.stigmer.agentic.mcpserver.v1.ConnectStatusR\rconnectStatus\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\"\xd3\x02\n" +
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditJ\x04\b\x04\x10\x05R\x0etool_approvals\"\xd3\x02\n" +
 	"\rConnectStatus\x12C\n" +
 	"\x05phase\x18\x01 \x01(\x0e2-.ai.stigmer.agentic.mcpserver.v1.ConnectPhaseR\x05phase\x12\x1f\n" +
 	"\vworkflow_id\x18\x02 \x01(\tR\n" +
@@ -770,11 +773,12 @@ const file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc = "" +
 	"\x16DiscoveredCapabilities\x12E\n" +
 	"\x05tools\x18\x01 \x03(\v2/.ai.stigmer.agentic.mcpserver.v1.DiscoveredToolR\x05tools\x12j\n" +
 	"\x12resource_templates\x18\x02 \x03(\v2;.ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplateR\x11resourceTemplates\x12H\n" +
-	"\x12last_discovered_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x10lastDiscoveredAt\"\x82\x01\n" +
+	"\x12last_discovered_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x10lastDiscoveredAt\"\xad\x01\n" +
 	"\x0eDiscoveredTool\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12:\n" +
-	"\finput_schema\x18\x03 \x01(\v2\x17.google.protobuf.StructR\vinputSchema\"\x92\x01\n" +
+	"\finput_schema\x18\x03 \x01(\v2\x17.google.protobuf.StructR\vinputSchema\x12)\n" +
+	"\x10destructive_hint\x18\x04 \x01(\bR\x0fdestructiveHint\"\x92\x01\n" +
 	"\x1aDiscoveredResourceTemplate\x12!\n" +
 	"\furi_template\x18\x01 \x01(\tR\vuriTemplate\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -825,33 +829,31 @@ var file_ai_stigmer_agentic_mcpserver_v1_status_proto_goTypes = []any{
 	(*DiscoveredTool)(nil),               // 6: ai.stigmer.agentic.mcpserver.v1.DiscoveredTool
 	(*DiscoveredResourceTemplate)(nil),   // 7: ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate
 	(*OAuthStatus)(nil),                  // 8: ai.stigmer.agentic.mcpserver.v1.OAuthStatus
-	(*ToolApprovalPolicy)(nil),           // 9: ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	(*apiresource.ApiResourceAudit)(nil), // 10: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*timestamppb.Timestamp)(nil),        // 11: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),              // 12: google.protobuf.Struct
-	(v1.VendorApprovalStatus)(0),         // 13: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
+	(*apiresource.ApiResourceAudit)(nil), // 9: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*timestamppb.Timestamp)(nil),        // 10: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),              // 11: google.protobuf.Struct
+	(v1.VendorApprovalStatus)(0),         // 12: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
 }
 var file_ai_stigmer_agentic_mcpserver_v1_status_proto_depIdxs = []int32{
 	1,  // 0: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.validation_state:type_name -> ai.stigmer.agentic.mcpserver.v1.ValidationState
 	5,  // 1: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.discovered_capabilities:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities
-	9,  // 2: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	8,  // 3: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.oauth_status:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthStatus
-	4,  // 4: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.connect_status:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectStatus
-	10, // 5: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	0,  // 6: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.phase:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectPhase
-	11, // 7: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.started_at:type_name -> google.protobuf.Timestamp
-	11, // 8: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.finished_at:type_name -> google.protobuf.Timestamp
-	6,  // 9: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.tools:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredTool
-	7,  // 10: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.resource_templates:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate
-	11, // 11: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.last_discovered_at:type_name -> google.protobuf.Timestamp
-	12, // 12: ai.stigmer.agentic.mcpserver.v1.DiscoveredTool.input_schema:type_name -> google.protobuf.Struct
-	13, // 13: ai.stigmer.agentic.mcpserver.v1.OAuthStatus.vendor_approval_status:type_name -> ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
-	2,  // 14: ai.stigmer.agentic.mcpserver.v1.OAuthStatus.effective_oauth_source:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthAppSource
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	8,  // 2: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.oauth_status:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthStatus
+	4,  // 3: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.connect_status:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectStatus
+	9,  // 4: ai.stigmer.agentic.mcpserver.v1.McpServerStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	0,  // 5: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.phase:type_name -> ai.stigmer.agentic.mcpserver.v1.ConnectPhase
+	10, // 6: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.started_at:type_name -> google.protobuf.Timestamp
+	10, // 7: ai.stigmer.agentic.mcpserver.v1.ConnectStatus.finished_at:type_name -> google.protobuf.Timestamp
+	6,  // 8: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.tools:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredTool
+	7,  // 9: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.resource_templates:type_name -> ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate
+	10, // 10: ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities.last_discovered_at:type_name -> google.protobuf.Timestamp
+	11, // 11: ai.stigmer.agentic.mcpserver.v1.DiscoveredTool.input_schema:type_name -> google.protobuf.Struct
+	12, // 12: ai.stigmer.agentic.mcpserver.v1.OAuthStatus.vendor_approval_status:type_name -> ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus
+	2,  // 13: ai.stigmer.agentic.mcpserver.v1.OAuthStatus.effective_oauth_source:type_name -> ai.stigmer.agentic.mcpserver.v1.OAuthAppSource
+	14, // [14:14] is the sub-list for method output_type
+	14, // [14:14] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_status_proto_init() }
@@ -859,7 +861,6 @@ func file_ai_stigmer_agentic_mcpserver_v1_status_proto_init() {
 	if File_ai_stigmer_agentic_mcpserver_v1_status_proto != nil {
 		return
 	}
-	file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

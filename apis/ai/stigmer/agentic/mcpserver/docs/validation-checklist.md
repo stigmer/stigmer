@@ -35,9 +35,8 @@ Run through this list before applying an McpServer YAML with `stigmer apply -f`.
 
 ### Tool Names
 
-- [ ] All tool names in `spec.default_enabled_tools` have been verified against the server's `tools/list` (run `stigmer discover mcp-server <slug>`) — **server-enforced at apply time**: once the server has discovered capabilities, update/apply rejects unknown names with `INVALID_ARGUMENT` listing the valid tools
-- [ ] `default_enabled_tools` contains **only** names from `discovered_capabilities.tools` — never from `discovered_capabilities.resource_templates` (resource templates are data endpoints, not callable tools; also server-enforced at apply time, with a targeted error)
-- [ ] All `tool_name` values in `spec.default_tool_approvals` match exactly (case-sensitive) what the server reports — typos are silently ignored
+- [ ] The spec declares no tool settings: an agent narrows a server's tools with its own `tools` and `disallowed_tools` lists
+- [ ] Tools that should ask for approval are annotated `destructiveHint: true` by the server itself; after connecting, `status.discovered_capabilities.tools[].destructive_hint` shows which ones Stigmer will ask about
 
 ### YAML Syntax
 
@@ -100,34 +99,20 @@ apiVersion: v1
 apiVersion: agentic.stigmer.ai/v1
 ```
 
-### Confusing `${VAR_NAME}` with `{{args.field}}`
+### Using a placeholder syntax other than `${VAR_NAME}`
 
-These two placeholder syntaxes look similar but are completely different:
-
-| Syntax | Where Used | Resolved By | When |
-|---|---|---|---|
-| `${VAR_NAME}` | HTTP `headers` and `query_params` values | Agent runner, from the run's resolved environment | At server startup/request time |
-| `{{args.field}}` | `default_tool_approvals.message` and agent `tool_approval_overrides.message` | Approval engine, from tool call arguments | At tool invocation time |
+HTTP `headers` and `query_params` values resolve `${VAR_NAME}` from the run's resolved environment, at server startup or request time. No other placeholder syntax resolves.
 
 ```yaml
-# Wrong — using ${} in an approval message
-default_tool_approvals:
-  - tool_name: delete_repository
-    message: "Delete ${args.repo}"     # Won't resolve — wrong syntax for this context
-
-# Wrong — using {{}} in an HTTP header
+# Wrong — {{}} is not a placeholder here
 http:
   headers:
-    Authorization: "Bearer {{API_TOKEN}}"   # Won't resolve — wrong syntax for this context
+    Authorization: "Bearer {{API_TOKEN}}"   # sent literally
 
-# Correct — each syntax in its proper place
+# Correct
 http:
   headers:
     Authorization: "Bearer ${API_TOKEN}"   # environment variable
-
-default_tool_approvals:
-  - tool_name: delete_repository
-    message: "Delete repository: {{args.repo}}"   # tool argument
 ```
 
 ### Using slugs in wrong format
@@ -147,42 +132,15 @@ slug: github-mcp
 slug: my-internal-db-v2
 ```
 
-### `default_enabled_tools` with unverified tool names
+### Expecting a tool to ask for approval when the server does not mark it destructive
 
-Tool names must match exactly what the MCP server reports via `tools/list`. Once the server has discovered capabilities, an update/apply carrying an unknown name is rejected with `INVALID_ARGUMENT` listing the valid tools. Before the first discovery (a brand-new server), the name passes apply unchecked and the runner warns and ignores it at execution — agents won't see that tool as available.
-
-```yaml
-# Potentially wrong — tool names guessed, not verified
-default_enabled_tools:
-  - searchCode         # should be search_code?
-  - GetFileContents    # should be get_file_contents?
-
-# Correct workflow — always discover first
-# 1. stigmer apply -f mcpserver.yaml
-# 2. stigmer discover mcp-server github
-# 3. stigmer get mcp-server github --output yaml   <- copy names from here
-default_enabled_tools:
-  - search_code
-  - get_file_contents
-```
-
-### Typos in `tool_name` inside `default_tool_approvals`
-
-If a `tool_name` doesn't match any tool from the server's `tools/list`, the approval policy is **silently ignored**. No error. No warning. The tool runs without approval as if no policy existed.
+Stigmer asks before an MCP tool runs only when the server's own annotation marks it destructive (`destructiveHint: true`). A server that annotates nothing gates nothing. Check `status.discovered_capabilities.tools[].destructive_hint` after connecting. To keep an agent away from a tool instead, leave it out with the agent's tool lists:
 
 ```yaml
-# Dangerous — typo silently disables the approval policy
-default_tool_approvals:
-  - tool_name: delete_repositry    # typo: 'repositry' instead of 'repository'
-    message: "Delete repository: {{args.repo}}"
-
-# Correct
-default_tool_approvals:
-  - tool_name: delete_repository
-    message: "Delete repository: {{args.repo}}"
+# In the Agent spec
+disallowed_tools:
+  - mcp__github__delete_repository   # exact name from status.discovered_capabilities.tools[*].name
 ```
-
-Mitigation: always run `stigmer discover mcp-server <slug>` and copy tool names directly from `status.discovered_capabilities.tools[*].name`.
 
 ### `env_spec` with values pre-filled for secrets
 
@@ -239,7 +197,7 @@ If `org` is omitted, the CLI resolves it from the active context (`stigmer conte
 
 ### Forgetting to run discovery after apply
 
-After applying a new or updated McpServer, the `status.discovered_capabilities` is empty (or stale) until discovery is run. Agents can still reference the server, but you cannot verify tool names or write accurate approval policies.
+After applying a new or updated McpServer, the `status.discovered_capabilities` is empty (or stale) until discovery is run. Agents can still reference the server, but you cannot verify tool names for an agent's tool lists or see which tools are marked destructive.
 
 ```bash
 # Always run this after apply

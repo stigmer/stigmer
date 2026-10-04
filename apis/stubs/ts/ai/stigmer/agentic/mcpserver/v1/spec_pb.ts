@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEi6QQKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASHQoVZGVmYXVsdF9lbmFibGVkX3Rvb2xzGAcgAygJEkQKA2VudhgIIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyU3BlYy5FbnZFbnRyeRJSChVwaW5uZWRfdG9vbF9hcHByb3ZhbHMYCyADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeRIWCg5yZXBvc2l0b3J5X3VybBgMIAEoCRIUCgxnaXRodWJfc3RhcnMYDSABKAUSPAoEYXV0aBgOIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyQXV0aBpgCghFbnZFbnRyeRILCgNrZXkYASABKAkSQwoFdmFsdWUYAiABKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBQhQKC3NlcnZlcl90eXBlEgW6SAIIASJPChFTdGRpb1NlcnZlckNvbmZpZxIXCgdjb21tYW5kGAEgASgJQga6SAPIAQESDAoEYXJncxgCIAMoCRITCgt3b3JraW5nX2RpchgDIAEoCSLgAgoQSHR0cFNlcnZlckNvbmZpZxIYCgN1cmwYASABKAlCC7pICMgBAXIDiAEBEk8KB2hlYWRlcnMYAiADKAsyPi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkh0dHBTZXJ2ZXJDb25maWcuSGVhZGVyc0VudHJ5ElgKDHF1ZXJ5X3BhcmFtcxgDIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuSHR0cFNlcnZlckNvbmZpZy5RdWVyeVBhcmFtc0VudHJ5EiMKD3RpbWVvdXRfc2Vjb25kcxgEIAEoBUIKukgHGgUYrAIoABouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBRdWVyeVBhcmFtc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiYAoSVG9vbEFwcHJvdmFsUG9saWN5EhoKCXRvb2xfbmFtZRgBIAEoCUIHukgEcgIQARIPCgdtZXNzYWdlGAIgASgJEh0KFWZyb21fZGVzdHJ1Y3RpdmVfaGludBgDIAEoCCL0AgoNTWNwU2VydmVyQXV0aBLMAQoNb2F1dGhfYXBwX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ/ukh4ugF1ChJvYXV0aF9hcHBfcmVmLmtpbmQSO29hdXRoX2FwcF9yZWYgbXVzdCByZWZlcmVuY2UgYSByZXNvdXJjZSB3aXRoIGtpbmQ9b2F1dGhfYXBwGiJ0aGlzLnNsdWcgPT0gJycgfHwgdGhpcy5raW5kID09IDIy4IUsFhIfCg50YXJnZXRfZW52X3ZhchgCIAEoCUIHukgEcgIQARIbChN0b2tlbl9saWZldGltZV9oaW50GAMgASgJEhMKC3Njb3BlX2hpbnRzGAQgAygJEhUKDWRpc2NvdmVyeV91cmwYByABKAkSEgoKb2F1dGhfb25seRgKIAEoCEoECAUQBkoECAYQB0oECAgQCUoECAkQCmIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3NwZWMucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEisAQKDU1jcFNlcnZlclNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSDAoEdGFncxgDIAMoCRJDCgVzdGRpbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuU3RkaW9TZXJ2ZXJDb25maWdIABJBCgRodHRwGAUgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5IdHRwU2VydmVyQ29uZmlnSAASRAoDZW52GAggAygLMjcuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXJTcGVjLkVudkVudHJ5EhYKDnJlcG9zaXRvcnlfdXJsGAwgASgJEhQKDGdpdGh1Yl9zdGFycxgNIAEoBRI8CgRhdXRoGA4gASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXJBdXRoGmAKCEVudkVudHJ5EgsKA2tleRgBIAEoCRJDCgV2YWx1ZRgCIAEoCzI0LmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZWYXJEZWNsYXJhdGlvbjoCOAFCFAoLc2VydmVyX3R5cGUSBbpIAggBSgQIBxAISgQICxAMUhVkZWZhdWx0X2VuYWJsZWRfdG9vbHNSFXBpbm5lZF90b29sX2FwcHJvdmFscyJPChFTdGRpb1NlcnZlckNvbmZpZxIXCgdjb21tYW5kGAEgASgJQga6SAPIAQESDAoEYXJncxgCIAMoCRITCgt3b3JraW5nX2RpchgDIAEoCSLgAgoQSHR0cFNlcnZlckNvbmZpZxIYCgN1cmwYASABKAlCC7pICMgBAXIDiAEBEk8KB2hlYWRlcnMYAiADKAsyPi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkh0dHBTZXJ2ZXJDb25maWcuSGVhZGVyc0VudHJ5ElgKDHF1ZXJ5X3BhcmFtcxgDIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuSHR0cFNlcnZlckNvbmZpZy5RdWVyeVBhcmFtc0VudHJ5EiMKD3RpbWVvdXRfc2Vjb25kcxgEIAEoBUIKukgHGgUYrAIoABouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBRdWVyeVBhcmFtc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEi9AIKDU1jcFNlcnZlckF1dGgSzAEKDW9hdXRoX2FwcF9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCf7pIeLoBdQoSb2F1dGhfYXBwX3JlZi5raW5kEjtvYXV0aF9hcHBfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPW9hdXRoX2FwcBoidGhpcy5zbHVnID09ICcnIHx8IHRoaXMua2luZCA9PSAyMuCFLBYSHwoOdGFyZ2V0X2Vudl92YXIYAiABKAlCB7pIBHICEAESGwoTdG9rZW5fbGlmZXRpbWVfaGludBgDIAEoCRITCgtzY29wZV9oaW50cxgEIAMoCRIVCg1kaXNjb3ZlcnlfdXJsGAcgASgJEhIKCm9hdXRoX29ubHkYCiABKAhKBAgFEAZKBAgGEAdKBAgIEAlKBAgJEApiBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * McpServerSpec defines the configurable properties of an MCP server.
@@ -78,28 +78,12 @@ export type McpServerSpec = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerSp
   } | { case: undefined; value?: undefined };
 
   /**
-   * Default tools to enable from this MCP server.
-   * Empty list means all tools are enabled by default.
-   * Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-   *
-   * @generated from field: repeated string default_enabled_tools = 7;
-   */
-  defaultEnabledTools: string[];
-
-  /**
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
    *
    * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 8;
    */
   env: { [key: string]: EnvVarDeclaration };
-
-  /**
-   * Tools pinned by the MCP server owner to always require approval.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy pinned_tool_approvals = 11;
-   */
-  pinnedToolApprovals: ToolApprovalPolicy[];
 
   /**
    * URL of the upstream source repository for this MCP server.
@@ -267,63 +251,6 @@ export const HttpServerConfigSchema: GenMessage<HttpServerConfig> = /*@__PURE__*
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_spec, 2);
 
 /**
- * ToolApprovalPolicy defines approval requirements for a specific tool.
- *
- * @generated from message ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
- */
-export type ToolApprovalPolicy = Message<"ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy"> & {
-  /**
-   * Name of the tool (must match tools/list from MCP server exactly).
-   * Case-sensitive matching against tool names reported by the MCP server.
-   * Example: "delete_repository", "send_email", "execute_sql"
-   *
-   * @generated from field: string tool_name = 1;
-   */
-  toolName: string;
-
-  /**
-   * Human-readable message shown to user when approval is requested.
-   * Supports {{args.field}} placeholders for dynamic content.
-   *
-   * If empty, a default message is generated: "Execute tool: {tool_name}"
-   *
-   * Guidelines for effective messages:
-   *   - Be specific about what will happen
-   *   - Include the most important argument values using placeholders
-   *   - Keep under 100 characters for UI display
-   *   - Use action verbs: "Delete", "Send", "Execute", "Create"
-   *
-   * @generated from field: string message = 2;
-   */
-  message: string;
-
-  /**
-   * True when the connect-time fail-closed tightener force-gated this tool
-   * because the server's own MCP annotation declared destructiveHint=true,
-   * rather than the classifier (or a human) gating it. Lets the runner attribute
-   * a tightened tool to its true provenance
-   * (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN)
-   * instead of collapsing it into the classifier default. Carries no enforcement
-   * weight — gating is decided by presence in this list — so an absent/false
-   * value simply means "not attributed to the destructiveHint tightener".
-   *
-   * Set only on entries written to McpServerStatus.tool_approvals (the classifier
-   * layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human
-   * pin is, by definition, a pinned override) and left false there.
-   *
-   * @generated from field: bool from_destructive_hint = 3;
-   */
-  fromDestructiveHint: boolean;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy.
- * Use `create(ToolApprovalPolicySchema)` to create a new message.
- */
-export const ToolApprovalPolicySchema: GenMessage<ToolApprovalPolicy> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_spec, 3);
-
-/**
  * McpServerAuth configures automated credential acquisition via OAuth.
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.McpServerAuth
@@ -427,5 +354,5 @@ export type McpServerAuth = Message<"ai.stigmer.agentic.mcpserver.v1.McpServerAu
  * Use `create(McpServerAuthSchema)` to create a new message.
  */
 export const McpServerAuthSchema: GenMessage<McpServerAuth> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_spec, 4);
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_spec, 3);
 

@@ -104,7 +104,7 @@ export interface HarnessCapabilities {
   readonly systemPrompt: boolean;
   /** The engine runs delegated sub-agents from a definition map. */
   readonly subAgents: boolean;
-  /** The engine can hide or deny tools by name; otherwise the gate enforces `enabledTools`. */
+  /** The engine can hide or deny every tool an agent's tool lists exclude; otherwise its approval hook refuses what it cannot hide. */
   readonly toolRestriction: boolean;
   /** Which image types the engine can display inline; the runtime degrades the rest before the turn. */
   readonly visionProfile: VisionProfile;

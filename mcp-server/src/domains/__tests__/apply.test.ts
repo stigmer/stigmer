@@ -2,7 +2,7 @@
 // apply_mcp_server, apply_workflow, and apply_environment through the
 // full MCP boundary and asserts the codegen projection (src/gen/*)
 // reconstitutes the proto correctly: metadata hoist + slug generation,
-// enum-string conversion,
+// the agent tool lists, enum-string conversion,
 // ApiResourceReference kind injection, the stdio/http oneof, the environment
 // data map with secret flags, and the recursive workflow task_config expansion
 // (http_call leaf, fork/for_each nesting).
@@ -142,7 +142,9 @@ describe("apply tools integration", () => {
       visibility: "visibility_platform",
       instructions: "Review code carefully.",
       skill_refs: [{ slug: "web-search", version: "stable" }],
-      mcp_server_usages: [{ mcp_server_ref: { slug: "github" }, enabled_tools: ["create_pr"] }],
+      mcp_server_usages: [{ mcp_server_ref: { slug: "github" } }],
+      tools: ["Read", "mcp__github"],
+      disallowed_tools: ["Bash"],
     });
     expect(result.isError).toBeFalsy();
 
@@ -163,7 +165,8 @@ describe("apply tools integration", () => {
     const usage = agent?.spec?.mcpServerUsages?.[0];
     expect(usage?.mcpServerRef?.slug).toBe("github");
     expect(usage?.mcpServerRef?.kind).toBe(ApiResourceKind.mcp_server);
-    expect(usage?.enabledTools).toEqual(["create_pr"]);
+    expect(agent?.spec?.tools).toEqual(["Read", "mcp__github"]);
+    expect(agent?.spec?.disallowedTools).toEqual(["Bash"]);
   });
 
   it("apply_mcp_server rebuilds the stdio oneof", async () => {

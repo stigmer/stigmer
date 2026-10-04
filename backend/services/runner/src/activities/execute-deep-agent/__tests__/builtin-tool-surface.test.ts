@@ -28,6 +28,7 @@ import {
 } from "../deepagents-profiles.js";
 import { ScriptedModel, type ScriptSelector } from "../__test-utils__/scripted-model.js";
 import { compileSubagents } from "../subagent-transformer.js";
+import { ToolScope } from "../../../shared/tool-lists.js";
 
 class ScriptedAnthropicModel extends ScriptedModel {
   static override lc_name(): string {
@@ -59,7 +60,7 @@ describe("native built-in tool surface", () => {
       return { toolCalls: [], done: "ok" };
     };
     const compiled = await compileSubagents(
-      [{ name: "worker", description: "test worker", systemPrompt: "work", tools: [] }],
+      [{ name: "worker", description: "test worker", systemPrompt: "work", tools: [], scope: ToolScope.unrestricted() }],
       {
         parentModelName: "claude-sonnet-4-6",
         workspaceRootDir: root,

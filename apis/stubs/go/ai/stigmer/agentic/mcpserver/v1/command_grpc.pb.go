@@ -62,11 +62,11 @@ type McpServerCommandControllerClient interface {
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*McpServer, error)
-	// Connect to an MCP server: discover its tools and classify approval policies.
+	// Connect to an MCP server and discover its tools.
 	//
 	// Connects to the MCP server, enumerates tools and resource templates,
-	// classifies tool approval policies via a lightweight LLM, and stores the
-	// results in status.discovered_capabilities and status.tool_approvals.
+	// records which tools the server marks destructive, and stores the
+	// results in status.discovered_capabilities.
 	// Blocks until the operation settles — legitimately minutes for heavy
 	// stdio servers (the server-side workflow ceiling is the bound) — and
 	// returns the updated McpServer.
@@ -77,16 +77,15 @@ type McpServerCommandControllerClient interface {
 	// This RPC remains for callers that want synchronous semantics (and for
 	// backends that do not yet serve startConnect).
 	Connect(ctx context.Context, in *ConnectInput, opts ...grpc.CallOption) (*McpServer, error)
-	// Start a connect operation without waiting for it: discovery and
-	// classification run server-side, and the caller observes progress by
+	// Start a connect operation without waiting for it: discovery runs
+	// server-side, and the caller observes progress by
 	// polling the resource.
 	//
 	// Returns the McpServer immediately with status.connect_status describing
 	// the accepted operation (phase CONNECTING, plus a warning when no runner
 	// appears to be polling the task queue). Poll get/getByReference until
 	// status.connect_status reaches a terminal phase; results land in
-	// status.discovered_capabilities and status.tool_approvals exactly as with
-	// the blocking connect.
+	// status.discovered_capabilities exactly as with the blocking connect.
 	//
 	// Idempotent while an operation is in flight: a startConnect that finds a
 	// live CONNECTING operation attaches to it (the in-flight operation's
@@ -312,11 +311,11 @@ type McpServerCommandControllerServer interface {
 	// Only modifies metadata.visibility, leaving spec, status, and other
 	// metadata fields untouched.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*McpServer, error)
-	// Connect to an MCP server: discover its tools and classify approval policies.
+	// Connect to an MCP server and discover its tools.
 	//
 	// Connects to the MCP server, enumerates tools and resource templates,
-	// classifies tool approval policies via a lightweight LLM, and stores the
-	// results in status.discovered_capabilities and status.tool_approvals.
+	// records which tools the server marks destructive, and stores the
+	// results in status.discovered_capabilities.
 	// Blocks until the operation settles — legitimately minutes for heavy
 	// stdio servers (the server-side workflow ceiling is the bound) — and
 	// returns the updated McpServer.
@@ -327,16 +326,15 @@ type McpServerCommandControllerServer interface {
 	// This RPC remains for callers that want synchronous semantics (and for
 	// backends that do not yet serve startConnect).
 	Connect(context.Context, *ConnectInput) (*McpServer, error)
-	// Start a connect operation without waiting for it: discovery and
-	// classification run server-side, and the caller observes progress by
+	// Start a connect operation without waiting for it: discovery runs
+	// server-side, and the caller observes progress by
 	// polling the resource.
 	//
 	// Returns the McpServer immediately with status.connect_status describing
 	// the accepted operation (phase CONNECTING, plus a warning when no runner
 	// appears to be polling the task queue). Poll get/getByReference until
 	// status.connect_status reaches a terminal phase; results land in
-	// status.discovered_capabilities and status.tool_approvals exactly as with
-	// the blocking connect.
+	// status.discovered_capabilities exactly as with the blocking connect.
 	//
 	// Idempotent while an operation is in flight: a startConnect that finds a
 	// live CONNECTING operation attaches to it (the in-flight operation's

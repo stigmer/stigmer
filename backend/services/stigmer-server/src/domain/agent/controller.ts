@@ -123,7 +123,6 @@ import { agentSearchExtractor } from "./search-extractor.js";
 import {
   newCascadeDeleteSharesStep,
   newMergeMcpServerEnvSpecsStep,
-  newValidateEnabledToolsStep,
 } from "./steps.js";
 import {
   TAG_VERSION_AGENT_KEY,
@@ -203,7 +202,6 @@ async function createAgent(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newValidateEnabledToolsStep(deps.store))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
@@ -253,7 +251,6 @@ async function update(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newValidateEnabledToolsStep(deps.store))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())

@@ -101,7 +101,7 @@ export class GeneratedClient {
 
 // Re-export all resource client types and input types.
 export { AgentClient } from "./agent.js";
-export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInput, type SubAgentInput, type McpAccessInput, type EnvVarDeclarationInput } from "./agent.js";
+export { type AgentInput, type McpServerUsageInput, type SubAgentInput, type EnvVarDeclarationInput } from "./agent.js";
 export { AgentChannelClient } from "./agentchannel.js";
 export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput, type RunConfigInput } from "./agentchannel.js";
 export { AgentExecutionClient } from "./agentexecution.js";
@@ -129,7 +129,7 @@ export { type InvitationInput } from "./invitation.js";
 export { LicenseClient } from "./license.js";
 export { type LicenseInput, type LicenseCustomerInput, type EntitlementsInput, type EntitlementLimitsInput } from "./license.js";
 export { McpServerClient } from "./mcpserver.js";
-export { type McpServerInput, type StdioServerConfigInput, type HttpServerConfigInput, type ToolApprovalPolicyInput, type McpServerAuthInput } from "./mcpserver.js";
+export { type McpServerInput, type StdioServerConfigInput, type HttpServerConfigInput, type McpServerAuthInput } from "./mcpserver.js";
 export { MemoryClient } from "./memory.js";
 export { type MemoryInput, type MemoryProvenanceInput } from "./memory.js";
 export { OAuthAppClient } from "./oauthapp.js";

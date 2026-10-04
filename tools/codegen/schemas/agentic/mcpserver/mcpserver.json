@@ -63,19 +63,6 @@
       "oneofGroup": "server_type"
     },
     {
-      "name": "DefaultEnabledTools",
-      "jsonName": "defaultEnabledTools",
-      "protoField": "default_enabled_tools",
-      "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "string"
-        }
-      },
-      "description": "Default tools to enable from this MCP server.\n Empty list means all tools are enabled by default.\n Applies whenever an agent's McpServerUsage.enabled_tools is empty.",
-      "required": false
-    },
-    {
       "name": "Env",
       "jsonName": "env",
       "protoField": "env",
@@ -90,20 +77,6 @@
         }
       },
       "description": "Environment variable declarations for this MCP server.\n Keys are variable names; values describe their metadata and optionality.",
-      "required": false
-    },
-    {
-      "name": "PinnedToolApprovals",
-      "jsonName": "pinnedToolApprovals",
-      "protoField": "pinned_tool_approvals",
-      "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "message",
-          "messageType": "ToolApprovalPolicy"
-        }
-      },
-      "description": "Tools pinned by the MCP server owner to always require approval.",
       "required": false
     },
     {

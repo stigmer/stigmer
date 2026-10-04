@@ -36,10 +36,11 @@
  *
  * Approval-free by construction, and FORCED, not convenient: channel
  * surfaces run APPROVAL_MODE_UNATTENDED, where a gated tool resolves as
- * skip-and-adapt — a gated escalation would never fire. Empty approval
- * maps + no McpServerUsage keep
- * the connect backfill structurally unable to gate it (see
- * synthesized-attachment.ts). Callers inject AFTER resolve + backfill.
+ * skip-and-adapt — a gated escalation would never fire. An empty
+ * destructive set + no McpServerUsage keep the approval default and the
+ * connect backfill structurally unable to gate it, and its tools sit
+ * outside every tool list (see synthesized-attachment.ts). Callers
+ * inject AFTER resolve + backfill.
  */
 
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
@@ -102,9 +103,8 @@ export function synthesizeConversationAttachment(
   // Approval-free by construction + backfill-proof: see file header.
   return {
     slug: CONVERSATION_ATTACHMENT_SLUG,
-    toolApprovals: [],
-    pinnedToolApprovals: [],
-    toolApprovalOverrides: [],
+    destructiveTools: [],
+    discoveredToolNames: null,
     declaredEnvKeys: [],
     discoveredCapabilitiesEmpty: false,
     connectionType: "http",

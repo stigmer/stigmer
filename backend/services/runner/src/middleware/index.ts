@@ -12,11 +12,15 @@
  *      `max_tool_rounds` and ends the turn at it)
  *   3. Tool intent (always — bind-time shell schema extension, issue #276)
  *   4. Tool truncation (always)
- *   5. Approval gate (conditional: absent under the global bypass)
- *   6. Cost advisory (conditional: only when maxCostUsd > 0 — advises at
+ *   5. Tool scope (conditional: only when the agent's scope carries a list —
+ *      hides and refuses what the agent's tool lists exclude; AHEAD of the
+ *      gate, so a listed-out call never reaches an approval card, and
+ *      independent of it, so the lists bind under the global bypass too)
+ *   6. Approval gate (conditional: absent under the global bypass)
+ *   7. Cost advisory (conditional: only when maxCostUsd > 0 — advises at
  *      ~80% of the cap that the turn runtime enforces)
- *   7. Error hints (always)
- *   8. OTel spans (always, no-op when OTel not configured)
+ *   8. Error hints (always)
+ *   9. OTel spans (always, no-op when OTel not configured)
  *
  * Every middleware here either shapes the graph's tool surface or ADVISES
  * the model. Advising has one channel, `advisory-message.ts`: a user-role
@@ -47,6 +51,7 @@ import { createExecutionBudgetMiddleware } from "./execution-budget.js";
 import { createToolIntentMiddleware } from "./tool-intent.js";
 import { createToolTruncationMiddleware } from "./tool-truncation.js";
 import { createApprovalGateMiddleware } from "./approval-gate.js";
+import { createToolScopeMiddleware } from "./tool-scope.js";
 import { createCostAdvisoryMiddleware, type CostAdvisoryMiddleware } from "./cost-advisory.js";
 import { createErrorHintsMiddleware } from "./error-hints.js";
 import { createOtelSpansMiddleware } from "./otel-spans.js";
@@ -73,6 +78,10 @@ export function buildMiddlewareStack(
   stack.push(createExecutionBudgetMiddleware(config.executionBudget));
   stack.push(createToolIntentMiddleware());
   stack.push(createToolTruncationMiddleware(config.toolTruncation));
+
+  if (config.toolScope?.scope.restricted) {
+    stack.push(createToolScopeMiddleware(config.toolScope));
+  }
 
   if (config.approvalGate) {
     stack.push(createApprovalGateMiddleware(config.approvalGate));

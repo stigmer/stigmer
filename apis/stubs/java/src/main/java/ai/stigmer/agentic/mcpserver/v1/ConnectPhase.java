@@ -41,7 +41,7 @@ public enum ConnectPhase
   /**
    * <pre>
    * The connect completed and its results were persisted to
-   * discovered_capabilities / tool_approvals.
+   * discovered_capabilities.
    * </pre>
    *
    * <code>connect_phase_succeeded = 2;</code>
@@ -91,7 +91,7 @@ public enum ConnectPhase
   /**
    * <pre>
    * The connect completed and its results were persisted to
-   * discovered_capabilities / tool_approvals.
+   * discovered_capabilities.
    * </pre>
    *
    * <code>connect_phase_succeeded = 2;</code>

@@ -2103,21 +2103,6 @@
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource",
       "values": [
         {
-          "name": "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT",
-          "number": 1,
-          "description": "Layer 1: the connect-time classifier's default for an MCP tool\n (McpServerStatus.tool_approvals)."
-        },
-        {
-          "name": "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE",
-          "number": 2,
-          "description": "Layer 2: an operator's pinned override on the MCP server blueprint\n (McpServerSpec.pinned_tool_approvals)."
-        },
-        {
-          "name": "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE",
-          "number": 3,
-          "description": "Layer 3: an agent-level override for an MCP tool\n (Agent McpServerUsage.tool_approval_overrides)."
-        },
-        {
           "name": "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
           "number": 4,
           "description": "Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global\n bypass cleared this call."
@@ -2130,12 +2115,12 @@
         {
           "name": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
           "number": 6,
-          "description": "A non-MCP built-in tool gated by the shared tool taxonomy\n (write / delete / shell)."
+          "description": "The default asked for a built-in tool of an approval class\n (write / delete / shell)."
         },
         {
           "name": "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
           "number": 7,
-          "description": "The connect-time MCP destructiveHint tightener forced this tool to require\n approval, overriding a more permissive classifier verdict. First-class\n provenance so a tightened tool is distinguishable from a plain classifier\n default. See applyDestructiveHintTightener."
+          "description": "The default asked for an MCP tool because its server marks it destructive\n (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint\n annotation)."
         },
         {
           "name": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
@@ -2926,9 +2911,6 @@
             "kind": "string",
             "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource",
             "enumValues": [
-              "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT",
-              "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE",
-              "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE",
               "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
               "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
               "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
@@ -2936,7 +2918,7 @@
               "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP"
             ]
           },
-          "description": "Policy layer that gated this tool call, copied from\n ToolCall.approval_policy_source by the server-side projection (exactly as\n tool_kind above is). Lets the approval surface explain WHY the tool requires\n approval (e.g. \"required by agent override\") without a client-side lookup.\n See ApprovalPolicySource.",
+          "description": "Policy layer that gated this tool call, copied from\n ToolCall.approval_policy_source by the server-side projection (exactly as\n tool_kind above is). Lets the approval surface explain WHY the tool requires\n approval (e.g. \"required: marked destructive by the server\") without a\n client-side lookup.\n See ApprovalPolicySource.",
           "required": false
         }
       ]

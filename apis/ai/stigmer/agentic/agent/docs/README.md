@@ -28,9 +28,9 @@ The Agent resource is the only one users author directly in YAML. Sessions and A
 |---|---|
 | [agent-resource-guide.md](agent-resource-guide.md) | Core YAML schema reference — metadata, spec fields, env spec, status, CLI commands |
 | [resource-references.md](resource-references.md) | `ApiResourceReference` format — how to reference MCP servers, skills, and other resources |
-| [mcp-server-integration.md](mcp-server-integration.md) | MCP server usage, tool selection, approval overrides, and runtime resolution |
+| [mcp-server-integration.md](mcp-server-integration.md) | MCP server usage, the `tools` and `disallowed_tools` lists, which tools ask for approval, and runtime resolution |
 | [skill-integration.md](skill-integration.md) | Skill references, versioning, and how skills are injected at runtime |
-| [sub-agents.md](sub-agents.md) | Sub-agent delegation, MCP access grants, and the permission model |
+| [sub-agents.md](sub-agents.md) | Sub-agent delegation, narrowing the parent's tools, and the permission model |
 | [examples.md](examples.md) | Complete YAML examples from minimal to full-featured |
 | [validation-checklist.md](validation-checklist.md) | Pre-apply checklist and common pitfalls |
 

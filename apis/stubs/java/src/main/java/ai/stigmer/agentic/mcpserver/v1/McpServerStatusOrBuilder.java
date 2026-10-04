@@ -95,50 +95,6 @@ public interface McpServerStatusOrBuilder extends
 
   /**
    * <pre>
-   * System-generated tool approval policies.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy> 
-      getToolApprovalsList();
-  /**
-   * <pre>
-   * System-generated tool approval policies.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-   */
-  ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy getToolApprovals(int index);
-  /**
-   * <pre>
-   * System-generated tool approval policies.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-   */
-  int getToolApprovalsCount();
-  /**
-   * <pre>
-   * System-generated tool approval policies.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder> 
-      getToolApprovalsOrBuilderList();
-  /**
-   * <pre>
-   * System-generated tool approval policies.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4 [json_name = "toolApprovals"];</code>
-   */
-  ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyOrBuilder getToolApprovalsOrBuilder(
-      int index);
-
-  /**
-   * <pre>
    * OAuth-related enrichment state, populated at query time by the backend.
    * Carries the vendor approval status resolved from the referenced OAuthApp
    * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
@@ -175,7 +131,7 @@ public interface McpServerStatusOrBuilder extends
 
   /**
    * <pre>
-   * State of the most recent connect (discovery + classification) operation.
+   * State of the most recent connect (discovery) operation.
    *
    * Persisted (unlike oauth_status). Written by the backend when a connect
    * operation starts and again when it settles; clients poll it through the
@@ -189,7 +145,7 @@ public interface McpServerStatusOrBuilder extends
   boolean hasConnectStatus();
   /**
    * <pre>
-   * State of the most recent connect (discovery + classification) operation.
+   * State of the most recent connect (discovery) operation.
    *
    * Persisted (unlike oauth_status). Written by the backend when a connect
    * operation starts and again when it settles; clients poll it through the
@@ -203,7 +159,7 @@ public interface McpServerStatusOrBuilder extends
   ai.stigmer.agentic.mcpserver.v1.ConnectStatus getConnectStatus();
   /**
    * <pre>
-   * State of the most recent connect (discovery + classification) operation.
+   * State of the most recent connect (discovery) operation.
    *
    * Persisted (unlike oauth_status). Written by the backend when a connect
    * operation starts and again when it settles; clients poll it through the

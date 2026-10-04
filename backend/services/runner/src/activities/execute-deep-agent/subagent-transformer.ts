@@ -10,7 +10,13 @@
  *
  * Design decisions:
  * - CompiledSubAgent format: full middleware control, no unwanted deepagents defaults
- * - Filter parent MCP tools: no reconnection overhead, stateless servers are the norm
+ * - Every declared sub-agent and the built-in general-purpose bind the parent's
+ *   MCP tools (no reconnection overhead, stateless servers are the norm); what
+ *   a sub-agent may see and call is its tool scope — the parent's, narrowed by
+ *   the sub-agent's own `tools` / `disallowed_tools` and never widened —
+ *   enforced inside its graph by the tool-scope middleware (`subagent-wiring.ts`)
+ * - The main agent's `Agent(type, …)` entry limits which sub-agents compile;
+ *   the built-in explore, shell and general-purpose count as types
  * - Prompt injection for skills: FilesystemBackend incompatible with native skills field
  * - Built-in explore/shell subagents use prompt-based tool restriction
  * - Built-in general-purpose replaces deepagents' auto-injected one (which carries
@@ -30,10 +36,12 @@ import type { StructuredTool } from "@langchain/core/tools";
 import type { RunnableConfig } from "@langchain/core/runnables";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 
-import type { SubAgent, McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
+import type { ToolScopeConfig } from "../../middleware/tool-scope.js";
+import type { ToolScope } from "../../shared/tool-lists.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import { mountPlatformRoute } from "./platform-route.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
@@ -143,6 +151,24 @@ export interface TransformedSubagent {
   readonly systemPrompt: string;
   readonly tools: StructuredTool[];
   readonly model?: string;
+  /** What this sub-agent may see and call: the parent's scope, narrowed by its own lists. */
+  readonly scope: ToolScope;
+}
+
+/** Everything a sub-agent's tool scope needs besides the scope itself; shared with the parent's. */
+export type SubagentScopeBase = Omit<ToolScopeConfig, "scope">;
+
+/** The name a sub-agent's lists are reported under, in a log line or a refusal. */
+export function subAgentOwner(name: string): string {
+  return `Sub-agent "${name}"`;
+}
+
+/** A declared sub-agent's scope: the parent's, narrowed by its own two lists. */
+export function subAgentScope(parentScope: ToolScope, subAgent: SubAgent): ToolScope {
+  return parentScope.narrow(subAgentOwner(subAgent.name), {
+    tools: subAgent.tools,
+    disallowedTools: subAgent.disallowedTools,
+  });
 }
 
 /**
@@ -150,9 +176,12 @@ export interface TransformedSubagent {
  */
 export interface SubagentTransformOptions {
   readonly subAgents: readonly SubAgent[];
+  /** Every MCP tool the parent binds; each sub-agent binds them all and its scope narrows them. */
   readonly parentMcpTools: readonly StructuredTool[];
-  readonly parentMcpServerToolMap: ReadonlyMap<string, readonly StructuredTool[]>;
-  readonly parentMcpUsages: readonly McpServerUsage[];
+  /** The main agent's tool scope; a sub-agent's narrows it, and its `Agent(type, …)` picks which compile. */
+  readonly parentScope: ToolScope;
+  /** The attribution and confinement every sub-agent's scope middleware reads. */
+  readonly scopeBase: SubagentScopeBase;
   /**
    * Each sub-agent's mounted skills, keyed by the sub-agent's name — the
    * runtime's `TurnSkills.bySubAgent` (resolved and mounted by its skills
@@ -164,7 +193,7 @@ export interface SubagentTransformOptions {
   readonly workspaceBackend: WorkspaceBackend;
   /**
    * The parent's approval-gate config, inherited verbatim so a mutating tool
-   * inside a sub-agent is gated identically to one in the parent (same policies,
+   * inside a sub-agent is gated identically to one in the parent (same default,
    * toolServerMap, fingerprint key, execution id). Null under auto-approve-all,
    * where the parent gate is inert too — sub-agents then install no gate either.
    */
@@ -242,16 +271,18 @@ export interface SubagentTransformOptions {
  * the `task` tool is Stigmer's ({@link GENERAL_PURPOSE_DESCRIPTION}): it was
  * upstream's while the goal was parity with the suppressed original, and
  * upstream's invites the delegation the parent's rules advise against. It
- * receives the parent's MCP tools
- * for capability parity with the injected original. Conscious simplification:
- * the parent's skills prompt is NOT inherited — a sub-agent needing skills
- * should be declared explicitly in the Agent spec.
+ * receives the parent's MCP tools for capability parity with the injected
+ * original. Every built-in runs under the parent's own tool scope: it
+ * declares no lists of its own. Conscious simplification: the parent's
+ * skills prompt is NOT inherited — a sub-agent needing skills should be
+ * declared explicitly in the Agent spec.
  *
  * Returns an empty array if no workspace is configured (subagents need
  * workspace tools to be useful).
  */
 export function createBuiltinSubagents(
   hasWorkspace: boolean,
+  parentScope: ToolScope,
   parentMcpTools: readonly StructuredTool[] = [],
   webFetchPosture?: GuardPosture,
 ): TransformedSubagent[] {
@@ -276,6 +307,7 @@ export function createBuiltinSubagents(
             ? [createWebFetchTool({ posture: webFetchPosture }) as unknown as StructuredTool]
             : []),
         ],
+        scope: parentScope,
       });
       continue;
     }
@@ -289,6 +321,7 @@ export function createBuiltinSubagents(
       description,
       systemPrompt: prompt + RESPONSE_RULES,
       tools: [],
+      scope: parentScope,
     });
   }
 
@@ -303,17 +336,15 @@ export function createBuiltinSubagents(
  * Transform a single SubAgent proto into the intermediate representation.
  *
  * Handles: proto field extraction, model override validation, think tool
- * injection, and response rules appending. MCP filtering and skill
- * resolution are handled separately and composed by the caller.
+ * injection, the sub-agent's tool scope, and response rules appending. The
+ * parent's MCP tools and skill resolution are composed by the caller.
  *
  * Returns null if the subagent should be skipped (e.g., invalid model override).
  */
 export async function transformSingleSubagent(
   subAgent: SubAgent,
   opts: {
-    readonly parentMcpTools: readonly StructuredTool[];
-    readonly parentMcpServerToolMap: ReadonlyMap<string, readonly StructuredTool[]>;
-    readonly parentMcpUsages: readonly McpServerUsage[];
+    readonly parentScope: ToolScope;
     readonly parentThinks: boolean;
     readonly thinkingMode: EffectiveThinkingMode;
     readonly parentModelName: string;
@@ -339,7 +370,7 @@ export async function transformSingleSubagent(
     model = subAgent.modelOverride;
   }
 
-  // Build tools list — start with filtered MCP tools (populated by caller)
+  // The runner's own tools; the caller prepends the parent's MCP tools.
   const tools: StructuredTool[] = [];
 
   // `think` is a reasoning aid for a graph that does not reason natively.
@@ -362,85 +393,7 @@ export async function transformSingleSubagent(
   // Append response rules
   systemPrompt += RESPONSE_RULES;
 
-  return { name, description, systemPrompt, tools, model };
-}
-
-// =========================================================================
-// MCP tool filtering
-// =========================================================================
-
-/**
- * Filter parent MCP tools based on a subagent's McpAccess grants.
- *
- * Permission model:
- * - Subagent can only access MCP servers explicitly listed in its mcpAccess
- * - Tool names must be a subset of parent's enabled tools for that server
- * - Empty enabledTools in McpAccess = inherit all parent tools for that server
- * - Invalid slug or missing server → warn and skip
- */
-export function filterMcpToolsForSubagent(
-  mcpAccess: readonly { mcpServer: string; enabledTools: readonly string[] }[],
-  parentMcpServerToolMap: ReadonlyMap<string, readonly StructuredTool[]>,
-  parentMcpUsages: readonly McpServerUsage[],
-): StructuredTool[] {
-  if (mcpAccess.length === 0) return [];
-
-  const usageSlugs = new Set(
-    parentMcpUsages
-      .map((u) => u.mcpServerRef?.slug)
-      .filter((s): s is string => !!s),
-  );
-
-  const filtered: StructuredTool[] = [];
-
-  for (const access of mcpAccess) {
-    const slug = access.mcpServer;
-    if (!slug) {
-      console.warn("[subagent-transformer] McpAccess has empty mcp_server slug, skipping");
-      continue;
-    }
-
-    if (!usageSlugs.has(slug)) {
-      console.warn(
-        `[subagent-transformer] SubAgent references unknown MCP server '${slug}' ` +
-        "(not in parent's mcp_server_usages), skipping",
-      );
-      continue;
-    }
-
-    const serverTools = parentMcpServerToolMap.get(slug);
-    if (!serverTools || serverTools.length === 0) {
-      console.warn(
-        `[subagent-transformer] MCP server '${slug}' has no tools in parent's connection, skipping`,
-      );
-      continue;
-    }
-
-    if (access.enabledTools.length === 0) {
-      filtered.push(...serverTools);
-    } else {
-      const allowedNames = new Set(access.enabledTools);
-      for (const tool of serverTools) {
-        if (allowedNames.has(tool.name)) {
-          filtered.push(tool);
-        } else if (allowedNames.has(tool.name)) {
-          // already included
-        }
-      }
-
-      const parentToolNames = new Set(serverTools.map((t) => t.name));
-      for (const requestedTool of access.enabledTools) {
-        if (!parentToolNames.has(requestedTool)) {
-          console.warn(
-            `[subagent-transformer] SubAgent requests tool '${requestedTool}' from server '${slug}' ` +
-            "but it's not in parent's enabled tools, skipping tool",
-          );
-        }
-      }
-    }
-  }
-
-  return filtered;
+  return { name, description, systemPrompt, tools, model, scope: subAgentScope(opts.parentScope, subAgent) };
 }
 
 // =========================================================================
@@ -536,6 +489,8 @@ export async function compileSubagents(
   opts: {
     readonly costAdvisory?: CostAdvisoryMiddleware;
     readonly approvalGate?: ApprovalGateConfig | null;
+    /** Attribution and confinement for each sub-agent's scope middleware; absent, no scope is enforced (unit tests). */
+    readonly scopeBase?: SubagentScopeBase;
     readonly parentModelName: string;
     readonly workspaceRootDir: string;
     /** The session's platform dir, mounted read-only at `.stigmer/` (`platform-route.ts`). */
@@ -591,6 +546,7 @@ export async function compileSubagents(
           approvalGate: opts.approvalGate,
           captureIgnored: !!opts.casObserver,
           pathNormalization: { rootDir: opts.workspaceRootDir },
+          ...(opts.scopeBase ? { toolScope: { ...opts.scopeBase, scope: spec.scope } } : {}),
         }) as unknown[],
         backend,
         // Enforced inside this graph's own filesystem tools — and inherited by
@@ -639,9 +595,10 @@ export async function compileSubagents(
  *
  * This is the main entry point called from turn-setup.ts. It orchestrates:
  * 1. Built-in subagent creation (explore, shell, general-purpose)
- * 2. Per-subagent transformation (proto → TransformedSubagent)
- * 3. MCP tool filtering per subagent
- * 4. Skill resolution and prompt injection
+ * 2. Per-subagent transformation (proto → TransformedSubagent), each with
+ *    the parent's MCP tools and its own narrowed scope
+ * 3. Skill resolution and prompt injection
+ * 4. The main agent's `Agent(type, …)` filter
  * 5. Compilation with middleware + gate wrapping
  *
  * Returns null if no valid subagents after transformation.
@@ -652,8 +609,8 @@ export async function transformAndCompileSubagents(
   const {
     subAgents,
     parentMcpTools,
-    parentMcpServerToolMap,
-    parentMcpUsages,
+    parentScope,
+    scopeBase,
     skills,
     workspaceBackend,
     approvalGate,
@@ -680,6 +637,7 @@ export async function transformAndCompileSubagents(
   // Step 1: Create built-in subagents
   const builtins = createBuiltinSubagents(
     !!workspaceBackend.rootDir,
+    parentScope,
     parentMcpTools,
     webFetchPosture,
   );
@@ -697,9 +655,7 @@ export async function transformAndCompileSubagents(
 
     try {
       const result = await transformSingleSubagent(subAgent, {
-        parentMcpTools,
-        parentMcpServerToolMap,
-        parentMcpUsages,
+        parentScope,
         parentThinks,
         thinkingMode,
         parentModelName,
@@ -707,13 +663,6 @@ export async function transformAndCompileSubagents(
       });
 
       if (result) {
-        // Apply MCP filtering for this subagent
-        const mcpTools = filterMcpToolsForSubagent(
-          subAgent.mcpAccess,
-          parentMcpServerToolMap,
-          parentMcpUsages,
-        );
-
         // Resolve skills prompt section for this subagent
         const skillsSection = resolveSubagentSkillPrompt(subAgent, skills);
         const enhancedPrompt = skillsSection
@@ -726,7 +675,7 @@ export async function transformAndCompileSubagents(
         transformed.push({
           ...result,
           systemPrompt: enhancedPrompt,
-          tools: [...mcpTools, ...result.tools],
+          tools: [...parentMcpTools, ...result.tools],
         });
       }
     } catch (err) {
@@ -754,10 +703,17 @@ export async function transformAndCompileSubagents(
     }
     declared.set(spec.name, spec);
   }
-  const allSpecs = [
+  const candidates = [
     ...builtins.filter((b) => !declared.has(b.name)),
     ...declared.values(),
   ];
+  // The main agent's `Agent(type, …)`: a type it does not name never compiles,
+  // so the `task` tool cannot offer it.
+  const allSpecs = candidates.filter((spec) => {
+    if (parentScope.allowsSubAgentType(spec.name)) return true;
+    console.log(`[subagent-transformer] Sub-agent '${spec.name}' is outside the agent's tool lists; not compiled`);
+    return false;
+  });
 
   if (allSpecs.length === 0) {
     console.warn("[subagent-transformer] No valid subagents after transformation");
@@ -768,6 +724,7 @@ export async function transformAndCompileSubagents(
   const compiled = await compileSubagents(allSpecs, {
     costAdvisory,
     approvalGate,
+    scopeBase,
     parentModelName,
     workspaceRootDir: workspaceBackend.rootDir,
     platformDir: workspaceBackend.platformDir,

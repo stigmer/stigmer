@@ -84,7 +84,8 @@ type SessionSpec struct {
 	//
 	// Augments the agent's tool set for this specific conversation without
 	// modifying the agent blueprint. Each usage references an McpServer
-	// resource.
+	// resource. The agent's tool lists govern these servers like its own: an
+	// agent whose tools list does not name a session server cannot use it.
 	McpServerUsages []*v1.McpServerUsage `protobuf:"bytes,7,rep,name=mcp_server_usages,json=mcpServerUsages,proto3" json:"mcp_server_usages,omitempty"`
 	// Skills to inject into this session's context.
 	//

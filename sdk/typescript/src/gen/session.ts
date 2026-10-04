@@ -5,7 +5,7 @@ import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto
 import { type ResourceRef } from "./types.js";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ToolApprovalOverrideSchema, McpServerUsageSchema, type ToolApprovalOverride, type McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { McpServerUsageSchema, type McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -138,15 +138,6 @@ export interface LocalPathSourceInput {
 /** SDK input type for McpServerUsage. */
 export interface McpServerUsageInput {
   mcpServerRef: ResourceRef;
-  enabledTools?: string[];
-  toolApprovalOverrides?: ToolApprovalOverrideInput[];
-}
-
-/** SDK input type for ToolApprovalOverride. */
-export interface ToolApprovalOverrideInput {
-  toolName?: string;
-  requiresApproval?: boolean;
-  message?: string;
 }
 
 function buildGitRepoSourceProto(input: GitRepoSourceInput) {
@@ -182,19 +173,9 @@ function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
   return msg;
 }
 
-function buildToolApprovalOverrideProto(input: ToolApprovalOverrideInput) {
-  return Object.assign(create(ToolApprovalOverrideSchema), stripUndefined({
-    toolName: input.toolName,
-    requiresApproval: input.requiresApproval,
-    message: input.message,
-  }));
-}
-
 function buildMcpServerUsageProto(input: McpServerUsageInput) {
   const msg = create(McpServerUsageSchema);
   if (input.mcpServerRef?.slug || input.mcpServerRef?.org) msg.mcpServerRef = create(ApiResourceReferenceSchema, { ...input.mcpServerRef, kind: 44 });
-  if (input.enabledTools) msg.enabledTools = input.enabledTools;
-  if (input.toolApprovalOverrides) msg.toolApprovalOverrides = input.toolApprovalOverrides.map(buildToolApprovalOverrideProto);
   return msg;
 }
 
@@ -260,19 +241,9 @@ function toWorkspaceEntryInput(msg: WorkspaceEntry): WorkspaceEntryInput {
   };
 }
 
-function toToolApprovalOverrideInput(msg: ToolApprovalOverride): ToolApprovalOverrideInput {
-  return {
-    toolName: msg.toolName || undefined,
-    requiresApproval: msg.requiresApproval || undefined,
-    message: msg.message || undefined,
-  };
-}
-
 function toMcpServerUsageInput(msg: McpServerUsage): McpServerUsageInput {
   return {
     mcpServerRef: toResourceRefInput(msg.mcpServerRef) ?? { org: "", slug: "" },
-    enabledTools: msg.enabledTools?.length ? [...msg.enabledTools] : undefined,
-    toolApprovalOverrides: msg.toolApprovalOverrides?.length ? msg.toolApprovalOverrides.map(toToolApprovalOverrideInput) : undefined,
   };
 }
 

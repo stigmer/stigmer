@@ -1,8 +1,14 @@
+// Per-server state machine behind useMcpServerSetup: one entry per MCP
+// server a person attaches in the picker, moving loading -> needsSetup ->
+// submitting -> ready. It is pure so the hook's async flow stays thin and the
+// transitions are testable without React. It tracks credentials and discovered
+// tools only: a session attaches whole servers, and the agent's own tool lists
+// decide which of their tools it may call.
+
 import type { ResourceRef } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
 
 // ---------------------------------------------------------------------------
@@ -30,7 +36,7 @@ export function toServerKey(ref: ResourceRef): string {
  * (`useMcpServerSetup`).
  *
  * The `status` field serves as the discriminant. Phase-specific data
- * (server resource, missing variables, discovered tools, enabled tools)
+ * (server resource, missing variables, discovered tools)
  * is only present on the variants where it is meaningful, enabling
  * TypeScript narrowing in consumer code.
  *
@@ -43,8 +49,9 @@ export function toServerKey(ref: ResourceRef): string {
  *   or collected (one-time path). The UI should show a loading indicator
  *   on the submit button.
  * - `"ready"` — The server is fully configured and ready for session
- *   creation. Carries the effective `enabledTools` list. Covers both
- *   the "no env needed" and "env vars resolved" cases.
+ *   creation. Covers both the "no env needed" and "env vars resolved"
+ *   cases. The picker attaches whole servers; which of a server's tools a
+ *   session may call is the agent's own tool lists' decision.
  */
 export type McpServerSetupPhase =
   | {
@@ -60,8 +67,6 @@ export type McpServerSetupPhase =
       readonly missingVariables: EnvVarFormVariable[];
       /** Tools discovered by the MCP server's status probe. */
       readonly discoveredTools: DiscoveredTool[];
-      /** Per-tool approval policies from the server spec. */
-      readonly toolApprovals: ToolApprovalPolicy[];
       /** OAuth grant health at resolve time — full doc on the `ready` variant. */
       readonly oauthConnectionHealth?: OAuthConnectionHealth;
     }
@@ -74,8 +79,6 @@ export type McpServerSetupPhase =
       readonly missingVariables: EnvVarFormVariable[];
       /** Tools discovered by the MCP server's status probe. */
       readonly discoveredTools: DiscoveredTool[];
-      /** Per-tool approval policies from the server spec. */
-      readonly toolApprovals: ToolApprovalPolicy[];
       /** OAuth grant health at resolve time — full doc on the `ready` variant. */
       readonly oauthConnectionHealth?: OAuthConnectionHealth;
     }
@@ -86,10 +89,6 @@ export type McpServerSetupPhase =
       readonly mcpServer: McpServer;
       /** Tools discovered by the MCP server's status probe. */
       readonly discoveredTools: DiscoveredTool[];
-      /** Per-tool approval policies from the server spec. */
-      readonly toolApprovals: ToolApprovalPolicy[];
-      /** Tool names enabled for this session, after user selection. */
-      readonly enabledTools: string[];
       /**
        * OAuth grant health at resolve time, from the grant-status lookup
        * `addServer` performs for OAuth-declaring servers. `undefined` when
@@ -157,8 +156,6 @@ export type McpServerSetupAction =
       readonly missingVariables: EnvVarFormVariable[];
       /** Tools discovered by the server's status probe. */
       readonly discoveredTools: DiscoveredTool[];
-      /** Per-tool approval policies from the server spec. */
-      readonly toolApprovals: ToolApprovalPolicy[];
       /** OAuth grant health at resolve time, when a lookup ran. */
       readonly oauthConnectionHealth?: OAuthConnectionHealth;
     }
@@ -171,10 +168,6 @@ export type McpServerSetupAction =
       readonly mcpServer: McpServer;
       /** Tools discovered by the server's status probe. */
       readonly discoveredTools: DiscoveredTool[];
-      /** Per-tool approval policies from the server spec. */
-      readonly toolApprovals: ToolApprovalPolicy[];
-      /** Tool names enabled for this session. */
-      readonly enabledTools: string[];
       /** OAuth grant health at resolve time, when a lookup ran. */
       readonly oauthConnectionHealth?: OAuthConnectionHealth;
     }
@@ -185,8 +178,6 @@ export type McpServerSetupAction =
       readonly key: string;
       /** Updated missing variables (may be empty if pool covered all). */
       readonly missingVariables: EnvVarFormVariable[];
-      /** Tool names enabled for this session. */
-      readonly enabledTools: string[];
     }
   | {
       /** Begin persisting env vars for this server. */
@@ -199,16 +190,6 @@ export type McpServerSetupAction =
       readonly type: "SUBMIT_DONE";
       /** Server key (`"org/slug"`). */
       readonly key: string;
-      /** Tool names enabled for this session. */
-      readonly enabledTools: string[];
-    }
-  | {
-      /** Update the enabled tools list for a ready server. */
-      readonly type: "SET_ENABLED_TOOLS";
-      /** Server key (`"org/slug"`). */
-      readonly key: string;
-      /** New set of enabled tool names. */
-      readonly enabledTools: string[];
     }
   | {
       /** Env var submission failed — revert to `needsSetup`. */
@@ -271,7 +252,6 @@ export function mcpServerSetupReducer(
           mcpServer: action.mcpServer,
           missingVariables: action.missingVariables,
           discoveredTools: action.discoveredTools,
-          toolApprovals: action.toolApprovals,
           oauthConnectionHealth: action.oauthConnectionHealth,
           error: null,
         },
@@ -287,8 +267,6 @@ export function mcpServerSetupReducer(
           status: "ready",
           mcpServer: action.mcpServer,
           discoveredTools: action.discoveredTools,
-          toolApprovals: action.toolApprovals,
-          enabledTools: action.enabledTools,
           oauthConnectionHealth: action.oauthConnectionHealth,
           error: null,
         },
@@ -306,8 +284,6 @@ export function mcpServerSetupReducer(
             status: "ready",
             mcpServer: entry.mcpServer,
             discoveredTools: entry.discoveredTools,
-            toolApprovals: entry.toolApprovals,
-            enabledTools: action.enabledTools,
             oauthConnectionHealth: entry.oauthConnectionHealth,
             error: null,
           },
@@ -333,7 +309,6 @@ export function mcpServerSetupReducer(
           mcpServer: entry.mcpServer,
           missingVariables: entry.missingVariables,
           discoveredTools: entry.discoveredTools,
-          toolApprovals: entry.toolApprovals,
           oauthConnectionHealth: entry.oauthConnectionHealth,
           error: null,
         },
@@ -349,8 +324,6 @@ export function mcpServerSetupReducer(
           status: "ready",
           mcpServer: entry.mcpServer,
           discoveredTools: entry.discoveredTools,
-          toolApprovals: entry.toolApprovals,
-          enabledTools: action.enabledTools,
           oauthConnectionHealth: entry.oauthConnectionHealth,
           error: null,
         },
@@ -367,19 +340,9 @@ export function mcpServerSetupReducer(
           mcpServer: entry.mcpServer,
           missingVariables: entry.missingVariables,
           discoveredTools: entry.discoveredTools,
-          toolApprovals: entry.toolApprovals,
           oauthConnectionHealth: entry.oauthConnectionHealth,
           error: action.error,
         },
-      };
-    }
-
-    case "SET_ENABLED_TOOLS": {
-      const entry = state[action.key];
-      if (entry?.status !== "ready") return state;
-      return {
-        ...state,
-        [action.key]: { ...entry, enabledTools: action.enabledTools },
       };
     }
 
@@ -404,7 +367,12 @@ export function mcpServerSetupReducer(
     case "RESET":
       return INITIAL_MCP_SETUP_STATE;
 
-    default:
+    default: {
+      // An action this reducer does not know (a caller built against a
+      // different version of the union) leaves the state as it was.
+      const exhaustive: never = action;
+      void exhaustive;
       return state;
+    }
   }
 }

@@ -199,20 +199,21 @@ describe("ApprovalCard tool classification", () => {
 describe("ApprovalCard why-gated provenance", () => {
   it("renders the why-gated line from the projected approval_policy_source", () => {
     // The server projects approval_policy_source onto PendingApproval so the card
-    // can explain the gate before any decision. AGENT_OVERRIDE → the agent forced
-    // this tool to require approval.
+    // can explain the gate before any decision. An MCP tool its server marks
+    // destructive is the one default an MCP call can be held by.
     const approval = create(PendingApprovalSchema, {
       toolCallId: "tc-why",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-      approvalPolicySource: ApprovalPolicySource.AGENT_OVERRIDE,
+      toolName: "delete_issue",
+      mcpServerSlug: "github",
+      argsPreview: '{"issue":42}',
+      approvalPolicySource: ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN,
     });
 
     const { getByText } = render(
       <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
     );
 
-    expect(getByText("required by agent override")).toBeTruthy();
+    expect(getByText("required: marked destructive by the server")).toBeTruthy();
   });
 
   it("renders no why-gated line for a legacy approval (UNSPECIFIED source)", () => {
@@ -245,21 +246,6 @@ describe("ApprovalCard why-gated provenance", () => {
     );
 
     expect(queryByText(/required by/)).toBeNull();
-  });
-
-  it("surfaces an informative gate reason (destructive tighten)", () => {
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-why-destructive",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-      approvalPolicySource: ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN,
-    });
-
-    const { getByText } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
-    );
-
-    expect(getByText("required: marked destructive by the server")).toBeTruthy();
   });
 });
 

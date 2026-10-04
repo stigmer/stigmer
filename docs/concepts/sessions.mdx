@@ -144,10 +144,10 @@ spec:
 
 See [Harnesses](/docs/concepts/harnesses) for a full comparison.
 
-## Session-level overrides
+## Session-level additions
 
 Sessions can customize an Agent's behavior for a specific conversation without
-changing the Agent definition. Two key overrides:
+changing the Agent definition. Two key additions:
 
 ### Skills
 
@@ -165,7 +165,7 @@ both, the Session-level reference takes precedence.
 
 ### Tools
 
-Add or restrict tool access per conversation:
+Attach an MCP Server for this conversation only:
 
 ```yaml validate-as="Session"
 spec:
@@ -173,12 +173,12 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: inventory-api
-      enabled_tools:
-        - check_stock
 ```
 
-This lets you give a specific conversation access to tools that the Agent
-doesn't normally have, or restrict tools for a sensitive interaction.
+Session-level servers merge with the Agent's, one entry per server. The Agent's
+`tools` and `disallowed_tools` lists govern them like the Agent's own servers:
+an Agent whose `tools` list does not name `mcp__inventory-api` cannot use it. To
+narrow what an Agent can do, change its lists.
 
 ## Session lifecycle
 

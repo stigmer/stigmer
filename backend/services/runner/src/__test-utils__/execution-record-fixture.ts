@@ -82,6 +82,10 @@ export interface ExecutionRecordOptions {
   readonly structuredOutputSchema?: JsonObject;
   /** The agent's declared sub-agents (`AgentSpec.sub_agents`). */
   readonly subAgents?: SubAgent[];
+  /** The agent's `AgentSpec.tools` ("only these"), in Claude Code's names. */
+  readonly tools?: string[];
+  /** The agent's `AgentSpec.disallowed_tools` ("never these"). */
+  readonly disallowedTools?: string[];
   /**
    * The built-in assistant: the session names NO agent and the turn's stamp
    * is empty, so the record carries no agent and the activity must run on
@@ -143,6 +147,8 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       description: "Hermetic fixture agent",
       instructions: options.instructions ?? "You are the hermetic fixture agent. Answer briefly.",
       subAgents: options.subAgents ?? [],
+      tools: options.tools ?? [],
+      disallowedTools: options.disallowedTools ?? [],
     }),
   });
   return new ExecutionRecord({ execution, session, agent, controlSignal: options.controlSignal });

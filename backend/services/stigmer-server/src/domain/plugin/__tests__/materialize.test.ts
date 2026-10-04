@@ -1,8 +1,9 @@
 /**
  * Pins the pure half of a push — what the plan says a package becomes,
  * before any write: the composed agent's instructions (the versioned
- * template, snapshot-pinned), a sub-agent's mcp_access naming server
- * SLUGS while `model_override` stays empty and the hint becomes a warning,
+ * template, snapshot-pinned), the agent's usages naming servers by SLUG,
+ * sub-agents carrying no tool lists so they inherit the agent's whole
+ * toolset, `model_override` staying empty while the hint becomes a warning,
  * a built-in name becoming a warning, an MCP-only package planning no
  * agent, the `mcpServers` key-to-slug rule, a skill archive rooted at its
  * SKILL.md with the plugin's labels on the request, a version the tag
@@ -161,7 +162,7 @@ describe("planMaterialization", () => {
     ).toContain("name: thermo-review");
   });
 
-  it("names servers by slug everywhere a sub-agent or usage refers to them", () => {
+  it("names servers by slug in the agent's usages; sub-agents carry no lists and inherit them", () => {
     expect(plan.mcpServers[0]).toMatchObject({
       name: "my_github",
       slug: "mygithub",
@@ -173,9 +174,16 @@ describe("planMaterialization", () => {
     expect(
       agent.spec?.mcpServerUsages.map((u) => u.mcpServerRef?.slug),
     ).toEqual(["mygithub"]);
+    // No list anywhere: the agent may use every tool, and each sub-agent
+    // inherits that whole set, the plugin's server included.
+    expect(agent.spec?.tools).toEqual([]);
+    expect(agent.spec?.disallowedTools).toEqual([]);
     expect(
-      agent.spec?.subAgents.map((s) => s.mcpAccess.map((a) => a.mcpServer)),
-    ).toEqual([["mygithub"], ["mygithub"]]);
+      agent.spec?.subAgents.map((s) => [s.tools, s.disallowedTools]),
+    ).toEqual([
+      [[], []],
+      [[], []],
+    ]);
   });
 
   it("records a model hint and a built-in name as warnings and never sets model_override", () => {

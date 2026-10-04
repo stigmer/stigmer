@@ -11,8 +11,11 @@
  * present (its references still resolve in the agent chain's
  * ValidateReferences), otherwise the composed default — instructions from
  * the versioned template, every skill as a `skill_ref`, every server as an
- * `mcp_server_usage`, every `agents/*.md` as a `sub_agent` with access to
- * all the plugin's servers and the skills it asked for.
+ * `mcp_server_usage`, every `agents/*.md` as a `sub_agent` with the skills
+ * it asked for. A sub-agent carries no tool lists of its own, so it inherits
+ * the agent's whole toolset, every plugin server included; the composed
+ * agent carries none either, so a plugin's agent may use every tool the
+ * turn has.
  *
  * The composed agent declares in `env` the union of its servers' variables,
  * OAuth-managed target variables excluded. An execution filters its
@@ -42,7 +45,6 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import {
   AgentSpecSchema,
-  McpAccessSchema,
   McpServerUsageSchema,
   SubAgentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -128,7 +130,7 @@ export function planAgent(
       }),
     ),
     subAgents: plugin.subAgents.map((subAgent) =>
-      planSubAgent(subAgent, identity, serverSlugs, skillSlugByName, warnings),
+      planSubAgent(subAgent, identity, skillSlugByName, warnings),
     ),
   });
 
@@ -168,7 +170,6 @@ export function toolVariables(
 function planSubAgent(
   subAgent: PluginSubAgent,
   identity: PluginIdentity,
-  serverSlugs: readonly string[],
   skillSlugByName: ReadonlyMap<string, string>,
   warnings: PluginWarning[],
 ): SubAgent {
@@ -204,9 +205,6 @@ function planSubAgent(
     name: subAgent.name,
     description: subAgent.description ?? "",
     instructions: subAgent.instructions,
-    mcpAccess: serverSlugs.map((slug) =>
-      create(McpAccessSchema, { mcpServer: slug }),
-    ),
     skillRefs: subAgent.skillNames.flatMap((name) => {
       const slug = skillSlugByName.get(name);
       // An unknown skill name already carries the library's own warning.

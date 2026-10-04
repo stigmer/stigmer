@@ -6,9 +6,11 @@
  * The load-bearing pins:
  *   - MCP env-merge semantics: agent-declared entries win, among servers
  *     first-encountered wins, only declaration fields are copied;
- *   - enabled-tools validation (#402): byte-pinned INVALID_ARGUMENT copy
- *     for unknown tools and for resource-template names; empty
- *     enabled_tools and unconnected servers skip validation;
+ *   - tool lists at apply: an entry whose shape is malformed is refused
+ *     by the proto's per-item pattern, on the agent and on a sub-agent;
+ *     well-formed lists are accepted and read back as written, and their
+ *     names are never checked against a server's discovered tools, so an
+ *     entry naming a tool no connected server exposes still applies;
  *   - cascade delete (oss#611): same-org shares are deleted, cross-org
  *     shares of the same agent SURVIVE, and a bystander agent's share is
  *     untouched;
@@ -104,7 +106,14 @@ function agentInput(overrides?: {
   org?: string;
   visibility?: ApiResourceVisibility;
   labels?: Record<string, string>;
-  usages?: Array<{ slug: string; enabledTools?: string[] }>;
+  usages?: Array<{ slug: string }>;
+  tools?: string[];
+  disallowedTools?: string[];
+  subAgents?: Array<{
+    name: string;
+    tools?: string[];
+    disallowedTools?: string[];
+  }>;
   env?: Record<
     string,
     { description?: string; isSecret?: boolean; optional?: boolean }
@@ -128,9 +137,16 @@ function agentInput(overrides?: {
         // The spec's CEL rule pins kind == mcp_server; org stays empty so
         // NormalizeReferences resolves it from the agent's own org.
         mcpServerRef: { kind: ApiResourceKind.mcp_server, slug: usage.slug },
-        enabledTools: usage.enabledTools ?? [],
       })),
       env: overrides?.env ?? {},
+      tools: overrides?.tools ?? [],
+      disallowedTools: overrides?.disallowedTools ?? [],
+      subAgents: (overrides?.subAgents ?? []).map((subAgent) => ({
+        name: subAgent.name,
+        instructions: "You are a sub-agent used by the domain tests.",
+        tools: subAgent.tools ?? [],
+        disallowedTools: subAgent.disallowedTools ?? [],
+      })),
     },
   };
 }
@@ -150,10 +166,7 @@ async function seedMcpServer(opts: {
     { description?: string; isSecret?: boolean; optional?: boolean }
   >;
   tools?: string[];
-  resourceTemplates?: string[];
 }): Promise<void> {
-  const connected =
-    opts.tools !== undefined || opts.resourceTemplates !== undefined;
   const mcpServer = create(McpServerSchema, {
     apiVersion: API_VERSION,
     kind: "McpServer",
@@ -165,16 +178,14 @@ async function seedMcpServer(opts: {
       visibility: ApiResourceVisibility.visibility_org,
     },
     spec: { env: opts.env ?? {} },
-    status: connected
-      ? {
-          discoveredCapabilities: {
-            tools: (opts.tools ?? []).map((name) => ({ name })),
-            resourceTemplates: (opts.resourceTemplates ?? []).map((name) => ({
-              name,
-            })),
-          },
-        }
-      : undefined,
+    status:
+      opts.tools !== undefined
+        ? {
+            discoveredCapabilities: {
+              tools: opts.tools.map((name) => ({ name })),
+            },
+          }
+        : undefined,
   });
   await server.store.saveResource(
     ApiResourceKind.mcp_server,
@@ -246,73 +257,99 @@ describe("agent MCP env merge (merge_mcp_env_specs)", () => {
   });
 });
 
-describe("agent enabled-tools validation (#402)", () => {
+describe("agent tool lists at apply", () => {
   beforeAll(async () => {
+    // Connected, and exposing no tool the lists below name: names are
+    // resolved at run time, never against discovery at apply.
     await seedMcpServer({
-      id: "mcp_connected",
-      slug: "conn-srv",
-      tools: ["search_docs", "create_ticket"],
-      resourceTemplates: ["customer-record"],
+      id: "mcp_lists",
+      slug: "zendesk",
+      tools: ["search_tickets"],
     });
-    await seedMcpServer({ id: "mcp_unconnected", slug: "unconn-srv" });
   });
 
-  it("rejects an unknown tool with the byte-pinned copy listing discovered tools", async () => {
-    const error = await grpcError(() =>
-      command.create(
-        agentInput({
-          name: "Unknown Tool Agent",
-          usages: [{ slug: "conn-srv", enabledTools: ["serach_docs"] }],
-        }),
-      ),
-    );
-    expect(error.code).toBe(Code.InvalidArgument);
-    expect(error.rawMessage).toBe(
-      `MCP server 'conn-srv' (org: ${ORG_ID}): enabled_tools names tool(s) the ` +
-        "server does not expose: 'serach_docs'. Discovered tools: " +
-        "'search_docs', 'create_ticket'. If the server's toolset changed, " +
-        "run 'stigmer connect' on it to refresh discovered capabilities.",
-    );
-  });
+  // Each one breaks the shape the pattern admits: an MCP entry with no
+  // server slug, an unclosed specifier, surrounding whitespace, and a
+  // native engine name where Claude Code's name belongs.
+  const MALFORMED = ["mcp__", "Bash(git push *", " Read", "read_file"];
 
-  it("rejects a resource-template name with the template-specific copy", async () => {
-    const error = await grpcError(() =>
-      command.create(
-        agentInput({
-          name: "Template Tool Agent",
-          usages: [{ slug: "conn-srv", enabledTools: ["customer-record"] }],
-        }),
-      ),
-    );
-    expect(error.code).toBe(Code.InvalidArgument);
-    expect(error.rawMessage).toBe(
-      `MCP server 'conn-srv' (org: ${ORG_ID}): enabled_tools names resource ` +
-        "template(s): 'customer-record' — resource templates are read-only " +
-        "data endpoints, not callable tools, and must not appear in " +
-        "enabled_tools. Discovered tools: 'search_docs', 'create_ticket'. " +
-        "If the server's toolset changed, run 'stigmer connect' on it to " +
-        "refresh discovered capabilities.",
-    );
-  });
+  it.each(MALFORMED)(
+    "refuses the agent entry %j with InvalidArgument",
+    async (entry) => {
+      const error = await grpcError(() =>
+        command.apply(
+          agentInput({ name: "Malformed Agent List", tools: ["Read", entry] }),
+        ),
+      );
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toContain("spec.tools[1]");
+    },
+  );
 
-  it("skips validation for empty enabled_tools (use the server's defaults)", async () => {
-    const created = await command.create(
+  it.each(MALFORMED)(
+    "refuses the sub-agent entry %j in disallowed_tools",
+    async (entry) => {
+      const error = await grpcError(() =>
+        command.apply(
+          agentInput({
+            name: "Malformed Sub-agent List",
+            subAgents: [{ name: "helper", disallowedTools: [entry] }],
+          }),
+        ),
+      );
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toContain(
+        "spec.sub_agents[0].disallowed_tools[0]",
+      );
+    },
+  );
+
+  it("accepts well-formed lists on the agent and a sub-agent and reads them back as written", async () => {
+    const applied = await command.apply(
       agentInput({
-        name: "Empty Tools Agent",
-        usages: [{ slug: "conn-srv" }],
+        name: "Support Bot",
+        usages: [{ slug: "zendesk" }],
+        tools: ["Read", "Grep", "mcp__zendesk"],
+        disallowedTools: ["Bash"],
+        subAgents: [
+          {
+            name: "triage",
+            tools: ["Read", "mcp__zendesk__search_tickets", "Agent(explore)"],
+            disallowedTools: ["Bash(git push *)", "mcp__*"],
+          },
+        ],
       }),
     );
-    expect(created.metadata?.id).not.toBe("");
+
+    const fetched = await query.get({ value: applied.metadata!.id });
+    for (const agent of [applied, fetched]) {
+      expect(agent.spec?.tools).toEqual(["Read", "Grep", "mcp__zendesk"]);
+      expect(agent.spec?.disallowedTools).toEqual(["Bash"]);
+      expect(agent.spec?.subAgents[0]?.tools).toEqual([
+        "Read",
+        "mcp__zendesk__search_tickets",
+        "Agent(explore)",
+      ]);
+      expect(agent.spec?.subAgents[0]?.disallowedTools).toEqual([
+        "Bash(git push *)",
+        "mcp__*",
+      ]);
+    }
   });
 
-  it("skips validation for a server without discovered capabilities (not yet connected)", async () => {
-    const created = await command.create(
+  it("accepts entries naming tools no server exposes (portable agents apply anywhere)", async () => {
+    const applied = await command.apply(
       agentInput({
-        name: "Unconnected Server Agent",
-        usages: [{ slug: "unconn-srv", enabledTools: ["anything-goes"] }],
+        name: "Portable Agent",
+        usages: [{ slug: "zendesk" }],
+        tools: ["mcp__zendesk__close_ticket", "mcp__github", "NotebookEdit"],
       }),
     );
-    expect(created.metadata?.id).not.toBe("");
+    expect(applied.spec?.tools).toEqual([
+      "mcp__zendesk__close_ticket",
+      "mcp__github",
+      "NotebookEdit",
+    ]);
   });
 });
 

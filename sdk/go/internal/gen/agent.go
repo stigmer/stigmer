@@ -132,36 +132,24 @@ type AgentInput struct {
 	SkillRefs       []ResourceRef
 	SubAgents       []*SubAgentInput
 	Env             map[string]*EnvVarDeclarationInput
+	Tools           []string
+	DisallowedTools []string
 }
 
 // McpServerUsageInput is the SDK input type for McpServerUsage.
 type McpServerUsageInput struct {
-	McpServerRef          ResourceRef
-	EnabledTools          []string
-	ToolApprovalOverrides []*ToolApprovalOverrideInput
-}
-
-// ToolApprovalOverrideInput is the SDK input type for ToolApprovalOverride.
-type ToolApprovalOverrideInput struct {
-	ToolName         string
-	RequiresApproval bool
-	Message          string
+	McpServerRef ResourceRef
 }
 
 // SubAgentInput is the SDK input type for SubAgent.
 type SubAgentInput struct {
-	Name          string
-	Description   string
-	Instructions  string
-	McpAccess     []*McpAccessInput
-	SkillRefs     []ResourceRef
-	ModelOverride string
-}
-
-// McpAccessInput is the SDK input type for McpAccess.
-type McpAccessInput struct {
-	McpServer    string
-	EnabledTools []string
+	Name            string
+	Description     string
+	Instructions    string
+	SkillRefs       []ResourceRef
+	ModelOverride   string
+	Tools           []string
+	DisallowedTools []string
 }
 
 // EnvVarDeclarationInput is the SDK input type for EnvVarDeclaration.
@@ -222,6 +210,8 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 			resource.Spec.Env[k] = pv
 		}
 	}
+	resource.Spec.Tools = i.Tools
+	resource.Spec.DisallowedTools = i.DisallowedTools
 	return resource, nil
 }
 
@@ -232,23 +222,7 @@ func (i *McpServerUsageInput) toProto() (*agentv1.McpServerUsage, error) {
 		ref.Kind = apiresourcekind.ApiResourceKind_mcp_server
 		p.McpServerRef = ref
 	}
-	p.EnabledTools = i.EnabledTools
-	for idx, item := range i.ToolApprovalOverrides {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("ToolApprovalOverrides", idx, err)
-		}
-		p.ToolApprovalOverrides = append(p.ToolApprovalOverrides, v)
-	}
 	return p, nil
-}
-
-func (i *ToolApprovalOverrideInput) toProto() (*agentv1.ToolApprovalOverride, error) {
-	return &agentv1.ToolApprovalOverride{
-		ToolName:         i.ToolName,
-		RequiresApproval: i.RequiresApproval,
-		Message:          i.Message,
-	}, nil
 }
 
 func (i *SubAgentInput) toProto() (*agentv1.SubAgent, error) {
@@ -256,27 +230,15 @@ func (i *SubAgentInput) toProto() (*agentv1.SubAgent, error) {
 	p.Name = i.Name
 	p.Description = i.Description
 	p.Instructions = i.Instructions
-	for idx, item := range i.McpAccess {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("McpAccess", idx, err)
-		}
-		p.McpAccess = append(p.McpAccess, v)
-	}
 	for _, r := range i.SkillRefs {
 		ref := r.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_skill
 		p.SkillRefs = append(p.SkillRefs, ref)
 	}
 	p.ModelOverride = i.ModelOverride
+	p.Tools = i.Tools
+	p.DisallowedTools = i.DisallowedTools
 	return p, nil
-}
-
-func (i *McpAccessInput) toProto() (*agentv1.McpAccess, error) {
-	return &agentv1.McpAccess{
-		McpServer:    i.McpServer,
-		EnabledTools: i.EnabledTools,
-	}, nil
 }
 
 func (i *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration, error) {
@@ -320,6 +282,8 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 				input.Env[k] = envVarDeclarationInputFromProto(v)
 			}
 		}
+		input.Tools = s.GetTools()
+		input.DisallowedTools = s.GetDisallowedTools()
 	}
 	return input
 }
@@ -330,21 +294,6 @@ func mcpServerUsageInputFromProto(p *agentv1.McpServerUsage) *McpServerUsageInpu
 	}
 	input := &McpServerUsageInput{}
 	input.McpServerRef = resourceRefFromProto(p.GetMcpServerRef())
-	input.EnabledTools = p.GetEnabledTools()
-	for _, item := range p.GetToolApprovalOverrides() {
-		input.ToolApprovalOverrides = append(input.ToolApprovalOverrides, toolApprovalOverrideInputFromProto(item))
-	}
-	return input
-}
-
-func toolApprovalOverrideInputFromProto(p *agentv1.ToolApprovalOverride) *ToolApprovalOverrideInput {
-	if p == nil {
-		return nil
-	}
-	input := &ToolApprovalOverrideInput{}
-	input.ToolName = p.GetToolName()
-	input.RequiresApproval = p.GetRequiresApproval()
-	input.Message = p.GetMessage()
 	return input
 }
 
@@ -356,23 +305,12 @@ func subAgentInputFromProto(p *agentv1.SubAgent) *SubAgentInput {
 	input.Name = p.GetName()
 	input.Description = p.GetDescription()
 	input.Instructions = p.GetInstructions()
-	for _, item := range p.GetMcpAccess() {
-		input.McpAccess = append(input.McpAccess, mcpAccessInputFromProto(item))
-	}
 	for _, r := range p.GetSkillRefs() {
 		input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 	}
 	input.ModelOverride = p.GetModelOverride()
-	return input
-}
-
-func mcpAccessInputFromProto(p *agentv1.McpAccess) *McpAccessInput {
-	if p == nil {
-		return nil
-	}
-	input := &McpAccessInput{}
-	input.McpServer = p.GetMcpServer()
-	input.EnabledTools = p.GetEnabledTools()
+	input.Tools = p.GetTools()
+	input.DisallowedTools = p.GetDisallowedTools()
 	return input
 }
 

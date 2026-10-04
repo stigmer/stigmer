@@ -4,7 +4,7 @@ Comprehensive documentation for the `agentic.stigmer.ai/v1` McpServer resource.
 
 ## What Is an McpServer?
 
-An McpServer is a Kubernetes-style API resource that defines a reusable **MCP (Model Context Protocol) server configuration**. It declares how an external tool provider is started or connected to, what environment variables it requires, which tools it exposes by default, and what approval policies govern those tools.
+An McpServer is a Kubernetes-style API resource that defines a reusable **MCP (Model Context Protocol) server configuration**. It declares how an external tool provider is started or connected to, and what environment variables it requires. Its tools are discovered when it connects, each with the server's own destructive annotation, which decides whether Stigmer asks before the tool runs.
 
 McpServers are first-class platform resources — they live independently of any agent and can be referenced by many agents simultaneously. This is the key distinction from an inline server definition: an McpServer can be governed, versioned, published to the marketplace, and shared across an organization.
 
@@ -16,8 +16,8 @@ McpServer ──► Referenced by Agent or Session ──► Keys resolved per r
 
 | Resource | Role |
 |---|---|
-| **McpServer** | Declares server type, connection details, required env vars, and default approval policies. The reusable template. |
-| **Agent** | References one or more McpServers via `mcp_server_usages`. Optionally restricts tools and overrides approval policies per agent. |
+| **McpServer** | Declares server type, connection details and required env vars. The reusable template. |
+| **Agent** | References one or more McpServers via `mcp_server_usages`. Optionally narrows their tools with its `tools` and `disallowed_tools` lists. |
 | **Run (AgentExecution)** | Resolves the keys each referenced McpServer declares when it starts: from the Environments bound to the schedule, workflow task or PlatformClient that started it, from `runtime_env`, then OAuth tokens and the personal environment of the person who sent the message for keys still missing. |
 | **Agent Runner** | Resolves each McpServer reference at execution time, passes each server the keys it declares, and starts or connects to the server process. |
 
@@ -41,14 +41,13 @@ Every McpServer belongs to exactly one organization. The `org` field in metadata
 |---|---|
 | [mcpserver-resource-guide.md](mcpserver-resource-guide.md) | Full YAML schema reference — metadata, spec fields, status fields, CLI commands |
 | [server-types.md](server-types.md) | Stdio vs HTTP transport — when to use each, configuration fields, env var interpolation |
-| [tool-approval-policies.md](tool-approval-policies.md) | `default_tool_approvals`, `ToolApprovalPolicy`, message templates, and the full policy chain |
-| [capability-discovery.md](capability-discovery.md) | How tool capabilities are discovered — the connect flow's entry points, `DiscoveredCapabilities` |
+| [capability-discovery.md](capability-discovery.md) | How tool capabilities are discovered — the connect flow's entry points, `DiscoveredCapabilities`, and which tools ask for approval |
 | [examples.md](examples.md) | Complete YAML examples from minimal to full-featured marketplace server |
 | [validation-checklist.md](validation-checklist.md) | Pre-apply checklist and common pitfalls |
 
 ## How Agents Reference McpServers
 
-Agents reference McpServer resources via `spec.mcp_server_usages`. See the Agent documentation for the reference format and how agents layer their own tool restrictions and approval overrides on top of the McpServer defaults:
+Agents reference McpServer resources via `spec.mcp_server_usages`. See the Agent documentation for the reference format and how an agent narrows a server's tools with its tool lists:
 
-- [Agent docs: mcp-server-integration.md](../agent/docs/mcp-server-integration.md)
-- [Agent docs: resource-references.md](../agent/docs/resource-references.md)
+- [Agent docs: mcp-server-integration.md](../../agent/docs/mcp-server-integration.md)
+- [Agent docs: resource-references.md](../../agent/docs/resource-references.md)

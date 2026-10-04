@@ -5,7 +5,8 @@
  * guards, the failure→gRPC mapping table (#239/#243/#478), the
  * connect_status bookkeeping (attach skips CONNECTING; results and the
  * terminal phase ride ONE atomic write; failure_code in CamelCase),
- * tool-approval preserve-on-empty, the ephemeral EC lifecycle, and
+ * each tool's destructive_hint persisted as the runner read it and
+ * overwritten on reconnect, the ephemeral EC lifecycle, and
  * startConnect's two-layer idempotency + dead-runner warning, and the
  * connect route (connect-sandbox.ts, stigmer/stigmer#1474): the shared
  * runner queue without a sandbox lane, and with one a connect sandbox
@@ -89,12 +90,10 @@ vi.stubEnv("STIGMER_RUNNER_TOKEN_KEY", Buffer.alloc(32, 8).toString("base64"));
 const OK_OUTPUT: ConnectWorkflowOutput = {
   tools: [
     { name: "search", description: "find things", input_schema: { type: "object" } },
+    { name: "drop_table", description: "drops a table", destructiveHint: true },
   ],
   resource_templates: [
     { uri_template: "file://{path}", name: "files", description: "", mime_type: "" },
-  ],
-  tool_approvals: [
-    { tool_name: "search", requires_approval: true, message: "gated", from_destructive_hint: false },
   ],
 };
 
@@ -366,7 +365,7 @@ async function expectConnectError(
 }
 
 describe("budget guards (Go connect_test.go:339, start_connect_test.go:202)", () => {
-  it("the sync budget covers stdio cold-start + the classification floor (#243)", () => {
+  it("the sync budget covers the stdio cold-start allowance with margin (#243)", () => {
     expect(CONNECT_TIMEOUT.ms).toBeGreaterThanOrEqual(270_000 + 120_000);
   });
 
@@ -417,17 +416,17 @@ describe("connect (blocking lane)", () => {
     );
   });
 
-  it("persists capabilities + gates + SUCCEEDED in one record and returns the updated resource", async () => {
+  it("persists capabilities + destructive hints + SUCCEEDED in one record and returns the updated resource", async () => {
     const harness = makeHarness();
     const server = await seedServer();
     const result = await connect(harness.deps, connectInput(server.metadata!.id));
 
-    expect(result.status?.discoveredCapabilities?.tools).toHaveLength(1);
-    expect(result.status?.discoveredCapabilities?.tools[0]?.name).toBe("search");
-    expect(result.status?.discoveredCapabilities?.tools[0]?.inputSchema).toEqual({
-      type: "object",
-    });
-    expect(result.status?.toolApprovals).toHaveLength(1);
+    const tools = result.status?.discoveredCapabilities?.tools ?? [];
+    expect(tools.map((tool) => [tool.name, tool.destructiveHint])).toEqual([
+      ["search", false],
+      ["drop_table", true],
+    ]);
+    expect(tools[0]?.inputSchema).toEqual({ type: "object" });
     expect(result.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
     expect(result.status?.connectStatus?.failureCode).toBe("");
     // The sync lane passes the 420s budget to the engine.
@@ -436,22 +435,23 @@ describe("connect (blocking lane)", () => {
     expect(harness.engine.startedQueues).toEqual([{ kind: "runner" }]);
   });
 
-  it("preserves existing tool approvals when a reconnect returns none (a degraded runner cannot disarm gates)", async () => {
+  it("a reconnect replaces the hints with the server's current annotations", async () => {
     const harness = makeHarness();
     const server = await seedServer();
     await connect(harness.deps, connectInput(server.metadata!.id));
 
-    const emptyHarness = makeHarness({
-      outcome: { ok: true, output: { tools: [{ name: "other" }] } },
+    // The author dropped the annotation, so the tool stops asking.
+    const reannotated = makeHarness({
+      outcome: { ok: true, output: { tools: [{ name: "drop_table" }] } },
     });
     const second = await connect(
-      emptyHarness.deps,
+      reannotated.deps,
       connectInput(server.metadata!.id),
     );
-    // Capabilities: overwritten. Gates: preserved.
-    expect(second.status?.discoveredCapabilities?.tools[0]?.name).toBe("other");
-    expect(second.status?.toolApprovals).toHaveLength(1);
-    expect(second.status?.toolApprovals[0]?.toolName).toBe("search");
+    const tools = second.status?.discoveredCapabilities?.tools ?? [];
+    expect(tools.map((tool) => [tool.name, tool.destructiveHint])).toEqual([
+      ["drop_table", false],
+    ]);
   });
 
   it("creates the ephemeral EC from runtime_env AS THE CALLER, mints the decrypt token, and deletes the EC after settle", async () => {
@@ -730,7 +730,7 @@ describe("startConnect (async lane)", () => {
       );
       expect(after.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
       expect(after.status?.connectStatus?.warning).toBe("");
-      expect(after.status?.discoveredCapabilities?.tools).toHaveLength(1);
+      expect(after.status?.discoveredCapabilities?.tools).toHaveLength(2);
     });
   });
 
@@ -787,7 +787,7 @@ describe("startBestEffortConnect (apply tail)", () => {
       McpServerSchema,
     );
     expect(after.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
-    expect(after.status?.discoveredCapabilities?.tools).toHaveLength(1);
+    expect(after.status?.discoveredCapabilities?.tools).toHaveLength(2);
   });
 
   it("never throws when the server was deleted mid-connect", async () => {

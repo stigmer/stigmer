@@ -116,7 +116,8 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    *
    * Augments the agent's tool set for this specific conversation without
    * modifying the agent blueprint. Each usage references an McpServer
-   * resource.
+   * resource. The agent's tool lists govern these servers like its own: an
+   * agent whose tools list does not name a session server cannot use it.
    *
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7;
    */

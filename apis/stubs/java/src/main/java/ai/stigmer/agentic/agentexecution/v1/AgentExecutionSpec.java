@@ -506,9 +506,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * Auto-approve all tool executions for this execution.
    *
    * When true, tools that would normally require approval are automatically
-   * approved without user intervention. This is the highest-priority override
-   * in the approval policy chain:
-   * McpServerStatus.tool_approvals → McpServerSpec.pinned_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+   * approved without user intervention. It clears approvals only: a tool the
+   * agent's tool lists exclude stays excluded.
    *
    * Use cases:
    * - Automated CI/CD pipelines where human approval isn't practical
@@ -2695,9 +2694,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Auto-approve all tool executions for this execution.
      *
      * When true, tools that would normally require approval are automatically
-     * approved without user intervention. This is the highest-priority override
-     * in the approval policy chain:
-     * McpServerStatus.tool_approvals → McpServerSpec.pinned_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * approved without user intervention. It clears approvals only: a tool the
+     * agent's tool lists exclude stays excluded.
      *
      * Use cases:
      * - Automated CI/CD pipelines where human approval isn't practical
@@ -2724,9 +2722,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Auto-approve all tool executions for this execution.
      *
      * When true, tools that would normally require approval are automatically
-     * approved without user intervention. This is the highest-priority override
-     * in the approval policy chain:
-     * McpServerStatus.tool_approvals → McpServerSpec.pinned_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * approved without user intervention. It clears approvals only: a tool the
+     * agent's tool lists exclude stays excluded.
      *
      * Use cases:
      * - Automated CI/CD pipelines where human approval isn't practical
@@ -2757,9 +2754,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * Auto-approve all tool executions for this execution.
      *
      * When true, tools that would normally require approval are automatically
-     * approved without user intervention. This is the highest-priority override
-     * in the approval policy chain:
-     * McpServerStatus.tool_approvals → McpServerSpec.pinned_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+     * approved without user intervention. It clears approvals only: a tool the
+     * agent's tool lists exclude stays excluded.
      *
      * Use cases:
      * - Automated CI/CD pipelines where human approval isn't practical

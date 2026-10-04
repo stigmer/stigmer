@@ -52,6 +52,9 @@ export interface WebFetchToolOptions {
   readonly posture: GuardPosture;
 }
 
+/** The tool's bound name; the tool lists' native table (`shared/tool-lists.ts`) maps it to Claude's `WebFetch`. */
+export const WEB_FETCH_TOOL_NAME = "web_fetch";
+
 export function createWebFetchTool(options: WebFetchToolOptions) {
   return tool(
     async (input: { url: string; max_length?: number; start_index?: number }) => {
@@ -69,7 +72,7 @@ export function createWebFetchTool(options: WebFetchToolOptions) {
       }
     },
     {
-      name: "web_fetch",
+      name: WEB_FETCH_TOOL_NAME,
       description:
         "Fetch the contents of a URL over http(s). HTML pages are converted " +
         "to Markdown; plain text, Markdown, JSON, and other text formats are " +

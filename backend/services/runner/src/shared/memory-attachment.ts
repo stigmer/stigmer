@@ -126,9 +126,8 @@ export function synthesizeMemoryAttachment(
   // Approval-free by construction + backfill-proof: see file header.
   const base = {
     slug: MEMORY_ATTACHMENT_SLUG,
-    toolApprovals: [],
-    pinnedToolApprovals: [],
-    toolApprovalOverrides: [],
+    destructiveTools: [],
+    discoveredToolNames: null,
     declaredEnvKeys: [],
     discoveredCapabilitiesEmpty: false,
   };

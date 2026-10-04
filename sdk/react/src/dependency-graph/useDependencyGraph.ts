@@ -59,7 +59,6 @@ export function useDependencyGraph({
       .map((usage) => {
         nodeCount++;
         const ref = usage.mcpServerRef!;
-        const toolCount = usage.enabledTools.length;
 
         return {
           id: `mcp-server:${ref.slug}`,
@@ -69,12 +68,6 @@ export function useDependencyGraph({
             ref.org && ref.org !== agentOrg
               ? `${slugForOrg(ref.org)}/${ref.slug}`
               : undefined,
-          metadata: {
-            tools:
-              toolCount > 0
-                ? `${toolCount} ${toolCount === 1 ? "tool" : "tools"}`
-                : "all tools",
-          },
           children: [],
           ref: { org: ref.org || agentOrg, slug: ref.slug },
         };
@@ -98,24 +91,8 @@ export function useDependencyGraph({
     const subAgentNodes: DependencyNode[] = subAgents.map((sa) => {
       nodeCount++;
 
-      const saMcpNodes: DependencyNode[] = sa.mcpAccess.map((access) => {
-        nodeCount++;
-        const toolCount = access.enabledTools.length;
-        return {
-          id: `sub-agent:${sa.name}:mcp-server:${access.mcpServer}`,
-          kind: "mcp-server" as const,
-          label: access.mcpServer,
-          metadata: {
-            tools:
-              toolCount > 0
-                ? `${toolCount} ${toolCount === 1 ? "tool" : "tools"}`
-                : "all tools",
-          },
-          children: [],
-          ref: { org: agentOrg, slug: access.mcpServer },
-        };
-      });
-
+      // A sub-agent reaches the parent's MCP servers through its tool
+      // lists, not edges of its own, so its children are its skills.
       const saSkillNodes: DependencyNode[] = sa.skillRefs.map((ref) => {
         nodeCount++;
         return {
@@ -142,7 +119,7 @@ export function useDependencyGraph({
         label: sa.name,
         description: sa.description || undefined,
         metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-        children: [...saMcpNodes, ...saSkillNodes],
+        children: saSkillNodes,
       };
     });
 

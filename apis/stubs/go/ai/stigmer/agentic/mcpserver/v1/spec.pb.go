@@ -47,15 +47,9 @@ type McpServerSpec struct {
 	//	*McpServerSpec_Stdio
 	//	*McpServerSpec_Http
 	ServerType isMcpServerSpec_ServerType `protobuf_oneof:"server_type"`
-	// Default tools to enable from this MCP server.
-	// Empty list means all tools are enabled by default.
-	// Applies whenever an agent's McpServerUsage.enabled_tools is empty.
-	DefaultEnabledTools []string `protobuf:"bytes,7,rep,name=default_enabled_tools,json=defaultEnabledTools,proto3" json:"default_enabled_tools,omitempty"`
 	// Environment variable declarations for this MCP server.
 	// Keys are variable names; values describe their metadata and optionality.
 	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,8,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Tools pinned by the MCP server owner to always require approval.
-	PinnedToolApprovals []*ToolApprovalPolicy `protobuf:"bytes,11,rep,name=pinned_tool_approvals,json=pinnedToolApprovals,proto3" json:"pinned_tool_approvals,omitempty"`
 	// URL of the upstream source repository for this MCP server.
 	// Shown in the marketplace so users can inspect the implementation
 	// for trust and transparency.
@@ -154,23 +148,9 @@ func (x *McpServerSpec) GetHttp() *HttpServerConfig {
 	return nil
 }
 
-func (x *McpServerSpec) GetDefaultEnabledTools() []string {
-	if x != nil {
-		return x.DefaultEnabledTools
-	}
-	return nil
-}
-
 func (x *McpServerSpec) GetEnv() map[string]*v1.EnvVarDeclaration {
 	if x != nil {
 		return x.Env
-	}
-	return nil
-}
-
-func (x *McpServerSpec) GetPinnedToolApprovals() []*ToolApprovalPolicy {
-	if x != nil {
-		return x.PinnedToolApprovals
 	}
 	return nil
 }
@@ -403,92 +383,6 @@ func (x *HttpServerConfig) GetTimeoutSeconds() int32 {
 	return 0
 }
 
-// ToolApprovalPolicy defines approval requirements for a specific tool.
-type ToolApprovalPolicy struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Name of the tool (must match tools/list from MCP server exactly).
-	// Case-sensitive matching against tool names reported by the MCP server.
-	// Example: "delete_repository", "send_email", "execute_sql"
-	ToolName string `protobuf:"bytes,1,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
-	// Human-readable message shown to user when approval is requested.
-	// Supports {{args.field}} placeholders for dynamic content.
-	//
-	// If empty, a default message is generated: "Execute tool: {tool_name}"
-	//
-	// Guidelines for effective messages:
-	//   - Be specific about what will happen
-	//   - Include the most important argument values using placeholders
-	//   - Keep under 100 characters for UI display
-	//   - Use action verbs: "Delete", "Send", "Execute", "Create"
-	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	// True when the connect-time fail-closed tightener force-gated this tool
-	// because the server's own MCP annotation declared destructiveHint=true,
-	// rather than the classifier (or a human) gating it. Lets the runner attribute
-	// a tightened tool to its true provenance
-	// (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN)
-	// instead of collapsing it into the classifier default. Carries no enforcement
-	// weight — gating is decided by presence in this list — so an absent/false
-	// value simply means "not attributed to the destructiveHint tightener".
-	//
-	// Set only on entries written to McpServerStatus.tool_approvals (the classifier
-	// layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human
-	// pin is, by definition, a pinned override) and left false there.
-	FromDestructiveHint bool `protobuf:"varint,3,opt,name=from_destructive_hint,json=fromDestructiveHint,proto3" json:"from_destructive_hint,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *ToolApprovalPolicy) Reset() {
-	*x = ToolApprovalPolicy{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ToolApprovalPolicy) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ToolApprovalPolicy) ProtoMessage() {}
-
-func (x *ToolApprovalPolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ToolApprovalPolicy.ProtoReflect.Descriptor instead.
-func (*ToolApprovalPolicy) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *ToolApprovalPolicy) GetToolName() string {
-	if x != nil {
-		return x.ToolName
-	}
-	return ""
-}
-
-func (x *ToolApprovalPolicy) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *ToolApprovalPolicy) GetFromDestructiveHint() bool {
-	if x != nil {
-		return x.FromDestructiveHint
-	}
-	return false
-}
-
 // McpServerAuth configures automated credential acquisition via OAuth.
 type McpServerAuth struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -560,7 +454,7 @@ type McpServerAuth struct {
 
 func (x *McpServerAuth) Reset() {
 	*x = McpServerAuth{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -572,7 +466,7 @@ func (x *McpServerAuth) String() string {
 func (*McpServerAuth) ProtoMessage() {}
 
 func (x *McpServerAuth) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -585,7 +479,7 @@ func (x *McpServerAuth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use McpServerAuth.ProtoReflect.Descriptor instead.
 func (*McpServerAuth) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *McpServerAuth) GetOauthAppRef() *apiresource.ApiResourceReference {
@@ -634,23 +528,21 @@ var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xef\x05\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x8c\x05\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
 	"\x04tags\x18\x03 \x03(\tR\x04tags\x12J\n" +
 	"\x05stdio\x18\x04 \x01(\v22.ai.stigmer.agentic.mcpserver.v1.StdioServerConfigH\x00R\x05stdio\x12G\n" +
-	"\x04http\x18\x05 \x01(\v21.ai.stigmer.agentic.mcpserver.v1.HttpServerConfigH\x00R\x04http\x122\n" +
-	"\x15default_enabled_tools\x18\a \x03(\tR\x13defaultEnabledTools\x12I\n" +
-	"\x03env\x18\b \x03(\v27.ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntryR\x03env\x12g\n" +
-	"\x15pinned_tool_approvals\x18\v \x03(\v23.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\x13pinnedToolApprovals\x12%\n" +
+	"\x04http\x18\x05 \x01(\v21.ai.stigmer.agentic.mcpserver.v1.HttpServerConfigH\x00R\x04http\x12I\n" +
+	"\x03env\x18\b \x03(\v27.ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntryR\x03env\x12%\n" +
 	"\x0erepository_url\x18\f \x01(\tR\rrepositoryUrl\x12!\n" +
 	"\fgithub_stars\x18\r \x01(\x05R\vgithubStars\x12B\n" +
 	"\x04auth\x18\x0e \x01(\v2..ai.stigmer.agentic.mcpserver.v1.McpServerAuthR\x04auth\x1al\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
 	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01B\x14\n" +
-	"\vserver_type\x12\x05\xbaH\x02\b\x01\"j\n" +
+	"\vserver_type\x12\x05\xbaH\x02\b\x01J\x04\b\a\x10\bJ\x04\b\v\x10\fR\x15default_enabled_toolsR\x15pinned_tool_approvals\"j\n" +
 	"\x11StdioServerConfig\x12 \n" +
 	"\acommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\acommand\x12\x12\n" +
 	"\x04args\x18\x02 \x03(\tR\x04args\x12\x1f\n" +
@@ -667,11 +559,7 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
 	"\x10QueryParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x88\x01\n" +
-	"\x12ToolApprovalPolicy\x12$\n" +
-	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x122\n" +
-	"\x15from_destructive_hint\x18\x03 \x01(\bR\x13fromDestructiveHint\"\xc7\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc7\x03\n" +
 	"\rMcpServerAuth\x12\xd9\x01\n" +
 	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x7f\xbaHx\xba\x01u\n" +
 	"\x12oauth_app_ref.kind\x12;oauth_app_ref must reference a resource with kind=oauth_app\x1a\"this.slug == '' || this.kind == 22\xe0\x85,\x16R\voauthAppRef\x12-\n" +
@@ -698,34 +586,32 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes = []any{
 	(*McpServerSpec)(nil),                    // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec
 	(*StdioServerConfig)(nil),                // 1: ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
 	(*HttpServerConfig)(nil),                 // 2: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	(*ToolApprovalPolicy)(nil),               // 3: ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	(*McpServerAuth)(nil),                    // 4: ai.stigmer.agentic.mcpserver.v1.McpServerAuth
-	nil,                                      // 5: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
-	nil,                                      // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	nil,                                      // 7: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	(*apiresource.ApiResourceReference)(nil), // 8: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvVarDeclaration)(nil),             // 9: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(*McpServerAuth)(nil),                    // 3: ai.stigmer.agentic.mcpserver.v1.McpServerAuth
+	nil,                                      // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
+	nil,                                      // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	nil,                                      // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	(*apiresource.ApiResourceReference)(nil), // 7: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.EnvVarDeclaration)(nil),             // 8: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
 	2, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	5, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
-	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.pinned_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
-	4, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
-	6, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	7, // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	9, // 8: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	4, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
+	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
+	5, // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	6, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	7, // 6: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() }
@@ -743,7 +629,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
