@@ -352,6 +352,23 @@ describe("Codex and plugins with two formats", () => {
     expect(accepted(outcome).hooks?.groups.map((g) => g.handlers[0]?.command)).toEqual(["claude"]);
   });
 
+  it("runs Cursor's tool-call hooks when the Claude Code ones carry only lifecycle events, or nothing", () => {
+    const guard = { preToolUse: [{ command: "./guard.sh", failClosed: true }] };
+    const lifecycleOnly = new Map([
+      ...claudePlugin({ hooks: { Stop: [{ hooks: [command("summary")] }] } }),
+      ...cursorPlugin({ manifest: { hooks: "./hooks/cursor.json" }, files: { "hooks/cursor.json": JSON.stringify({ version: 1, hooks: guard }) } }),
+    ]);
+    const outcome = read(lifecycleOnly);
+    expect(kindsOf(outcome)).toEqual({ errors: [], warnings: ["hook-event-not-run"] });
+    expect(accepted(outcome).hooks).toEqual({
+      format: "cursor",
+      groups: [{ event: "preToolUse", matcher: "", handlers: [{ command: "./guard.sh", args: [], failClosed: true }] }],
+    });
+    const emptyInline = new Map([...claudePlugin({ manifest: { hooks: {} } }), ...cursorPlugin({ hooks: guard })]);
+    expect(kindsOf(read(emptyInline))).toEqual({ errors: [], warnings: [] });
+    expect(accepted(read(emptyInline)).hooks?.format).toBe("cursor");
+  });
+
   it("runs Cursor's hooks when they are the only ones", () => {
     const files = new Map([...claudePlugin(), ...cursorPlugin({ hooks: { preToolUse: [{ command: "cursor" }] } })]);
     expect(accepted(read(files)).hooks?.format).toBe("cursor");

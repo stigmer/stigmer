@@ -428,6 +428,7 @@ describe("the hooks summary", () => {
       }),
     );
     expect(text).toContain("Main agent");
+    expect(text).toMatch(/Sub-agents\s+none/);
     expect(text).toContain("Claude Code format: PreToolUse 1 (recorded, not run yet)");
   });
 

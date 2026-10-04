@@ -25,11 +25,13 @@
  * only in skill frontmatter). The stored hooks therefore hold only what
  * runs, and the runner needs no table of its own.
  *
- * A plugin runs one format. When it carries hooks in both, Claude Code's
- * run (the reader's detection precedence, and the format the project
- * treats as primary) and each Cursor source is named once as not run
- * (`hooks-format-not-run`); its own event and handler warnings are not
- * reported, since none of it runs.
+ * A plugin runs one format. When both formats carry tool-call hooks
+ * Stigmer reads, Claude Code's win (the reader's detection precedence, and
+ * the format the project treats as primary) and each Cursor source that
+ * carries some is named once as not run (`hooks-format-not-run`); its own
+ * event and handler warnings are not reported, since none of it runs. The
+ * choice counts only sources that carry tool-call hooks, so a Claude file
+ * with nothing but lifecycle events never displaces a Cursor guard.
  *
  * What is carried is checked, and a broken hook refuses the install, as a
  * broken sub-agent does: a matcher that is neither "every call", an exact
@@ -101,16 +103,13 @@ export function normaliseHooks(index: PluginFileIndex, set: ManifestSet, finding
     if (read !== undefined) reads.push(read);
   }
 
-  const runFormat: HookFormat | undefined = reads.some((r) => r.format === "claude-code")
-    ? "claude-code"
-    : reads.some((r) => r.format === "cursor")
-      ? "cursor"
-      : undefined;
+  const carries = (format: HookFormat): boolean => reads.some((r) => r.format === format && r.groups.length > 0);
+  const runFormat: HookFormat | undefined = carries("claude-code") ? "claude-code" : carries("cursor") ? "cursor" : undefined;
 
   const groups: PluginHookGroup[] = [];
   const references = new Set<string>();
   for (const read of reads) {
-    if (read.format !== undefined && read.format !== runFormat) {
+    if (read.format !== undefined && read.format !== runFormat && read.groups.length > 0) {
       findings.warn("hooks-format-not-run", { path: read.path, detail: FORMAT_NAMES[read.format] });
       continue;
     }
@@ -128,7 +127,7 @@ export function normaliseHooks(index: PluginFileIndex, set: ManifestSet, finding
 function readSource(index: PluginFileIndex, source: ResolvedHookSource, findings: Findings): SourceRead | undefined {
   if (source.kind === "inline") {
     const path = `${source.manifest}#hooks`;
-    if (source.format === "claude-code") return readEventMap(source.value, path, "claude-code", findings, true);
+    if (source.format === "claude-code") return readEventMap(source.value, path, undefined, findings, true);
     return readFileShape(source.value, path, [source.format], findings);
   }
   if (!index.has(source.path)) {

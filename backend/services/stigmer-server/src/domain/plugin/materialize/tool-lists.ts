@@ -52,7 +52,7 @@ export interface CheckedToolList {
   readonly emptied: boolean;
 }
 
-/** A sub-agent whose `tools` list emptied, or the main agent refusing the install for it. */
+/** The settings' main agent whose `tools` list emptied: it refuses the install (a sub-agent is left out instead). */
 export class ToolListEmptiedError extends Error {
   constructor(agent: string, dropped: readonly string[]) {
     super(

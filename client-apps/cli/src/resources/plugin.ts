@@ -265,7 +265,15 @@ export function describePackageOn(
     "MCP servers",
     named(plugin.mcpServers.map((s) => `${s.name} (${s.transport})`)),
   );
-  contents.field("Sub-agents", named(plugin.subAgents.map((a) => a.name)));
+  // The main agent runs the main thread and is not installed as a sub-agent too.
+  contents.field(
+    "Sub-agents",
+    named(
+      plugin.subAgents
+        .map((a) => a.name)
+        .filter((name) => name !== plugin.mainAgent),
+    ),
+  );
   if (plugin.mainAgent !== undefined)
     contents.field("Main agent", plugin.mainAgent);
   contents.field(
