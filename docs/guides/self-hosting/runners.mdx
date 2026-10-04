@@ -160,10 +160,11 @@ The shared runner is one posture. The server can also start a runner per
 Session, the way Stigmer Cloud does, through a sandbox provisioner. Four
 built-in drivers exist, selected with `SANDBOX_PROVISIONER_TYPE` on the server:
 `local-process` (a child process per Session), `docker` (a container per
-Session), `kubernetes` (a Deployment per Session in the namespace
-`STIGMER_SANDBOX_K8S_NAMESPACE` names) and `substrate` (an Agent Substrate actor
-per Session that sleeps while the Session is idle, below). The container drivers
-need the addresses a sandbox reaches the server and Temporal on,
+Session), `agent-sandbox` (a Kubernetes
+[agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) `Sandbox` per
+Session, below) and `substrate` (an Agent Substrate actor per Session that
+sleeps while the Session is idle, below). The container drivers need the
+addresses a sandbox reaches the server and Temporal on,
 `STIGMER_SANDBOX_BACKEND_ENDPOINT` and `STIGMER_SANDBOX_TEMPORAL_ADDRESS`, and
 take the image from `STIGMER_SANDBOX_RUNNER_IMAGE`; `local-process` runs the
 executable `STIGMER_SANDBOX_RUNNER_COMMAND` names. Every driver hands its
@@ -185,6 +186,30 @@ Node, `/runner/bin/node`, so the `node` an Agent's commands run is the base
 image's, not the runner's. The image's own command is a shell; the container
 drivers set the runner's command themselves. To run Agents in an image of your
 own instead, see [Bring your own base image](#bring-your-own-base-image).
+
+**On Kubernetes, through agent-sandbox.** The `agent-sandbox` driver hands each
+sandbox to Kubernetes SIG Apps' agent-sandbox, which you install in the cluster
+once. Its core manifest is enough; the driver uses only the `Sandbox` resource
+(`agents.x-k8s.io/v1beta1`), not templates, claims or warm pools. The driver is
+tested against agent-sandbox v1.0.5:
+
+```bash
+kubectl apply -f https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v1.0.5/sandbox.yaml
+```
+
+Each sandbox is one `Sandbox` in the namespace `STIGMER_SANDBOX_K8S_NAMESPACE`
+names. It holds the runner's pod, a 10Gi `ReadWriteOnce` workspace claim on the
+cluster's default storage class for a Session or a workflow run, and a Secret
+with the runner's token and secrets. Deleting the `Sandbox` deletes the rest. A
+pod lost to a node, or deleted by hand, comes back with its files. When a
+stopped sandbox starts again, it runs the server's current runner image and
+settings, not the ones it was created with.
+
+The server needs a Role in that namespace allowing `get`, `create`, `patch` and
+`delete` on `sandboxes.agents.x-k8s.io`, and `create` and `update` on `secrets`.
+It needs no rights on Deployments, pods or claims. Without agent-sandbox
+installed, a Session's first run fails, and the error names the resource and the
+manifest to install.
 
 A runner outside Stigmer Cloud calls its model with its own key, so a sandboxed
 runner needs the keys the shared runner would have. Name them in two lists on
@@ -331,15 +356,15 @@ itself, naming the version it needs:
 ```
 
 **Root, `HOME` and Node settings.** The runner runs as root, because Agents
-install packages at runtime. The `kubernetes` and `docker` drivers set the user
-to root, `HOME` to `/root` and the working directory to `/workspace` whatever
-your image says. Agent Substrate can't set a container's user, so on the
-`substrate` driver your image's own `USER` must be root, or the runner refuses
-to start. The runner clears `NODE_OPTIONS` and `NODE_PATH` before it starts, so
-a monitoring library your image loads through them (an APM tracer, say) never
-loads into the runner, nor into the commands Agents run. To trust an extra
-certificate authority in Node, use `NODE_EXTRA_CA_CERTS`, which is kept. The
-server refuses to boot when either cleared name is on its runner lists.
+install packages at runtime. The `agent-sandbox` and `docker` drivers set the
+user to root, `HOME` to `/root` and the working directory to `/workspace`
+whatever your image says. Agent Substrate can't set a container's user, so on
+the `substrate` driver your image's own `USER` must be root, or the runner
+refuses to start. The runner clears `NODE_OPTIONS` and `NODE_PATH` before it
+starts, so a monitoring library your image loads through them (an APM tracer,
+say) never loads into the runner, nor into the commands Agents run. To trust an
+extra certificate authority in Node, use `NODE_EXTRA_CA_CERTS`, which is kept.
+The server refuses to boot when either cleared name is on its runner lists.
 
 **Stigmer's toolbox plus one tool.** To keep Stigmer's default tools and add
 one, start your base from `ghcr.io/stigmer/runner-base`, the default image

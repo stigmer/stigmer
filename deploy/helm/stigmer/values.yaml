@@ -317,7 +317,7 @@ licenseKeySecret: ""
 # Deliberately absent, and why:
 #   replicas — the server's skill store and key files live on its claim;
 #     one replica is a fact, so a value that could only be 1 would lie.
-#   a sandbox provisioner — the open-source kubernetes and docker drivers
+#   a sandbox provisioner — the open-source agent-sandbox and docker drivers
 #     hand a per-session runner no artifact path (stigmer#1099); the values
 #     arrive with the artifact backend that fixes it.
 #   a NetworkPolicy for the stigmer pod itself — the pod is one trust

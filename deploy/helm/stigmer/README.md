@@ -289,8 +289,8 @@ nothing. Anything the chart does not model goes through `server.extraEnv` and
 
 - **Replicas.** The server keeps its skill store on its own disk; one replica is
   a fact, not a setting.
-- **A per-session sandbox runner.** Open source's Kubernetes sandbox driver
-  hands a per-session runner no way to read artifacts yet
+- **A per-session sandbox runner.** Open source's Kubernetes sandbox driver,
+  `agent-sandbox`, hands a per-session runner no way to read artifacts yet
   ([stigmer#1099](https://github.com/stigmer/stigmer/issues/1099)); the values
   arrive with the fix. One shared runner serves the team, as in Compose.
 - **A NetworkPolicy for the stigmer pod, an autoscaler, TLS inside the pod,

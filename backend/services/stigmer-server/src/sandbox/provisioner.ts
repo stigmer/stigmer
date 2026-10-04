@@ -67,7 +67,7 @@ export interface SandboxEnvironment {
    * verifier's own lane such as a guest or a scheduled fire). A driver
    * that gives some session classes a workspace that does not outlive the
    * conversation reads it here; the built-in drivers (`local-process`,
-   * `docker`, `kubernetes`) ignore it and keep every session persistent.
+   * `docker`, `agent-sandbox`) ignore it and keep every session persistent.
    * Required rather than optional so a construction site that forgets it
    * fails to compile instead of silently reading as a persistent user
    * session to every driver.
@@ -204,11 +204,11 @@ export interface SandboxDriverConfig {
    * value.
    */
   readonly temporalConnectionEnv: Readonly<Record<string, string>>;
-  /** The runner image for container-based drivers (docker/kubernetes). */
+  /** The runner image for container-based drivers (docker, agent-sandbox, substrate). */
   readonly runnerImage: string;
   /** The runner executable for the local-process driver. */
   readonly runnerCommand: string;
-  /** The namespace the kubernetes driver provisions into. */
+  /** The Kubernetes namespace the agent-sandbox driver provisions into. */
   readonly kubernetesNamespace: string;
   /**
    * The operator's runner settings for every sandbox (ServerConfig
@@ -306,14 +306,14 @@ export type SandboxProvisionerFactory = (options: {
 /**
  * The built-in driver names — reserved: an extension registering one of
  * these is a boot throw (the registry's shadow rule, extensions/
- * registry.ts). The isolation ladder: process → Docker → Kubernetes,
- * then Agent Substrate (gVisor actors that sleep and wake with their
- * files, sandbox/substrate/).
+ * registry.ts). The isolation ladder: process → Docker → Kubernetes
+ * through agent-sandbox (sandbox/agent-sandbox/), then Agent Substrate
+ * (gVisor actors that sleep and wake with their files, sandbox/substrate/).
  */
 export const BUILT_IN_SANDBOX_PROVISIONER_TYPES = [
   "local-process",
   "docker",
-  "kubernetes",
+  "agent-sandbox",
   "substrate",
 ] as const;
 
