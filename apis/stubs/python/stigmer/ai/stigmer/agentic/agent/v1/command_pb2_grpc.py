@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.agentic.agent.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.agent.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2
+from ai.stigmer.agentic.agent.v1 import version_pb2 as ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
@@ -40,6 +41,11 @@ class AgentCommandControllerStub(object):
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.agent.v1.AgentCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.AgentId.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
+                _registered_method=True)
+        self.tagVersion = channel.unary_unary(
+                '/ai.stigmer.agentic.agent.v1.AgentCommandController/tagVersion',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.TagAgentVersionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
                 _registered_method=True)
 
@@ -99,6 +105,17 @@ class AgentCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def tagVersion(self, request, context):
+        """Assign or move a tag to a specific agent version.
+
+        Tags are human-readable pointers to immutable versions. Calling this
+        with an existing tag name moves it from the previous version to the
+        specified version. Common tags: "stable", "production", "v2.0".
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -125,6 +142,11 @@ def add_AgentCommandControllerServicer_to_server(servicer, server):
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.AgentId.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
+            ),
+            'tagVersion': grpc.unary_unary_rpc_method_handler(
+                    servicer.tagVersion,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.TagAgentVersionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
             ),
     }
@@ -263,6 +285,33 @@ class AgentCommandController(object):
             target,
             '/ai.stigmer.agentic.agent.v1.AgentCommandController/delete',
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.AgentId.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def tagVersion(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agent.v1.AgentCommandController/tagVersion',
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.TagAgentVersionInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
             options,
             channel_credentials,

@@ -1,12 +1,16 @@
-// Workflow version history (`get <workflow> --version-history`) and single
-// version retrieval (`get <workflow> --version <hashOrTag>`). Versioning is a
-// workflow-only feature: applies create immutable, hash-addressed versions that
-// can be tagged and diffed. Mirrors Go's workflow.RunVersionsList /
-// RunVersionsGet, including the table layout and the empty-history guidance,
-// which names the organization by slug where the caller can see it.
+// Version history (`get <workflow|agent> --version-history`) and single
+// version retrieval (`get <workflow|agent> --version <hashOrTag>`) for the
+// kinds an apply versions: every apply that changes the resource records an
+// immutable, hash-addressed version that can be tagged. One table for both
+// kinds, mirroring Go's workflow.RunVersionsList layout and empty-history
+// guidance, which names the organization by slug where the caller can see it.
+// A workflow version prints its validated YAML (Go's RunVersionsGet); an
+// agent version prints the agent as that version stored it.
 
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
+import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { ListAgentVersionsInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import {
   GetWorkflowVersionInputSchema,
   ListWorkflowVersionsInputSchema,
@@ -19,24 +23,49 @@ import { CliExitError, ExitCode } from "../errors/index.js";
 // Go caps the history view at 50 entries (workflow.getWorkflow → RunVersionsList).
 const VERSION_HISTORY_PAGE_SIZE = 50;
 
+/** The columns the history table shows; every versioned kind's entry carries them. */
+type VersionRow = Pick<WorkflowVersionEntry, "versionHash" | "tag" | "appliedAt" | "isCurrent" | "message">;
+
 /** Render the workflow's version history table, or empty-history guidance. */
 export async function renderWorkflowVersionHistory(client: Stigmer, org: string, slug: string): Promise<string> {
   const response = await client.workflow.listVersions(
     create(ListWorkflowVersionsInputSchema, { org, slug, pageSize: VERSION_HISTORY_PAGE_SIZE }),
   );
-
   if (response.versions.length === 0) {
-    return [
-      "",
-      // An empty org is a server that holds one: it is never named.
-      `No version history found for ${org === "" ? slug : `${await organizationLabel(client, org)}/${slug}`}`,
-      "Tip: Apply a workflow to create the first version:",
-      "  stigmer apply -f workflow.yaml",
-      "",
-    ].join("\n");
+    return emptyHistory(client, org, slug, "workflow");
   }
-
   return renderVersionsTable(response.versions, response.totalCount);
+}
+
+/** Render the agent's version history table, or empty-history guidance. */
+export async function renderAgentVersionHistory(client: Stigmer, org: string, slug: string): Promise<string> {
+  const response = await client.agent.listVersions(
+    create(ListAgentVersionsInputSchema, { org, slug, pageSize: VERSION_HISTORY_PAGE_SIZE }),
+  );
+  if (response.versions.length === 0) {
+    return emptyHistory(client, org, slug, "agent");
+  }
+  return renderVersionsTable(response.versions, response.totalCount);
+}
+
+/**
+ * The agent as a version (a hash, a tag, or "latest") stored it. An agent last
+ * written before agents were versioned has no history yet; its next apply
+ * records one.
+ */
+export async function getAgentAtVersion(client: Stigmer, org: string, slug: string, hashOrTag: string): Promise<Agent> {
+  return client.agent.getByReference({ org, slug, version: hashOrTag });
+}
+
+async function emptyHistory(client: Stigmer, org: string, slug: string, noun: "workflow" | "agent"): Promise<string> {
+  return [
+    "",
+    // An empty org is a server that holds one: it is never named.
+    `No version history found for ${org === "" ? slug : `${await organizationLabel(client, org)}/${slug}`}`,
+    `Tip: Apply ${noun === "agent" ? "an agent" : "a workflow"} to create the first version:`,
+    `  stigmer apply -f ${noun}.yaml`,
+    "",
+  ].join("\n");
 }
 
 /** Fetch the validated YAML for a specific version (by hash or tag). */
@@ -62,7 +91,7 @@ export async function getWorkflowVersionYaml(
 
 // --- Rendering (mirrors Go's displayVersionsTable) ---
 
-function renderVersionsTable(entries: readonly WorkflowVersionEntry[], totalCount: number): string {
+function renderVersionsTable(entries: readonly VersionRow[], totalCount: number): string {
   const lines: string[] = [
     "",
     `Version History (${totalCount} total)`,

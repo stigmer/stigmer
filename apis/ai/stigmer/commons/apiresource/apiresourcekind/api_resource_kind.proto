@@ -375,7 +375,7 @@ enum ApiResourceKind {
     name: "Agent"
     display_name: "Agent"
     id_prefix: "agt"
-    is_versioned: false
+    is_versioned: true
     not_search_indexed: false
     tier: open_source
     authorization: {

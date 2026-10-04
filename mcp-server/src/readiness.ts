@@ -16,7 +16,7 @@
 // Only the READINESS probe should point here. Liveness and startup must stay
 // on /health: readiness failure drains traffic (correct for a backend
 // outage), while liveness/startup failures restart the pod — a restart loop
-// that cannot fix a broken backend and destroys every live MCP session.
+// that cannot fix a broken backend and drops every in-flight request.
 
 import { createClient } from "@connectrpc/connect";
 import { Health, HealthCheckResponse_ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";

@@ -42,6 +42,9 @@ import "buf/validate/validate.proto";
 message AgentInvocation {
   // Reference to the agent to run.
   //
+  // The reference names no version (or "latest"): this runs the agent's
+  // current version, and a reference naming another version is refused.
+  //
   // @internal
   // Embedding surfaces own the referential invariants: the schedule
   // requires agent_ref.org == metadata.org (the owning org is the

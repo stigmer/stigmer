@@ -1,17 +1,19 @@
-// HTTP transport hardening + OAuth discovery tests.
+// HTTP transport hardening, OAuth discovery and the stateless contract.
 //
 // Boots the real Streamable HTTP transport on an ephemeral port it reports
 // through `onListening` (never a probed one, stigmer#1469) and exercises the
-// additive HTTP surface: the /health probe, RFC 9728 protected
-// resource metadata (GET + CORS preflight), and the WWW-Authenticate challenge
-// on token-less requests. Token validation is never performed here — presence is
-// the only check (Go parity: internal/server/http.go).
+// HTTP surface: the /health and /ready probes, RFC 9728 protected resource
+// metadata (GET + CORS preflight), the WWW-Authenticate challenge on
+// token-less requests, and the stateless contract: any request is served
+// without a session, GET answers 405, and a body that is not JSON is answered
+// 400 while the server keeps serving. Token validation is never performed
+// here — presence is the only check (Go parity: internal/server/http.go).
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Config } from "../config";
 import { configureLogger } from "../logger";
-import { routedServerFactory, serveHttp } from "../server";
+import { httpHandler, serveHttp } from "../server";
 
 configureLogger({ level: "error", format: "text" });
 
@@ -46,7 +48,7 @@ beforeAll(async () => {
     reportPort = resolve;
   });
   serving = serveHttp(
-    routedServerFactory({ serverAddress: cfg.stigmerServerAddress, apiKey: "" }),
+    httpHandler({ serverAddress: cfg.stigmerServerAddress, apiKey: "" }, cfg),
     cfg,
     controller.signal,
     { onListening: reportPort },
@@ -140,64 +142,74 @@ describe("HTTP transport hardening + OAuth discovery", () => {
     await expectJsonRpcError(res);
   });
 
-  it("returns the SDK's session-not-found shape (404, code -32001) for an unknown session", async () => {
-    // -32001 on a 404 is the streamable-HTTP recovery signal: on it a
-    // conformant client MUST open a new session with a fresh initialize —
-    // how clients survive the bridge's in-memory sessions dying on restart.
-    const res = await fetch(`${base()}/`, {
-      method: "POST",
-      headers: { authorization: "Bearer test-token", "mcp-session-id": "does-not-exist" },
-      body: "{}",
-    });
-    expect(res.status).toBe(404);
-    const error = await expectJsonRpcError(res);
-    expect(error.code).toBe(-32001);
-    expect(error.message).toContain("unknown or expired MCP session");
+  it("serves a bare tools/list with no session, as plain JSON", async () => {
+    const res = await mcpPost("/", { jsonrpc: "2.0", id: 1, method: "tools/list" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("application/json");
+    expect(res.headers.get("mcp-session-id")).toBeNull();
+    const body = (await res.json()) as { result: { tools: Array<{ name: string }> } };
+    expect(body.result.tools).toHaveLength(30);
   });
 
-  it("rejects a sessionless non-initialize POST", async () => {
+  it("ignores a session id a client still holds from a stateful server", async () => {
+    // Clients that connected before the move to stateless replay their old
+    // Mcp-Session-Id; it must be served, never answered 404.
+    const res = await mcpPost("/channels", { jsonrpc: "2.0", id: 1, method: "tools/list" }, { "mcp-session-id": "from-a-stateful-server" });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { result: { tools: Array<{ name: string }> } };
+    expect(body.result.tools.map((t) => t.name)).toEqual(["send_channel_message"]);
+  });
+
+  it.each(["GET", "DELETE"])("answers %s 405: no stream to open, no session to end", async (method) => {
+    const res = await fetch(`${base()}/`, { method, headers: { authorization: "Bearer test-token" } });
+    expect(res.status).toBe(405);
+    expect(res.headers.get("allow")).toBe("POST");
+    const error = await expectJsonRpcError(res);
+    expect(error.code).toBe(-32000);
+  });
+
+  it("answers a body that is not JSON 400 and keeps serving", async () => {
+    // The parse failure must be an answer, never a throw: a rejection in a
+    // request listener exits Node.
     const res = await fetch(`${base()}/`, {
       method: "POST",
-      headers: { authorization: "Bearer test-token", "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      headers: mcpHeaders(),
+      body: "{not json",
+      signal: AbortSignal.timeout(5_000),
     });
     expect(res.status).toBe(400);
     const error = await expectJsonRpcError(res);
-    expect(error.code).toBe(-32000);
-    expect(error.message).toContain("an initialize request is required");
-  });
-
-  it("rejects a sessionless GET (no Mcp-Session-Id)", async () => {
-    const res = await fetch(`${base()}/`, {
-      method: "GET",
-      headers: { authorization: "Bearer test-token" },
-    });
-    expect(res.status).toBe(400);
-    const error = await expectJsonRpcError(res);
-    expect(error.code).toBe(-32000);
-    expect(error.message).toContain("Mcp-Session-Id header is required");
+    expect(error.code).toBe(-32700);
+    expect((await fetch(`${base()}/health`)).status).toBe(200);
   });
 });
 
+/** The headers a conformant client sends on an MCP POST. */
+function mcpHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    authorization: "Bearer test-token",
+    "content-type": "application/json",
+    accept: "application/json, text/event-stream",
+    ...extra,
+  };
+}
+
+/** POST one JSON-RPC message to `path`; returns the raw Response. */
+function mcpPost(path: string, message: unknown, extra: Record<string, string> = {}): Promise<Response> {
+  return fetch(`${base()}${path}`, { method: "POST", headers: mcpHeaders(extra), body: JSON.stringify(message) });
+}
+
 /** POST a real MCP initialize to `path`; returns the raw Response. */
 function initialize(path: string): Promise<Response> {
-  return fetch(`${base()}${path}`, {
-    method: "POST",
-    headers: {
-      authorization: "Bearer test-token",
-      "content-type": "application/json",
-      accept: "application/json, text/event-stream",
+  return mcpPost(path, {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "initialize",
+    params: {
+      protocolVersion: "2025-03-26",
+      capabilities: {},
+      clientInfo: { name: "http-integration", version: "test" },
     },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "initialize",
-      params: {
-        protocolVersion: "2025-03-26",
-        capabilities: {},
-        clientInfo: { name: "http-integration", version: "test" },
-      },
-    }),
   });
 }
 
@@ -210,9 +222,11 @@ describe("HTTP route dispatch (the closed route table)", () => {
   ])("serves the %s roster as %s", async (path, serverName) => {
     const res = await initialize(path);
     expect(res.status).toBe(200);
-    // The initialize result rides an SSE frame; the serverInfo name is
-    // the roster's identity and must match the route exactly.
-    expect(await res.text()).toContain(`"name":"${serverName}"`);
+    // The serverInfo name is the roster's identity and must match the
+    // route exactly; the reply is plain JSON and opens no session.
+    expect(res.headers.get("mcp-session-id")).toBeNull();
+    const body = (await res.json()) as { result: { serverInfo: { name: string } } };
+    expect(body.result.serverInfo.name).toBe(serverName);
   });
 
   it("refuses an unknown route with 404 instead of a default roster", async () => {

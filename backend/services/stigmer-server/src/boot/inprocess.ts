@@ -24,6 +24,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { GetAgentVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
@@ -299,6 +300,10 @@ export function createInProcessClients(
     executionAgentLoader: {
       get: (agentId) =>
         agentQuery.get(create(AgentIdSchema, { value: agentId })),
+      getVersion: (agentId, versionHash) =>
+        agentQuery.getVersion(
+          create(GetAgentVersionInputSchema, { agentId, versionHash }),
+        ),
     },
     executionAgentInstanceLoader: {
       get: (instanceId) =>

@@ -163,6 +163,9 @@ function depsFor(
     agentLoader: () => ({
       get: async () =>
         create(AgentSchema, { metadata: { id: "agt_reach", org: ORG } }),
+      getVersion: async () => {
+        throw new Error("this turn records no agent version");
+      },
     }),
     agentInstanceLoader: () => ({
       get: async (instanceId) =>

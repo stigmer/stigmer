@@ -32,11 +32,6 @@ public final class VersionProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agent_v1_AgentVersionEntry_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agent_v1_GitProvenance_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agent_v1_GitProvenance_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agent_v1_ListAgentVersionsInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -70,7 +65,7 @@ public final class VersionProto extends com.google.protobuf.GeneratedFile {
       "gmer/agentic/agent/v1/spec.proto\032+ai/sti" +
       "gmer/commons/apiresource/status.proto\032\033b" +
       "uf/validate/validate.proto\032\037google/proto" +
-      "buf/timestamp.proto\"\262\003\n\021AgentVersionEntr" +
+      "buf/timestamp.proto\"\365\002\n\021AgentVersionEntr" +
       "y\022!\n\014version_hash\030\001 \001(\tR\013versionHash\0229\n\n" +
       "applied_at\030\002 \001(\0132\032.google.protobuf.Times" +
       "tampR\tappliedAt\022T\n\napplied_by\030\003 \001(\01325.ai" +
@@ -79,31 +74,27 @@ public final class VersionProto extends com.google.protobuf.GeneratedFile {
       "\035\n\nis_current\030\005 \001(\010R\tisCurrent\022\030\n\007messag" +
       "e\030\006 \001(\tR\007message\022K\n\rspec_snapshot\030\007 \001(\0132" +
       "&.ai.stigmer.agentic.agent.v1.AgentSpecR" +
-      "\014specSnapshot\022Q\n\016git_provenance\030\010 \001(\0132*." +
-      "ai.stigmer.agentic.agent.v1.GitProvenanc" +
-      "eR\rgitProvenance\"p\n\rGitProvenance\022\035\n\nrem" +
-      "ote_url\030\001 \001(\tR\tremoteUrl\022\020\n\003ref\030\002 \001(\tR\003r" +
-      "ef\022\026\n\006commit\030\003 \001(\tR\006commit\022\026\n\006subdir\030\004 \001" +
-      "(\tR\006subdir\"\212\001\n\026ListAgentVersionsInput\022\030\n" +
-      "\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\032\n\004slug\030\002 \001(\tB\006\272" +
-      "H\003\310\001\001R\004slug\022\035\n\npage_token\030\003 \001(\tR\tpageTok" +
-      "en\022\033\n\tpage_size\030\004 \001(\005R\010pageSize\"\260\001\n\031List" +
-      "AgentVersionsResponse\022J\n\010versions\030\001 \003(\0132" +
-      "..ai.stigmer.agentic.agent.v1.AgentVersi" +
-      "onEntryR\010versions\022&\n\017next_page_token\030\002 \001" +
-      "(\tR\rnextPageToken\022\037\n\013total_count\030\003 \001(\005R\n" +
-      "totalCount\"s\n\024GetAgentVersionInput\022!\n\010ag" +
-      "ent_id\030\001 \001(\tB\006\272H\003\310\001\001R\007agentId\0228\n\014version" +
-      "_hash\030\002 \001(\tB\025\272H\022r\0202\016^[a-f0-9]{64}$R\013vers" +
-      "ionHash\"\241\001\n\024TagAgentVersionInput\022!\n\010agen" +
-      "t_id\030\001 \001(\tB\006\272H\003\310\001\001R\007agentId\0228\n\014version_h" +
-      "ash\030\002 \001(\tB\025\272H\022r\0202\016^[a-f0-9]{64}$R\013versio" +
-      "nHash\022,\n\003tag\030\003 \001(\tB\032\272H\027r\025\020\0012\021^[a-zA-Z0-9" +
-      "._-]+$R\003tagB\237\001B\014VersionProtoP\001\242\002\004ASAA\252\002\033" +
-      "Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer" +
-      "\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\A" +
-      "gent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agent" +
-      "ic::Agent::V1b\006proto3"
+      "\014specSnapshotJ\004\010\010\020\tR\016git_provenance\"\212\001\n\026" +
+      "ListAgentVersionsInput\022\030\n\003org\030\001 \001(\tB\006\272H\003" +
+      "\310\001\001R\003org\022\032\n\004slug\030\002 \001(\tB\006\272H\003\310\001\001R\004slug\022\035\n\n" +
+      "page_token\030\003 \001(\tR\tpageToken\022\033\n\tpage_size" +
+      "\030\004 \001(\005R\010pageSize\"\260\001\n\031ListAgentVersionsRe" +
+      "sponse\022J\n\010versions\030\001 \003(\0132..ai.stigmer.ag" +
+      "entic.agent.v1.AgentVersionEntryR\010versio" +
+      "ns\022&\n\017next_page_token\030\002 \001(\tR\rnextPageTok" +
+      "en\022\037\n\013total_count\030\003 \001(\005R\ntotalCount\"s\n\024G" +
+      "etAgentVersionInput\022!\n\010agent_id\030\001 \001(\tB\006\272" +
+      "H\003\310\001\001R\007agentId\0228\n\014version_hash\030\002 \001(\tB\025\272H" +
+      "\022r\0202\016^[a-f0-9]{64}$R\013versionHash\"\241\001\n\024Tag" +
+      "AgentVersionInput\022!\n\010agent_id\030\001 \001(\tB\006\272H\003" +
+      "\310\001\001R\007agentId\0228\n\014version_hash\030\002 \001(\tB\025\272H\022r" +
+      "\0202\016^[a-f0-9]{64}$R\013versionHash\022,\n\003tag\030\003 " +
+      "\001(\tB\032\272H\027r\025\020\0012\021^[a-zA-Z0-9._-]+$R\003tagB\237\001B" +
+      "\014VersionProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agen" +
+      "tic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\" +
+      "V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMeta" +
+      "data\352\002\037Ai::Stigmer::Agentic::Agent::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -118,33 +109,27 @@ public final class VersionProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agent_v1_AgentVersionEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentVersionEntry_descriptor,
-        new java.lang.String[] { "VersionHash", "AppliedAt", "AppliedBy", "Tag", "IsCurrent", "Message", "SpecSnapshot", "GitProvenance", });
-    internal_static_ai_stigmer_agentic_agent_v1_GitProvenance_descriptor =
-      getDescriptor().getMessageType(1);
-    internal_static_ai_stigmer_agentic_agent_v1_GitProvenance_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agent_v1_GitProvenance_descriptor,
-        new java.lang.String[] { "RemoteUrl", "Ref", "Commit", "Subdir", });
+        new java.lang.String[] { "VersionHash", "AppliedAt", "AppliedBy", "Tag", "IsCurrent", "Message", "SpecSnapshot", });
     internal_static_ai_stigmer_agentic_agent_v1_ListAgentVersionsInput_descriptor =
-      getDescriptor().getMessageType(2);
+      getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agent_v1_ListAgentVersionsInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_ListAgentVersionsInput_descriptor,
         new java.lang.String[] { "Org", "Slug", "PageToken", "PageSize", });
     internal_static_ai_stigmer_agentic_agent_v1_ListAgentVersionsResponse_descriptor =
-      getDescriptor().getMessageType(3);
+      getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agent_v1_ListAgentVersionsResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_ListAgentVersionsResponse_descriptor,
         new java.lang.String[] { "Versions", "NextPageToken", "TotalCount", });
     internal_static_ai_stigmer_agentic_agent_v1_GetAgentVersionInput_descriptor =
-      getDescriptor().getMessageType(4);
+      getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_agent_v1_GetAgentVersionInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_GetAgentVersionInput_descriptor,
         new java.lang.String[] { "AgentId", "VersionHash", });
     internal_static_ai_stigmer_agentic_agent_v1_TagAgentVersionInput_descriptor =
-      getDescriptor().getMessageType(5);
+      getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_agent_v1_TagAgentVersionInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_TagAgentVersionInput_descriptor,

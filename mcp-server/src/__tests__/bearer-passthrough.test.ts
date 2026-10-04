@@ -14,6 +14,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { afterEach, describe, expect, it } from "vitest";
 
 import { loadConfigFromEnv, type Config } from "../config";
+import { createRoutedHandler } from "../http-handler";
 import { serveHttp } from "../server";
 import { textResult } from "../domains/toolresult";
 
@@ -62,7 +63,8 @@ describe("Spike A: non-validating Bearer passthrough", () => {
     const listening = new Promise<number>((resolve) => {
       reportPort = resolve;
     });
-    const serving = serveHttp(() => buildEchoServer(), cfg, ac.signal, { onListening: reportPort });
+    const handler = createRoutedHandler(() => buildEchoServer(), { authRequired: cfg.httpAuthEnabled, oauth: cfg.oauth });
+    const serving = serveHttp(handler, cfg, ac.signal, { onListening: reportPort });
     shutdown = async () => {
       ac.abort();
       await serving;
@@ -80,6 +82,9 @@ describe("Spike A: non-validating Bearer passthrough", () => {
 
     expect(await callWhoami(alice)).toBe("sk_alice_arbitrary_unvalidated");
     expect(await callWhoami(bob)).toBe("sk_bob_arbitrary_unvalidated");
+    // The official client runs with no session at all: the server never
+    // issues one.
+    expect((alice.transport as StreamableHTTPClientTransport).sessionId).toBeUndefined();
 
     await alice.close();
     await bob.close();

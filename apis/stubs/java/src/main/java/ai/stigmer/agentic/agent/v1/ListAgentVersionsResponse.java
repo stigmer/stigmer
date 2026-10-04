@@ -58,6 +58,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> versions_;
   /**
+   * <pre>
+   * Ordered list of versions (newest first).
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
    */
   @java.lang.Override
@@ -65,6 +69,10 @@ private static final long serialVersionUID = 0L;
     return versions_;
   }
   /**
+   * <pre>
+   * Ordered list of versions (newest first).
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
    */
   @java.lang.Override
@@ -73,6 +81,10 @@ private static final long serialVersionUID = 0L;
     return versions_;
   }
   /**
+   * <pre>
+   * Ordered list of versions (newest first).
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
    */
   @java.lang.Override
@@ -80,6 +92,10 @@ private static final long serialVersionUID = 0L;
     return versions_.size();
   }
   /**
+   * <pre>
+   * Ordered list of versions (newest first).
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
    */
   @java.lang.Override
@@ -87,6 +103,10 @@ private static final long serialVersionUID = 0L;
     return versions_.get(index);
   }
   /**
+   * <pre>
+   * Ordered list of versions (newest first).
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
    */
   @java.lang.Override
@@ -99,6 +119,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object nextPageToken_ = "";
   /**
+   * <pre>
+   * Token for fetching the next page. Empty when no more pages exist.
+   * </pre>
+   *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
    * @return The nextPageToken.
    */
@@ -116,6 +140,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Token for fetching the next page. Empty when no more pages exist.
+   * </pre>
+   *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
    * @return The bytes for nextPageToken.
    */
@@ -137,6 +165,10 @@ private static final long serialVersionUID = 0L;
   public static final int TOTAL_COUNT_FIELD_NUMBER = 3;
   private int totalCount_ = 0;
   /**
+   * <pre>
+   * Total number of versions across all pages.
+   * </pre>
+   *
    * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
    * @return The totalCount.
    */
@@ -556,6 +588,10 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.agent.v1.AgentVersionEntry, ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder, ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder> versionsBuilder_;
 
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> getVersionsList() {
@@ -566,6 +602,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public int getVersionsCount() {
@@ -576,6 +616,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public ai.stigmer.agentic.agent.v1.AgentVersionEntry getVersions(int index) {
@@ -586,6 +630,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public Builder setVersions(
@@ -603,6 +651,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public Builder setVersions(
@@ -617,6 +669,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public Builder addVersions(ai.stigmer.agentic.agent.v1.AgentVersionEntry value) {
@@ -633,6 +689,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public Builder addVersions(
@@ -650,6 +710,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public Builder addVersions(
@@ -664,6 +728,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public Builder addVersions(
@@ -678,6 +746,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public Builder addAllVersions(
@@ -693,6 +765,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public Builder clearVersions() {
@@ -706,6 +782,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public Builder removeVersions(int index) {
@@ -719,6 +799,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder getVersionsBuilder(
@@ -726,6 +810,10 @@ private static final long serialVersionUID = 0L;
       return internalGetVersionsFieldBuilder().getBuilder(index);
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder getVersionsOrBuilder(
@@ -736,6 +824,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder> 
@@ -747,6 +839,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder addVersionsBuilder() {
@@ -754,6 +850,10 @@ private static final long serialVersionUID = 0L;
           ai.stigmer.agentic.agent.v1.AgentVersionEntry.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder addVersionsBuilder(
@@ -762,6 +862,10 @@ private static final long serialVersionUID = 0L;
           index, ai.stigmer.agentic.agent.v1.AgentVersionEntry.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Ordered list of versions (newest first).
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
      */
     public java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder> 
@@ -785,6 +889,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object nextPageToken_ = "";
     /**
+     * <pre>
+     * Token for fetching the next page. Empty when no more pages exist.
+     * </pre>
+     *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
      * @return The nextPageToken.
      */
@@ -801,6 +909,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Token for fetching the next page. Empty when no more pages exist.
+     * </pre>
+     *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
      * @return The bytes for nextPageToken.
      */
@@ -818,6 +930,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Token for fetching the next page. Empty when no more pages exist.
+     * </pre>
+     *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
      * @param value The nextPageToken to set.
      * @return This builder for chaining.
@@ -831,6 +947,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Token for fetching the next page. Empty when no more pages exist.
+     * </pre>
+     *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
      * @return This builder for chaining.
      */
@@ -841,6 +961,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Token for fetching the next page. Empty when no more pages exist.
+     * </pre>
+     *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
      * @param value The bytes for nextPageToken to set.
      * @return This builder for chaining.
@@ -857,6 +981,10 @@ private static final long serialVersionUID = 0L;
 
     private int totalCount_ ;
     /**
+     * <pre>
+     * Total number of versions across all pages.
+     * </pre>
+     *
      * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
      * @return The totalCount.
      */
@@ -865,6 +993,10 @@ private static final long serialVersionUID = 0L;
       return totalCount_;
     }
     /**
+     * <pre>
+     * Total number of versions across all pages.
+     * </pre>
+     *
      * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
      * @param value The totalCount to set.
      * @return This builder for chaining.
@@ -877,6 +1009,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Total number of versions across all pages.
+     * </pre>
+     *
      * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
      * @return This builder for chaining.
      */

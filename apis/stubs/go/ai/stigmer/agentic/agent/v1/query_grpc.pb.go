@@ -22,6 +22,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AgentQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.agent.v1.AgentQueryController/get"
 	AgentQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference"
+	AgentQueryController_ListVersions_FullMethodName   = "/ai.stigmer.agentic.agent.v1.AgentQueryController/listVersions"
+	AgentQueryController_GetVersion_FullMethodName     = "/ai.stigmer.agentic.agent.v1.AgentQueryController/getVersion"
 )
 
 // AgentQueryControllerClient is the client API for AgentQueryController service.
@@ -32,9 +34,26 @@ const (
 type AgentQueryControllerClient interface {
 	// Get a single agent by ID.
 	Get(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
-	// Get an agent by its organization-scoped reference (org/slug).
+	// Get an agent by its organization-scoped reference (org/slug) with version support.
 	// Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+	//
+	// Version resolution (via ApiResourceReference.version field):
+	// - Empty/"latest" → Returns the current version
+	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Agent, error)
+	// List version history for an agent.
+	//
+	// Returns all historical versions, newest first. Each entry carries the
+	// version hash, when and by whom it was applied, its tag, its message and
+	// the full spec of that version.
+	ListVersions(ctx context.Context, in *ListAgentVersionsInput, opts ...grpc.CallOption) (*ListAgentVersionsResponse, error)
+	// Get a specific version of an agent by its content hash.
+	//
+	// Used by the runner and the server to run a turn on the version it
+	// recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+	// show what a past version said.
+	GetVersion(ctx context.Context, in *GetAgentVersionInput, opts ...grpc.CallOption) (*AgentVersionEntry, error)
 }
 
 type agentQueryControllerClient struct {
@@ -65,6 +84,26 @@ func (c *agentQueryControllerClient) GetByReference(ctx context.Context, in *api
 	return out, nil
 }
 
+func (c *agentQueryControllerClient) ListVersions(ctx context.Context, in *ListAgentVersionsInput, opts ...grpc.CallOption) (*ListAgentVersionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAgentVersionsResponse)
+	err := c.cc.Invoke(ctx, AgentQueryController_ListVersions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentQueryControllerClient) GetVersion(ctx context.Context, in *GetAgentVersionInput, opts ...grpc.CallOption) (*AgentVersionEntry, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentVersionEntry)
+	err := c.cc.Invoke(ctx, AgentQueryController_GetVersion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentQueryControllerServer is the server API for AgentQueryController service.
 // All implementations should embed UnimplementedAgentQueryControllerServer
 // for forward compatibility.
@@ -73,9 +112,26 @@ func (c *agentQueryControllerClient) GetByReference(ctx context.Context, in *api
 type AgentQueryControllerServer interface {
 	// Get a single agent by ID.
 	Get(context.Context, *AgentId) (*Agent, error)
-	// Get an agent by its organization-scoped reference (org/slug).
+	// Get an agent by its organization-scoped reference (org/slug) with version support.
 	// Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+	//
+	// Version resolution (via ApiResourceReference.version field):
+	// - Empty/"latest" → Returns the current version
+	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Agent, error)
+	// List version history for an agent.
+	//
+	// Returns all historical versions, newest first. Each entry carries the
+	// version hash, when and by whom it was applied, its tag, its message and
+	// the full spec of that version.
+	ListVersions(context.Context, *ListAgentVersionsInput) (*ListAgentVersionsResponse, error)
+	// Get a specific version of an agent by its content hash.
+	//
+	// Used by the runner and the server to run a turn on the version it
+	// recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+	// show what a past version said.
+	GetVersion(context.Context, *GetAgentVersionInput) (*AgentVersionEntry, error)
 }
 
 // UnimplementedAgentQueryControllerServer should be embedded to have
@@ -90,6 +146,12 @@ func (UnimplementedAgentQueryControllerServer) Get(context.Context, *AgentId) (*
 }
 func (UnimplementedAgentQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
+}
+func (UnimplementedAgentQueryControllerServer) ListVersions(context.Context, *ListAgentVersionsInput) (*ListAgentVersionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListVersions not implemented")
+}
+func (UnimplementedAgentQueryControllerServer) GetVersion(context.Context, *GetAgentVersionInput) (*AgentVersionEntry, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetVersion not implemented")
 }
 func (UnimplementedAgentQueryControllerServer) testEmbeddedByValue() {}
 
@@ -147,6 +209,42 @@ func _AgentQueryController_GetByReference_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentQueryController_ListVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAgentVersionsInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentQueryControllerServer).ListVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentQueryController_ListVersions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentQueryControllerServer).ListVersions(ctx, req.(*ListAgentVersionsInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentQueryController_GetVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentVersionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentQueryControllerServer).GetVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentQueryController_GetVersion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentQueryControllerServer).GetVersion(ctx, req.(*GetAgentVersionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentQueryController_ServiceDesc is the grpc.ServiceDesc for AgentQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -161,6 +259,14 @@ var AgentQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _AgentQueryController_GetByReference_Handler,
+		},
+		{
+			MethodName: "listVersions",
+			Handler:    _AgentQueryController_ListVersions_Handler,
+		},
+		{
+			MethodName: "getVersion",
+			Handler:    _AgentQueryController_GetVersion_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

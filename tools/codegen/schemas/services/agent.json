@@ -47,6 +47,14 @@
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "description": "Delete an agent.\n\n Deletion also removes the agent's system-managed default instance and\n every AgentShare in the agent's own organization referencing it, so a\n later agent created at the same org/slug starts clean. Personal\n instances and sessions are not deleted, nor is a share written in\n another organization before sharing across organizations was retired;\n such a share stops resolving instead."
+        },
+        {
+          "name": "TagVersion",
+          "inputType": "TagAgentVersionInput",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.TagAgentVersionInput",
+          "outputType": "Agent",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "description": "Assign or move a tag to a specific agent version.\n\n Tags are human-readable pointers to immutable versions. Calling this\n with an existing tag name moves it from the previous version to the\n specified version. Common tags: \"stable\", \"production\", \"v2.0\"."
         }
       ]
     },
@@ -69,7 +77,23 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Get an agent by its organization-scoped reference (org/slug).\n Resolves a human-readable reference like \"acme/web-search\" to the full Agent resource."
+          "description": "Get an agent by its organization-scoped reference (org/slug) with version support.\n Resolves a human-readable reference like \"acme/web-search\" to the full Agent resource.\n\n Version resolution (via ApiResourceReference.version field):\n - Empty/\"latest\" → Returns the current version\n - Tag name (e.g., \"stable\", \"v1.0\") → Resolves to the version with this tag\n - SHA256 hash (64 hex chars) → Returns the exact immutable version"
+        },
+        {
+          "name": "ListVersions",
+          "inputType": "ListAgentVersionsInput",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.ListAgentVersionsInput",
+          "outputType": "ListAgentVersionsResponse",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse",
+          "description": "List version history for an agent.\n\n Returns all historical versions, newest first. Each entry carries the\n version hash, when and by whom it was applied, its tag, its message and\n the full spec of that version."
+        },
+        {
+          "name": "GetVersion",
+          "inputType": "GetAgentVersionInput",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.GetAgentVersionInput",
+          "outputType": "AgentVersionEntry",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.AgentVersionEntry",
+          "description": "Get a specific version of an agent by its content hash.\n\n Used by the runner and the server to run a turn on the version it\n recorded (AgentExecutionStatus.agent_version_hash), and by clients to\n show what a past version said."
         }
       ]
     }
@@ -111,6 +135,54 @@
           },
           "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "TagAgentVersionInput",
+      "description": "TagAgentVersionInput assigns or moves a tag to a specific agent version.\n\n Tags are mutable pointers: calling tagVersion with a tag another version\n holds moves it to the version named here.",
+      "protoType": "ai.stigmer.agentic.agent.v1.TagAgentVersionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/version.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent resource.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "VersionHash",
+          "jsonName": "versionHash",
+          "protoField": "version_hash",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 hash of the version to tag.",
+          "required": false,
+          "validation": {
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        {
+          "name": "Tag",
+          "jsonName": "tag",
+          "protoField": "tag",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Tag to assign. Must be a non-empty alphanumeric string with dots,\n hyphens, or underscores (the pattern workflow and skill tags use).",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._-]+$"
+          }
         }
       ]
     },
@@ -207,6 +279,216 @@
           "validation": {
             "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
           }
+        }
+      ]
+    },
+    {
+      "name": "ListAgentVersionsInput",
+      "description": "ListAgentVersionsInput requests the version history for an agent.\n\n Returns every version, newest first. Used by the console, SDK and CLI to\n render version timelines.",
+      "protoType": "ai.stigmer.agentic.agent.v1.ListAgentVersionsInput",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/version.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the agent.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent slug (unique within the organization).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque token for offset pagination.\n Empty string or omitted for the first page.",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of versions to return per page.\n Server may return fewer. Default is 50, max is 100.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListAgentVersionsResponse",
+      "description": "ListAgentVersionsResponse contains a page of agent version history.",
+      "protoType": "ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/version.proto",
+      "fields": [
+        {
+          "name": "Versions",
+          "jsonName": "versions",
+          "protoField": "versions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AgentVersionEntry"
+            }
+          },
+          "description": "Ordered list of versions (newest first).",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for fetching the next page. Empty when no more pages exist.",
+          "required": false
+        },
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of versions across all pages.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetAgentVersionInput",
+      "description": "GetAgentVersionInput requests one version of an agent by its hash.\n\n Used by the runner and the server to run a turn on the version it\n recorded, and by clients to show what a past version said.",
+      "protoType": "ai.stigmer.agentic.agent.v1.GetAgentVersionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/version.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent resource.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "VersionHash",
+          "jsonName": "versionHash",
+          "protoField": "version_hash",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 hash identifying the version to retrieve.",
+          "required": false,
+          "validation": {
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AgentVersionEntry",
+      "description": "AgentVersionEntry is one historical version of an agent.",
+      "protoType": "ai.stigmer.agentic.agent.v1.AgentVersionEntry",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/version.proto",
+      "fields": [
+        {
+          "name": "VersionHash",
+          "jsonName": "versionHash",
+          "protoField": "version_hash",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 of the canonical JSON rendering of the version's AgentSpec: the\n immutable version identifier.",
+          "required": false
+        },
+        {
+          "name": "AppliedAt",
+          "jsonName": "appliedAt",
+          "protoField": "applied_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When this version was applied.",
+          "required": false
+        },
+        {
+          "name": "AppliedBy",
+          "jsonName": "appliedBy",
+          "protoField": "applied_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Who applied this version.",
+          "required": false
+        },
+        {
+          "name": "Tag",
+          "jsonName": "tag",
+          "protoField": "tag",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The tag this version holds now, if any. A tag names at most one version,\n so moving it to another version clears it here.\n Examples: \"stable\", \"v1.0\", \"production\"",
+          "required": false
+        },
+        {
+          "name": "IsCurrent",
+          "jsonName": "isCurrent",
+          "protoField": "is_current",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether this is the agent's current version.",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable message describing what changed in this version, from\n metadata.version.message at apply time. Analogous to a git commit\n message.",
+          "required": false
+        },
+        {
+          "name": "SpecSnapshot",
+          "jsonName": "specSnapshot",
+          "protoField": "spec_snapshot",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentSpec"
+          },
+          "description": "The agent spec exactly as this version stored it: the instructions,\n sub-agents, skill and MCP server references and environment a turn on\n this version runs with.",
+          "required": false
         }
       ]
     }
@@ -433,6 +715,16 @@
           "kind": "string"
         },
         "description": "ID of the default agent instance.\n Every agent has exactly one default instance that uses all agent defaults\n and requires no additional configuration. Created automatically when the\n agent is created.",
+        "required": false
+      },
+      {
+        "name": "VersionHash",
+        "jsonName": "versionHash",
+        "protoField": "version_hash",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Content hash of the agent's current version: the SHA-256 of the\n canonical JSON rendering of the stored AgentSpec (unset and default\n fields omitted, object keys sorted at every depth, enums as numbers).\n\n Every write whose spec differs from every version the agent has had\n records a new version under this hash; a write that reproduces an\n earlier spec points back to that version, and an unchanged write\n records none. The history is read through AgentQueryController's\n listVersions and getVersion.\n\n Empty for an agent last written before agents were versioned, and when\n the version could not be recorded (the write still succeeds).",
         "required": false
       }
     ]

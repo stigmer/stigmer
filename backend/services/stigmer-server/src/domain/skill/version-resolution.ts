@@ -6,7 +6,8 @@
  * list_versions.go. The ladder, the is_current rule and the pagination
  * live in the shared module since plugins needed the identical shape; what
  * is a skill's is here: the schema, the noun in sentences, the head hash in
- * status.version_hash, the live tag in spec.tag, and the SkillVersionEntry
+ * status.version_hash, the live tag in spec.tag (which a fetched version
+ * carries from the audit column), and the SkillVersionEntry
  * mapping (pushed_at/pushed_by prefer the spec-audit updated stamps and fall
  * back to created, because first pushes only carry created).
  *
@@ -60,6 +61,13 @@ const skillVersionBinding: VersionHistoryBinding<
   noun: "skill",
   headHashOf: (skill) => skill.status?.versionHash ?? "",
   liveTagOf: (skill) => skill.spec?.tag ?? "",
+  // A fetched version reports the tag it holds now (the audit column), not
+  // the one it was pushed with.
+  overlayTag: (skill, tag) => {
+    if (skill.spec !== undefined) {
+      skill.spec.tag = tag;
+    }
+  },
   input: (req) => req,
   mapEntry: mapSkillToVersionEntry,
   response: (versions, nextPageToken, totalCount) =>

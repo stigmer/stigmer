@@ -12,7 +12,8 @@ public interface AgentVersionEntryOrBuilder extends
 
   /**
    * <pre>
-   * SHA-256 hash of the canonical protojson of AgentSpec.
+   * SHA-256 of the canonical JSON rendering of the version's AgentSpec: the
+   * immutable version identifier.
    * </pre>
    *
    * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -21,7 +22,8 @@ public interface AgentVersionEntryOrBuilder extends
   java.lang.String getVersionHash();
   /**
    * <pre>
-   * SHA-256 hash of the canonical protojson of AgentSpec.
+   * SHA-256 of the canonical JSON rendering of the version's AgentSpec: the
+   * immutable version identifier.
    * </pre>
    *
    * <code>string version_hash = 1 [json_name = "versionHash"];</code>
@@ -32,7 +34,7 @@ public interface AgentVersionEntryOrBuilder extends
 
   /**
    * <pre>
-   * When this version was created.
+   * When this version was applied.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -41,7 +43,7 @@ public interface AgentVersionEntryOrBuilder extends
   boolean hasAppliedAt();
   /**
    * <pre>
-   * When this version was created.
+   * When this version was applied.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -50,7 +52,7 @@ public interface AgentVersionEntryOrBuilder extends
   com.google.protobuf.Timestamp getAppliedAt();
   /**
    * <pre>
-   * When this version was created.
+   * When this version was applied.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp applied_at = 2 [json_name = "appliedAt"];</code>
@@ -59,7 +61,7 @@ public interface AgentVersionEntryOrBuilder extends
 
   /**
    * <pre>
-   * Who created this version.
+   * Who applied this version.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -68,7 +70,7 @@ public interface AgentVersionEntryOrBuilder extends
   boolean hasAppliedBy();
   /**
    * <pre>
-   * Who created this version.
+   * Who applied this version.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -77,7 +79,7 @@ public interface AgentVersionEntryOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceAuditActor getAppliedBy();
   /**
    * <pre>
-   * Who created this version.
+   * Who applied this version.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor applied_by = 3 [json_name = "appliedBy"];</code>
@@ -86,7 +88,9 @@ public interface AgentVersionEntryOrBuilder extends
 
   /**
    * <pre>
-   * Tag assigned to this version.
+   * The tag this version holds now, if any. A tag names at most one version,
+   * so moving it to another version clears it here.
+   * Examples: "stable", "v1.0", "production"
    * </pre>
    *
    * <code>string tag = 4 [json_name = "tag"];</code>
@@ -95,7 +99,9 @@ public interface AgentVersionEntryOrBuilder extends
   java.lang.String getTag();
   /**
    * <pre>
-   * Tag assigned to this version.
+   * The tag this version holds now, if any. A tag names at most one version,
+   * so moving it to another version clears it here.
+   * Examples: "stable", "v1.0", "production"
    * </pre>
    *
    * <code>string tag = 4 [json_name = "tag"];</code>
@@ -106,7 +112,7 @@ public interface AgentVersionEntryOrBuilder extends
 
   /**
    * <pre>
-   * Whether this is the currently active version.
+   * Whether this is the agent's current version.
    * </pre>
    *
    * <code>bool is_current = 5 [json_name = "isCurrent"];</code>
@@ -116,7 +122,9 @@ public interface AgentVersionEntryOrBuilder extends
 
   /**
    * <pre>
-   * Human-readable message describing what changed.
+   * Human-readable message describing what changed in this version, from
+   * metadata.version.message at apply time. Analogous to a git commit
+   * message.
    * </pre>
    *
    * <code>string message = 6 [json_name = "message"];</code>
@@ -125,7 +133,9 @@ public interface AgentVersionEntryOrBuilder extends
   java.lang.String getMessage();
   /**
    * <pre>
-   * Human-readable message describing what changed.
+   * Human-readable message describing what changed in this version, from
+   * metadata.version.message at apply time. Analogous to a git commit
+   * message.
    * </pre>
    *
    * <code>string message = 6 [json_name = "message"];</code>
@@ -136,9 +146,9 @@ public interface AgentVersionEntryOrBuilder extends
 
   /**
    * <pre>
-   * Full agent spec snapshot for this version.
-   * Unlike workflows (which store YAML), agents store the typed proto spec
-   * directly since AgentSpec has no Struct fields and is self-describing.
+   * The agent spec exactly as this version stored it: the instructions,
+   * sub-agents, skill and MCP server references and environment a turn on
+   * this version runs with.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -147,9 +157,9 @@ public interface AgentVersionEntryOrBuilder extends
   boolean hasSpecSnapshot();
   /**
    * <pre>
-   * Full agent spec snapshot for this version.
-   * Unlike workflows (which store YAML), agents store the typed proto spec
-   * directly since AgentSpec has no Struct fields and is self-describing.
+   * The agent spec exactly as this version stored it: the instructions,
+   * sub-agents, skill and MCP server references and environment a turn on
+   * this version runs with.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
@@ -158,39 +168,12 @@ public interface AgentVersionEntryOrBuilder extends
   ai.stigmer.agentic.agent.v1.AgentSpec getSpecSnapshot();
   /**
    * <pre>
-   * Full agent spec snapshot for this version.
-   * Unlike workflows (which store YAML), agents store the typed proto spec
-   * directly since AgentSpec has no Struct fields and is self-describing.
+   * The agent spec exactly as this version stored it: the instructions,
+   * sub-agents, skill and MCP server references and environment a turn on
+   * this version runs with.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec_snapshot = 7 [json_name = "specSnapshot"];</code>
    */
   ai.stigmer.agentic.agent.v1.AgentSpecOrBuilder getSpecSnapshotOrBuilder();
-
-  /**
-   * <pre>
-   * Git provenance tracking.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-   * @return Whether the gitProvenance field is set.
-   */
-  boolean hasGitProvenance();
-  /**
-   * <pre>
-   * Git provenance tracking.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-   * @return The gitProvenance.
-   */
-  ai.stigmer.agentic.agent.v1.GitProvenance getGitProvenance();
-  /**
-   * <pre>
-   * Git provenance tracking.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agent.v1.GitProvenance git_provenance = 8 [json_name = "gitProvenance"];</code>
-   */
-  ai.stigmer.agentic.agent.v1.GitProvenanceOrBuilder getGitProvenanceOrBuilder();
 }

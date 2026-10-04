@@ -1929,6 +1929,8 @@ AgentExecutionStatus contains all execution results and state.
     fileReviewEventStream: { type: "FileReviewEventStream", description: "Server-owned, append-only record of every file-review event (baseline / candidate capture, file decisions, reconcile, failures).", typeDescriptionLink: "#filerevieweventstream" },
     fileChangeProgress: { type: "FileChangeProgress", description: "Transient, non-authoritative snapshot of the workspace delta accumulating during the current turn — the live \"N files changed so far\" surface, shown before any review is possible.", typeDescriptionLink: "#filechangeprogress" },
     recalledMemoriesReport: { type: "RecalledMemoriesReport", description: "Report of which recalled memories were injected into this execution's prompt.", typeDescriptionLink: "#recalledmemoriesreport" },
+    agentId: { type: "string", description: "ID of the agent this turn ran." },
+    agentVersionHash: { type: "string", description: "Content hash of the agent version this turn ran (AgentStatus.version_hash at create; resolvable through AgentQueryController.getVersion with agent_id)." },
   }}
 />
 

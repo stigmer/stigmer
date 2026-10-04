@@ -29,3 +29,16 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request ships agent versions and removes a field and a message
+  # from apis/ai/stigmer/agentic/agent/v1/version.proto that were part of an
+  # unimplemented design: AgentVersionEntry.git_provenance (its number and
+  # name are reserved) and GitProvenance. No proto imported the file, no RPC
+  # returned the entry and no write path could fill the field, so nothing on
+  # the wire changes. This block exists for that one pull request; the pull
+  # request that removes it lands straight after the merge
+  # (https://github.com/stigmer/stigmer/issues/1853).
+  ignore_only:
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/agent/v1/version.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/agent/v1/version.proto

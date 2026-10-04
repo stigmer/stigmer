@@ -24,31 +24,30 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// AgentVersionEntry represents a single historical version of an agent.
-//
-// Each apply/update that changes the agent spec creates a new immutable
-// version entry. The version is identified by its content hash (SHA-256 of
-// the canonical protojson representation of AgentSpec).
+// AgentVersionEntry is one historical version of an agent.
 type AgentVersionEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// SHA-256 hash of the canonical protojson of AgentSpec.
+	// SHA-256 of the canonical JSON rendering of the version's AgentSpec: the
+	// immutable version identifier.
 	VersionHash string `protobuf:"bytes,1,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
-	// When this version was created.
+	// When this version was applied.
 	AppliedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=applied_at,json=appliedAt,proto3" json:"applied_at,omitempty"`
-	// Who created this version.
+	// Who applied this version.
 	AppliedBy *apiresource.ApiResourceAuditActor `protobuf:"bytes,3,opt,name=applied_by,json=appliedBy,proto3" json:"applied_by,omitempty"`
-	// Tag assigned to this version.
+	// The tag this version holds now, if any. A tag names at most one version,
+	// so moving it to another version clears it here.
+	// Examples: "stable", "v1.0", "production"
 	Tag string `protobuf:"bytes,4,opt,name=tag,proto3" json:"tag,omitempty"`
-	// Whether this is the currently active version.
+	// Whether this is the agent's current version.
 	IsCurrent bool `protobuf:"varint,5,opt,name=is_current,json=isCurrent,proto3" json:"is_current,omitempty"`
-	// Human-readable message describing what changed.
+	// Human-readable message describing what changed in this version, from
+	// metadata.version.message at apply time. Analogous to a git commit
+	// message.
 	Message string `protobuf:"bytes,6,opt,name=message,proto3" json:"message,omitempty"`
-	// Full agent spec snapshot for this version.
-	// Unlike workflows (which store YAML), agents store the typed proto spec
-	// directly since AgentSpec has no Struct fields and is self-describing.
-	SpecSnapshot *AgentSpec `protobuf:"bytes,7,opt,name=spec_snapshot,json=specSnapshot,proto3" json:"spec_snapshot,omitempty"`
-	// Git provenance tracking.
-	GitProvenance *GitProvenance `protobuf:"bytes,8,opt,name=git_provenance,json=gitProvenance,proto3" json:"git_provenance,omitempty"`
+	// The agent spec exactly as this version stored it: the instructions,
+	// sub-agents, skill and MCP server references and environment a turn on
+	// this version runs with.
+	SpecSnapshot  *AgentSpec `protobuf:"bytes,7,opt,name=spec_snapshot,json=specSnapshot,proto3" json:"spec_snapshot,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -132,96 +131,29 @@ func (x *AgentVersionEntry) GetSpecSnapshot() *AgentSpec {
 	return nil
 }
 
-func (x *AgentVersionEntry) GetGitProvenance() *GitProvenance {
-	if x != nil {
-		return x.GitProvenance
-	}
-	return nil
-}
-
-// GitProvenance tracks the git origin of an agent version.
-type GitProvenance struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RemoteUrl     string                 `protobuf:"bytes,1,opt,name=remote_url,json=remoteUrl,proto3" json:"remote_url,omitempty"`
-	Ref           string                 `protobuf:"bytes,2,opt,name=ref,proto3" json:"ref,omitempty"`
-	Commit        string                 `protobuf:"bytes,3,opt,name=commit,proto3" json:"commit,omitempty"`
-	Subdir        string                 `protobuf:"bytes,4,opt,name=subdir,proto3" json:"subdir,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GitProvenance) Reset() {
-	*x = GitProvenance{}
-	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GitProvenance) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GitProvenance) ProtoMessage() {}
-
-func (x *GitProvenance) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GitProvenance.ProtoReflect.Descriptor instead.
-func (*GitProvenance) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_version_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *GitProvenance) GetRemoteUrl() string {
-	if x != nil {
-		return x.RemoteUrl
-	}
-	return ""
-}
-
-func (x *GitProvenance) GetRef() string {
-	if x != nil {
-		return x.Ref
-	}
-	return ""
-}
-
-func (x *GitProvenance) GetCommit() string {
-	if x != nil {
-		return x.Commit
-	}
-	return ""
-}
-
-func (x *GitProvenance) GetSubdir() string {
-	if x != nil {
-		return x.Subdir
-	}
-	return ""
-}
-
 // ListAgentVersionsInput requests the version history for an agent.
+//
+// Returns every version, newest first. Used by the console, SDK and CLI to
+// render version timelines.
 type ListAgentVersionsInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	Slug          string                 `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
-	PageToken     string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization that owns the agent.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// Agent slug (unique within the organization).
+	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
+	// Opaque token for offset pagination.
+	// Empty string or omitted for the first page.
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Maximum number of versions to return per page.
+	// Server may return fewer. Default is 50, max is 100.
+	PageSize      int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListAgentVersionsInput) Reset() {
 	*x = ListAgentVersionsInput{}
-	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -233,7 +165,7 @@ func (x *ListAgentVersionsInput) String() string {
 func (*ListAgentVersionsInput) ProtoMessage() {}
 
 func (x *ListAgentVersionsInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -246,7 +178,7 @@ func (x *ListAgentVersionsInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAgentVersionsInput.ProtoReflect.Descriptor instead.
 func (*ListAgentVersionsInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_version_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_agent_v1_version_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ListAgentVersionsInput) GetOrg() string {
@@ -279,17 +211,20 @@ func (x *ListAgentVersionsInput) GetPageSize() int32 {
 
 // ListAgentVersionsResponse contains a page of agent version history.
 type ListAgentVersionsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Versions      []*AgentVersionEntry   `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
-	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	TotalCount    int32                  `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Ordered list of versions (newest first).
+	Versions []*AgentVersionEntry `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
+	// Token for fetching the next page. Empty when no more pages exist.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	// Total number of versions across all pages.
+	TotalCount    int32 `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListAgentVersionsResponse) Reset() {
 	*x = ListAgentVersionsResponse{}
-	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -301,7 +236,7 @@ func (x *ListAgentVersionsResponse) String() string {
 func (*ListAgentVersionsResponse) ProtoMessage() {}
 
 func (x *ListAgentVersionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -314,7 +249,7 @@ func (x *ListAgentVersionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAgentVersionsResponse.ProtoReflect.Descriptor instead.
 func (*ListAgentVersionsResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_version_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_agent_v1_version_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ListAgentVersionsResponse) GetVersions() []*AgentVersionEntry {
@@ -338,18 +273,23 @@ func (x *ListAgentVersionsResponse) GetTotalCount() int32 {
 	return 0
 }
 
-// GetAgentVersionInput requests a specific historical version.
+// GetAgentVersionInput requests one version of an agent by its hash.
+//
+// Used by the runner and the server to run a turn on the version it
+// recorded, and by clients to show what a past version said.
 type GetAgentVersionInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AgentId       string                 `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	VersionHash   string                 `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the agent resource.
+	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	// SHA-256 hash identifying the version to retrieve.
+	VersionHash   string `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetAgentVersionInput) Reset() {
 	*x = GetAgentVersionInput{}
-	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -361,7 +301,7 @@ func (x *GetAgentVersionInput) String() string {
 func (*GetAgentVersionInput) ProtoMessage() {}
 
 func (x *GetAgentVersionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -374,7 +314,7 @@ func (x *GetAgentVersionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentVersionInput.ProtoReflect.Descriptor instead.
 func (*GetAgentVersionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_version_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_agent_v1_version_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetAgentVersionInput) GetAgentId() string {
@@ -392,18 +332,25 @@ func (x *GetAgentVersionInput) GetVersionHash() string {
 }
 
 // TagAgentVersionInput assigns or moves a tag to a specific agent version.
+//
+// Tags are mutable pointers: calling tagVersion with a tag another version
+// holds moves it to the version named here.
 type TagAgentVersionInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AgentId       string                 `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	VersionHash   string                 `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
-	Tag           string                 `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the agent resource.
+	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	// SHA-256 hash of the version to tag.
+	VersionHash string `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
+	// Tag to assign. Must be a non-empty alphanumeric string with dots,
+	// hyphens, or underscores (the pattern workflow and skill tags use).
+	Tag           string `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TagAgentVersionInput) Reset() {
 	*x = TagAgentVersionInput{}
-	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -415,7 +362,7 @@ func (x *TagAgentVersionInput) String() string {
 func (*TagAgentVersionInput) ProtoMessage() {}
 
 func (x *TagAgentVersionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -428,7 +375,7 @@ func (x *TagAgentVersionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TagAgentVersionInput.ProtoReflect.Descriptor instead.
 func (*TagAgentVersionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_version_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_agent_v1_version_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *TagAgentVersionInput) GetAgentId() string {
@@ -456,7 +403,7 @@ var File_ai_stigmer_agentic_agent_v1_version_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_version_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/agent/v1/version.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb2\x03\n" +
+	")ai/stigmer/agentic/agent/v1/version.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf5\x02\n" +
 	"\x11AgentVersionEntry\x12!\n" +
 	"\fversion_hash\x18\x01 \x01(\tR\vversionHash\x129\n" +
 	"\n" +
@@ -467,14 +414,7 @@ const file_ai_stigmer_agentic_agent_v1_version_proto_rawDesc = "" +
 	"\n" +
 	"is_current\x18\x05 \x01(\bR\tisCurrent\x12\x18\n" +
 	"\amessage\x18\x06 \x01(\tR\amessage\x12K\n" +
-	"\rspec_snapshot\x18\a \x01(\v2&.ai.stigmer.agentic.agent.v1.AgentSpecR\fspecSnapshot\x12Q\n" +
-	"\x0egit_provenance\x18\b \x01(\v2*.ai.stigmer.agentic.agent.v1.GitProvenanceR\rgitProvenance\"p\n" +
-	"\rGitProvenance\x12\x1d\n" +
-	"\n" +
-	"remote_url\x18\x01 \x01(\tR\tremoteUrl\x12\x10\n" +
-	"\x03ref\x18\x02 \x01(\tR\x03ref\x12\x16\n" +
-	"\x06commit\x18\x03 \x01(\tR\x06commit\x12\x16\n" +
-	"\x06subdir\x18\x04 \x01(\tR\x06subdir\"\x8a\x01\n" +
+	"\rspec_snapshot\x18\a \x01(\v2&.ai.stigmer.agentic.agent.v1.AgentSpecR\fspecSnapshotJ\x04\b\b\x10\tR\x0egit_provenance\"\x8a\x01\n" +
 	"\x16ListAgentVersionsInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n" +
 	"\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x1d\n" +
@@ -507,29 +447,27 @@ func file_ai_stigmer_agentic_agent_v1_version_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_version_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ai_stigmer_agentic_agent_v1_version_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_agentic_agent_v1_version_proto_goTypes = []any{
 	(*AgentVersionEntry)(nil),                 // 0: ai.stigmer.agentic.agent.v1.AgentVersionEntry
-	(*GitProvenance)(nil),                     // 1: ai.stigmer.agentic.agent.v1.GitProvenance
-	(*ListAgentVersionsInput)(nil),            // 2: ai.stigmer.agentic.agent.v1.ListAgentVersionsInput
-	(*ListAgentVersionsResponse)(nil),         // 3: ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse
-	(*GetAgentVersionInput)(nil),              // 4: ai.stigmer.agentic.agent.v1.GetAgentVersionInput
-	(*TagAgentVersionInput)(nil),              // 5: ai.stigmer.agentic.agent.v1.TagAgentVersionInput
-	(*timestamppb.Timestamp)(nil),             // 6: google.protobuf.Timestamp
-	(*apiresource.ApiResourceAuditActor)(nil), // 7: ai.stigmer.commons.apiresource.ApiResourceAuditActor
-	(*AgentSpec)(nil),                         // 8: ai.stigmer.agentic.agent.v1.AgentSpec
+	(*ListAgentVersionsInput)(nil),            // 1: ai.stigmer.agentic.agent.v1.ListAgentVersionsInput
+	(*ListAgentVersionsResponse)(nil),         // 2: ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse
+	(*GetAgentVersionInput)(nil),              // 3: ai.stigmer.agentic.agent.v1.GetAgentVersionInput
+	(*TagAgentVersionInput)(nil),              // 4: ai.stigmer.agentic.agent.v1.TagAgentVersionInput
+	(*timestamppb.Timestamp)(nil),             // 5: google.protobuf.Timestamp
+	(*apiresource.ApiResourceAuditActor)(nil), // 6: ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	(*AgentSpec)(nil),                         // 7: ai.stigmer.agentic.agent.v1.AgentSpec
 }
 var file_ai_stigmer_agentic_agent_v1_version_proto_depIdxs = []int32{
-	6, // 0: ai.stigmer.agentic.agent.v1.AgentVersionEntry.applied_at:type_name -> google.protobuf.Timestamp
-	7, // 1: ai.stigmer.agentic.agent.v1.AgentVersionEntry.applied_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
-	8, // 2: ai.stigmer.agentic.agent.v1.AgentVersionEntry.spec_snapshot:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec
-	1, // 3: ai.stigmer.agentic.agent.v1.AgentVersionEntry.git_provenance:type_name -> ai.stigmer.agentic.agent.v1.GitProvenance
-	0, // 4: ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse.versions:type_name -> ai.stigmer.agentic.agent.v1.AgentVersionEntry
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	5, // 0: ai.stigmer.agentic.agent.v1.AgentVersionEntry.applied_at:type_name -> google.protobuf.Timestamp
+	6, // 1: ai.stigmer.agentic.agent.v1.AgentVersionEntry.applied_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	7, // 2: ai.stigmer.agentic.agent.v1.AgentVersionEntry.spec_snapshot:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec
+	0, // 3: ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse.versions:type_name -> ai.stigmer.agentic.agent.v1.AgentVersionEntry
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_version_proto_init() }
@@ -544,7 +482,7 @@ func file_ai_stigmer_agentic_agent_v1_version_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_version_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_version_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

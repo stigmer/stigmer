@@ -1,7 +1,7 @@
 // `stigmer get <type> <reference>` — fetch a single resource.
 //
 // Thin handler: route the two non-registry special cases (executions, addressed
-// by `aex_`/`wex_` ID; workflow version history/retrieval) first, then the
+// by `aex_`/`wex_` ID; workflow and agent version history/retrieval) first, then the
 // registry-driven standard path. Heavy modules (backend client, SDK schemas)
 // are dynamically imported inside the action so `--help` stays fast.
 
@@ -25,8 +25,8 @@ export function registerGet(program: Command): void {
   const get = program
     .command("get <type> <reference>")
     .description("get a resource by type and reference (slug, org/slug, or ID)")
-    .option("--version <hashOrTag>", "fetch a specific version by hash or tag (workflows only)")
-    .option("--version-history", "show the version history timeline (workflows only)")
+    .option("--version <hashOrTag>", "fetch a specific version by hash or tag (workflows and agents)")
+    .option("--version-history", "show the version history timeline (workflows and agents)")
     .action((type: string, reference: string, options: GetFlags, command: Command) =>
       runGet(type, reference, options, command),
     );
@@ -59,9 +59,10 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
   ensureAuthenticated(client.config);
   const org = resolveOrganization(client.config, globalOrg(command));
 
-  // Workflow versioning is the only versioned read surface today (Go ignores the
+  // Workflows and agents are the kinds an apply versions (Go ignores the
   // flags for other kinds, returning the current resource).
-  if (info.kind === ApiResourceKind.workflow && (options.versionHistory === true || (options.version ?? "") !== "")) {
+  const wantsVersion = options.versionHistory === true || (options.version ?? "") !== "";
+  if (info.kind === ApiResourceKind.workflow && wantsVersion) {
     const [refOrg, slug] = parseOrgSlug(reference, org);
     const { renderWorkflowVersionHistory, getWorkflowVersionYaml } = await import("../resources/version.js");
     if (options.versionHistory === true) {
@@ -69,6 +70,23 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
     } else {
       process.stdout.write(await getWorkflowVersionYaml(client.stigmer, refOrg, slug, options.version ?? ""));
     }
+    return;
+  }
+  if (info.kind === ApiResourceKind.agent && wantsVersion) {
+    const [refOrg, slug] = parseOrgSlug(reference, org);
+    const { renderAgentVersionHistory, getAgentAtVersion } = await import("../resources/version.js");
+    if (options.versionHistory === true) {
+      process.stdout.write(await renderAgentVersionHistory(client.stigmer, refOrg, slug));
+      return;
+    }
+    const [{ AgentSchema }, agent, hideOrg] = await Promise.all([
+      import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"),
+      getAgentAtVersion(client.stigmer, refOrg, slug, options.version ?? ""),
+      omitsOrganization(client.stigmer),
+    ]);
+    const format = readFormat(options);
+    const orgLabel = await humanOrgLabel(client.stigmer, agent, format, hideOrg);
+    process.stdout.write(renderResource(AgentSchema, agent, format, { hideOrg, orgLabel }));
     return;
   }
 

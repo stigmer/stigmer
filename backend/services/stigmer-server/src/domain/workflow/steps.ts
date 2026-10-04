@@ -2,11 +2,11 @@
  * Workflow domain pipeline steps — port the step half of
  * pkg/domain/workflow/controller: the Layer-2 validation gate
  * (validate_spec_step.go), status population
- * (populate_serverless_validation_step.go), the content-addressed version
- * machinery (version_steps.go — hash chain, #341 head-repoint, tag
- * single-holder, audit-failure revert invariant), default-instance
- * choreography (create.go), and the #592 instance cascade
- * (delete_cascade.go). Proven by workflow.conformance.test.ts
+ * (populate_serverless_validation_step.go), the version hash
+ * (version_steps.go; the rest of the version machinery is the shared one
+ * in pipeline/steps/version-archive.ts, bound in version-resolution.ts),
+ * default-instance choreography (create.go), and the #592 instance
+ * cascade (delete_cascade.go). Proven by workflow.conformance.test.ts
  * (CONFORMANCE_TARGET=local) and __tests__/workflow.test.ts.
  */
 import { createHash } from "node:crypto";
@@ -41,6 +41,8 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { AuditNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import { VERSION_HASH_KEY } from "../../pipeline/steps/version-archive.js";
+import { truncateHash } from "../../pipeline/steps/version-history.js";
 import { buildDefaultWorkflowInstanceRequest } from "../workflowinstance/defaultinstance.js";
 import type { InProcessValidator } from "./validation/validator.js";
 
@@ -49,8 +51,7 @@ type WorkflowDesc = typeof WorkflowSchema;
 // Context keys — identical strings to Go's so the inventory's step notes
 // read straight onto this code.
 export const SERVERLESS_VALIDATION_KEY = "serverless_validation";
-export const VERSION_HASH_KEY = "version_hash";
-export const VERSION_CHANGED_KEY = "version_changed";
+export { VERSION_HASH_KEY };
 export const DEFAULT_INSTANCE_ID_KEY = "default_instance_id";
 
 // ---------------------------------------------------------------------------
@@ -239,7 +240,7 @@ export function newPopulateServerlessValidationStepForUpdate(
 }
 
 // ---------------------------------------------------------------------------
-// Version machinery — version_steps.go. The hash is deterministic because
+// The version hash — version_steps.go. The hash is deterministic because
 // the converter renders canonically: same workflow spec = same YAML
 // = same hash.
 // ---------------------------------------------------------------------------
@@ -269,242 +270,6 @@ export function newComputeVersionHashStep(
       });
     },
   };
-}
-
-/**
- * Compares the new hash against status.version_hash so downstream steps
- * (audit, metadata) skip work when the spec hasn't actually changed
- * (idempotent applies).
- */
-export function newCheckVersionChangedStep(
-  logger: Logger,
-): PipelineStep<WorkflowDesc> {
-  return {
-    name: "CheckVersionChanged",
-    execute(ctx: RequestContext<WorkflowDesc>): void {
-      const newHash = (ctx.get(VERSION_HASH_KEY) as string | undefined) ?? "";
-      if (newHash === "") {
-        ctx.set(VERSION_CHANGED_KEY, false);
-        return;
-      }
-
-      const existingHash = ctx.newState.status?.versionHash ?? "";
-      const changed = newHash !== existingHash;
-      ctx.set(VERSION_CHANGED_KEY, changed);
-
-      if (changed) {
-        logger.debug("workflow version changed", {
-          oldHash: truncateHash(existingHash),
-          newHash: truncateHash(newHash),
-        });
-      } else {
-        logger.debug("workflow version unchanged — skipping audit", {
-          hash: truncateHash(newHash),
-        });
-      }
-    },
-  };
-}
-
-/**
- * Writes the computed hash into status.version_hash and the
- * metadata.version id/previous_version_id chain. On create: always. On
- * update: only when VERSION_CHANGED_KEY is true.
- */
-export function newPopulateVersionHashStep(
-  isCreate: boolean,
-): PipelineStep<WorkflowDesc> {
-  return {
-    name: "PopulateVersionHash",
-    execute(ctx: RequestContext<WorkflowDesc>): void {
-      const newHash = (ctx.get(VERSION_HASH_KEY) as string | undefined) ?? "";
-      if (newHash === "") {
-        return;
-      }
-      if (!isCreate && ctx.get(VERSION_CHANGED_KEY) !== true) {
-        return;
-      }
-
-      const wf = ctx.newState;
-      wf.status ??= create(WorkflowStatusSchema);
-      const previousHash = wf.status.versionHash;
-      wf.status.versionHash = newHash;
-
-      if (wf.metadata !== undefined) {
-        wf.metadata.version ??= create(ApiResourceMetadataVersionSchema);
-        wf.metadata.version.id = newHash;
-        wf.metadata.version.previousVersionId = previousHash;
-      }
-
-      ctx.setNewState(wf);
-    },
-  };
-}
-
-/**
- * Archives the workflow to the resource_audit table (version_steps.go
- * saveVersionAuditStep). On create: always (the first version). On update:
- * only when the version changed (idempotent).
- *
- * Rollback applies repoint, never duplicate (oss#341): when the caller
- * re-applies a prior version's spec, the canonical rendering reproduces
- * that version's hash, so the content is already archived. Versions are
- * content-addressed identities — one content, one history entry — so the
- * head simply repoints to the existing row (the hash chain was already set
- * by PopulateVersionHash) and only the tag assignment still runs.
- * Inserting again would give the tag single-holder UPDATE two targets. An
- * unexpected lookup failure degrades to archiving anyway: a possible
- * duplicate row beats a failed apply.
- *
- * On archive failure the version hash is stripped from the workflow so a
- * set hash always resolves to an audit entry (the revert invariant); on
- * tag-assignment failure the live tag is cleared so the head never
- * advertises a tag the audit column cannot resolve (stigmer/stigmer#855).
- * persistOnRevert flushes either revert to the stored row, for a chain in
- * which no Persist step follows this one (the create path archives last so
- * default_instance_id is captured; the update path has a Persist step
- * following that flushes the revert itself).
- */
-export function newSaveVersionAuditStep(
-  store: Store,
-  logger: Logger,
-  isCreate: boolean,
-  persistOnRevert: boolean,
-): PipelineStep<WorkflowDesc> {
-  return {
-    name: "SaveVersionAudit",
-    async execute(ctx: RequestContext<WorkflowDesc>): Promise<void> {
-      if (!isCreate && ctx.get(VERSION_CHANGED_KEY) !== true) {
-        return;
-      }
-
-      const wf = ctx.newState;
-      const versionHash = wf.status?.versionHash ?? "";
-      if (versionHash === "") {
-        return;
-      }
-
-      const tag = wf.metadata?.version?.tag ?? "";
-      const workflowId = wf.metadata?.id ?? "";
-      const kind =
-        ctx.apiResourceKind !== ApiResourceKind.api_resource_kind_unknown
-          ? ctx.apiResourceKind
-          : ApiResourceKind.workflow;
-
-      // A revert changes the head after the chain's last write, so it
-      // reaches the stored row only through this re-persist. A failure here
-      // is logged, never a failed apply: the response is already consistent
-      // and the next apply rewrites the row.
-      const flushRevert = async (revert: string): Promise<void> => {
-        if (!persistOnRevert) {
-          return;
-        }
-        try {
-          await store.saveResource(kind, workflowId, WorkflowSchema, wf);
-        } catch (persistError) {
-          logger.error(`failed to re-persist workflow after ${revert}`, {
-            error:
-              persistError instanceof Error
-                ? persistError.message
-                : String(persistError),
-            workflowId,
-          });
-        }
-      };
-
-      let alreadyArchived = false;
-      try {
-        await store.getAuditByHash(kind, workflowId, versionHash, WorkflowSchema);
-        alreadyArchived = true;
-      } catch (error) {
-        if (!(error instanceof AuditNotFoundError)) {
-          logger.warn(
-            "could not check for an existing archived version — archiving anyway",
-            {
-              error: error instanceof Error ? error.message : String(error),
-              workflowId,
-              versionHash: truncateHash(versionHash),
-            },
-          );
-        }
-      }
-
-      if (!alreadyArchived) {
-        // Archive the snapshot TAGLESS. The tag lives only in the audit tag
-        // column (the source of truth), assigned below through the
-        // single-holder primitive. Snapshot blobs are never the tag's home,
-        // so a later tag move never rewrites this immutable content.
-        try {
-          await store.saveAudit(kind, workflowId, WorkflowSchema, wf, versionHash, "");
-        } catch (error) {
-          logger.error(
-            "failed to save workflow version audit — reverting version hash to maintain audit-resolvability invariant",
-            {
-              error: error instanceof Error ? error.message : String(error),
-              workflowId,
-              versionHash: truncateHash(versionHash),
-            },
-          );
-
-          // Revert: clear the hash so the persisted workflow doesn't
-          // reference an audit entry that doesn't exist. The workflow is
-          // still created/updated successfully, just without version
-          // tracking for this apply.
-          wf.status!.versionHash = "";
-          if (wf.metadata?.version !== undefined) {
-            wf.metadata.version.id = "";
-          }
-          ctx.setNewState(wf);
-          await flushRevert("reverting version hash");
-          return;
-        }
-      }
-
-      // Assign the requested tag through setAuditTag — the ONE primitive
-      // shared with the tagVersion RPC — so apply-time tagging obeys the
-      // same single-holder invariant (a tag names exactly one version).
-      if (tag !== "") {
-        try {
-          await store.setAuditTag(kind, workflowId, versionHash, tag);
-        } catch (error) {
-          logger.error(
-            "archived version but failed to assign its tag — clearing the live tag to stay consistent with the audit column",
-            {
-              error: error instanceof Error ? error.message : String(error),
-              workflowId,
-              versionHash: truncateHash(versionHash),
-              tag,
-            },
-          );
-          // The audit head is now untagged; keep the live head consistent
-          // so get / getByReference never advertise a tag the store cannot
-          // resolve.
-          if (wf.metadata?.version !== undefined) {
-            wf.metadata.version.tag = "";
-            ctx.setNewState(wf);
-            await flushRevert("clearing its tag");
-          }
-        }
-      }
-
-      if (alreadyArchived) {
-        logger.info(
-          "version content already archived — repointed head without a new history row",
-          { workflowId, versionHash: truncateHash(versionHash), tag },
-        );
-      } else {
-        logger.info("archived workflow version to audit history", {
-          workflowId,
-          versionHash: truncateHash(versionHash),
-          tag,
-        });
-      }
-    },
-  };
-}
-
-export function truncateHash(hash: string): string {
-  return hash.length > 12 ? hash.slice(0, 12) + "..." : hash;
 }
 
 // ---------------------------------------------------------------------------

@@ -113,6 +113,7 @@ import type { SandboxLane } from "../../sandbox/lane.js";
 import { newEnsureSessionSandboxStep } from "../../sandbox/steps.js";
 import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
 import { newCreateExecutionContextStep } from "./create-execution-context-step.js";
+import { newResolveRunAgentStep } from "./resolve-run-agent.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { newEnsureEngineAvailableStep } from "./engine.js";
@@ -398,6 +399,11 @@ async function createExecution(
         sessionCreator: deps.sessionCreator,
       }),
     )
+    // The agent and the exact version this turn runs, stamped once; every
+    // later reader (the context build below and on recover, the runner's
+    // hydration) takes the stamp, so a version saved mid-turn never
+    // changes what runs.
+    .addStep(newResolveRunAgentStep(deps.store, deps.logger))
     .addStep(
       newComposeDeclaredPreferencesStep(
         deps.store,

@@ -4,10 +4,12 @@
  * Create runs the 14-step pipeline (Layer-2 validation gate, canonical CNCF
  * YAML, version hash chain, default-instance choreography through the
  * in-process workflowinstance client, v1 archived AFTER
- * default_instance_id); Update adds the CheckVersionChanged idempotence
- * gate; Delete cascades ALL instances (oss#592); versions resolve by hash
- * or tag through the audit store with the tag COLUMN as the source of
- * truth; tagVersion moves tags single-holder (oss#341).
+ * default_instance_id); an unchanged Update archives nothing and still
+ * moves a newly named tag (the shared version-metadata rule); Delete
+ * cascades ALL instances (oss#592); versions resolve by hash or tag
+ * through the audit store with the tag COLUMN as the source of truth;
+ * tagVersion moves tags single-holder (oss#341). Every version step is the
+ * shared machinery, bound in version-resolution.ts.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by workflow.conformance.test.ts (CONFORMANCE_TARGET=local) and
@@ -21,7 +23,7 @@
  * posture: docs/authorization-coverage.md §17.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create, enumToJson, fromBinary } from "@bufbuild/protobuf";
+import { create, enumToJson } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
@@ -34,10 +36,6 @@ import {
   ValidationState,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import type { ServerlessWorkflowValidation } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
-import {
-  ListWorkflowVersionsResponseSchema,
-  WorkflowVersionEntrySchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
 import type {
   GetWorkflowVersionInput,
   ListWorkflowVersionsInput,
@@ -53,10 +51,6 @@ import type {
   ApiResourceReference,
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import {
-  ApiResourceMetadataSchema,
-  ApiResourceMetadataVersionSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -80,7 +74,11 @@ import {
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
 } from "../../pipeline/steps/authorize-resolved-target.js";
-import { versionHistoryTarget } from "../../pipeline/steps/version-history.js";
+import {
+  LIST_VERSIONS_RESPONSE_KEY,
+  getVersionEntry,
+  versionHistoryTarget,
+} from "../../pipeline/steps/version-history.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import {
@@ -93,7 +91,6 @@ import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import {
   newDeleteSearchIndexStep,
   newIndexSearchStep,
@@ -140,28 +137,32 @@ import {
   newValidateVisibilityStep,
   newValidateVisibilityUpdateStep,
 } from "../../pipeline/steps/validate-visibility.js";
-import {
-  AuditNotFoundError,
-  ResourceNotFoundError,
-} from "../../store/interface.js";
-import type { AuditRecord, Store } from "../../store/interface.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
+import type { Store } from "../../store/interface.js";
 import { formatViolation } from "./validation/format-violation.js";
 import type { InProcessValidator } from "./validation/validator.js";
 import { workflowSearchExtractor } from "./search-extractor.js";
 import {
   newCascadeDeleteWorkflowInstancesStep,
-  newCheckVersionChangedStep,
   newComputeVersionHashStep,
   newCreateDefaultInstanceStep,
   newPopulateServerlessValidationStep,
   newPopulateServerlessValidationStepForUpdate,
-  newPopulateVersionHashStep,
-  newSaveVersionAuditStep,
   newUpdateWorkflowStatusWithDefaultInstanceStep,
   newValidateWorkflowSpecStep,
-  truncateHash,
 } from "./steps.js";
-import { newLoadWorkflowByReferenceStep } from "./version-resolution.js";
+import {
+  TAG_VERSION_RESULT_KEY,
+  TAG_VERSION_WORKFLOW_KEY,
+  newLoadAndMapWorkflowVersionsStep,
+  newLoadWorkflowByReferenceStep,
+  newLoadWorkflowForTagVersionStep,
+  newPopulateWorkflowVersionStep,
+  newResolveWorkflowBySlugStep,
+  newSaveVersionAuditStep,
+  newTagWorkflowVersionStep,
+  workflowVersionBinding,
+} from "./version-resolution.js";
 import type { WorkflowInstanceCreatorProvider } from "./steps.js";
 
 export interface WorkflowControllerDeps {
@@ -256,7 +257,7 @@ async function createWorkflow(
     .addStep(newValidateAgentCallReferencesStep(deps.store, deps.authorizer))
     .addStep(newPopulateServerlessValidationStep(deps.logger))
     .addStep(newComputeVersionHashStep(deps.logger))
-    .addStep(newPopulateVersionHashStep(true))
+    .addStep(newPopulateWorkflowVersionStep())
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -274,7 +275,7 @@ async function createWorkflow(
         deps.authorizationLifecycle,
       ),
     )
-    .addStep(newSaveVersionAuditStep(deps.store, deps.logger, true, true))
+    .addStep(newSaveVersionAuditStep(deps.store, deps.logger, true))
     .addStep(
       newIndexSearchStep(deps.store, workflowSearchExtractor, deps.logger),
     )
@@ -284,10 +285,10 @@ async function createWorkflow(
 }
 
 /**
- * Update — chain per Go buildUpdatePipeline: CheckVersionChanged gates the
- * hash/audit steps so an unchanged spec registers no version (idempotent
- * applies, oss#341); the audit step's revert is flushed by the Persist
- * step that follows it.
+ * Update — chain per Go buildUpdatePipeline: an unchanged spec registers no
+ * version (the archive step repoints, oss#341) while a newly named tag
+ * still moves; the audit step's revert is flushed by the Persist step that
+ * follows it.
  */
 async function update(
   deps: WorkflowControllerDeps,
@@ -323,9 +324,8 @@ async function update(
     .addStep(newValidateAgentCallReferencesStep(deps.store, deps.authorizer))
     .addStep(newPopulateServerlessValidationStepForUpdate(deps.logger))
     .addStep(newComputeVersionHashStep(deps.logger))
-    .addStep(newCheckVersionChangedStep(deps.logger))
-    .addStep(newPopulateVersionHashStep(false))
-    .addStep(newSaveVersionAuditStep(deps.store, deps.logger, false, false))
+    .addStep(newPopulateWorkflowVersionStep())
+    .addStep(newSaveVersionAuditStep(deps.store, deps.logger, false))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(deps.store, workflowSearchExtractor, deps.logger),
@@ -688,8 +688,6 @@ function protoFieldViolations(workflow: Workflow): string[] {
 // mirror the head version's authoritative tag.
 // ---------------------------------------------------------------------------
 
-const TAG_VERSION_RESULT_KEY = "tagVersionResult";
-
 type TagVersionDesc = typeof WorkflowCommandController.method.tagVersion.input;
 
 async function tagVersion(
@@ -724,118 +722,6 @@ async function tagVersion(
     .execute(reqCtx);
 
   return reqCtx.get(TAG_VERSION_RESULT_KEY) as Workflow;
-}
-
-/** The live workflow the tag move targets, loaded once for the guard and the move. */
-const TAG_VERSION_WORKFLOW_KEY = "tagVersionWorkflow";
-
-/** Loads the live workflow to confirm it exists; the tag step learns its head hash from it. */
-function newLoadWorkflowForTagVersionStep(
-  store: Store,
-): PipelineStep<TagVersionDesc> {
-  return {
-    name: "LoadWorkflowForTagVersion",
-    async execute(ctx: RequestContext<TagVersionDesc>): Promise<void> {
-      const req = ctx.input;
-      let workflow: Workflow;
-      try {
-        workflow = await store.getResource(
-          ApiResourceKind.workflow,
-          req.workflowId,
-          WorkflowSchema,
-        );
-      } catch (error) {
-        if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("workflow", req.workflowId);
-        }
-        throw internalError(error, "failed to load workflow");
-      }
-      ctx.set(TAG_VERSION_WORKFLOW_KEY, workflow);
-    },
-  };
-}
-
-function newTagWorkflowVersionStep(store: Store): PipelineStep<TagVersionDesc> {
-  return {
-    name: "TagWorkflowVersion",
-    async execute(ctx: RequestContext<TagVersionDesc>): Promise<void> {
-      const req = ctx.input;
-      const workflow = ctx.get(TAG_VERSION_WORKFLOW_KEY) as Workflow;
-
-      // Move the tag in the audit store. A version_hash with no audit
-      // record yields AuditNotFoundError (the hash-exists check) and leaves
-      // the prior holder untouched.
-      try {
-        await store.setAuditTag(
-          ApiResourceKind.workflow,
-          req.workflowId,
-          req.versionHash,
-          req.tag,
-        );
-      } catch (error) {
-        if (error instanceof AuditNotFoundError) {
-          throw notFoundError("workflow version", req.versionHash);
-        }
-        throw internalError(error, "failed to assign workflow version tag");
-      }
-
-      // Reconcile the live workflow's metadata.version.tag to mirror the
-      // head version's authoritative (post-move) tag. This uniformly covers
-      // tagging the head, moving a tag off the head, and touching only
-      // archived versions.
-      const headTag = await resolveHeadTag(
-        store,
-        req.workflowId,
-        workflow.status?.versionHash ?? "",
-      );
-
-      let updated: Workflow;
-      try {
-        updated = await store.updateResource(
-          ApiResourceKind.workflow,
-          req.workflowId,
-          WorkflowSchema,
-          (wf) => {
-            wf.metadata ??= create(ApiResourceMetadataSchema);
-            wf.metadata.version ??= create(ApiResourceMetadataVersionSchema);
-            wf.metadata.version.tag = headTag;
-          },
-        );
-      } catch (error) {
-        throw internalError(error, "failed to reconcile workflow head tag");
-      }
-
-      ctx.set(TAG_VERSION_RESULT_KEY, updated);
-    },
-  };
-}
-
-/**
- * The tag currently assigned to the workflow's head version, reading the
- * audit tag column (the source of truth). An empty head hash or a head
- * without an audit entry resolves to no tag.
- */
-async function resolveHeadTag(
-  store: Store,
-  workflowId: string,
-  headHash: string,
-): Promise<string> {
-  if (headHash === "") {
-    return "";
-  }
-  try {
-    const rec = await store.getAuditRecordByHash(
-      ApiResourceKind.workflow,
-      workflowId,
-      headHash,
-    );
-    return rec.tag;
-  } catch (error) {
-    if (error instanceof AuditNotFoundError) {
-      return "";
-    }
-    throw internalError(error, "failed to resolve head version tag");
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -920,12 +806,6 @@ async function getByReference(
 // only the first match, keeping exactly-one-current true for them too.
 // ---------------------------------------------------------------------------
 
-const LIST_VERSIONS_DEFAULT_PAGE_SIZE = 50;
-const LIST_VERSIONS_MAX_PAGE_SIZE = 100;
-const LIST_VERSIONS_WORKFLOW_ID_KEY = "listVersionsWorkflowId";
-const LIST_VERSIONS_HEAD_HASH_KEY = "listVersionsHeadHash";
-const LIST_VERSIONS_RESPONSE_KEY = "listVersionsResponse";
-
 type ListVersionsDesc =
   typeof WorkflowQueryController.method.listVersions.input;
 
@@ -961,7 +841,6 @@ async function listVersions(
         versionHistoryTarget(
           ApiResourceKind.workflow,
           "unauthorized to view workflow version history",
-          LIST_VERSIONS_WORKFLOW_ID_KEY,
         ),
         "AuthorizeResolvedWorkflow",
       ),
@@ -970,145 +849,9 @@ async function listVersions(
     .build()
     .execute(reqCtx);
 
-  return reqCtx.get(LIST_VERSIONS_RESPONSE_KEY) as ListWorkflowVersionsResponse;
-}
-
-/** Finds the workflow by org+slug; stashes its id and live head hash. */
-function newResolveWorkflowBySlugStep(
-  store: Store,
-): PipelineStep<ListVersionsDesc> {
-  return {
-    name: "ResolveWorkflowBySlug",
-    async execute(ctx: RequestContext<ListVersionsDesc>): Promise<void> {
-      const req = ctx.input;
-
-      let wf: Workflow | undefined;
-      try {
-        wf = await findResourceBySlug(
-          store,
-          ApiResourceKind.workflow,
-          WorkflowSchema,
-          req.slug,
-          req.org,
-        );
-      } catch (error) {
-        throw internalError(error, "failed to search for workflow");
-      }
-      if (wf === undefined) {
-        throw notFoundError("workflow", `${req.slug} (org: ${req.org})`);
-      }
-
-      ctx.set(LIST_VERSIONS_WORKFLOW_ID_KEY, wf.metadata!.id);
-      // The live head's hash decides is_current downstream. Under repoint
-      // semantics the current version need not be the newest-archived row,
-      // so recency cannot stand in for currency.
-      ctx.set(LIST_VERSIONS_HEAD_HASH_KEY, wf.status?.versionHash ?? "");
-    },
-  };
-}
-
-/** Loads audit records, maps to entries, paginates. */
-function newLoadAndMapWorkflowVersionsStep(
-  store: Store,
-): PipelineStep<ListVersionsDesc> {
-  return {
-    name: "LoadAndMapWorkflowVersions",
-    async execute(ctx: RequestContext<ListVersionsDesc>): Promise<void> {
-      const req = ctx.input;
-      const workflowId = ctx.get(LIST_VERSIONS_WORKFLOW_ID_KEY) as string;
-
-      let records: AuditRecord[];
-      try {
-        records = await store.listAuditRecords(
-          ApiResourceKind.workflow,
-          workflowId,
-        );
-      } catch (error) {
-        throw internalError(error, "failed to load workflow version history");
-      }
-
-      const headHash =
-        (ctx.get(LIST_VERSIONS_HEAD_HASH_KEY) as string | undefined) ?? "";
-      let currentMarked = false;
-      const entries: WorkflowVersionEntry[] = [];
-      for (const rec of records) {
-        let wf: Workflow;
-        try {
-          wf = fromBinary(WorkflowSchema, rec.data);
-        } catch {
-          continue;
-        }
-        const isCurrent: boolean =
-          !currentMarked &&
-          headHash !== "" &&
-          (wf.status?.versionHash ?? "") === headHash;
-        currentMarked = currentMarked || isCurrent;
-        // Tag comes from the audit column (source of truth), not the snapshot.
-        entries.push(mapWorkflowToVersionEntry(wf, isCurrent, rec.tag));
-      }
-
-      let pageSize = req.pageSize;
-      if (pageSize <= 0) {
-        pageSize = LIST_VERSIONS_DEFAULT_PAGE_SIZE;
-      }
-      if (pageSize > LIST_VERSIONS_MAX_PAGE_SIZE) {
-        pageSize = LIST_VERSIONS_MAX_PAGE_SIZE;
-      }
-
-      let startIndex = 0;
-      if (req.pageToken !== "") {
-        startIndex = decodePageToken(req.pageToken);
-      }
-
-      let pageEntries: WorkflowVersionEntry[] = [];
-      let nextPageToken = "";
-      if (startIndex < entries.length) {
-        const end = Math.min(startIndex + pageSize, entries.length);
-        pageEntries = entries.slice(startIndex, end);
-        if (end < entries.length) {
-          nextPageToken = Buffer.from(String(end)).toString("base64");
-        }
-      }
-
-      ctx.set(
-        LIST_VERSIONS_RESPONSE_KEY,
-        create(ListWorkflowVersionsResponseSchema, {
-          versions: pageEntries,
-          nextPageToken,
-          totalCount: entries.length,
-        }),
-      );
-    },
-  };
-}
-
-/**
- * Base64 offset token → index; malformed tokens are InvalidArgument.
- *
- * Decoding mirrors Go's exact acceptance set (Node's
- * Buffer.from is far more lenient): base64.StdEncoding.DecodeString
- * requires the standard alphabet with proper trailing padding but ignores
- * \r and \n; strconv.Atoi accepts an optional sign and leading zeros. The
- * idx < 0 check then rejects negatives, exactly as Go's.
- */
-const STD_BASE64_PATTERN =
-  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-const GO_ATOI_PATTERN = /^[+-]?[0-9]+$/;
-
-function decodePageToken(token: string): number {
-  const stripped = token.replace(/[\r\n]/g, "");
-  if (!STD_BASE64_PATTERN.test(stripped)) {
-    throw invalidArgumentError("invalid page_token");
-  }
-  const decoded = Buffer.from(stripped, "base64").toString("utf8");
-  if (!GO_ATOI_PATTERN.test(decoded)) {
-    throw invalidArgumentError("invalid page_token");
-  }
-  const idx = Number(decoded);
-  if (!Number.isSafeInteger(idx) || idx < 0) {
-    throw invalidArgumentError("invalid page_token");
-  }
-  return idx;
+  return reqCtx.get(
+    LIST_VERSIONS_RESPONSE_KEY,
+  ) as ListWorkflowVersionsResponse;
 }
 
 // ---------------------------------------------------------------------------
@@ -1139,86 +882,8 @@ async function getVersion(
     req,
   );
 
-  // First check the current (live) workflow — avoids an audit lookup for
-  // the common case of recent executions.
-  let currentWorkflow: Workflow;
-  try {
-    currentWorkflow = await deps.store.getResource(
-      ApiResourceKind.workflow,
-      req.workflowId,
-      WorkflowSchema,
-    );
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      throw notFoundError("workflow", req.workflowId);
-    }
-    throw internalError(error, "failed to load workflow");
-  }
-
-  if ((currentWorkflow.status?.versionHash ?? "") === req.versionHash) {
-    // The live head's metadata.version.tag is kept reconciled with the
-    // head's authoritative audit tag, so it is the correct tag here.
-    return mapWorkflowToVersionEntry(
-      currentWorkflow,
-      true,
-      currentWorkflow.metadata?.version?.tag ?? "",
-    );
-  }
-
-  let rec: AuditRecord;
-  try {
-    rec = await deps.store.getAuditRecordByHash(
-      ApiResourceKind.workflow,
-      req.workflowId,
-      req.versionHash,
-    );
-  } catch (error) {
-    if (error instanceof AuditNotFoundError) {
-      throw notFoundError("workflow version", truncateHash(req.versionHash));
-    }
-    throw internalError(error, "failed to load workflow version from audit");
-  }
-
-  let archived: Workflow;
-  try {
-    archived = fromBinary(WorkflowSchema, rec.data);
-  } catch (error) {
-    throw internalError(error, "failed to decode archived workflow version");
-  }
-
-  return mapWorkflowToVersionEntry(archived, false, rec.tag);
-}
-
-/**
- * Converts an archived Workflow proto to a WorkflowVersionEntry — Go
- * mapWorkflowToVersionEntry. The tag is passed in by the caller from the
- * audit tag column (the source of truth), never read from the embedded
- * snapshot: a snapshot's tag is only correct as of archival time, whereas
- * the column reflects the current tag even after a tag move.
- */
-function mapWorkflowToVersionEntry(
-  wf: Workflow,
-  isCurrent: boolean,
-  tag: string,
-): WorkflowVersionEntry {
-  const entry = create(WorkflowVersionEntrySchema, { isCurrent, tag });
-
-  if (wf.status !== undefined) {
-    entry.versionHash = wf.status.versionHash;
-    // The validated YAML for runner/viewer consumption.
-    if (wf.status.serverlessWorkflowValidation !== undefined) {
-      entry.validatedYaml = wf.status.serverlessWorkflowValidation.yaml;
-    }
-    const audit = wf.status.audit?.specAudit;
-    if (audit !== undefined) {
-      entry.appliedAt = audit.updatedAt ?? audit.createdAt;
-      entry.appliedBy = audit.updatedBy ?? audit.createdBy;
-    }
-  }
-
-  if (wf.metadata?.version !== undefined) {
-    entry.message = wf.metadata.version.message;
-  }
-
-  return entry;
+  return getVersionEntry(deps.store, workflowVersionBinding, {
+    resourceId: req.workflowId,
+    versionHash: req.versionHash,
+  });
 }

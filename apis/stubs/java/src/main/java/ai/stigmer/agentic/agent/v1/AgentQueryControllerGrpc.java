@@ -77,6 +77,68 @@ public final class AgentQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.ListAgentVersionsInput,
+      ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse> getListVersionsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listVersions",
+      requestType = ai.stigmer.agentic.agent.v1.ListAgentVersionsInput.class,
+      responseType = ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.ListAgentVersionsInput,
+      ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse> getListVersionsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.ListAgentVersionsInput, ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse> getListVersionsMethod;
+    if ((getListVersionsMethod = AgentQueryControllerGrpc.getListVersionsMethod) == null) {
+      synchronized (AgentQueryControllerGrpc.class) {
+        if ((getListVersionsMethod = AgentQueryControllerGrpc.getListVersionsMethod) == null) {
+          AgentQueryControllerGrpc.getListVersionsMethod = getListVersionsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agent.v1.ListAgentVersionsInput, ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listVersions"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.ListAgentVersionsInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentQueryControllerMethodDescriptorSupplier("listVersions"))
+              .build();
+        }
+      }
+    }
+    return getListVersionsMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.GetAgentVersionInput,
+      ai.stigmer.agentic.agent.v1.AgentVersionEntry> getGetVersionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getVersion",
+      requestType = ai.stigmer.agentic.agent.v1.GetAgentVersionInput.class,
+      responseType = ai.stigmer.agentic.agent.v1.AgentVersionEntry.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.GetAgentVersionInput,
+      ai.stigmer.agentic.agent.v1.AgentVersionEntry> getGetVersionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.GetAgentVersionInput, ai.stigmer.agentic.agent.v1.AgentVersionEntry> getGetVersionMethod;
+    if ((getGetVersionMethod = AgentQueryControllerGrpc.getGetVersionMethod) == null) {
+      synchronized (AgentQueryControllerGrpc.class) {
+        if ((getGetVersionMethod = AgentQueryControllerGrpc.getGetVersionMethod) == null) {
+          AgentQueryControllerGrpc.getGetVersionMethod = getGetVersionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agent.v1.GetAgentVersionInput, ai.stigmer.agentic.agent.v1.AgentVersionEntry>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getVersion"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.GetAgentVersionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.AgentVersionEntry.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentQueryControllerMethodDescriptorSupplier("getVersion"))
+              .build();
+        }
+      }
+    }
+    return getGetVersionMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -155,13 +217,43 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an agent by its organization-scoped reference (org/slug).
+     * Get an agent by its organization-scoped reference (org/slug) with version support.
      * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByReferenceMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List version history for an agent.
+     * Returns all historical versions, newest first. Each entry carries the
+     * version hash, when and by whom it was applied, its tag, its message and
+     * the full spec of that version.
+     * </pre>
+     */
+    default void listVersions(ai.stigmer.agentic.agent.v1.ListAgentVersionsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListVersionsMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get a specific version of an agent by its content hash.
+     * Used by the runner and the server to run a turn on the version it
+     * recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+     * show what a past version said.
+     * </pre>
+     */
+    default void getVersion(ai.stigmer.agentic.agent.v1.GetAgentVersionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.AgentVersionEntry> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetVersionMethod(), responseObserver);
     }
   }
 
@@ -211,14 +303,46 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an agent by its organization-scoped reference (org/slug).
+     * Get an agent by its organization-scoped reference (org/slug) with version support.
      * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List version history for an agent.
+     * Returns all historical versions, newest first. Each entry carries the
+     * version hash, when and by whom it was applied, its tag, its message and
+     * the full spec of that version.
+     * </pre>
+     */
+    public void listVersions(ai.stigmer.agentic.agent.v1.ListAgentVersionsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListVersionsMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get a specific version of an agent by its content hash.
+     * Used by the runner and the server to run a turn on the version it
+     * recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+     * show what a past version said.
+     * </pre>
+     */
+    public void getVersion(ai.stigmer.agentic.agent.v1.GetAgentVersionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.AgentVersionEntry> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetVersionMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -253,13 +377,43 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an agent by its organization-scoped reference (org/slug).
+     * Get an agent by its organization-scoped reference (org/slug) with version support.
      * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List version history for an agent.
+     * Returns all historical versions, newest first. Each entry carries the
+     * version hash, when and by whom it was applied, its tag, its message and
+     * the full spec of that version.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse listVersions(ai.stigmer.agentic.agent.v1.ListAgentVersionsInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListVersionsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get a specific version of an agent by its content hash.
+     * Used by the runner and the server to run a turn on the version it
+     * recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+     * show what a past version said.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentVersionEntry getVersion(ai.stigmer.agentic.agent.v1.GetAgentVersionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetVersionMethod(), getCallOptions(), request);
     }
   }
 
@@ -294,13 +448,43 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an agent by its organization-scoped reference (org/slug).
+     * Get an agent by its organization-scoped reference (org/slug) with version support.
      * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List version history for an agent.
+     * Returns all historical versions, newest first. Each entry carries the
+     * version hash, when and by whom it was applied, its tag, its message and
+     * the full spec of that version.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse listVersions(ai.stigmer.agentic.agent.v1.ListAgentVersionsInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListVersionsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get a specific version of an agent by its content hash.
+     * Used by the runner and the server to run a turn on the version it
+     * recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+     * show what a past version said.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentVersionEntry getVersion(ai.stigmer.agentic.agent.v1.GetAgentVersionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetVersionMethod(), getCallOptions(), request);
     }
   }
 
@@ -336,8 +520,12 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an agent by its organization-scoped reference (org/slug).
+     * Get an agent by its organization-scoped reference (org/slug) with version support.
      * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+     * Version resolution (via ApiResourceReference.version field):
+     * - Empty/"latest" → Returns the current version
+     * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
+     * - SHA256 hash (64 hex chars) → Returns the exact immutable version
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> getByReference(
@@ -345,10 +533,40 @@ public final class AgentQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List version history for an agent.
+     * Returns all historical versions, newest first. Each entry carries the
+     * version hash, when and by whom it was applied, its tag, its message and
+     * the full spec of that version.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse> listVersions(
+        ai.stigmer.agentic.agent.v1.ListAgentVersionsInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListVersionsMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Get a specific version of an agent by its content hash.
+     * Used by the runner and the server to run a turn on the version it
+     * recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+     * show what a past version said.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.AgentVersionEntry> getVersion(
+        ai.stigmer.agentic.agent.v1.GetAgentVersionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetVersionMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
+  private static final int METHODID_LIST_VERSIONS = 2;
+  private static final int METHODID_GET_VERSION = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -374,6 +592,14 @@ public final class AgentQueryControllerGrpc {
         case METHODID_GET_BY_REFERENCE:
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
+          break;
+        case METHODID_LIST_VERSIONS:
+          serviceImpl.listVersions((ai.stigmer.agentic.agent.v1.ListAgentVersionsInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse>) responseObserver);
+          break;
+        case METHODID_GET_VERSION:
+          serviceImpl.getVersion((ai.stigmer.agentic.agent.v1.GetAgentVersionInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.AgentVersionEntry>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -407,6 +633,20 @@ public final class AgentQueryControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceReference,
               ai.stigmer.agentic.agent.v1.Agent>(
                 service, METHODID_GET_BY_REFERENCE)))
+        .addMethod(
+          getListVersionsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agent.v1.ListAgentVersionsInput,
+              ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse>(
+                service, METHODID_LIST_VERSIONS)))
+        .addMethod(
+          getGetVersionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agent.v1.GetAgentVersionInput,
+              ai.stigmer.agentic.agent.v1.AgentVersionEntry>(
+                service, METHODID_GET_VERSION)))
         .build();
   }
 
@@ -457,6 +697,8 @@ public final class AgentQueryControllerGrpc {
               .setSchemaDescriptor(new AgentQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
+              .addMethod(getListVersionsMethod())
+              .addMethod(getGetVersionMethod())
               .build();
         }
       }
