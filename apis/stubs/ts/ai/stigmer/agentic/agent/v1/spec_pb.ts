@@ -158,7 +158,9 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
   /**
    * Tools this sub-agent may use, from what the parent may use; empty means
    * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
-   * the type list of an Agent(...) entry is ignored, as in Claude Code.
+   * the type list of an Agent(...) entry is ignored, as in Claude Code. The
+   * Cursor engine cannot tell which sub-agent made a call, so it refuses a
+   * turn whose sub-agent carries its own lists; the native engine runs it.
    *
    * @generated from field: repeated string tools = 7;
    */

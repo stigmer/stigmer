@@ -56,6 +56,7 @@ A sub-agent can never exceed its parent's tools.
 - A sub-agent starts from the parent's resolved tools: whatever the parent's `tools` and `disallowed_tools` leave.
 - Its own `disallowed_tools` is applied first, then its own `tools` against what remains.
 - A sub-agent can **narrow** (fewer tools than the parent) but never **widen**: naming a tool the parent excluded does not give it back.
+- The native harness enforces a sub-agent's own lists inside the sub-agent. The Cursor harness cannot tell which sub-agent made a call, so it refuses a turn whose sub-agent carries lists of its own, naming the sub-agent; run such an agent on the native harness.
 - A sub-agent with no lists has exactly the parent's tools, MCP servers included.
 - Inside a sub-agent, the type list of an `Agent(...)` entry is ignored, as in Claude Code. In the main agent's `tools`, `Agent(code-reviewer)` limits which sub-agents it may start.
 

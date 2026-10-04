@@ -660,10 +660,13 @@ export function turnToolInventory(
  * Check the agent's lists and each declared sub-agent's against what its
  * graph binds: an entry naming nothing is logged, and a `tools` list that
  * resolves to nothing throws `ToolListResolutionError`. A sub-agent's graph
- * binds the parent's tools without the to-do list.
+ * binds the parent's tools without the to-do list. Only a sub-agent the main
+ * agent's `Agent(type, …)` admits is checked: one it keeps from compiling
+ * (`transformAndCompileSubagents` applies the same filter) can never run, so
+ * its lists cannot refuse the turn.
  */
-function checkTurnToolLists(
-  input: TurnInput,
+export function checkTurnToolLists(
+  input: Pick<TurnInput, "mcp" | "blueprint">,
   tools: DeepAgentTools,
   parentScope: ToolScope,
   shellCapable: boolean,
@@ -674,7 +677,8 @@ function checkTurnToolLists(
   checkToolListResolution(parentScope, turnToolInventory(parentNames, tools, platformServerSlugs), log);
   const subAgentInventory = turnToolInventory(nativeBoundToolNames({ shellCapable, todos: false }), tools, platformServerSlugs);
   for (const subAgent of input.blueprint.subAgents) {
-    if (subAgent.tools.length === 0 && subAgent.disallowedTools.length === 0) continue;
+    const hasLists = subAgent.tools.length > 0 || subAgent.disallowedTools.length > 0;
+    if (!hasLists || !parentScope.allowsSubAgentType(subAgent.name)) continue;
     checkToolListResolution(subAgentScope(parentScope, subAgent), subAgentInventory, log);
   }
 }

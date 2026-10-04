@@ -176,7 +176,9 @@ type SubAgent struct {
 	ModelOverride string `protobuf:"bytes,6,opt,name=model_override,json=modelOverride,proto3" json:"model_override,omitempty"`
 	// Tools this sub-agent may use, from what the parent may use; empty means
 	// all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
-	// the type list of an Agent(...) entry is ignored, as in Claude Code.
+	// the type list of an Agent(...) entry is ignored, as in Claude Code. The
+	// Cursor engine cannot tell which sub-agent made a call, so it refuses a
+	// turn whose sub-agent carries its own lists; the native engine runs it.
 	Tools []string `protobuf:"bytes,7,rep,name=tools,proto3" json:"tools,omitempty"`
 	// Tools this sub-agent may never use, in the same names as tools.
 	DisallowedTools []string `protobuf:"bytes,8,rep,name=disallowed_tools,json=disallowedTools,proto3" json:"disallowed_tools,omitempty"`

@@ -1,13 +1,19 @@
 /**
- * Pins what the native turn counts as "the turn has it" when it checks an
- * agent's tool lists (`turn-setup.ts` `turnToolInventory`): the built-ins it
- * binds, in Claude's names, and each connected server's live tools — the
- * platform's own servers left out, since no list can name them.
+ * Pins the native turn's check of an agent's tool lists (`turn-setup.ts`):
+ *  - what "the turn has it" means (`turnToolInventory`): the built-ins it
+ *    binds, in Claude's names, and each connected server's live tools — the
+ *    platform's own servers left out, since no list can name them;
+ *  - whose lists are checked (`checkTurnToolLists`): the agent's, and each
+ *    declared sub-agent's that the agent's `Agent(type, …)` admits — one it
+ *    keeps from compiling can never run, so its lists never refuse the turn.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
-import { turnToolInventory, type DeepAgentTools } from "../turn-setup.js";
+import { create } from "@bufbuild/protobuf";
+import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { ToolListResolutionError, ToolScope } from "../../../shared/tool-lists.js";
+import { checkTurnToolLists, turnToolInventory, type DeepAgentTools } from "../turn-setup.js";
 
 const tool = (name: string) => ({ name }) as unknown as DynamicStructuredTool;
 
@@ -36,5 +42,29 @@ describe("turnToolInventory", () => {
     const inventory = turnToolInventory([], tools({ "stigmer-channels": ["send"] }), new Set(["stigmer-channels"]));
     expect(inventory.anyMcp).toBe(false);
     expect(inventory.hasMcp("stigmer-channels", "send")).toBe(false);
+  });
+});
+
+describe("checkTurnToolLists", () => {
+  const unresolvable = create(SubAgentSchema, { name: "reviewer", tools: ["NoSuchTool"] });
+
+  function check(agentTools: string[]): () => void {
+    const input = {
+      mcp: { platformServerSlugs: new Set<string>() },
+      blueprint: { subAgents: [unresolvable] },
+    } as unknown as Parameters<typeof checkTurnToolLists>[0];
+    const scope = ToolScope.of('Agent "a"', { tools: agentTools, disallowedTools: [] });
+    return () => checkTurnToolLists(input, tools({}), scope, true);
+  }
+
+  it("does not refuse the turn over a sub-agent the agent's Agent(type, …) keeps from compiling", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    expect(check(["Read", "Agent(explore)"])).not.toThrow();
+  });
+
+  it("still refuses the turn over an admitted sub-agent whose tools name nothing", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    expect(check(["Read", "Agent(reviewer)"])).toThrow(ToolListResolutionError);
+    expect(check(["Read", "Agent(reviewer)"])).toThrow(/Sub-agent "reviewer"/);
   });
 });

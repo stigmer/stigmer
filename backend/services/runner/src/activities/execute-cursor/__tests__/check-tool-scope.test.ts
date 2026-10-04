@@ -83,6 +83,16 @@ describe("checkToolScope", () => {
     });
   });
 
+  it("checks only the sub-agents Agent(type, …) admits: an excluded one's lists cannot matter", () => {
+    const lists = { tools: ["Read", "Agent(sub-1)"], disallowedTools: [] };
+    // sub-0 carries lists but Agent(sub-1) excludes it: never registered, never run.
+    const excludedOnly = input(lists, [{ tools: ["Read"], disallowedTools: [] }, { tools: [], disallowedTools: [] }]);
+    expect(() => checkToolScope(excludedOnly, { agentMode: "local" })).not.toThrow();
+    // The admitted sub-1 carrying lists still refuses the turn.
+    const admitted = input(lists, [{ tools: [], disallowedTools: [] }, { tools: ["Read"], disallowedTools: [] }]);
+    expect(() => checkToolScope(admitted, { agentMode: "local" })).toThrow('Sub-agent "sub-1" carries its own tool lists');
+  });
+
   it("refuses a tools list that names nothing the turn has with the shared resolution error", () => {
     const run = () => checkToolScope(input({ tools: ["NotebookEdit"], disallowedTools: [] }), { agentMode: "local" });
     expect(run).toThrow(ToolListResolutionError);

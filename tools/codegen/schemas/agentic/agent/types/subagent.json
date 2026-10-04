@@ -75,7 +75,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools this sub-agent may use, from what the parent may use; empty means\n all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,\n the type list of an Agent(...) entry is ignored, as in Claude Code.",
+      "description": "Tools this sub-agent may use, from what the parent may use; empty means\n all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,\n the type list of an Agent(...) entry is ignored, as in Claude Code. The\n Cursor engine cannot tell which sub-agent made a call, so it refuses a\n turn whose sub-agent carries its own lists; the native engine runs it.",
       "required": false
     },
     {

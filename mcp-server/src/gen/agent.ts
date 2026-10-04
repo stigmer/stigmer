@@ -60,7 +60,7 @@ const SubAgentInputSchema = z.object({
   instructions: z.string().optional().describe("System prompt for this sub-agent."),
   skill_refs: z.array(z.lazy(() => SkillRefInputSchema)).optional().describe("Skill resources for this sub-agent."),
   model_override: z.string().optional().describe("Model override for this sub-agent. When set, uses this model instead of the parent's model. When empty, inherits the parent agent's model."),
-  tools: z.array(z.string()).optional().describe("Tools this sub-agent may use, from what the parent may use; empty means all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent, the type list of an Agent(...) entry is ignored, as in Claude Code."),
+  tools: z.array(z.string()).optional().describe("Tools this sub-agent may use, from what the parent may use; empty means all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent, the type list of an Agent(...) entry is ignored, as in Claude Code. The Cursor engine cannot tell which sub-agent made a call, so it refuses a turn whose sub-agent carries its own lists; the native engine runs it."),
   disallowed_tools: z.array(z.string()).optional().describe("Tools this sub-agent may never use, in the same names as tools."),
 });
 type SubAgentInput = z.infer<typeof SubAgentInputSchema>;

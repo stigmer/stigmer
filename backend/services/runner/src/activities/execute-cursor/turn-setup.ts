@@ -179,17 +179,25 @@ export class CursorToolListRefusal extends Error {
  * anything is installed. Refuses the turn (throws {@link CursorToolListRefusal}
  * or `ToolListResolutionError`, each settling it `failed` with its own
  * sentence) when:
- *  - a sub-agent carries lists of its own: the hook cannot tell which
- *    sub-agent made a call (`preToolUse` carries no sub-agent id), and the
- *    SDK's `tools` options restrict only the main loop, so a sub-agent's lists
- *    would silently not bind. The native engine enforces them per sub-agent;
+ *  - a sub-agent the main agent may start carries lists of its own: the hook
+ *    cannot tell which sub-agent made a call (`preToolUse` carries no
+ *    sub-agent id), and the SDK's `tools` options restrict only the main
+ *    loop, so a sub-agent's lists would silently not bind. The native engine
+ *    enforces them per sub-agent. A sub-agent `Agent(type, …)` excludes is
+ *    never registered (`subAgentsInScope`) and can never run, so its lists
+ *    cannot matter and it is not checked. No sub-agent's lists reach the
+ *    zero-resolution check below either: one with lists never gets past
+ *    this one;
  *  - the agent has lists and the session runs a cloud agent, which takes
  *    neither the SDK's `tools` options nor the workspace hook;
  *  - a non-empty `tools` names nothing this turn has (`checkToolListResolution`),
  *    as Claude refuses to launch such an agent.
  */
 export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentMode }): void {
-  const narrowed = input.blueprint.subAgents.filter((sa) => sa.tools.length > 0 || sa.disallowedTools.length > 0);
+  const scope = input.mcp.toolScope;
+  const narrowed = subAgentsInScope(input.blueprint.subAgents, scope).filter(
+    (sa) => sa.tools.length > 0 || sa.disallowedTools.length > 0,
+  );
   if (narrowed.length > 0) {
     const names = narrowed.map((sa) => `"${sa.name}"`).join(", ");
     throw new CursorToolListRefusal(
@@ -199,7 +207,6 @@ export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentM
         "remove the sub-agent's lists.",
     );
   }
-  const scope = input.mcp.toolScope;
   if (!scope.restricted) return;
   if (mode.agentMode === "cloud") {
     throw new CursorToolListRefusal(
