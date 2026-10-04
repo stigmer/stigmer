@@ -80,8 +80,6 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | AgentShareCommandController.update | metadata.org |
 | AgentShareQueryController.getByAgent | org |
 | AgentShareQueryController.getByReference | org |
-| AgentShareQueryController.getSharedProfile | org |
-| AgentShareQueryController.getSharedProfileForMember | org |
 | AgentShareQueryController.list | org |
 
 ## `ai.stigmer.agentic.channelapp.v1`
@@ -225,7 +223,6 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | PlatformClientCommandController.update | metadata.org |
 | PlatformClientQueryController.getByReference | org |
 | PlatformClientQueryController.listByOrg | org |
-| PlatformClientTokenController.mintGuestToken | org |
 | PlatformClientTokenController.mintUserToken | org |
 
 ## `ai.stigmer.search.v1`

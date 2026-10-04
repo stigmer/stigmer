@@ -25,7 +25,10 @@ export interface IdentityProviderDetailPanelProps {
   /**
    * Pre-computed SSO login URL to display when the IdP is an SSO provider.
    * Omit to hide the field. The consumer is responsible for constructing
-   * the URL (e.g., `${window.location.origin}/login?org=${orgSlug}`).
+   * the URL (e.g., `${window.location.origin}/login?org=${orgId}`), naming
+   * the organization by its permanent id so a later holder of its slug
+   * can never put their own sign-in behind the link. The login page
+   * accepts a typed slug too.
    */
   readonly ssoLoginUrl?: string;
   /** Additional CSS class names for the root container. */

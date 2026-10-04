@@ -104,7 +104,7 @@ export function resolveOrganization(config: Config, flagOrg?: string): string {
  *   4. cloud → {@link DEFAULT_CLOUD_CONSOLE_URL}
  *
  * The console origin is also the app origin that serves the hosted chat
- * page (`/chat/<org>/<slug>`) and the embed loader (`/embed.js`), so
+ * page (`/chat/<share id>`) and the embed loader (`/embed.js`), so
  * share-link builders use this same resolver — both routes live in the
  * same static export the server serves.
  */

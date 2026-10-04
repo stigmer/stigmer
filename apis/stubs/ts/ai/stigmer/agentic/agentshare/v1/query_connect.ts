@@ -66,7 +66,7 @@ export const AgentShareQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get the public profile of a shared agent by the share's org/slug.
+     * Get the public profile of a shared agent by the share's id.
      *
      * This is the resolution path for the hosted chat page: anonymous
      * visitors (no Stigmer account, no token) resolve a shared link to the
@@ -78,10 +78,10 @@ export const AgentShareQueryController = {
      * org-internal share from a nonexistent one; use
      * getSharedProfileForMember instead), or the share link is locked and
      * link_token does not match the share's current status.share_link_token.
-     * The cases are deliberately indistinguishable so an unshared, revoked,
-     * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
-     * empty: org+slug is the shared URL's identity, and cross-org slug
-     * matching on a public endpoint would enable enumeration.
+     * The same NOT_FOUND answers when the share's organization no longer
+     * exists. The cases are deliberately indistinguishable so an unshared,
+     * revoked, or rotated URL leaks nothing. Returns INVALID_ARGUMENT when
+     * share_id is empty.
      *
      * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getSharedProfile
      */
@@ -102,17 +102,18 @@ export const AgentShareQueryController = {
      * use one resolution path for any share.
      *
      * Returns NOT_FOUND when the share does not exist, is disabled, the
-     * caller is not a member of the sharing organization, or the share is a
-     * public-audience share locked with a link token (this tokenless path
-     * must not reveal a killed link's profile) — the cases are deliberately
-     * indistinguishable so a share URL leaks nothing to non-members.
-     * Returns INVALID_ARGUMENT when org is empty.
+     * caller is not a member of the sharing organization, the share's
+     * organization no longer exists, or the share is a public-audience share
+     * locked with a link token (this tokenless path must not reveal a killed
+     * link's profile) — the cases are deliberately indistinguishable so a
+     * share URL leaks nothing to non-members. Returns INVALID_ARGUMENT when
+     * the id is empty.
      *
      * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getSharedProfileForMember
      */
     getSharedProfileForMember: {
       name: "getSharedProfileForMember",
-      I: ApiResourceReference,
+      I: AgentShareId,
       O: SharedAgentProfile,
       kind: MethodKind.Unary,
     },

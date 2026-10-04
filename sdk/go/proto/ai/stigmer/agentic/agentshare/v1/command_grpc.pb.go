@@ -48,10 +48,10 @@ type AgentShareCommandControllerClient interface {
 	// Rotate the share's link token.
 	//
 	// Generates a fresh server-side token for the share's hosted chat link.
-	// The share URL becomes `/chat/<org>/<slug>?k=<token>` and the previous
+	// The share URL becomes `/chat/<share id>?k=<token>` and the previous
 	// link (tokened or plain) stops working immediately — including for
 	// visitors mid-conversation. Use this to kill a leaked or over-shared
-	// public link without disabling the share or changing its slug.
+	// public link without disabling or deleting the share.
 	//
 	// The token lives in status.share_link_token, so manifest applies never
 	// reset it. Rotation affects public-audience shares only; org-audience
@@ -147,10 +147,10 @@ type AgentShareCommandControllerServer interface {
 	// Rotate the share's link token.
 	//
 	// Generates a fresh server-side token for the share's hosted chat link.
-	// The share URL becomes `/chat/<org>/<slug>?k=<token>` and the previous
+	// The share URL becomes `/chat/<share id>?k=<token>` and the previous
 	// link (tokened or plain) stops working immediately — including for
 	// visitors mid-conversation. Use this to kill a leaked or over-shared
-	// public link without disabling the share or changing its slug.
+	// public link without disabling or deleting the share.
 	//
 	// The token lives in status.share_link_token, so manifest applies never
 	// reset it. Rotation affects public-audience shares only; org-audience

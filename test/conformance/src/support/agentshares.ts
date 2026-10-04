@@ -2,8 +2,8 @@
 // Domain: conformance support.
 //
 // An AgentShare is the hosted-chat distribution channel for one agent: the
-// /chat/<org>/<slug> URL identity, its audience, and an optional rotatable
-// link token (server-owned, in status). The canonical share carries the
+// /chat/<share id> link, its audience, and an optional rotatable link token
+// (server-owned, in status). The canonical share carries the
 // agent's own slug — created by omitting BOTH metadata.name and slug, which
 // the defaults resolver fills from the referenced agent — so the builder
 // makes the name optional on purpose.

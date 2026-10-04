@@ -157,7 +157,7 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | AgentShareQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 | AgentShareQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 | AgentShareQueryController.getSharedProfile | is_public | chain-with-Authorize (the public share-link read; the step's is_public arm skips the Authorizer) |
-| AgentShareQueryController.getSharedProfileForMember | is_skip_authorization | chain-with-Authorize (guard: AuthorizeMemberAudience — can_view on the reference's organization BEFORE the share is loaded, the Java order; a non-member hears the same NOT_FOUND as a missing share, the proto's contract) |
+| AgentShareQueryController.getSharedProfileForMember | is_skip_authorization | chain-with-Authorize (guard: AuthorizeMemberAudience — can_view on the loaded share's organization, after the share loads by the id the link carries, which names no organization; a non-member hears the same NOT_FOUND as a missing share, the proto's contract) |
 
 ## 10. AgentChannel (`src/domain/agentchannel/controller.ts`)
 

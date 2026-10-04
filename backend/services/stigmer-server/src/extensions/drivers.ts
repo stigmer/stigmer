@@ -106,7 +106,7 @@ export interface ExtensionDrivers {
    * Sandbox provisioners registrable by name, selectable through
    * the SANDBOX_PROVISIONER_TYPE config knob. Factories, not instances —
    * an unselected driver constructs nothing. The built-in names
-   * (local-process, docker, kubernetes — src/sandbox/provisioner.ts) are
+   * (BUILT_IN_SANDBOX_PROVISIONER_TYPES in src/sandbox/provisioner.ts) are
    * reserved.
    */
   readonly sandboxProvisionerDrivers?: ReadonlyMap<

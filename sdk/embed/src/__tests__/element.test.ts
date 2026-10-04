@@ -37,13 +37,31 @@ describe("<stigmer-agent>", () => {
     expect(customElements.get("stigmer-agent")).toBe(StigmerAgentElement);
   });
 
-  it("renders an iframe onto the hosted chat page for org/agent", () => {
+  it("renders an iframe onto the hosted chat page for the share", () => {
     setDefaultAppOrigin(APP_ORIGIN);
-    const element = mount({ org: "acme", agent: "support-bot" });
+    const element = mount({ share: "ash_support" });
 
     const iframe = iframeOf(element);
     expect(iframe).not.toBeNull();
-    expect(iframe!.src).toBe(`${APP_ORIGIN}/chat/acme/support-bot`);
+    expect(iframe!.src).toBe(`${APP_ORIGIN}/chat/ash_support`);
+    expect(iframe!.title).toBe("Chat with a shared agent");
+  });
+
+  it("names the frame with the host's title when the element carries one", () => {
+    setDefaultAppOrigin(APP_ORIGIN);
+    const element = mount({ share: "ash_support", title: "Chat with Support Bot" });
+
+    expect(iframeOf(element)!.title).toBe("Chat with Support Bot");
+  });
+
+  it("keeps the frame, and the conversation in it, when the host changes its title", () => {
+    setDefaultAppOrigin(APP_ORIGIN);
+    const element = mount({ share: "ash_support", title: "Chat with Support Bot" });
+    const frame = iframeOf(element);
+
+    element.setAttribute("title", "Renamed");
+
+    expect(iframeOf(element)).toBe(frame);
     expect(element.style.width).toBe("400px");
     expect(element.style.height).toBe("600px");
   });
@@ -51,8 +69,7 @@ describe("<stigmer-agent>", () => {
   it("honors width/height (bare numbers become px) and explicit themes", () => {
     setDefaultAppOrigin(APP_ORIGIN);
     const element = mount({
-      org: "acme",
-      agent: "support-bot",
+      share: "ash_support",
       width: "320",
       height: "80vh",
       theme: "dark",
@@ -61,15 +78,14 @@ describe("<stigmer-agent>", () => {
     expect(element.style.width).toBe("320px");
     expect(element.style.height).toBe("80vh");
     expect(iframeOf(element)!.src).toBe(
-      `${APP_ORIGIN}/chat/acme/support-bot?theme=dark`,
+      `${APP_ORIGIN}/chat/ash_support?theme=dark`,
     );
   });
 
   it("forwards the token attribute as ?k= on the iframe URL (locked link)", () => {
     setDefaultAppOrigin(APP_ORIGIN);
     const element = mount({
-      org: "acme",
-      agent: "support-bot",
+      share: "ash_support",
       token: "tok123",
       theme: "dark",
     });
@@ -77,30 +93,27 @@ describe("<stigmer-agent>", () => {
     // The hosted page reads ?k= and forwards it on its guest mint; the
     // token must ride BEFORE theme so the URL matches the SDK's shape.
     expect(iframeOf(element)!.src).toBe(
-      `${APP_ORIGIN}/chat/acme/support-bot?k=tok123&theme=dark`,
+      `${APP_ORIGIN}/chat/ash_support?k=tok123&theme=dark`,
     );
   });
 
   it("prefers the app-origin attribute over the loader default", () => {
     setDefaultAppOrigin(APP_ORIGIN);
     const element = mount({
-      org: "acme",
-      agent: "support-bot",
+      share: "ash_support",
       "app-origin": "https://selfhosted.example",
     });
 
     expect(iframeOf(element)!.src).toBe(
-      "https://selfhosted.example/chat/acme/support-bot",
+      "https://selfhosted.example/chat/ash_support",
     );
   });
 
-  it("URL-encodes org and agent path segments", () => {
+  it("URL-encodes the share path segment", () => {
     setDefaultAppOrigin(APP_ORIGIN);
-    const element = mount({ org: "acme co", agent: "bot/one" });
+    const element = mount({ share: "ash one/two" });
 
-    expect(iframeOf(element)!.src).toBe(
-      `${APP_ORIGIN}/chat/acme%20co/bot%2Fone`,
-    );
+    expect(iframeOf(element)!.src).toBe(`${APP_ORIGIN}/chat/ash%20one%2Ftwo`);
   });
 
   it("renders nothing (with a console error) when required config is missing", () => {
@@ -108,11 +121,11 @@ describe("<stigmer-agent>", () => {
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
 
-    const missingAgent = mount({ org: "acme" });
-    expect(iframeOf(missingAgent)).toBeNull();
+    const missingShare = mount({});
+    expect(iframeOf(missingShare)).toBeNull();
 
     setDefaultAppOrigin("");
-    const missingOrigin = mount({ org: "acme", agent: "support-bot" });
+    const missingOrigin = mount({ share: "ash_support" });
     expect(iframeOf(missingOrigin)).toBeNull();
 
     expect(consoleError).toHaveBeenCalled();
@@ -121,7 +134,7 @@ describe("<stigmer-agent>", () => {
 
   it("hides itself and dispatches stigmer:refused when the frame reports refusal", () => {
     setDefaultAppOrigin(APP_ORIGIN);
-    const element = mount({ org: "acme", agent: "support-bot" });
+    const element = mount({ share: "ash_support" });
     const refused = vi.fn();
     element.addEventListener("stigmer:refused", refused);
 
@@ -139,7 +152,7 @@ describe("<stigmer-agent>", () => {
 
   it("dispatches stigmer:ready when the frame reports readiness", () => {
     setDefaultAppOrigin(APP_ORIGIN);
-    const element = mount({ org: "acme", agent: "support-bot" });
+    const element = mount({ share: "ash_support" });
     const ready = vi.fn();
     element.addEventListener("stigmer:ready", ready);
 
@@ -157,7 +170,7 @@ describe("<stigmer-agent>", () => {
 
   it("tears down its iframe and bridge on disconnect", () => {
     setDefaultAppOrigin(APP_ORIGIN);
-    const element = mount({ org: "acme", agent: "support-bot" });
+    const element = mount({ share: "ash_support" });
     const ready = vi.fn();
     element.addEventListener("stigmer:ready", ready);
     const frameWindow = iframeOf(element)!.contentWindow;

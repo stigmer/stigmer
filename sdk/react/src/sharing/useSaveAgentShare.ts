@@ -124,14 +124,17 @@ export function draftFromShare(share: AgentShare | null): AgentShareDraft {
 }
 
 /**
- * Identity for a share being created: its display name and URL slug in
+ * Identity for a share being created: its display name and its slug in
  * the sharing org's namespace. Only consulted when `current` is `null`
  * — an existing share's identity is immutable.
  */
 export interface AgentShareCreateIdentity {
   /** Display name for the new share. */
   readonly name: string;
-  /** URL slug for the new share — appears in `/chat/<org>/<slug>`. */
+  /**
+   * Slug for the new share: its name in its organization, as the CLI and
+   * API address it. The hosted chat link names the share by its id.
+   */
   readonly slug: string;
 }
 

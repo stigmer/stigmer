@@ -26,15 +26,15 @@ var File_ai_stigmer_agentic_agentshare_v1_query_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_agentic_agentshare_v1_query_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/agentic/agentshare/v1/query.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a)ai/stigmer/agentic/agentshare/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd2\x06\n" +
+	",ai/stigmer/agentic/agentshare/v1/query.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a)ai/stigmer/agentic/agentshare/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xcc\x06\n" +
 	"\x19AgentShareQueryController\x12\x95\x01\n" +
 	"\x03get\x12..ai.stigmer.agentic.agentshare.v1.AgentShareId\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\"0¸\x18,\b\x01\x10.\"\x05value*\x1funauthorized to get agent share\x12z\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\"\x04и\x18\x01\x12\x84\x01\n" +
 	"\n" +
 	"getByAgent\x12>.ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest\x1a0.ai.stigmer.agentic.agentshare.v1.AgentShareList\"\x04и\x18\x01\x12x\n" +
 	"\x04list\x128.ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest\x1a0.ai.stigmer.agentic.agentshare.v1.AgentShareList\"\x04и\x18\x01\x12\x89\x01\n" +
-	"\x10getSharedProfile\x129.ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest\x1a4.ai.stigmer.agentic.agentshare.v1.SharedAgentProfile\"\x04ȸ\x18\x01\x12\x8d\x01\n" +
-	"\x19getSharedProfileForMember\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a4.ai.stigmer.agentic.agentshare.v1.SharedAgentProfile\"\x04и\x18\x01\x1a\x04\xa0\xff+.B\xaf\x02\n" +
+	"\x10getSharedProfile\x129.ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest\x1a4.ai.stigmer.agentic.agentshare.v1.SharedAgentProfile\"\x04ȸ\x18\x01\x12\x87\x01\n" +
+	"\x19getSharedProfileForMember\x12..ai.stigmer.agentic.agentshare.v1.AgentShareId\x1a4.ai.stigmer.agentic.agentshare.v1.SharedAgentProfile\"\x04и\x18\x01\x1a\x04\xa0\xff+.B\xaf\x02\n" +
 	"$com.ai.stigmer.agentic.agentshare.v1B\n" +
 	"QueryProtoP\x01ZVgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
 
@@ -54,7 +54,7 @@ var file_ai_stigmer_agentic_agentshare_v1_query_proto_depIdxs = []int32{
 	2, // 2: ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getByAgent:input_type -> ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest
 	3, // 3: ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.list:input_type -> ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest
 	4, // 4: ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getSharedProfile:input_type -> ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest
-	1, // 5: ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getSharedProfileForMember:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
+	0, // 5: ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getSharedProfileForMember:input_type -> ai.stigmer.agentic.agentshare.v1.AgentShareId
 	5, // 6: ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.get:output_type -> ai.stigmer.agentic.agentshare.v1.AgentShare
 	5, // 7: ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getByReference:output_type -> ai.stigmer.agentic.agentshare.v1.AgentShare
 	6, // 8: ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getByAgent:output_type -> ai.stigmer.agentic.agentshare.v1.AgentShareList

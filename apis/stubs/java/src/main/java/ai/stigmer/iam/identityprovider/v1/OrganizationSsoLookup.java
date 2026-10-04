@@ -60,7 +60,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object org_ = "";
   /**
    * <pre>
-   * Organization slug to look up SSO configuration for.
+   * Organization to look up SSO configuration for: its id, as the shared
+   * SSO sign-in link carries it, or its slug, as a person types it.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -81,7 +82,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Organization slug to look up SSO configuration for.
+   * Organization to look up SSO configuration for: its id, as the shared
+   * SSO sign-in link carries it, or its slug, as a person types it.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -405,7 +407,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object org_ = "";
     /**
      * <pre>
-     * Organization slug to look up SSO configuration for.
+     * Organization to look up SSO configuration for: its id, as the shared
+     * SSO sign-in link carries it, or its slug, as a person types it.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -425,7 +428,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug to look up SSO configuration for.
+     * Organization to look up SSO configuration for: its id, as the shared
+     * SSO sign-in link carries it, or its slug, as a person types it.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -446,7 +450,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug to look up SSO configuration for.
+     * Organization to look up SSO configuration for: its id, as the shared
+     * SSO sign-in link carries it, or its slug, as a person types it.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -463,7 +468,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug to look up SSO configuration for.
+     * Organization to look up SSO configuration for: its id, as the shared
+     * SSO sign-in link carries it, or its slug, as a person types it.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -477,7 +483,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug to look up SSO configuration for.
+     * Organization to look up SSO configuration for: its id, as the shared
+     * SSO sign-in link carries it, or its slug, as a person types it.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>

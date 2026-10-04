@@ -79,36 +79,36 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "oto\022 ai.stigmer.agentic.agentshare.v1\032*a" +
       "i/stigmer/agentic/agentshare/v1/api.prot" +
       "o\032\'ai/stigmer/commons/rpc/pagination.pro" +
-      "to\032\033buf/validate/validate.proto\",\n\014Agent" +
-      "ShareId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\222\001" +
-      "\n\034GetAgentSharesByAgentRequest\022!\n\010agent_" +
-      "id\030\001 \001(\tB\006\272H\003\310\001\001R\007agentId\022=\n\tpage_info\030\002" +
-      " \001(\0132 .ai.stigmer.commons.rpc.PageInfoR\010" +
-      "pageInfo\022\020\n\003org\030\003 \001(\tR\003org\"u\n\016AgentShare" +
-      "List\022\037\n\013total_count\030\001 \001(\005R\ntotalCount\022B\n" +
-      "\005items\030\002 \003(\0132,.ai.stigmer.agentic.agents" +
-      "hare.v1.AgentShareR\005items\"\213\002\n\026ListAgentS" +
-      "haresRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022" +
-      "\\\n\006labels\030\002 \003(\0132D.ai.stigmer.agentic.age" +
-      "ntshare.v1.ListAgentSharesRequest.Labels" +
-      "EntryR\006labels\022=\n\tpage_info\030\003 \001(\0132 .ai.st" +
-      "igmer.commons.rpc.PageInfoR\010pageInfo\0329\n\013" +
-      "LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002" +
-      " \001(\tR\005value:\0028\001\"?\n\024RotateShareLinkInput\022" +
-      "\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId" +
-      "\"h\n\027GetSharedProfileRequest\022\020\n\003org\030\001 \001(\t" +
-      "R\003org\022\022\n\004slug\030\002 \001(\tR\004slug\022\'\n\nlink_token\030" +
-      "\003 \001(\tB\010\272H\005r\003\030\200\001R\tlinkToken\"\273\001\n\022SharedAge" +
-      "ntProfile\022\020\n\003org\030\001 \001(\tR\003org\022\022\n\004slug\030\002 \001(" +
-      "\tR\004slug\022\022\n\004name\030\003 \001(\tR\004name\022 \n\013descripti" +
-      "on\030\004 \001(\tR\013description\022\031\n\010icon_url\030\005 \001(\tR" +
-      "\007iconUrl\022.\n\023default_instance_id\030\006 \001(\tR\021d" +
-      "efaultInstanceIdB\256\001B\007IoProtoP\001\242\002\004ASAA\252\002 " +
-      "Ai.Stigmer.Agentic.Agentshare.V1\312\002 Ai\\St" +
-      "igmer\\Agentic\\Agentshare\\V1\342\002,Ai\\Stigmer" +
-      "\\Agentic\\Agentshare\\V1\\GPBMetadata\352\002$Ai:" +
-      ":Stigmer::Agentic::Agentshare::V1b\006proto" +
-      "3"
+      "to\032\033buf/validate/validate.proto\"1\n\014Agent" +
+      "ShareId\022!\n\005value\030\001 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\005val" +
+      "ue\"\222\001\n\034GetAgentSharesByAgentRequest\022!\n\010a" +
+      "gent_id\030\001 \001(\tB\006\272H\003\310\001\001R\007agentId\022=\n\tpage_i" +
+      "nfo\030\002 \001(\0132 .ai.stigmer.commons.rpc.PageI" +
+      "nfoR\010pageInfo\022\020\n\003org\030\003 \001(\tR\003org\"u\n\016Agent" +
+      "ShareList\022\037\n\013total_count\030\001 \001(\005R\ntotalCou" +
+      "nt\022B\n\005items\030\002 \003(\0132,.ai.stigmer.agentic.a" +
+      "gentshare.v1.AgentShareR\005items\"\213\002\n\026ListA" +
+      "gentSharesRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R" +
+      "\003org\022\\\n\006labels\030\002 \003(\0132D.ai.stigmer.agenti" +
+      "c.agentshare.v1.ListAgentSharesRequest.L" +
+      "abelsEntryR\006labels\022=\n\tpage_info\030\003 \001(\0132 ." +
+      "ai.stigmer.commons.rpc.PageInfoR\010pageInf" +
+      "o\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005va" +
+      "lue\030\002 \001(\tR\005value:\0028\001\"?\n\024RotateShareLinkI" +
+      "nput\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresou" +
+      "rceId\"\201\001\n\027GetSharedProfileRequest\022&\n\010sha" +
+      "re_id\030\004 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\007shareId\022\'\n\nlin" +
+      "k_token\030\003 \001(\tB\010\272H\005r\003\030\200\001R\tlinkTokenJ\004\010\001\020\002" +
+      "J\004\010\002\020\003R\003orgR\004slug\"\273\001\n\022SharedAgentProfile" +
+      "\022\020\n\003org\030\001 \001(\tR\003org\022\022\n\004slug\030\002 \001(\tR\004slug\022\022" +
+      "\n\004name\030\003 \001(\tR\004name\022 \n\013description\030\004 \001(\tR" +
+      "\013description\022\031\n\010icon_url\030\005 \001(\tR\007iconUrl\022" +
+      ".\n\023default_instance_id\030\006 \001(\tR\021defaultIns" +
+      "tanceIdB\256\001B\007IoProtoP\001\242\002\004ASAA\252\002 Ai.Stigme" +
+      "r.Agentic.Agentshare.V1\312\002 Ai\\Stigmer\\Age" +
+      "ntic\\Agentshare\\V1\342\002,Ai\\Stigmer\\Agentic\\" +
+      "Agentshare\\V1\\GPBMetadata\352\002$Ai::Stigmer:" +
+      ":Agentic::Agentshare::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -158,7 +158,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentshare_v1_GetSharedProfileRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentshare_v1_GetSharedProfileRequest_descriptor,
-        new java.lang.String[] { "Org", "Slug", "LinkToken", });
+        new java.lang.String[] { "ShareId", "LinkToken", });
     internal_static_ai_stigmer_agentic_agentshare_v1_SharedAgentProfile_descriptor =
       getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_agentshare_v1_SharedAgentProfile_fieldAccessorTable = new

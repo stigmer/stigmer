@@ -67,7 +67,7 @@ export interface SandboxEnvironment {
    * verifier's own lane such as a guest or a scheduled fire). A driver
    * that gives some session classes a workspace that does not outlive the
    * conversation reads it here; the built-in drivers (`local-process`,
-   * `docker`, `kubernetes`) ignore it and keep every session persistent.
+   * `docker`, `agent-sandbox`) ignore it and keep every session persistent.
    * Required rather than optional so a construction site that forgets it
    * fails to compile instead of silently reading as a persistent user
    * session to every driver.
@@ -153,7 +153,19 @@ export interface SessionActivity {
  * to map its sandbox names back.
  */
 export interface SessionActivityReader {
+  /** The session's activity from every one of its executions: exact as of the read. */
   activity(sessionId: string): Promise<SessionActivity>;
+  /**
+   * The same answer from only what changed since this reader last read
+   * the session, for a driver that asks every awake session on every
+   * pass. It may lag: it can miss a recovered execution, or one that
+   * became visible long after it was stamped, so it may report the
+   * session idle, or last active earlier, when it is not. It never
+   * reports a session busier or later than `activity` would. A driver
+   * may decide from it, but acts only on a fresh `activity`, which also
+   * clears any lag (stigmer#1803).
+   */
+  recentActivity(sessionId: string): Promise<SessionActivity>;
   sessionIds(): AsyncIterable<string>;
 }
 
@@ -204,11 +216,11 @@ export interface SandboxDriverConfig {
    * value.
    */
   readonly temporalConnectionEnv: Readonly<Record<string, string>>;
-  /** The runner image for container-based drivers (docker/kubernetes). */
+  /** The runner image for container-based drivers (docker, agent-sandbox, substrate). */
   readonly runnerImage: string;
   /** The runner executable for the local-process driver. */
   readonly runnerCommand: string;
-  /** The namespace the kubernetes driver provisions into. */
+  /** The Kubernetes namespace the agent-sandbox driver provisions into. */
   readonly kubernetesNamespace: string;
   /**
    * The operator's runner settings for every sandbox (ServerConfig
@@ -306,14 +318,14 @@ export type SandboxProvisionerFactory = (options: {
 /**
  * The built-in driver names — reserved: an extension registering one of
  * these is a boot throw (the registry's shadow rule, extensions/
- * registry.ts). The isolation ladder: process → Docker → Kubernetes,
- * then Agent Substrate (gVisor actors that sleep and wake with their
- * files, sandbox/substrate/).
+ * registry.ts). The isolation ladder: process → Docker → Kubernetes
+ * through agent-sandbox (sandbox/agent-sandbox/), then Agent Substrate
+ * (gVisor actors that sleep and wake with their files, sandbox/substrate/).
  */
 export const BUILT_IN_SANDBOX_PROVISIONER_TYPES = [
   "local-process",
   "docker",
-  "kubernetes",
+  "agent-sandbox",
   "substrate",
 ] as const;
 

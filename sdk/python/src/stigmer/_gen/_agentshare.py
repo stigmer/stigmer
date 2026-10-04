@@ -89,11 +89,9 @@ class AgentShareClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_shared_profile_for_member(self, ref: ResourceRef) -> io_pb2.SharedAgentProfile:
+    def get_shared_profile_for_member(self, id: str) -> io_pb2.SharedAgentProfile:
         try:
-            proto = ref._to_proto()
-            proto.kind = api_resource_kind_pb2.agent_share
-            return self._query.getSharedProfileForMember(proto)
+            return self._query.getSharedProfileForMember(io_pb2.AgentShareId(value=id))
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

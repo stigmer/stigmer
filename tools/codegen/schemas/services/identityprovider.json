@@ -235,7 +235,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization slug to look up SSO configuration for.",
+          "description": "Organization to look up SSO configuration for: its id, as the shared\n SSO sign-in link carries it, or its slug, as a person types it.",
           "required": false,
           "validation": {
             "minLength": 1

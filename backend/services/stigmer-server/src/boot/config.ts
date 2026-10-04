@@ -246,8 +246,8 @@ export interface ServerConfig {
    * Sandbox provisioner driver (SANDBOX_PROVISIONER_TYPE). ""
    * — the default — is the external-runner posture: no provisioner is
    * constructed and an operator-managed runner polls the queues (today's
-   * behavior, named). "local-process" / "docker" / "kubernetes" select
-   * the built-in isolation tiers (weakest to strongest); any other name
+   * behavior, named). "local-process" / "docker" / "agent-sandbox" /
+   * "substrate" select the built-in isolation tiers (weakest to strongest); any other name
    * selects a composition-registered driver, and an unknown name is a
    * boot throw. Routing coherence (a selected driver requires at least
    * one per-queue routing mode) is validated in compose.ts where the
@@ -290,7 +290,7 @@ export interface ServerConfig {
    */
   readonly sandboxRunnerCommand: string;
   /**
-   * The namespace the kubernetes driver provisions into
+   * The namespace the agent-sandbox driver provisions into
    * (STIGMER_SANDBOX_K8S_NAMESPACE) — one shared namespace, never
    * per-sandbox namespaces (the cloud provisioner's verified posture).
    */
@@ -352,8 +352,9 @@ export const DEFAULT_MODEL_REGISTRY_UPSTREAM = "https://api.stigmer.ai";
  * on every runner change to `main`. Only a bundled server knows its version
  * (the release lane stamps SERVER_VERSION into the server image, the
  * all-in-one image and @stigmer/server-slim); the @stigmer/server library
- * and an unbundled build report `dev`, and a dev-channel stamp has no
- * published image, so those fall back to `latest`, and a composition that
+ * and an unbundled build report `dev`, and neither a dev-channel stamp nor
+ * a local build (`0.0.0-local.<stamp>`) has a published image, so those
+ * fall back to `latest`, and a composition that
  * embeds the library names its image itself (the cloud selects the image
  * of the release it pins). isReleaseVersion is the one test of which
  * versions the release lane publishes.

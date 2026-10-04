@@ -9,8 +9,11 @@ package ai.stigmer.agentic.agentshare.v1;
  * <pre>
  * Input for resolving a share's public profile.
  *
- * Identifies the share by the org and slug from the hosted chat URL, plus
- * the link token when the share URL carries one.
+ * Identifies the share by its id, the one identity a hosted chat link
+ * carries (`/chat/&lt;share id&gt;`), plus the link token when the link carries
+ * one. A share id never changes and is never reused, so a link cannot be
+ * broken by a rename of the share's organization or captured by a later
+ * holder of that organization's name.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest}
@@ -35,8 +38,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private GetSharedProfileRequest() {
-    org_ = "";
-    slug_ = "";
+    shareId_ = "";
     linkToken_ = "";
   }
 
@@ -58,96 +60,47 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest.class, ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest.Builder.class);
   }
 
-  public static final int ORG_FIELD_NUMBER = 1;
+  public static final int SHARE_ID_FIELD_NUMBER = 4;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object org_ = "";
+  private volatile java.lang.Object shareId_ = "";
   /**
    * <pre>
-   * Organization from the share URL: its id, as links built from a share's
-   * stored org carry it, or its slug, as older links do.
+   * Id of the share, from the hosted chat link.
    * </pre>
    *
-   * <code>string org = 1 [json_name = "org"];</code>
-   * @return The org.
+   * <code>string share_id = 4 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
+   * @return The shareId.
    */
   @java.lang.Override
-  public java.lang.String getOrg() {
-    java.lang.Object ref = org_;
+  public java.lang.String getShareId() {
+    java.lang.Object ref = shareId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      org_ = s;
+      shareId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * Organization from the share URL: its id, as links built from a share's
-   * stored org carry it, or its slug, as older links do.
+   * Id of the share, from the hosted chat link.
    * </pre>
    *
-   * <code>string org = 1 [json_name = "org"];</code>
-   * @return The bytes for org.
+   * <code>string share_id = 4 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for shareId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrgBytes() {
-    java.lang.Object ref = org_;
+      getShareIdBytes() {
+    java.lang.Object ref = shareId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      org_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int SLUG_FIELD_NUMBER = 2;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object slug_ = "";
-  /**
-   * <pre>
-   * Share slug from the share URL.
-   * </pre>
-   *
-   * <code>string slug = 2 [json_name = "slug"];</code>
-   * @return The slug.
-   */
-  @java.lang.Override
-  public java.lang.String getSlug() {
-    java.lang.Object ref = slug_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      slug_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Share slug from the share URL.
-   * </pre>
-   *
-   * <code>string slug = 2 [json_name = "slug"];</code>
-   * @return The bytes for slug.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getSlugBytes() {
-    java.lang.Object ref = slug_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      slug_ = b;
+      shareId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -159,7 +112,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object linkToken_ = "";
   /**
    * <pre>
-   * Link token from the share URL's `?k=` parameter.
+   * Link token from the share link's `?k=` parameter.
    *
    * Required (and validated) only when the share link has been locked with
    * rotateShareLink; ignored for plain share links.
@@ -183,7 +136,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Link token from the share URL's `?k=` parameter.
+   * Link token from the share link's `?k=` parameter.
    *
    * Required (and validated) only when the share link has been locked with
    * rotateShareLink; ignored for plain share links.
@@ -221,14 +174,11 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, org_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(slug_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, slug_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(linkToken_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, linkToken_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(shareId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, shareId_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -239,14 +189,11 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, org_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(slug_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, slug_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(linkToken_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, linkToken_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(shareId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, shareId_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -263,10 +210,8 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest other = (ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest) obj;
 
-    if (!getOrg()
-        .equals(other.getOrg())) return false;
-    if (!getSlug()
-        .equals(other.getSlug())) return false;
+    if (!getShareId()
+        .equals(other.getShareId())) return false;
     if (!getLinkToken()
         .equals(other.getLinkToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -280,10 +225,8 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + ORG_FIELD_NUMBER;
-    hash = (53 * hash) + getOrg().hashCode();
-    hash = (37 * hash) + SLUG_FIELD_NUMBER;
-    hash = (53 * hash) + getSlug().hashCode();
+    hash = (37 * hash) + SHARE_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getShareId().hashCode();
     hash = (37 * hash) + LINK_TOKEN_FIELD_NUMBER;
     hash = (53 * hash) + getLinkToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -387,8 +330,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Input for resolving a share's public profile.
    *
-   * Identifies the share by the org and slug from the hosted chat URL, plus
-   * the link token when the share URL carries one.
+   * Identifies the share by its id, the one identity a hosted chat link
+   * carries (`/chat/&lt;share id&gt;`), plus the link token when the link carries
+   * one. A share id never changes and is never reused, so a link cannot be
+   * broken by a rename of the share's organization or captured by a later
+   * holder of that organization's name.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest}
@@ -424,8 +370,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      org_ = "";
-      slug_ = "";
+      shareId_ = "";
       linkToken_ = "";
       return this;
     }
@@ -461,12 +406,9 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.org_ = org_;
+        result.shareId_ = shareId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.slug_ = slug_;
-      }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.linkToken_ = linkToken_;
       }
     }
@@ -483,19 +425,14 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest other) {
       if (other == ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest.getDefaultInstance()) return this;
-      if (!other.getOrg().isEmpty()) {
-        org_ = other.org_;
+      if (!other.getShareId().isEmpty()) {
+        shareId_ = other.shareId_;
         bitField0_ |= 0x00000001;
-        onChanged();
-      }
-      if (!other.getSlug().isEmpty()) {
-        slug_ = other.slug_;
-        bitField0_ |= 0x00000002;
         onChanged();
       }
       if (!other.getLinkToken().isEmpty()) {
         linkToken_ = other.linkToken_;
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000002;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -524,21 +461,16 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 10: {
-              org_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000001;
-              break;
-            } // case 10
-            case 18: {
-              slug_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000002;
-              break;
-            } // case 18
             case 26: {
               linkToken_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 26
+            case 34: {
+              shareId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000001;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -556,23 +488,22 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object org_ = "";
+    private java.lang.Object shareId_ = "";
     /**
      * <pre>
-     * Organization from the share URL: its id, as links built from a share's
-     * stored org carry it, or its slug, as older links do.
+     * Id of the share, from the hosted chat link.
      * </pre>
      *
-     * <code>string org = 1 [json_name = "org"];</code>
-     * @return The org.
+     * <code>string share_id = 4 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
+     * @return The shareId.
      */
-    public java.lang.String getOrg() {
-      java.lang.Object ref = org_;
+    public java.lang.String getShareId() {
+      java.lang.Object ref = shareId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        org_ = s;
+        shareId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -580,21 +511,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization from the share URL: its id, as links built from a share's
-     * stored org carry it, or its slug, as older links do.
+     * Id of the share, from the hosted chat link.
      * </pre>
      *
-     * <code>string org = 1 [json_name = "org"];</code>
-     * @return The bytes for org.
+     * <code>string share_id = 4 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for shareId.
      */
     public com.google.protobuf.ByteString
-        getOrgBytes() {
-      java.lang.Object ref = org_;
+        getShareIdBytes() {
+      java.lang.Object ref = shareId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        org_ = b;
+        shareId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -602,145 +532,50 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization from the share URL: its id, as links built from a share's
-     * stored org carry it, or its slug, as older links do.
+     * Id of the share, from the hosted chat link.
      * </pre>
      *
-     * <code>string org = 1 [json_name = "org"];</code>
-     * @param value The org to set.
+     * <code>string share_id = 4 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
+     * @param value The shareId to set.
      * @return This builder for chaining.
      */
-    public Builder setOrg(
+    public Builder setShareId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      org_ = value;
+      shareId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Organization from the share URL: its id, as links built from a share's
-     * stored org carry it, or its slug, as older links do.
+     * Id of the share, from the hosted chat link.
      * </pre>
      *
-     * <code>string org = 1 [json_name = "org"];</code>
+     * <code>string share_id = 4 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrg() {
-      org_ = getDefaultInstance().getOrg();
+    public Builder clearShareId() {
+      shareId_ = getDefaultInstance().getShareId();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Organization from the share URL: its id, as links built from a share's
-     * stored org carry it, or its slug, as older links do.
+     * Id of the share, from the hosted chat link.
      * </pre>
      *
-     * <code>string org = 1 [json_name = "org"];</code>
-     * @param value The bytes for org to set.
+     * <code>string share_id = 4 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for shareId to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgBytes(
+    public Builder setShareIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      org_ = value;
+      shareId_ = value;
       bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object slug_ = "";
-    /**
-     * <pre>
-     * Share slug from the share URL.
-     * </pre>
-     *
-     * <code>string slug = 2 [json_name = "slug"];</code>
-     * @return The slug.
-     */
-    public java.lang.String getSlug() {
-      java.lang.Object ref = slug_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        slug_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Share slug from the share URL.
-     * </pre>
-     *
-     * <code>string slug = 2 [json_name = "slug"];</code>
-     * @return The bytes for slug.
-     */
-    public com.google.protobuf.ByteString
-        getSlugBytes() {
-      java.lang.Object ref = slug_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        slug_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Share slug from the share URL.
-     * </pre>
-     *
-     * <code>string slug = 2 [json_name = "slug"];</code>
-     * @param value The slug to set.
-     * @return This builder for chaining.
-     */
-    public Builder setSlug(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      slug_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Share slug from the share URL.
-     * </pre>
-     *
-     * <code>string slug = 2 [json_name = "slug"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearSlug() {
-      slug_ = getDefaultInstance().getSlug();
-      bitField0_ = (bitField0_ & ~0x00000002);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Share slug from the share URL.
-     * </pre>
-     *
-     * <code>string slug = 2 [json_name = "slug"];</code>
-     * @param value The bytes for slug to set.
-     * @return This builder for chaining.
-     */
-    public Builder setSlugBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      slug_ = value;
-      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -748,7 +583,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object linkToken_ = "";
     /**
      * <pre>
-     * Link token from the share URL's `?k=` parameter.
+     * Link token from the share link's `?k=` parameter.
      *
      * Required (and validated) only when the share link has been locked with
      * rotateShareLink; ignored for plain share links.
@@ -771,7 +606,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Link token from the share URL's `?k=` parameter.
+     * Link token from the share link's `?k=` parameter.
      *
      * Required (and validated) only when the share link has been locked with
      * rotateShareLink; ignored for plain share links.
@@ -795,7 +630,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Link token from the share URL's `?k=` parameter.
+     * Link token from the share link's `?k=` parameter.
      *
      * Required (and validated) only when the share link has been locked with
      * rotateShareLink; ignored for plain share links.
@@ -809,13 +644,13 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       linkToken_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Link token from the share URL's `?k=` parameter.
+     * Link token from the share link's `?k=` parameter.
      *
      * Required (and validated) only when the share link has been locked with
      * rotateShareLink; ignored for plain share links.
@@ -826,13 +661,13 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearLinkToken() {
       linkToken_ = getDefaultInstance().getLinkToken();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Link token from the share URL's `?k=` parameter.
+     * Link token from the share link's `?k=` parameter.
      *
      * Required (and validated) only when the share link has been locked with
      * rotateShareLink; ignored for plain share links.
@@ -847,7 +682,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       linkToken_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }

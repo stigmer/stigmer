@@ -53,9 +53,9 @@ export interface UseSharedAgentProfileReturn {
 }
 
 /**
- * Data hook that fetches a shared agent's public profile by the org and
- * slug from the share URL (the share's slug — it defaults to the
- * agent's, so existing links resolve unchanged).
+ * Data hook that fetches a shared agent's public profile by the share's
+ * id, the one identity a hosted chat link carries (`/chat/<share id>`).
+ * The profile names the share's organization (`org`) and slug.
  *
  * By default this hook calls the `getSharedProfile` endpoint, which is
  * **public** — it requires no authentication. The server returns a
@@ -75,8 +75,8 @@ export interface UseSharedAgentProfileReturn {
  * `useAgent`'s not-found convention:
  * `profile === null && !isLoading && !error` means unavailable.
  *
- * Pass `null` for either `org` or `slug` to skip fetching (stable
- * no-op) — useful while route params are still resolving.
+ * Pass `null` for `shareId` to skip fetching (stable no-op) — useful
+ * while route params are still resolving.
  *
  * **Note**: Although authentication is not required by the server,
  * the hook still requires a `StigmerProvider` ancestor because it
@@ -85,7 +85,7 @@ export interface UseSharedAgentProfileReturn {
  *
  * @example
  * ```tsx
- * const { profile, isLoading, error } = useSharedAgentProfile(org, slug);
+ * const { profile, isLoading, error } = useSharedAgentProfile(shareId);
  *
  * if (isLoading) return <Spinner />;
  * if (error) return <ErrorCard error={error} />;
@@ -95,8 +95,7 @@ export interface UseSharedAgentProfileReturn {
  * ```
  */
 export function useSharedAgentProfile(
-  org: string | null,
-  slug: string | null,
+  shareId: string | null,
   options?: UseSharedAgentProfileOptions,
 ): UseSharedAgentProfileReturn {
   const stigmer = useStigmer();
@@ -104,16 +103,16 @@ export function useSharedAgentProfile(
   const linkToken = options?.linkToken ?? "";
 
   const fetchFn =
-    org && slug
+    shareId
       ? async () => {
           try {
             // The member path is tokenless by contract: org-audience access
             // is gated by live membership, and token-locked public shares
             // deliberately refuse there (see getSharedProfileForMember).
             return audience === "org"
-              ? await stigmer.agentShare.getSharedProfileForMember({ org, slug })
+              ? await stigmer.agentShare.getSharedProfileForMember(shareId)
               : await stigmer.agentShare.getSharedProfile(
-                  create(GetSharedProfileRequestSchema, { org, slug, linkToken }),
+                  create(GetSharedProfileRequestSchema, { shareId, linkToken }),
                 );
           } catch (err) {
             if (isNotFound(err)) return null;
@@ -124,7 +123,7 @@ export function useSharedAgentProfile(
 
   const { data: profile, isLoading, isRefetching, error, refetch } = useFetch(
     fetchFn,
-    [org, slug, audience, linkToken, stigmer],
+    [shareId, audience, linkToken, stigmer],
     null as SharedAgentProfile | null,
   );
 

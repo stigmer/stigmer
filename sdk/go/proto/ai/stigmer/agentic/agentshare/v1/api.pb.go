@@ -26,7 +26,7 @@ const (
 // AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.
 //
 // A share is a distribution channel: it controls who can chat with the
-// referenced agent over `/chat/<org>/<slug>`, which sites may embed the
+// referenced agent over `/chat/<share id>`, which sites may embed the
 // chat widget, what visitors see when a limit refuses them, and which
 // environment credentials guest conversations receive. Deleting the share
 // tears the channel down; disabling it pauses serving while preserving
@@ -40,10 +40,10 @@ type AgentShare struct {
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Resource metadata including name, organization, and labels.
 	//
-	// The org and slug form the share's hosted chat URL
-	// (`/chat/<org>/<slug>`). The slug defaults to the referenced agent's
-	// slug and is immutable once created — to change a link, create a new
-	// share and delete the old one.
+	// The id forms the share's hosted chat link (`/chat/<share id>`). The
+	// slug names the share within its org, defaults to the referenced
+	// agent's slug and is immutable once created. To retire a leaked link
+	// while keeping the share, lock it with rotateShareLink.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Configurable properties: referenced agent, audience, origins, messages, and credentials.
 	Spec *AgentShareSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`

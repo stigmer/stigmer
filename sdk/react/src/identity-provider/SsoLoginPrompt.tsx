@@ -167,6 +167,16 @@ export function SsoLoginPrompt({
 // Phase resolution
 // ---------------------------------------------------------------------------
 
+/**
+ * The organization as the prompt may name it to a person: the slug they
+ * typed, or nothing when a shared sign-in link names the organization by its
+ * minted id (`org_` and 26 lowercase base-32 characters), which means nothing
+ * to the person reading it. The lookup itself takes either form.
+ */
+function readableOrg(org: string): string | undefined {
+  return /^org_[0-9a-z]{26}$/.test(org) ? undefined : org;
+}
+
 function resolvePhase(
   submittedOrg: string | null,
   isLoading: boolean,
@@ -241,15 +251,22 @@ const OrgInputForm = forwardRef<HTMLInputElement, OrgInputFormProps>(
 );
 
 function LoadingState({ org }: { org: string }) {
+  const name = readableOrg(org);
   return (
     <LoadingRegion
       className="stg:flex stg:flex-col stg:items-center stg:gap-3 stg:py-4"
-      label={`Looking up SSO provider for ${org}`}
+      label={name ? `Looking up SSO provider for ${name}` : "Looking up SSO provider"}
     >
       <SpinnerIcon size={20} className="stg:text-muted-foreground" />
       {/* The hidden label says it in full; this is its short visible form. */}
       <p className="stg:text-sm stg:text-muted-foreground" aria-hidden="true">
-        Looking up <span className="stg:font-medium stg:text-foreground">{org}</span>&hellip;
+        {name ? (
+          <>
+            Looking up <span className="stg:font-medium stg:text-foreground">{name}</span>&hellip;
+          </>
+        ) : (
+          <>Looking up SSO provider&hellip;</>
+        )}
       </p>
     </LoadingRegion>
   );
@@ -268,14 +285,19 @@ function FoundState({
   onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void;
   onChangeOrg: () => void;
 }) {
+  // A link that names the organization by id shows no name here: the
+  // button below names the provider the person signs in with.
+  const name = readableOrg(org);
   return (
     <div className="stg:space-y-4">
-      <div className="stg:text-center">
-        <p className="stg:text-xs stg:text-muted-foreground">
-          Signing in to{" "}
-          <span className="stg:font-medium stg:text-foreground">{org}</span>
-        </p>
-      </div>
+      {name && (
+        <div className="stg:text-center">
+          <p className="stg:text-xs stg:text-muted-foreground">
+            Signing in to{" "}
+            <span className="stg:font-medium stg:text-foreground">{name}</span>
+          </p>
+        </div>
+      )}
 
       <button
         type="button"
@@ -315,8 +337,14 @@ function NotFoundState({
   return (
     <div className="stg:space-y-3 stg:text-center">
       <p className="stg:text-sm stg:text-muted-foreground">
-        No SSO provider configured for{" "}
-        <span className="stg:font-medium stg:text-foreground">{org}</span>.
+        {readableOrg(org) ? (
+          <>
+            No SSO provider configured for{" "}
+            <span className="stg:font-medium stg:text-foreground">{org}</span>.
+          </>
+        ) : (
+          <>No SSO provider is configured for this sign-in link.</>
+        )}
       </p>
       <button
         type="button"

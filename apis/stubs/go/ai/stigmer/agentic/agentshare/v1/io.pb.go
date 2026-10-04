@@ -309,16 +309,16 @@ func (x *RotateShareLinkInput) GetResourceId() string {
 
 // Input for resolving a share's public profile.
 //
-// Identifies the share by the org and slug from the hosted chat URL, plus
-// the link token when the share URL carries one.
+// Identifies the share by its id, the one identity a hosted chat link
+// carries (`/chat/<share id>`), plus the link token when the link carries
+// one. A share id never changes and is never reused, so a link cannot be
+// broken by a rename of the share's organization or captured by a later
+// holder of that organization's name.
 type GetSharedProfileRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization from the share URL: its id, as links built from a share's
-	// stored org carry it, or its slug, as older links do.
-	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Share slug from the share URL.
-	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
-	// Link token from the share URL's `?k=` parameter.
+	// Id of the share, from the hosted chat link.
+	ShareId string `protobuf:"bytes,4,opt,name=share_id,json=shareId,proto3" json:"share_id,omitempty"`
+	// Link token from the share link's `?k=` parameter.
 	//
 	// Required (and validated) only when the share link has been locked with
 	// rotateShareLink; ignored for plain share links.
@@ -357,16 +357,9 @@ func (*GetSharedProfileRequest) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GetSharedProfileRequest) GetOrg() string {
+func (x *GetSharedProfileRequest) GetShareId() string {
 	if x != nil {
-		return x.Org
-	}
-	return ""
-}
-
-func (x *GetSharedProfileRequest) GetSlug() string {
-	if x != nil {
-		return x.Slug
+		return x.ShareId
 	}
 	return ""
 }
@@ -388,10 +381,12 @@ func (x *GetSharedProfileRequest) GetLinkToken() string {
 // and start a session.
 type SharedAgentProfile struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization that owns the share.
+	// Id of the organization that owns the share. The hosted chat page
+	// creates the visitor's session in it.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Slug of the share (unique within the org).
-	// Together with org, this is the identity in the hosted chat URL.
+	// Slug of the share: its name within its organization, as the CLI and
+	// getByReference address it. The hosted chat link names the share by
+	// its id, never by this slug.
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
 	// Human-readable agent name for the chat page header.
 	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
@@ -483,9 +478,9 @@ var File_ai_stigmer_agentic_agentshare_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\",\n" +
-	"\fAgentShareId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x92\x01\n" +
+	")ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"1\n" +
+	"\fAgentShareId\x12!\n" +
+	"\x05value\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x05value\"\x92\x01\n" +
 	"\x1cGetAgentSharesByAgentRequest\x12!\n" +
 	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12=\n" +
 	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x12\x10\n" +
@@ -503,12 +498,11 @@ const file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"?\n" +
 	"\x14RotateShareLinkInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"resourceId\"h\n" +
-	"\x17GetSharedProfileRequest\x12\x10\n" +
-	"\x03org\x18\x01 \x01(\tR\x03org\x12\x12\n" +
-	"\x04slug\x18\x02 \x01(\tR\x04slug\x12'\n" +
+	"resourceId\"\x81\x01\n" +
+	"\x17GetSharedProfileRequest\x12&\n" +
+	"\bshare_id\x18\x04 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\ashareId\x12'\n" +
 	"\n" +
-	"link_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkToken\"\xbb\x01\n" +
+	"link_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkTokenJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x03orgR\x04slug\"\xbb\x01\n" +
 	"\x12SharedAgentProfile\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x12\x12\n" +
 	"\x04slug\x18\x02 \x01(\tR\x04slug\x12\x12\n" +

@@ -142,6 +142,8 @@ export class CloudTarget implements TargetProfile {
     billingPlans: true,
     sideChannelProxy: true,
     publicLane: true,
+    // The sharing unit mints guest tokens by share id.
+    guestMinting: true,
   };
 
   private grpcBaseUrl: string | undefined;

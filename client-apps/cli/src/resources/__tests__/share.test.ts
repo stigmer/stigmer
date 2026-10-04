@@ -4,7 +4,9 @@
 // messages, credential bindings, or the audience. A share from another
 // organization's context is refused naming both organizations by slug, and
 // only when the server says they differ: a lookup that fails for another
-// reason is reported as itself.
+// reason is reported as itself. The printed chat link and embed name the
+// share by its id alone (`/chat/<share id>`, `share="<share id>"`), never its
+// organization or slug.
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -36,13 +38,17 @@ interface ShareFixture {
   shareLinkToken?: string;
 }
 
+// The fixture share's id: the one identity its hosted link carries.
+const SHARE_ID = "ash_01ARZ3NDEKTSV4RRFFQ69G5FAV";
+const CLOUD_LINK = `https://app.stigmer.ai/chat/${SHARE_ID}`;
+
 // Plain-object AgentShare fixture: the CLI reads it structurally (metadata /
 // spec / status), so proto construction adds nothing here.
 function makeShare(fixture: ShareFixture = {}) {
   const { shareLinkToken, slug, ...spec } = fixture;
   return {
     metadata: {
-      id: "ash_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      id: SHARE_ID,
       org: "acme",
       slug: slug ?? "support-agent",
       name: "Support Agent",
@@ -219,8 +225,9 @@ describe("shareAgent merge-preservation (fails closed)", () => {
     // Applying with the agent's slug would CREATE a second share; the
     // toggle must target the existing row's identity.
     expect(applies[0].slug).toBe("help-desk");
+    // The link names the share by its id, so the rename never reaches it.
     const link = result.sections.find((s) => s.title === "Public chat link");
-    expect(link?.items).toEqual(["https://app.stigmer.ai/chat/acme/help-desk"]);
+    expect(link?.items).toEqual([CLOUD_LINK]);
   });
 
   it("a plain toggle preserves an org-members-only audience (never reverts to public)", async () => {
@@ -264,7 +271,7 @@ describe("shareAgent audience", () => {
     // Org shares print the member link and NO embed snippet (embeds serve
     // anonymous guests, which org shares refuse).
     const link = result.sections.find((s) => s.title === "Member chat link");
-    expect(link?.items).toEqual(["https://app.stigmer.ai/chat/acme/support-agent"]);
+    expect(link?.items).toEqual([CLOUD_LINK]);
     expect(result.sections.find((s) => s.title === "Embed on your site")).toBeUndefined();
     expect(result.hints.some((h) => h.includes("signed-in members"))).toBe(true);
     expect(result.hints.some((h) => h.includes("search engines"))).toBe(false);
@@ -323,7 +330,7 @@ describe("shareAgent idempotency", () => {
     expect(applies).toHaveLength(0);
     expect(result.message).toContain("already on");
     const link = result.sections.find((s) => s.title === "Public chat link");
-    expect(link?.items).toEqual(["https://app.stigmer.ai/chat/acme/support-agent"]);
+    expect(link?.items).toEqual([CLOUD_LINK]);
   });
 
   it("skips the write when sharing is already disabled", async () => {
@@ -348,13 +355,13 @@ describe("shareAgent idempotency", () => {
 });
 
 describe("shareAgent output", () => {
-  it("builds the link and snippet from the RESOLVED share's org/slug (ID refs included)", async () => {
+  it("builds the link and snippet from the RESOLVED share's id (ID refs included)", async () => {
     const { client } = fakeClient(makeAgent(), makeShare({ enabled: false }));
 
     const result = await shareAgent(client, "agt_01ARZ3NDEKTSV4RRFFQ69G5FAV", "", { enabled: true, ...CLOUD });
 
     const link = result.sections.find((s) => s.title === "Public chat link");
-    expect(link?.items).toEqual(["https://app.stigmer.ai/chat/acme/support-agent"]);
+    expect(link?.items).toEqual([CLOUD_LINK]);
   });
 
   it("emits the exact embed snippet the web share dialog emits", async () => {
@@ -363,7 +370,8 @@ describe("shareAgent output", () => {
     const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     const embed = result.sections.find((s) => s.title === "Embed on your site");
-    expect(embed?.items.join("\n")).toBe(buildEmbedSnippet("https://app.stigmer.ai", "acme", "support-agent"));
+    expect(embed?.items.join("\n")).toBe(buildEmbedSnippet("https://app.stigmer.ai", SHARE_ID));
+    expect(embed?.items).toContain(`<stigmer-agent share="${SHARE_ID}"></stigmer-agent>`);
   });
 
   it("includes the who-pays and indexability hints", async () => {
@@ -375,7 +383,7 @@ describe("shareAgent output", () => {
     expect(result.hints.some((h) => h.includes("search engines"))).toBe(true);
   });
 
-  it("names the organization by its slug in what a person reads, while the link carries its id", async () => {
+  it("names the organization by its slug in what a person reads, while the link names only the share", async () => {
     const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
     const agent = makeAgent();
     agent.metadata!.org = ACME_ID;
@@ -393,7 +401,8 @@ describe("shareAgent output", () => {
     expect(enabled.hints.some((h) => h.includes("acme's credits"))).toBe(true);
     expect(enabled.hints.some((h) => h.includes(ACME_ID))).toBe(false);
     const link = enabled.sections.find((s) => s.title === "Public chat link");
-    expect(link?.items).toEqual([`https://app.stigmer.ai/chat/${ACME_ID}/support-agent`]);
+    expect(link?.items).toEqual([CLOUD_LINK]);
+    expect(link?.items[0]).not.toContain(ACME_ID);
 
     const disabled = await shareAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
     expect(disabled.hints).toContain("  stigmer share agent acme/support-agent");
@@ -405,7 +414,7 @@ describe("shareAgent output", () => {
     const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...LOCAL });
 
     const link = result.sections.find((s) => s.title === "Public chat link");
-    expect(link?.items).toEqual(["http://localhost:7234/chat/acme/support-agent"]);
+    expect(link?.items).toEqual([`http://localhost:7234/chat/${SHARE_ID}`]);
     expect(result.hints.some((h) => h.includes("Stigmer Cloud"))).toBe(true);
   });
 
@@ -439,11 +448,11 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
 
     const link = result.sections.find((s) => s.title === "Public chat link");
     expect(link?.items).toEqual([
-      "https://app.stigmer.ai/chat/acme/support-agent?k=fresh-token",
+      `${CLOUD_LINK}?k=fresh-token`,
     ]);
     const embed = result.sections.find((s) => s.title === "Embed on your site");
     expect(embed?.items.join("\n")).toBe(
-      buildEmbedSnippet("https://app.stigmer.ai", "acme", "support-agent", "fresh-token"),
+      buildEmbedSnippet("https://app.stigmer.ai", SHARE_ID, "fresh-token"),
     );
     expect(result.hints.some((h) => h.includes("Re-share the new link"))).toBe(true);
   });
@@ -464,7 +473,7 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
     expect(rotationCount()).toBe(1);
     const link = result.sections.find((s) => s.title === "Public chat link");
     expect(link?.items).toEqual([
-      "https://app.stigmer.ai/chat/acme/support-agent?k=fresh-token",
+      `${CLOUD_LINK}?k=fresh-token`,
     ]);
   });
 
@@ -484,7 +493,7 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
     expect(rotationCount()).toBe(0);
     const link = result.sections.find((s) => s.title === "Public chat link");
     expect(link?.items).toEqual([
-      "https://app.stigmer.ai/chat/acme/support-agent?k=existing-token",
+      `${CLOUD_LINK}?k=existing-token`,
     ]);
   });
 
@@ -523,7 +532,7 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
     });
 
     const link = result.sections.find((s) => s.title === "Member chat link");
-    expect(link?.items).toEqual(["https://app.stigmer.ai/chat/acme/support-agent"]);
+    expect(link?.items).toEqual([CLOUD_LINK]);
   });
 });
 

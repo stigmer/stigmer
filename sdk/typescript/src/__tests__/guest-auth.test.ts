@@ -19,8 +19,7 @@ import { createGuestAuth, GuestAuth, type GuestIdStorage } from "../guest-auth";
 
 const CONFIG = {
   baseUrl: "https://api.stigmer.ai",
-  org: "acme",
-  slug: "support-agent",
+  shareId: "ash_support",
 };
 
 function createMemoryStorage(): GuestIdStorage & { store: Map<string, string> } {
@@ -63,15 +62,9 @@ describe("createGuestAuth", () => {
     ).toThrow("baseUrl is required");
   });
 
-  it("throws when org is missing", () => {
-    expect(() => createGuestAuth({ ...CONFIG, org: "" })).toThrow(
-      "org is required",
-    );
-  });
-
-  it("throws when slug is missing", () => {
-    expect(() => createGuestAuth({ ...CONFIG, slug: "" })).toThrow(
-      "slug is required",
+  it("throws when shareId is missing", () => {
+    expect(() => createGuestAuth({ ...CONFIG, shareId: "" })).toThrow(
+      "shareId is required",
     );
   });
 
@@ -90,8 +83,7 @@ describe("GuestAuth.getAccessToken", () => {
     expect(token).toBe("guest-jwt-1");
     expect(mintGuestToken).toHaveBeenCalledTimes(1);
     expect(mintGuestToken.mock.calls[0][0]).toMatchObject({
-      org: "acme",
-      slug: "support-agent",
+      shareId: "ash_support",
       guestCookieId: "",
       // No embedOrigin configured (the unframed hosted page): the field
       // must stay empty so the server's absence-means-exempt rule applies.
@@ -171,7 +163,7 @@ describe("GuestAuth.getAccessToken", () => {
     const auth = createGuestAuth({ ...CONFIG, storage });
 
     await auth.getAccessToken();
-    expect(storage.store.get("stigmer:guest-id:acme")).toBe("cookie-abc");
+    expect(storage.store.get("stigmer:guest-id:ash_support")).toBe("cookie-abc");
     expect(auth.guestCookieId).toBe("cookie-abc");
 
     // Expire the cached token, forcing a second mint.
@@ -186,7 +178,7 @@ describe("GuestAuth.getAccessToken", () => {
 
   it("restores a persisted guest id from a prior visit", async () => {
     const storage = createMemoryStorage();
-    storage.setItem("stigmer:guest-id:acme", "cookie-from-last-visit");
+    storage.setItem("stigmer:guest-id:ash_support", "cookie-from-last-visit");
     mintGuestToken.mockResolvedValue(mintResponse());
     const auth = createGuestAuth({ ...CONFIG, storage });
 

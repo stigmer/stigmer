@@ -16,12 +16,15 @@ Open the Agent's **Share** dialog and copy the code from the **Embed** tab:
 
 ```html
 <script src="https://app.stigmer.ai/embed.js" async></script>
-<stigmer-agent org="acme" agent="support-agent"></stigmer-agent>
+<stigmer-agent share="ash_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
 ```
 
 Paste it where you want the chat to appear. The `<script>` tag loads once per
 page, even if you embed several Agents. The `<stigmer-agent>` tag marks the spot
-where the chat renders.
+where the chat renders, and its `share` attribute names the share by its
+permanent ID — so renaming your Organization never breaks the embed. If you
+reset the share's link, the snippet also carries a `token` attribute; re-copy it
+after every reset.
 
 If you run your own Stigmer server, the dialog fills in your server's address
 automatically — the snippet works the same way.
@@ -33,8 +36,7 @@ that — a plain number is px, or use any CSS length with a unit:
 
 ```html
 <stigmer-agent
-  org="acme"
-  agent="support-agent"
+  share="ash_01j9z3k8f2q4m6n7p8r9s0t1v2"
   width="320"
   height="80vh"
   theme="dark"
@@ -91,7 +93,7 @@ import "@stigmer/embed/jsx"; // TypeScript: makes it a valid JSX element
 ```
 
 Then render
-`<stigmer-agent org="acme" agent="support-agent" app-origin="https://app.stigmer.ai" />`
+`<stigmer-agent share="ash_01j9z3k8f2q4m6n7p8r9s0t1v2" app-origin="https://app.stigmer.ai" />`
 anywhere in your markup. The `app-origin` attribute replaces what the script
 tag's URL normally provides.
 

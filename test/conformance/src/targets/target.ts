@@ -380,6 +380,16 @@ export interface CapabilityFlags {
   // OSS targets — BY THE EDITION BOUNDARY: no marketing site fronts a
   // self-host; the suites skip.
   publicLane: boolean;
+  // PlatformClientTokenController.mintGuestToken mints here: a unit composes
+  // the guest-token capability (`drivers.guestTokenMinting`) that turns a
+  // share id from a hosted chat link into a short-lived guest token for the
+  // share's organization.
+  //
+  // True for cloud, whose sharing unit mints for real. False for the local
+  // OSS targets BY DESIGN: the empty composition has no capability, so the
+  // RPC answers UNIMPLEMENTED with the edition sentence; where false, the
+  // suite PINS that refusal.
+  guestMinting: boolean;
 }
 
 // The Stripe webhook lane as the suite drives it: where the composition
