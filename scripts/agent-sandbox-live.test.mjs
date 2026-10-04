@@ -15,6 +15,7 @@ import { test } from "node:test";
 import {
   AGENT_SANDBOX_VERSION,
   clusterListed,
+  isInterrupt,
   ownsAfterFailedCreate,
   shouldDiagnose,
   teardownAction,
@@ -115,11 +116,20 @@ test("an interrupted create's leftovers are the run's; a name another run took a
   assert.equal(ownsAfterFailedCreate({ interrupted: false, listedNow: true }), false);
 });
 
-test("the teardown deletes only a name the run owns, and keeps it for --keep", () => {
-  assert.equal(teardownAction({ owned: false, keep: false }), "none");
-  assert.equal(teardownAction({ owned: false, keep: true }), "none");
-  assert.equal(teardownAction({ owned: true, keep: true }), "keep");
-  assert.equal(teardownAction({ owned: true, keep: false }), "delete");
+test("the teardown deletes only a name the run owns, and keeps it for --keep once it came up", () => {
+  assert.equal(teardownAction({ owned: false, keep: false, ready: true }), "none");
+  assert.equal(teardownAction({ owned: false, keep: true, ready: true }), "none");
+  assert.equal(teardownAction({ owned: true, keep: true, ready: true }), "keep");
+  assert.equal(teardownAction({ owned: true, keep: true, ready: false }), "delete");
+  assert.equal(teardownAction({ owned: true, keep: false, ready: true }), "delete");
+});
+
+test("only an interrupt is an interrupt: SIGINT and SIGTERM, not the OOM killer's SIGKILL", () => {
+  assert.equal(isInterrupt("SIGINT"), true);
+  assert.equal(isInterrupt("SIGTERM"), true);
+  assert.equal(isInterrupt("SIGKILL"), false);
+  assert.equal(isInterrupt(null), false);
+  assert.equal(isInterrupt(undefined), false);
 });
 
 test("a red run is diagnosed once its cluster answers, a setup step's included, but never after an interrupt", () => {
