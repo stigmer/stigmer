@@ -6,7 +6,7 @@
 import { generateSlug, enumFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, McpServerUsageSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -27,8 +27,10 @@ export const AgentInputShape = {
   instructions: z.string().optional().describe("System prompt defining the agent's behavior and personality."),
   mcp_server_usages: z.array(z.lazy(() => McpServerUsageInputSchema)).optional().describe("MCP servers this agent can use. Each entry must reference a unique McpServer resource by slug."),
   skill_refs: z.array(z.lazy(() => SkillRefInputSchema)).optional().describe("Skill resources providing additional knowledge to the agent."),
-  sub_agents: z.array(z.lazy(() => SubAgentInputSchema)).optional().describe("Sub-agents that can be delegated to. Sub-agents can access a subset of the parent's MCP servers and tools."),
+  sub_agents: z.array(z.lazy(() => SubAgentInputSchema)).optional().describe("Sub-agents that can be delegated to. A sub-agent starts from this agent's tools and may narrow them with its own tool lists, never widen them."),
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality."),
+  tools: z.array(z.string()).optional().describe("Tools this agent may use; empty means every tool it has. Entries use Claude Code's names: a built-in such as Read, Grep, Bash, Write, Edit, Glob, Agent or WebFetch; mcp__<server-slug> for every tool of one MCP server, mcp__<server-slug>__<tool> for one tool, and mcp__* for every MCP tool. A specifier in parentheses, as in Bash(git push *), is accepted and governs the whole tool. Agent(explore, shell) also limits which sub-agents this agent may start; the Cursor engine cannot hold its built-in sub-agents back, so it refuses a turn whose agent limits Agent to types. The lists hold on both engines, and under 'approve everything' too."),
+  disallowed_tools: z.array(z.string()).optional().describe("Tools this agent may never use, in the same names as tools. Applied before tools, so a tool named in both is excluded."),
 } as const;
 
 export const AgentInputSchema = z.object(AgentInputShape);
@@ -40,17 +42,8 @@ const McpServerRefInputSchema = z.object({
 });
 type McpServerRefInput = z.infer<typeof McpServerRefInputSchema>;
 
-const ToolApprovalOverrideInputSchema = z.object({
-  tool_name: z.string().optional().describe("Name of the tool to override."),
-  requires_approval: z.boolean().optional().describe("Whether this tool requires approval for this agent."),
-  message: z.string().optional().describe("Custom approval message shown to the reviewer. Supports {{args.field}} placeholders. When empty, falls back to the McpServer default or auto-generates 'Execute tool: {tool_name}'."),
-});
-type ToolApprovalOverrideInput = z.infer<typeof ToolApprovalOverrideInputSchema>;
-
 const McpServerUsageInputSchema = z.object({
   mcp_server_ref: z.lazy(() => McpServerRefInputSchema).describe("Reference to the McpServer resource."),
-  enabled_tools: z.array(z.string()).optional().describe("Tools to enable from this MCP server for this agent. Empty list uses the McpServer's default_enabled_tools. Sub-agents can only restrict this set further, not expand it."),
-  tool_approval_overrides: z.array(z.lazy(() => ToolApprovalOverrideInputSchema)).optional().describe("Override approval requirements for specific tools. Takes precedence over McpServerSpec.pinned_tool_approvals and McpServerStatus.tool_approvals. Scoped to THIS usage's server: an override applies only to tools of the McpServer referenced by mcp_server_ref — a same-named tool on another server is unaffected."),
 });
 type McpServerUsageInput = z.infer<typeof McpServerUsageInputSchema>;
 
@@ -61,19 +54,14 @@ const SkillRefInputSchema = z.object({
 });
 type SkillRefInput = z.infer<typeof SkillRefInputSchema>;
 
-const McpAccessInputSchema = z.object({
-  mcp_server: z.string().describe("Slug of the McpServer to grant access to. Must match a mcp_server_ref.slug from the parent's mcp_server_usages."),
-  enabled_tools: z.array(z.string()).optional().describe("Tools this sub-agent can use from this MCP server. Must be a subset of the parent's enabled_tools for this server. Empty list grants access to all tools the parent has enabled."),
-});
-type McpAccessInput = z.infer<typeof McpAccessInputSchema>;
-
 const SubAgentInputSchema = z.object({
   name: z.string().describe("Unique name of the sub-agent within the parent agent."),
   description: z.string().optional().describe("What this sub-agent specializes in."),
   instructions: z.string().optional().describe("System prompt for this sub-agent."),
-  mcp_access: z.array(z.lazy(() => McpAccessInputSchema)).optional().describe("MCP server access grants for this sub-agent. Each entry references a parent McpServerUsage by slug and optionally restricts which tools are available."),
   skill_refs: z.array(z.lazy(() => SkillRefInputSchema)).optional().describe("Skill resources for this sub-agent."),
   model_override: z.string().optional().describe("Model override for this sub-agent. When set, uses this model instead of the parent's model. When empty, inherits the parent agent's model."),
+  tools: z.array(z.string()).optional().describe("Tools this sub-agent may use, from what the parent may use; empty means all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent, the type list of an Agent(...) entry is ignored, as in Claude Code. The Cursor engine cannot tell which sub-agent made a call, so it refuses a turn whose sub-agent carries its own lists; the native engine runs it."),
+  disallowed_tools: z.array(z.string()).optional().describe("Tools this sub-agent may never use, in the same names as tools."),
 });
 type SubAgentInput = z.infer<typeof SubAgentInputSchema>;
 
@@ -98,6 +86,8 @@ export function agentInputToProto(input: AgentInput): Agent {
   if (input.env !== undefined) {
     for (const [k, v] of Object.entries(input.env)) spec.env[k] = envVarDeclarationInputToProto(v);
   }
+  if (input.tools !== undefined) spec.tools = input.tools;
+  if (input.disallowed_tools !== undefined) spec.disallowedTools = input.disallowed_tools;
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -121,19 +111,9 @@ function mcpServerRefInputToProto(input: McpServerRefInput) {
   });
 }
 
-function toolApprovalOverrideInputToProto(input: ToolApprovalOverrideInput) {
-  const result = create(ToolApprovalOverrideSchema);
-  if (input.tool_name !== undefined) result.toolName = input.tool_name;
-  if (input.requires_approval !== undefined) result.requiresApproval = input.requires_approval;
-  if (input.message !== undefined) result.message = input.message;
-  return result;
-}
-
 function mcpServerUsageInputToProto(input: McpServerUsageInput) {
   const result = create(McpServerUsageSchema);
   if (input.mcp_server_ref !== undefined) result.mcpServerRef = mcpServerRefInputToProto(input.mcp_server_ref);
-  if (input.enabled_tools !== undefined) result.enabledTools = input.enabled_tools;
-  if (input.tool_approval_overrides !== undefined) result.toolApprovalOverrides = input.tool_approval_overrides.map(toolApprovalOverrideInputToProto);
   return result;
 }
 
@@ -146,21 +126,15 @@ function skillRefInputToProto(input: SkillRefInput) {
   });
 }
 
-function mcpAccessInputToProto(input: McpAccessInput) {
-  const result = create(McpAccessSchema);
-  if (input.mcp_server !== undefined) result.mcpServer = input.mcp_server;
-  if (input.enabled_tools !== undefined) result.enabledTools = input.enabled_tools;
-  return result;
-}
-
 function subAgentInputToProto(input: SubAgentInput) {
   const result = create(SubAgentSchema);
   if (input.name !== undefined) result.name = input.name;
   if (input.description !== undefined) result.description = input.description;
   if (input.instructions !== undefined) result.instructions = input.instructions;
-  if (input.mcp_access !== undefined) result.mcpAccess = input.mcp_access.map(mcpAccessInputToProto);
   if (input.skill_refs !== undefined) result.skillRefs = input.skill_refs.map(skillRefInputToProto);
   if (input.model_override !== undefined) result.modelOverride = input.model_override;
+  if (input.tools !== undefined) result.tools = input.tools;
+  if (input.disallowed_tools !== undefined) result.disallowedTools = input.disallowed_tools;
   return result;
 }
 

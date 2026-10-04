@@ -1,10 +1,18 @@
 /**
  * Agent domain-local pipeline steps — port the inline steps of
  * pkg/domain/agent/controller/ (create.go, delete_cascade.go,
- * get_default.go, merge_mcp_env_specs.go, validate_enabled_tools.go).
+ * get_default.go, merge_mcp_env_specs.go).
  * Shared steps stay in src/pipeline/steps/; these exist because they
  * embody agent-specific contracts: the default-instance choreography, the
- * cascade rules, MCP env merging, and enabled-tools validation.
+ * cascade rules and MCP env merging.
+ *
+ * The agent's tool lists (spec.tools, spec.disallowed_tools and each
+ * sub-agent's pair) have no step here on purpose: their shape is the
+ * proto's per-item pattern, enforced by the validate step every chain
+ * runs, and their names are never checked against a server's discovered
+ * tools. A portable plugin agent must apply on any installation, and an
+ * entry naming a tool the turn lacks is ignored at run time, as Claude
+ * Code ignores it.
  */
 import { ConnectError } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
@@ -22,16 +30,9 @@ import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/envi
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { DiscoveredCapabilities } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import {
-  classify,
-  isValidClassification,
-  quoteJoin,
-  toolNames,
-} from "../mcpserver/enabledtools/enabledtools.js";
 import {
   goWrappedStatusError,
   internalError,
@@ -80,113 +81,6 @@ export interface AgentInstanceApplier {
  * time, never at construction.
  */
 export type AgentInstanceApplierProvider = () => AgentInstanceApplier;
-
-// ---------------------------------------------------------------------------
-// ValidateEnabledTools — validate_enabled_tools.go: rejects agent manifests
-// whose McpServerUsage.enabled_tools name tools the referenced MCP server
-// does not expose (issue #402). Runtime enforcement (runner
-// shared/mcp-enabled-tools.ts, issue #350) is deliberately lenient — warn
-// and drop — so a manifest typo silently narrows the agent's toolset; this
-// step is the apply-time half of that owner decision: reject the typo where
-// the operator can see it, with the server's real tool names in the error.
-//
-// Deliberate skips: empty enabled_tools ("use the server's
-// default_enabled_tools"); referenced server not found (ValidateReferences,
-// earlier in the pipeline, already rejects with its own actionable error);
-// server without discovered_capabilities (not yet connected — no
-// authoritative toolset; the runner's warn-and-intersect remains the safety
-// net for that window).
-//
-// Pipeline position: AFTER ValidateReferences, BEFORE Persist.
-// ---------------------------------------------------------------------------
-
-export function newValidateEnabledToolsStep(
-  store: Store,
-): PipelineStep<AgentDesc> {
-  return {
-    name: "ValidateEnabledTools",
-    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
-      const agent = ctx.newState;
-
-      for (const usage of agent.spec?.mcpServerUsages ?? []) {
-        if (usage.enabledTools.length === 0) {
-          continue;
-        }
-
-        const ref = usage.mcpServerRef;
-        const slug = ref?.slug ?? "";
-        if (slug === "") {
-          continue;
-        }
-        let org = ref?.org ?? "";
-        if (org === "") {
-          org = agent.metadata?.org ?? "";
-        }
-
-        let mcpServer: McpServer | undefined;
-        try {
-          mcpServer = await findResourceBySlug(
-            store,
-            ApiResourceKind.mcp_server,
-            McpServerSchema,
-            slug,
-            org,
-          );
-        } catch (error) {
-          // Go wraps as a plain error → the pipeline's Internal fallback.
-          throw new Error(
-            `failed to look up MCP server '${slug}' (org: ${org}) for enabled_tools validation: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-        if (mcpServer === undefined) {
-          continue;
-        }
-
-        const caps = mcpServer.status?.discoveredCapabilities;
-        if (caps === undefined) {
-          continue;
-        }
-
-        const classification = classify(caps, usage.enabledTools);
-        if (!isValidClassification(classification)) {
-          throw invalidEnabledToolsError(slug, org, classification, caps);
-        }
-      }
-    },
-  };
-}
-
-/**
- * Go invalidEnabledToolsError: the operator-facing INVALID_ARGUMENT. It
- * names the offending entries, distinguishes resource-template names from
- * plain typos, and lists the discovered tool names so the fix is one edit
- * away. The refresh hint covers the honest failure mode where the server's
- * toolset changed after the last discovery. Byte-pinned copy.
- */
-function invalidEnabledToolsError(
-  slug: string,
-  org: string,
-  c: ReturnType<typeof classify>,
-  caps: DiscoveredCapabilities,
-): ConnectError {
-  const problems: string[] = [];
-  if (c.unknown.length > 0) {
-    problems.push(
-      `enabled_tools names tool(s) the server does not expose: ${quoteJoin(c.unknown)}`,
-    );
-  }
-  if (c.resourceTemplates.length > 0) {
-    problems.push(
-      `enabled_tools names resource template(s): ${quoteJoin(c.resourceTemplates)} — resource templates are read-only data endpoints, not callable tools, and must not appear in enabled_tools`,
-    );
-  }
-
-  return invalidArgumentError(
-    `MCP server '${slug}' (org: ${org}): ${problems.join("; ")}. ` +
-      `Discovered tools: ${quoteJoin(toolNames(caps))}. ` +
-      "If the server's toolset changed, run 'stigmer connect' on it to refresh discovered capabilities.",
-  );
-}
 
 // ---------------------------------------------------------------------------
 // MergeMcpServerEnvSpecs — merge_mcp_env_specs.go: merges env DECLARATIONS

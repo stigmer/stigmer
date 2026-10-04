@@ -64,16 +64,13 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: github
-      enabled_tools:
-        - search_code
-        - create_pr
-        - get_file
-        - create_issue
+  tools: [Read, Grep, mcp__github]
+  disallowed_tools: [mcp__github__delete_repository]
 ```
 
 ## Agent with Sub-Agents
 
-A parent agent that delegates to specialized sub-agents with restricted MCP access.
+A parent agent that delegates to specialized sub-agents, each narrowing the parent's tools.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -90,37 +87,25 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: github
-      enabled_tools:
-        - search_code
-        - create_pr
-        - get_file
-        - create_issue
+  tools: [Read, Grep, Agent, mcp__github]
   sub_agents:
     - name: code-reviewer
       description: "Reviews code changes for quality and security"
       instructions: |
         You review code for quality, security, and best practices.
         Provide specific, actionable feedback.
-      mcp_access:
-        - mcp_server: github
-          enabled_tools:
-            - search_code
-            - get_file
+      tools: [Read, Grep, mcp__github__search_code, mcp__github__get_file_contents]
     - name: pr-creator
       description: "Creates well-formatted pull requests"
       instructions: |
         You create pull requests with clear titles and descriptions.
         Always summarize the changes and their purpose.
-      mcp_access:
-        - mcp_server: github
-          enabled_tools:
-            - create_pr
-            - get_file
+      tools: [mcp__github__create_pull_request, mcp__github__get_file_contents]
 ```
 
 ## Full-Featured Agent
 
-An agent using all available features — MCP servers with approval overrides, skills, sub-agents, and environment variables.
+An agent using all available features — MCP servers narrowed by the tool lists, skills, sub-agents, and environment variables. Stigmer asks before `deploy_app` runs only if the kubernetes server marks it destructive (`destructiveHint: true`); shell commands and file writes always ask.
 
 Note: `kubernetes` below is a user-defined MCP server (the org registered it themselves), not a marketplace entry — the marketplace catalog is HTTP-only, and self-registered stdio servers like this one run only on local runners.
 
@@ -154,23 +139,19 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: github
-      enabled_tools:
-        - search_code
-        - get_file
-        - create_pr
     - mcp_server_ref:
         kind: mcp_server
         slug: kubernetes
-      enabled_tools:
-        - deploy_app
-        - rollback_deployment
-        - get_pod_status
-      tool_approval_overrides:
-        - tool_name: deploy_app
-          requires_approval: true
-          message: "Deploy {{args.app_name}} to {{args.environment}}"
-        - tool_name: rollback_deployment
-          requires_approval: false
+  tools:
+    - Read
+    - Grep
+    - Agent
+    - mcp__github__search_code
+    - mcp__github__get_file_contents
+    - mcp__github__create_pull_request
+    - mcp__kubernetes__deploy_app
+    - mcp__kubernetes__rollback_deployment
+    - mcp__kubernetes__get_pod_status
   skill_refs:
     - kind: skill
       slug: kubernetes-best-practices
@@ -190,10 +171,7 @@ spec:
       instructions: |
         You monitor deployments after rollout. Check pod status, logs,
         and health endpoints. Report any issues immediately.
-      mcp_access:
-        - mcp_server: kubernetes
-          enabled_tools:
-            - get_pod_status
+      tools: [mcp__kubernetes__get_pod_status]
 ```
 
 ## Platform Agent
@@ -227,9 +205,7 @@ spec:
         org: acme-cloud
         kind: mcp_server
         slug: web-search
-      enabled_tools:
-        - search
-        - fetch_page
+  tools: [mcp__web-search__search, mcp__web-search__fetch_page]
   skill_refs:
     - org: acme-cloud
       kind: skill

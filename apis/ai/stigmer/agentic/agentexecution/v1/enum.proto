@@ -609,24 +609,22 @@ enum ApprovalAction {
 //
 // @internal
 // Mirrors the runner's internal PolicySource union (approval-policy.ts) one for
-// one. Layered precedence: a pinned or agent override wins over the classifier
-// default; a lease or the global bypass clears an otherwise-required approval.
+// one. The default decides first (BUILTIN_CATEGORY for a built-in,
+// ANNOTATION_DESTRUCTIVE_TIGHTEN for a destructive MCP tool); a lease, the
+// global bypass or the unattended skip then records how a required approval
+// was resolved. Values 1 to 3 belonged to the removed per-tool approval
+// policies; they are reserved, and no value is ever renumbered.
 enum ApprovalPolicySource {
-  // Default — the execution predates this field, or the tool was never evaluated
-  // by the approval gate (e.g. a read-only built-in). Clients show no provenance.
+  // Default — the execution predates this field, or no approval was required
+  // (a read-only built-in, or an MCP tool its server does not mark
+  // destructive). Clients show no provenance.
   APPROVAL_POLICY_SOURCE_UNSPECIFIED = 0;
 
-  // Layer 1: the connect-time classifier's default for an MCP tool
-  // (McpServerStatus.tool_approvals).
-  APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT = 1;
-
-  // Layer 2: an operator's pinned override on the MCP server blueprint
-  // (McpServerSpec.pinned_tool_approvals).
-  APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE = 2;
-
-  // Layer 3: an agent-level override for an MCP tool
-  // (Agent McpServerUsage.tool_approval_overrides).
-  APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE = 3;
+  // Values 1 to 3 recorded the removed per-tool approval policies: the
+  // connect-time classifier's default, a server-level pin and an agent-level
+  // override.
+  reserved 1, 2, 3;
+  reserved "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT", "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE", "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE";
 
   // Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global
   // bypass cleared this call.
@@ -637,14 +635,13 @@ enum ApprovalPolicySource {
   // the leased class.
   APPROVAL_POLICY_SOURCE_APPROVAL_LEASE = 5;
 
-  // A non-MCP built-in tool gated by the shared tool taxonomy
+  // The default asked for a built-in tool of an approval class
   // (write / delete / shell).
   APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY = 6;
 
-  // The connect-time MCP destructiveHint tightener forced this tool to require
-  // approval, overriding a more permissive classifier verdict. First-class
-  // provenance so a tightened tool is distinguishable from a plain classifier
-  // default. See applyDestructiveHintTightener.
+  // The default asked for an MCP tool because its server marks it destructive
+  // (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint
+  // annotation).
   APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;
 
   // The unattended approval mode (ExecutionConfig.approval_mode =
@@ -767,10 +764,9 @@ enum InteractionMode {
 
 // ApprovalMode controls how an execution resolves HITL approval gates.
 //
-// The four-level approval policy chain (McpServerStatus.tool_approvals →
-// McpServerSpec.pinned_tool_approvals → Agent tool_approval_overrides →
-// AgentExecutionSpec.auto_approve_all) decides WHICH tools are gated; this
-// mode decides WHAT HAPPENS when a gate fires. It exists for surfaces where
+// The approval default (shell commands, file writes and deletes, and MCP tools
+// their server marks destructive) decides WHICH tools are gated; this mode
+// decides WHAT HAPPENS when a gate fires. It exists for surfaces where
 // no approver is present at the conversation — messaging channels
 // (Slack/WhatsApp) and guest shares — where an interactive pause would park
 // the execution in EXECUTION_WAITING_FOR_APPROVAL forever.
@@ -786,8 +782,7 @@ enum InteractionMode {
 //   never delegated to an external user — a channel guest cannot authorize
 //   the org's destructive operations.
 // - End-user intent confirmation ("book Monday 10 AM — shall I?") is
-//   conversational, owned by the agent's instructions; the tool itself is
-//   then un-gated per agent via tool_approval_overrides.
+//   conversational, owned by the agent's instructions.
 enum ApprovalMode {
   // Default — resolves to APPROVAL_MODE_INTERACTIVE.
   APPROVAL_MODE_UNSPECIFIED = 0;

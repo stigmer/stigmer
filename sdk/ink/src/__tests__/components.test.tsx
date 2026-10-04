@@ -274,15 +274,16 @@ describe("ApprovalPrompt", () => {
   it("renders the why-gated line from the projected approval_policy_source", () => {
     const pending = create(PendingApprovalSchema);
     pending.toolCallId = "tc-1";
-    pending.toolName = "write_file";
-    pending.approvalPolicySource = ApprovalPolicySource.AGENT_OVERRIDE;
+    pending.toolName = "delete_issue";
+    pending.mcpServerSlug = "github";
+    pending.approvalPolicySource = ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN;
 
     const { lastFrame } = render(
       <ApprovalPrompt pendingApproval={pending} onSubmit={() => {}} />,
     );
     const output = lastFrame() ?? "";
     expect(output).toContain("Why:");
-    expect(output).toContain("required by agent override");
+    expect(output).toContain("required: marked destructive by the server");
   });
 
   it("submits APPROVE_ALL when the 'a' shortcut is pressed", () => {

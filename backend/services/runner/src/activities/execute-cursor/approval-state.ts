@@ -10,10 +10,11 @@
  * {
  *   "autoApproveAll": false,
  *   "leasedCategories": ["shell"],
- *   "mcpToolPolicies": {
- *     "apply_cloud_resource": { "requiresApproval": true, "message": "..." }
+ *   "mcpDestructiveTools": {
+ *     "planton/apply_cloud_resource": { "message": "Execute apply_cloud_resource" }
  *   },
- *   "mcpServerEnabledTools": { "planton": ["get_cloud_resource"] },
+ *   "toolListsRestricted": true,
+ *   "toolScope": "<base64(JSON)>",
  *   "approvedGrants": [{ "toolName": "edit", "mcpServerSlug": "", "key": "write", "salient": "a.txt", "contentDigest": "<sha256>" }],
  *   "approvedGrantTokens": ["<base64(key\nsalient[\ncontentDigest])>"]
  * }
@@ -23,26 +24,24 @@
  * not match), or base64(key \n salient) for shell/delete/MCP and the rare
  * content-less fallback. See {@link primaryToken}.
  *
- * The hook gates the dangerous built-in set and the MCP tools that require
- * approval (mcpToolPolicies, which by construction holds only require-approval
- * entries); every other tool is allowed. The gated built-in set and its
+ * Two questions, answered in this order. First, may this agent call the tool
+ * at all (`toolScope`, its tool lists compiled by `hook-scope.ts`)? A tool out
+ * of scope is refused whatever the approval posture. Then, does the call ask
+ * first? The hook gates the dangerous built-in set and the MCP tools whose
+ * server marks them destructive (`mcpDestructiveTools`, keyed by server and
+ * tool); every other tool is allowed. The gated built-in set and its
  * name->category mapping are baked into the generated hook script (from
  * approval-policy.ts), not carried in the state file — only the dynamic inputs
- * (autoApproveAll, leasedCategories, mcpToolPolicies, approvedGrantTokens) live
- * here. The gated set is the shared taxonomy (`shared/tool-kind.ts`
- * `toolApprovalCategory`, the native gate's too), and the policy map is the
- * runtime's merged one (`TurnInput.mcp.policies`), so this file adds no rule of
- * its own; fail-open on an unknown name is what keeps auto-approved MCP tools
- * — absent from the policy map and indistinguishable from unknown tools by
- * name — from being denied.
+ * live here. Both halves are computed by the runner from the turn's one
+ * source each (`TurnMcp.mcpDefault`, `TurnMcp.toolScope`), so this file adds
+ * no rule of its own.
  *
  * Approval leases (the scoped successor to autoApproveAll): `autoApproveAll` is
- * now ONLY the pre-armed spec.auto_approve_all global bypass. An interactive
+ * ONLY the pre-armed spec.auto_approve_all global bypass. An interactive
  * "approve all" of a given class becomes a run-lifetime lease: a built-in
  * category lease is listed in `leasedCategories` (the hook allows any built-in of
- * that category), and an MCP-server lease is applied upstream by dropping the
- * server's tools from mcpToolPolicies (so the hook allows them as auto-approved)
- * — the hook is not server-aware, so omission is the lever there.
+ * that category), and an MCP-server lease leaves the server's tools out of
+ * mcpDestructiveTools, so the hook lets them through.
  *
  * Why grants instead of tool-call ids: a resumed Cursor agent re-issues the
  * approved tool with a BRAND NEW call id, so matching on the original call id
@@ -88,17 +87,20 @@ import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agent
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { MergedToolPolicy, ApprovalCategory } from "./approval-policy.js";
-import { extractArgKey, approvalCategory, POLICY_ENGINE_VERSION } from "./approval-policy.js";
+import type { ApprovalCategory, McpApprovalDefault } from "./approval-policy.js";
+import { extractArgKey, approvalCategory, resolveApprovalMessage, POLICY_ENGINE_VERSION } from "./approval-policy.js";
+import { DESTRUCTIVE_MCP_APPROVAL_MESSAGE } from "../../shared/approval-policy.js";
+import { encodeHookToolScope, SCOPE_KEY_PREFIX, UNRESTRICTED_HOOK_SCOPE, type HookToolScope } from "./hook-scope.js";
 import { contentDigest } from "../../shared/file-tools.js";
 import {
   fingerprintCoarseIdentity,
   type FingerprintKey,
 } from "../../shared/approval-fingerprint.js";
 
-export interface McpToolPolicyEntry {
-  requiresApproval: boolean;
-  message?: string;
+/** One MCP tool that asks first because its server marks it destructive. */
+export interface McpDestructiveToolEntry {
+  /** The approval card's message. */
+  message: string;
 }
 
 /**
@@ -173,26 +175,28 @@ export interface ApprovalStateFile {
   /**
    * Built-in approval categories with a run-lifetime lease (the scoped successor
    * to a global "approve all"). The hook allows any built-in whose category is
-   * listed. MCP-server leases are NOT listed here — they are applied by dropping
-   * the server's tools from mcpToolPolicies, since the hook is not server-aware.
+   * listed. MCP-server leases are NOT listed here — a leased server's tools are
+   * left out of mcpDestructiveTools instead.
    */
   leasedCategories: string[];
-  mcpToolPolicies: Record<string, McpToolPolicyEntry>;
   /**
-   * Per-server effective enabled_tools allow-lists (issue #350), keyed by
-   * MCP server slug — ONLY restricted servers appear (an absent slug means
-   * unrestricted, so the common case stays an empty object). The Cursor SDK
-   * config cannot hide a server's tools, so the hook enforces the manifest
-   * instead: on beforeMCPExecution it matches the payload's mcp_server_name
-   * against this map and denies a non-listed tool with the non-pausing,
-   * permanent "disabled" kind — BEFORE autoApproveAll and grants, because
-   * enabled_tools is a capability manifest, not an approval gate (no bypass
-   * may resurrect a disabled tool, and no human may be offered "approve" on
-   * one). Unlike mcpToolPolicies (name-keyed, server-blind), this map is
-   * server-scoped: the hook payload carries the server identity, so equal
-   * tool names on different servers cannot cross-grant.
+   * The MCP tools that ask first, keyed `server/tool` (`mcpToolKey`): every
+   * tool its server marks destructive, minus the leased servers'. Keyed by
+   * server as well as tool because the beforeMCPExecution payload carries
+   * mcp_server_name, so equal tool names on two servers never share a verdict.
    */
-  mcpServerEnabledTools: Record<string, string[]>;
+  mcpDestructiveTools: Record<string, McpDestructiveToolEntry>;
+  /** Whether the agent has tool lists: the hook's bash half reads it to fail closed when its Node half cannot run. */
+  toolListsRestricted: boolean;
+  /**
+   * The agent's tool lists as the hook evaluates them (`hook-scope.ts`),
+   * encoded opaque (`encodeHookToolScope` says why). The hook's scope arm runs
+   * BEFORE the capture arms, autoApproveAll and every grant, because a list
+   * says what the agent may call at all: no approval posture may resurrect an
+   * excluded tool, and no human is ever offered "approve" on one. A refusal is
+   * recorded kind "disabled".
+   */
+  toolScope: string;
   approvedGrants: ApprovalGrant[];
   approvedGrantTokens: string[];
   /**
@@ -259,6 +263,19 @@ export interface ApprovalStateFile {
  */
 export function grantToken(key: string, salient: string): string {
   return Buffer.from(`${key}\n${salient}`, "utf-8").toString("base64");
+}
+
+/**
+ * The ledger token of a scope refusal: the TOOL (`key`: the stream name's
+ * `scopeKey`, `hook-scope.ts`, or `mcpToolKey(server, tool)` for an MCP call),
+ * plus, for a tool the lists may exclude only in part (`READ_SCOPE_KEY`,
+ * `AGENT_SCOPE_KEY`), the call's discriminator: the path as given, or the
+ * normalized sub-agent type. An empty discriminator names the whole tool.
+ * The hook records the same bytes (`grantToken` of the prefixed key and the
+ * discriminator); the turn boundary decodes them (`decodeIdentityToken`).
+ */
+export function scopeRefusalToken(key: string, discriminator = ""): string {
+  return grantToken(`${SCOPE_KEY_PREFIX}${key}`, discriminator);
 }
 
 /**
@@ -458,24 +475,23 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
 }
 
 /**
- * Build the approval state file content from merged policies and any approval
- * grants from a previous HITL cycle.
+ * Build the approval state file content from the turn's approval default, its
+ * tool scope and any approval grants from a previous HITL cycle.
  *
  * The state file carries the hook script's DYNAMIC inputs:
  * - globalBypass: the pre-armed spec.auto_approve_all (written as autoApproveAll)
  * - leasedCategories: built-in categories with a run-lifetime lease
- * - mcpToolPolicies: per-tool policy for MCP tools requiring approval (leased
- *   servers are already absent — dropped upstream by mergeApprovalPolicies)
- * - mcpServerEnabledTools: per-server enabled_tools allow-lists (issue #350,
- *   restricted servers only) for the hook's permanent "disabled" arm
+ * - mcpDestructiveTools: the MCP tools that ask, keyed by server and tool,
+ *   leased servers left out
  * - approvedGrants / approvedGrantTokens: tools approved in the current HITL
  *   cycle, allowed through on reinvocation
+ * - toolScope: the agent's tool lists, compiled (`hook-scope.ts`)
  *
  * The static gated built-in set and its category mapping are baked into the
  * generated hook script (from approval-policy.ts), not carried here.
  */
 export function buildApprovalState(
-  mergedPolicies: ReadonlyMap<string, MergedToolPolicy>,
+  mcpDefault: McpApprovalDefault,
   globalBypass: boolean,
   leasedCategories: ReadonlySet<ApprovalCategory>,
   grants?: ApprovalGrant[],
@@ -483,23 +499,26 @@ export function buildApprovalState(
   captureIgnored = false,
   gitWorkspace = true,
   unattendedSkip = false,
-  mcpServerEnabledTools: Record<string, string[]> = {},
+  toolScope: HookToolScope = UNRESTRICTED_HOOK_SCOPE,
 ): ApprovalStateFile {
   const approvedGrants = grants ?? [];
 
-  const mcpToolPolicies: Record<string, McpToolPolicyEntry> = {};
-  for (const policy of mergedPolicies.values()) {
-    mcpToolPolicies[policy.toolName] = {
-      requiresApproval: policy.requiresApproval,
-      message: policy.approvalMessage,
-    };
+  const mcpDestructiveTools: Record<string, McpDestructiveToolEntry> = {};
+  for (const key of mcpDefault.destructive) {
+    // `mcpToolKey` joins a slug (no "/") and a tool name, so the first "/" splits them.
+    const sep = key.indexOf("/");
+    const server = key.slice(0, sep);
+    if (mcpDefault.leasedServers.has(server)) continue;
+    const tool = key.slice(sep + 1);
+    mcpDestructiveTools[key] = { message: resolveApprovalMessage(DESTRUCTIVE_MCP_APPROVAL_MESSAGE, tool, {}) };
   }
 
   return {
     autoApproveAll: globalBypass,
     leasedCategories: [...leasedCategories],
-    mcpToolPolicies,
-    mcpServerEnabledTools,
+    mcpDestructiveTools,
+    toolListsRestricted: toolScope.restricted,
+    toolScope: encodeHookToolScope(toolScope),
     approvedGrants,
     // The hook matches a tool call's PRIMARY token (content when it can compute a
     // digest from tool_input, else coarse). A content-identified grant authorizes
@@ -563,12 +582,15 @@ const DENIAL_LEDGER_FILE = "denials.jsonl";
  *                     classification may never have run).
  * - `fail-closed`   — the approval state file was missing, so everything gated
  *                     denied. A turn-level "the gate itself was broken" fact.
- * - `disabled`      — the agent's enabled_tools manifest excludes this MCP
- *                     tool (issue #350). Permanent for the run and
+ * - `disabled`      — the agent's tool lists exclude this tool, or the
+ *                     sub-agent type it starts. Permanent for the run and
  *                     mode-independent: NOT an approval (a human must never be
- *                     offered "approve" on a manifest-disabled tool), so it is
+ *                     offered "approve" on an excluded tool), so it is
  *                     non-pausing and the model adapts — the same consumer
- *                     semantics as `secret`.
+ *                     semantics as `secret`. Recorded under the tool's
+ *                     {@link scopeRefusalToken}, with the refusal text the
+ *                     model read (`message`), which the turn boundary writes
+ *                     onto the refused row.
  *
  * An unknown kind string is preserved as-is: it is treated as non-pausing (an
  * unknown deny must never manufacture an approval) but still attributes the
@@ -582,7 +604,7 @@ export const APPROVAL_DENIAL_KIND: DenialKind = "approval";
 /** The unattended-mode resolution kind (non-pausing; stamped SKIPPED). */
 export const UNATTENDED_DENIAL_KIND: DenialKind = "unattended";
 
-/** The enabled_tools manifest denial kind (non-pausing, permanent; issue #350). */
+/** The tool-list refusal kind (non-pausing, permanent for the run). */
 export const DISABLED_DENIAL_KIND: DenialKind = "disabled";
 
 /**
@@ -606,12 +628,17 @@ export const DISABLED_DENIAL_KIND: DenialKind = "disabled";
  * binary was unavailable) — the gate then degrades to stream-recovered args —
  * and ALWAYS absent for non-approval kinds (only an approval-kind entry
  * may carry proposed content).
+ *
+ * `message` is a tool-list refusal's text (kind `disabled`), decoded from the
+ * ledger's base64 form: the exact words the model read, which the turn
+ * boundary stamps as the refused row's error.
  */
 export interface DeniedLedgerEntry {
   toolName: string;
   token: string;
   kind?: string;
   input?: Record<string, unknown>;
+  message?: string;
 }
 
 /** The effective kind of a ledger entry (absent → approval, the pre-kind format). */
@@ -731,6 +758,7 @@ export async function readDenialLedger(
         token?: unknown;
         kind?: unknown;
         input?: unknown;
+        message?: unknown;
       };
       if (typeof obj.token === "string" && obj.token) {
         entries.push({
@@ -740,6 +768,9 @@ export async function readDenialLedger(
           // pre-kind format); see denialKindOf.
           kind: typeof obj.kind === "string" && obj.kind ? obj.kind : undefined,
           input: decodeLedgerInput(obj.input),
+          ...(typeof obj.message === "string" && obj.message
+            ? { message: Buffer.from(obj.message, "base64").toString("utf-8") }
+            : {}),
         });
       }
     } catch {

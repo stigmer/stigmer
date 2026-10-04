@@ -34,7 +34,7 @@ import { useOrgIdForRef } from "../organization/useOrgRefs.js";
  *
  * When the `setup` prop is provided, the picker gains per-server status
  * indicators, credential collection via drill-in to
- * {@link McpServerConfigPanel}, and per-tool selection. Selection is
+ * {@link McpServerConfigPanel}, and a view of each server's tools. Selection is
  * managed through `entries` and the setup callbacks instead of the
  * simple `value`/`onChange` pair.
  *
@@ -65,8 +65,6 @@ export interface McpServerSetupIntegration {
     values: Record<string, EnvVarInput>,
     options: EnvVarFormSubmitOptions,
   ) => void;
-  /** Called when the user changes the enabled tools for a server. */
-  readonly onEnabledToolsChange: (ref: ResourceRef, tools: string[]) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -101,7 +99,7 @@ export interface McpServerPickerProps {
   readonly className?: string;
   /**
    * When provided, enables setup-integrated mode: per-server status
-   * indicators, credential collection, tool selection, and drill-in
+   * indicators, credential collection, and drill-in
    * to {@link McpServerConfigPanel}.
    *
    * In this mode, `value` and `onChange` are not needed — selection
@@ -123,7 +121,6 @@ export interface McpServerPickerProps {
    *     onServerAdded: (ref) => mcpSetup.addServer(ref),
    *     onServerRemoved: (ref) => mcpSetup.removeServer(ref),
    *     onSubmitEnvVars: (ref, v, o) => mcpSetup.submitEnvVars(ref, v, o),
-   *     onEnabledToolsChange: (ref, t) => mcpSetup.setEnabledTools(ref, t),
    *   }}
    * />
    * ```
@@ -207,7 +204,7 @@ function slugFromServerKey(key: string): string {
  *
  * **Simple mode** (default) — toggle servers on/off. Selected servers
  * produce `McpServerUsageInput[]` via `value`/`onChange`. No setup
- * flow, no per-tool selection.
+ * flow.
  *
  * **Setup mode** (when `setup` is provided) — each selected server
  * shows its setup status (loading, needs credentials, ready). Users
@@ -235,7 +232,6 @@ function slugFromServerKey(key: string): string {
  *     onServerAdded: (ref) => mcpSetup.addServer(ref),
  *     onServerRemoved: (ref) => mcpSetup.removeServer(ref),
  *     onSubmitEnvVars: (ref, v, o) => mcpSetup.submitEnvVars(ref, v, o),
- *     onEnabledToolsChange: (ref, t) => mcpSetup.setEnabledTools(ref, t),
  *   }}
  * />
  * ```
@@ -577,15 +573,6 @@ export function McpServerPicker({
           onSwitchToManual={handleSwitchToManual}
           onSwitchToOAuth={handleSwitchToOAuth}
           discoveredTools={entry.discoveredTools}
-          toolApprovals={entry.toolApprovals}
-          enabledTools={
-            entry.status === "ready"
-              ? entry.enabledTools
-              : entry.discoveredTools.map((t) => t.name)
-          }
-          onEnabledToolsChange={(tools) =>
-            setup.onEnabledToolsChange(ref, tools)
-          }
           onBack={() => setView({ type: "list" })}
           error={entry.error}
           disabled={disabled}
@@ -861,7 +848,8 @@ function SetupServerRow({
           >
             {entry.discoveredTools.length > 0 && (
               <span>
-                {entry.enabledTools.length}/{entry.discoveredTools.length} tools
+                {entry.discoveredTools.length}{" "}
+                {entry.discoveredTools.length === 1 ? "tool" : "tools"}
               </span>
             )}
             <ChevronRightIcon />

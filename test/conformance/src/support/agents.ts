@@ -27,23 +27,6 @@ export const AGENT_KIND = "Agent";
 // copy. Changing it moves the goldens and the benchmark's baseline together.
 export const BARE_AGENT_INSTRUCTIONS = "Answer in one short sentence.";
 
-// Per-agent tool approval override on a single MCP server usage. Mirrors the
-// proto ToolApprovalOverride (tool_name, requires_approval, message); this is the
-// per-agent level of the approval-policy chain and the lever that gates a tool
-// for HITL conformance.
-export interface ToolApprovalOverrideOption {
-  toolName: string;
-  requiresApproval: boolean;
-  message?: string;
-}
-
-// A single mcp_server_usage with optional per-tool approval overrides. Used when
-// a test needs more than a bare reference (e.g. to gate a tool for HITL).
-export interface McpServerUsageOption {
-  slug: string;
-  toolApprovalOverrides?: ToolApprovalOverrideOption[];
-}
-
 // A sub-agent the root agent may delegate to through the built-in `task` tool
 // (spec.sub_agents). Mirrors the proto SubAgent's three authored fields; the
 // name is what a tool_use turn names as `subagent_type`.
@@ -65,9 +48,11 @@ export interface AgentSpecOptions {
   // mcp_server_ref with kind=mcp_server (the CEL constraint the agent spec
   // enforces). Org is left empty so the server normalizes it to the agent's org.
   mcpServerRefs?: string[];
-  // Richer mcp_server_usages, for tests that attach tool_approval_overrides.
-  // Combined with mcpServerRefs (which are the simple, override-free form).
-  mcpServerUsages?: McpServerUsageOption[];
+  // The agent's two tool lists (spec.tools, spec.disallowed_tools), in Claude
+  // Code's names: "only these" and "never these". Passed through verbatim;
+  // what an entry means is the runner's to resolve.
+  tools?: string[];
+  disallowedTools?: string[];
   // Skill slugs to reference via spec.skill_refs, each with kind=skill. Org is
   // left empty so the server normalizes it to the agent's org.
   skillRefs?: string[];
@@ -78,24 +63,14 @@ export interface AgentSpecOptions {
 }
 
 // A valid AgentSpec: instructions satisfy the min_len=10 constraint, and any
-// requested McpServer references are projected into mcp_server_usages. Bare
-// `mcpServerRefs` and richer `mcpServerUsages` are both supported and merged.
+// requested McpServer references are projected into mcp_server_usages.
 export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof AgentSpecSchema> {
-  const refUsages = (opts.mcpServerRefs ?? []).map((slug) => ({
-    mcpServerRef: { slug, kind: ApiResourceKind.mcp_server },
-  }));
-  const richUsages = (opts.mcpServerUsages ?? []).map((usage) => ({
-    mcpServerRef: { slug: usage.slug, kind: ApiResourceKind.mcp_server },
-    toolApprovalOverrides: (usage.toolApprovalOverrides ?? []).map((o) => ({
-      toolName: o.toolName,
-      requiresApproval: o.requiresApproval,
-      message: o.message ?? "",
-    })),
-  }));
   return {
     description: opts.description ?? "conformance fixture",
     instructions: opts.instructions ?? "Review code carefully and suggest improvements.",
-    mcpServerUsages: [...refUsages, ...richUsages],
+    mcpServerUsages: (opts.mcpServerRefs ?? []).map((slug) => ({
+      mcpServerRef: { slug, kind: ApiResourceKind.mcp_server },
+    })),
     ...(opts.skillRefs !== undefined
       ? { skillRefs: opts.skillRefs.map((slug) => ({ slug, kind: ApiResourceKind.skill })) }
       : {}),
@@ -109,6 +84,8 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof Age
         }
       : {}),
     ...(opts.env !== undefined ? { env: makeEnvDeclarations(opts.env) } : {}),
+    ...(opts.tools !== undefined ? { tools: opts.tools } : {}),
+    ...(opts.disallowedTools !== undefined ? { disallowedTools: opts.disallowedTools } : {}),
   };
 }
 
@@ -123,11 +100,11 @@ export interface AgentOptions extends AgentSpecOptions {
 
 // A complete, valid Agent resource ready to hand to create/apply/update.
 export function makeAgent(opts: AgentOptions): InitShape<typeof AgentSchema> {
-  const { org, name, labels, description, instructions, subAgents, mcpServerRefs, mcpServerUsages, skillRefs, env } = opts;
+  const { org, name, labels, ...spec } = opts;
   return {
     apiVersion: AGENT_API_VERSION,
     kind: AGENT_KIND,
     metadata: { name, org, ...(labels !== undefined ? { labels } : {}) },
-    spec: makeAgentSpec({ description, instructions, subAgents, mcpServerRefs, mcpServerUsages, skillRefs, env }),
+    spec: makeAgentSpec(spec),
   };
 }

@@ -96,6 +96,8 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 | `spec.mcp_server_usages` | No | MCP servers this agent can use. See [mcp-server-integration.md](mcp-server-integration.md). |
 | `spec.skill_refs` | No | Skills providing agent knowledge. See [skill-integration.md](skill-integration.md). |
 | `spec.sub_agents` | No | Specialized sub-agents for delegation. See [sub-agents.md](sub-agents.md). |
+| `spec.tools` | No | Tools this agent may use, in Claude Code's names (`Read`, `Bash(git push *)`, `mcp__<server-slug>`). Empty means every tool it has. See [mcp-server-integration.md](mcp-server-integration.md). |
+| `spec.disallowed_tools` | No | Tools this agent may never use, in the same names. Applied before `spec.tools`. |
 | `spec.env_spec` | No | Required environment variables (schema only). See below. |
 
 ## Environment Specification
@@ -165,7 +167,7 @@ stigmer delete agent my-agent
 
 - [README.md](README.md) — Overview, lifecycle, and table of contents
 - [resource-references.md](resource-references.md) — `ApiResourceReference` format for referencing MCP servers and skills
-- [mcp-server-integration.md](mcp-server-integration.md) — MCP server usage and tool approval overrides
+- [mcp-server-integration.md](mcp-server-integration.md) — MCP server usage, the two tool lists and which tools ask for approval
 - [skill-integration.md](skill-integration.md) — Skill integration and injection
 - [sub-agents.md](sub-agents.md) — Sub-agent delegation and permission model
 - [examples.md](examples.md) — Complete YAML examples from minimal to full-featured

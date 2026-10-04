@@ -38,7 +38,6 @@ run independently, each with its own fresh context.
 Available sub-agents:
 
 - **researcher**: Reads the codebase and reports how a feature works
-  MCP access (advisory): github
   Model: claude-sonnet
 - **writer**: Drafts release notes from a change list
 
@@ -46,7 +45,6 @@ Delegation rules:
 - Delegate a task to the sub-agent whose specialization matches it.
 - Give a clear, self-contained task description — sub-agents do not share your conversation context.
 - Sub-agents run independently and return their results when done.
-- "MCP access (advisory)" lists the tools a sub-agent is intended to use; sub-agents inherit this agent's tool access, so treat it as guidance, not a hard limit.
 </sub_agent_delegation>
 
 ---

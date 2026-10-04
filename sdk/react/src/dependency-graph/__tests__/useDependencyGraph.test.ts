@@ -66,8 +66,6 @@ describe("useDependencyGraph", () => {
       mcpServerUsages: [
         {
           mcpServerRef: { org: "acme", slug: "github" },
-          enabledTools: [],
-          toolApprovalOverrides: [],
         },
       ],
       skillRefs: [{ org: "acme", slug: "triage-guide" }],
@@ -75,7 +73,6 @@ describe("useDependencyGraph", () => {
         {
           name: "researcher",
           description: "",
-          mcpAccess: [],
           skillRefs: [],
           modelOverride: "",
         },
@@ -107,8 +104,6 @@ describe("useDependencyGraph", () => {
             mcpServerUsages: [
               {
                 mcpServerRef: { org: GLOBEX_ID, slug: "github" },
-                enabledTools: [],
-                toolApprovalOverrides: [],
               },
             ],
             skillRefs: [
@@ -119,7 +114,6 @@ describe("useDependencyGraph", () => {
               {
                 name: "researcher",
                 description: "",
-                mcpAccess: [],
                 skillRefs: [{ org: GLOBEX_ID, slug: "research-guide" }],
                 modelOverride: "",
               },
@@ -140,5 +134,26 @@ describe("useDependencyGraph", () => {
     const subSkill = subAgent.children[0];
     expect(subSkill.qualifiedLabel).toBe("globex/research-guide");
     expect(subSkill.ref).toEqual({ org: GLOBEX_ID, slug: "research-guide" });
+  });
+
+  it("draws no sub-agent MCP edges: a sub-agent's children are its skills", () => {
+    const { tree } = graphFor({
+      mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }],
+      skillRefs: [],
+      subAgents: [
+        {
+          name: "researcher",
+          description: "",
+          skillRefs: [{ org: "acme", slug: "log-analysis" }],
+          modelOverride: "",
+        },
+      ],
+    });
+
+    const subAgent = tree!.root.children[1];
+    expect(subAgent.kind).toBe("sub-agent");
+    expect(subAgent.children.map((c) => c.kind)).toEqual(["skill"]);
+    // root + github + researcher + its skill
+    expect(tree!.nodeCount).toBe(4);
   });
 });

@@ -15,20 +15,14 @@ export { ApprovalPolicySource };
 /**
  * Returns a short human phrase describing a tool call's authorization
  * provenance, or `null` for {@link ApprovalPolicySource.UNSPECIFIED} — an
- * execution that predates this field, or a tool the gate never evaluated (e.g. a
- * read-only built-in) — so callers render nothing rather than a misleading
- * default.
+ * execution that predates this field, or a call that needed no approval (a
+ * read-only built-in, or an MCP tool its server does not mark destructive) — so
+ * callers render nothing rather than a misleading default.
  */
 export function describeApprovalPolicySource(
   source: ApprovalPolicySource,
 ): string | null {
   switch (source) {
-    case ApprovalPolicySource.CLASSIFIER_DEFAULT:
-      return "required by the tool's default policy";
-    case ApprovalPolicySource.PINNED_OVERRIDE:
-      return "required by a pinned override";
-    case ApprovalPolicySource.AGENT_OVERRIDE:
-      return "required by agent override";
     case ApprovalPolicySource.BUILTIN_CATEGORY:
       return "required by built-in tool policy";
     case ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN:
@@ -50,15 +44,15 @@ export function describeApprovalPolicySource(
  * the approval gate, versus the everyday default ("this tool category just
  * requires approval") that is noise next to the action it is already gating.
  *
- * The default gating reasons — {@link ApprovalPolicySource.CLASSIFIER_DEFAULT}
- * and {@link ApprovalPolicySource.BUILTIN_CATEGORY} — explain nothing the user
- * does not already infer from the tool itself, so they are suppressed from the
- * card (the full phrase stays available on hover where a surface chooses to show
- * a chip). The remaining sources each change the user's understanding of *why*
- * this particular call is held — an explicit override, a server tightening a
- * destructive tool, or (post-execution) a bypass/lease that cleared it — and so
- * are worth showing. {@link ApprovalPolicySource.UNSPECIFIED} is never
- * informative (legacy / ungated).
+ * The default gating reason for a built-in —
+ * {@link ApprovalPolicySource.BUILTIN_CATEGORY} — explains nothing the user does
+ * not already infer from the tool itself, so it is suppressed from the card (the
+ * full phrase stays available on hover where a surface chooses to show a chip).
+ * The remaining sources each change the user's understanding of *why* this
+ * particular call is held — a server marking the tool destructive, or
+ * (post-execution) a bypass/lease that cleared it — and so are worth showing.
+ * {@link ApprovalPolicySource.UNSPECIFIED} is never informative (legacy /
+ * ungated).
  *
  * This is the headless policy behind the gate's "smart-suppress" provenance
  * chip; rendering lives in the consuming surface.
@@ -67,8 +61,6 @@ export function isInformativePolicySource(
   source: ApprovalPolicySource,
 ): boolean {
   switch (source) {
-    case ApprovalPolicySource.PINNED_OVERRIDE:
-    case ApprovalPolicySource.AGENT_OVERRIDE:
     case ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN:
     case ApprovalPolicySource.AUTO_APPROVE_ALL:
     case ApprovalPolicySource.APPROVAL_LEASE:
@@ -78,7 +70,6 @@ export function isInformativePolicySource(
     // declined it.
     case ApprovalPolicySource.UNATTENDED_SKIP:
       return true;
-    case ApprovalPolicySource.CLASSIFIER_DEFAULT:
     case ApprovalPolicySource.BUILTIN_CATEGORY:
     case ApprovalPolicySource.UNSPECIFIED:
     default:

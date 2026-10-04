@@ -6,13 +6,15 @@
  *
  * Everything harness-agnostic has already happened when these run: the
  * execution, session and blueprint are fetched, the workspace is provisioned
- * and locked, the MCP servers and approval policies are merged, the skills
+ * and locked, the MCP servers are resolved with the approval default's MCP
+ * half and the agent's tool scope, the skills
  * are mounted per owner, the attachments are resolved, the transcript is
  * seeded. What remains is this engine's own reading of that record: the
  * checkpointer; the deepagents backend and the CAS observer, rooted at the
  * tree the runtime locked; the MCP connection that turns resolved servers
- * into LangChain tools; the model; the middleware stack with the approval
- * gate over the runtime's policies; the compiled sub-agents; the system
+ * into LangChain tools; the model; the middleware stack with the tool scope
+ * and the approval gate over the runtime's default; the compiled
+ * sub-agents, each under its own narrowed scope; the system
  * prompt and the user message; `createDeepAgent`; and the checkpoint read
  * that decides between a `Command(resume)` and a fresh message. The
  * file-review capture is the runtime's (`harness/capture.ts`); this harness
@@ -58,14 +60,21 @@ import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { buildPlanModePermissions } from "../../shared/plan-mode-permissions.js";
 import { buildMiddlewareStack } from "../../middleware/index.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
-import { createThinkTool, createWebFetchTool, resolveGuardPosture } from "../../tools/index.js";
+import { WEB_FETCH_TOOL_NAME, createThinkTool, createWebFetchTool, resolveGuardPosture } from "../../tools/index.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded, type ModelPricing } from "../../shared/model-pricing.js";
 import { getDefaultModel, getNativeRequestProfile } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
 import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js";
-import { isUnattendedApprovalMode, type MergedToolPolicy } from "../../shared/approval-policy.js";
+import { isUnattendedApprovalMode, type McpApprovalDefault } from "../../shared/approval-policy.js";
+import {
+  NATIVE_TOOL_COVERS,
+  checkToolListResolution,
+  claudeToolsOf,
+  type ToolScope,
+  type TurnToolInventory,
+} from "../../shared/tool-lists.js";
 import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { visionPromptInfoOf } from "../../shared/prompt-sections.js";
 import { findApprovedPlanPath } from "../../shared/implement-plan-prompt.js";
@@ -75,11 +84,12 @@ import { backstopRecursionLimit, resolveToolRoundLimit } from "../../shared/tool
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
-import { mountPlatformRoute } from "./platform-route.js";
+import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv, shellRunValues } from "./shell-env.js";
-import { transformAndCompileSubagents } from "./subagent-transformer.js";
+import { subAgentScope, transformAndCompileSubagents, type SubagentScopeBase } from "./subagent-transformer.js";
+import { ENGINE_TOOL } from "./engine-tools.js";
 import { createTodoListMiddleware } from "./todo-list.js";
 
 /**
@@ -125,7 +135,8 @@ export interface DeepAgentTools {
 
 /** The gate's posture for this turn, read once and shared by the builders, the reconciler and the sub-agents. */
 export interface DeepAgentGateState {
-  readonly policies: ReadonlyMap<string, MergedToolPolicy>;
+  /** The approval default's MCP half: which MCP tools ask, and which servers a lease cleared. */
+  readonly mcpDefault: McpApprovalDefault;
   readonly toolServerMap: ReadonlyMap<string, string>;
   readonly leasedCategories: ReadonlySet<ToolApprovalCategory>;
   /** Pre-armed spec.auto_approve_all — the one unscoped, whole-run bypass; the gate is not installed under it. */
@@ -246,13 +257,13 @@ export async function connectTools(input: TurnInput, sink: TurnSink): Promise<De
  * The gate's posture. Two distinct bypasses (`shared/approval-policy.ts`
  * `ActiveLeases`): the pre-armed spec.auto_approve_all is the one whole-run
  * global bypass; an interactive APPROVE_ALL grants a run-lifetime lease
- * scoped to that action's class. Server leases shaped the runtime's policy
- * map (leased servers dropped); built-in category leases are applied inside
- * the gate. Both flow into sub-agents via the shared gate config.
+ * scoped to that action's class. Server leases ride the runtime's approval
+ * default; built-in category leases are applied inside the gate. Both flow
+ * into sub-agents via the shared gate config.
  */
 export function readGateState(input: TurnInput, tools: DeepAgentTools): DeepAgentGateState {
   return {
-    policies: input.mcp.policies,
+    mcpDefault: input.mcp.mcpDefault,
     toolServerMap: tools.toolServerMap,
     leasedCategories: input.mcp.leases.categories,
     globalBypass: input.mcp.leases.global,
@@ -417,6 +428,17 @@ export async function buildEngine(
   // of plan mode; the read boundary is structural, issue #754).
   const planModePermissions = isPlanMode ? buildPlanModePermissions() : undefined;
 
+  // The agent's tool lists, checked against what this turn binds before
+  // anything is built: a list that names nothing the turn has refuses the
+  // turn (`classifyThrown`), as Claude Code refuses to launch such an agent.
+  const toolScope = input.mcp.toolScope;
+  checkTurnToolLists(input, tools, toolScope, shellEnv !== undefined);
+  const scopeBase: SubagentScopeBase = {
+    serverToolMap: tools.serverToolMap,
+    platformServerSlugs: input.mcp.platformServerSlugs,
+    admitsConfinedRead: confinedReadAdmission(primaryDir),
+  };
+
   // The approval gate config is the single source of truth for HITL gating,
   // built once and inherited verbatim by sub-agents. Null under the global
   // pre-arm, where the gate is inert. Capture mode: file edits flow (tracked
@@ -426,7 +448,7 @@ export async function buildEngine(
   const captureMode = input.workspace.captureMode;
   const approvalGateConfig: ApprovalGateConfig | null = !gate.globalBypass
     ? {
-        policies: gate.policies,
+        mcpDefault: gate.mcpDefault,
         leasedCategories: gate.leasedCategories,
         toolServerMap: gate.toolServerMap,
         fingerprintKey: deriveExecutionFingerprintKey(getRunnerHitlMasterSecret(), executionId),
@@ -460,6 +482,7 @@ export async function buildEngine(
         }
       : null,
     otelSpans: { toolServerMap: gate.toolServerMap },
+    toolScope: { ...scopeBase, scope: toolScope },
     approvalGate: approvalGateConfig,
     // Every graph, every mode (issue #754): the dialect-repair seam that keeps
     // model-supplied paths canonical for the virtual-rooted backend and every
@@ -484,8 +507,8 @@ export async function buildEngine(
   const compiledSubagents = await transformAndCompileSubagents({
     subAgents: blueprint.subAgents,
     parentMcpTools: tools.mcpTools,
-    parentMcpServerToolMap: tools.serverToolMap,
-    parentMcpUsages: blueprint.mergedMcpServerUsages,
+    parentScope: toolScope,
+    scopeBase,
     skills: input.skills.bySubAgent,
     workspaceBackend: workspace.backend,
     approvalGate: approvalGateConfig,
@@ -585,6 +608,79 @@ export async function buildEngine(
     gate,
     hasStructuredOutput: !!outputSchema,
   };
+}
+
+/**
+ * The native built-ins a graph of this turn binds, by their engine names: the
+ * filesystem tools and `task` on every graph, `execute` on a shell-capable
+ * one, the parent's to-do list, and the runner's own `web_fetch`. `think` is
+ * left out: it is the platform's, and no list can name it.
+ */
+function nativeBoundToolNames(options: { readonly shellCapable: boolean; readonly todos: boolean }): string[] {
+  return [
+    ENGINE_TOOL.ls,
+    ENGINE_TOOL.readFile,
+    ENGINE_TOOL.writeFile,
+    ENGINE_TOOL.editFile,
+    ENGINE_TOOL.glob,
+    ENGINE_TOOL.grep,
+    ENGINE_TOOL.task,
+    ...(options.shellCapable ? [ENGINE_TOOL.execute] : []),
+    ...(options.todos ? [ENGINE_TOOL.writeTodos] : []),
+    WEB_FETCH_TOOL_NAME,
+  ];
+}
+
+/**
+ * What one graph of this turn has, for deciding whether a list entry names
+ * anything: its native built-ins and the connected servers' live tools. The
+ * platform's own servers are left out: no list can name them.
+ */
+export function turnToolInventory(
+  boundNames: readonly string[],
+  tools: DeepAgentTools,
+  platformServerSlugs: ReadonlySet<string>,
+): TurnToolInventory {
+  const servers = new Map<string, Set<string>>();
+  for (const [slug, serverTools] of tools.serverToolMap) {
+    if (platformServerSlugs.has(slug)) continue;
+    servers.set(slug, new Set(serverTools.map((t) => t.name)));
+  }
+  return {
+    claudeTools: claudeToolsOf(boundNames, NATIVE_TOOL_COVERS),
+    hasMcp: (server, tool) => {
+      const names = servers.get(server);
+      return names !== undefined && (tool === null || names.has(tool));
+    },
+    anyMcp: servers.size > 0,
+  };
+}
+
+/**
+ * Check the agent's lists and each declared sub-agent's against what its
+ * graph binds: an entry naming nothing is logged, and a `tools` list that
+ * resolves to nothing throws `ToolListResolutionError`. A sub-agent's graph
+ * binds the parent's tools without the to-do list. Only a sub-agent the main
+ * agent's `Agent(type, …)` admits is checked: one it keeps from compiling
+ * (`transformAndCompileSubagents` applies the same filter) can never run, so
+ * its lists cannot refuse the turn.
+ */
+export function checkTurnToolLists(
+  input: Pick<TurnInput, "mcp" | "blueprint">,
+  tools: DeepAgentTools,
+  parentScope: ToolScope,
+  shellCapable: boolean,
+): void {
+  const log = (line: string): void => console.warn(`[turn-setup] ${line}`);
+  const { platformServerSlugs } = input.mcp;
+  const parentNames = nativeBoundToolNames({ shellCapable, todos: true });
+  checkToolListResolution(parentScope, turnToolInventory(parentNames, tools, platformServerSlugs), log);
+  const subAgentInventory = turnToolInventory(nativeBoundToolNames({ shellCapable, todos: false }), tools, platformServerSlugs);
+  for (const subAgent of input.blueprint.subAgents) {
+    const hasLists = subAgent.tools.length > 0 || subAgent.disallowedTools.length > 0;
+    if (!hasLists || !parentScope.allowsSubAgentType(subAgent.name)) continue;
+    checkToolListResolution(subAgentScope(parentScope, subAgent), subAgentInventory, log);
+  }
 }
 
 /**

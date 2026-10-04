@@ -10,7 +10,7 @@ import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agen
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, DisconnectOAuthInputSchema, DisconnectOAuthOutputSchema, SetOrgOAuthAppInputSchema, SetOrgOAuthAppOutputSchema, DeleteOrgOAuthAppInputSchema, DeleteOrgOAuthAppOutputSchema, GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, GetOrgOAuthAppInputSchema, GetOrgOAuthAppOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput, type DisconnectOAuthInput, type DisconnectOAuthOutput, type SetOrgOAuthAppInput, type SetOrgOAuthAppOutput, type DeleteOrgOAuthAppInput, type DeleteOrgOAuthAppOutput, type GetOAuthGrantStatusInput, type GetOAuthGrantStatusOutput, type GetOrgOAuthAppInput, type GetOrgOAuthAppOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, ToolApprovalPolicySchema, McpServerAuthSchema, type StdioServerConfig, type HttpServerConfig, type ToolApprovalPolicy, type McpServerAuth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, McpServerAuthSchema, type StdioServerConfig, type HttpServerConfig, type McpServerAuth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -167,9 +167,7 @@ export interface McpServerInput {
   tags?: string[];
   stdio?: StdioServerConfigInput;
   http?: HttpServerConfigInput;
-  defaultEnabledTools?: string[];
   env?: Record<string, EnvVarDeclarationInput>;
-  pinnedToolApprovals?: ToolApprovalPolicyInput[];
   repositoryUrl?: string;
   githubStars?: number;
   auth?: McpServerAuthInput;
@@ -195,13 +193,6 @@ export interface EnvVarDeclarationInput {
   isSecret?: boolean;
   description?: string;
   optional?: boolean;
-}
-
-/** SDK input type for ToolApprovalPolicy. */
-export interface ToolApprovalPolicyInput {
-  toolName?: string;
-  message?: string;
-  fromDestructiveHint?: boolean;
 }
 
 /** SDK input type for McpServerAuth. */
@@ -239,14 +230,6 @@ function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
   }));
 }
 
-function buildToolApprovalPolicyProto(input: ToolApprovalPolicyInput) {
-  return Object.assign(create(ToolApprovalPolicySchema), stripUndefined({
-    toolName: input.toolName,
-    message: input.message,
-    fromDestructiveHint: input.fromDestructiveHint,
-  }));
-}
-
 function buildMcpServerAuthProto(input: McpServerAuthInput) {
   const msg = create(McpServerAuthSchema);
   if (input.oauthAppRef?.slug || input.oauthAppRef?.org) msg.oauthAppRef = create(ApiResourceReferenceSchema, { ...input.oauthAppRef, kind: 22 });
@@ -263,15 +246,12 @@ export function buildMcpServerProto(input: McpServerInput): McpServer {
   if (input.env) {
     env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
   }
-  const pinnedToolApprovals = input.pinnedToolApprovals?.map(buildToolApprovalPolicyProto);
   const auth = input.auth ? buildMcpServerAuthProto(input.auth) : undefined;
   const spec = Object.assign(create(McpServerSpecSchema), stripUndefined({
     description: input.description,
     iconUrl: input.iconUrl,
     tags: input.tags,
-    defaultEnabledTools: input.defaultEnabledTools,
     env,
-    pinnedToolApprovals,
     repositoryUrl: input.repositoryUrl,
     githubStars: input.githubStars,
     auth,
@@ -321,14 +301,6 @@ function toEnvVarDeclarationInput(msg: EnvVarDeclaration): EnvVarDeclarationInpu
   };
 }
 
-function toToolApprovalPolicyInput(msg: ToolApprovalPolicy): ToolApprovalPolicyInput {
-  return {
-    toolName: msg.toolName || undefined,
-    message: msg.message || undefined,
-    fromDestructiveHint: msg.fromDestructiveHint || undefined,
-  };
-}
-
 function toMcpServerAuthInput(msg: McpServerAuth): McpServerAuthInput {
   return {
     oauthAppRef: toResourceRefInput(msg.oauthAppRef),
@@ -370,9 +342,7 @@ export function toMcpServerUpdateInput(resource: McpServer): McpServerInput {
     tags: spec.tags?.length ? [...spec.tags] : undefined,
     stdio: spec.serverType?.case === "stdio" ? toStdioServerConfigInput(spec.serverType.value) : undefined,
     http: spec.serverType?.case === "http" ? toHttpServerConfigInput(spec.serverType.value) : undefined,
-    defaultEnabledTools: spec.defaultEnabledTools?.length ? [...spec.defaultEnabledTools] : undefined,
     env: Object.keys(spec.env ?? {}).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
-    pinnedToolApprovals: spec.pinnedToolApprovals?.length ? spec.pinnedToolApprovals.map(toToolApprovalPolicyInput) : undefined,
     repositoryUrl: spec.repositoryUrl || undefined,
     githubStars: spec.githubStars || undefined,
     auth: spec.auth ? toMcpServerAuthInput(spec.auth) : undefined,

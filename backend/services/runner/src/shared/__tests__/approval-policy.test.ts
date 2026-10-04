@@ -1,30 +1,32 @@
 /**
- * Approval policy evaluation tests.
- *
- * Covers the four-level merge chain and placeholder resolution
- * in approval messages. Ported from Python test_hitl_contracts.py
- * policy evaluation sections.
+ * Pins the approval default (`shared/approval-policy.ts`): which calls ask —
+ * the mutating built-in categories and the MCP tools their server marks
+ * destructive, nothing else — what a lease clears, the provenance each
+ * verdict stamps (UNSPECIFIED for a call that needed none), the card
+ * wording, the placeholder resolution with its secret redaction, the
+ * derivation of leases from persisted decisions, and the engine version.
  */
 
 import { describe, it, expect } from "vitest";
 import {
-  mergeApprovalPolicies,
-  lookupMcpToolPolicy,
+  buildMcpApprovalDefault,
+  mcpToolKey,
   resolveApprovalMessage,
   resolveBuiltInApprovalMessage,
   deriveActiveLeases,
   resolveApprovalProvenance,
   resolveToolApproval,
   toProtoPolicySource,
+  POLICY_ENGINE_VERSION,
   type ActiveLeases,
-  type MergedToolPolicy,
+  type McpApprovalDefault,
 } from "../approval-policy.js";
 import type { ToolApprovalCategory } from "../tool-kind.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-/** No active leases — the default gate-everything state used by most merge tests. */
+/** No active leases. */
 const NO_LEASES: ActiveLeases = { global: false, categories: new Set(), servers: new Set() };
 
 /** ActiveLeases with the given scopes; `global` defaults to false. */
@@ -80,210 +82,41 @@ function makeExecution(opts: {
   } as unknown as AgentExecution;
 }
 
-function makeServer(
-  slug: string,
-  toolApprovals: Array<{ toolName: string; message?: string }>,
-  pinnedToolApprovals: Array<{ toolName: string; message?: string }> = [],
-  // Layer-3 overrides ride the server they were declared on (issue #349) —
-  // there is no cross-server override input to the merge anymore.
-  toolApprovalOverrides: Array<{ toolName: string; requiresApproval: boolean; message?: string }> = [],
-): ResolvedMcpServer {
+function makeServer(slug: string, destructiveTools: string[] = []): ResolvedMcpServer {
   return {
     slug,
     connectionType: "stdio",
-    toolApprovals: toolApprovals.map(a => ({
-      toolName: a.toolName,
-      message: a.message ?? "",
-    })) as any[],
-    pinnedToolApprovals: pinnedToolApprovals.map(a => ({
-      toolName: a.toolName,
-      message: a.message ?? "",
-    })) as any[],
-    toolApprovalOverrides: toolApprovalOverrides.map(o => ({
-      toolName: o.toolName,
-      requiresApproval: o.requiresApproval,
-      message: o.message ?? "",
-    })) as any[],
+    destructiveTools,
+    discoveredToolNames: null,
     discoveredCapabilitiesEmpty: false,
     declaredEnvKeys: [],
   };
 }
 
-describe("mergeApprovalPolicies", () => {
-  it("returns empty map under a global lease (spec.auto_approve_all)", () => {
-    const servers = [makeServer("github", [{ toolName: "push" }])];
-    const result = mergeApprovalPolicies(servers, leases({ global: true }));
-    expect(result.size).toBe(0);
+/** An approval default under which the given `server/tool` keys ask; `leasedServers` cleared. */
+function mcpDefaultOf(destructive: string[] = [], leasedServers: string[] = []): McpApprovalDefault {
+  return { destructive: new Set(destructive), leasedServers: new Set(leasedServers) };
+}
+
+describe("buildMcpApprovalDefault", () => {
+  it("keys each server's destructive tools by server and tool", () => {
+    const d = buildMcpApprovalDefault(
+      [makeServer("github", ["delete_repo"]), makeServer("db", ["drop_table", "truncate"])],
+      NO_LEASES,
+    );
+    expect([...d.destructive].sort()).toEqual(["db/drop_table", "db/truncate", "github/delete_repo"]);
   });
 
-  it("drops a leased server's tools while keeping other servers gated", () => {
-    const servers = [
-      makeServer("github", [{ toolName: "push" }]),
-      makeServer("database", [{ toolName: "drop_table" }]),
-    ];
-    const result = mergeApprovalPolicies(servers, leases({ servers: ["github"] }));
-    expect(result.has("github/push")).toBe(false);
-    expect(result.has("database/drop_table")).toBe(true);
+  it("a same-named tool on two servers is destructive only where its own server says so", () => {
+    const d = buildMcpApprovalDefault([makeServer("a", ["delete"]), makeServer("b")], NO_LEASES);
+    expect(d.destructive.has(mcpToolKey("a", "delete"))).toBe(true);
+    expect(d.destructive.has(mcpToolKey("b", "delete"))).toBe(false);
   });
 
-  it("creates policies from toolApprovals", () => {
-    const servers = [
-      makeServer("github", [
-        { toolName: "create_issue", message: "Create issue?" },
-      ]),
-    ];
-    const result = mergeApprovalPolicies(servers, NO_LEASES);
-
-    expect(result.size).toBe(1);
-    const policy = result.get("github/create_issue")!;
-    expect(policy.requiresApproval).toBe(true);
-    expect(policy.approvalMessage).toBe("Create issue?");
-    expect(policy.mcpServerSlug).toBe("github");
-  });
-
-  it("pinnedToolApprovals override toolApprovals", () => {
-    const servers = [
-      makeServer(
-        "github",
-        [{ toolName: "push", message: "auto message" }],
-        [{ toolName: "push", message: "pinned message" }],
-      ),
-    ];
-    const result = mergeApprovalPolicies(servers, NO_LEASES);
-
-    const policy = result.get("github/push")!;
-    expect(policy.approvalMessage).toBe("pinned message");
-  });
-
-  it("agent overrides can disable approval", () => {
-    const servers = [
-      makeServer("github", [{ toolName: "push" }], [], [
-        { toolName: "push", requiresApproval: false },
-      ]),
-    ];
-
-    const result = mergeApprovalPolicies(servers, NO_LEASES);
-    expect(result.size).toBe(0);
-  });
-
-  it("agent overrides can add new approval requirement", () => {
-    const servers = [
-      makeServer("github", [], [], [
-        { toolName: "delete_repo", requiresApproval: true, message: "Really delete?" },
-      ]),
-    ];
-
-    const result = mergeApprovalPolicies(servers, NO_LEASES);
-    expect(result.has("github/delete_repo")).toBe(true);
-  });
-
-  describe("override scoping (issue #349 — no cross-server leak)", () => {
-    it("a disable override on one server leaves a same-named classifier-gated tool on another server gated", () => {
-      // The dangerous direction: before #349 this override silently
-      // un-gated database/delete_item too (authorization widening).
-      const servers = [
-        makeServer("github", [{ toolName: "delete_item" }], [], [
-          { toolName: "delete_item", requiresApproval: false },
-        ]),
-        makeServer("database", [{ toolName: "delete_item" }]),
-      ];
-      const result = mergeApprovalPolicies(servers, NO_LEASES);
-      expect(result.has("github/delete_item")).toBe(false);
-      const other = result.get("database/delete_item")!;
-      expect(other.requiresApproval).toBe(true);
-      expect(other.source).toBe("classifier_default");
-    });
-
-    it("an enable override on one server adds no gate for a same-named tool on another server", () => {
-      const servers = [
-        makeServer("github", [], [], [
-          { toolName: "send_message", requiresApproval: true },
-        ]),
-        makeServer("slack", []),
-      ];
-      const result = mergeApprovalPolicies(servers, NO_LEASES);
-      expect(result.has("github/send_message")).toBe(true);
-      expect(result.has("slack/send_message")).toBe(false);
-    });
-
-    it("a message override on one server does not re-message a same-named gate on another server", () => {
-      const servers = [
-        makeServer("github", [{ toolName: "push", message: "github classifier" }], [], [
-          { toolName: "push", requiresApproval: true, message: "github override" },
-        ]),
-        makeServer("gitlab", [{ toolName: "push", message: "gitlab classifier" }]),
-      ];
-      const result = mergeApprovalPolicies(servers, NO_LEASES);
-      expect(result.get("github/push")!.approvalMessage).toBe("github override");
-      const other = result.get("gitlab/push")!;
-      expect(other.approvalMessage).toBe("gitlab classifier");
-      expect(other.source).toBe("classifier_default");
-    });
-  });
-
-  describe("provenance (source stamping)", () => {
-    it("stamps classifier_default for a layer-1 tool approval", () => {
-      const servers = [makeServer("github", [{ toolName: "create_issue" }])];
-      const result = mergeApprovalPolicies(servers, NO_LEASES);
-      expect(result.get("github/create_issue")!.source).toBe("classifier_default");
-    });
-
-    it("stamps pinned_override when a pinned approval wins", () => {
-      const servers = [
-        makeServer("github", [{ toolName: "push" }], [{ toolName: "push" }]),
-      ];
-      const result = mergeApprovalPolicies(servers, NO_LEASES);
-      expect(result.get("github/push")!.source).toBe("pinned_override");
-    });
-
-    it("stamps agent_override when a per-agent override adds a gate", () => {
-      const servers = [
-        makeServer("github", [], [], [
-          { toolName: "delete_repo", requiresApproval: true, message: "Really delete?" },
-        ]),
-      ];
-      const result = mergeApprovalPolicies(servers, NO_LEASES);
-      expect(result.get("github/delete_repo")!.source).toBe("agent_override");
-    });
-
-    it("stamps agent_override when it overrides a classifier/pinned entry", () => {
-      const servers = [
-        makeServer("github", [{ toolName: "push", message: "classifier" }], [], [
-          { toolName: "push", requiresApproval: true, message: "agent says gate" },
-        ]),
-      ];
-      const result = mergeApprovalPolicies(servers, NO_LEASES);
-      const policy = result.get("github/push")!;
-      expect(policy.source).toBe("agent_override");
-      expect(policy.approvalMessage).toBe("agent says gate");
-    });
-  });
-
-  it("skips tools without names", () => {
-    const servers = [
-      makeServer("github", [{ toolName: "" }]),
-    ];
-    const result = mergeApprovalPolicies(servers, NO_LEASES);
-    expect(result.size).toBe(0);
-  });
-
-  it("generates default message when none provided", () => {
-    const servers = [
-      makeServer("github", [{ toolName: "push" }]),
-    ];
-    const result = mergeApprovalPolicies(servers, NO_LEASES);
-    expect(result.get("github/push")!.approvalMessage).toContain("Execute tool: push");
-  });
-
-  it("handles multiple servers independently", () => {
-    const servers = [
-      makeServer("github", [{ toolName: "push" }]),
-      makeServer("database", [{ toolName: "drop_table" }]),
-    ];
-    const result = mergeApprovalPolicies(servers, NO_LEASES);
-    expect(result.size).toBe(2);
-    expect(result.has("github/push")).toBe(true);
-    expect(result.has("database/drop_table")).toBe(true);
+  it("carries the leased servers, and a server that marks nothing contributes nothing", () => {
+    const d = buildMcpApprovalDefault([makeServer("plain")], leases({ servers: ["github"] }));
+    expect(d.destructive.size).toBe(0);
+    expect([...d.leasedServers]).toEqual(["github"]);
   });
 });
 
@@ -365,28 +198,6 @@ describe("deriveActiveLeases", () => {
   });
 });
 
-describe("lookupMcpToolPolicy", () => {
-  it("finds policy by server/tool key", () => {
-    const policies = new Map<string, MergedToolPolicy>([
-      ["github/push", {
-        toolName: "push",
-        mcpServerSlug: "github",
-        requiresApproval: true,
-        approvalMessage: "Push?",
-        source: "classifier_default",
-      }],
-    ]);
-
-    const policy = lookupMcpToolPolicy("push", "github", policies);
-    expect(policy?.requiresApproval).toBe(true);
-  });
-
-  it("returns undefined for missing tool", () => {
-    const policies = new Map();
-    expect(lookupMcpToolPolicy("missing", "server", policies)).toBeUndefined();
-  });
-});
-
 describe("resolveApprovalMessage", () => {
   it("resolves {{tool_name}} placeholder", () => {
     expect(resolveApprovalMessage(
@@ -446,74 +257,46 @@ describe("resolveApprovalMessage", () => {
 
 // ---------------------------------------------------------------------------
 // resolveApprovalProvenance — the read-side seam that stamps
-// ToolCall.approval_policy_source. Each branch must map to the right
-// PolicySource so the persisted provenance is correct per layer.
+// ToolCall.approval_policy_source.
 // ---------------------------------------------------------------------------
 
 describe("resolveApprovalProvenance", () => {
   const NO_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
-
-  function mcpPolicy(source: MergedToolPolicy["source"]): ReadonlyMap<string, MergedToolPolicy> {
-    return new Map([
-      [
-        "github/create_issue",
-        {
-          toolName: "create_issue",
-          mcpServerSlug: "github",
-          requiresApproval: true,
-          approvalMessage: "Create issue?",
-          source,
-        },
-      ],
-    ]);
-  }
+  const githubDeletes = mcpDefaultOf(["github/delete_repo"]);
 
   it("returns auto_approve_all when the whole-run global bypass is armed", () => {
-    expect(
-      resolveApprovalProvenance("delete", "", new Map(), NO_CATEGORIES, true),
-    ).toBe("auto_approve_all");
+    expect(resolveApprovalProvenance("delete_repo", "github", githubDeletes, NO_CATEGORIES, true)).toBe("auto_approve_all");
+    expect(resolveApprovalProvenance("execute", "", mcpDefaultOf(), NO_CATEGORIES, true)).toBe("auto_approve_all");
   });
 
-  it("surfaces the merged MCP policy's layer for a gated MCP tool", () => {
-    expect(
-      resolveApprovalProvenance("create_issue", "github", mcpPolicy("agent_override"), NO_CATEGORIES, false),
-    ).toBe("agent_override");
+  it("reads annotation_destructive_tighten for an MCP tool its server marks destructive", () => {
+    expect(resolveApprovalProvenance("delete_repo", "github", githubDeletes, NO_CATEGORIES, false)).toBe(
+      "annotation_destructive_tighten",
+    );
   });
 
-  it("surfaces annotation_destructive_tighten for a destructive-hint-gated MCP tool", () => {
-    expect(
-      resolveApprovalProvenance(
-        "create_issue",
-        "github",
-        mcpPolicy("annotation_destructive_tighten"),
-        NO_CATEGORIES,
-        false,
-      ),
-    ).toBe("annotation_destructive_tighten");
+  it("reads undefined for an MCP tool its server does not mark destructive: it needed no approval", () => {
+    expect(resolveApprovalProvenance("list_issues", "github", githubDeletes, NO_CATEGORIES, false)).toBeUndefined();
   });
 
-  it("reads classifier_default for an MCP tool the chain cleared (no entry)", () => {
-    expect(
-      resolveApprovalProvenance("list_issues", "github", new Map(), NO_CATEGORIES, false),
-    ).toBe("classifier_default");
+  it("reads approval_lease for any tool of a leased server, destructive or not", () => {
+    const leased = mcpDefaultOf(["github/delete_repo"], ["github"]);
+    expect(resolveApprovalProvenance("delete_repo", "github", leased, NO_CATEGORIES, false)).toBe("approval_lease");
+    expect(resolveApprovalProvenance("list_issues", "github", leased, NO_CATEGORIES, false)).toBe("approval_lease");
   });
 
   it("returns builtin_category for a mutating built-in with no lease", () => {
-    expect(
-      resolveApprovalProvenance("write", "", new Map(), NO_CATEGORIES, false),
-    ).toBe("builtin_category");
+    expect(resolveApprovalProvenance("write", "", mcpDefaultOf(), NO_CATEGORIES, false)).toBe("builtin_category");
   });
 
   it("returns approval_lease for a mutating built-in whose category is leased", () => {
     expect(
-      resolveApprovalProvenance("write", "", new Map(), new Set<ToolApprovalCategory>(["write"]), false),
+      resolveApprovalProvenance("write", "", mcpDefaultOf(), new Set<ToolApprovalCategory>(["write"]), false),
     ).toBe("approval_lease");
   });
 
-  it("returns undefined for a read-only built-in no layer governs", () => {
-    expect(
-      resolveApprovalProvenance("read", "", new Map(), NO_CATEGORIES, false),
-    ).toBeUndefined();
+  it("returns undefined for a read-only built-in", () => {
+    expect(resolveApprovalProvenance("read", "", mcpDefaultOf(), NO_CATEGORIES, false)).toBeUndefined();
   });
 });
 
@@ -525,28 +308,39 @@ describe("resolveApprovalProvenance", () => {
 
 describe("resolveToolApproval — THE gate decision, shared by the gate and the translators", () => {
   const NO_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
-  const gated: ReadonlyMap<string, MergedToolPolicy> = new Map([
-    ["github/create_issue", { toolName: "create_issue", mcpServerSlug: "github", requiresApproval: true, approvalMessage: "Create issue '{{args.title}}'?", source: "agent_override" }],
-  ]);
+  const githubDeletes = mcpDefaultOf(["github/delete_repo"]);
 
-  it("an MCP tool with a gating policy waits, with the policy's message resolved and its layer as source", () => {
-    expect(resolveToolApproval("create_issue", "github", { title: "Fix crash" }, gated, NO_CATEGORIES)).toEqual({
+  it("an MCP tool its server marks destructive waits, worded `Execute <tool>`, source annotation_destructive_tighten", () => {
+    expect(resolveToolApproval("delete_repo", "github", { repo: "x" }, githubDeletes, NO_CATEGORIES)).toEqual({
       requiresApproval: true,
-      message: "Create issue 'Fix crash'?",
-      source: "agent_override",
+      message: "Execute delete_repo",
+      source: "annotation_destructive_tighten",
     });
   });
 
-  it("an MCP tool absent from the policy map runs — the classifier cleared it (fail-open), source classifier_default", () => {
-    expect(resolveToolApproval("list_issues", "github", {}, gated, NO_CATEGORIES)).toEqual({
+  it("any other MCP tool runs with no source: nothing asks for it", () => {
+    expect(resolveToolApproval("list_issues", "github", {}, githubDeletes, NO_CATEGORIES)).toEqual({
       requiresApproval: false,
       message: "",
-      source: "classifier_default",
+      source: undefined,
+    });
+  });
+
+  it("the destructive mark is the server's own: a same-named tool on another server runs", () => {
+    expect(resolveToolApproval("delete_repo", "gitlab", {}, githubDeletes, NO_CATEGORIES).requiresApproval).toBe(false);
+  });
+
+  it("a leased server's tool runs, destructive or not, source approval_lease", () => {
+    const leased = mcpDefaultOf(["github/delete_repo"], ["github"]);
+    expect(resolveToolApproval("delete_repo", "github", {}, leased, NO_CATEGORIES)).toEqual({
+      requiresApproval: false,
+      message: "",
+      source: "approval_lease",
     });
   });
 
   it("a mutating built-in waits with its category's message (fail-closed), source builtin_category", () => {
-    expect(resolveToolApproval("execute", "", { command: "rm -rf build" }, new Map(), NO_CATEGORIES)).toEqual({
+    expect(resolveToolApproval("execute", "", { command: "rm -rf build" }, mcpDefaultOf(), NO_CATEGORIES)).toEqual({
       requiresApproval: true,
       message: "Run command: rm -rf build",
       source: "builtin_category",
@@ -554,7 +348,9 @@ describe("resolveToolApproval — THE gate decision, shared by the gate and the 
   });
 
   it("a gated native file write waits with the file named on its card (#1112)", () => {
-    expect(resolveToolApproval("write_file", "", { file_path: "/workspace/src/app.ts", content: "x" }, new Map(), NO_CATEGORIES)).toEqual({
+    expect(
+      resolveToolApproval("write_file", "", { file_path: "/workspace/src/app.ts", content: "x" }, mcpDefaultOf(), NO_CATEGORIES),
+    ).toEqual({
       requiresApproval: true,
       message: "Write file: /workspace/src/app.ts",
       source: "builtin_category",
@@ -562,7 +358,9 @@ describe("resolveToolApproval — THE gate decision, shared by the gate and the 
   });
 
   it("a mutating built-in whose category is leased runs, source approval_lease", () => {
-    expect(resolveToolApproval("execute", "", { command: "ls" }, new Map(), new Set<ToolApprovalCategory>(["shell"]))).toEqual({
+    expect(
+      resolveToolApproval("execute", "", { command: "ls" }, mcpDefaultOf(), new Set<ToolApprovalCategory>(["shell"])),
+    ).toEqual({
       requiresApproval: false,
       message: "",
       source: "approval_lease",
@@ -570,8 +368,8 @@ describe("resolveToolApproval — THE gate decision, shared by the gate and the 
   });
 
   it("a read-only or unclassified built-in runs (fail-open)", () => {
-    expect(resolveToolApproval("read_file", "", { path: "/x" }, new Map(), NO_CATEGORIES).requiresApproval).toBe(false);
-    expect(resolveToolApproval("think", "", {}, new Map(), NO_CATEGORIES).requiresApproval).toBe(false);
+    expect(resolveToolApproval("read_file", "", { path: "/x" }, mcpDefaultOf(), NO_CATEGORIES).requiresApproval).toBe(false);
+    expect(resolveToolApproval("think", "", {}, mcpDefaultOf(), NO_CATEGORIES).requiresApproval).toBe(false);
   });
 });
 
@@ -608,23 +406,30 @@ describe("resolveBuiltInApprovalMessage — the one card wording for a gated bui
 });
 
 describe("toProtoPolicySource", () => {
-  it("maps undefined (no governing layer) to UNSPECIFIED", () => {
+  it("maps undefined (no approval needed) to UNSPECIFIED", () => {
     expect(toProtoPolicySource(undefined)).toBe(ApprovalPolicySource.UNSPECIFIED);
   });
 
-  it("maps every union member to a distinct non-UNSPECIFIED enum value", () => {
+  it("maps every persisted union member to a distinct non-UNSPECIFIED enum value", () => {
     const sources = [
-      "classifier_default",
-      "pinned_override",
-      "agent_override",
       "auto_approve_all",
       "approval_lease",
       "builtin_category",
       "annotation_destructive_tighten",
+      "unattended_skip",
     ] as const;
     const mapped = sources.map((s) => toProtoPolicySource(s));
-    // All non-UNSPECIFIED and all distinct.
     expect(mapped.every((v) => v !== ApprovalPolicySource.UNSPECIFIED)).toBe(true);
     expect(new Set(mapped).size).toBe(sources.length);
+  });
+
+  it("maps file_capture, an audit-only source, to UNSPECIFIED", () => {
+    expect(toProtoPolicySource("file_capture")).toBe(ApprovalPolicySource.UNSPECIFIED);
+  });
+});
+
+describe("POLICY_ENGINE_VERSION", () => {
+  it("is default-1: the default alone decides", () => {
+    expect(POLICY_ENGINE_VERSION).toBe("default-1");
   });
 });

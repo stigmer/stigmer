@@ -179,9 +179,8 @@ headers:
 | Syntax | Used In | Resolved By | Example |
 |---|---|---|---|
 | `${VAR_NAME}` | HTTP headers and query params | Agent runner, from environment binding | `"Bearer ${API_TOKEN}"` |
-| `{{args.field}}` | Tool approval messages | Approval engine, from tool call arguments | `"Delete repo: {{args.repo}}"` |
 
-These two syntaxes serve different purposes and must not be confused. `${VAR_NAME}` is for environment variable injection into the HTTP connection configuration. `{{args.field}}` is for rendering contextual approval messages from tool arguments at call time. See [tool-approval-policies.md](tool-approval-policies.md) for `{{args.field}}` documentation.
+`${VAR_NAME}` is for environment variable injection into the HTTP connection configuration, and nothing else in an McpServer resolves it.
 
 ### Timeout Guidance
 

@@ -17,7 +17,8 @@
  *
  * Nothing under `local` survives Agent.resume(): `cwd`, `dirs`,
  * `settingSources`, `store` and `enableAgentRetries` are re-supplied on every
- * resume, exactly like `mcpServers`, `agents` and the model params. Omitting
+ * resume, exactly like `mcpServers`, `agents`, the model params and the
+ * agent's built-in tool restriction (`tools` / `disallowedTools`). Omitting
  * `cwd` re-roots the resumed agent at process.cwd() and loads the "project"
  * setting source (the .cursor/hooks.json carrying the HITL approval hook) from
  * the wrong directory, silently disabling the gate on every resumed turn;
@@ -49,6 +50,7 @@ import type {
   AgentDefinition,
   LocalAgentOptions,
   ModelParameterValue,
+  ToolName,
 } from "@cursor/sdk";
 import type { SqliteLocalAgentStore } from "@cursor/sdk/sqlite";
 import { withTimeout, TimeoutError } from "../../shared/with-timeout.js";
@@ -113,6 +115,15 @@ export interface CreateAgentOptions {
    * be re-supplied on every create/resume (mirrors mcpServers).
    */
   agents?: Record<string, AgentDefinition>;
+  /**
+   * The main loop's built-in restriction from the agent's tool lists
+   * (`shared/tool-lists.ts` `cursorSdkToolOptions`): the SDK's own names,
+   * deny-wins, absent for an agent with no lists. Not persisted across
+   * resume, so it is re-supplied on every create/resume (mirrors mcpServers).
+   * Local agents only: the SDK refuses it with `cloud`.
+   */
+  tools?: ToolName[];
+  disallowedTools?: ToolName[];
 }
 
 export interface ResumeAgentOptions {
@@ -136,6 +147,9 @@ export interface ResumeAgentOptions {
   mcpServers?: Record<string, CursorMcpServerConfig>;
   /** Custom sub-agents — see {@link CreateAgentOptions.agents}. */
   agents?: Record<string, AgentDefinition>;
+  /** The built-in restriction — see {@link CreateAgentOptions.tools}. */
+  tools?: ToolName[];
+  disallowedTools?: ToolName[];
 }
 
 // ---------------------------------------------------------------------------
@@ -231,6 +245,21 @@ async function localAgentOptions(
 }
 
 /**
+ * The `tools` / `disallowedTools` fields to pass, each only when set: an
+ * absent field leaves the SDK's default toolset, and the SDK reads an empty
+ * `tools` as "no built-in tools at all".
+ */
+function toolRestriction(options: { tools?: ToolName[]; disallowedTools?: ToolName[] }): {
+  tools?: ToolName[];
+  disallowedTools?: ToolName[];
+} {
+  return {
+    ...(options.tools !== undefined ? { tools: options.tools } : {}),
+    ...(options.disallowedTools !== undefined ? { disallowedTools: options.disallowedTools } : {}),
+  };
+}
+
+/**
  * Create a new local Cursor Agent for the first execution in a session.
  */
 export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent> {
@@ -248,6 +277,7 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
     local,
     mcpServers: options.mcpServers as Record<string, any>,
     agents: options.agents,
+    ...toolRestriction(options),
   });
 }
 
@@ -275,6 +305,7 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent
     local,
     mcpServers: options.mcpServers as Record<string, any>,
     agents: options.agents,
+    ...toolRestriction(options),
   });
 }
 
@@ -377,6 +408,7 @@ export async function resolveAgent(
             modelParams: options.modelParams,
             mcpServers: options.mcpServers,
             agents: options.agents,
+            ...toolRestriction(options as CreateAgentOptions),
           });
 
       return {

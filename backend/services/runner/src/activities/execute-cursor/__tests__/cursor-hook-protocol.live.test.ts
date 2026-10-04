@@ -24,12 +24,28 @@
  * for a write-, shell- or delete-class action is the one outcome that must
  * stop a bump: the gate would let it through.
  *
+ * A second case pins two facts the runner's tool-list rules on this engine
+ * depend on (`turn-setup.ts` `checkToolScope`, `hook-scope.ts`), first seen
+ * on 1.0.31 (live probe, 2026-10-05):
+ *
+ *  4. A `task` delegation fires NO `preToolUse` (no `Task` entry) and NO
+ *     `subagentStart`, though one is registered: `Agent(type, …)` cannot be
+ *     held to a type list through the hook, so a type list is refused at
+ *     setup and the hook's `subagentStart` / `Task` arms are a second line.
+ *  5. The sub-agent's own tool calls fire `preToolUse` with the parent's
+ *     `conversation_id`: a call cannot be told to be a sub-agent's, so a
+ *     sub-agent with lists of its own is refused at setup, while the main
+ *     agent's lists still bind it through `preToolUse`.
+ *
+ * A bump that changes either fails this instrument on purpose: the rules
+ * above were chosen from these facts and must be revisited with them.
+ *
  * Live class (`*.live.test.ts`): runs only through `npm run test:live`, by
  * hand or in the live lane; skips without `CURSOR_API_KEY` outside the lane
  * (`src/__test-utils__/live-gate.ts`). It spends real credits for one short
  * turn, with no product cost cap (the SDK is driven directly, not through an
- * execution). Findings are PRINTED as well as asserted, so a bump's PR can
- * quote the shapes seen.
+ * execution), plus one short delegation turn for facts 4 and 5. Findings are
+ * PRINTED as well as asserted, so a bump's PR can quote the shapes seen.
  */
 import { describe, it, expect } from "vitest";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -45,10 +61,13 @@ interface HookInvocation {
   readonly hook_event_name?: unknown;
   readonly tool_name?: unknown;
   readonly tool_input?: unknown;
+  readonly conversation_id?: unknown;
+  readonly subagent_type?: unknown;
 }
 
 /**
- * An observation-only preToolUse/beforeMCPExecution hook: appends every
+ * An observation-only preToolUse/beforeMCPExecution/subagentStart hook (the
+ * three events the runner's gate registers): appends every
  * invocation's stdin JSON to a log file and ALLOWS everything, so the turn
  * runs to completion and every gated action is seen exactly as the gate would
  * see it.
@@ -70,6 +89,7 @@ function installObservationHook(workspaceRoot: string, logPath: string): void {
       hooks: {
         preToolUse: [{ command: scriptPath }],
         beforeMCPExecution: [{ command: scriptPath }],
+        subagentStart: [{ command: scriptPath }],
       },
     }),
     "utf-8",
@@ -160,5 +180,71 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor SDK hook protocol (live g
     const categories = builtIns.map((inv) => approvalCategory(inv.tool_name as string));
     expect(categories, "the file write reached the hook under a name the gate classifies as write").toContain("write");
     expect(categories, "the shell command reached the hook under a name the gate classifies as shell").toContain("shell");
+  }, 300_000);
+
+  it("a task delegation fires no Task preToolUse and no subagentStart, and the sub-agent's calls carry the parent's conversation_id", async () => {
+    const { Agent } = await import("@cursor/sdk");
+    const { SqliteLocalAgentStore } = await import("@cursor/sdk/sqlite");
+
+    const workspaceRoot = mkdtempSync(join(tmpdir(), "stigmer-hook-delegation-"));
+    const stateRoot = join(workspaceRoot, ".sdk-state");
+    mkdirSync(stateRoot, { recursive: true });
+    writeFileSync(join(workspaceRoot, "probe.txt"), "delegation probe\n", "utf-8");
+    const hookLog = join(workspaceRoot, "hook-invocations.jsonl");
+    installObservationHook(workspaceRoot, hookLog);
+
+    const agent = await Agent.create({
+      apiKey: CURSOR_API_KEY,
+      model: { id: "composer-2.5" },
+      local: {
+        cwd: workspaceRoot,
+        settingSources: ["project"],
+        store: await SqliteLocalAgentStore.open({ workspaceRef: `hook-delegation-${Date.now()}`, stateRoot }),
+        enableAgentRetries: false,
+      },
+      agents: {
+        reader: {
+          description: "Reads one file and reports its content.",
+          prompt: "Read the file you are asked about with your read tool and reply with its exact content.",
+          model: "inherit",
+        },
+      },
+    });
+
+    const run = await agent.send(
+      "Do not read any file yourself. Delegate with the Task tool to the `reader` sub-agent: ask it to read " +
+        "probe.txt and report its content. Then reply with what it reported.",
+    );
+    const streamedToolNames: string[] = [];
+    for await (const event of run.stream()) {
+      const e = event as { type?: unknown; name?: unknown };
+      if (e.type === "tool_call" && typeof e.name === "string") streamedToolNames.push(e.name);
+    }
+    const result = await run.wait();
+    agent.close();
+
+    const invocations = readInvocations(hookLog);
+    const taskPreToolUse = invocations.filter((inv) => inv.hook_event_name === "preToolUse" && inv.tool_name === "Task");
+    const subagentStarts = invocations.filter((inv) => inv.hook_event_name === "subagentStart");
+    const preToolUse = invocations.filter((inv) => inv.hook_event_name === "preToolUse");
+    const conversationIds = [...new Set(preToolUse.map((inv) => String(inv.conversation_id)))];
+
+    // ---- Findings dump (what a bump's PR quotes) ----
+    console.log(`[hook-delegation] run status: ${result.status}`);
+    console.log(`[hook-delegation] streamed tool calls: ${JSON.stringify(streamedToolNames)}`);
+    console.log(`[hook-delegation] Task preToolUse invocations: ${taskPreToolUse.length}`);
+    console.log(`[hook-delegation] subagentStart invocations: ${subagentStarts.length}`);
+    console.log(
+      `[hook-delegation] preToolUse: ${JSON.stringify(preToolUse.map((inv) => `${String(inv.tool_name)}@${String(inv.conversation_id)}`))}`,
+    );
+
+    expect(["finished", "error", "cancelled"]).toContain(result.status);
+    expect(streamedToolNames, "the turn must have delegated, or nothing here was observed").toContain("task");
+    // Fact 4: neither hook fires for the delegation.
+    expect(taskPreToolUse, "a Task preToolUse arrived: revisit the Agent(type, …) refusal in checkToolScope").toEqual([]);
+    expect(subagentStarts, "a subagentStart arrived: revisit the Agent(type, …) refusal in checkToolScope").toEqual([]);
+    // Fact 5: the sub-agent's own calls reach preToolUse under the parent's conversation.
+    expect(preToolUse.length, "the sub-agent's read never reached preToolUse: the main agent's lists would not bind it").toBeGreaterThan(0);
+    expect(conversationIds, "calls carried distinct conversation ids: revisit the sub-agent-lists refusal").toHaveLength(1);
   }, 300_000);
 });

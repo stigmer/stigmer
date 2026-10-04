@@ -1,7 +1,7 @@
 /**
  * Approval gate middleware for HITL (human-in-the-loop) tool approval.
  *
- * Checks each tool call against the merged approval policy. When a tool
+ * Checks each tool call against the approval default. When a tool
  * requires approval, calls LangGraph `interrupt()` to pause the graph
  * at the checkpoint. The Temporal workflow then waits for the user's
  * decision via the `approvalGateResolved` signal.
@@ -16,7 +16,7 @@
  * pausing again.
  *
  * Platform tool defaults: DeepAgents JS backend tools (read, write,
- * edit, execute, etc.) are not covered by MCP policy chains. Built-in tools
+ * edit, execute, etc.) are not MCP tools. Built-in tools
  * are classified through the shared {@link toolApprovalCategory} — the single
  * source of truth, shared with the Cursor deny-oracle hook — so read-only tools
  * are auto-approved and every mutating tool (write/edit/delete/shell) is gated
@@ -33,11 +33,16 @@
  * Gateway invariant: this middleware IS the in-process execution
  * gateway for the deep-agent harness — `handler(request)` is the side effect. A
  * side effect runs only with a backing authorization: either (a) the tool was
- * auto-approved (policy/classifier cleared it, or auto-approve-all disabled the
- * whole gate), or (b) the user explicitly approved THIS interrupted call. Every
+ * auto-approved (the default does not ask for it, a lease cleared it, or
+ * auto-approve-all disabled the whole gate), or (b) the user explicitly approved THIS interrupted call. Every
  * other outcome — skip, reject, or an unrecognized decision — returns a
  * ToolMessage WITHOUT executing. There is no path from a model proposal to a
  * side effect that skips an authorization.
+ *
+ * Whether a tool may be called at all is not this gate's question: the
+ * agent's tool lists are enforced by `tool-scope.ts`, installed ahead of this
+ * gate, so a listed-out call is refused before it could reach a card, and
+ * the refusal binds even when this gate is absent (auto-approve-all).
  *
  * Shadow ExecutionReceipt: when the gateway lets a side effect through it emits a
  * structured, non-persisted receipt (a `[hitl-gateway] receipt …` log carrying
@@ -54,7 +59,7 @@ import { ToolMessage } from "@langchain/core/messages";
 import { interrupt } from "@langchain/langgraph";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
 import {
-  type MergedToolPolicy,
+  type McpApprovalDefault,
   type PolicySource,
   POLICY_ENGINE_VERSION,
   resolveToolApproval,
@@ -69,13 +74,13 @@ import {
 } from "../shared/approval-fingerprint.js";
 
 export interface ApprovalGateConfig {
-  readonly policies: ReadonlyMap<string, MergedToolPolicy>;
+  /** The approval default's MCP half: which MCP tools ask, and which servers a lease cleared. */
+  readonly mcpDefault: McpApprovalDefault;
   /**
    * Built-in approval categories with a run-lifetime lease (the scoped successor
    * to auto-approve-all; see ActiveLeases). A built-in whose category is leased
-   * is auto-approved for the rest of the run. MCP-server leases are NOT carried
-   * here — they are applied upstream by dropping the server's tools from
-   * `policies` (mergeApprovalPolicies), which clears them for this gate too.
+   * is auto-approved for the rest of the run. MCP-server leases ride
+   * {@link mcpDefault}.
    * Absent/empty means no built-in lease is active. Inherited verbatim by
    * sub-agents along with the rest of this config.
    */
@@ -150,8 +155,7 @@ export interface ApprovalGateConfig {
    * approver, so a gated tool is resolved as an automatic SKIP (the model is
    * told to adapt) instead of `interrupt()`. The execution never enters
    * WAITING_FOR_APPROVAL. What is gated is unchanged — only the resolution
-   * differs; an operator un-gates a specific tool for the agent via
-   * tool_approval_overrides, not by weakening this mode.
+   * differs.
    */
   readonly unattended?: boolean;
   /**
@@ -192,7 +196,7 @@ function secretBlockToolMessage(toolName: string, path: string, toolCallId: stri
 export function createApprovalGateMiddleware(
   config: ApprovalGateConfig,
 ): StigmerMiddleware {
-  const { policies, toolServerMap } = config;
+  const { mcpDefault, toolServerMap } = config;
   const leasedCategories = config.leasedCategories ?? EMPTY_CATEGORY_SET;
 
   // No global-bypass early return: a pre-armed spec.auto_approve_all means the
@@ -291,12 +295,12 @@ export function createApprovalGateMiddleware(
         toolName,
         serverSlug,
         toolCall.args,
-        policies,
+        mcpDefault,
         leasedCategories,
       );
 
       if (!requirement.requiresApproval) {
-        // Backing authorization: the classifier/policy auto-approved this tool.
+        // Backing authorization: the default does not ask for this tool, or a lease cleared it.
         emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", requirement.source);
         return await handler(request);
       }
@@ -402,7 +406,7 @@ function emitExecutionReceipt(
   serverSlug: string,
   category: ToolApprovalCategory | undefined,
   source: AuthorizationSource,
-  policySource: PolicySource,
+  policySource: PolicySource | undefined,
 ): void {
   if (!category && !serverSlug) return;
 
@@ -423,7 +427,7 @@ function emitExecutionReceipt(
       mcpServerSlug: serverSlug,
       category: category ?? "",
       authorization: source,
-      policySource,
+      policySource: policySource ?? "",
       policyEngineVersion: POLICY_ENGINE_VERSION,
       fingerprint,
       substrate: "deep-agent",

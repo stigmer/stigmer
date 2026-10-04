@@ -15,7 +15,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
-from ._agent import McpServerUsageInput, ToolApprovalOverrideInput
+from ._agent import McpServerUsageInput
 from ._agentexecution import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
 
 

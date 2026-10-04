@@ -22,6 +22,7 @@ import {
   type ScriptSelector,
 } from "../__test-utils__/scripted-model.js";
 import { compileSubagents, type TransformedSubagent } from "../subagent-transformer.js";
+import { ToolScope } from "../../../shared/tool-lists.js";
 
 describe("native harness shell execute approval", () => {
   let root: string;
@@ -61,7 +62,7 @@ describe("native harness shell execute approval", () => {
       checkpointer: checkpointer as never,
       backend,
       middleware: [
-        createApprovalGateMiddleware({ policies: new Map(), toolServerMap: new Map() }),
+        createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), leasedServers: new Set() }, toolServerMap: new Map() }),
       ],
     } as Parameters<typeof createDeepAgent>[0]);
 
@@ -108,7 +109,7 @@ describe("sub-agent shell capability", () => {
     };
 
     const compiled = await compileSubagents(
-      [{ name: "worker", description: "test worker", systemPrompt: "work", tools: [] }],
+      [{ name: "worker", description: "test worker", systemPrompt: "work", tools: [], scope: ToolScope.unrestricted() }],
       {
         parentModelName: "claude-sonnet-4-6",
         workspaceRootDir: root,
@@ -176,12 +177,13 @@ describe("general-purpose sub-agent gating", () => {
       description: "Gated general-purpose test double",
       systemPrompt: "Run the delegated task.",
       tools: [],
+      scope: ToolScope.unrestricted(),
     };
 
     const compiled = await compileSubagents([gpSpec], {
       parentModelName: "claude-sonnet-4-6",
       workspaceRootDir: root,
-      approvalGate: { policies: new Map(), toolServerMap: new Map() },
+      approvalGate: { mcpDefault: { destructive: new Set(), leasedServers: new Set() }, toolServerMap: new Map() },
       shellEnv: {},
       modelFactory: async () => new ScriptedModel(roleScript),
     });

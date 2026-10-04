@@ -224,6 +224,6 @@ export const mcpServerCreationTourSteps: ScenarioStep<McpServerCreationTourStep>
     delayMs: 3000,
     data: { view: "library-complete" },
     narration:
-      "The server is in your Library. Next, connect it — Stigmer will catalog its tools and generate approval policies automatically.",
+      "The server is in your Library. Next, connect it — Stigmer will catalog its tools automatically.",
   },
 ];

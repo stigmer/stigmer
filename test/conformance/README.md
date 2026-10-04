@@ -574,9 +574,12 @@ arms (the default fence is the no-embedder posture the memory-retrieval suite
 pins), and `enqueueError({ status, headers, body, persistent })` scripts a
 provider fault byte-exact — `persistent` because a real fault answers every
 retry, and LangChain's AsyncCaller retries a 5xx six times. `McpToolFixture`
-names its tool surface in the URL: `url()` is the one-tool `echo` server the
-connect suite pins by exact list; `url(["echo", "fail"])` adds the failing
-tool the messages suite needs; `requireOAuth({ resourceMetadataUrl })` turns
+names its tool surface in the URL: `url()` is the one-tool `echo` server
+most suites call unattended; `url(["echo", "fail"])` adds the failing tool
+the messages suite needs; `echo_destructive` is the same echo declaring
+`destructiveHint: true`, the tool the approval default asks before once a
+connect has stored the hint (`createConnectedMcpServer` in
+`support/agentexecutions.ts` creates, connects and checks the stored hints); `requireOAuth({ resourceMetadataUrl })` turns
 it into a hosted server's OAuth posture (a 401 challenge to every
 credential-less request), the lever the endpoint-auth facet completes a
 URL-only server from.
@@ -643,17 +646,19 @@ an agent can only reach `EXECUTION_WAITING_FOR_APPROVAL` when it references an
 McpServer that exposes an approval-gated tool, so the `local-execution` target
 also boots a **TS-pure HTTP (Streamable) MCP fixture** (`harness/mcp-server.ts`):
 a long-lived `node:http` server fronting `@modelcontextprotocol/sdk`'s `McpServer`
-that exposes one deterministic `echo` tool by default (a second surface adds
-`fail`; see Harness). Crucially, the McpServer resource is
-only **created** (with the fixture's URL) — there is **no `connect`/discovery
-step**, because the runner resolves MCP servers from their spec and connects
-*live* at execution setup, computing the gate from the agent's
-`tool_approval_overrides` (the conformance runner already sets
-`SKIP_MCP_CONNECT_BACKFILL=true`). The suite asserts the server-owned contract —
-the phase lifecycle (gate reached -> COMPLETED) for APPROVE/SKIP/REJECT/
-APPROVE_ALL, the `pending_approvals` read model (`tool_call_id`, `tool_name`,
-`mcp_server_slug`), `auto_approve_all` bypass, idempotency, and the negative
-codes — and deliberately does **not** assert runner-internal projections that are
+that exposes one deterministic `echo` tool by default (other surfaces add
+`fail` and `echo_destructive`; see Harness). The gate comes from the approval
+default, which asks before a tool its server marks destructive: the suite's
+server exposes `echo_destructive` and is **created and connected**, because
+the runner connects to the server *live* at execution setup but reads the
+destructive mark only from the stored discovery
+(`DiscoveredTool.destructive_hint`; the conformance runner sets
+`SKIP_MCP_CONNECT_BACKFILL=true`, so nothing else discovers it). The suite
+asserts the server-owned contract — the phase lifecycle (gate reached ->
+COMPLETED) for APPROVE/SKIP/REJECT/APPROVE_ALL, the `pending_approvals` read
+model (`tool_call_id`, `tool_name`, `mcp_server_slug`, and the provenance
+`ANNOTATION_DESTRUCTIVE_TIGHTEN`), `auto_approve_all` bypass, idempotency, and
+the negative codes — and deliberately does **not** assert runner-internal projections that are
 not stable black-box observables (per-tool-call *final* status after the approval
 resume, and `args_preview`), exactly the boundary the integration HITL suite
 draws.
@@ -736,7 +741,12 @@ strip under the runner's capture throttle), `agentexecution-memory-selection`
 `workflowexecution-eval` (the LLM-backed workflow tasks), plus additions to
 `agentexecution` (idempotent cancel/terminate), `agentexecution-approval` (the
 approval ledger, the APPROVE_ALL lease across turns, durable resume) and
-`mcpserver-connect` (the classifier's economy-tier model on the wire).
+`mcpserver-connect` (the stored `destructive_hint` per tool, and a connect
+that asks no model). `agentexecution-tool-lists` pins an agent's `tools` and
+`disallowed_tools` on the native engine: a tool outside them is never
+offered, a call to it anyway is a failed tool call with the out-of-scope
+message, and no approval is requested for it, under the default and under
+`auto_approve_all` alike.
 `runner-ipc.harness` proves the manager-mode `ready` handshake end to
 end.
 
@@ -777,7 +787,7 @@ src/
                     + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval)
                     + agentexecution*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect,
-                      request-shape)
+                      request-shape, tool-lists)
                     + mcpserver-connect, mcp-caller-identity, mcp-server-address, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)
                     + goldens/  (the request-shape facet's file goldens; regenerated only under a ruling)
 scripts/            check-inventory, cloud-fixtures-serve, benchmark-harnesses (+ benchmark-harnesses/quality-tasks.yaml)

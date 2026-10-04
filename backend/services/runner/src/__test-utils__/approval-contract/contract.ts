@@ -17,7 +17,9 @@
  *  6. mutating built-in, no explicit approval → gated (fail-closed BY CATEGORY,
  *     so a brand-new mutating tool is gated by default, not allow-listed).
  *  7. read-only / non-mutating built-in       → executes with no gate.
- *  8. auto-approved MCP tool                   → executes with no gate.
+ *  8. an MCP tool its server does not mark destructive → executes with no
+ *     gate; one it marks destructive → gated (the default reads the server's
+ *     own destructiveHint, nothing else).
  *  9. cross-tool isolation: approving a write never authorizes a shell
  *     (capability: enforcesExactResource).
  * 10. exact-resource: approving write /a never authorizes write /b
@@ -25,14 +27,25 @@
  * 11. class-lease isolation: APPROVE_ALL on class A auto-approves later class-A
  *     actions but never class B (capability: appliesRunLifetimeLease).
  *
- * Capability-gated invariants (9, 10, 11) run only where the substrate supports
+ *
+ * The agent's tool lists (`tools` / `disallowed_tools`, Claude Code's names):
+ * 13. an allow-list is exact: a named tool runs, anything else is refused.
+ * 14. deny is applied first, and a specifier governs the whole tool.
+ * 15. a deny-list leaves the rest to the approval default.
+ * 16. the lists bind under "trust this whole run" (no gate installed).
+ * 17. a refusal never asks: a refused call is never gated or executed.
+ * 18. with Read excluded, the platform's own content stays readable.
+ * 19. a sub-agent narrows the agent's tools and never widens them
+ *     (capability: enforcesSubAgentLists).
+ *
+ * Capability-gated invariants (9, 10, 11, 19) run only where the substrate supports
  * the relevant lease; the "executes exactly once" count in (2) is asserted only
  * where the substrate observes execution. Differences are gated, never forked —
  * the same philosophy as the conformance suite's CapabilityFlags.
  */
 
 import { describe, it, expect } from "vitest";
-import type { GatewayDecision, GatewaySubstrate, ProposedAction } from "./types.js";
+import type { GatewayDecision, GatewaySubstrate, ListsOutcome, ProposedAction } from "./types.js";
 
 /** Representative actions shared by the per-substrate and cross-substrate suites. */
 const WRITE_A: ProposedAction = { kind: "write", resource: "/work/alpha.txt" };
@@ -46,9 +59,32 @@ const READ: ProposedAction = { kind: "read", resource: "/work/alpha.txt" };
 const MCP: ProposedAction = {
   kind: "mcp",
   resource: "",
-  mcpServerSlug: "github",
+  mcpServerSlug: "srv",
   mcpToolName: "search_issues",
 };
+const MCP_OTHER: ProposedAction = { kind: "mcp", resource: "", mcpServerSlug: "srv", mcpToolName: "close_issue" };
+const MCP_DESTRUCTIVE: ProposedAction = {
+  kind: "mcp",
+  resource: "",
+  mcpServerSlug: "srv",
+  mcpToolName: "delete_repository",
+  mcpDestructive: true,
+};
+const PLATFORM_READ: ProposedAction = { kind: "read", resource: "skills/guide/SKILL.md", platformContent: true };
+
+/** Assert a lists drive refused the call: not run, not asked. */
+function expectRefused(substrate: GatewaySubstrate, what: string, outcome: ListsOutcome): void {
+  expect(outcome.refused, `${substrate.name}: ${what} must be refused by the lists`).toBe(true);
+  expect(outcome.executed, `${substrate.name}: a refused ${what} must not run`).toBe(false);
+  expect(outcome.gated, `${substrate.name}: a refused ${what} must never ask for approval`).toBe(false);
+}
+
+/** Assert a lists drive let the call run with no approval asked. */
+function expectRan(substrate: GatewaySubstrate, what: string, outcome: ListsOutcome): void {
+  expect(outcome.refused, `${substrate.name}: ${what} must not be refused`).toBe(false);
+  expect(outcome.gated, `${substrate.name}: ${what} must not ask`).toBe(false);
+  expect(outcome.executed, `${substrate.name}: ${what} must run`).toBe(true);
+}
 
 /**
  * Register the P0 safety invariants against one substrate. The suite is skipped
@@ -115,12 +151,91 @@ export function describeGatewayContract(substrate: GatewaySubstrate): void {
       expect(outcome.executed, `${substrate.name}: a read must execute`).toBe(true);
     });
 
-    // Invariant 8: an auto-approved MCP tool runs without a gate.
-    it("executes an auto-approved MCP tool without a gate", async () => {
+    // Invariant 8: an MCP tool its server does not mark destructive runs
+    // without a gate; one it marks destructive is withheld.
+    it("executes an MCP tool its server does not mark destructive without a gate", async () => {
       const outcome = await substrate.authorize(MCP, "none");
-      expect(outcome.gated, `${substrate.name}: an auto-approved MCP tool must not be gated`).toBe(false);
-      expect(outcome.executed, `${substrate.name}: an auto-approved MCP tool must execute`).toBe(true);
+      expect(outcome.gated, `${substrate.name}: an unmarked MCP tool must not be gated`).toBe(false);
+      expect(outcome.executed, `${substrate.name}: an unmarked MCP tool must execute`).toBe(true);
     });
+
+    it("gates an MCP tool its server marks destructive", async () => {
+      const outcome = await substrate.authorize(MCP_DESTRUCTIVE, "none");
+      expect(outcome.gated, `${substrate.name}: a destructive MCP tool must be gated`).toBe(true);
+      expect(outcome.executed, `${substrate.name}: a destructive MCP tool must not execute unapproved`).toBe(false);
+      if (substrate.capabilities.surfacesGatePolicySource) {
+        expect(outcome.policySource, `${substrate.name}: the gate names the server's annotation`).toBe(
+          "annotation_destructive_tighten",
+        );
+      }
+    });
+
+    // Invariant 13: an allow-list is exact.
+    it("an allow-list runs what it names and refuses everything else (invariant 13)", async () => {
+      const lists = { tools: ["Read", "mcp__srv__search_issues"], disallowedTools: [] };
+      expectRan(substrate, "a listed read", await substrate.authorizeUnderLists(lists, READ));
+      expectRan(substrate, "a listed MCP tool", await substrate.authorizeUnderLists(lists, MCP));
+      expectRefused(substrate, "an unlisted shell", await substrate.authorizeUnderLists(lists, SHELL));
+      expectRefused(substrate, "an unlisted write", await substrate.authorizeUnderLists(lists, WRITE_A));
+      expectRefused(substrate, "an unlisted tool of a listed server", await substrate.authorizeUnderLists(lists, MCP_OTHER));
+    });
+
+    // Invariant 14: deny first; a specifier governs the whole tool.
+    it("applies deny first, and a specifier governs the whole tool (invariant 14)", async () => {
+      const both = { tools: ["Read", "Write"], disallowedTools: ["Write"] };
+      expectRefused(substrate, "a write both listed and denied", await substrate.authorizeUnderLists(both, WRITE_A));
+      expectRan(substrate, "a listed read", await substrate.authorizeUnderLists(both, READ));
+      const specifier = { tools: [], disallowedTools: ["Bash(git push *)"] };
+      expectRefused(substrate, "any shell under Bash(git push *)", await substrate.authorizeUnderLists(specifier, SHELL));
+    });
+
+    // Invariants 15 and 17: a deny-list leaves the rest to the default.
+    it("a deny-list refuses what it names and leaves the rest to the approval default (invariants 15, 17)", async () => {
+      const lists = { tools: [], disallowedTools: ["Bash", "mcp__srv__close_issue"] };
+      expectRefused(substrate, "a denied shell", await substrate.authorizeUnderLists(lists, SHELL));
+      expectRefused(substrate, "a denied MCP tool", await substrate.authorizeUnderLists(lists, MCP_OTHER));
+      expectRan(substrate, "an undenied MCP tool", await substrate.authorizeUnderLists(lists, MCP));
+      const write = await substrate.authorizeUnderLists(lists, WRITE_A);
+      expect(write.refused, `${substrate.name}: an undenied write is the default's, not the lists'`).toBe(false);
+      expect(write.gated, `${substrate.name}: the default still asks before an undenied write`).toBe(true);
+      const destructive = await substrate.authorizeUnderLists(lists, MCP_DESTRUCTIVE);
+      expect(destructive.gated, `${substrate.name}: the default still asks before a destructive MCP tool`).toBe(true);
+    });
+
+    // Invariant 16: the lists bind under "trust this whole run".
+    it("binds under trust this whole run (invariant 16)", async () => {
+      const lists = { tools: [], disallowedTools: ["Bash", "mcp__srv"] };
+      const trust = { autoApproveAll: true };
+      expectRefused(substrate, "a denied shell under trust", await substrate.authorizeUnderLists(lists, SHELL, trust));
+      expectRefused(substrate, "a denied server's tool under trust", await substrate.authorizeUnderLists(lists, MCP, trust));
+      expectRan(substrate, "an undenied write under trust", await substrate.authorizeUnderLists(lists, WRITE_A, trust));
+    });
+
+    // Invariant 18: Read excluded still reads the platform's own content.
+    it("with Read excluded, refuses workspace reads but keeps the platform's content readable (invariant 18)", async () => {
+      const lists = { tools: ["Grep"], disallowedTools: [] };
+      expectRefused(substrate, "a workspace read", await substrate.authorizeUnderLists(lists, READ));
+      expectRan(substrate, "a read of the platform's content", await substrate.authorizeUnderLists(lists, PLATFORM_READ));
+    });
+
+    // Invariant 19: a sub-agent narrows and never widens.
+    if (substrate.capabilities.enforcesSubAgentLists) {
+      it("a sub-agent narrows the agent's tools and never widens them (invariant 19)", async () => {
+        const agent = { tools: ["Read", "Write"], disallowedTools: [] };
+        const subAgent = { tools: ["Read", "Bash"], disallowedTools: [] };
+        expectRefused(
+          substrate,
+          "a shell the sub-agent lists but the agent does not",
+          await substrate.authorizeUnderLists(agent, SHELL, { subAgent }),
+        );
+        expectRefused(
+          substrate,
+          "a write the agent lists but the sub-agent does not",
+          await substrate.authorizeUnderLists(agent, WRITE_A, { subAgent }),
+        );
+        expectRan(substrate, "a read both list", await substrate.authorizeUnderLists(agent, READ, { subAgent }));
+      });
+    }
 
     // Invariants 9, 10: lease isolation — only meaningful where the substrate
     // binds the exact resource. Gated honestly rather than asserted everywhere.
@@ -209,7 +324,8 @@ export function describeCrossSubstrateAgreement(substrates: GatewaySubstrate[]):
       { label: "a fresh shell is withheld", action: SHELL, decision: "none" },
       { label: "a rejected write never executes", action: WRITE_A, decision: "reject" },
       { label: "a read runs ungated", action: READ, decision: "none" },
-      { label: "an auto-approved MCP tool runs ungated", action: MCP, decision: "none" },
+      { label: "an unmarked MCP tool runs ungated", action: MCP, decision: "none" },
+      { label: "a destructive MCP tool is withheld", action: MCP_DESTRUCTIVE, decision: "none" },
     ];
 
     for (const { label, action, decision } of cases) {
@@ -218,6 +334,24 @@ export function describeCrossSubstrateAgreement(substrates: GatewaySubstrate[]):
         const executed = outcomes.map((o) => o.executed);
         const detail = available.map((s, i) => `${s.name}=${executed[i]}`).join(", ");
         expect(new Set(executed).size, `substrates disagree on "${label}" (executed): ${detail}`).toBe(1);
+      });
+    }
+
+    const listCases: Array<{ label: string; lists: { tools: string[]; disallowedTools: string[] }; action: ProposedAction; trust?: boolean }> = [
+      { label: "an allow-list refuses an unlisted shell", lists: { tools: ["Read"], disallowedTools: [] }, action: SHELL },
+      { label: "an allow-list runs a listed read", lists: { tools: ["Read"], disallowedTools: [] }, action: READ },
+      { label: "a denied MCP server's tool is refused", lists: { tools: [], disallowedTools: ["mcp__srv"] }, action: MCP },
+      { label: "a denied shell is refused under trust", lists: { tools: [], disallowedTools: ["Bash"] }, action: SHELL, trust: true },
+      { label: "Read excluded keeps the platform's content", lists: { tools: ["Grep"], disallowedTools: [] }, action: PLATFORM_READ },
+    ];
+    for (const { label, lists, action, trust } of listCases) {
+      it(`both substrates agree on the lists: ${label}`, async () => {
+        const outcomes = await Promise.all(
+          available.map((s) => s.authorizeUnderLists(lists, action, { autoApproveAll: trust ?? false })),
+        );
+        const seen = outcomes.map((o) => `${o.refused}/${o.executed}`);
+        const detail = available.map((s, i) => `${s.name}=${seen[i]}`).join(", ");
+        expect(new Set(seen).size, `substrates disagree on "${label}" (refused/executed): ${detail}`).toBe(1);
       });
     }
   });

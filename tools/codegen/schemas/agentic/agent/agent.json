@@ -78,7 +78,7 @@
           "messageType": "SubAgent"
         }
       },
-      "description": "Sub-agents that can be delegated to.\n Sub-agents can access a subset of the parent's MCP servers and tools.",
+      "description": "Sub-agents that can be delegated to.\n A sub-agent starts from this agent's tools and may narrow them with its\n own tool lists, never widen them.",
       "required": false
     },
     {
@@ -96,6 +96,32 @@
         }
       },
       "description": "Environment variable declarations for this agent.\n Keys are variable names; values describe their metadata and optionality.",
+      "required": false
+    },
+    {
+      "name": "Tools",
+      "jsonName": "tools",
+      "protoField": "tools",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Tools this agent may use; empty means every tool it has.\n\n Entries use Claude Code's names: a built-in such as Read, Grep, Bash,\n Write, Edit, Glob, Agent or WebFetch; mcp__\u003cserver-slug\u003e for every tool of\n one MCP server, mcp__\u003cserver-slug\u003e__\u003ctool\u003e for one tool, and mcp__* for\n every MCP tool. A specifier in parentheses, as in Bash(git push *), is\n accepted and governs the whole tool. Agent(explore, shell) also limits\n which sub-agents this agent may start; the Cursor engine cannot hold its\n built-in sub-agents back, so it refuses a turn whose agent limits Agent to\n types. The lists hold on both engines, and under \"approve everything\"\n too.",
+      "required": false
+    },
+    {
+      "name": "DisallowedTools",
+      "jsonName": "disallowedTools",
+      "protoField": "disallowed_tools",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Tools this agent may never use, in the same names as tools.\n Applied before tools, so a tool named in both is excluded.",
       "required": false
     }
   ]

@@ -4,8 +4,6 @@
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ToolApprovalPolicy } from "./spec_pb.js";
-import { file_ai_stigmer_agentic_mcpserver_v1_spec } from "./spec_pb.js";
 import type { ApiResourceAudit } from "../../../commons/apiresource/status_pb.js";
 import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb.js";
 import type { VendorApprovalStatus } from "../../../iam/oauthapp/v1/spec_pb.js";
@@ -18,7 +16,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3N0YXR1cy5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MSLtAwoPTWNwU2VydmVyU3RhdHVzEkoKEHZhbGlkYXRpb25fc3RhdGUYASABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlZhbGlkYXRpb25TdGF0ZRIaChJ2YWxpZGF0aW9uX21lc3NhZ2UYAiABKAkSWAoXZGlzY292ZXJlZF9jYXBhYmlsaXRpZXMYAyABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRDYXBhYmlsaXRpZXMSSwoOdG9vbF9hcHByb3ZhbHMYBCADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlRvb2xBcHByb3ZhbFBvbGljeRJCCgxvYXV0aF9zdGF0dXMYBSABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk9BdXRoU3RhdHVzEkYKDmNvbm5lY3Rfc3RhdHVzGAYgASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5Db25uZWN0U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQigwIKDUNvbm5lY3RTdGF0dXMSPAoFcGhhc2UYASABKA4yLS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RQaGFzZRITCgt3b3JrZmxvd19pZBgCIAEoCRIuCgpzdGFydGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtmaW5pc2hlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFAoMZmFpbHVyZV9jb2RlGAUgASgJEhcKD2ZhaWx1cmVfbWVzc2FnZRgGIAEoCRIPCgd3YXJuaW5nGAcgASgJIukBChZEaXNjb3ZlcmVkQ2FwYWJpbGl0aWVzEj4KBXRvb2xzGAEgAygLMi8uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5EaXNjb3ZlcmVkVG9vbBJXChJyZXNvdXJjZV90ZW1wbGF0ZXMYAiADKAsyOy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRSZXNvdXJjZVRlbXBsYXRlEjYKEmxhc3RfZGlzY292ZXJlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiYgoORGlzY292ZXJlZFRvb2wSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRItCgxpbnB1dF9zY2hlbWEYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0ImgKGkRpc2NvdmVyZWRSZXNvdXJjZVRlbXBsYXRlEhQKDHVyaV90ZW1wbGF0ZRgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhEKCW1pbWVfdHlwZRgEIAEoCSLyAQoLT0F1dGhTdGF0dXMSUAoWdmVuZG9yX2FwcHJvdmFsX3N0YXR1cxgBIAEoDjIwLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLlZlbmRvckFwcHJvdmFsU3RhdHVzEiAKGHZlbmRvcl9hcHByb3ZhbF9kb2NzX3VybBgCIAEoCRJPChZlZmZlY3RpdmVfb2F1dGhfc291cmNlGAMgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5PQXV0aEFwcFNvdXJjZRIeChZlZmZlY3RpdmVfb2F1dGhfYXBwX2lkGAQgASgJKoIBCgxDb25uZWN0UGhhc2USHQoZY29ubmVjdF9waGFzZV91bnNwZWNpZmllZBAAEhwKGGNvbm5lY3RfcGhhc2VfY29ubmVjdGluZxABEhsKF2Nvbm5lY3RfcGhhc2Vfc3VjY2VlZGVkEAISGAoUY29ubmVjdF9waGFzZV9mYWlsZWQQAypLCg9WYWxpZGF0aW9uU3RhdGUSIAocdmFsaWRhdGlvbl9zdGF0ZV91bnNwZWNpZmllZBAAEgkKBXZhbGlkEAESCwoHaW52YWxpZBACKo8BCg5PQXV0aEFwcFNvdXJjZRIgChxPQVVUSF9BUFBfU09VUkNFX1VOU1BFQ0lGSUVEEAASHQoZT0FVVEhfQVBQX1NPVVJDRV9QTEFURk9STRABEiEKHU9BVVRIX0FQUF9TT1VSQ0VfT1JHX09WRVJSSURFEAISGQoVT0FVVEhfQVBQX1NPVVJDRV9OT05FEANiBnByb3RvMw", [file_ai_stigmer_agentic_mcpserver_v1_spec, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_iam_oauthapp_v1_spec, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL3N0YXR1cy5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MSK2AwoPTWNwU2VydmVyU3RhdHVzEkoKEHZhbGlkYXRpb25fc3RhdGUYASABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlZhbGlkYXRpb25TdGF0ZRIaChJ2YWxpZGF0aW9uX21lc3NhZ2UYAiABKAkSWAoXZGlzY292ZXJlZF9jYXBhYmlsaXRpZXMYAyABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRDYXBhYmlsaXRpZXMSQgoMb2F1dGhfc3RhdHVzGAUgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5PQXV0aFN0YXR1cxJGCg5jb25uZWN0X3N0YXR1cxgGIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuQ29ubmVjdFN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0SgQIBBAFUg50b29sX2FwcHJvdmFscyKDAgoNQ29ubmVjdFN0YXR1cxI8CgVwaGFzZRgBIAEoDjItLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuQ29ubmVjdFBoYXNlEhMKC3dvcmtmbG93X2lkGAIgASgJEi4KCnN0YXJ0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC2ZpbmlzaGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIUCgxmYWlsdXJlX2NvZGUYBSABKAkSFwoPZmFpbHVyZV9tZXNzYWdlGAYgASgJEg8KB3dhcm5pbmcYByABKAki6QEKFkRpc2NvdmVyZWRDYXBhYmlsaXRpZXMSPgoFdG9vbHMYASADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRUb29sElcKEnJlc291cmNlX3RlbXBsYXRlcxgCIAMoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuRGlzY292ZXJlZFJlc291cmNlVGVtcGxhdGUSNgoSbGFzdF9kaXNjb3ZlcmVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJ8Cg5EaXNjb3ZlcmVkVG9vbBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEi0KDGlucHV0X3NjaGVtYRgDIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSGAoQZGVzdHJ1Y3RpdmVfaGludBgEIAEoCCJoChpEaXNjb3ZlcmVkUmVzb3VyY2VUZW1wbGF0ZRIUCgx1cmlfdGVtcGxhdGUYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIRCgltaW1lX3R5cGUYBCABKAki8gEKC09BdXRoU3RhdHVzElAKFnZlbmRvcl9hcHByb3ZhbF9zdGF0dXMYASABKA4yMC5haS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MS5WZW5kb3JBcHByb3ZhbFN0YXR1cxIgChh2ZW5kb3JfYXBwcm92YWxfZG9jc191cmwYAiABKAkSTwoWZWZmZWN0aXZlX29hdXRoX3NvdXJjZRgDIAEoDjIvLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuT0F1dGhBcHBTb3VyY2USHgoWZWZmZWN0aXZlX29hdXRoX2FwcF9pZBgEIAEoCSqCAQoMQ29ubmVjdFBoYXNlEh0KGWNvbm5lY3RfcGhhc2VfdW5zcGVjaWZpZWQQABIcChhjb25uZWN0X3BoYXNlX2Nvbm5lY3RpbmcQARIbChdjb25uZWN0X3BoYXNlX3N1Y2NlZWRlZBACEhgKFGNvbm5lY3RfcGhhc2VfZmFpbGVkEAMqSwoPVmFsaWRhdGlvblN0YXRlEiAKHHZhbGlkYXRpb25fc3RhdGVfdW5zcGVjaWZpZWQQABIJCgV2YWxpZBABEgsKB2ludmFsaWQQAiqPAQoOT0F1dGhBcHBTb3VyY2USIAocT0FVVEhfQVBQX1NPVVJDRV9VTlNQRUNJRklFRBAAEh0KGU9BVVRIX0FQUF9TT1VSQ0VfUExBVEZPUk0QARIhCh1PQVVUSF9BUFBfU09VUkNFX09SR19PVkVSUklERRACEhkKFU9BVVRIX0FQUF9TT1VSQ0VfTk9ORRADYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_iam_oauthapp_v1_spec, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * McpServerStatus represents the system-managed state of an MCP server definition.
@@ -56,13 +54,6 @@ export type McpServerStatus = Message<"ai.stigmer.agentic.mcpserver.v1.McpServer
   discoveredCapabilities?: DiscoveredCapabilities;
 
   /**
-   * System-generated tool approval policies.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy tool_approvals = 4;
-   */
-  toolApprovals: ToolApprovalPolicy[];
-
-  /**
    * OAuth-related enrichment state, populated at query time by the backend.
    * Carries the vendor approval status resolved from the referenced OAuthApp
    * (fields 1-2; fields 3-4 are never populated — see OAuthStatus).
@@ -73,7 +64,7 @@ export type McpServerStatus = Message<"ai.stigmer.agentic.mcpserver.v1.McpServer
   oauthStatus?: OAuthStatus;
 
   /**
-   * State of the most recent connect (discovery + classification) operation.
+   * State of the most recent connect (discovery) operation.
    *
    * Persisted (unlike oauth_status). Written by the backend when a connect
    * operation starts and again when it settles; clients poll it through the
@@ -243,6 +234,17 @@ export type DiscoveredTool = Message<"ai.stigmer.agentic.mcpserver.v1.Discovered
    * @generated from field: google.protobuf.Struct input_schema = 3;
    */
   inputSchema?: JsonObject;
+
+  /**
+   * True when the server's own MCP annotation marks the tool destructive
+   * (annotations.destructiveHint is exactly true), whatever readOnlyHint says.
+   * A destructive tool asks for approval before it runs. An absent annotation
+   * reads as false: Stigmer acts only on an explicit declaration, so a server
+   * that annotates nothing gates nothing.
+   *
+   * @generated from field: bool destructive_hint = 4;
+   */
+  destructiveHint: boolean;
 };
 
 /**
@@ -377,7 +379,7 @@ export enum ConnectPhase {
 
   /**
    * The connect completed and its results were persisted to
-   * discovered_capabilities / tool_approvals.
+   * discovered_capabilities.
    *
    * @generated from enum value: connect_phase_succeeded = 2;
    */

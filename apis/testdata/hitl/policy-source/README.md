@@ -4,7 +4,8 @@ This directory pins **authorization provenance** — the `ApprovalPolicySource`
 recorded on every gated or auto-approved tool call (`ToolCall.approval_policy_source`,
 projected onto `PendingApproval`). It answers *which policy layer decided this
 call's approval requirement*, so every authorization is auditable and the gate
-can be explained ("required by agent override") while a tool is still waiting.
+can be explained ("required: marked destructive by the server") while a tool is
+still waiting.
 
 ## Why a shared corpus
 
@@ -36,9 +37,12 @@ one of the three suites.
 For each vector:
 
 - `policySource` is the runner's `PolicySource` union string, or `null` for the
-  `UNSPECIFIED` default (a tool no policy layer governs — e.g. a read-only
-  built-in, or a legacy execution predating the field).
+  `UNSPECIFIED` default (a call that needed no approval — a read-only built-in,
+  an MCP tool its server does not mark destructive — or a legacy execution
+  predating the field).
 - `name_proto` is the fully-qualified proto enum value name.
-- `number` is the proto enum field number, which is **append-only**: existing
-  values are never renumbered or removed (clients fall back to `UNSPECIFIED`
-  exactly as for an unset `tool_kind`).
+- `number` is the proto enum field number. A retired value is reserved, number
+  and name, and never renumbered or reused: values 1 to 3 recorded the removed
+  per-tool approval policies and are reserved in the proto, so the corpus no
+  longer lists them. Clients fall back to `UNSPECIFIED` for a number they do
+  not know, exactly as for an unset `tool_kind`.

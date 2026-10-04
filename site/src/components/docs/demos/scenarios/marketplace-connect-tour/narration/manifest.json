@@ -2,21 +2,17 @@
   "steps": [
     {
       "src": "/demos/marketplace-connect-tour/step-0.mp3",
-      "durationMs": 9550
+      "durationMs": 9663
     },
     null,
     {
       "src": "/demos/marketplace-connect-tour/step-2.mp3",
-      "durationMs": 8950
+      "durationMs": 9225
     },
     null,
     {
       "src": "/demos/marketplace-connect-tour/step-4.mp3",
-      "durationMs": 12363
-    },
-    {
-      "src": "/demos/marketplace-connect-tour/step-5.mp3",
-      "durationMs": 8588
+      "durationMs": 12738
     }
   ]
 }

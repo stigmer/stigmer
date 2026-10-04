@@ -1,3 +1,10 @@
+/**
+ * Pins the MCP discovery activity: its one registered name, the platform
+ * address fill, the destructive mark each tool carries (an explicit
+ * `destructiveHint: true` and nothing else), that the server's previous
+ * status is never read, the credential-delivery failures (issue #239), the
+ * per-transport init bounds, and the heartbeat contract.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type {
   DiscoverMcpServerInput,
@@ -55,172 +62,6 @@ describe("DiscoverMcpServer activity", () => {
       const { createDiscoverMcpServerActivities } = await import("../discover-mcp-server.js");
       const activities = createDiscoverMcpServerActivities(makeConfig());
       expect(Object.keys(activities)).toEqual(["DiscoverMcpServerCapabilities"]);
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // toolsFingerprint
-  // ─────────────────────────────────────────────────────────────────────────
-
-  describe("toolsFingerprint", () => {
-    it("returns empty string for empty tools array", async () => {
-      const { toolsFingerprint } = await import("../discover-mcp-server.js");
-      expect(toolsFingerprint([])).toBe("");
-    });
-
-    it("is deterministic for the same input", async () => {
-      const { toolsFingerprint } = await import("../discover-mcp-server.js");
-      const tools: DiscoveredToolResult[] = [
-        { name: "search", description: "Search things", inputSchema: { type: "object" } },
-        { name: "create", description: "Create things", inputSchema: null },
-      ];
-      const hash1 = toolsFingerprint(tools);
-      const hash2 = toolsFingerprint(tools);
-      expect(hash1).toBe(hash2);
-      expect(hash1).toHaveLength(64);
-    });
-
-    it("is order-independent (sorted by name)", async () => {
-      const { toolsFingerprint } = await import("../discover-mcp-server.js");
-      const a: DiscoveredToolResult[] = [
-        { name: "alpha", description: "A", inputSchema: null },
-        { name: "beta", description: "B", inputSchema: null },
-      ];
-      const b: DiscoveredToolResult[] = [
-        { name: "beta", description: "B", inputSchema: null },
-        { name: "alpha", description: "A", inputSchema: null },
-      ];
-      expect(toolsFingerprint(a)).toBe(toolsFingerprint(b));
-    });
-
-    it("changes when a tool name changes", async () => {
-      const { toolsFingerprint } = await import("../discover-mcp-server.js");
-      const original: DiscoveredToolResult[] = [
-        { name: "search", description: "Search", inputSchema: null },
-      ];
-      const renamed: DiscoveredToolResult[] = [
-        { name: "find", description: "Search", inputSchema: null },
-      ];
-      expect(toolsFingerprint(original)).not.toBe(toolsFingerprint(renamed));
-    });
-
-    it("changes when a tool description changes", async () => {
-      const { toolsFingerprint } = await import("../discover-mcp-server.js");
-      const v1: DiscoveredToolResult[] = [
-        { name: "search", description: "Search code", inputSchema: null },
-      ];
-      const v2: DiscoveredToolResult[] = [
-        { name: "search", description: "Search files", inputSchema: null },
-      ];
-      expect(toolsFingerprint(v1)).not.toBe(toolsFingerprint(v2));
-    });
-
-    it("changes when a tool schema changes", async () => {
-      const { toolsFingerprint } = await import("../discover-mcp-server.js");
-      const v1: DiscoveredToolResult[] = [
-        { name: "search", description: "Search", inputSchema: { properties: { q: {} } } },
-      ];
-      const v2: DiscoveredToolResult[] = [
-        { name: "search", description: "Search", inputSchema: { properties: { query: {} } } },
-      ];
-      expect(toolsFingerprint(v1)).not.toBe(toolsFingerprint(v2));
-    });
-
-    it("treats null and undefined inputSchema identically", async () => {
-      const { toolsFingerprint } = await import("../discover-mcp-server.js");
-      const withNull: DiscoveredToolResult[] = [
-        { name: "t", description: "d", inputSchema: null },
-      ];
-      const withUndefined: DiscoveredToolResult[] = [
-        { name: "t", description: "d", inputSchema: undefined },
-      ];
-      expect(toolsFingerprint(withNull)).toBe(toolsFingerprint(withUndefined));
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // extractPreviousState
-  // ─────────────────────────────────────────────────────────────────────────
-
-  describe("extractPreviousState", () => {
-    it("returns empty state when server has no status", async () => {
-      const { extractPreviousState } = await import("../discover-mcp-server.js");
-      const server = makeMcpServer({ status: undefined });
-      const state = extractPreviousState(server);
-      expect(state.fingerprint).toBe("");
-      expect(state.toolApprovals).toEqual([]);
-    });
-
-    it("returns empty state when discoveredCapabilities is empty", async () => {
-      const { extractPreviousState } = await import("../discover-mcp-server.js");
-      const server = makeMcpServer({
-        status: { discoveredCapabilities: undefined, toolApprovals: [] },
-      });
-      const state = extractPreviousState(server);
-      expect(state.fingerprint).toBe("");
-      expect(state.toolApprovals).toEqual([]);
-    });
-
-    it("computes fingerprint from existing tools", async () => {
-      const { extractPreviousState, toolsFingerprint } = await import("../discover-mcp-server.js");
-      const server = makeMcpServer({
-        status: {
-          discoveredCapabilities: {
-            tools: [
-              { name: "search", description: "Search things", inputSchema: null },
-            ],
-            resourceTemplates: [],
-          },
-          toolApprovals: [],
-        },
-      });
-      const state = extractPreviousState(server);
-      expect(state.fingerprint).toBe(
-        toolsFingerprint([{ name: "search", description: "Search things", inputSchema: null }]),
-      );
-    });
-
-    it("returns previous tool definitions for incremental diffing", async () => {
-      const { extractPreviousState } = await import("../discover-mcp-server.js");
-      const server = makeMcpServer({
-        status: {
-          discoveredCapabilities: {
-            tools: [
-              { name: "search", description: "Search things", inputSchema: { type: "object" } },
-              { name: "delete_repo", description: "Delete a repo", inputSchema: null },
-            ],
-            resourceTemplates: [],
-          },
-          toolApprovals: [{ toolName: "delete_repo", message: "Delete" }],
-        },
-      });
-      const state = extractPreviousState(server);
-      expect(state.tools).toEqual([
-        { name: "search", description: "Search things", inputSchema: { type: "object" } },
-        { name: "delete_repo", description: "Delete a repo", inputSchema: null },
-      ]);
-    });
-
-    it("returns empty previous tools when server has no status", async () => {
-      const { extractPreviousState } = await import("../discover-mcp-server.js");
-      const state = extractPreviousState(makeMcpServer({ status: undefined }));
-      expect(state.tools).toEqual([]);
-    });
-
-    it("extracts tool approvals from status", async () => {
-      const { extractPreviousState } = await import("../discover-mcp-server.js");
-      const server = makeMcpServer({
-        status: {
-          discoveredCapabilities: { tools: [], resourceTemplates: [] },
-          toolApprovals: [
-            { toolName: "delete_repo", message: "Delete repo {{args.repo}}" },
-          ],
-        },
-      });
-      const state = extractPreviousState(server);
-      expect(state.toolApprovals).toEqual([
-        { toolName: "delete_repo", requiresApproval: true, message: "Delete repo {{args.repo}}" },
-      ]);
     });
   });
 
@@ -338,9 +179,7 @@ describe("DiscoverMcpServer activity", () => {
       expect(result.tools[0].name).toBe("search_code");
       expect(result.tools[1].name).toBe("create_pr");
       expect(result.resourceTemplates).toEqual([]);
-      expect(result.previousToolsFingerprint).toBe("");
-      expect(result.previousToolApprovals).toEqual([]);
-      expect(result.newToolsFingerprint).toHaveLength(64);
+      expect(Object.keys(result).sort()).toEqual(["resourceTemplates", "tools"]);
     });
 
     it("refuses to spawn a stdio server under a forbidding transport posture", async () => {
@@ -595,95 +434,70 @@ describe("DiscoverMcpServer activity", () => {
       expect(result.resourceTemplates).toEqual([]);
     });
 
-    it("preserves previous state from McpServer.status", async () => {
+    it("marks a tool destructive only for an explicit destructiveHint: true, whatever readOnlyHint says", async () => {
+      // Annotations are untrusted, so they are read only in the direction
+      // that adds a question: a spoofed readOnlyHint never clears a
+      // destructive mark, and MCP's own default (unannotated = destructive)
+      // is not applied — a server that annotates nothing gates nothing.
       const { discoverMcpServer } = await import("../discover-mcp-server.js");
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({ metadata: { slug: "hints" }, spec: makeStdioSpec("npx", ["server"]) }),
+      });
+      mockInitializeConnections.mockResolvedValue({});
+      mockGetClient.mockResolvedValue(
+        makeMockMcpClient({
+          tools: [
+            { name: "drop_table", description: "", inputSchema: null, annotations: { destructiveHint: true } },
+            { name: "spoofed", description: "", inputSchema: null, annotations: { destructiveHint: true, readOnlyHint: true } },
+            { name: "read_rows", description: "", inputSchema: null, annotations: { readOnlyHint: true } },
+            { name: "explicit_false", description: "", inputSchema: null, annotations: { destructiveHint: false } },
+            { name: "unannotated", description: "", inputSchema: null },
+          ],
+        }),
+      );
 
+      const result = await discoverMcpServer(
+        { mcpServerId: "mcp-hints" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
+      );
+
+      expect(result.tools.map((t) => [t.name, t.destructiveHint])).toEqual([
+        ["drop_table", true],
+        ["spoofed", true],
+        ["read_rows", false],
+        ["explicit_false", false],
+        ["unannotated", false],
+      ]);
+    });
+
+    it("never reads the server's previous status: discovery is a function of the live server", async () => {
+      const { discoverMcpServer } = await import("../discover-mcp-server.js");
       const mockClient = makeMockStigmerClient({
         mcpServer: makeMcpServer({
           metadata: { slug: "existing" },
           spec: makeStdioSpec("npx", ["server"]),
           status: {
             discoveredCapabilities: {
-              tools: [{ name: "old_tool", description: "Old", inputSchema: null }],
+              tools: [{ name: "old_tool", description: "Old", inputSchema: null, destructiveHint: true }],
               resourceTemplates: [],
             },
-            toolApprovals: [
-              { toolName: "old_tool", message: "Approve old_tool" },
-            ],
           },
         }),
       });
-
-      const mockMcpClient = makeMockMcpClient({
-        tools: [{ name: "new_tool", description: "New", inputSchema: { type: "object" } }],
-      });
       mockInitializeConnections.mockResolvedValue({});
-      mockGetClient.mockResolvedValue(mockMcpClient);
+      mockGetClient.mockResolvedValue(
+        makeMockMcpClient({ tools: [{ name: "new_tool", description: "New", inputSchema: { type: "object" } }] }),
+      );
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-existing" },
         { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
-      expect(result.previousToolsFingerprint).not.toBe("");
-      expect(result.previousToolApprovals).toEqual([
-        { toolName: "old_tool", requiresApproval: true, message: "Approve old_tool" },
-      ]);
-      expect(result.previousTools).toEqual([
-        { name: "old_tool", description: "Old", inputSchema: null },
-      ]);
-      expect(result.tools[0].name).toBe("new_tool");
-      expect(result.newToolsFingerprint).toHaveLength(64);
-      expect(result.newToolsFingerprint).not.toBe(result.previousToolsFingerprint);
-    });
-
-    it("returns newToolsFingerprint matching toolsFingerprint of discovered tools", async () => {
-      const { discoverMcpServer, toolsFingerprint } = await import("../discover-mcp-server.js");
-
-      const mockClient = makeMockStigmerClient({
-        mcpServer: makeMcpServer({
-          metadata: { slug: "fp-test" },
-          spec: makeStdioSpec("npx", ["server"]),
-        }),
+      expect(result).toEqual({
+        tools: [{ name: "new_tool", description: "New", inputSchema: { type: "object" }, destructiveHint: false }],
+        resourceTemplates: [],
       });
-
-      const discoveredTools = [
-        { name: "alpha", description: "Alpha tool", inputSchema: { type: "object" } },
-        { name: "beta", description: "Beta tool", inputSchema: null },
-      ];
-      const mockMcpClient = makeMockMcpClient({ tools: discoveredTools });
-      mockInitializeConnections.mockResolvedValue({});
-      mockGetClient.mockResolvedValue(mockMcpClient);
-
-      const result = await discoverMcpServer(
-        { mcpServerId: "mcp-fp" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
-      );
-
-      const expected = toolsFingerprint(result.tools);
-      expect(result.newToolsFingerprint).toBe(expected);
-    });
-
-    it("returns empty newToolsFingerprint when no tools discovered", async () => {
-      const { discoverMcpServer } = await import("../discover-mcp-server.js");
-
-      const mockClient = makeMockStigmerClient({
-        mcpServer: makeMcpServer({
-          metadata: { slug: "empty" },
-          spec: makeStdioSpec("npx", ["server"]),
-        }),
-      });
-
-      const mockMcpClient = makeMockMcpClient({ tools: [] });
-      mockInitializeConnections.mockResolvedValue({});
-      mockGetClient.mockResolvedValue(mockMcpClient);
-
-      const result = await discoverMcpServer(
-        { mcpServerId: "mcp-empty" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
-      );
-
-      expect(result.newToolsFingerprint).toBe("");
     });
 
     it("fails closed when the EC read errors and the server requires credentials", async () => {
@@ -831,9 +645,8 @@ describe("DiscoverMcpServer activity", () => {
       // HTTP has no cold-start excuse: a healthy endpoint completes the MCP
       // handshake in seconds, so a short bound converts the silent-SSE hang
       // into a fast actionable failure. stdio keeps the cold-start allowance
-      // (issue #243). The OSS server's connect-workflow budget (connectTimeout,
-      // controller/connect.go — pinned there) is derived from the stdio bound
-      // + the classification floor, so both bounds stay reachable under it.
+      // (issue #243). The server's connect-workflow budget sits above the
+      // stdio bound, so both bounds stay reachable under it.
       const { initTimeoutMsFor } = await import("../discover-mcp-server.js");
       expect(initTimeoutMsFor("http")).toBe(30_000);
       expect(initTimeoutMsFor("sse")).toBe(30_000);
@@ -846,9 +659,8 @@ describe("DiscoverMcpServer activity", () => {
         slug: "monday",
         connectionType: "http",
         url: "https://mcp.monday.com/mcp",
-        toolApprovals: [],
-        pinnedToolApprovals: [],
-        toolApprovalOverrides: [],
+        destructiveTools: [],
+        discoveredToolNames: null,
         declaredEnvKeys: [],
         discoveredCapabilitiesEmpty: true,
       });
@@ -863,9 +675,8 @@ describe("DiscoverMcpServer activity", () => {
         slug: "filesystem",
         connectionType: "stdio",
         command: "npx",
-        toolApprovals: [],
-        pinnedToolApprovals: [],
-        toolApprovalOverrides: [],
+        destructiveTools: [],
+        discoveredToolNames: null,
         declaredEnvKeys: [],
         discoveredCapabilitiesEmpty: true,
       });
@@ -984,7 +795,6 @@ function makeStdioSpec(command: string, args: string[]): any {
       value: { command, args, workingDir: "" },
     },
     env: {},
-    pinnedToolApprovals: [],
   };
 }
 
@@ -995,7 +805,6 @@ function makeHttpSpec(url: string): any {
       value: { url, headers: {}, queryParams: {}, timeoutSeconds: 0 },
     },
     env: {},
-    pinnedToolApprovals: [],
   };
 }
 
@@ -1012,7 +821,12 @@ function makeMockStigmerClient(opts: {
 }
 
 interface MockMcpClientOpts {
-  tools: Array<{ name: string; description: string; inputSchema: any }>;
+  tools: Array<{
+    name: string;
+    description: string;
+    inputSchema: unknown;
+    annotations?: { destructiveHint?: boolean; readOnlyHint?: boolean };
+  }>;
   resourceTemplates?: Array<{ uriTemplate: string; name: string; description: string; mimeType: string }>;
   hasResources?: boolean;
   resourceTemplateError?: Error;

@@ -8,7 +8,6 @@ import ai.stigmer.agentic.mcpserver.v1.McpServer;
 import ai.stigmer.agentic.mcpserver.v1.McpServerAuth;
 import ai.stigmer.agentic.mcpserver.v1.McpServerSpec;
 import ai.stigmer.agentic.mcpserver.v1.StdioServerConfig;
-import ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -26,9 +25,7 @@ public final class McpServerInput {
     private final java.util.List<String> tags;
     private final StdioServerConfigInput stdio;
     private final HttpServerConfigInput http;
-    private final java.util.List<String> defaultEnabledTools;
     private final java.util.Map<String, EnvVarDeclarationInput> env;
-    private final java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals;
     private final String repositoryUrl;
     private final int githubStars;
     private final McpServerAuthInput auth;
@@ -45,9 +42,7 @@ public final class McpServerInput {
         this.tags = builder.tags;
         this.stdio = builder.stdio;
         this.http = builder.http;
-        this.defaultEnabledTools = builder.defaultEnabledTools;
         this.env = builder.env;
-        this.pinnedToolApprovals = builder.pinnedToolApprovals;
         this.repositoryUrl = builder.repositoryUrl;
         this.githubStars = builder.githubStars;
         this.auth = builder.auth;
@@ -70,17 +65,9 @@ public final class McpServerInput {
         if (this.http != null) {
             spec.setHttp(this.http.toProto());
         }
-        if (this.defaultEnabledTools != null && !this.defaultEnabledTools.isEmpty()) {
-            spec.addAllDefaultEnabledTools(this.defaultEnabledTools);
-        }
         if (this.env != null && !this.env.isEmpty()) {
             for (java.util.Map.Entry<String, EnvVarDeclarationInput> entry : this.env.entrySet()) {
                 spec.putEnv(entry.getKey(), entry.getValue().toProto());
-            }
-        }
-        if (this.pinnedToolApprovals != null) {
-            for (ToolApprovalPolicyInput item : this.pinnedToolApprovals) {
-                spec.addPinnedToolApprovals(item.toProto());
             }
         }
         if (this.repositoryUrl != null) {
@@ -129,9 +116,7 @@ public final class McpServerInput {
         private java.util.List<String> tags;
         private StdioServerConfigInput stdio;
         private HttpServerConfigInput http;
-        private java.util.List<String> defaultEnabledTools;
         private java.util.Map<String, EnvVarDeclarationInput> env;
-        private java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals;
         private String repositoryUrl;
         private int githubStars;
         private McpServerAuthInput auth;
@@ -154,9 +139,7 @@ public final class McpServerInput {
         public Builder tags(java.util.List<String> tags) { this.tags = tags; return this; }
         public Builder stdio(StdioServerConfigInput stdio) { this.stdio = stdio; return this; }
         public Builder http(HttpServerConfigInput http) { this.http = http; return this; }
-        public Builder defaultEnabledTools(java.util.List<String> defaultEnabledTools) { this.defaultEnabledTools = defaultEnabledTools; return this; }
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
-        public Builder pinnedToolApprovals(java.util.List<ToolApprovalPolicyInput> pinnedToolApprovals) { this.pinnedToolApprovals = pinnedToolApprovals; return this; }
         public Builder repositoryUrl(String repositoryUrl) { this.repositoryUrl = repositoryUrl; return this; }
         public Builder githubStars(int githubStars) { this.githubStars = githubStars; return this; }
         public Builder auth(McpServerAuthInput auth) { this.auth = auth; return this; }
@@ -291,47 +274,6 @@ public final class McpServerInput {
             public Builder optional(boolean optional) { this.optional = optional; return this; }
 
             public EnvVarDeclarationInput build() { return new EnvVarDeclarationInput(this); }
-        }
-    }
-
-    /** SDK input type for ToolApprovalPolicy. */
-    public static final class ToolApprovalPolicyInput {
-        private final String toolName;
-        private final String message;
-        private final boolean fromDestructiveHint;
-
-        private ToolApprovalPolicyInput(Builder builder) {
-            this.toolName = builder.toolName;
-            this.message = builder.message;
-            this.fromDestructiveHint = builder.fromDestructiveHint;
-        }
-
-        ToolApprovalPolicy toProto() {
-            ToolApprovalPolicy.Builder builder = ToolApprovalPolicy.newBuilder();
-            if (this.toolName != null) {
-                builder.setToolName(this.toolName);
-            }
-            if (this.message != null) {
-                builder.setMessage(this.message);
-            }
-            builder.setFromDestructiveHint(this.fromDestructiveHint);
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String toolName;
-            private String message;
-            private boolean fromDestructiveHint;
-
-            private Builder() {}
-
-            public Builder toolName(String toolName) { this.toolName = toolName; return this; }
-            public Builder message(String message) { this.message = message; return this; }
-            public Builder fromDestructiveHint(boolean fromDestructiveHint) { this.fromDestructiveHint = fromDestructiveHint; return this; }
-
-            public ToolApprovalPolicyInput build() { return new ToolApprovalPolicyInput(this); }
         }
     }
 

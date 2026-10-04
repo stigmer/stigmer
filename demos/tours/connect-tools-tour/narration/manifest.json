@@ -2,27 +2,27 @@
   "steps": [
     {
       "src": "./step-0.mp3",
-      "durationMs": 7663
+      "durationMs": 7550
     },
     {
       "src": "./step-1.mp3",
-      "durationMs": 10150
+      "durationMs": 10650
     },
     {
       "src": "./step-2.mp3",
-      "durationMs": 5938
+      "durationMs": 5675
     },
     {
       "src": "./step-3.mp3",
-      "durationMs": 5513
+      "durationMs": 5463
     },
     {
       "src": "./step-4.mp3",
-      "durationMs": 6450
+      "durationMs": 6525
     },
     {
       "src": "./step-5.mp3",
-      "durationMs": 4150
+      "durationMs": 4263
     }
   ]
 }

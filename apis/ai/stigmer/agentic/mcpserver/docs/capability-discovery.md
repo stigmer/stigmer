@@ -1,13 +1,14 @@
 # Capability Discovery
 
-How McpServers report their tools and resource templates, how the connect flow discovers them, and why discovery matters for authoring agents and approval policies.
+How McpServers report their tools and resource templates, how the connect flow discovers them, and why discovery matters for authoring agents and for which tools ask for approval.
 
 ## What Are Discovered Capabilities?
 
-Discovered capabilities are a **point-in-time snapshot** of the tools and resource templates an MCP server reports via its `tools/list` and `resources/templates/list` protocol methods. They are stored in `status.discovered_capabilities` and serve two critical purposes:
+Discovered capabilities are a **point-in-time snapshot** of the tools and resource templates an MCP server reports via its `tools/list` and `resources/templates/list` protocol methods. They are stored in `status.discovered_capabilities` and serve three purposes:
 
 1. **Verification** — confirms the server is functional and what it actually provides, not just what its YAML spec declares.
-2. **Authoring support** — gives you the exact tool names needed to populate `default_enabled_tools`, `default_tool_approvals`, and agent `enabled_tools` / `tool_approval_overrides`. Tool names must match exactly (case-sensitive): unknown names in `enabled_tools` / `default_enabled_tools` are rejected at apply time once the server has discovered capabilities, while approval-policy names (`default_tool_approvals`, `tool_approval_overrides`) are silently ignored.
+2. **Authoring support** — gives you the exact tool names an agent's `tools` and `disallowed_tools` lists use, as `mcp__<server-slug>__<tool>`. Names must match exactly (case-sensitive); they are resolved at run time, and an entry that names no tool is ignored.
+3. **The approval default** — records each tool's `destructive_hint`. A tool whose server marks it destructive asks for approval before it runs; no other MCP tool asks.
 
 Discovered capabilities are **not live** — they do not update automatically when the MCP server changes. Discovery is an explicit action.
 
@@ -29,8 +30,8 @@ Defined in `ai/stigmer/agentic/mcpserver/v1/status.proto`.
 
 > **CRITICAL — Tools vs Resource Templates**: `discovered_capabilities` contains two separate lists that serve fundamentally different purposes:
 >
-> - **`tools`** — callable actions (e.g., `search_code`, `create_pr`). These are the **only** names valid for use in `default_enabled_tools`, agent `enabled_tools`, and `tool_approval_overrides`.
-> - **`resource_templates`** — read-only data endpoints accessed by URI (e.g., `cloud-resource-schema://{kind}`). These are **not** callable tools. Resource template names must **never** appear in `enabled_tools` or `default_enabled_tools` — once the server has discovered capabilities, apply rejects them with a targeted error; before the first discovery, the runner warns and ignores them at execution.
+> - **`tools`** — callable actions (e.g., `search_code`, `create_pr`). These are the **only** names an agent's tool lists can name.
+> - **`resource_templates`** — read-only data endpoints accessed by URI (e.g., `cloud-resource-schema://{kind}`). These are **not** callable tools, and a tool list never names them.
 
 ```yaml
 status:
@@ -49,6 +50,7 @@ status:
               type: string
               description: "Repository to search (org/name)"
           required: [query]
+        destructive_hint: false
       - name: create_pull_request
         description: "Create a pull request"
         input_schema:
@@ -65,6 +67,16 @@ status:
             base:
               type: string
           required: [repo, title, head, base]
+        destructive_hint: false
+      - name: delete_repository
+        description: "Delete a repository"
+        input_schema:
+          type: object
+          properties:
+            repo:
+              type: string
+          required: [repo]
+        destructive_hint: true
     resource_templates:
       - uri_template: "github://repos/{owner}/{repo}/contents/{path}"
         name: "github_file"
@@ -76,9 +88,10 @@ status:
 
 | Field | Description |
 |---|---|
-| `name` | Unique tool name within the server (case-sensitive). This is the exact string to use in `default_enabled_tools`, `default_tool_approvals.tool_name`, and agent `enabled_tools` / `tool_approval_overrides.tool_name`. |
+| `name` | Unique tool name within the server (case-sensitive). An agent's tool lists name it as `mcp__<server-slug>__<name>`. |
 | `description` | Human-readable explanation of what the tool does. Shown in the UI and used by agents to decide when to invoke the tool. |
-| `input_schema` | JSON Schema describing the tool's input parameters. Stored as a structured object (not a string). Reveals which `{{args.field}}` placeholders are valid in approval message templates. |
+| `input_schema` | JSON Schema describing the tool's input parameters. Stored as a structured object (not a string). |
+| `destructive_hint` | `true` when the server's own MCP annotation marks the tool destructive (`annotations.destructiveHint` is exactly `true`, whatever `readOnlyHint` says). Such a tool asks for approval before it runs. An absent annotation reads as `false`: a server that annotates nothing gates nothing. |
 
 ### DiscoveredResourceTemplate Fields
 
@@ -133,8 +146,9 @@ Discovery is a snapshot, not a live view. Re-run it when:
 
 - You've applied a new McpServer definition for the first time.
 - The MCP server has been updated and may expose new or changed tools.
-- You're writing `default_tool_approvals` or `default_enabled_tools` and need to verify exact tool names.
-- A tool approval policy was silently not applied and you suspect a tool name mismatch.
+- You're writing an agent's `tools` or `disallowed_tools` and need to verify exact tool names.
+- A tool list entry seems to have no effect and you suspect a tool name mismatch.
+- The server changed a tool's `destructiveHint` and you want the approval default to follow it.
 
 ```bash
 # Re-run discovery after updating the server package
@@ -148,49 +162,25 @@ stigmer get mcp-server github --output yaml
 
 The `discovered_capabilities.tools[*].name` values are the **authoritative source** for tool names. Copy them exactly when writing.
 
-> **Warning**: Only names from `discovered_capabilities.tools` are valid for `enabled_tools` and `default_enabled_tools`. Names from `discovered_capabilities.resource_templates` must **never** be used in these fields — resource templates are data endpoints, not callable tools. Once the server has discovered capabilities, apply rejects a resource-template name (or any unknown name) with `INVALID_ARGUMENT`; before the first discovery, the runner warns and ignores such entries at execution.
+> **Warning**: Only names from `discovered_capabilities.tools` are tool names. Names from `discovered_capabilities.resource_templates` are data endpoints, not callable tools, and a tool list never names them.
 
-**`spec.default_enabled_tools`:**
 ```yaml
 spec:
-  default_enabled_tools:
-    - search_code           # from status.discovered_capabilities.tools[0].name
-    - get_file_contents     # from status.discovered_capabilities.tools[1].name
-    - create_pull_request   # from status.discovered_capabilities.tools[2].name
+  mcp_server_usages:
+    - mcp_server_ref:
+        kind: mcp_server
+        slug: github
+  tools:
+    - mcp__github__search_code           # from status.discovered_capabilities.tools[0].name
+    - mcp__github__create_pull_request   # from status.discovered_capabilities.tools[1].name
+  disallowed_tools:
+    - mcp__github__delete_repository     # from status.discovered_capabilities.tools[2].name
 ```
 
-**`spec.default_tool_approvals`:**
-```yaml
-spec:
-  default_tool_approvals:
-    - tool_name: delete_repository    # exact name from discovered tools
-      message: "Delete repository: {{args.repo}}"
-```
-
-**Agent `enabled_tools` and `tool_approval_overrides`** in Agent YAML also use these same names. See [Agent docs: mcp-server-integration.md](../agent/docs/mcp-server-integration.md).
-
-### Discovering Valid `{{args.field}}` Placeholders
-
-The `input_schema` of a discovered tool reveals which argument names are valid in approval message templates. Use the `properties` keys:
-
-```yaml
-# Tool's input_schema (from discovery):
-input_schema:
-  properties:
-    repo:
-      type: string
-    title:
-      type: string
-    head:
-      type: string
-
-# Valid placeholders for this tool's approval message:
-message: "Create PR '{{args.title}}' in {{args.repo}} from {{args.head}}"
-```
+See [Agent docs: mcp-server-integration.md](../../agent/docs/mcp-server-integration.md) for every form a list entry can take.
 
 ## Related Documentation
 
 - [mcpserver-resource-guide.md](mcpserver-resource-guide.md) — `status.discovered_capabilities` field reference
-- [tool-approval-policies.md](tool-approval-policies.md) — Using discovered tool names in approval policies
 - [validation-checklist.md](validation-checklist.md) — Pitfalls from using unverified tool names
 - [examples.md](examples.md) — Seeing `discovered_capabilities` in context

@@ -92,9 +92,6 @@ spec:
     ORDER_API_KEY:
       is_secret: true
       description: API key for authenticating with the service
-  pinned_tool_approvals:
-    - tool_name: process_return
-      message: "Process return for order '{{args.order_id}}'"
 ```
 
 ### Transport options
@@ -153,51 +150,49 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: order-management-api
-      enabled_tools:
-        - get_order
-        - list_orders
-        - process_return
+  tools:
+    - mcp__order-management-api__get_order
+    - mcp__order-management-api__list_orders
 ```
 
-Each usage entry specifies:
+Each usage entry names one MCP Server by slug, and the Agent gets every tool it
+reports. To narrow that, the Agent carries Claude Code's two lists:
 
-| Field                     | Purpose                                                                        |
-| ------------------------- | ------------------------------------------------------------------------------ |
-| `mcp_server_ref`          | Which MCP Server to connect to (by slug)                                       |
-| `enabled_tools`           | Which tools the Agent can use (empty means all tools)                          |
-| `tool_approval_overrides` | Per-Agent overrides for [approval requirements](/docs/concepts/approval-flows) |
+| Field              | Purpose                                                 |
+| ------------------ | ------------------------------------------------------- |
+| `tools`            | Only these tools (empty means every tool the Agent has) |
+| `disallowed_tools` | Never these tools, applied first                        |
+
+Entries use Claude Code's names: built-ins such as `Read`, `Grep` or
+`Bash(git push *)`, `mcp__<server-slug>` for every tool of one server,
+`mcp__<server-slug>__<tool>` for one tool, and `mcp__*` for every MCP tool. A
+specifier such as `(git push *)` is accepted but governs the whole tool: it
+never narrows `Bash` to some commands.
 
 This design means you define the tool server once and reference it from multiple
-Agents. Each Agent can enable a different subset of tools — a read-only Agent
-might only get `get_order` and `list_orders`, while a full-access Agent also
-gets `process_return`.
+Agents. Each Agent can keep a different subset — the read-only Agent above only
+gets `get_order` and `list_orders`, while a full-access Agent also gets
+`process_return`. [Approval Flows](/docs/concepts/approval-flows) covers what
+the lists guarantee.
 
 ## Connecting a tool
 
 An MCP Server definition describes _what_ a tool server is. Connecting it tells
 Stigmer _what it can do_.
 
-When you connect an MCP Server, Stigmer performs three steps in a single action:
+When you connect an MCP Server, Stigmer performs two steps in a single action:
 
 1. **Discovers tools** — connects to the live server and enumerates every tool
-   and resource template it exposes
-2. **Classifies approval policies** — a lightweight LLM evaluates each tool's
-   name, description, and input schema to determine whether it should run
-   automatically or require human approval
-3. **Stores the results** — discovered tools and their approval classifications
-   are saved on the MCP Server's status, ready for any Agent that references it
+   and resource template it exposes, with each tool's MCP annotations
+2. **Stores the results** — discovered tools are saved on the MCP Server's
+   status, each marked destructive or not, ready for any Agent that references
+   it
 
-Read-only tools like `get_order` and `list_orders` are classified for automatic
-approval. Tools with side effects — `process_return`, `delete_repository`,
-`send_email` — are flagged for human approval. You don't need to manually tag
-each tool; the classifier handles the initial assessment.
-
-The classification produces two tiers of approval policies. **Pinned approvals**
-are set by the server owner in the MCP Server definition and never change on
-reconnect — these are the `pinned_tool_approvals` in the YAML example above.
-**Classified approvals** are regenerated each time you connect, so new tools get
-classified automatically. Pinned policies always take precedence over classified
-ones.
+A tool asks for human approval before it runs when its server marks it
+destructive, with the MCP annotation `destructiveHint: true`. Every other tool
+runs without asking. The server's author makes that call, not Stigmer:
+`process_return` asks if the order server annotates it, and `get_order` does
+not.
 
 ## Authentication for tools
 
@@ -257,19 +252,18 @@ This sandboxing means the Agent can't bypass the tool server's logic or directly
 access the underlying system. It can only use the tools as the MCP Server
 exposes them.
 
-## Session-level tool overrides
+## Session-level tools
 
-Just as [Skills](/docs/concepts/skills) can be added at the Session level, tool
-access can be customized per [Session](/docs/concepts/sessions). Session-level
-`mcp_server_usages` merge with the Agent's configuration — if the same MCP
-Server appears in both, the Session-level entry takes precedence.
+Just as [Skills](/docs/concepts/skills) can be added at the Session level, a
+[Session](/docs/concepts/sessions) can attach MCP Servers of its own.
+Session-level `mcp_server_usages` merge with the Agent's, one entry per server.
 
-This lets you temporarily add or restrict tool access for a specific
-conversation without changing the Agent definition.
+The Agent's tool lists govern these servers like its own: an Agent whose `tools`
+list does not name a Session's server cannot use it.
 
 ## What's next
 
 Tool access lets Agents take actions. But some actions are too sensitive to
 execute automatically. The next page explains
-[Approval Flows](/docs/concepts/approval-flows) — how you define which tool
-calls require human oversight before proceeding.
+[Approval Flows](/docs/concepts/approval-flows) — which tool calls pause for
+human oversight, and how to keep an Agent away from a tool.

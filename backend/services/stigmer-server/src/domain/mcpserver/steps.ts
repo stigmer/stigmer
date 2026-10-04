@@ -1,8 +1,7 @@
 /**
  * McpServer domain-local pipeline steps — port
- * pkg/domain/mcpserver/controller/validate_default_enabled_tools.go and
- * enrich_oauth_status.go. Shared vocabulary step names; error copy
- * byte-pinned from Go.
+ * pkg/domain/mcpserver/controller/enrich_oauth_status.go. Shared
+ * vocabulary step names.
  *
  * Proven by __tests__/mcpserver.test.ts and mcpserver.conformance.test.ts
  * (CONFORMANCE_TARGET=local).
@@ -19,83 +18,11 @@ import {
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import type { Store } from "../../store/interface.js";
 import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
-import {
-  classify,
-  isValidClassification,
-  quoteJoin,
-  toolNames,
-} from "./enabledtools/enabledtools.js";
-
-/**
- * ValidateDefaultEnabledTools — rejects updates whose
- * spec.default_enabled_tools name tools this server does not expose
- * (issue #402, the mcpserver twin of the agent controller's
- * ValidateEnabledTools step).
- *
- * The check is self-referential — spec against the resource's OWN stored
- * discovered capabilities — so it needs no store fetch: BuildUpdateState
- * has already copied the existing status (including capabilities) onto
- * the merged state this step reads.
- *
- * Wired into the UPDATE pipeline only. On create the resource cannot have
- * a status yet (the first discovery is the post-apply best-effort
- * connect), so a create-side check would be a no-op by construction;
- * leaving it unwired keeps the create pipeline honest about what it
- * enforces.
- *
- * Deliberate skips: an empty default_enabled_tools means "all tools
- * enabled" — nothing to check; absent discovered capabilities mean the
- * server was never connected, so there is no authoritative toolset to
- * validate against (the runner's warn-and-intersect, issue #350, remains
- * the safety net for that window).
- */
-export function newValidateDefaultEnabledToolsStep(): PipelineStep<
-  typeof McpServerSchema
-> {
-  return {
-    name: "ValidateDefaultEnabledTools",
-    execute(ctx: RequestContext<typeof McpServerSchema>): void {
-      const mcpServer = ctx.newState;
-
-      const requested = mcpServer.spec?.defaultEnabledTools ?? [];
-      if (requested.length === 0) {
-        return;
-      }
-
-      const caps = mcpServer.status?.discoveredCapabilities;
-      if (caps === undefined) {
-        return;
-      }
-
-      const classification = classify(caps, requested);
-      if (isValidClassification(classification)) {
-        return;
-      }
-
-      const problems: string[] = [];
-      if (classification.unknown.length > 0) {
-        problems.push(
-          `default_enabled_tools names tool(s) this server does not expose: ${quoteJoin(classification.unknown)}`,
-        );
-      }
-      if (classification.resourceTemplates.length > 0) {
-        problems.push(
-          `default_enabled_tools names resource template(s): ${quoteJoin(classification.resourceTemplates)} — resource templates are read-only data endpoints, not callable tools, and must not appear in default_enabled_tools`,
-        );
-      }
-
-      throw invalidArgumentError(
-        `MCP server '${mcpServer.metadata?.slug ?? ""}': ${problems.join("; ")}. Discovered tools: ${quoteJoin(toolNames(caps))}. If the server's toolset changed, run 'stigmer connect' on it to refresh discovered capabilities.`,
-      );
-    },
-  };
-}
 
 /**
  * EnrichOAuthStatus — populates response-only status.oauth_status on a

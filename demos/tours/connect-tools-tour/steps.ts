@@ -1,8 +1,9 @@
 /**
  * Connect Tools overview tour — the page-level "what you'll build" walkthrough
- * at the top of "Connect your tools": a connected MCP server with classified
- * policies → one code change → real data in the terminal → the approval gate
- * pausing a sensitive action → the approved result.
+ * at the top of "Connect your tools": a connected MCP server and its
+ * discovered tools → one code change → real data in the terminal → the
+ * approval gate pausing the tool the server marks destructive → the approved
+ * result.
  *
  * This is the overview; the two step-level embeds further down the same page
  * (`mcp-server-creation-tour`, `mcp-server-connect-tour`) walk the create and
@@ -29,11 +30,7 @@ import { ORDER_MGMT_MCP } from "../_shared/order-management-mcp";
 
 /** The surface shown at a given step (maps to a branch in `renderStep`). */
 export type ConnectToolsTourStep =
-  | {
-      view: "detail";
-      /** Which capability tab the connected server's detail page lands on. */
-      tab: "tools" | "policies";
-    }
+  | { view: "detail" }
   | { view: "code" }
   | { view: "terminal" }
   | {
@@ -85,24 +82,24 @@ export const MCP_REFS_HIGHLIGHT_LINE = MCP_REFS_CODE.findIndex((line) =>
 /*
  * Step 0 is deliberately interaction-free: the packed embed arms step-0
  * interactions at mount (under the poster), so they would fire before Play.
- * The capabilities scroll therefore lives on step 1, which lands on the
- * Policies tab via a remount and re-establishes scroll with `scroll_to`
- * (the `mcp-capabilities` target ships inside `@stigmer/react`). The
+ * The capabilities scroll therefore lives on step 1, which stays on the
+ * same page and scrolls with `scroll_to` to the discovered tools (the
+ * `mcp-capabilities` target ships inside `@stigmer/react`). The
  * approval beat points the cursor at the gate's real `approve-button`
  * target — also shipped by the SDK.
  */
 export const connectToolsTourSteps: ScenarioStep<ConnectToolsTourStep>[] = [
   {
     delayMs: 0,
-    data: { view: "detail", tab: "tools" },
+    data: { view: "detail" },
     narration:
       "This is what you're building toward: an order management API connected to Stigmer, its tools discovered and ready for your agent.",
   },
   {
     delayMs: 3000,
-    data: { view: "detail", tab: "policies" },
+    data: { view: "detail" },
     narration:
-      "Connecting discovered three tools and classified each one. Read operations pass through. Process return moves money, so it requires human approval.",
+      "Connecting discovered three tools. Read operations run on their own. The server marks process return destructive, because it moves money, so it asks a human first.",
     interactions: [
       { atPercent: 0.15, type: "scroll_to", target: "mcp-capabilities" },
     ],

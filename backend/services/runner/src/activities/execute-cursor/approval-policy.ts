@@ -1,36 +1,24 @@
 /**
- * Tool approval policy evaluation for the Cursor harness.
+ * The Cursor harness's built-in gating helpers.
  *
- * Implements the four-level policy chain documented in the ToolCall proto:
- *
- * 1. McpServerStatus.tool_approvals — system-generated defaults from the
- *    LLM classifier during the connect flow.
- * 2. McpServerSpec.pinned_tool_approvals — manual overrides by the server
- *    owner. Presence in the list means "requires approval."
- * 3. McpServerUsage.tool_approval_overrides — per-agent customization with
- *    an explicit requires_approval boolean.
- * 4. AgentExecutionSpec.auto_approve_all — runtime bypass (highest priority).
- *
- * For MCP tools, the merged result determines whether the preToolUse hook
- * allows or denies the call. For built-in Cursor tools (Shell, Read, etc.),
- * a separate local policy applies.
+ * The approval default itself is harness-agnostic and lives once, in
+ * `shared/approval-policy.ts`: mutating built-ins ask by category, an MCP tool
+ * asks when its server marks it destructive, a lease or the pre-armed
+ * `auto_approve_all` lets a call through. This module owns only what the
+ * Cursor hook needs on top: the gated built-in set in the HOOK's names, the
+ * category each maps to, and the salient argument a grant matches on.
  */
 
 import { toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 
-// The four-level MCP policy merge is harness-agnostic and lives in exactly one
-// place (shared/approval-policy.ts) so the Cursor and native harnesses can never
-// diverge. Re-exported here so existing Cursor-harness imports
-// (`from "./approval-policy.js"`) keep working unchanged. This module now owns
-// only the Cursor-specific built-in-tool gating helpers below.
+// Re-exported so this harness's modules import the shared default from one
+// local place; nothing here wraps or re-implements it.
 export {
-  mergeApprovalPolicies,
-  lookupMcpToolPolicy,
   resolveApprovalMessage,
   resolveBuiltInApprovalMessage,
   POLICY_ENGINE_VERSION,
 } from "../../shared/approval-policy.js";
-export type { MergedToolPolicy, PolicySource } from "../../shared/approval-policy.js";
+export type { McpApprovalDefault, PolicySource } from "../../shared/approval-policy.js";
 
 /**
  * Built-in Cursor tools the preToolUse hook gates, named as the hook receives
@@ -45,14 +33,14 @@ export type { MergedToolPolicy, PolicySource } from "../../shared/approval-polic
  * names — it uses {@link approvalCategory} (see below).
  *
  * Only mutating and destructive tools are gated; everything else (read-only
- * built-ins, and auto-approved MCP tools) is allowed. This "gate the dangerous
- * set, allow the rest" model is the platform's one approval rule, read through
- * the shared `toolApprovalCategory` (`shared/tool-kind.ts`) that the native gate
- * (`middleware/approval-gate.ts` `resolveToolApproval`) also reads: one
- * taxonomy, two enforcement points. It is deliberately fail-OPEN for unknown
- * tools: the merged MCP policy map carries only the tools that REQUIRE approval,
- * so a fail-closed default would deny every auto-approved MCP tool, which the
- * hook cannot distinguish from an unknown built-in by name.
+ * built-ins, and MCP tools, which the hook gates on their own event) is
+ * allowed. This "gate the dangerous set, allow the rest" model is the
+ * platform's one approval rule, read through the shared `toolApprovalCategory`
+ * (`shared/tool-kind.ts`) that the native gate (`middleware/approval-gate.ts`
+ * `resolveToolApproval`) also reads: one taxonomy, two enforcement points. It
+ * is deliberately fail-OPEN for an unknown name: whether an agent may call a
+ * tool at all is its tool lists' question, answered by the hook's scope arm
+ * ahead of this gate (`hook-scope.ts`), not by approval.
  */
 const BUILT_IN_GATED: ReadonlySet<string> = new Set([
   "Write",

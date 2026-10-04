@@ -41,7 +41,7 @@
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
-import type { MergedToolPolicy } from "../../shared/approval-policy.js";
+import type { McpApprovalDefault } from "../../shared/approval-policy.js";
 import {
   approvalDenials,
   denialKindOf,
@@ -53,6 +53,7 @@ import {
   detectUnattributedHookBlocks,
   reconcileDeniedToolCalls,
   settleUnresolvedToolCalls,
+  stampScopeRefusedToolCalls,
   stampUnattendedSkippedToolCalls,
   type UnattributedHookBlock,
 } from "./boundary-rows.js";
@@ -86,8 +87,8 @@ export interface TurnBoundaryOptions {
    * scope the #205 attribution and the #965 settle read.
    */
   readonly turnStartMessageIndex: number;
-  /** Merged approval policies, threaded to the denied-call reconcile for gate provenance. */
-  readonly mergedPolicies: ReadonlyMap<string, MergedToolPolicy>;
+  /** The turn's MCP approval default, threaded to the denied-call reconcile for gate provenance and card messages. */
+  readonly mcpDefault: McpApprovalDefault;
   /**
    * The first-denial-stop's run.cancel() promise, when a denial stopped this
    * run. Awaited (timeboxed) before the ledger read: run.cancel() races the
@@ -158,7 +159,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     hitlDir,
     primaryWorkspaceDir,
     turnStartMessageIndex,
-    mergedPolicies,
+    mcpDefault,
     denialCancelSettled,
     foreignGatingHooks,
   } = opts;
@@ -192,7 +193,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     status.messages,
     transcript,
     approvalLedger,
-    mergedPolicies,
+    mcpDefault,
     gateWorkspaceBackend,
   );
   // Observability: a synthesized placeholder (id `approval:*`) means a denial
@@ -245,6 +246,24 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     console.log(
       `ExecuteCursor turn boundary: ${stampedUnattended} unattended-mode tool call(s) ` +
       `settled as SKIPPED (no approver on this surface; execution=${executionId})`,
+    );
+  }
+
+  // Tool-list refusals: the hook refused these calls as out of the agent's
+  // lists (kind "disabled"); settle their rows to the native shape, a FAILED
+  // call carrying the refusal the model read, no approval, no provenance.
+  // Before the #205 pass, so a refused call is never read as a foreign block.
+  const stampedRefusals = stampScopeRefusedToolCalls(
+    status.messages,
+    status.subAgentExecutions,
+    deniedLedger,
+    turnStartMessageIndex,
+    primaryWorkspaceDir,
+  );
+  if (stampedRefusals > 0) {
+    console.log(
+      `ExecuteCursor turn boundary: ${stampedRefusals} tool call(s) refused by the agent's tool lists ` +
+      `(execution=${executionId})`,
     );
   }
 

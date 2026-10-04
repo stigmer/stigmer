@@ -459,7 +459,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable message explaining what approval is being requested.
-   * Populated from ToolApprovalPolicy.message with argument placeholders resolved.
+   * Written by the approval default from the tool's name and arguments.
    *
    * Examples:
    * - "Delete repository: my-important-repo"
@@ -488,7 +488,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable message explaining what approval is being requested.
-   * Populated from ToolApprovalPolicy.message with argument placeholders resolved.
+   * Written by the approval default from the tool's name and arguments.
    *
    * Examples:
    * - "Delete repository: my-important-repo"
@@ -1077,8 +1077,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Identifier of the policy-engine logic that produced approval_policy_source,
-   * bumped when the merge/classification semantics change so decisions made by
-   * different engine versions stay distinguishable in audits.
+   * bumped when the approval semantics change so decisions made by different
+   * engine versions stay distinguishable in audits.
    * </pre>
    *
    * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -1100,8 +1100,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Identifier of the policy-engine logic that produced approval_policy_source,
-   * bumped when the merge/classification semantics change so decisions made by
-   * different engine versions stay distinguishable in audits.
+   * bumped when the approval semantics change so decisions made by different
+   * engine versions stay distinguishable in audits.
    * </pre>
    *
    * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -3029,7 +3029,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable message explaining what approval is being requested.
-     * Populated from ToolApprovalPolicy.message with argument placeholders resolved.
+     * Written by the approval default from the tool's name and arguments.
      *
      * Examples:
      * - "Delete repository: my-important-repo"
@@ -3057,7 +3057,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable message explaining what approval is being requested.
-     * Populated from ToolApprovalPolicy.message with argument placeholders resolved.
+     * Written by the approval default from the tool's name and arguments.
      *
      * Examples:
      * - "Delete repository: my-important-repo"
@@ -3086,7 +3086,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable message explaining what approval is being requested.
-     * Populated from ToolApprovalPolicy.message with argument placeholders resolved.
+     * Written by the approval default from the tool's name and arguments.
      *
      * Examples:
      * - "Delete repository: my-important-repo"
@@ -3111,7 +3111,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable message explaining what approval is being requested.
-     * Populated from ToolApprovalPolicy.message with argument placeholders resolved.
+     * Written by the approval default from the tool's name and arguments.
      *
      * Examples:
      * - "Delete repository: my-important-repo"
@@ -3133,7 +3133,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable message explaining what approval is being requested.
-     * Populated from ToolApprovalPolicy.message with argument placeholders resolved.
+     * Written by the approval default from the tool's name and arguments.
      *
      * Examples:
      * - "Delete repository: my-important-repo"
@@ -4545,8 +4545,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Identifier of the policy-engine logic that produced approval_policy_source,
-     * bumped when the merge/classification semantics change so decisions made by
-     * different engine versions stay distinguishable in audits.
+     * bumped when the approval semantics change so decisions made by different
+     * engine versions stay distinguishable in audits.
      * </pre>
      *
      * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -4567,8 +4567,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Identifier of the policy-engine logic that produced approval_policy_source,
-     * bumped when the merge/classification semantics change so decisions made by
-     * different engine versions stay distinguishable in audits.
+     * bumped when the approval semantics change so decisions made by different
+     * engine versions stay distinguishable in audits.
      * </pre>
      *
      * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -4590,8 +4590,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Identifier of the policy-engine logic that produced approval_policy_source,
-     * bumped when the merge/classification semantics change so decisions made by
-     * different engine versions stay distinguishable in audits.
+     * bumped when the approval semantics change so decisions made by different
+     * engine versions stay distinguishable in audits.
      * </pre>
      *
      * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -4609,8 +4609,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Identifier of the policy-engine logic that produced approval_policy_source,
-     * bumped when the merge/classification semantics change so decisions made by
-     * different engine versions stay distinguishable in audits.
+     * bumped when the approval semantics change so decisions made by different
+     * engine versions stay distinguishable in audits.
      * </pre>
      *
      * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
@@ -4625,8 +4625,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Identifier of the policy-engine logic that produced approval_policy_source,
-     * bumped when the merge/classification semantics change so decisions made by
-     * different engine versions stay distinguishable in audits.
+     * bumped when the approval semantics change so decisions made by different
+     * engine versions stay distinguishable in audits.
      * </pre>
      *
      * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>

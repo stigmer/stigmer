@@ -23,6 +23,14 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
+/**
+ * Renders a name list as 'a', 'b', 'c' for an error message — the one way
+ * new messages quote a list, so every refusal reads the same.
+ */
+export function quoteJoin(names: readonly string[]): string {
+  return names.map((n) => `'${n}'`).join(", ");
+}
+
 /** The domain every structured refusal reason is issued under. */
 export const ERROR_REASON_DOMAIN = "stigmer.ai";
 

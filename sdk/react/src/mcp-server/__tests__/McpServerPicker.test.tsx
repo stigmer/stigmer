@@ -166,7 +166,6 @@ function PickerHarness({ refs }: { readonly refs: readonly ResourceRef[] }) {
         onServerRemoved: setup.removeServer,
         onSubmitEnvVars: (ref, values, opts) =>
           void setup.submitEnvVars(ref, values, opts),
-        onEnabledToolsChange: setup.setEnabledTools,
       }}
     />
   );

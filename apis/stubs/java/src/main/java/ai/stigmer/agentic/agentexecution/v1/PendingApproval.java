@@ -751,7 +751,8 @@ private static final long serialVersionUID = 0L;
    * Policy layer that gated this tool call, copied from
    * ToolCall.approval_policy_source by the server-side projection (exactly as
    * tool_kind above is). Lets the approval surface explain WHY the tool requires
-   * approval (e.g. "required by agent override") without a client-side lookup.
+   * approval (e.g. "required: marked destructive by the server") without a
+   * client-side lookup.
    * See ApprovalPolicySource.
    * </pre>
    *
@@ -766,7 +767,8 @@ private static final long serialVersionUID = 0L;
    * Policy layer that gated this tool call, copied from
    * ToolCall.approval_policy_source by the server-side projection (exactly as
    * tool_kind above is). Lets the approval surface explain WHY the tool requires
-   * approval (e.g. "required by agent override") without a client-side lookup.
+   * approval (e.g. "required: marked destructive by the server") without a
+   * client-side lookup.
    * See ApprovalPolicySource.
    * </pre>
    *
@@ -2816,7 +2818,8 @@ private static final long serialVersionUID = 0L;
      * Policy layer that gated this tool call, copied from
      * ToolCall.approval_policy_source by the server-side projection (exactly as
      * tool_kind above is). Lets the approval surface explain WHY the tool requires
-     * approval (e.g. "required by agent override") without a client-side lookup.
+     * approval (e.g. "required: marked destructive by the server") without a
+     * client-side lookup.
      * See ApprovalPolicySource.
      * </pre>
      *
@@ -2831,7 +2834,8 @@ private static final long serialVersionUID = 0L;
      * Policy layer that gated this tool call, copied from
      * ToolCall.approval_policy_source by the server-side projection (exactly as
      * tool_kind above is). Lets the approval surface explain WHY the tool requires
-     * approval (e.g. "required by agent override") without a client-side lookup.
+     * approval (e.g. "required: marked destructive by the server") without a
+     * client-side lookup.
      * See ApprovalPolicySource.
      * </pre>
      *
@@ -2851,7 +2855,8 @@ private static final long serialVersionUID = 0L;
      * Policy layer that gated this tool call, copied from
      * ToolCall.approval_policy_source by the server-side projection (exactly as
      * tool_kind above is). Lets the approval surface explain WHY the tool requires
-     * approval (e.g. "required by agent override") without a client-side lookup.
+     * approval (e.g. "required: marked destructive by the server") without a
+     * client-side lookup.
      * See ApprovalPolicySource.
      * </pre>
      *
@@ -2868,7 +2873,8 @@ private static final long serialVersionUID = 0L;
      * Policy layer that gated this tool call, copied from
      * ToolCall.approval_policy_source by the server-side projection (exactly as
      * tool_kind above is). Lets the approval surface explain WHY the tool requires
-     * approval (e.g. "required by agent override") without a client-side lookup.
+     * approval (e.g. "required: marked destructive by the server") without a
+     * client-side lookup.
      * See ApprovalPolicySource.
      * </pre>
      *
@@ -2888,7 +2894,8 @@ private static final long serialVersionUID = 0L;
      * Policy layer that gated this tool call, copied from
      * ToolCall.approval_policy_source by the server-side projection (exactly as
      * tool_kind above is). Lets the approval surface explain WHY the tool requires
-     * approval (e.g. "required by agent override") without a client-side lookup.
+     * approval (e.g. "required: marked destructive by the server") without a
+     * client-side lookup.
      * See ApprovalPolicySource.
      * </pre>
      *

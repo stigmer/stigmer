@@ -10,14 +10,16 @@
 // the Go test/integration MCP servers — to preserve the suite's
 // no-cross-language-coupling property.
 //
-// Why no `connect`/discovery is needed (and the McpServer just needs `create`):
-// at execution setup the runner resolves MCP servers from their *spec*, connects
-// LIVE, lists tools, and builds the approval gate from the agent's
-// tool_approval_overrides — none of which depends on a prior discovery pass
-// (and the conformance runner sets SKIP_MCP_CONNECT_BACKFILL=true, so the
-// execution-time backfill is a no-op). See the runner's harness/turn-context.ts
-// (the MCP phase) and shared/approval-policy.ts. The agent points at this server's URL
-// and the runner reaches it directly.
+// When `connect` is needed and when it is not: at execution setup the runner
+// resolves MCP servers from their *spec*, connects LIVE and lists tools, so a
+// suite that only CALLS a tool needs the McpServer created, nothing more. The
+// approval default is different: it asks before a tool the server marks
+// destructive, and the runner learns that mark only from the stored discovery
+// (DiscoveredTool.destructive_hint), so a suite that needs the gate connects
+// the server first (support/agentexecutions.ts, createConnectedMcpServer).
+// The conformance runner sets SKIP_MCP_CONNECT_BACKFILL=true, so nothing
+// discovers a server behind a suite's back. See the runner's
+// harness/turn-context.ts (the MCP phase) and shared/approval-policy.ts.
 //
 // Transport choice: stateless Streamable HTTP. Each POST gets a fresh
 // McpServer + transport (sessionIdGenerator: undefined), so independent runner
@@ -35,9 +37,17 @@ import { z } from "zod";
 // The default tool this fixture exposes. Deterministic by construction: it echoes
 // its `text` argument straight back, so a tool call's result is fully assertable
 // without any external dependency. The name is bare (no server prefix) because
-// the runner binds MCP tools by their bare names — the agent's approval override
-// and the mock LLM's tool_use turn both reference exactly this string.
+// the runner binds MCP tools by their bare names — the mock LLM's tool_use turn
+// references exactly this string. It declares no annotations, so the approval
+// default lets it through: every suite that calls it unattended relies on that.
 export const ECHO_TOOL_NAME = "echo";
+
+// The same echo, declared `destructiveHint: true`: the tool the approval
+// default asks before, once a connect has stored the hint. A separate tool
+// rather than an annotated `echo`, so a suite that connects the default
+// surface (the connect suite, the enforcing lane) never turns the echo every
+// other suite calls unattended into a gated one.
+export const DESTRUCTIVE_ECHO_TOOL_NAME = "echo_destructive";
 
 // A tool that always fails. The runner must record the failed ToolCall and let
 // the agent continue — a failing tool is a tool result, not a failed run — and
@@ -82,8 +92,17 @@ export const FIXTURE_ORDERS: Readonly<Record<string, Readonly<Record<string, unk
 // registers a second McpServer resource pointing at the same fixture process.
 // Per-request construction (stateless mode) is what makes this free: the tool
 // set is read off the path each time, no per-file posture involved.
-export type FixtureTool = typeof ECHO_TOOL_NAME | typeof FAIL_TOOL_NAME | typeof LOOKUP_ORDER_TOOL_NAME;
-const FIXTURE_TOOLS: ReadonlySet<string> = new Set<FixtureTool>([ECHO_TOOL_NAME, FAIL_TOOL_NAME, LOOKUP_ORDER_TOOL_NAME]);
+export type FixtureTool =
+  | typeof ECHO_TOOL_NAME
+  | typeof DESTRUCTIVE_ECHO_TOOL_NAME
+  | typeof FAIL_TOOL_NAME
+  | typeof LOOKUP_ORDER_TOOL_NAME;
+const FIXTURE_TOOLS: ReadonlySet<string> = new Set<FixtureTool>([
+  ECHO_TOOL_NAME,
+  DESTRUCTIVE_ECHO_TOOL_NAME,
+  FAIL_TOOL_NAME,
+  LOOKUP_ORDER_TOOL_NAME,
+]);
 
 // Build a fresh MCP server exposing exactly `tools`. Called per request
 // (stateless mode), so registration is cheap and self-contained.
@@ -97,6 +116,17 @@ function buildFixtureServer(tools: readonly FixtureTool[]): McpServer {
           {
             description: "Returns the input text unchanged. For deterministic conformance assertions.",
             inputSchema: { text: z.string().describe("the value to echo back") },
+          },
+          ({ text }) => ({ content: [{ type: "text", text }] }),
+        );
+        break;
+      case DESTRUCTIVE_ECHO_TOOL_NAME:
+        server.registerTool(
+          DESTRUCTIVE_ECHO_TOOL_NAME,
+          {
+            description: "Returns the input text unchanged, marked destructive. For deterministic approval assertions.",
+            inputSchema: { text: z.string().describe("the value to echo back") },
+            annotations: { destructiveHint: true },
           },
           ({ text }) => ({ content: [{ type: "text", text }] }),
         );

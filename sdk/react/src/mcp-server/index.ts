@@ -37,9 +37,6 @@ export type {
   McpServerSetupIntegration,
 } from "./McpServerPicker.js";
 
-export { McpToolSelector } from "./McpToolSelector.js";
-export type { McpToolSelectorProps } from "./McpToolSelector.js";
-
 export { McpServerConfigPanel } from "./McpServerConfigPanel.js";
 export type {
   McpServerConfigPanelProps,

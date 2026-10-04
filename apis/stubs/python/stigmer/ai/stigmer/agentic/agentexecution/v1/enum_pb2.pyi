@@ -106,9 +106,6 @@ class ApprovalAction(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 class ApprovalPolicySource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     APPROVAL_POLICY_SOURCE_UNSPECIFIED: _ClassVar[ApprovalPolicySource]
-    APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT: _ClassVar[ApprovalPolicySource]
-    APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE: _ClassVar[ApprovalPolicySource]
-    APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE: _ClassVar[ApprovalPolicySource]
     APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL: _ClassVar[ApprovalPolicySource]
     APPROVAL_POLICY_SOURCE_APPROVAL_LEASE: _ClassVar[ApprovalPolicySource]
     APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY: _ClassVar[ApprovalPolicySource]
@@ -316,9 +313,6 @@ APPROVAL_ACTION_SKIP: ApprovalAction
 APPROVAL_ACTION_REJECT: ApprovalAction
 APPROVAL_ACTION_APPROVE_ALL: ApprovalAction
 APPROVAL_POLICY_SOURCE_UNSPECIFIED: ApprovalPolicySource
-APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT: ApprovalPolicySource
-APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE: ApprovalPolicySource
-APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE: ApprovalPolicySource
 APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL: ApprovalPolicySource
 APPROVAL_POLICY_SOURCE_APPROVAL_LEASE: ApprovalPolicySource
 APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY: ApprovalPolicySource

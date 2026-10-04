@@ -26,6 +26,7 @@ import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resourc
 import type { TabItem } from "../tabs/Tabs.js";
 import { DependencyGraph } from "../dependency-graph/DependencyGraph.js";
 import { useDependencyGraph } from "../dependency-graph/useDependencyGraph.js";
+import { AgentToolLists, hasToolLists } from "./AgentToolLists.js";
 import type { DependencyNode } from "../dependency-graph/types.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
 import { InlineEditImage } from "../inline-edit/InlineEditImage.js";
@@ -629,6 +630,7 @@ function AgentOverview({
   const showMcpServers = editable || (spec && spec.mcpServerUsages.length > 0);
   const showSkills = editable || (spec && spec.skillRefs.length > 0);
   const showSubAgents = editable || (spec && spec.subAgents.length > 0);
+  const showToolLists = !!spec && hasToolLists(spec);
   const showEnv = editable || (spec?.env && Object.keys(spec.env).length > 0);
 
   const [mcpEditing, setMcpEditing] = useState(false);
@@ -725,6 +727,12 @@ function AgentOverview({
               onMcpServerClick={onMcpServerClick}
             />
           )}
+        </Section>
+      )}
+
+      {showToolLists && spec && (
+        <Section title="Tools">
+          <AgentToolLists tools={spec.tools} disallowedTools={spec.disallowedTools} />
         </Section>
       )}
 
@@ -851,27 +859,12 @@ function McpUsagesContent({
           ref.org && ref.org !== defaultOrg
             ? `${slugForOrg(ref.org)}/${ref.slug}`
             : ref.slug;
-        const toolCount = usage.enabledTools.length;
-        const approvalCount = usage.toolApprovalOverrides.length;
-
-        const summary = [
-          toolCount > 0
-            ? `${toolCount} ${toolCount === 1 ? "tool" : "tools"}`
-            : "all tools",
-          approvalCount > 0
-            ? `${approvalCount} approval ${approvalCount === 1 ? "override" : "overrides"}`
-            : "",
-        ]
-          .filter(Boolean)
-          .join(" \u00B7 ");
-
         const row = (
           <div className="stg:flex stg:items-center stg:gap-3">
             <McpServerIcon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
             <span className="stg:text-sm stg:font-medium stg:text-foreground">
               {label}
             </span>
-            <span className="stg:text-xs stg:text-muted-foreground">{summary}</span>
           </div>
         );
 
@@ -993,13 +986,12 @@ function SubAgentsSection({
           name: sa.name,
           description: sa.description || undefined,
           instructions: sa.instructions || undefined,
-          mcpAccess: sa.mcpAccess.length > 0
-            ? sa.mcpAccess.map((a) => ({ mcpServer: a.mcpServer, enabledTools: a.enabledTools.length > 0 ? [...a.enabledTools] : undefined }))
-            : undefined,
           skillRefs: sa.skillRefs.length > 0
             ? sa.skillRefs.map((r) => ({ org: r.org || "", slug: r.slug }))
             : undefined,
           modelOverride: sa.modelOverride || undefined,
+          tools: sa.tools.length > 0 ? [...sa.tools] : undefined,
+          disallowedTools: sa.disallowedTools.length > 0 ? [...sa.disallowedTools] : undefined,
         }));
       await onSave(updated);
     },
@@ -1012,13 +1004,12 @@ function SubAgentsSection({
       name: sa.name,
       description: sa.description || undefined,
       instructions: sa.instructions || undefined,
-      mcpAccess: sa.mcpAccess.length > 0
-        ? sa.mcpAccess.map((a) => ({ mcpServer: a.mcpServer, enabledTools: a.enabledTools.length > 0 ? [...a.enabledTools] : undefined }))
-        : undefined,
       skillRefs: sa.skillRefs.length > 0
         ? sa.skillRefs.map((r) => ({ org: r.org || "", slug: r.slug }))
         : undefined,
       modelOverride: sa.modelOverride || undefined,
+      tools: sa.tools.length > 0 ? [...sa.tools] : undefined,
+      disallowedTools: sa.disallowedTools.length > 0 ? [...sa.disallowedTools] : undefined,
     }));
     const newSub = {
       name: addDraft.name.trim(),
@@ -1208,29 +1199,11 @@ function SubAgentDetails({
         </div>
       )}
 
-      {sa.mcpAccess.length > 0 && (
-        <div>
-          <h4 className="stg:mb-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
-            MCP Access
-          </h4>
-          <div className="stg:space-y-1">
-            {sa.mcpAccess.map((access) => (
-              <div
-                key={access.mcpServer}
-                className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground"
-              >
-                <McpServerIcon className="stg:size-3 stg:shrink-0 stg:text-muted-foreground" />
-                <span className="stg:font-medium">{access.mcpServer}</span>
-                <span className="stg:text-muted-foreground">
-                  {access.enabledTools.length > 0
-                    ? `${access.enabledTools.length} ${access.enabledTools.length === 1 ? "tool" : "tools"}`
-                    : "all tools"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <AgentToolLists
+        tools={sa.tools}
+        disallowedTools={sa.disallowedTools}
+        density="compact"
+      />
 
       {sa.skillRefs.length > 0 && (
         <div>

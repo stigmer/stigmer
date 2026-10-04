@@ -1,6 +1,6 @@
 {
   "name": "McpServerUsage",
-  "description": "McpServerUsage declares that this agent uses a McpServer resource.\n\n The slug from mcp_server_ref identifies this server for SubAgent access\n grants via McpAccess.",
+  "description": "McpServerUsage declares that this agent uses a McpServer resource.\n\n Every tool of a used server is available to the agent unless its tool\n lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the\n server is named by its slug, as in mcp__\u003cserver-slug\u003e.",
   "protoType": "ai.stigmer.agentic.agent.v1.McpServerUsage",
   "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
   "fields": [
@@ -18,33 +18,6 @@
       "validation": {
         "required": true
       }
-    },
-    {
-      "name": "EnabledTools",
-      "jsonName": "enabledTools",
-      "protoField": "enabled_tools",
-      "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "string"
-        }
-      },
-      "description": "Tools to enable from this MCP server for this agent.\n Empty list uses the McpServer's default_enabled_tools.\n Sub-agents can only restrict this set further, not expand it.",
-      "required": false
-    },
-    {
-      "name": "ToolApprovalOverrides",
-      "jsonName": "toolApprovalOverrides",
-      "protoField": "tool_approval_overrides",
-      "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "message",
-          "messageType": "ToolApprovalOverride"
-        }
-      },
-      "description": "Override approval requirements for specific tools.\n Takes precedence over McpServerSpec.pinned_tool_approvals and\n McpServerStatus.tool_approvals.\n Scoped to THIS usage's server: an override applies only to tools of\n the McpServer referenced by mcp_server_ref — a same-named tool on\n another server is unaffected.",
-      "required": false
     }
   ]
 }

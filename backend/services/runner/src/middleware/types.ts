@@ -111,6 +111,10 @@ export type { ApprovalGateConfig };
 import type { PathNormalizationConfig } from "./path-normalization.js";
 export type { PathNormalizationConfig };
 
+// Same idiom: the tool-scope middleware consumes it.
+import type { ToolScopeConfig } from "./tool-scope.js";
+export type { ToolScopeConfig };
+
 /**
  * Top-level configuration for buildMiddlewareStack().
  * All sections are optional — the factory applies sensible defaults.
@@ -122,6 +126,11 @@ export interface MiddlewareStackConfig {
   readonly costAdvisory?: CostAdvisoryConfig | null;
   readonly otelSpans?: Partial<OtelSpansConfig>;
   readonly approvalGate?: ApprovalGateConfig | null;
+  /**
+   * The agent's tool lists (`tool-scope.ts`). Installed whenever the scope
+   * carries a list, whether or not the approval gate is.
+   */
+  readonly toolScope?: ToolScopeConfig | null;
   /**
    * Virtual-dialect path normalization (issues #429/#754). Set on every
    * native graph: the backends are virtual-rooted, so every graph carries

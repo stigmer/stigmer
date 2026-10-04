@@ -15,8 +15,8 @@ automatic refresh. You never handle tokens directly.
 <Callout type="info">
   This guide assumes you've read the [Connect an MCP
   Server](/docs/guides/integrations/connect-an-mcp-server) guide. The connect
-  process (discovery, classification, approval policies) is the same for OAuth
-  and non-OAuth servers — the difference is how credentials are obtained.
+  process (tool discovery) is the same for OAuth and non-OAuth servers — the
+  difference is how credentials are obtained.
 </Callout>
 
 <DemoOAuthConnectFlow />
@@ -137,8 +137,8 @@ app registered with the vendor and referenced from its definition
 3. Review the requested permissions and authorize the application.
 4. The popup closes. Stigmer exchanges the authorization code for an access
    token, stores it in a managed Environment, then connects to the server.
-5. Tools are discovered and approval policies are classified — the same process
-   described in
+5. Tools are discovered, with the ones the server marks destructive — the same
+   process described in
    [Connect an MCP Server](/docs/guides/integrations/connect-an-mcp-server#connect-an-mcp-server).
 
 <Callout type="info">

@@ -134,6 +134,8 @@ class AgentInput:
     skill_refs: list[ResourceRef] = field(default_factory=list)
     sub_agents: list[SubAgentInput] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
+    tools: list[str] = field(default_factory=list)
+    disallowed_tools: list[str] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -151,6 +153,10 @@ class AgentInput:
             spec.sub_agents.append(item._to_proto())
         for k, v in self.env.items():
             spec.env[k].CopyFrom(v._to_proto())
+        if self.tools:
+            spec.tools.extend(self.tools)
+        if self.disallowed_tools:
+            spec.disallowed_tools.extend(self.disallowed_tools)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -180,8 +186,6 @@ class McpServerUsageInput:
     """SDK input type for McpServerUsage."""
 
     mcp_server_ref: ResourceRef | None
-    enabled_tools: list[str] = field(default_factory=list)
-    tool_approval_overrides: list[ToolApprovalOverrideInput] = field(default_factory=list)
 
     def _to_proto(self) -> spec_pb2.McpServerUsage:
         msg = spec_pb2.McpServerUsage()
@@ -189,27 +193,6 @@ class McpServerUsageInput:
             _ref = self.mcp_server_ref._to_proto()
             _ref.kind = 44
             msg.mcp_server_ref.CopyFrom(_ref)
-        if self.enabled_tools:
-            msg.enabled_tools.extend(self.enabled_tools)
-        for item in self.tool_approval_overrides:
-            msg.tool_approval_overrides.append(item._to_proto())
-        return msg
-
-
-@dataclass
-class ToolApprovalOverrideInput:
-    """SDK input type for ToolApprovalOverride."""
-
-    tool_name: str = ""
-    requires_approval: bool = False
-    message: str = ""
-
-    def _to_proto(self) -> spec_pb2.ToolApprovalOverride:
-        msg = spec_pb2.ToolApprovalOverride(
-            tool_name=self.tool_name,
-            requires_approval=self.requires_approval,
-            message=self.message,
-        )
         return msg
 
 
@@ -220,9 +203,10 @@ class SubAgentInput:
     name: str
     description: str = ""
     instructions: str = ""
-    mcp_access: list[McpAccessInput] = field(default_factory=list)
     skill_refs: list[ResourceRef] = field(default_factory=list)
     model_override: str = ""
+    tools: list[str] = field(default_factory=list)
+    disallowed_tools: list[str] = field(default_factory=list)
 
     def _to_proto(self) -> spec_pb2.SubAgent:
         msg = spec_pb2.SubAgent(
@@ -231,28 +215,14 @@ class SubAgentInput:
             instructions=self.instructions,
             model_override=self.model_override,
         )
-        for item in self.mcp_access:
-            msg.mcp_access.append(item._to_proto())
         for ref in self.skill_refs:
             _ref = ref._to_proto()
             _ref.kind = 43
             msg.skill_refs.append(_ref)
-        return msg
-
-
-@dataclass
-class McpAccessInput:
-    """SDK input type for McpAccess."""
-
-    mcp_server: str
-    enabled_tools: list[str] = field(default_factory=list)
-
-    def _to_proto(self) -> spec_pb2.McpAccess:
-        msg = spec_pb2.McpAccess(
-            mcp_server=self.mcp_server,
-        )
-        if self.enabled_tools:
-            msg.enabled_tools.extend(self.enabled_tools)
+        if self.tools:
+            msg.tools.extend(self.tools)
+        if self.disallowed_tools:
+            msg.disallowed_tools.extend(self.disallowed_tools)
         return msg
 
 

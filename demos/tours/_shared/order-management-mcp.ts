@@ -28,7 +28,6 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import {
   McpServerSpecSchema,
   HttpServerConfigSchema,
-  ToolApprovalPolicySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import {
   McpServerStatusSchema,
@@ -84,7 +83,10 @@ function buildRegisteredServer(): McpServer {
   return server;
 }
 
-/** The same server after Connect: 3 discovered tools, 1 classified policy. */
+/**
+ * The same server after Connect: 3 discovered tools, one of which the server
+ * marks destructive, so it is the one that asks for approval.
+ */
 function buildConnectedServer(): McpServer {
   const server = buildRegisteredServer();
   server.status = create(McpServerStatusSchema, {
@@ -106,16 +108,10 @@ function buildConnectedServer(): McpServer {
           name: "process_return",
           description:
             "Initiate a return and refund for an order. Requires order ID, reason, and amount.",
+          destructiveHint: true,
         }),
       ],
     }),
-    toolApprovals: [
-      create(ToolApprovalPolicySchema, {
-        toolName: "process_return",
-        message:
-          "Process return for order '{{args.order_id}}' — refund ${{args.refund_amount}} to {{args.refund_method}}",
-      }),
-    ],
   });
   return server;
 }

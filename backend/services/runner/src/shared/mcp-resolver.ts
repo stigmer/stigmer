@@ -19,9 +19,8 @@
  * resolves a single server without a usage.
  */
 
-import type { McpServerUsage, ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import {
   assertTransportAllowed,
@@ -34,12 +33,11 @@ import {
   filterEnvToDeclaredKeys,
   PlaceholderResolutionError,
 } from "./placeholder-resolver.js";
-import { effectiveEnabledTools } from "./mcp-enabled-tools.js";
 import { fillPlatformServerAddress, type PlatformEndpoints } from "./platform-server-address.js";
 
 /**
  * Harness-agnostic intermediate representation of a resolved MCP server.
- * Contains connection info and approval policies. Each harness maps this
+ * Contains connection info and the tools its server marks destructive. Each harness maps this
  * into its SDK-specific format (e.g., Cursor McpServerConfig, LangGraph
  * MultiServerMCPClient config).
  */
@@ -52,40 +50,30 @@ export interface ResolvedMcpServer {
   cwd?: string;
   url?: string;
   headers?: Record<string, string>;
-  toolApprovals: ToolApprovalPolicy[];
-  pinnedToolApprovals: ToolApprovalPolicy[];
   discoveredCapabilitiesEmpty: boolean;
   /**
-   * The EFFECTIVE tool allow-list for this server (issue #350): the usage's
-   * enabled_tools, falling back to the server's default_enabled_tools when
-   * the usage's list is empty (see shared/mcp-enabled-tools.ts). Absent when
-   * unrestricted — which keeps synthesized attachment servers (built without
-   * a usage) and the discovery path unfiltered by construction. Enforcement
-   * is per-harness: the deep-agent path filters at connect time
-   * (connectMcpServers, shared/mcp-manager.ts); the Cursor SDK config cannot
-   * hide tools, so that harness denies non-enabled calls in the HITL hook
-   * (see hook-script.ts).
+   * The tools its server marks destructive (`DiscoveredTool.destructive_hint`,
+   * recorded at connect from the tool's MCP annotation): the MCP half of the
+   * approval default (`buildMcpApprovalDefault`, shared/approval-policy.ts).
+   * Deliberately REQUIRED, not optional: every construction site — the
+   * synthesized attachments included, which mark nothing — must say so, so a
+   * forgotten site cannot compile.
    */
-  enabledTools?: string[];
+  destructiveTools: readonly string[];
   /**
-   * Layer-3 per-agent approval overrides from the usage that resolved this
-   * server (issue #349): riding the resolved server is what SCOPES an
-   * override to its own server — a flat cross-server list is how an
-   * override once leaked onto (or silently un-gated) a same-named tool on
-   * another server. Deliberately REQUIRED, not optional: empty means "no
-   * overrides", and every construction site — including the synthesized
-   * attachments, which have no usage and therefore no layer 3 — must say so
-   * explicitly, so a forgotten site cannot compile. Consumed by
-   * mergeApprovalPolicies (shared/approval-policy.ts).
+   * The tool names the server's last discovery reported, or `null` when it
+   * was never discovered. Read only to tell whether a tool-level list entry
+   * (`mcp__<slug>__<tool>`) names a tool the turn has; the live toolset is
+   * what the engine binds.
    */
-  toolApprovalOverrides: ToolApprovalOverride[];
+  discoveredToolNames: readonly string[] | null;
   /**
    * Every run value this server claims: the keys its `spec.env` declares
    * and its OAuth token's target variable. The agent's shell never
    * receives one (activities/execute-deep-agent/shell-env.ts), even though
    * agent save copies them into the agent's own `env`. REQUIRED for the
-   * same reason as {@link toolApprovalOverrides}: a synthesized server
-   * declares none and says so.
+   * same reason as {@link destructiveTools}: a synthesized server declares
+   * none and says so.
    */
   declaredEnvKeys: readonly string[];
 }
@@ -125,13 +113,7 @@ export async function resolveMcpServers(
         fillPlatformServerAddress(mcpServer, envVars, platformEndpoints),
         `MCP server '${ref.slug}'`,
       );
-      const server = mcpServerToResolved(
-        mcpServer,
-        ref.slug,
-        serverEnv,
-        usage.enabledTools,
-        usage.toolApprovalOverrides ?? [],
-      );
+      const server = mcpServerToResolved(mcpServer, ref.slug, serverEnv);
       if (server) {
         assertTransportAllowed(server.slug, server.connectionType, transportPosture);
         resolved.push(server);
@@ -171,30 +153,18 @@ export function mcpServerToResolved(
   server: McpServer,
   slug: string,
   envVars: Record<string, string>,
-  usageEnabledTools?: readonly string[],
-  usageToolApprovalOverrides: ToolApprovalOverride[] = [],
 ): ResolvedMcpServer | null {
   const spec = server.spec;
   if (!spec) return null;
 
-  const status = server.status;
-  const toolApprovals = status?.toolApprovals ?? [];
-  const pinnedToolApprovals = spec.pinnedToolApprovals ?? [];
-  const discoveredCapabilitiesEmpty = !status?.discoveredCapabilities
-    || (status.discoveredCapabilities.tools.length === 0
-      && status.discoveredCapabilities.resourceTemplates.length === 0);
+  const discovered = server.status?.discoveredCapabilities;
+  const discoveredCapabilitiesEmpty = !discovered
+    || (discovered.tools.length === 0 && discovered.resourceTemplates.length === 0);
 
   const base = {
-    toolApprovals,
-    pinnedToolApprovals,
     discoveredCapabilitiesEmpty,
-    // Callers without a usage (the discovery activity) pass nothing, so the
-    // default_enabled_tools fallback still applies but a per-agent
-    // restriction cannot: discovery must see the server's full toolset.
-    enabledTools: effectiveEnabledTools(usageEnabledTools, spec.defaultEnabledTools),
-    // Same no-usage rule for layer 3: discovery has no agent context, so no
-    // per-agent overrides exist — defaulting to [] keeps that structural.
-    toolApprovalOverrides: usageToolApprovalOverrides,
+    destructiveTools: (discovered?.tools ?? []).filter((t) => t.destructiveHint).map((t) => t.name),
+    discoveredToolNames: discovered ? discovered.tools.map((t) => t.name) : null,
     declaredEnvKeys: declaredEnvKeysOf(server),
   };
 
@@ -243,13 +213,11 @@ export function mcpServerToResolved(
  * Replicates session_context_merge.py::merge_mcp_server_usages():
  * - Agent-level usages are the base set
  * - Session-level usages extend or override by mcp_server_ref.slug
- * - If both reference the same slug, session-level takes precedence —
- *   the WHOLE usage, including enabled_tools and approval overrides
+ * - If both reference the same slug, they name the same server once
  *
  * Shared by both harnesses (through blueprint-resolver.ts, the turn
- * runtime's blueprint phase) so a duplicate slug
- * resolves identically everywhere: exactly one usage per server, whose
- * enabled_tools is the one the enforcement filter honors.
+ * runtime's blueprint phase) so a duplicate slug resolves identically
+ * everywhere: exactly one usage per server.
  */
 export function mergeMcpServerUsages(
   agentUsages: McpServerUsage[],

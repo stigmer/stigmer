@@ -16,7 +16,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
-import { mergeApprovalPolicies, type ActiveLeases } from "../approval-policy.js";
+import { buildMcpApprovalDefault, type ActiveLeases } from "../approval-policy.js";
 import { needsBackfill } from "../connect-backfill.js";
 import {
   CHANNEL_ATTACHMENT_SLUG,
@@ -175,18 +175,16 @@ describe("synthesizeChannelAttachment", () => {
     expect(STDIO_CREDENTIAL_ENV).toBe("STIGMER_API_KEY");
   });
 
-  it("is approval-free by construction: zero entries in the merged approval map", () => {
+  it("is approval-free by construction: the approval default marks none of its tools destructive", () => {
     const attachment = synthesizeChannelAttachment([info("isc-whatsapp", [])], options)!;
     // Forced, not convenient: both calling surfaces run
     // UNATTENDED mode, where a gated tool resolves as skip-and-adapt —
     // a gated send tool means reminders never send.
-    const merged = mergeApprovalPolicies(
-      [attachment as ResolvedMcpServer], noLeases,
-    );
-    expect(merged.size).toBe(0);
+    const mcpDefault = buildMcpApprovalDefault([attachment as ResolvedMcpServer], noLeases);
+    expect(mcpDefault.destructive.size).toBe(0);
   });
 
-  it("is structurally immune to the connect backfill (destructiveHint tightener)", () => {
+  it("is structurally immune to the connect backfill", () => {
     const attachment = synthesizeChannelAttachment([info("isc-whatsapp", [])], options)!;
     expect(attachment.discoveredCapabilitiesEmpty).toBe(false);
     expect(needsBackfill(attachment)).toBe(false);

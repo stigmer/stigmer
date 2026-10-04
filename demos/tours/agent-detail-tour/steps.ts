@@ -38,7 +38,7 @@ export const DEMO_SLUG = "support-agent";
 /**
  * The demo agent returned by the mocked `AgentQueryController.getByReference`
  * (see `.scenar/providers.tsx`). Every rendered field — description,
- * instructions, both skill refs, the MCP server usage with its three tools,
+ * instructions, both skill refs, the MCP server usage, the tool list,
  * the two env declarations, and the organization visibility — matches the YAML
  * listing the embed sits under on `docs/concepts/agents.mdx`, so the reader
  * sees exactly the definition they just read.
@@ -74,10 +74,9 @@ export function buildDemoAgent() {
           kind: ApiResourceKind.mcp_server,
           slug: "order-management-api",
         }),
-        enabledTools: ["get_order", "list_orders", "process_return"],
-        toolApprovalOverrides: [],
       }),
     ],
+    tools: ["Read", "Grep", "mcp__order-management-api"],
     skillRefs: [
       create(ApiResourceReferenceSchema, {
         kind: ApiResourceKind.skill,
@@ -121,7 +120,7 @@ export const agentDetailTourSteps: ScenarioStep<AgentDetailTourStep>[] = [
     shot: "agent-detail",
     narration:
       "The console shows the whole definition in one place — the instructions, " +
-      "both Skills, the MCP server with its enabled tools, and the environment " +
+      "both Skills, the MCP server and the tools it may use, and the environment " +
       "variables it needs at runtime.",
   },
 ];
