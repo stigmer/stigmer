@@ -679,9 +679,9 @@ test-helm: node_modules ## Run the chart's render, compose-parity and schema tes
 	node --test $(HELM_CHART_DIR)/__tests__/*.test.mjs
 
 .PHONY: test-agent-sandbox
-test-agent-sandbox: build-ts-stubs $(SERVER_DIR)/node_modules ## Run the agent-sandbox driver's live test on a kind cluster of its own with agent-sandbox installed (needs Docker, kind, kubectl, temporal; AGENT_SANDBOX_VERSION=latest tests upstream's newest release, RUNNER_IMAGE a local image)
+test-agent-sandbox: build-ts-stubs $(SERVER_DIR)/node_modules ## Run the agent-sandbox driver's live test on a kind cluster of its own with agent-sandbox installed (needs Docker, kind, kubectl, temporal; AGENT_SANDBOX_VERSION=latest tests upstream's newest release, RUNNER_IMAGE a local image; both reach the script through the environment, which checks them)
 	@for tool in docker kind kubectl temporal; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the agent-sandbox live test needs it"; exit 1; }; done
-	node scripts/agent-sandbox-live.mjs $(if $(AGENT_SANDBOX_VERSION),--agent-sandbox-version $(AGENT_SANDBOX_VERSION)) $(if $(RUNNER_IMAGE),--runner-image $(RUNNER_IMAGE))
+	node scripts/agent-sandbox-live.mjs
 
 .PHONY: smoke-helm
 smoke-helm: build-server build-web stage-compose-runner-cli ## Build both images from source, install the chart on kind and run the gate smoke (needs Docker, kind, helm, kubectl)

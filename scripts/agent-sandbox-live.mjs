@@ -13,12 +13,18 @@
  *     (`latest` asks GitHub for upstream's newest release), then the
  *     namespace the driver provisions into;
  *   - the runner image loaded into the cluster's node: pulled when the local
- *     Docker does not hold it;
- *   - a Temporal dev server on a free port, bound on every interface so a pod
- *     reaches it at the host's address on the kind network (the network's
- *     gateway on Linux, host.docker.internal on Docker Desktop).
+ *     Docker does not hold it. The published default is linux/amd64 only, so
+ *     on an arm64 machine build the sandbox image
+ *     (`docker build --target sandbox -f backend/services/runner/Dockerfile.sandbox .`)
+ *     and name it in RUNNER_IMAGE;
+ *   - a Temporal dev server on a free port, bound only where a pod reaches
+ *     the host: the kind network's gateway on Linux, and the loopback on
+ *     Docker Desktop, whose host.docker.internal reaches the host's loopback.
+ *     Never every interface: the dev server has no authentication.
  * Then it runs `npm run test:live` in the server package with those
- * addresses, and tears down even when the test fails (`--keep` leaves the
+ * addresses. A red test is followed by every object in the namespace, the
+ * runner pods' events and logs and the controller's log, before it tears
+ * down, which it does even when the test fails (`--keep` leaves the
  * cluster for a reader, and prints how to remove it).
  *
  * Needs kind, kubectl, docker and the Temporal CLI on PATH (CI pins kind and
@@ -28,6 +34,10 @@
  * Usage:
  *   node scripts/agent-sandbox-live.mjs [--agent-sandbox-version <vX.Y.Z|latest>]
  *     [--runner-image <image>] [--keep]
+ * AGENT_SANDBOX_VERSION and RUNNER_IMAGE in the environment, when set and not
+ * empty, stand in for the two flags; `make test-agent-sandbox` hands them on
+ * that way, so a value reaches this script, which checks it, and never a
+ * shell command line.
  * Exit: the live test's exit code; 2 when the system could not be made.
  */
 
@@ -48,8 +58,12 @@ const CLUSTER = "stigmer-agent-sandbox-live";
 const NAMESPACE = "stigmer-sandboxes";
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
 
-export function parseArgs(argv) {
-  const opts = { version: AGENT_SANDBOX_VERSION, runnerImage: DEFAULT_RUNNER_IMAGE, keep: false };
+export function parseArgs(argv, env = {}) {
+  const opts = {
+    version: env.AGENT_SANDBOX_VERSION || AGENT_SANDBOX_VERSION,
+    runnerImage: env.RUNNER_IMAGE || DEFAULT_RUNNER_IMAGE,
+    keep: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--agent-sandbox-version") opts.version = argv[++i] ?? "";
@@ -99,16 +113,53 @@ async function freePort() {
   });
 }
 
-/** The address a pod on the kind network reaches this host at. */
-export function hostFromKindNetwork(platform, gateway) {
-  return platform === "darwin" || platform === "win32" ? "host.docker.internal" : gateway;
+const DOCKER_DESKTOP = new Set(["darwin", "win32"]);
+
+/**
+ * The kind network's IPv4 gateway, from `docker network inspect`'s gateways
+ * separated by spaces. The network also carries an IPv6 subnet, listed
+ * first on some hosts, and a pod's runner dials host:port, which an IPv6
+ * address does not fit.
+ */
+export function ipv4Gateway(gateways) {
+  const found = gateways.split(/\s+/).find((gateway) => /^\d+\.\d+\.\d+\.\d+$/.test(gateway));
+  if (found === undefined) throw new Error(`the kind network has no IPv4 gateway (gateways: '${gateways.trim()}')`);
+  return found;
 }
 
-async function waitForPort(port, timeoutMs) {
+/** The address a pod on the kind network reaches this host at. */
+export function hostFromKindNetwork(platform, gateway) {
+  return DOCKER_DESKTOP.has(platform) ? "host.docker.internal" : gateway;
+}
+
+/** The address the Temporal dev server binds: only the one a pod reaches the host through. */
+export function temporalBindAddress(platform, gateway) {
+  return DOCKER_DESKTOP.has(platform) ? "127.0.0.1" : gateway;
+}
+
+/** Starts a child and resolves its exit code; a child that cannot start (a missing binary) resolves 127. */
+function spawnChild(command, args, options) {
+  const child = spawn(command, args, options);
+  const exited = new Promise((resolveCode) => {
+    child.once("error", (error) => {
+      console.error(`agent-sandbox-live: ${command} could not start: ${error.message}`);
+      resolveCode(127);
+    });
+    child.once("exit", (exit) => resolveCode(exit ?? 1));
+  });
+  return { child, exited };
+}
+
+async function waitForPort(host, port, timeoutMs, exited) {
   const deadline = Date.now() + timeoutMs;
+  let gone = false;
+  void exited.then(() => {
+    gone = true;
+  });
   for (;;) {
+    if (gone) throw new Error(`the Temporal dev server exited before it listened on ${host}:${port}`);
     const open = await new Promise((resolveOpen) => {
-      const socket = connect(port, "127.0.0.1");
+      const socket = connect(port, host);
       socket.once("connect", () => {
         socket.destroy();
         resolveOpen(true);
@@ -116,24 +167,51 @@ async function waitForPort(port, timeoutMs) {
       socket.once("error", () => resolveOpen(false));
     });
     if (open) return;
-    if (Date.now() > deadline) throw new Error(`nothing listens on ${port} after ${timeoutMs / 1000}s`);
+    if (Date.now() > deadline) throw new Error(`nothing listens on ${host}:${port} after ${timeoutMs / 1000}s`);
     await new Promise((r) => setTimeout(r, 500));
   }
 }
 
+/** What a reader of a red run needs before the cluster goes: every object, then each runner pod's events and logs. */
+function diagnose(kube) {
+  const show = (...args) => {
+    try {
+      console.log(kube(...args));
+    } catch {
+      // A diagnosis that fails says nothing more; the run is already red.
+    }
+  };
+  show("-n", NAMESPACE, "get", "sandboxes,pods,pvc,secrets", "-o", "wide");
+  show("-n", NAMESPACE, "describe", "pods");
+  let pods = "";
+  try {
+    pods = kube("-n", NAMESPACE, "get", "pods", "-o", "name");
+  } catch {
+    pods = "";
+  }
+  for (const pod of pods.split("\n").filter(Boolean)) {
+    show("-n", NAMESPACE, "logs", pod, "--all-containers", "--tail=200");
+  }
+  show("-n", "agent-sandbox-system", "logs", "deploy/agent-sandbox-controller", "--tail=100");
+}
+
 async function main(argv) {
-  const opts = parseArgs(argv);
+  const opts = parseArgs(argv, process.env);
   const version = opts.version === "latest" ? await latestVersion() : opts.version;
   const state = mkdtempSync(join(tmpdir(), "stigmer-agent-sandbox-live-"));
   const kubeconfig = join(state, "kubeconfig");
   const kube = (...args) => run("kubectl", ["--kubeconfig", kubeconfig, ...args]);
   let temporal;
+  let created = false;
   let code = 2;
   try {
     console.log(`agent-sandbox ${version}, runner image ${opts.runnerImage}, state ${state}`);
+    // A cluster of this name that is not this run's (kept by --keep, or
+    // another run's) fails the create, and is then never deleted below.
     run("kind", ["create", "cluster", "--name", CLUSTER, "--kubeconfig", kubeconfig, "--wait", "180s"], {
       stdio: ["ignore", "inherit", "inherit"],
     });
+    created = true;
     kube("apply", "-f", manifestUrl(version));
     kube("-n", "agent-sandbox-system", "rollout", "status", "deploy/agent-sandbox-controller", "--timeout=300s");
     kube("create", "namespace", NAMESPACE);
@@ -147,15 +225,16 @@ async function main(argv) {
       stdio: ["ignore", "inherit", "inherit"],
     });
 
+    const gateway = ipv4Gateway(run("docker", ["network", "inspect", "kind", "--format", "{{range .IPAM.Config}}{{.Gateway}} {{end}}"]));
+    const host = hostFromKindNetwork(process.platform, gateway);
+    const bind = temporalBindAddress(process.platform, gateway);
     const port = await freePort();
-    temporal = spawn(
+    temporal = spawnChild(
       "temporal",
-      ["server", "start-dev", "--headless", "--ip", "0.0.0.0", "--port", String(port), "--ui-port", String(await freePort()), "--log-level", "warn"],
+      ["server", "start-dev", "--headless", "--ip", bind, "--port", String(port), "--ui-port", String(await freePort()), "--log-level", "warn"],
       { stdio: "inherit" },
     );
-    await waitForPort(port, 60_000);
-    const gateway = run("docker", ["network", "inspect", "kind", "--format", "{{(index .IPAM.Config 0).Gateway}}"]).trim();
-    const host = hostFromKindNetwork(process.platform, gateway);
+    await waitForPort(bind, port, 60_000, temporal.exited);
 
     const env = {
       ...process.env,
@@ -166,17 +245,19 @@ async function main(argv) {
       // server, and the live test asserts the poll, not a turn.
       STIGMER_SANDBOX_BACKEND_ENDPOINT: `http://${host}:1`,
       STIGMER_SANDBOX_RUNNER_IMAGE: opts.runnerImage,
-      STIGMER_AGENT_SANDBOX_LIVE_TEMPORAL: `127.0.0.1:${port}`,
+      STIGMER_AGENT_SANDBOX_LIVE_TEMPORAL: `${bind}:${port}`,
     };
-    const test = spawn("npm", ["run", "test:live"], {
+    code = await spawnChild("npm", ["run", "test:live"], {
       cwd: join(ROOT, "backend/services/stigmer-server"),
       env,
       stdio: "inherit",
-    });
-    code = await new Promise((resolveCode) => test.once("exit", (exit) => resolveCode(exit ?? 1)));
+    }).exited;
+    if (code !== 0) diagnose(kube);
   } finally {
-    temporal?.kill("SIGTERM");
-    if (opts.keep) {
+    temporal?.child.kill("SIGTERM");
+    if (!created) {
+      rmSync(state, { recursive: true, force: true });
+    } else if (opts.keep) {
       console.log(`kept: KUBECONFIG=${kubeconfig}; remove with kind delete cluster --name ${CLUSTER} --kubeconfig ${kubeconfig}`);
     } else {
       try {

@@ -19,9 +19,13 @@
 #   against upstream's newest release;
 # - by hand (workflow_dispatch), against the version given, or the pinned one.
 #
-# The runner image is the published ghcr.io/stigmer/runner:latest: the lane
-# proves the driver and the controller, not the runner's build, which
-# ci.runner and ci.compose-stack gate.
+# The runner image is the published ghcr.io/stigmer/runner:latest, which
+# moves with main, unlike the tools below. That is the trade: the lane proves
+# the driver and the controller, and needs only a runner that boots and polls
+# its queue, which every main build is (ci.runner and ci.compose-stack gate
+# the runner's own build); building the image here would add minutes to every
+# run, and pinning a main tag would need a bump nobody owns. A red that only
+# follows a new runner image names the image in the step's log.
 #
 # Red: a gate run blocks its change; the weekly run's failure files an issue
 # from ci.agent-sandbox-upstream.yaml, which holds the issue permission this
@@ -88,11 +92,12 @@ jobs:
           kind version && kubectl version --client
 
       # Empty tests the pinned release. The input reaches the script through
-      # env, never inline in `run` (script-injection hardening); the script
-      # refuses anything but vX.Y.Z or latest.
+      # the environment alone, never a command line make or the shell expands
+      # (script-injection hardening); the script refuses anything but vX.Y.Z
+      # or latest.
       - name: Run the live test on kind
         env:
           AGENT_SANDBOX_VERSION: ${{ inputs.agent_sandbox_version }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: make test-agent-sandbox AGENT_SANDBOX_VERSION="$AGENT_SANDBOX_VERSION"
+        run: make test-agent-sandbox
 

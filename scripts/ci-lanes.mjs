@@ -80,6 +80,8 @@ export const LANES = {
       "backend/services/stigmer-server/src/sandbox/provisioner.ts",
       "backend/services/stigmer-server/src/sandbox/naming.ts",
       "backend/services/stigmer-server/src/sandbox/runner-launch.ts",
+      // The logger the live test hands the driver.
+      "backend/services/stigmer-server/src/boot/logger.ts",
       // The live class's config and the entry point that makes its cluster.
       "backend/services/stigmer-server/vitest.live.config.ts",
       "backend/services/stigmer-server/package.json",
