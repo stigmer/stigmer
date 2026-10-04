@@ -25,11 +25,18 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
+import { DESTRUCTIVE_ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
 import { anthropicText, anthropicToolUses, type MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
-import { awaitPhase, awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture, submitApprovalPerContract } from "../support/agentexecutions";
-import { makeHttpMcpServer } from "../support/mcpservers";
+import {
+  awaitPhase,
+  awaitTerminal,
+  createConnectedMcpServer,
+  makeAgentExecution,
+  requireLlmProxy,
+  requireMcpFixture,
+  submitApprovalPerContract,
+} from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import type { TenancyContext } from "../targets/target";
@@ -142,15 +149,16 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     return agent.metadata!.id;
   }
 
+  // An agent whose one tool the approval default asks before: the fixture's
+  // destructive echo, on a connected server (createConnectedMcpServer).
   async function provisionGatedAgent(org: string): Promise<string> {
-    const server = await clients.mcpServerCommand.create(makeHttpMcpServer({ org, name: uniqueName("mcp"), url: mcp.url() }));
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+    const server = await createConnectedMcpServer(clients, mcp, fixtures, {
+      org,
+      name: uniqueName("mcp"),
+      tools: [DESTRUCTIVE_ECHO_TOOL_NAME],
+    });
     const agent = await clients.agentCommand.create(
-      makeAgent({
-        org,
-        name: uniqueName("agent-gated"),
-        mcpServerUsages: [{ slug: server.metadata!.slug, toolApprovalOverrides: [{ toolName: ECHO_TOOL_NAME, requiresApproval: true }] }],
-      }),
+      makeAgent({ org, name: uniqueName("agent-gated"), mcpServerRefs: [server.metadata!.slug] }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
     return agent.metadata!.id;
@@ -176,7 +184,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     const { org } = await fundedOrg();
     const agentId = await provisionGatedAgent(org);
 
-    mock.enqueue(anthropicToolUses([{ toolCallId: "call_gate", toolName: ECHO_TOOL_NAME, toolInput: { text: "hi" } }]));
+    mock.enqueue(anthropicToolUses([{ toolCallId: "call_gate", toolName: DESTRUCTIVE_ECHO_TOOL_NAME, toolInput: { text: "hi" } }]));
     mock.enqueue(anthropicText("Done."));
     const created = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-gate"), agentId }));
     const executionId = created.metadata!.id;

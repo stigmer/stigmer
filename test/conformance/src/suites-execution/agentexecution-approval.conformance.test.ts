@@ -5,12 +5,13 @@
 // This is the first suite that exercises a real *tool*: the engine can only
 // reach EXECUTION_WAITING_FOR_APPROVAL when an agent references an McpServer that
 // exposes an approval-gated tool. The harness provides that surface via the
-// in-process HTTP MCP fixture (harness/mcp-server.ts, the `echo` tool); the
-// McpServer resource is created only — the runner connects to it live at
-// execution setup and gates `echo` from the agent's tool_approval_overrides (no
-// connect/discovery step is required). Every run is scripted on the
-// mock LLM: a tool_use(echo) turn drives the agent to the gate, and a terminating
-// text turn lets it finish once the gate resolves.
+// in-process HTTP MCP fixture (harness/mcp-server.ts, the `echo_destructive`
+// tool, which declares `destructiveHint: true`); the McpServer is created and
+// connected, because the approval default asks before a tool its server marks
+// destructive and the runner reads that mark from the stored discovery. No
+// agent-side setting gates it. Every run is scripted on the mock LLM: a
+// tool_use turn drives the agent to the gate, and a terminating text turn lets
+// it finish once the gate resolves.
 //
 // Contract facts asserted here (sourced from submit_approval.go + the HITL
 // integration tests). The suite asserts the *server-owned, deterministic*
@@ -38,7 +39,9 @@
 //   pending_approvals empty) and the run completes without re-gating.
 // - spec.auto_approve_all bypasses the gate entirely (no submit needed).
 // - pending_approvals is the read model (no list-pending RPC): each entry
-//   carries tool_call_id, tool_name, and mcp_server_slug.
+//   carries tool_call_id, tool_name, mcp_server_slug, and the provenance
+//   ANNOTATION_DESTRUCTIVE_TIGHTEN (the default asked because the server
+//   marks the tool destructive).
 // - Idempotency: re-submitting the same {tool_call_id, action} before the gate
 //   resolves is a benign no-op that returns the current state.
 // - Negatives: UNSPECIFIED action / empty ids -> InvalidArgument (proto
@@ -55,6 +58,7 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import {
   ApprovalAction,
   ApprovalEventType,
+  ApprovalPolicySource,
   ExecutionPhase,
   MessageType,
   ToolCallStatus,
@@ -64,7 +68,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { McpToolFixture } from "../harness/mcp-server";
-import { ECHO_TOOL_NAME } from "../harness/mcp-server";
+import { DESTRUCTIVE_ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { AnthropicMessageBody, MockLlmProxy, ToolUseBlock } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUses } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
@@ -72,13 +76,13 @@ import {
   allToolCalls,
   awaitPhase,
   awaitTerminal,
+  createConnectedMcpServer,
   decidedByOf,
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
   submitApprovalPerContract,
 } from "../support/agentexecutions";
-import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -105,28 +109,19 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// Provision an agent that uses the HTTP MCP fixture with `echo` gated for
-// approval. The McpServer is created only; the runner connects to it live and
-// the per-agent tool_approval_override is what forces the gate. Returns both ids
-// the tests need.
+// Provision an agent that uses the HTTP MCP fixture's destructive echo. The
+// McpServer is created and connected (createConnectedMcpServer), so the
+// default asks before the tool. Returns both ids the tests need.
 async function provisionGatedAgent(org: string): Promise<{ agentId: string; mcpSlug: string }> {
-  const server = await clients.mcpServerCommand.create(
-    makeHttpMcpServer({ org, name: uniqueName("mcp"), url: mcp.url() }),
-  );
-  fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+  const server = await createConnectedMcpServer(clients, mcp, fixtures, {
+    org,
+    name: uniqueName("mcp"),
+    tools: [DESTRUCTIVE_ECHO_TOOL_NAME],
+  });
   const mcpSlug = server.metadata!.slug;
 
   const agent = await clients.agentCommand.create(
-    makeAgent({
-      org,
-      name: uniqueName("agent-hitl"),
-      mcpServerUsages: [
-        {
-          slug: mcpSlug,
-          toolApprovalOverrides: [{ toolName: ECHO_TOOL_NAME, requiresApproval: true }],
-        },
-      ],
-    }),
+    makeAgent({ org, name: uniqueName("agent-hitl"), mcpServerRefs: [mcpSlug] }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
   return { agentId: agent.metadata!.id, mcpSlug };
@@ -160,9 +155,9 @@ async function runToGate(
   return { executionId, gated };
 }
 
-// A single gated echo tool_use block.
+// A single gated echo tool_use block (the destructive echo).
 function echoBlock(toolCallId: string, text: string): ToolUseBlock {
-  return { toolCallId, toolName: ECHO_TOOL_NAME, toolInput: { text } };
+  return { toolCallId, toolName: DESTRUCTIVE_ECHO_TOOL_NAME, toolInput: { text } };
 }
 
 // Whether the approval-event stream records `type` for a tool call. The
@@ -323,7 +318,7 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
     const { agentId } = await provisionGatedAgent(org);
 
     // Same gated agent, but the execution arms auto_approve_all: the gate never
-    // engages even though `echo` has requiresApproval=true.
+    // engages even though the server marks the tool destructive.
     mock.enqueue(anthropicToolUses([echoBlock("call_echo_bypass", "hello")]));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
@@ -338,7 +333,7 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
     );
   });
 
-  it("exposes pending-approval details (tool_call_id, tool_name, mcp_server_slug)", async () => {
+  it("exposes pending-approval details (tool_call_id, tool_name, mcp_server_slug, approval_policy_source)", async () => {
     const { org } = await target.provisionTenancy();
     const { agentId, mcpSlug } = await provisionGatedAgent(org);
     const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_echo_details", "peek")]);
@@ -346,8 +341,12 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
     expect(gated.status?.pendingApprovals.length, "exactly one pending approval").toBe(1);
     const pending = gated.status!.pendingApprovals[0]!;
     expect(pending.toolCallId, "pending approval carries the tool call id").toBeTruthy();
-    expect(pending.toolName, "pending approval names the tool").toBe(ECHO_TOOL_NAME);
+    expect(pending.toolName, "pending approval names the tool").toBe(DESTRUCTIVE_ECHO_TOOL_NAME);
     expect(pending.mcpServerSlug, "pending approval carries the server slug").toBe(mcpSlug);
+    expect(
+      ApprovalPolicySource[pending.approvalPolicySource],
+      "the default asked because the server marks the tool destructive",
+    ).toBe(ApprovalPolicySource[ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN]);
 
     // Settle so the run terminates cleanly. Through the seam even though this
     // arm is about the read model, not the decision: a decision the server
@@ -429,7 +428,7 @@ describe("AgentExecution submitApproval — lease, cancel at the gate, durable r
     const { executionId, gated } = await runToGate(org, agentId, [echoBlock("call_lease_first", "first")], {
       turnsBeforeDone: [anthropicToolUses([echoBlock("call_lease_second", "second")])],
     });
-    expect(gated.status?.pendingApprovals.map((p) => p.toolName)).toEqual([ECHO_TOOL_NAME]);
+    expect(gated.status?.pendingApprovals.map((p) => p.toolName)).toEqual([DESTRUCTIVE_ECHO_TOOL_NAME]);
 
     await submitApprovalPerContract({
       expectedRemaining: 0,
@@ -484,7 +483,7 @@ describe("AgentExecution submitApproval — lease, cancel at the gate, durable r
     expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
     const resumed = allToolCalls(final).find((tc) => tc.id === toolCallId);
     expect(resumed, "the gated call is in the final transcript under its original id").toBeDefined();
-    expect(resumed!.name).toBe(ECHO_TOOL_NAME);
+    expect(resumed!.name).toBe(DESTRUCTIVE_ECHO_TOOL_NAME);
     expect(resumed!.status, "the approved call ran on resume").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(resumed!.result, "and recorded its result").not.toBe("");
     const finalAi = [...(final.status?.messages ?? [])].reverse().find((m) => m.type === MessageType.MESSAGE_AI);
