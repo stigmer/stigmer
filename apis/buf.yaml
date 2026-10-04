@@ -34,8 +34,9 @@ breaking:
   # pinned_tool_approvals, an agent's enabled_tools and
   # tool_approval_overrides, a sub-agent's mcp_access, their messages, and the
   # three ApprovalPolicySource values that recorded them. Every number and
-  # name is reserved, and every edition starts from an empty database, so no
-  # stored row or client reads them. This block exists for that one pull
+  # name is reserved, so a stored row decodes with them dropped and nothing
+  # reuses them; no compatibility is kept for what they held. This block
+  # exists for that one pull
   # request; the pull request that removes it lands straight after the merge
   # (https://github.com/stigmer/stigmer/issues/1865).
   ignore_only:

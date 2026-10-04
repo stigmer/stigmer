@@ -351,9 +351,19 @@ describe("tool scope attribution, on the middleware itself", () => {
 describe("isUnderConfinedRoot", () => {
   const roots = NATIVE_CONFINED_READ_ROOTS;
 
-  it("admits the platform route and the offload root, in their canonical virtual form", () => {
+  it("admits the platform route and both offload roots, in their canonical virtual form", () => {
     expect(isUnderConfinedRoot("/.stigmer/skills/a/SKILL.md", roots)).toBe(true);
     expect(isUnderConfinedRoot("/large_tool_results/call_1.txt", roots)).toBe(true);
+    expect(isUnderConfinedRoot("/conversation_history/0a1b2c3d4e5f", roots)).toBe(true);
+  });
+
+  it("confines by path: a repository's own directory named like an offload root is readable too", () => {
+    // The offloads land in the workspace (platform-route.ts), so an offloaded
+    // file and a repository file under the same name are one path. Pinned so
+    // the overlap stays a stated trade-off, not a surprise.
+    expect(isUnderConfinedRoot("/large_tool_results/committed-by-the-repo.md", roots)).toBe(true);
+    expect(isUnderConfinedRoot("/conversation_history/notes.md", roots)).toBe(true);
+    expect(isUnderConfinedRoot("/docs/large_tool_results/x.md", roots), "only the top-level directory").toBe(false);
   });
 
   it("refuses the workspace, a traversal out of a root, a sibling prefix, a relative path and a non-string", () => {

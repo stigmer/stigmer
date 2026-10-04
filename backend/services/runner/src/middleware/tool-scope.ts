@@ -42,8 +42,10 @@
  * `Read` excluded is the one exception to "out of scope is hidden":
  * `read_file` is how the agent reads the platform's `.stigmer/` content (its
  * skills, attached inputs, the approved plan; `platform-route.ts`) and the
- * results deepagents offloads from tools it IS allowed (`/large_tool_results/`).
- * Those are the platform's and the agent's own outputs, not the workspace, so
+ * results and history deepagents offloads from the agent's own turn
+ * (`/large_tool_results/`, `/conversation_history/`). Those are the platform's
+ * and the agent's own outputs, not the workspace (`platform-route.ts` states
+ * the one overlap), so
  * `read_file` stays bound and visible and a call is refused unless its path
  * lies under one of {@link ToolScopeConfig.confinedReadRoots}.
  *

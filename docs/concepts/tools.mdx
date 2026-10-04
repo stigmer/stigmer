@@ -165,7 +165,9 @@ reports. To narrow that, the Agent carries Claude Code's two lists:
 
 Entries use Claude Code's names: built-ins such as `Read`, `Grep` or
 `Bash(git push *)`, `mcp__<server-slug>` for every tool of one server,
-`mcp__<server-slug>__<tool>` for one tool, and `mcp__*` for every MCP tool.
+`mcp__<server-slug>__<tool>` for one tool, and `mcp__*` for every MCP tool. A
+specifier such as `(git push *)` is accepted but governs the whole tool: it
+never narrows `Bash` to some commands.
 
 This design means you define the tool server once and reference it from multiple
 Agents. Each Agent can keep a different subset — the read-only Agent above only

@@ -50,7 +50,10 @@ asking about it, give the Agent one or both of Claude Code's two lists:
 Entries use Claude Code's names: `Read`, `Grep`, `Bash(git push *)`,
 `Agent(explore)`, `mcp__<server-slug>` for every tool of one server,
 `mcp__<server-slug>__<tool>` for one tool, and `mcp__*` for every MCP tool. The
-never-list is applied first.
+never-list is applied first. A specifier in parentheses is accepted but governs
+the whole tool, as in Claude Code: `tools: [Bash(git status *)]` allows every
+shell command, not only `git status`, and `disallowed_tools: [Bash(git push *)]`
+removes the shell entirely.
 
 ```yaml validate-as="Agent"
 spec:

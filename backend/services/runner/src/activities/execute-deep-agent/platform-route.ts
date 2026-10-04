@@ -74,11 +74,29 @@ export const PLATFORM_ROUTE_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/`;
 export const DEEPAGENTS_OFFLOAD_ROOT = "/large_tool_results/";
 
 /**
- * What `read_file` may still read when an agent's tool lists exclude `Read`
- * (`middleware/tool-scope.ts`): the platform's own content and the agent's
- * own offloaded tool results, never the workspace.
+ * Where deepagents (1.14) evicts a long human message and the summarized
+ * conversation, telling the model it can `read_file` them back. Not exported
+ * by deepagents; the literal is its filesystem and summarization middleware's.
  */
-export const NATIVE_CONFINED_READ_ROOTS: readonly string[] = [PLATFORM_ROUTE_PREFIX, DEEPAGENTS_OFFLOAD_ROOT];
+export const DEEPAGENTS_HISTORY_ROOT = "/conversation_history/";
+
+/**
+ * What `read_file` may still read when an agent's tool lists exclude `Read`
+ * (`middleware/tool-scope.ts`): the platform's own content and what deepagents
+ * offloads from the agent's own turn, never the rest of the workspace.
+ *
+ * The two offload roots resolve through the workspace backend, so deepagents
+ * writes them as top-level `large_tool_results/` and `conversation_history/`
+ * directories of the workspace, and a repository's own directory of either
+ * name is readable too: the confinement is by path, and an offloaded file and
+ * a repository file there are the same path. Routing the offloads elsewhere
+ * would close it, at the cost of moving what file review sees.
+ */
+export const NATIVE_CONFINED_READ_ROOTS: readonly string[] = [
+  PLATFORM_ROUTE_PREFIX,
+  DEEPAGENTS_OFFLOAD_ROOT,
+  DEEPAGENTS_HISTORY_ROOT,
+];
 
 /** The path as the agent named it: the route hands its backend the path with the prefix stripped. */
 function agentPath(routedPath: string): string {
