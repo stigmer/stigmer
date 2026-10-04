@@ -60,6 +60,7 @@ import {
   type TargetProfile,
   type TenancyContext,
 } from "../targets";
+import { organizationSlug } from "../support/organizations";
 
 let target: TargetProfile;
 let enforcing: Awaited<ReturnType<typeof enforcingLaneOf>>;
@@ -277,7 +278,7 @@ describe("an instance attaches only environments its writer can view", () => {
         c.member.agentInstanceCommand.create(
           instanceNaming(ownersKeys.metadata!.slug),
         ),
-      notViewable(c.org, ownersKeys.metadata!.slug),
+      notViewable(await organizationSlug(c.owner.organizationQuery, c.org), ownersKeys.metadata!.slug),
       "member attaches the owner's private environment",
     );
 

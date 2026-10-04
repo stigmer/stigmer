@@ -510,7 +510,7 @@ describe("Plugin members are the plugin's to redefine", () => {
     await expectCode(
       plugins.push({ org: ORG, artifact: archiveOf(thermosLike(name)) }),
       Code.AlreadyExists,
-      `'${skillName}' exists in org '${ORG_ID}' and is not managed by a plugin`,
+      `'${skillName}' exists in org '${ORG}' and is not managed by a plugin`,
     );
   });
 
@@ -532,7 +532,7 @@ describe("Plugin members are the plugin's to redefine", () => {
     await expectCode(
       plugins.push({ org: ORG, artifact: archiveOf(systemOverlay(name)) }),
       Code.AlreadyExists,
-      `'${name}' exists in org '${ORG_ID}' and is not managed by a plugin`,
+      `'${name}' exists in org '${ORG}' and is not managed by a plugin`,
     );
 
     const seeded = uniqueName("seeded-row");
@@ -570,7 +570,7 @@ describe("Plugin members are the plugin's to redefine", () => {
         ),
       }),
       Code.AlreadyExists,
-      `'${seeded}' exists in org '${ORG_ID}' and is not managed by a plugin`,
+      `'${seeded}' exists in org '${ORG}' and is not managed by a plugin`,
     );
   });
 
@@ -795,6 +795,9 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
   // the hosted default) or the platform operator (granted). The tests flip
   // it, so one composition shows both sides of every reserved-label rule.
   let reservedLabels: "deny" | "allow" = "deny";
+  // Whether the caller may create skills in the organization, which a
+  // plugin's skill members need.
+  let createSkills: "deny" | "allow" = "allow";
 
   beforeAll(async () => {
     enforcingDir = mkdtempSync(path.join(tmpdir(), "plugin-domain-enforcing-"));
@@ -807,6 +810,9 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
               ? { kind: "allow" }
               : { kind: "deny", reason: "reserved labels are the platform's" },
           );
+        }
+        if (check.permission === IamPermission.can_create_skill && createSkills === "deny") {
+          return Promise.resolve({ kind: "deny", reason: "members may not create skills" });
         }
         return Promise.resolve({ kind: "allow" });
       },
@@ -881,6 +887,19 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
       ),
       Code.NotFound,
     );
+  });
+
+  it("refuses an install whose members the caller may not create, naming the permission and the organization", async () => {
+    createSkills = "deny";
+    try {
+      await expectCode(
+        enforcingPlugins.push({ org: ORG, artifact: archiveOf(thermosLike(uniqueName("plg-noskill"))) }),
+        Code.PermissionDenied,
+        `needs can_create_skill in organization '${ORG}'`,
+      );
+    } finally {
+      createSkills = "allow";
+    }
   });
 
   it("installs a plain overlay under the same authorizer: the platform stamps its own labels through the in-process origin", async () => {

@@ -414,6 +414,8 @@ export interface ResourceNameRename {
 export interface ResourceNameStore {
   /** The name's live entry at `now` (current, or previous and unexpired), or undefined when nothing holds it. */
   resolve(key: ResourceNameKey, now: string): Promise<ResourceNameEntry | undefined>;
+  /** The current name `id` holds in the kind and scope, or undefined when it holds none. */
+  current(kind: string, org: string, id: string): Promise<ResourceNameEntry | undefined>;
   /**
    * Takes the name as `id`'s current name when nothing holds it at `now`,
    * atomically: of concurrent claims, exactly one wins, and an expired
@@ -436,7 +438,12 @@ export interface ResourceNameStore {
    * the rename's outcome), restored to that earlier state. Idempotent.
    */
   revertRename(rename: ResourceNameRename, takenBack?: ResourceNameEntry): Promise<void>;
-  /** Lets go of every name `id` holds in the kind and scope (its delete, or a create whose row never landed). Idempotent. */
+  /**
+   * Lets go of every name `id` holds in the kind and scope (its delete, or a
+   * create whose row never landed). A name equal to `id` is kept, as a
+   * previous name that never expires: a resource from an earlier release
+   * was filed under it. Idempotent.
+   */
   release(kind: string, org: string, id: string): Promise<void>;
 }
 

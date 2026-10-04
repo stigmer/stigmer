@@ -522,7 +522,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
     });
 
     describe("v8: the resource-name table replaces the organization-slug ledger", () => {
-      it("records every live organization's slug as its current name, drops the ledger, and carries no retired slug", async () => {
+      it("records every live organization's slug as its current name, keeps every other ledger slug reserved, and drops the ledger", async () => {
         await migrateTo(db.databaseUrl, SCHEMA_VERSION_8 - 1);
         const client = new pg.Client({ connectionString: db.databaseUrl });
         await client.connect();
@@ -534,6 +534,9 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await client.query(
             `INSERT INTO organization_slugs (slug, claimed_at, retired_at)
              VALUES ('deleted-one', '2026-01-01T00:00:00.000Z', '2026-01-02T00:00:00.000Z')`,
+          );
+          await client.query(
+            `INSERT INTO organization_slugs (slug, claimed_at) VALUES ('acme', '2026-01-01T00:00:00.000Z')`,
           );
 
           const reopened = await PostgresStore.open(db.databaseUrl);
@@ -553,6 +556,14 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               name: "acme",
               id: "acme",
               state: "current",
+              expires_at: "",
+            },
+            {
+              kind: "organization",
+              org: "",
+              name: "deleted-one",
+              id: "deleted-one",
+              state: "previous",
               expires_at: "",
             },
           ]);

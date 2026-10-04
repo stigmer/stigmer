@@ -38,6 +38,7 @@ import { makeAgent, makeAgentSpec } from "../support/agents";
 import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
+import { organizationSlug } from "../support/organizations";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -164,7 +165,7 @@ describe("Agent conformance — the reference rule at write", () => {
       "create agent with a missing skill reference",
     );
     expect(err.message).toContain(
-      `referenced skill(s) not found: 'ghost-skill' (org: ${org}).`,
+      `referenced skill(s) not found: 'ghost-skill' (org: ${await organizationSlug(clients.organizationQuery, org)}).`,
     );
   });
 
@@ -204,7 +205,7 @@ describe("Agent conformance — the reference rule at write", () => {
     const mine = await createMcpServer(org, ApiResourceVisibility.visibility_private);
     const slug = mine.metadata!.slug;
     const floorSentence =
-      `referenced MCP server '${org}/${slug}' is visibility_private while this resource is visibility_org; ` +
+      `referenced MCP server '${await organizationSlug(clients.organizationQuery, org)}/${slug}' is visibility_private while this resource is visibility_org; ` +
       "a resource may not be more visible than the MCP servers it runs with. " +
       "Widen the referenced resource's visibility or narrow this one.";
 

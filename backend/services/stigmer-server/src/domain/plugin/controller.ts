@@ -141,7 +141,6 @@ import {
   orderForDeletion,
   pluginLiveTag,
 } from "./push.js";
-import { newOrganizationNameResolver } from "../organization/names.js";
 import { pluginSearchExtractor } from "./search-extractor.js";
 
 export interface PluginControllerDeps {
@@ -222,7 +221,7 @@ async function push(
     .addStep(newBuildInitialPluginStep())
     .addStep(newFindExistingPluginBySlugStep(deps.store))
     .addStep(newGeneratePluginIdIfNeededStep())
-    .addStep(newParseOverlayDocumentsStep(newOrganizationNameResolver(deps.store)))
+    .addStep(newParseOverlayDocumentsStep(deps.store))
     .addStep(newSanitizePluginMetadataStep(deps.authorizer))
     .addStep(newPlanMaterializationStep(deps.store, deps.authorizer))
     .addStep(newGuardPluginVisibilityStep())

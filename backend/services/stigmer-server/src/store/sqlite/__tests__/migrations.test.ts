@@ -700,7 +700,7 @@ describe("v12: the organization-slug ledger records every slug taken before it",
 });
 
 describe("v13: the resource-name table replaces the organization-slug ledger", () => {
-  it("records every live organization's slug as its current name, drops the ledger, and carries no retired slug", () => {
+  it("records every live organization's slug as its current name, keeps every other ledger slug reserved, and drops the ledger", () => {
     const dbPath = tempDbPath();
     const setup = new DatabaseSync(dbPath);
     runMigrations(setup, SCHEMA_VERSION_13 - 1);
@@ -713,6 +713,9 @@ describe("v13: the resource-name table replaces the organization-slug ledger", (
         `INSERT INTO organization_slugs (slug, claimed_at, retired_at) VALUES (?, ?, ?)`,
       )
       .run("deleted-one", "2026-01-01T00:00:00.000Z", "2026-01-02T00:00:00.000Z");
+    setup
+      .prepare(`INSERT INTO organization_slugs (slug, claimed_at) VALUES (?, ?)`)
+      .run("acme", "2026-01-01T00:00:00.000Z");
     setup.close();
 
     const store = SqliteStore.open(dbPath);
@@ -735,6 +738,14 @@ describe("v13: the resource-name table replaces the organization-slug ledger", (
         name: "acme",
         id: "acme",
         state: "current",
+        expires_at: "",
+      },
+      {
+        kind: "organization",
+        org: "",
+        name: "deleted-one",
+        id: "deleted-one",
+        state: "previous",
         expires_at: "",
       },
     ]);

@@ -85,6 +85,7 @@ export async function resolveOverlayOrganizations(
   overlays: ParsedOverlays,
   org: string,
   resolver: OrganizationNameResolver,
+  orgLabel: string = org,
 ): Promise<void> {
   const documents = [
     ...(overlays.agent === undefined ? [] : [{ schema: AgentSchema, document: overlays.agent }]),
@@ -93,6 +94,6 @@ export async function resolveOverlayOrganizations(
   ];
   for (const { schema, document } of documents) {
     await resolveOrganizationNames(schema, document.resource, resolver);
-    checkOverlayOrg(document.path, document.resource, org);
+    checkOverlayOrg(document.path, document.resource, org, orgLabel);
   }
 }

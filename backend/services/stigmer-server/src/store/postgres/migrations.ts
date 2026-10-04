@@ -522,8 +522,10 @@ async function migrateToV7(client: PoolClient): Promise<void> {
  *   this version an organization's id was its slug, so the fill copies the
  *   id into both columns with no decode, the way v7 did. Such a name equals
  *   its id, which is what keeps it held for good (interface.ts).
- * - A retired ledger entry is not carried: nothing is filed under a name
- *   any more, so a name a deleted organization held is free.
+ * - Every other slug the ledger held (a deleted organization's, retired
+ *   for good) is carried as a reserved name: a previous name equal to its
+ *   id that never expires. That organization was filed under the slug, and
+ *   whatever it left behind still carries it, so it is never taken again.
  * - `claimed_at` and `expires_at` are ledger time crossing the Store
  *   interface, TEXT holding exact RFC-3339 strings, byte-collated so the
  *   expiry comparison is the strings' order whatever the database locale.
@@ -549,6 +551,12 @@ async function migrateToV8(client: PoolClient): Promise<void> {
      SELECT 'organization', '', id, id, 'current', $1
      FROM resources WHERE kind = 'organization'`,
     [new Date().toISOString()],
+  );
+  await client.query(
+    `INSERT INTO resource_names (kind, org, name, id, state, claimed_at)
+     SELECT 'organization', '', slug, slug, 'previous', claimed_at
+     FROM organization_slugs
+     ON CONFLICT (kind, org, name) DO NOTHING`,
   );
   await client.query(`DROP TABLE organization_slugs`);
 }

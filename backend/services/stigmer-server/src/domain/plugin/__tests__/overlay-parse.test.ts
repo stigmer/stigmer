@@ -138,6 +138,9 @@ describe("resolveOverlayOrganizations", () => {
       resolveOverlayOrganizations(overlayOf("kind: Agent\nmetadata:\n  name: t\n  org: globex\n"), ACME_ID, resolver),
     ).rejects.toThrow(`metadata.org '${GLOBEX_ID}' is not the organization the plugin is installed into ('${ACME_ID}')`);
     await expect(
+      resolveOverlayOrganizations(overlayOf("kind: Agent\nmetadata:\n  name: t\n  org: globex\n"), ACME_ID, resolver, "acme"),
+    ).rejects.toThrow("is not the organization the plugin is installed into ('acme')");
+    await expect(
       resolveOverlayOrganizations(overlayOf("kind: Agent\nmetadata:\n  name: t\n  org: nobody\n"), ACME_ID, resolver),
     ).rejects.toBeInstanceOf(OverlayParseError);
   });

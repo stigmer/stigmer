@@ -41,6 +41,7 @@ import {
   type ProvisionedPlatformClient,
 } from "../support/platformclients";
 import { createTarget, type TargetProfile } from "../targets";
+import { organizationSlug } from "../support/organizations";
 
 const RESERVED_SLUG_MESSAGE =
   "The slug 'system-share-client' is reserved for the platform's system-managed" +
@@ -248,7 +249,7 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
       "create a client naming a missing environment",
     );
     expect(err.rawMessage).toBe(
-      `referenced environment(s) not found: 'ghost-environment' (org: ${org}).` +
+      `referenced environment(s) not found: 'ghost-environment' (org: ${await organizationSlug(clients.organizationQuery, org)}).` +
         " Verify the slug and org are correct." +
         " Use 'stigmer list environments' to list available environments.",
     );

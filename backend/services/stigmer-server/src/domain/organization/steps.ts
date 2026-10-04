@@ -18,6 +18,7 @@
  * Proven by organization.conformance.test.ts (CONFORMANCE_TARGET=local),
  * __tests__/organization.test.ts and __tests__/organization-delete.test.ts.
  */
+import type { OrganizationNameResolver } from "../../pipeline/interceptors/organization-names.js";
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -85,21 +86,29 @@ export function newCheckOrgDuplicateStep(
  * Refuses an organization that names an organization of its own: an
  * organization belongs to none, so its metadata.org is always empty.
  *
- * An org that names the organization itself, by its own id or slug, is
- * cleared instead: earlier releases stored an organization's own slug
- * there (clients sent it on create), so its `get -o yaml` manifest, and
- * the clients of that time, still carry it. Stored rows are not
+ * An org that names the organization itself is cleared instead: earlier
+ * releases stored an organization's own slug there (clients sent it on
+ * create), so its `get -o yaml` manifest, and the clients of that time,
+ * still carry it. It names itself when it equals the request's own id or
+ * slug, or the id that slug resolves to (the serving chain has already
+ * turned a slug in metadata.org into its id). Stored rows are not
  * rewritten; an update keeps what the row holds.
  */
-export function newRefuseOrganizationOrgStep(): PipelineStep<
-  typeof OrganizationSchema
-> {
+export function newRefuseOrganizationOrgStep(
+  resolver: OrganizationNameResolver,
+): PipelineStep<typeof OrganizationSchema> {
   return {
     name: "RefuseOrganizationOrg",
-    execute(ctx: RequestContext<typeof OrganizationSchema>): void {
+    async execute(ctx: RequestContext<typeof OrganizationSchema>): Promise<void> {
       const metadata = metadataOf(ctx.newState);
       const org = metadata?.org ?? "";
-      if (metadata !== undefined && org !== "" && (org === metadata.id || org === metadata.slug)) {
+      if (
+        metadata !== undefined &&
+        org !== "" &&
+        (org === metadata.id ||
+          org === metadata.slug ||
+          (metadata.slug !== "" && org === (await resolver.resolve(metadata.slug))))
+      ) {
         metadata.org = "";
         return;
       }

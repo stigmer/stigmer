@@ -79,6 +79,8 @@ import {
   RENAMED_SLUG_HOLD_MS,
   nameHolderIsGone,
   newClaimOrganizationSlugStep,
+  organizationIdReservedMessage,
+  settleOrganizationSlug,
   newRetireOrganizationSlugStep,
   organizationNameKey,
   releaseSlugClaimAfterFailure,
@@ -273,6 +275,63 @@ describe("organization names (composed server, trusted-local posture)", () => {
     });
     expect(applied.metadata?.id).toBe("olden");
     expect(applied.spec?.description).toBe("applied back from its own manifest");
+
+    // An apply naming a minted organization by slug alone, with its own slug
+    // as its org (as earlier CLIs injected it): the edge turns that org into
+    // the id, which is the id the slug resolves to.
+    const reapplied = await organizations.apply({
+      ...organizationInput("selfnamed"),
+      metadata: { name: "selfnamed", slug: "selfnamed", org: "selfnamed" },
+      spec: { description: "applied by slug alone" },
+    });
+    expect(reapplied.metadata?.id).toBe(made.metadata?.id);
+    expect(reapplied.spec?.description).toBe("applied by slug alone");
+  });
+
+  it("an update that lands after its names moved on writes the row with the current name", async () => {
+    const made = await organizations.create(organizationInput("settle-a"));
+    const id = made.metadata?.id ?? "";
+    // A rename's names land, and its row write has not yet: the row still
+    // says settle-a while the table says settle-b.
+    const now = new Date().toISOString();
+    await server.store.resourceNames.rename({
+      ...organizationNameKey("settle-a"),
+      id,
+      from: "settle-a",
+      to: "settle-b",
+      fromExpiresAt: new Date(Date.now() + RENAMED_SLUG_HOLD_MS).toISOString(),
+      now,
+    });
+
+    const updated = await organizations.update({
+      ...organizationInput("settle-a"),
+      metadata: { id, name: "settle-a", slug: "settle-a" },
+      spec: { description: "an update that copied the slug it loaded" },
+    });
+    expect(updated.metadata?.slug).toBe("settle-b");
+    const stored = await server.store.getResource(ApiResourceKind.organization, id, OrganizationSchema);
+    expect(stored.metadata?.slug).toBe("settle-b");
+    expect(stored.spec?.description).toBe("an update that copied the slug it loaded");
+  });
+
+  it("deleting an organization from an earlier release keeps its slug, its id, reserved", async () => {
+    await server.store.saveResource(
+      ApiResourceKind.organization,
+      "veteran",
+      OrganizationSchema,
+      create(OrganizationSchema, {
+        apiVersion: "tenancy.stigmer.ai/v1",
+        kind: "Organization",
+        metadata: { id: "veteran", slug: "veteran", name: "Veteran" },
+      }),
+    );
+    await server.store.resourceNames.claim(organizationNameKey("veteran"), "veteran", new Date().toISOString());
+    await organizations.delete({ value: "veteran" });
+
+    const refused = await grpcError(() => organizations.create(organizationInput("veteran")));
+    expect(refused.code).toBe(Code.AlreadyExists);
+    expect(reasonOf(refused)).toBe(ORGANIZATION_SLUG_RESERVED);
+    expect(refused.rawMessage).toBe(organizationIdReservedMessage("veteran"));
   });
 
   it("of two concurrent creates of one slug, exactly one succeeds and the other is a duplicate", async () => {
@@ -741,6 +800,64 @@ const storeFault = async () => {
   throw new Error("database locked");
 };
 
+describe("settleOrganizationSlug", () => {
+  const ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
+  function organizationNamed(slug: string): Organization {
+    return create(OrganizationSchema, { metadata: { id: ID, slug } });
+  }
+  function storeWith(currents: Array<string | undefined | Error>) {
+    const saved: string[] = [];
+    const store = {
+      resourceNames: {
+        current: async () => {
+          const next = currents.shift();
+          if (next instanceof Error) {
+            throw next;
+          }
+          return next === undefined ? undefined : { ...organizationNameKey(next), id: ID, state: "current", claimedAt: "", expiresAt: "" };
+        },
+      },
+      saveResource: async (_kind: unknown, _id: unknown, _schema: unknown, organization: Organization) => {
+        saved.push(organization.metadata?.slug ?? "");
+      },
+    } as unknown as Store;
+    return { store, saved };
+  }
+  const warnings: string[] = [];
+  const logger = { warn: (message: string) => warnings.push(message), error: () => {}, info: () => {}, debug: () => {} } as unknown as Logger;
+
+  it("rewrites the row until it holds the current name, and leaves a settled one alone", async () => {
+    const moved = storeWith(["acme-c", "acme-c"]);
+    const organization = organizationNamed("acme-b");
+    await settleOrganizationSlug(moved.store, organization, logger);
+    expect(moved.saved).toEqual(["acme-c"]);
+    expect(organization.metadata?.slug).toBe("acme-c");
+
+    const settled = storeWith(["acme-b"]);
+    await settleOrganizationSlug(settled.store, organizationNamed("acme-b"), logger);
+    expect(settled.saved).toEqual([]);
+
+    const nameless = storeWith([undefined]);
+    await settleOrganizationSlug(nameless.store, organizationNamed("acme-b"), logger);
+    expect(nameless.saved).toEqual([]);
+  });
+
+  it("stops after its attempts, logs a fault instead of failing the write, and skips a row with no id", async () => {
+    const churning = storeWith(["a", "b", "c", "d"]);
+    await settleOrganizationSlug(churning.store, organizationNamed("z"), logger);
+    expect(churning.saved).toEqual(["a", "b", "c"]);
+
+    const faulty = storeWith([new Error("database locked")]);
+    await settleOrganizationSlug(faulty.store, organizationNamed("acme-b"), logger);
+    expect(warnings).toHaveLength(1);
+
+    const unsaved = storeWith(["acme-c"]);
+    await settleOrganizationSlug(unsaved.store, create(OrganizationSchema, {}), logger);
+    await settleOrganizationSlug(unsaved.store, create(OrganizationSchema, { metadata: { slug: "x" } }), logger);
+    expect(unsaved.saved).toEqual([]);
+  });
+});
+
 describe("nameHolderIsGone", () => {
   const now = new Date("2026-10-01T12:00:00.000Z");
   const claimedAgo = (ms: number): ResourceNameEntry => ({
@@ -763,6 +880,13 @@ describe("nameHolderIsGone", () => {
     expect(
       await nameHolderIsGone(rowStore(async () => create(OrganizationSchema)), old, now),
     ).toBe(false);
+  });
+
+  it("never counts a name equal to its id gone: an earlier release filed an organization under it", async () => {
+    const store = rowStore(rowMissing);
+    const reserved: ResourceNameEntry = { ...old, name: "veteran", id: "veteran", state: "previous" };
+    expect(await nameHolderIsGone(store, reserved, now)).toBe(false);
+    expect(store.getResource).not.toHaveBeenCalled();
   });
 
   it("rejects with a store fault rather than guessing, so a name is never freed on a failed read", async () => {

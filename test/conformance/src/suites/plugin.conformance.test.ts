@@ -55,6 +55,7 @@ import {
 import { zipFiles } from "../support/skills";
 import { createTarget, type TargetProfile } from "../targets";
 import type { TenancyContext } from "../targets/target";
+import { organizationSlug } from "../support/organizations";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -464,7 +465,7 @@ describe("Plugin conformance — members are the plugin's to redefine", () => {
       "unmanaged holder",
     );
     expect(error.rawMessage).toContain(
-      `'${skillName}' exists in org '${org()}' and is not managed by a plugin`,
+      `'${skillName}' exists in org '${await organizationSlug(clients.organizationQuery, org())}' and is not managed by a plugin`,
     );
     await expectGrpcCode(
       () =>

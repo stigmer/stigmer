@@ -37,6 +37,7 @@ import {
   RENAMED_SLUG_HOLD_MS,
   nameHolderIsGone,
   refusalForHeldName,
+  settleOrganizationSlug,
 } from "./names.js";
 import { organizationSearchExtractor } from "./search-extractor.js";
 
@@ -191,6 +192,7 @@ export function newPersistRenamedOrganizationStep(
         }
         throw internalError(error, "failed to save organization");
       }
+      await settleOrganizationSlug(store, organization, logger);
     },
   };
 }

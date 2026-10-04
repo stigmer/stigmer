@@ -108,12 +108,17 @@ export function parseOverlayDocument<Desc extends DescMessage>(
  * after the document's organization names are resolved, so a slug that
  * names the installing organization passes.
  */
-export function checkOverlayOrg(path: string, message: Message, org: string): void {
+export function checkOverlayOrg(
+  path: string,
+  message: Message,
+  org: string,
+  orgLabel: string = org,
+): void {
   const metadata = metadataOf(message);
   if (metadata !== undefined && metadata.org !== "" && metadata.org !== org) {
     throw new OverlayParseError(
       path,
-      `metadata.org '${metadata.org}' is not the organization the plugin is installed into ('${org}')`,
+      `metadata.org '${metadata.org}' is not the organization the plugin is installed into ('${orgLabel}')`,
     );
   }
 }

@@ -17,9 +17,10 @@
  * token match / single-term prefix / AND; wire-ready 0–1 scores;
  * list-mode newest-first at exactly 1.0 — search-mode ranking ORDER is
  * deliberately NOT asserted here, it is driver-relative), the two-phase
- * signal-dedupe hold (oss#442), the organization-slug ledger (one winner
- * of concurrent claims, a retire that sticks, a release that frees only
- * its own unretired claim), OAuth grants, once-only pending-state
+ * signal-dedupe hold (oss#442), the resource-name table (one winner of
+ * concurrent claims, lazy expiry, renames that move, take back, revert and
+ * overlap to one current name, a name equal to its id reserved for good,
+ * a release that frees only its own names), OAuth grants, once-only pending-state
  * redemption with its 10-minute TTL, the closed-store failure mode, and
  * the list index (../list-index.ts): one organization's or one parent's
  * rows newest first, a cursor walk with no gap and no duplicate, keys
@@ -1638,6 +1639,27 @@ export function describeStoreContract(
       await names().claim(key("acme"), "org_a", T0);
       const moved = await names().rename({ ...ORG, id: "org_a", from: "acme", to: "acme-corp", fromExpiresAt: T3, now: T1 });
       expect(moved.claimed && moved.takenBack).toBeUndefined();
+    });
+
+    it("current answers the one current name a resource holds, and nothing once it holds none", async () => {
+      expect(await names().current("organization", "", "org_a")).toBeUndefined();
+      await names().claim(key("acme"), "org_a", T0);
+      await names().rename({ ...ORG, id: "org_a", from: "acme", to: "acme-corp", fromExpiresAt: T3, now: T1 });
+      expect(await names().current("organization", "", "org_a")).toMatchObject({ name: "acme-corp", state: "current" });
+      await names().release("organization", "", "org_a");
+      expect(await names().current("organization", "", "org_a")).toBeUndefined();
+    });
+
+    it("release keeps a name equal to the id reserved for good, and lets go of every other", async () => {
+      await names().claim(key("older"), "older", T0);
+      await names().rename({ ...ORG, id: "older", from: "older", to: "newer", fromExpiresAt: T2, now: T1 });
+      await names().release("organization", "", "older");
+      await names().release("organization", "", "older");
+      expect(await names().resolve(key("newer"), T1)).toBeUndefined();
+      expect(await names().resolve(key("older"), "2999-01-01T00:00:00.000Z")).toMatchObject({
+        id: "older", state: "previous", expiresAt: "",
+      });
+      expect((await names().claim(key("older"), "org_b", "2999-01-01T00:00:00.000Z")).claimed).toBe(false);
     });
 
     it("release lets go of every name one resource holds, and only its", async () => {

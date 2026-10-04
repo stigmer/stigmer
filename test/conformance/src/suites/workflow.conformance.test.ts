@@ -50,6 +50,7 @@ import {
   makeWorkflowSpec,
 } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
+import { organizationSlug } from "../support/organizations";
 
 let target: TargetProfile;
 // Read at collection time so an edition without a capability reports its cases
@@ -842,7 +843,9 @@ describe("Workflow conformance — agent_call references at write", () => {
       Code.FailedPrecondition,
       "a platform-visible workflow calling an org-visible agent by literal",
     );
-    expect(literal.rawMessage).toBe(floorSentence(org, slug, "visibility_org", "visibility_platform"));
+    expect(literal.rawMessage).toBe(
+      floorSentence(await organizationSlug(clients.organizationQuery, org), slug, "visibility_org", "visibility_platform"),
+    );
 
     // The cap is org, not a pass: a private agent stays below it.
     const mine = await createAgent(org, ApiResourceVisibility.visibility_private);
@@ -852,7 +855,7 @@ describe("Workflow conformance — agent_call references at write", () => {
       "a platform-visible workflow calling a private agent by bare slug",
     );
     expect(privateCall.rawMessage).toBe(
-      floorSentence(org, mine.metadata!.slug, "visibility_private", "visibility_platform"),
+      floorSentence(await organizationSlug(clients.organizationQuery, org), mine.metadata!.slug, "visibility_private", "visibility_platform"),
     );
   });
 });

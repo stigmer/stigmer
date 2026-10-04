@@ -42,3 +42,15 @@ export async function createUniqueOrganization(
   }
   return { slug, id };
 }
+
+/**
+ * How the server's refusal copy names an organization the caller acts in:
+ * its slug. Requests and stored rows carry the id; the sentences a person
+ * reads name their own organization by slug.
+ */
+export async function organizationSlug(
+  organizationQuery: ConformanceClients["organizationQuery"],
+  org: string,
+): Promise<string> {
+  return (await organizationQuery.get({ value: org })).metadata?.slug ?? org;
+}

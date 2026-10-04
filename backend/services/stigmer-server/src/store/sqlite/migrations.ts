@@ -572,5 +572,12 @@ function migrateToV13(db: DatabaseSync): void {
      SELECT 'organization', '', id, id, 'current', ?
      FROM resources WHERE kind = 'organization'`,
   ).run(new Date().toISOString());
+  // Every other slug the ledger held (a deleted organization's) stays
+  // reserved: a previous name equal to its id that never expires.
+  db.exec(`
+    INSERT OR IGNORE INTO resource_names (kind, org, name, id, state, claimed_at)
+    SELECT 'organization', '', slug, slug, 'previous', claimed_at
+    FROM organization_slugs
+  `);
   db.exec(`DROP TABLE organization_slugs`);
 }

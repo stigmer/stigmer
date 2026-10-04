@@ -743,7 +743,32 @@ export async function checkReferences(
           : verdict,
     });
   }
-  return referenceRefusal(parent, verdicts);
+  return referenceRefusal(parent, await namedForPeople(store, parent, verdicts));
+}
+
+/**
+ * The verdicts with the writer's own organization named by its slug, for
+ * the refusal's copy: references are judged by id, but a person reads the
+ * sentence. Another organization's id is left as the reference holds it, so
+ * a refusal never maps someone else's id to its name.
+ */
+async function namedForPeople<V extends { readonly ref: SpecReference }>(
+  store: Store,
+  parent: ReferenceParent,
+  verdicts: ReadonlyArray<V>,
+): Promise<ReadonlyArray<V>> {
+  if (parent.org === "" || !verdicts.some(({ ref }) => ref.org === parent.org)) {
+    return verdicts;
+  }
+  const slug = (
+    await store.resourceNames.current(ApiResourceKind[ApiResourceKind.organization], "", parent.org)
+  )?.name;
+  if (slug === undefined || slug === parent.org) {
+    return verdicts;
+  }
+  return verdicts.map((verdict) =>
+    verdict.ref.org === parent.org ? { ...verdict, ref: { ...verdict.ref, org: slug } } : verdict,
+  );
 }
 
 /** The references a stored row carries, for the escalation door; a chain passes one collector per place its row keeps them. */
@@ -800,12 +825,16 @@ export function newGuardReferenceFloorOnEscalationStep(
       const targets = await loadReferenceTargets(store, refs);
       const refusal = referenceRefusal(
         parent,
-        refs
-          .map((ref) => ({
-            ref,
-            verdict: checkReference(targets, parent, ref),
-          }))
-          .filter(({ verdict }) => verdict.kind === "below-floor"),
+        await namedForPeople(
+          store,
+          parent,
+          refs
+            .map((ref) => ({
+              ref,
+              verdict: checkReference(targets, parent, ref),
+            }))
+            .filter(({ verdict }) => verdict.kind === "below-floor"),
+        ),
       );
       if (refusal !== undefined) {
         throw refusal;

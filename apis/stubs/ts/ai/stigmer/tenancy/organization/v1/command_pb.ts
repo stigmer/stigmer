@@ -42,14 +42,17 @@ export const OrganizationCommandController: GenService<{
    * Create an organization.
    *
    * The server mints the organization's id (org_<ulid>); metadata.org must be
-   * empty, because an organization belongs to no organization. A slug held by
+   * empty, because an organization belongs to no organization (one that names
+   * the organization itself, by its own id or slug, is cleared). A slug held by
    * another organization is refused with ALREADY_EXISTS; a slug another
    * organization was renamed away from, and which still resolves to it, is
    * refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
    * (domain "stigmer.ai"):
    *
    *   - ORGANIZATION_SLUG_RESERVED — another organization held the slug
-   *     until a recent rename, and it still resolves there. Metadata: slug.
+   *     until a recent rename, and it still resolves there; or an
+   *     organization from an earlier release was filed under it, which keeps
+   *     it reserved for good, deleted or not. Metadata: slug.
    *
    * On Stigmer Cloud, creating a platform-managed organization is a plan
    * feature of its integrator. An integrator whose plan lacks it is refused

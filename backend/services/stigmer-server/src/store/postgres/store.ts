@@ -1557,6 +1557,20 @@ class PostgresResourceNameStore implements ResourceNameStore {
     return row === undefined ? undefined : resourceNameEntryOf(row);
   }
 
+  async current(
+    kind: string,
+    org: string,
+    id: string,
+  ): Promise<ResourceNameEntry | undefined> {
+    const result = await this.open().query<ResourceNameRow>(
+      `SELECT ${RESOURCE_NAME_COLUMNS} FROM resource_names
+       WHERE kind = $1 AND org = $2 AND id = $3 AND state = 'current'`,
+      [kind, org, id],
+    );
+    const row = result.rows[0];
+    return row === undefined ? undefined : resourceNameEntryOf(row);
+  }
+
   async claim(
     key: ResourceNameKey,
     id: string,
@@ -1672,10 +1686,18 @@ class PostgresResourceNameStore implements ResourceNameStore {
   }
 
   async release(kind: string, org: string, id: string): Promise<void> {
-    await this.open().query(
-      `DELETE FROM resource_names WHERE kind = $1 AND org = $2 AND id = $3`,
-      [kind, org, id],
-    );
+    await this.transaction(async (client) => {
+      await client.query(
+        `DELETE FROM resource_names
+         WHERE kind = $1 AND org = $2 AND id = $3 AND name <> id`,
+        [kind, org, id],
+      );
+      await client.query(
+        `UPDATE resource_names SET state = 'previous', expires_at = ''
+         WHERE kind = $1 AND org = $2 AND id = $3 AND name = id`,
+        [kind, org, id],
+      );
+    });
   }
 
   private async transaction<T>(

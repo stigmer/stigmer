@@ -1664,6 +1664,20 @@ class SqliteResourceNameStore implements ResourceNameStore {
     return row === undefined ? undefined : resourceNameEntryOf(row);
   }
 
+  async current(
+    kind: string,
+    org: string,
+    id: string,
+  ): Promise<ResourceNameEntry | undefined> {
+    const row = this.open()
+      .prepare(
+        `SELECT ${RESOURCE_NAME_COLUMNS} FROM resource_names
+         WHERE kind = ? AND org = ? AND id = ? AND state = 'current'`,
+      )
+      .get(kind, org, id) as ResourceNameRow | undefined;
+    return row === undefined ? undefined : resourceNameEntryOf(row);
+  }
+
   async claim(
     key: ResourceNameKey,
     id: string,
@@ -1768,9 +1782,16 @@ class SqliteResourceNameStore implements ResourceNameStore {
   }
 
   async release(kind: string, org: string, id: string): Promise<void> {
-    this.open()
-      .prepare(`DELETE FROM resource_names WHERE kind = ? AND org = ? AND id = ?`)
-      .run(kind, org, id);
+    this.transaction((db) => {
+      db.prepare(
+        `DELETE FROM resource_names
+         WHERE kind = ? AND org = ? AND id = ? AND name <> id`,
+      ).run(kind, org, id);
+      db.prepare(
+        `UPDATE resource_names SET state = 'previous', expires_at = ''
+         WHERE kind = ? AND org = ? AND id = ? AND name = id`,
+      ).run(kind, org, id);
+    });
   }
 
   private transaction<T>(fn: (db: DatabaseSync) => T): T {

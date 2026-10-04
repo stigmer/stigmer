@@ -113,7 +113,9 @@ import {
 import { organizationSearchExtractor } from "./search-extractor.js";
 import {
   newClaimOrganizationSlugStep,
+  newOrganizationNameResolver,
   newRetireOrganizationSlugStep,
+  newSettleOrganizationSlugStep,
   releaseSlugClaimAfterFailure,
 } from "./names.js";
 import {
@@ -241,7 +243,7 @@ async function createOrganization(
     )
     .addStep(newResolveSlugStep())
     .addStep(newValidateProtoStep())
-    .addStep(newRefuseOrganizationOrgStep())
+    .addStep(newRefuseOrganizationOrgStep(newOrganizationNameResolver(deps.store)))
     .addStep(newValidateVisibilityStep())
     .addStep(newCheckOrgDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
@@ -326,6 +328,7 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newPersistStep(deps.store))
+    .addStep(newSettleOrganizationSlugStep(deps.store, deps.logger))
     .addStep(
       newIndexSearchStep(deps.store, organizationSearchExtractor, deps.logger),
     )
@@ -397,7 +400,7 @@ async function apply(
     )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
-    .addStep(newRefuseOrganizationOrgStep())
+    .addStep(newRefuseOrganizationOrgStep(newOrganizationNameResolver(deps.store)))
     .addStep(newLoadOrganizationForApplyStep(deps.store))
     .build()
     .execute(reqCtx);

@@ -14,7 +14,9 @@
  *     every tagVersion arm (tag head, move off head, tag archived);
  *   - audit rows SURVIVE workflow delete (execution viewers need them,
  *     oss#582) while instances are cascade-swept (oss#592);
- *   - the default instance's factory shape (slug, reserved labels).
+ *   - the default instance's factory shape (slug, reserved labels);
+ *   - an agent_call that names its organization by slug saves through the
+ *     create and update chains, stored by the organization's id.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -35,6 +37,10 @@ import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agen
 import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
@@ -418,5 +424,80 @@ describe("workflowinstance guards", () => {
 
     const reloaded = await instanceQuery.get({ value: def.metadata!.id });
     expect(reloaded.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+  });
+});
+
+describe("an agent_call naming its organization by slug (ResolveAgentCallOrganizations on the chains)", () => {
+  function callingBySlug(name: string) {
+    const input = workflowInput({ name });
+    input.spec!.tasks = [
+      create(WorkflowTaskSchema, {
+        name: "review",
+        kind: WorkflowTaskKind.agent_call,
+        taskConfig: {
+          agent: `${ORG}/reviewer`,
+          message: "review the change",
+          environment_refs: [{ org: ORG, slug: "review-keys" }],
+        },
+      }),
+    ];
+    return input;
+  }
+
+  beforeAll(async () => {
+    await server.store.saveResource(
+      ApiResourceKind.agent,
+      "agt_slugcall",
+      AgentSchema,
+      create(AgentSchema, {
+        apiVersion: API_VERSION,
+        kind: "Agent",
+        metadata: {
+          id: "agt_slugcall",
+          name: "reviewer",
+          slug: "reviewer",
+          org: ORG_ID,
+          visibility: ApiResourceVisibility.visibility_org,
+        },
+        spec: { instructions: "a conformant instruction body" },
+      }),
+    );
+    await server.store.saveResource(
+      ApiResourceKind.environment,
+      "env_slugcall",
+      EnvironmentSchema,
+      create(EnvironmentSchema, {
+        metadata: { id: "env_slugcall", name: "review-keys", slug: "review-keys", org: ORG_ID },
+      }),
+    );
+  });
+
+  it("create stores the organization's id, and an update written by slug again stores the same", async () => {
+    const created = await command.create(callingBySlug("Slug Caller"));
+    const stored = (await query.get({ value: created.metadata!.id })).spec!.tasks[0]!.taskConfig;
+    expect(stored).toMatchObject({
+      agent: `${ORG_ID}/reviewer`,
+      environment_refs: [{ org: ORG_ID, slug: "review-keys" }],
+    });
+
+    const again = callingBySlug("Slug Caller");
+    again.metadata!.id = created.metadata!.id;
+    const updated = await command.update(again);
+    expect(updated.spec!.tasks[0]!.taskConfig).toMatchObject({ agent: `${ORG_ID}/reviewer` });
+    expect(updated.status?.versionHash, "the same workflow, written by slug, is no new version").toBe(
+      created.status?.versionHash,
+    );
+  });
+
+  it("a refusal names the workflow's own organization by its slug, not the id it judged", async () => {
+    const missing = callingBySlug("Slug Caller Missing");
+    (missing.spec!.tasks[0]!.taskConfig as { agent: string }).agent = `${ORG}/ghost`;
+    const refusal = await command.create(missing).then(
+      () => undefined,
+      (error: unknown) => error as ConnectError,
+    );
+    expect(refusal?.code).toBe(Code.FailedPrecondition);
+    expect(refusal?.rawMessage).toContain(`'ghost' (org: ${ORG})`);
+    expect(refusal?.rawMessage).not.toContain(ORG_ID);
   });
 });
