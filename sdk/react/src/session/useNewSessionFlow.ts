@@ -10,7 +10,6 @@ import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables.js";
 import type { SessionComposerSubmitContext } from "../composer/index.js";
-import { useStigmer } from "../hooks.js";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
 import type { ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
@@ -196,7 +195,7 @@ export interface UseNewSessionFlowReturn {
   /** Update the selected agent reference. */
   readonly setAgentRef: (ref: ResourceRef | null) => void;
 
-  /** Current agent resolution state (saved instance vs direct reference). */
+  /** How the selected agent's declared keys are supplied, or `null` with no agent. */
   readonly resolution: AgentResolution | null;
   /** Update the agent resolution. */
   readonly setResolution: (r: AgentResolution | null) => void;
@@ -376,7 +375,6 @@ export function useNewSessionFlow(
     setHarnessRaw(seed);
   }, [isGuest, accountDefaults?.harness]);
 
-  const stigmer = useStigmer();
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
   const { create: createExecution } = useCreateAgentExecution();
   const workspace = useWorkspaceEntries();
@@ -519,23 +517,14 @@ export function useNewSessionFlow(
           autoApproveAll: autoApproveAll || undefined,
         };
 
-        // Resolve what the bootstrapped session runs against: an explicit
-        // instance when one is known, an agent ID the server resolves to
-        // its default instance (creating it if missing), or nothing at all
-        // — the built-in assistant, which needs no lookup and no wait.
-        let agentInstanceId: string | undefined;
-        let agentId: string | undefined;
+        // What the conversation runs: the selected agent, named by the
+        // reference exactly as the flow holds it (the server pins the
+        // version it names, the agent's current one when it names none),
+        // or nothing at all — the built-in assistant.
+        let sessionAgentRef: ResourceRef | undefined;
 
         if (agentRef && resolution) {
-          if (resolution.mode === "saved") {
-            agentInstanceId = resolution.instanceId;
-          } else {
-            // Slug reference → agent ID; the server handles instance
-            // resolution, including auto-creating a missing default
-            // instance (which a client-side lookup cannot).
-            const agent = await stigmer.agent.getByReference(agentRef);
-            agentId = agent.metadata!.id;
-          }
+          sessionAgentRef = agentRef;
         } else if (isGuest) {
           // Fail closed: a guest session is only ever created against the
           // pinned shared agent's resolution. Reaching here means the pin
@@ -551,8 +540,7 @@ export function useNewSessionFlow(
         // session and dispatches the execution atomically.
         const { sessionId } = await createExecution({
           ...executionFields,
-          agentId,
-          sessionSpec: { ...sessionSpecBase, agentInstanceId },
+          sessionSpec: { ...sessionSpecBase, agentRef: sessionAgentRef },
         });
 
         // Local execution: attach the session's runner worker now that the
@@ -596,7 +584,6 @@ export function useNewSessionFlow(
       sessionContext,
       agentRef,
       resolution,
-      stigmer.agent,
       createExecution,
       sessionVariables,
       onSessionCreated,

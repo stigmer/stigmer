@@ -47,7 +47,6 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 |----------------------|--------------------|
 | `agent`              | Agent              |
 | `agentExecution`     | AgentExecution     |
-| `agentInstance`      | AgentInstance      |
 | `apiKey`             | ApiKey             |
 | `environment`        | Environment        |
 | `executionContext`   | ExecutionContext    |
@@ -226,7 +225,7 @@ const stigmer = new Stigmer({
 const session = await stigmer.session.create({
   name: "review",
   org: "my-org",
-  agentInstanceId: "inst-abc",
+  agentRef: { org: "my-org", slug: "code-reviewer" },
   executionTarget: "cloud",
 });
 ```

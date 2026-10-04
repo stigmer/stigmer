@@ -72,8 +72,16 @@ export type {
   UseSessionUsageReturn,
 } from "./useSessionUsage.js";
 
-export { useAgentRefFromSession } from "./useAgentRefFromSession.js";
-export type { UseAgentRefFromSessionReturn } from "./useAgentRefFromSession.js";
+export { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
+
+export { useSessionAgentVersion } from "./useSessionAgentVersion.js";
+export type {
+  UseSessionAgentVersionOptions,
+  UseSessionAgentVersionReturn,
+} from "./useSessionAgentVersion.js";
+
+export { AgentVersionNotice } from "./AgentVersionNotice.js";
+export type { AgentVersionNoticeProps } from "./AgentVersionNotice.js";
 
 export { useNewSessionFlow } from "./useNewSessionFlow.js";
 export type {

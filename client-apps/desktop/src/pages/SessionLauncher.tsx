@@ -16,8 +16,8 @@ import { useNativeWorkspaceContentSearcher } from "../hooks/useNativeWorkspaceCo
 /**
  * Desktop session launcher — thin shell that composes the SDK
  * `NewSessionViewer` with router navigation, org context, the native
- * workspace hooks, and the `?agent=org/slug[&instance=id]` URL parameters a
- * "Start session" action arrives with.
+ * workspace hooks, and the `?agent=org/slug` URL parameter a "Start
+ * session" action arrives with.
  */
 export function SessionLauncher() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -34,18 +34,14 @@ export function SessionLauncher() {
   const workspaceContentSearcher = useNativeWorkspaceContentSearcher();
 
   // -------------------------------------------------------------------------
-  // Explicit agent + instance capture ("Start session" from a specific agent
-  // instance). Captured once so the URL can be cleaned without losing intent.
+  // Explicit agent capture ("Start session" from an agent). Captured once so
+  // the URL can be cleaned without losing intent.
   // -------------------------------------------------------------------------
 
   const liveAgentParam = searchParams.get("agent");
-  const liveInstanceParam = searchParams.get("instance");
 
   const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
     () => parseAgentParam(liveAgentParam),
-  );
-  const [initialInstanceId, setInitialInstanceId] = useState<string | undefined>(
-    () => liveInstanceParam ?? undefined,
   );
   const agentParamCaptured = useRef(liveAgentParam !== null);
 
@@ -53,9 +49,8 @@ export function SessionLauncher() {
     if (!agentParamCaptured.current && liveAgentParam) {
       agentParamCaptured.current = true;
       setInitialAgentRef(parseAgentParam(liveAgentParam));
-      setInitialInstanceId(liveInstanceParam ?? undefined);
     }
-  }, [liveAgentParam, liveInstanceParam]);
+  }, [liveAgentParam]);
 
   useEffect(() => {
     if (liveAgentParam) {
@@ -76,7 +71,6 @@ export function SessionLauncher() {
       workspaceFileReader={workspaceFileReader}
       workspaceContentSearcher={workspaceContentSearcher}
       initialAgentRef={initialAgentRef}
-      initialInstanceId={initialInstanceId}
       className="h-full"
     />
   );

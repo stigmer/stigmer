@@ -22,6 +22,7 @@ import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvF
 import { McpServerReadiness } from "../plugin/McpServerReadiness.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup.js";
+import { PersonalKeyDisclosure } from "./PersonalKeyDisclosure.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErrorGuide.js";
 import { McpServerPicker } from "../mcp-server/McpServerPicker.js";
 import { useMcpServerSetup } from "../mcp-server/useMcpServerSetup.js";
@@ -335,11 +336,11 @@ export interface SessionComposerProps {
    * Called when the agent setup flow resolves how the agent should
    * be used for session creation.
    *
-   * The {@link AgentResolution} discriminated union tells the caller
-   * which session creation path to use:
-   * - `"saved"` — use `agentInstanceId`
-   * - `"oneTime"` — use `agentRef` + pass `runtimeEnv` to execution
-   * - `"direct"` — use `agentRef` (no secrets needed)
+   * Every {@link AgentResolution} starts the session on `agentRef`; the
+   * mode says where the agent's declared keys come from:
+   * - `"saved"` — the user's personal environment holds them
+   * - `"oneTime"` — pass `runtimeEnv` to the execution
+   * - `"direct"` — nothing is needed from the user
    *
    * Set to `null` when the agent is deselected.
    */
@@ -389,23 +390,20 @@ export interface SessionComposerProps {
   readonly initialAgentRef?: ResourceRef;
 
   /**
-   * Pre-bind the session to a specific, already-existing
-   * `AgentInstance` when the composer mounts.
+   * Name, below the composer, the keys the selected agent declares
+   * (`agent.spec.env`): every run of the agent reads those keys from the
+   * person's personal environment, so the person sees what the agent can
+   * read before sending the first message of a conversation on it. A
+   * disclosure, not a gate: nothing is withheld or asked. Shown only when
+   * an agent is selected and declares at least one key.
    *
-   * Requires `initialAgentRef` (the agent the instance deploys). When
-   * both are provided, the composer resolves the agent directly to this
-   * instance — skipping the environment-collection flow entirely, since
-   * the chosen instance already binds its own environment(s). The
-   * resulting resolution is `{ mode: "saved", instanceId }`, so the
-   * session is created against this exact configured deployment.
+   * Opt-in: a host enables it where a conversation is about to start on
+   * an agent (the new-session launcher, or a conversation moving to a
+   * different agent), never for a guest, who has no personal environment.
    *
-   * This is the agent analog of running a specific WorkflowInstance: it
-   * powers the "Start session" action on an instance in the Agent detail
-   * page's Instances tab.
-   *
-   * One-time: consumed on mount; subsequent changes are ignored.
+   * @default false
    */
-  readonly initialInstanceId?: string;
+  readonly disclosePersonalKeys?: boolean;
 
   /**
    * Lock the current agent: the Agent entry is removed from the
@@ -614,7 +612,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   onAgentResolutionChange,
   onAgentSetupErrorChange,
   initialAgentRef,
-  initialInstanceId,
+  disclosePersonalKeys = false,
   lockAgent = false,
   mcpServerUsages,
   onMcpServerUsagesChange,
@@ -1226,29 +1224,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     ],
   );
 
-  const handleAgentSelectToInstance = useCallback(
-    async (ref: ResourceRef, instanceId: string) => {
-      try {
-        const result = await agentSetup.resolveToInstance(ref, instanceId);
-        onAgentRefChange?.(result.agentRef);
-        onAgentResolutionChange?.(result.resolution);
-        handleDisplayNameResolved(
-          `${result.agentRef.org}/${result.agentRef.slug}`,
-          result.agentName,
-        );
-        setConfigOpen(false);
-      } catch {
-        // Error is captured by agentSetup.state.error — displayed inline.
-      }
-    },
-    [
-      agentSetup,
-      onAgentRefChange,
-      onAgentResolutionChange,
-      handleDisplayNameResolved,
-    ],
-  );
-
   const handleEnvFormSubmit = useCallback(
     async (
       values: Record<string, EnvVarInput>,
@@ -1283,9 +1258,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const handleAgentSelectRef = useRef(handleAgentSelect);
   handleAgentSelectRef.current = handleAgentSelect;
 
-  const handleAgentSelectToInstanceRef = useRef(handleAgentSelectToInstance);
-  handleAgentSelectToInstanceRef.current = handleAgentSelectToInstance;
-
   const initialAgentHandled = useRef(false);
 
   useEffect(() => {
@@ -1296,13 +1268,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     let cancelled = false;
     initialAgentHandled.current = true;
 
-    // When an explicit instance is provided, bind directly to it
-    // (skips env collection); otherwise run the full resolution flow.
-    const run = initialInstanceId
-      ? handleAgentSelectToInstanceRef.current(initialAgentRef, initialInstanceId)
-      : handleAgentSelectRef.current(initialAgentRef);
-
-    run.catch(() => {
+    handleAgentSelectRef.current(initialAgentRef).catch(() => {
       if (!cancelled) {
         initialAgentHandled.current = false;
       }
@@ -1311,7 +1277,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     return () => {
       cancelled = true;
     };
-  }, [initialAgentRef, initialInstanceId, showAgent, org]);
+  }, [initialAgentRef, showAgent, org]);
 
   // ---------------------------------------------------------------------------
   // Initial agent: auto-open Configure > Agent when env vars are needed
@@ -1931,6 +1897,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           onThinkingModeChange={setThinkingMode}
         />
       </div>
+      {disclosePersonalKeys && agentRef && (
+        <PersonalKeyDisclosure agentRef={agentRef} className="stg:mt-2 stg:px-1" />
+      )}
     </div>
   );
 });

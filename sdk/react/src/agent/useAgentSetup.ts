@@ -3,19 +3,12 @@
 import { useCallback, useEffect, useReducer } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { EnvVarInput, ResourceRef, Stigmer } from "@stigmer/sdk";
-import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
-import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { GetOAuthGrantStatusInputSchema, OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
-import {
-  buildPersonalInstanceInput,
-  personalInstanceAgentLabel,
-} from "../agent-instance/buildPersonalInstanceInput.js";
 import { diffEnv } from "../environment/diffEnv.js";
 import {
   agentSetupReducer,
@@ -26,9 +19,6 @@ import {
   type AgentSetupState,
   type PendingSignIn,
 } from "./agentSetupReducer.js";
-
-const PERSONAL_LABEL = "stigmer.ai/personal";
-const FOR_AGENT_LABEL = "stigmer.ai/for-agent";
 
 /** What the agent's OAuth servers say about its readiness. */
 interface OAuthServerReadings {
@@ -102,53 +92,6 @@ function typedDeclarations(
   return Object.fromEntries(Object.entries(envDeclarations).filter(([key]) => !signInVariables.has(key)));
 }
 
-/**
- * The personal instance among a label query's answers that serves
- * `agentId`. The label names the agent by slug, which two agents in
- * different organizations share (an organization's `reviewer` and the
- * platform's), so an answer is taken only when it binds this agent.
- */
-function personalInstanceFor(items: readonly AgentInstance[], agentId: string): AgentInstance | undefined {
-  return items.find((instance) => instance.spec?.agentId === agentId);
-}
-
-/**
- * Re-checks for an existing personal instance immediately before
- * creating one. Narrows the race window when multiple clients
- * (tabs, double-clicks) attempt to create simultaneously.
- */
-async function findOrCreatePersonalInstance(
-  stigmer: Stigmer,
-  params: {
-    org: string;
-    agentId: string;
-    agentSlug: string;
-    agentLabel: string;
-    environmentRef: ResourceRef;
-  },
-): Promise<AgentInstance> {
-  const { org, agentId, agentSlug, agentLabel, environmentRef } = params;
-
-  const recheck = await stigmer.agentInstance.list(
-    create(ListAgentInstancesRequestSchema, {
-      org,
-      labels: {
-        [PERSONAL_LABEL]: "true",
-        [FOR_AGENT_LABEL]: agentLabel,
-      },
-    }),
-  );
-
-  const existing = personalInstanceFor(recheck.items, agentId);
-  if (existing !== undefined) {
-    return existing;
-  }
-
-  return stigmer.agentInstance.create(
-    buildPersonalInstanceInput({ org, agentId, agentSlug, environmentRef }),
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Public types (re-exported from agentSetupReducer for convenience)
 // ---------------------------------------------------------------------------
@@ -166,12 +109,13 @@ export type {
 export interface SubmitEnvVarsOptions {
   /**
    * When `true` (default), the provided values are saved to the user's
-   * personal environment and a personal agent instance is created.
-   * Subsequent runs of the same agent will reuse these credentials.
+   * personal environment. Every run of an agent the user starts reads
+   * the keys that agent declares from there, so later conversations
+   * reuse them without asking again.
    *
    * When `false`, the values are collected as `runtimeEnv` for this
-   * execution only — no data is persisted and no agent instance is
-   * created. This path is instant (no network calls).
+   * execution only — nothing is persisted. This path is instant (no
+   * network calls).
    *
    * @default true
    */
@@ -187,7 +131,7 @@ export interface UseAgentSetupReturn {
    * - `"idle"` — no agent selected
    * - `"resolving"` — evaluating an agent's requirements
    * - `"needsEnvVars"` — waiting for user to provide missing variables
-   * - `"submitting"` — saving environment / creating instance
+   * - `"submitting"` — saving to the personal environment
    * - `"ready"` — agent resolved, `resolution` describes how to proceed
    *
    * `error` is available on all variants (orthogonal to phase).
@@ -197,9 +141,9 @@ export interface UseAgentSetupReturn {
   /**
    * Evaluate whether an agent is ready to use or needs env var collection.
    *
-   * Fetches the full agent to read its `env` declarations, checks for an
-   * existing personal instance, and diffs env keys against the personal
-   * environment. Returns `"ready"` when the agent can be used immediately,
+   * Fetches the full agent to read its `env` declarations and diffs them
+   * against the personal environment and the session's variables.
+   * Returns `"ready"` when the agent can be used immediately,
    * or `"needsEnvVars"` when the caller should present {@link AgentEnvForm}.
    */
   readonly resolveAgent: (ref: ResourceRef) => Promise<AgentSetupResult>;
@@ -209,8 +153,8 @@ export interface UseAgentSetupReturn {
    *
    * Behavior depends on `options.saveForFuture`:
    * - `true` (default) — Creates or updates the personal environment
-   *   with the provided values, then creates a personal agent instance.
-   *   Returns `{ resolution: { mode: "saved", instanceId } }`.
+   *   with the provided values.
+   *   Returns `{ resolution: { mode: "saved" } }`.
    * - `false` — Collects values as `runtimeEnv` without any API calls.
    *   Returns `{ resolution: { mode: "oneTime", runtimeEnv } }`.
    *
@@ -219,30 +163,6 @@ export interface UseAgentSetupReturn {
   readonly submitEnvVars: (
     values: Record<string, EnvVarInput>,
     options?: SubmitEnvVarsOptions,
-  ) => Promise<AgentSetupReadyResult>;
-
-  /**
-   * Resolve the agent directly to a specific, already-existing
-   * {@link AgentInstance} — bypassing the env-collection flow.
-   *
-   * Used by instance-management surfaces (e.g. "Start session" on a
-   * specific instance) where the user has explicitly chosen which
-   * configured deployment to run against. Because an AgentInstance
-   * already binds its own environment(s), there is nothing to collect:
-   * the chosen instance *is* the resolved `"saved"` resolution.
-   *
-   * This transitions the state machine straight to `"ready"` with
-   * `{ mode: "saved", instanceId }`. No agent fetch and no instance
-   * lookup are performed — the caller owns the instance identity.
-   *
-   * @param ref - Reference to the agent the instance deploys.
-   * @param instanceId - ID of the agent instance to bind the session to.
-   * @param agentName - Optional display name; falls back to `ref.slug`.
-   */
-  readonly resolveToInstance: (
-    ref: ResourceRef,
-    instanceId: string,
-    agentName?: string,
   ) => Promise<AgentSetupReadyResult>;
 
   /**
@@ -275,8 +195,9 @@ export interface UseAgentSetupReturn {
  *
  * The hook supports two secret delivery paths via the `saveForFuture`
  * option on {@link submitEnvVars}:
- * - **Saved** — secrets are persisted to the personal environment and
- *   a personal agent instance is created for reuse.
+ * - **Saved** — secrets are persisted to the personal environment,
+ *   where every run of an agent the user starts reads the keys the
+ *   agent declares.
  * - **One-time** — secrets are returned as `runtimeEnv` for a single
  *   execution, with no data persisted.
  *
@@ -284,14 +205,8 @@ export interface UseAgentSetupReturn {
  * `idle → resolving → needsEnvVars → submitting → ready`.
  *
  * Composes {@link usePersonalEnvironment} for personal environment
- * operations and calls the Stigmer client directly for agent and
- * agent instance queries.
- *
- * > **Why not compose `usePersonalAgentInstance`?**
- * > `resolveAgent` is an imperative async callback that needs
- * > immediate results within a single invocation. Hook state
- * > updates require a render cycle. Instance creation is delegated
- * > through the shared `buildPersonalInstanceInput` helper instead.
+ * operations and calls the Stigmer client directly for the agent and
+ * its MCP servers.
  *
  * Pass `null` as `org` to disable all operations (stable no-op).
  *
@@ -390,36 +305,8 @@ export function useAgentSetup(
           return { status: "ready", agentRef: ref, agentName, resolution };
         }
 
-        // Agent has env declarations — check for existing personal instance.
-        // The label the create below gives it: the active organization's id
-        // and the agent's slug, never the reference's own (possibly a slug) org.
-        const agentLabel = personalInstanceAgentLabel(org, ref.slug);
-        const instanceList = await stigmer.agentInstance.list(
-          create(ListAgentInstancesRequestSchema, {
-            org,
-            labels: {
-              [PERSONAL_LABEL]: "true",
-              [FOR_AGENT_LABEL]: agentLabel,
-            },
-          }),
-        );
-
-        const saved = personalInstanceFor(instanceList.items, agent.metadata!.id);
-        if (saved !== undefined) {
-          const resolution: AgentResolution = {
-            mode: "saved",
-            instanceId: saved.metadata!.id,
-          };
-          dispatch({
-            type: "RESOLVE_READY",
-            agentRef: ref,
-            agentName,
-            resolution,
-          });
-          return { status: "ready", agentRef: ref, agentName, resolution };
-        }
-
-        // No personal instance — diff against existing env keys + pool.
+        // The agent declares keys. Each run reads them from the person's
+        // personal environment, so keys already saved there need nothing.
         const existingKeys = new Set(
           Object.keys(personalEnv.environment?.spec?.data ?? {}),
         );
@@ -427,26 +314,7 @@ export function useAgentSetup(
         const missingVariables = diffEnv(envDeclarations, existingKeys, poolKeys);
 
         if (personalOnlyMissing.length === 0) {
-          // Personal env covers all keys — create personal instance.
-          const env = await personalEnv.getOrCreate();
-          const envRef: ResourceRef = {
-            org,
-            slug: env.metadata!.slug,
-            kind: ApiResourceKind.environment,
-          };
-
-          const instance = await findOrCreatePersonalInstance(stigmer, {
-            org,
-            agentId: agent.metadata!.id,
-            agentSlug: ref.slug,
-            agentLabel,
-            environmentRef: envRef,
-          });
-
-          const resolution: AgentResolution = {
-            mode: "saved",
-            instanceId: instance.metadata!.id,
-          };
+          const resolution: AgentResolution = { mode: "saved" };
           dispatch({
             type: "RESOLVE_READY",
             agentRef: ref,
@@ -457,7 +325,7 @@ export function useAgentSetup(
         }
 
         if (missingVariables.length === 0) {
-          // Pool covers remaining keys — use default instance, pool
+          // The session's variables cover the remaining keys; their
           // values flow via sessionVariables.toRuntimeEnv() at submit.
           const resolution: AgentResolution = { mode: "direct" };
           dispatch({
@@ -491,29 +359,6 @@ export function useAgentSetup(
       }
     },
     [org, stigmer, personalEnv, poolKeys],
-  );
-
-  // -------------------------------------------------------------------------
-  // resolveToInstance — bind directly to an explicitly chosen instance
-  // -------------------------------------------------------------------------
-
-  const resolveToInstance = useCallback(
-    async (
-      ref: ResourceRef,
-      instanceId: string,
-      agentName?: string,
-    ): Promise<AgentSetupReadyResult> => {
-      const resolution: AgentResolution = { mode: "saved", instanceId };
-      const name = agentName ?? ref.slug;
-      dispatch({
-        type: "RESOLVE_READY",
-        agentRef: ref,
-        agentName: name,
-        resolution,
-      });
-      return { status: "ready", agentRef: ref, agentName: name, resolution };
-    },
-    [],
   );
 
   // -------------------------------------------------------------------------
@@ -570,7 +415,7 @@ export function useAgentSetup(
         );
       }
 
-      const { agentRef, agentId, agentName } = state;
+      const { agentRef, agentName } = state;
       const saveForFuture = options?.saveForFuture ?? true;
 
       // ----- One-time path: no API calls, instant result -----
@@ -588,32 +433,14 @@ export function useAgentSetup(
         return { status: "ready", agentRef, agentName, resolution };
       }
 
-      // ----- Save path: persist to environment + create instance -----
+      // ----- Save path: persist to the personal environment -----
       dispatch({ type: "SUBMIT_START" });
 
       try {
-        const env = await personalEnv.getOrCreate();
+        await personalEnv.getOrCreate();
         await personalEnv.addVariables(values);
 
-        const envRef: ResourceRef = {
-          org,
-          slug: env.metadata!.slug,
-          kind: ApiResourceKind.environment,
-        };
-
-        const agentLabel = personalInstanceAgentLabel(org, agentRef.slug);
-        const instance = await findOrCreatePersonalInstance(stigmer, {
-          org,
-          agentId,
-          agentSlug: agentRef.slug,
-          agentLabel,
-          environmentRef: envRef,
-        });
-
-        const resolution: AgentResolution = {
-          mode: "saved",
-          instanceId: instance.metadata!.id,
-        };
+        const resolution: AgentResolution = { mode: "saved" };
         dispatch({
           type: "SUBMIT_READY",
           agentRef,
@@ -626,7 +453,7 @@ export function useAgentSetup(
         throw err;
       }
     },
-    [org, stigmer, personalEnv, state],
+    [org, personalEnv, state],
   );
 
   const signInCompleted = useCallback(
@@ -646,5 +473,5 @@ export function useAgentSetup(
     [state, resolveAgent],
   );
 
-  return { state, resolveAgent, submitEnvVars, resolveToInstance, signInCompleted, clearError, reset };
+  return { state, resolveAgent, submitEnvVars, signInCompleted, clearError, reset };
 }

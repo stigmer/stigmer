@@ -2,9 +2,10 @@
 // contract (stigmer/stigmer#249). A workspace-bearing run must issue exactly
 // one create RPC — the AgentExecution carrying session_spec — instead of the
 // old session.create + agentExecution.create pair, and the flow must read the
-// canonical session id back from the returned execution spec. The built-in
-// assistant rides the same flow with no agent at all. Runs use detach mode
-// so no streaming machinery is exercised.
+// canonical session id back from the returned execution's target. A run on
+// an agent names it by reference (org and slug, no instance and no id); the
+// built-in assistant rides the same flow with no agent at all. Runs use
+// detach mode so no streaming machinery is exercised.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -13,6 +14,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   LocalPathSourceSchema,
   WorkspaceEntrySchema,
@@ -31,7 +33,7 @@ const WORKSPACE_ENTRY = create(WorkspaceEntrySchema, {
 
 function makeAgent(): Agent {
   return create(AgentSchema, {
-    metadata: { id: "agt_1", name: "helper" },
+    metadata: { id: "agt_1", name: "Helper", org: "acme", slug: "helper" },
   });
 }
 
@@ -66,7 +68,10 @@ function fakeBackend(): { client: BackendClient; creates: () => AgentExecution[]
       // Echo with the server-owned session id filled in, like the real backend.
       return {
         ...msg,
-        spec: msg.spec === undefined ? undefined : { ...msg.spec, sessionId: "ses_srv" },
+        spec:
+          msg.spec === undefined
+            ? undefined
+            : { ...msg.spec, target: { case: "sessionId", value: "ses_srv" } },
       };
     },
   });
@@ -104,16 +109,18 @@ describe("executeResolvedAgent", () => {
 
     const sent = creates();
     expect(sent, "a workspace run is a single AgentExecution create").toHaveLength(1);
-    expect(sent[0]?.spec?.agentId).toBe("agt_1");
-    expect(sent[0]?.spec?.sessionId, "no client-created session id").toBe("");
-    expect(sent[0]?.spec?.sessionSpec?.workspaceEntries).toEqual([WORKSPACE_ENTRY]);
+    const target = sent[0]?.spec?.target;
+    expect(target?.case, "no client-created session id").toBe("sessionSpec");
+    const sessionSpec = target?.case === "sessionSpec" ? target.value : undefined;
+    expect(sessionSpec?.agentRef).toMatchObject({ kind: ApiResourceKind.agent, org: "acme", slug: "helper" });
+    expect(sessionSpec?.workspaceEntries).toEqual([WORKSPACE_ENTRY]);
 
     // The canonical session id comes back on the execution spec and drives the
     // re-attach hint.
     expect(stderrLines.join("")).toContain("stigmer resume ses_srv");
   });
 
-  it("issues one create with no session_spec when there is no workspace", async () => {
+  it("names the agent by reference with no version when there is no workspace", async () => {
     const { client, creates } = fakeBackend();
 
     await executeResolvedAgent({
@@ -127,8 +134,16 @@ describe("executeResolvedAgent", () => {
 
     const sent = creates();
     expect(sent).toHaveLength(1);
-    expect(sent[0]?.spec?.sessionSpec).toBeUndefined();
-    expect(sent[0]?.spec?.agentId).toBe("agt_1");
+    const target = sent[0]?.spec?.target;
+    const sessionSpec = target?.case === "sessionSpec" ? target.value : undefined;
+    // The CLI takes no version, so the session pins the agent's current one.
+    expect(sessionSpec?.agentRef).toMatchObject({
+      kind: ApiResourceKind.agent,
+      org: "acme",
+      slug: "helper",
+      version: "",
+    });
+    expect(sessionSpec?.workspaceEntries).toEqual([]);
   });
 
   it("runs the built-in assistant with no agent: an all-empty target and the assistant's name in the header", async () => {
@@ -145,11 +160,9 @@ describe("executeResolvedAgent", () => {
 
     const sent = creates();
     expect(sent).toHaveLength(1);
-    // Neither an agent nor a session nor a session_spec instance: the backend
-    // creates a session with no agent and the runner answers as the assistant.
-    expect(sent[0]?.spec?.agentId).toBe("");
-    expect(sent[0]?.spec?.sessionId).toBe("");
-    expect(sent[0]?.spec?.sessionSpec?.agentInstanceId ?? "").toBe("");
+    // An unset target: the backend creates a session that names no agent
+    // and the runner answers as the assistant.
+    expect(sent[0]?.spec?.target?.case).toBeUndefined();
     expect(stderrLines.join("")).toContain("Assistant");
     expect(stderrLines.join("")).toContain("stigmer resume ses_srv");
   });
@@ -170,7 +183,8 @@ describe("executeResolvedAgent", () => {
 
     const sent = creates();
     expect(sent).toHaveLength(1);
-    expect(sent[0]?.spec?.sessionSpec?.harness).toBe(Harness.CURSOR);
+    const target = sent[0]?.spec?.target;
+    expect(target?.case === "sessionSpec" ? target.value.harness : undefined).toBe(Harness.CURSOR);
     // Harness visibility: a cursor session must announce itself before streaming —
     // whether the flag or the account preference selected it.
     expect(stderrLines.join("")).toContain("Harness:");

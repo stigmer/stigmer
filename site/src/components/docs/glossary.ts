@@ -14,8 +14,6 @@ export const glossary: Record<string, string> = {
     "A reusable definition of what an AI assistant knows and can do. Think of it as a recipe that describes the assistant's personality, tools, and knowledge.",
   "Agent Execution":
     "One run of an Agent from start to finish. Each time an Agent handles a request, that is one execution.",
-  "Agent Instance":
-    "A deployed copy of an Agent running in a specific environment with its own configuration and secrets.",
   Session:
     "An ongoing conversation with an Agent across multiple messages. A session remembers what was said earlier so the Agent can follow along.",
   Workflow:

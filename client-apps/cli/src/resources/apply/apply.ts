@@ -170,7 +170,7 @@ export async function applyMessage(
  * resource comes back with a different level than the manifest declared,
  * follow up with one RPC (the skill-push precedent: no-ops are skipped, an
  * unchanged manifest costs nothing extra). Server-side guard rejections
- * (unsupported level, default-instance) propagate as command failures —
+ * (an unsupported level) propagate as command failures —
  * the spec update has landed at that point, and the error says so.
  *
  * Returns a warning (instead of following up) for kinds without the RPC:

@@ -27,8 +27,8 @@ const SUBTITLE_MAX = 60;
 
 /**
  * The built-in assistant's row id: no agent carries an empty id, so it cannot
- * collide with a search result, and it reads as what it is on the wire (an
- * empty `agentInstanceId` is the built-in assistant).
+ * collide with a search result, and it reads as what it is on the wire (a
+ * session that names no agent is the built-in assistant).
  */
 const BUILT_IN_ASSISTANT_ITEM_ID = "";
 

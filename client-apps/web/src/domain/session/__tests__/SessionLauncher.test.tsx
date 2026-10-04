@@ -53,13 +53,15 @@ describe("web SessionLauncher", () => {
     expect(page.github).toContain("org_acme");
   });
 
-  it("preselects the agent an ?agent=org/slug link names", () => {
+  it("preselects the agent an ?agent=org/slug link names, and starts on the agent itself", () => {
+    // An older link's instance parameter is ignored: there is no instance
+    // to bind; the conversation starts on the agent.
     page.search = new URLSearchParams("agent=acme/helper&instance=ain_1");
     render(<SessionLauncher />);
 
     expect(page.viewer.at(-1)).toMatchObject({
       initialAgentRef: { org: "acme", slug: "helper" },
-      initialInstanceId: "ain_1",
     });
+    expect(page.viewer.at(-1)).not.toHaveProperty("initialInstanceId");
   });
 });

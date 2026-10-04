@@ -55,6 +55,8 @@ import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.
 import { SessionPanelChip } from "./SessionPanelChip.js";
 import { TranscriptExportMenu } from "./TranscriptExportMenu.js";
 import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
+import { AgentVersionNotice } from "./AgentVersionNotice.js";
+import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 import { useWorkspaceReadRefs } from "./useWorkspaceReadRefs.js";
 import {
@@ -225,7 +227,7 @@ export interface SessionViewerProps {
    * additionally hides the model/mode pickers, attachments, the
    * workspace picker, and the session panel, and skips the org-level
    * reads a guest principal cannot make — follow-ups simply continue
-   * on the session's bound agent instance.
+   * on the agent and version the session pinned.
    *
    * `"observer"` is a read-only transcript: no composer, no
    * approval/edit/retry/build affordances, no access management. The
@@ -869,6 +871,18 @@ const ConversationColumn = memo(function ConversationColumn({
   // stays available for headless/`ink` consumers.
   const sendError = flow.submitError ?? conv.sendError ?? conv.stopError;
 
+  // The next message starts a conversation on the selected agent when the
+  // session has no turn yet, or when the person picked a different agent
+  // than the session runs: that is when the keys the agent will read from
+  // the person's personal environment are named. Guests and observers
+  // never send on their own agent choice.
+  const hasTurns =
+    conv.completedExecutions.length > 0 || conv.activeStreamExecution !== null;
+  const disclosePersonalKeys =
+    !isGuest &&
+    !isObserver &&
+    (!hasTurns || !isSameAgent(flow.agentRef, agentRefOfSession(conv.session)));
+
   // Retry a terminal-failed execution by resending its originating message
   // through the full submit pipeline (agent override, runtime-env, workspace).
   const onRetryExecution = useCallback(
@@ -979,6 +993,9 @@ const ConversationColumn = memo(function ConversationColumn({
         workspaceEntries={conv.workspaceEntries}
         onFilePathClick={onFilePathClick}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
+        // The agent version each turn ran, marked where it starts and
+        // wherever it changes. A guest's pure chat shows none.
+        agentVersionLabel={isGuest ? undefined : flow.agentVersion.labelOf}
         onBuildFromPlan={isObserver ? undefined : onBuildFromPlan}
         onOpenPlan={onOpenPlan}
         org={org}
@@ -1014,6 +1031,17 @@ const ConversationColumn = memo(function ConversationColumn({
             shown to observers (they cannot arm or disarm anything). */}
         {!isObserver && flow.autoApproveAll && (
           <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
+        )}
+        {/* The conversation keeps the agent version it started on; when the
+            agent's author has saved since, this offers the one explicit
+            move to the current version. Never for guests or observers. */}
+        {!isObserver && !isGuest && flow.agentVersion.isOutdated && (
+          <AgentVersionNotice
+            agentName={flow.agentVersion.agentName}
+            onUpdate={() => void flow.agentVersion.update()}
+            isUpdating={flow.agentVersion.isUpdating}
+            error={flow.agentVersion.updateError}
+          />
         )}
         {/* Pending file reviews dock here — pinned above the composer so the
             decision the agent is blocked on can never scroll out of view. The
@@ -1074,6 +1102,7 @@ const ConversationColumn = memo(function ConversationColumn({
             skillRefs={isCurated ? undefined : flow.skillRefs}
             onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
             sessionVariables={isCurated ? undefined : flow.sessionVariables}
+            disclosePersonalKeys={disclosePersonalKeys}
             className="stg:px-4 stg:py-3"
           />
         )}

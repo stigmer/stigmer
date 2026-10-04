@@ -54,7 +54,6 @@ const KINDS: ReadonlyArray<[VisibilityResourceKind, string]> = [
   ["mcpServer", "mcp_server"],
   ["skill", "skill"],
   ["plugin", "plugin"],
-  ["agentInstance", "agent_instance"],
   ["workflowInstance", "workflow_instance"],
 ];
 

@@ -22,9 +22,6 @@ import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v
 import { type AgentChannel, AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
-import { type AgentInstance, AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
-import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { type AgentShare, AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
@@ -173,17 +170,6 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 8,
     apply: (c, m) => c(ChannelAppCommandController).apply(m as ChannelApp),
     getByReference: (c, ref) => c(ChannelAppQueryController).getByReference(ref),
-  },
-  {
-    kind: ApiResourceKind.agent_instance,
-    yamlKind: "AgentInstance",
-    displayName: "Agent Instance",
-    apiVersion: AGENTIC_V1,
-    schema: AgentInstanceSchema,
-    applyOrder: 9,
-    apply: (c, m) => c(AgentInstanceCommandController).apply(m as AgentInstance),
-    getByReference: (c, ref) => c(AgentInstanceQueryController).getByReference(ref),
-    updateVisibility: (c, i) => c(AgentInstanceCommandController).updateVisibility(i),
   },
   {
     kind: ApiResourceKind.agent_share,

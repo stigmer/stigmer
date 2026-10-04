@@ -329,7 +329,7 @@ describe("MessageThread slots", () => {
     );
 
     const exec = makeExecution({ id: "e1" });
-    exec.spec!.recalledMemories = create(RecalledMemoriesSchema, {
+    exec.status!.recalledMemories = create(RecalledMemoriesSchema, {
       enabled: true,
       facts: [
         { memoryId: "mem_a", content: "Prefers concise answers." },

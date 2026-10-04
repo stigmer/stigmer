@@ -20,7 +20,7 @@ function makeExecution(
   streamingUsage?: Record<string, unknown>,
 ): AgentExecution {
   return {
-    spec: { sessionId: SESSION_ID },
+    spec: { target: { case: "sessionId", value: SESSION_ID } },
     status: { phase, streamingUsage },
   } as unknown as AgentExecution;
 }

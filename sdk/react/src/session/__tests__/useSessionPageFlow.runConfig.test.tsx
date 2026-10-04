@@ -14,7 +14,7 @@ import { renderHook, act } from "@testing-library/react";
 const mockSendFollowUp = vi.fn();
 
 const mockConv = {
-  session: { spec: { agentInstanceId: "inst_bound" } },
+  session: { spec: {} },
   isLoading: false,
   completedExecutions: [] as unknown[],
   activeStreamExecution: null,
@@ -56,8 +56,8 @@ vi.mock("../usePersistedModel", () => ({
       : (["persisted-model", vi.fn()] as const)),
 }));
 
-vi.mock("../useAgentRefFromSession", () => ({
-  useAgentRefFromSession: () => ({ agentRef: null }),
+vi.mock("../useSessionAgentVersion", () => ({
+  useSessionAgentVersion: () => ({ isOutdated: false }),
 }));
 
 import { useSessionPageFlow } from "../useSessionPageFlow";

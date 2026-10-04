@@ -93,7 +93,8 @@ export function useDashboardFailedRuns(
         name: exec.metadata?.name || "Untitled execution",
         error: exec.status?.error ?? "",
         failedAt: ts ? timestampDate(ts) : EPOCH,
-        resourceName: exec.spec?.agentId ?? "",
+        // The agent the turn ran, as the server recorded it.
+        resourceName: exec.status?.agentId ?? "",
       };
     });
 

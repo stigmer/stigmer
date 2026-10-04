@@ -32,13 +32,11 @@ const FGA_KIND: Record<VisibilityResourceKind, string> = {
   plugin: "plugin",
   skill: "skill",
   mcpServer: "mcp_server",
-  agentInstance: "agent_instance",
   workflowInstance: "workflow_instance",
   environment: "environment",
 };
 
 const INSTANCE_KINDS: ReadonlySet<VisibilityResourceKind> = new Set([
-  "agentInstance",
   "workflowInstance",
 ]);
 

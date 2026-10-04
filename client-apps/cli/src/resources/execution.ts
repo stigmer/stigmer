@@ -161,7 +161,7 @@ const AGENT_EXECUTION_TABLE: TableShape = {
   headers: ["ID", "AGENT", "STATUS", "STARTED"],
   row: (json) => [
     str(obj(json, "metadata"), "id"),
-    dash(str(obj(json, "spec"), "agent_id")),
+    dash(str(obj(json, "status"), "agent_id")),
     phaseLabel(str(obj(json, "status"), "phase")),
     dash(str(obj(json, "status"), "started_at")),
   ],

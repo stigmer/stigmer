@@ -2,11 +2,11 @@
 //
 // Plain updates preserve the stored visibility on both editions — the
 // updateVisibility RPC is the only door for visibility changes, where the
-// server-side guards live (per-kind level support, default-instance
-// rejection). So when an apply tool's input declares a visibility and the
-// applied resource comes back with a different level (i.e. the resource
-// already existed), we follow up with one UpdateVisibility RPC on the same
-// controller. The CLI's skill-push and manifest-apply flows do the same.
+// server-side guards live (per-kind level support). So when an apply tool's
+// input declares a visibility and the applied resource comes back with a
+// different level (i.e. the resource already existed), we follow up with
+// one UpdateVisibility RPC on the same controller. The CLI's skill-push and
+// manifest-apply flows do the same.
 //
 // No-ops are skipped (input omitted visibility, create honored it, or the
 // stored level already matches), so an unchanged apply costs nothing extra.

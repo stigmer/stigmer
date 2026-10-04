@@ -53,8 +53,8 @@ vi.mock("../usePersistedModel", () => ({
   usePersistedModel: () => ["model-x", vi.fn()] as const,
 }));
 
-vi.mock("../useAgentRefFromSession", () => ({
-  useAgentRefFromSession: () => ({ agentRef: null }),
+vi.mock("../useSessionAgentVersion", () => ({
+  useSessionAgentVersion: () => ({ isOutdated: false }),
 }));
 
 import { useSessionPageFlow } from "../useSessionPageFlow";

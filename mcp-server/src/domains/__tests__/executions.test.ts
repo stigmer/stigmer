@@ -5,7 +5,8 @@
 // Same harness as reads.test.ts: a real Connect backend serving
 // stubbed controllers, the MCP server driven through an in-memory client. The
 // stubs capture requests so the tests assert the exact protos the tools send
-// (slug→ID resolution, runtime-env conversion, approval enum mapping) and
+// (slug→reference resolution, the turn's target, runtime-env conversion,
+// approval enum mapping) and
 // script execution state (running vs terminal, long message histories) to
 // exercise the compact projection and the cancel short-circuit.
 
@@ -34,6 +35,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import {
@@ -73,8 +75,9 @@ function agentExecutionFixture(phase: ExecutionPhase): AgentExecution {
     apiVersion: "v1",
     kind: "AgentExecution",
     metadata: { name: "run", org: "acme", id: "aex_1" },
-    spec: { agentId: "agt_1", sessionId: "ses_1", message: "review this" },
+    spec: { target: { case: "sessionId", value: "ses_1" }, message: "review this" },
     status: {
+      agentId: "agt_1",
       phase,
       messages: Array.from({ length: 8 }, (_, i) => ({ content: `msg-${i}` })),
       // Bulk fields the compact view must prune.
@@ -111,6 +114,7 @@ let lastAgentApproval: SubmitApprovalInput | undefined;
 let lastWorkflowApproval: SubmitWorkflowTaskApprovalInput | undefined;
 let lastPendingApprovalsRequest: ListPendingApprovalsRequest | undefined;
 let agentCancelCalls = 0;
+let agentLookups = 0;
 let workflowCancelCalls = 0;
 let lastWorkflowReferenceOrg: string | undefined;
 
@@ -129,7 +133,12 @@ function parseText(result: ToolResult): Record<string, unknown> {
 
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
-    router.service(AgentQueryController, { getByReference: () => knownAgent });
+    router.service(AgentQueryController, {
+      getByReference: () => {
+        agentLookups++;
+        return knownAgent;
+      },
+    });
     router.service(AgentExecutionQueryController, {
       get: () => agentExecutionState,
     });
@@ -198,6 +207,7 @@ beforeEach(() => {
   lastWorkflowApproval = undefined;
   lastPendingApprovalsRequest = undefined;
   agentCancelCalls = 0;
+  agentLookups = 0;
   workflowCancelCalls = 0;
   lastWorkflowReferenceOrg = undefined;
 });
@@ -224,7 +234,7 @@ describe("execution tools integration", () => {
     );
   });
 
-  it("run_agent resolves the slug and creates the execution", async () => {
+  it("run_agent resolves the slug and starts a new conversation on the agent's reference", async () => {
     const result = await callTool("run_agent", {
       org: "acme",
       agent: "code-reviewer",
@@ -233,9 +243,16 @@ describe("execution tools integration", () => {
     });
     expect(result.isError).toBeFalsy();
 
-    expect(createdAgentExecution?.spec?.agentId).toBe("agt_1");
+    const target = createdAgentExecution?.spec?.target;
+    expect(target?.case).toBe("sessionSpec");
+    // The agent by reference, no version: the session pins the current one.
+    expect(target?.case === "sessionSpec" ? target.value.agentRef : undefined).toMatchObject({
+      kind: ApiResourceKind.agent,
+      org: "acme",
+      slug: "code-reviewer",
+      version: "",
+    });
     expect(createdAgentExecution?.spec?.message).toBe("review this PR");
-    expect(createdAgentExecution?.spec?.sessionId).toBe("");
     expect(createdAgentExecution?.metadata?.org).toBe("acme");
     // Runtime env values through MCP are never secrets.
     expect(createdAgentExecution?.spec?.runtimeEnv?.REPO?.value).toBe("stigmer/stigmer");
@@ -253,7 +270,10 @@ describe("execution tools integration", () => {
       message: "and the tests?",
       session_id: "ses_42",
     });
-    expect(createdAgentExecution?.spec?.sessionId).toBe("ses_42");
+    // The session id alone: the session runs the agent it started on, so the
+    // tool neither looks the agent up nor names it.
+    expect(createdAgentExecution?.spec?.target).toEqual({ case: "sessionId", value: "ses_42" });
+    expect(agentLookups).toBe(0);
     // The follow-up names no organization: the server files it under the
     // session's, which may differ from the agent's (stigmer/stigmer#1580).
     expect(createdAgentExecution?.metadata?.org).toBe("");

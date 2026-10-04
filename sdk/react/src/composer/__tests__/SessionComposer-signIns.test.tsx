@@ -24,7 +24,6 @@ vi.mock("../../portal-container", () => ({
 const mockAgentSetup = {
   state: { status: "idle", error: null } as Record<string, unknown>,
   resolveAgent: vi.fn(),
-  resolveToInstance: vi.fn(),
   submitEnvVars: vi.fn(),
   signInCompleted: vi.fn(),
   reset: vi.fn(),

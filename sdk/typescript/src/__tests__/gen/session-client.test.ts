@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { Transport } from "@connectrpc/connect";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionClient, type SessionInput } from "../../gen/session";
 
@@ -81,14 +82,17 @@ describe("SessionClient proto serialization", () => {
     const input: SessionInput = {
       name: "s1",
       org: "o1",
-      agentInstanceId: "ai-123",
+      agentRef: { org: "o1", slug: "deploy-helper" },
       subject: "Help with deployment",
     };
 
     await client.create(input);
 
     const proto = captured[0].message as Session;
-    expect(proto.spec?.agentInstanceId).toBe("ai-123");
+    expect(proto.spec?.agentRef?.org).toBe("o1");
+    expect(proto.spec?.agentRef?.slug).toBe("deploy-helper");
+    expect(proto.spec?.agentRef?.kind).toBe(ApiResourceKind.agent);
+    expect(proto.spec?.agentRef?.version).toBe("");
     expect(proto.spec?.subject).toBe("Help with deployment");
   });
 
@@ -96,7 +100,7 @@ describe("SessionClient proto serialization", () => {
     await client.create({ name: "minimal", org: "org" });
 
     const proto = captured[0].message as Session;
-    expect(proto.spec?.agentInstanceId).toBe("");
+    expect(proto.spec?.agentRef).toBeUndefined();
     expect(proto.spec?.subject).toBe("");
   });
 

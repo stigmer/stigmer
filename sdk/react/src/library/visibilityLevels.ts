@@ -133,7 +133,7 @@ export function blueprintVisibilityLevels(
 }
 
 /**
- * The levels an instance (agent_instance, workflow_instance) selector
+ * The levels an instance (workflow_instance) selector
  * offers, in escalation order: Private / Organization.
  *
  * Platform is deliberately absent — instances are tenant-isolated by

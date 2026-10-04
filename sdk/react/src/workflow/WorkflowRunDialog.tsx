@@ -32,8 +32,7 @@ export interface WorkflowRunDialogProps {
    * clicked. Applied on each open transition (after the form resets);
    * ignored when the id is not in `instances`, so a stale id degrades
    * to the default option. Omit (or pass `null`) for the
-   * server-resolved default. Same convention as
-   * {@link SessionComposer}'s `initialInstanceId`.
+   * server-resolved default.
    */
   readonly initialInstanceId?: string | null;
   /**

@@ -9,7 +9,6 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useAgent } from "./useAgent.js";
 import { useUpdateAgent } from "./useUpdateAgent.js";
@@ -32,7 +31,6 @@ import { InlineEditImage } from "../inline-edit/InlineEditImage.js";
 import { InlineEditKeyValue } from "../inline-edit/InlineEditKeyValue.js";
 import { InlineEditResourceList } from "../inline-edit/InlineEditResourceList.js";
 import type { KeyValueRow, ResourceRefRow } from "../inline-edit/types.js";
-import { AgentInstanceList } from "../agent-instance/AgentInstanceList.js";
 import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
 import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
@@ -43,7 +41,6 @@ import { useAgentVersionCount } from "./useAgentVersions.js";
 const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
-const INSTANCES_TAB: TabItem = { id: "instances", label: "Instances" };
 const SHARES_TAB: TabItem = { id: "shares", label: "Shares" };
 const DEPENDENCIES_TAB: TabItem = { id: "dependencies", label: "Dependencies" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
@@ -141,11 +138,6 @@ export interface AgentDetailViewProps {
    */
   readonly onResourceUpdated?: (agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent) => void;
   /**
-   * Called when the user clicks "Create Instance" in the Instances tab.
-   * Opens the create instance dialog.
-   */
-  readonly onCreateInstanceClick?: () => void;
-  /**
    * Builds the absolute public chat URL for shares in the Shares tab.
    * The host application owns URL construction — its configured public
    * origin may differ from the rendering origin (e.g. the desktop app).
@@ -154,34 +146,6 @@ export interface AgentDetailViewProps {
    * `/chat/<share id>` path.
    */
   readonly buildShareUrl?: (shareId: string) => string;
-  /**
-   * The viewer's active organization id, feeding the Instances tab: it
-   * scopes the instance list to this org's rows, so a member of several
-   * orgs sees the current org context only, and an instance of a
-   * platform-visible agent is created in the viewer's own org. Shares
-   * always live in the agent's organization and take no scope from here.
-   * Omit to default to the agent's own org.
-   */
-  readonly viewerOrg?: string;
-  /**
-   * Called when the user clicks an instance row in the Instances tab.
-   * Typically opens an instance detail panel.
-   */
-  readonly onInstanceClick?: (instance: AgentInstance) => void;
-  /**
-   * Called when the user clicks "Start session" on a specific instance.
-   * The session is created pre-bound to the chosen instance's environment.
-   */
-  readonly onInstanceStartSessionClick?: (instance: AgentInstance) => void;
-  /**
-   * Called when the user clicks "Delete" on a specific instance.
-   */
-  readonly onInstanceDeleteClick?: (instance: AgentInstance) => void;
-  /**
-   * Increment this value to trigger a refetch of the instance list.
-   * Useful after externally creating or deleting an instance.
-   */
-  readonly instancesRefreshKey?: number;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -241,12 +205,6 @@ export function AgentDetailView({
   editable: editableProp = false,
   onResourceUpdated,
   buildShareUrl,
-  viewerOrg,
-  onCreateInstanceClick,
-  onInstanceClick,
-  onInstanceStartSessionClick,
-  onInstanceDeleteClick,
-  instancesRefreshKey,
   onPluginClick,
   className,
 }: AgentDetailViewProps) {
@@ -307,7 +265,6 @@ export function AgentDetailView({
   const builtInTabs = useMemo<readonly TabItem[]>(
     () => [
       OVERVIEW_TAB,
-      INSTANCES_TAB,
       SHARES_TAB,
       ...(noDeps ? [] : [DEPENDENCIES_TAB]),
       { ...VERSIONS_TAB, ...(versionCount > 0 && { badge: versionCount }) },
@@ -438,20 +395,6 @@ export function AgentDetailView({
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
-  } else if (effectiveActiveTab === "instances") {
-    tabContent = (
-      <AgentInstanceList
-        agentId={meta?.id ?? ""}
-        defaultInstanceId={agent.status?.defaultInstanceId}
-        org={org}
-        viewerOrg={viewerOrg}
-        onCreateClick={onCreateInstanceClick}
-        onInstanceClick={onInstanceClick}
-        onStartSessionClick={onInstanceStartSessionClick}
-        onDeleteClick={onInstanceDeleteClick}
-        refreshKey={instancesRefreshKey}
-      />
-    );
   } else if (effectiveActiveTab === "shares") {
     tabContent = (
       <AgentShareList

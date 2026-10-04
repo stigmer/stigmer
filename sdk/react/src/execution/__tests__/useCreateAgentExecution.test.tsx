@@ -96,7 +96,7 @@ describe("useCreateAgentExecution — one-call session bootstrap (sessionSpec)",
         org: "acme",
         message: "Customize the landing page",
         sessionSpec: {
-          agentInstanceId: "ain-1",
+          agentRef: { org: "acme", slug: "site-builder" },
           workspaceEntries: [
             { name: "site", source: { localPath: { path: "/repos/site" } } },
           ],
@@ -110,7 +110,7 @@ describe("useCreateAgentExecution — one-call session bootstrap (sessionSpec)",
     const input = mockCreate.mock.calls[0][0];
     expect(input.sessionId).toBeUndefined();
     expect(input.sessionSpec).toMatchObject({
-      agentInstanceId: "ain-1",
+      agentRef: { org: "acme", slug: "site-builder" },
       harness: Harness.NATIVE,
       executionTarget: ExecutionTarget.LOCAL,
     });
@@ -128,7 +128,7 @@ describe("useCreateAgentExecution — one-call session bootstrap (sessionSpec)",
       await result.current.create({
         org: "acme",
         message: "Hello",
-        sessionSpec: { agentInstanceId: "ain-1" },
+        sessionSpec: { agentRef: { org: "acme", slug: "site-builder" } },
       });
     });
 
@@ -147,7 +147,7 @@ describe("useCreateAgentExecution — one-call session bootstrap (sessionSpec)",
         org: "acme",
         message: "Hello",
         sessionSpec: {
-          agentInstanceId: "ain-1",
+          agentRef: { org: "acme", slug: "site-builder" },
           metadata: { "acme/tenant": "t-1" },
         },
       });
@@ -167,7 +167,7 @@ describe("useCreateAgentExecution — one-call session bootstrap (sessionSpec)",
         org: "acme",
         message: "Hello",
         sessionSpec: {
-          agentInstanceId: "ain-1",
+          agentRef: { org: "acme", slug: "site-builder" },
           sessionContext: "Role: platform admin",
         },
       });
@@ -189,7 +189,7 @@ describe("useCreateAgentExecution — one-call session bootstrap (sessionSpec)",
         org: "acme",
         message: "Hello",
         sessionSpec: {
-          agentInstanceId: "ain-1",
+          agentRef: { org: "acme", slug: "site-builder" },
           metadata: {
             "acme/tenant": "t-1",
             "stigmer.ai/session-context": "stale raw value",
@@ -215,7 +215,7 @@ describe("useCreateAgentExecution — one-call session bootstrap (sessionSpec)",
       await result.current.create({
         org: "acme",
         message: "Hello",
-        sessionSpec: { agentInstanceId: "ain-1" },
+        sessionSpec: { agentRef: { org: "acme", slug: "site-builder" } },
       });
     });
 
@@ -226,7 +226,7 @@ describe("useCreateAgentExecution — one-call session bootstrap (sessionSpec)",
   it("returns the server-assigned session id from the bootstrap response", async () => {
     mockCreate.mockResolvedValueOnce({
       metadata: { id: "aex-1" },
-      spec: { sessionId: "ses-created" },
+      spec: { target: { case: "sessionId", value: "ses-created" } },
     });
     const { result } = renderHook(() => useCreateAgentExecution(), {
       wrapper: createWrapper(makeMockClient()),
@@ -237,7 +237,7 @@ describe("useCreateAgentExecution — one-call session bootstrap (sessionSpec)",
       created = await result.current.create({
         org: "acme",
         message: "Hello",
-        sessionSpec: { agentInstanceId: "ain-1" },
+        sessionSpec: { agentRef: { org: "acme", slug: "site-builder" } },
       });
     });
 

@@ -7,9 +7,8 @@
  * the OAuth popup. The detail view and the panel are pinned in
  * @stigmer/react.
  *
- * Also pins how the page names organizations: the viewer's org reaches the
- * view as its id, and a referenced resource, which names its org by id,
- * opens at a URL carrying the org's slug. A share link names neither: it
+ * Also pins how the page names organizations: a referenced resource, which
+ * names its org by id, opens at a URL carrying the org's slug. A share link names neither: it
  * points at the web console's `/chat/<share id>`, never the Tauri origin.
  */
 import type { ReactElement } from "react";
@@ -34,7 +33,7 @@ interface PanelProps {
 
 interface DetailProps {
   additionalTabs: Tab[];
-  viewerOrg: string;
+  viewerOrg?: string;
   onSkillClick: (ref: { org: string; slug: string }) => void;
   onMcpServerClick: (ref: { org: string; slug: string }) => void;
   onPluginClick: (ref: { org: string; slug: string }) => void;
@@ -56,17 +55,14 @@ vi.mock("@stigmer/react", () => ({
     page.detail.push(props);
     return null;
   },
-  CreateAgentInstanceDialog: () => null,
   EditResourceYamlDialog: () => null,
   ConfirmDialog: () => null,
   useAgent: () => ({ agent: page.agent, refetch: noop }),
-  useDeleteAgentInstance: () => ({ deleteInstance: noop }),
   useCopyResource: () => ({ copyId: noop, copyQualifiedSlug: noop }),
   useConfirmAction: () => ({ confirmState: null, confirm: noop, handleConfirm: noop, handleCancel: noop }),
   useDeleteResource: () => ({ deleteResource: noop, isDeleting: false }),
   useExportResource: () => ({ copyYaml: noop, copyJson: noop, downloadYaml: noop }),
   useBreadcrumbOverride: () => ({ setLabel: noop }),
-  useActiveOrgId: () => "org_01jaaaaaaaaaaaaaaaaaaaaaaa",
   // The person's organizations: their one org reads "acme" in a URL.
   useOrgSlugForId: () => (id: string) =>
     id === "org_01jaaaaaaaaaaaaaaaaaaaaaaa" ? "acme" : id,
@@ -131,11 +127,11 @@ describe("desktop AgentDetailPage — the Channels tab", () => {
 });
 
 describe("desktop AgentDetailPage — organizations", () => {
-  it("scopes the view to the viewer's org by id while the URL carries the slug", () => {
+  it("passes no viewer org: an agent has no instances to scope", () => {
     page.agent = AGENT;
     renderAgent();
 
-    expect(page.detail.at(-1)?.viewerOrg).toBe(ACME_ID);
+    expect(page.detail.at(-1)?.viewerOrg).toBeUndefined();
   });
 
   it("opens a referenced skill at a URL carrying its org's slug", () => {

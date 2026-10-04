@@ -1,11 +1,15 @@
 // Agent-execution start path for the run_agent tool.
 //
 // Mirrors the CLI's run stack (client-apps/cli/src/resources/run/create.ts):
-// starting an agent is a single AgentExecutionCommandController.create call —
-// the server bootstraps the session, resolves the agent's default instance
-// (auto-creating if missing), and dispatches the message. The MCP layer only
-// resolves the org/slug reference to the agent ID first, over the same
-// transport (the two-step pattern the delete tools use).
+// starting an agent is a single AgentExecutionCommandController.create call
+// whose target is either an existing session (by id alone: the session pins
+// the agent it started on) or the session_spec of a new conversation naming
+// the agent by reference. The server bootstraps that session, pins the
+// agent's current version on it, and dispatches the message. For a new
+// conversation the MCP layer first resolves the org/slug reference over the
+// same transport (the two-step pattern the delete tools use), so a missing
+// agent reads as the tool's own not-found error and an empty org on a
+// single-organization server lands on the agent's real organization.
 //
 // The tool is deliberately asynchronous: it returns the created execution
 // (with its aex_* ID) immediately and the run continues in the background.
@@ -17,12 +21,17 @@ import { create as createMessage } from "@bufbuild/protobuf";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import {
+  type AgentExecutionSpec,
+  AgentExecutionSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import {
   ExecutionValueSchema,
   type ExecutionValue,
 } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { withTransport } from "../client.js";
@@ -41,8 +50,9 @@ export interface RunAgentArgs {
 }
 
 /**
- * Start an agent execution: resolve org/slug → agent ID, then create the
- * execution. Returns the created execution as protojson (small at creation
+ * Start an agent execution: a follow-up in an existing session sends the
+ * session id alone; a new conversation resolves org/slug and names the agent
+ * by reference. Returns the created execution as protojson (small at creation
  * time — status is empty until the runner picks it up).
  */
 export async function runAgent(
@@ -52,16 +62,30 @@ export async function runAgent(
 ): Promise<string> {
   const desc = `agent "${args.agent}" in org "${args.org}"`;
   return withTransport(serverAddress, token, async (transport, callOptions) => {
-    const query = createClient(AgentQueryController, transport);
-    let agentId: string;
-    try {
-      const agent = await query.getByReference(
-        { org: args.org, kind: ApiResourceKind.agent, slug: args.agent },
-        callOptions,
-      );
-      agentId = agent.metadata?.id ?? "";
-    } catch (err) {
-      throw rpcError(err, desc);
+    const sessionId = args.sessionId ?? "";
+    let target: AgentExecutionSpec["target"];
+    if (sessionId !== "") {
+      target = { case: "sessionId", value: sessionId };
+    } else {
+      const query = createClient(AgentQueryController, transport);
+      try {
+        const agent = await query.getByReference(
+          { org: args.org, kind: ApiResourceKind.agent, slug: args.agent },
+          callOptions,
+        );
+        target = {
+          case: "sessionSpec",
+          value: createMessage(SessionSpecSchema, {
+            agentRef: createMessage(ApiResourceReferenceSchema, {
+              kind: ApiResourceKind.agent,
+              org: agent.metadata?.org ?? "",
+              slug: agent.metadata?.slug ?? "",
+            }),
+          }),
+        };
+      } catch (err) {
+        throw rpcError(err, desc);
+      }
     }
 
     const execution = createMessage(AgentExecutionSchema, {
@@ -73,14 +97,13 @@ export async function runAgent(
       // agent's would refuse a session started with another org's agent.
       metadata: createMessage(ApiResourceMetadataSchema, {
         name: executionName(),
-        org: (args.sessionId ?? "") === "" ? args.org : "",
+        org: sessionId === "" ? args.org : "",
       }),
       spec: createMessage(AgentExecutionSpecSchema, {
         // Empty message means "just run" — the CLI applies the same default.
         message: args.message === "" ? "execute" : args.message,
         runtimeEnv: toExecutionValues(args.runtimeEnv),
-        sessionId: args.sessionId ?? "",
-        agentId,
+        target,
       }),
     });
 

@@ -8,6 +8,9 @@ export type {
   SessionComposerSubmitContext,
 } from "./SessionComposer.js";
 
+export { PersonalKeyDisclosure } from "./PersonalKeyDisclosure.js";
+export type { PersonalKeyDisclosureProps } from "./PersonalKeyDisclosure.js";
+
 export { InteractionModePicker } from "./InteractionModePicker.js";
 export type {
   InteractionModePickerProps,

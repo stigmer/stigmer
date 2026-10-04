@@ -5,8 +5,7 @@
 // LIST_HANDLERS — either because the kind is not search-indexed (API keys,
 // agent channels, channel apps, schedules) or because the dedicated RPC is
 // the better list surface than the kind's search index (organizations are
-// caller-scoped; agent instances and sessions carry columns search results
-// don't have). Same map-dispatch shape as the get, delete, and apply
+// caller-scoped; sessions carry columns search results don't have). Same map-dispatch shape as the get, delete, and apply
 // registries, so the conformance test in registry/registry.test.ts can hold
 // all four to the verb matrix.
 //
@@ -23,8 +22,6 @@
 import { create, type DescMessage, type Message } from "@bufbuild/protobuf";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { ListAgentChannelsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ListChannelAppsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -36,7 +33,7 @@ import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/paginatio
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { BUILT_IN_ASSISTANT_NAME, type Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import type { OutputFormat } from "../output/index.js";
 import { readCursorPages } from "./cursor-pages.js";
@@ -121,22 +118,6 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
     },
   ],
   [
-    ApiResourceKind.agent_instance,
-    async (client, org, limit) => {
-      const result = await client.agentInstance.list(
-        create(ListAgentInstancesRequestSchema, {
-          org,
-          pageInfo: create(PageInfoSchema, { num: 1, size: limit }),
-        }),
-      );
-      return {
-        schema: AgentInstanceSchema,
-        entries: result.items,
-        table: INSTANCE_TABLE,
-      };
-    },
-  ],
-  [
     ApiResourceKind.agent_channel,
     async (client, org, limit) => {
       const result = await client.agentChannel.list(
@@ -196,9 +177,9 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
     ApiResourceKind.session,
     async (client, _org, limit) => {
       // Sessions ARE search-indexed, but list deliberately uses the dedicated
-      // RPC: the table's columns (agent instance, subject) don't exist on
+      // RPC: the table's columns (agent, subject) don't exist on
       // SearchResult rows, and the RPC is caller-scoped like organization and
-      // api_key above — the agent_instance precedent, not an oversight.
+      // api_key above.
       // Promoted from a bespoke pre-gate route in commands/list.ts by
       // stigmer/stigmer#469 (it had shipped working-but-unadvertised).
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
@@ -276,33 +257,31 @@ export const SEARCH_TABLE: TableShape = {
 };
 
 // A session's identity for follow-up commands is its ID (`stigmer session
-// resume <id>`), so the ID leads; agent instance and subject are how a human
+// resume <id>`), so the ID leads; agent and subject are how a human
 // recognizes which conversation it was.
 const SESSION_TABLE: TableShape = {
   resourceName: "sessions",
   headers: ["SESSION ID", "AGENT", "SUBJECT", "CREATED"],
-  row: (json) => [
+  orgs: (json) => [str(obj(obj(json, "spec"), "agent_ref"), "org")],
+  row: (json, orgLabel) => [
     str(obj(json, "metadata"), "id"),
-    str(obj(json, "spec"), "agent_instance_id") || "-",
+    sessionAgent(json, orgLabel),
     truncate(str(obj(json, "spec"), "subject") || "-", 50),
     date(str(obj(json, "metadata"), "created_at")),
   ],
 };
 
-const INSTANCE_TABLE: TableShape = {
-  resourceName: "agent instances",
-  headers: ["ID", "SLUG", "AGENT", "DESCRIPTION"],
-  row: (json) => {
-    const metadata = obj(json, "metadata");
-    const spec = obj(json, "spec");
-    return [
-      str(metadata, "id"),
-      str(metadata, "slug"),
-      str(spec, "agent_id"),
-      truncate(str(spec, "description"), 50),
-    ];
-  },
-};
+// The agent a session names, as `org/slug`, or the built-in assistant's
+// name when it names none and pins none (the reading `isBuiltInAssistant`
+// gives a Session). A session that pins an agent its reference no longer
+// carries shows the pinned id rather than claiming the assistant.
+function sessionAgent(json: JsonObject, orgLabel: OrgLabel): string {
+  const agentRef = obj(obj(json, "spec"), "agent_ref");
+  const slug = str(agentRef, "slug");
+  if (slug !== "") return `${orgLabel(str(agentRef, "org"))}/${slug}`;
+  const pinned = str(obj(json, "status"), "agent_id");
+  return pinned !== "" ? pinned : BUILT_IN_ASSISTANT_NAME;
+}
 
 // A channel serves traffic only when installed AND enabled (the install
 // lifecycle and the owner's serving switch are deliberately distinct), so
