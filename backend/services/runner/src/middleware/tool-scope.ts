@@ -102,11 +102,14 @@ function toolNameOf(tool: unknown): string | undefined {
   return typeof name === "string" ? name : undefined;
 }
 
-/** Whether a canonical virtual path lies under one of `roots`; a `..` that survives normalization never does. */
+/**
+ * Whether a virtual path lies under one of `roots`. Only an absolute path
+ * qualifies, and it is normalized first, so a `..` can never climb out of a
+ * root (normalizing an absolute path leaves none).
+ */
 export function isUnderConfinedRoot(rawPath: unknown, roots: readonly string[]): boolean {
   if (typeof rawPath !== "string" || !rawPath.startsWith("/")) return false;
   const normalized = posix.normalize(rawPath);
-  if (normalized.split("/").includes("..")) return false;
   return roots.some((root) => normalized.startsWith(root));
 }
 

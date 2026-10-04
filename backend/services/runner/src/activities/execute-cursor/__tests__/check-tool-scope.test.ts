@@ -15,15 +15,21 @@ import type { TurnInput } from "../../../harness/types.js";
 import { ToolListResolutionError, ToolScope, type ToolLists } from "../../../shared/tool-lists.js";
 import { CursorToolListRefusal, checkToolScope } from "../turn-setup.js";
 
+/** One resolved server as the inventory reads it: its slug and what discovery knows. */
+interface ServerFacts {
+  readonly slug: string;
+  readonly discoveredToolNames: readonly string[] | null;
+}
+
 /** The four fields `checkToolScope` reads, as a turn input. */
-function input(lists: ToolLists, subAgentLists: ToolLists[] = []): TurnInput {
+function input(lists: ToolLists, subAgentLists: ToolLists[] = [], servers: readonly ServerFacts[] = []): TurnInput {
   const subAgents = subAgentLists.map((l, i) =>
     create(SubAgentSchema, { name: `sub-${i}`, tools: [...l.tools], disallowedTools: [...l.disallowedTools] }),
   );
   return {
     executionId: "aex-1",
     blueprint: { subAgents },
-    mcp: { toolScope: ToolScope.of('Agent "a"', lists), servers: [] },
+    mcp: { toolScope: ToolScope.of('Agent "a"', lists), servers },
   } as unknown as TurnInput;
 }
 
@@ -45,6 +51,32 @@ describe("checkToolScope", () => {
       });
     expect(run).toThrow(CursorToolListRefusal);
     expect(run).toThrow('Sub-agent "sub-0" carries its own tool lists');
+  });
+
+  describe("an MCP entry resolves against the turn's servers", () => {
+    const servers: ServerFacts[] = [
+      { slug: "github", discoveredToolNames: ["list_prs"] },
+      { slug: "fresh", discoveredToolNames: null },
+    ];
+    const check = (tools: string[]) => () =>
+      checkToolScope(input({ tools, disallowedTools: [] }, [], servers), { agentMode: "local" });
+
+    it("a discovered tool and a whole attached server resolve", () => {
+      expect(check(["mcp__github__list_prs"])).not.toThrow();
+      expect(check(["mcp__github"])).not.toThrow();
+    });
+
+    it("a tool discovery never saw on a server it did see names nothing", () => {
+      expect(check(["mcp__github__merge_pr"])).toThrow(ToolListResolutionError);
+    });
+
+    it("any tool of a server never discovered resolves: absence cannot be proven", () => {
+      expect(check(["mcp__fresh__anything"])).not.toThrow();
+    });
+
+    it("a server the turn does not have names nothing", () => {
+      expect(check(["mcp__elsewhere__x"])).toThrow(ToolListResolutionError);
+    });
   });
 
   it("refuses a tools list that names nothing the turn has with the shared resolution error", () => {

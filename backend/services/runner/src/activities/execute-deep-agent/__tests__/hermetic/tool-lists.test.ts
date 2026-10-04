@@ -114,7 +114,9 @@ describe("ExecuteDeepAgent hermetic — tool lists", () => {
   it("a sub-agent's own lists refuse its call: one failed row in its transcript, nothing ran", async () => {
     const WORKER = "You are the hermetic worker.";
     const worker = create(SubAgentSchema, { name: "worker", description: "Works.", instructions: WORKER, tools: ["Read"] });
-    const record = deepAgentExecutionRecord({ message: "Delegate.", subAgents: [worker] });
+    // A second sub-agent with no lists of its own: it is not checked, and runs under the agent's scope.
+    const helper = create(SubAgentSchema, { name: "helper", description: "Helps.", instructions: "You help." });
+    const record = deepAgentExecutionRecord({ message: "Delegate.", subAgents: [worker, helper] });
     const scenario = beginDeepAgentScenario({
       env,
       clock,

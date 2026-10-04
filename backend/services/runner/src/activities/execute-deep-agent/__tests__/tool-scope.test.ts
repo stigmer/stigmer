@@ -318,6 +318,29 @@ describe("tool scope attribution, on the middleware itself", () => {
     expect(callRefused(config({ tools: ["mcp__a", "mcp__b"], disallowedTools: [] }), "search", undefined)).toBe(false);
   });
 
+  it("runs an in-scope built-in and refuses an out-of-scope one, by its native name", () => {
+    const cfg = config({ tools: ["Read"], disallowedTools: [] });
+    expect(callRefused(cfg, "read_file", undefined)).toBe(false);
+    expect(callRefused(cfg, "execute", undefined)).toBe(true);
+  });
+
+  it("leaves alone what carries no name (a provider tool), and passes a request with no tools through", () => {
+    const cfg: ToolScopeConfig = {
+      ...config({ tools: ["Read"], disallowedTools: [] }),
+      serverToolMap: new Map<string, readonly unknown[]>([["a", [serverA, { description: "nameless" }]]]),
+    };
+    const providerTool = { type: "web_search_20250305" };
+    expect(visibleTools(cfg, [providerTool, "not-an-object", serverA])).toEqual([providerTool, "not-an-object"]);
+
+    let passed: ModelCallRequest | undefined;
+    const request = { model: {}, messages: [], state: {}, runtime: {} } as ModelCallRequest;
+    void createToolScopeMiddleware(cfg).wrapModelCall!(request, (req) => {
+      passed = req;
+      return {} as never;
+    });
+    expect(passed, "no tools to filter: the request goes on as it came").toBe(request);
+  });
+
   it("hides an engine extra under an allow-list and leaves it under a deny-list", () => {
     const extra = { name: "some_engine_extra" };
     expect(visibleTools(config({ tools: ["Read"], disallowedTools: [] }), [extra])).toEqual([]);
@@ -338,6 +361,7 @@ describe("isUnderConfinedRoot", () => {
     expect(isUnderConfinedRoot("/.stigmer/../src/app.ts", roots)).toBe(false);
     expect(isUnderConfinedRoot("/.stigmerx/a", roots)).toBe(false);
     expect(isUnderConfinedRoot(".stigmer/a", roots)).toBe(false);
+    expect(isUnderConfinedRoot("/../.stigmer/a", roots), "normalized: a root-level `..` stays at the root").toBe(true);
     expect(isUnderConfinedRoot(undefined, roots)).toBe(false);
   });
 });

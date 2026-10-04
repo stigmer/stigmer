@@ -113,6 +113,28 @@ d("tool-list refusals on the timeline", () => {
     expect(detectUnattributedHookBlocks(messages, 0, ledger)).toEqual([]);
   });
 
+  it("a call still RUNNING at the boundary is settled too; a hook-blocked call of a tool no refusal names is not", async () => {
+    const h = setupCursorHookHarness({ lists: { tools: ["Read"], disallowedTools: [] } });
+    expect(h.decide(hookShell("ls")).permission).toBe("deny");
+    const fold = new CursorFold().events(
+      // The stream never reported the refused shell's end.
+      ev.toolCall("s1", "shell", "running", { command: "ls" }),
+      // A grep blocked by some other hook: our ledger refused no grep.
+      ev.toolCall("g1", "grep", "running", { pattern: "x" }),
+      ev.toolCall("g1", "grep", "error", { pattern: "x" }, HOOK_BLOCK),
+    );
+    expect(fold.row("s1").completedAt).toBe("");
+    const { messages, subAgentExecutions } = fold.status;
+    const ledger = await readDenialLedger(h.hitlDir);
+    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger)).toBe(1);
+    expect(fold.row("s1").status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(fold.row("s1").error).toContain("Shell is not available to this agent");
+    expect(fold.row("s1").isStreaming).toBe(false);
+    expect(fold.row("s1").completedAt, "a settled row is complete").not.toBe("");
+    expect(fold.row("g1").error).toBe(HOOK_BLOCK);
+    expect(detectUnattributedHookBlocks(messages, 0, ledger).map((b) => b.toolCallId)).toEqual(["g1"]);
+  });
+
   it("a row that failed for its own reason is left alone, even for a tool the lists confine", async () => {
     const h = setupCursorHookHarness({ lists: { tools: ["Grep"], disallowedTools: [] } });
     expect(h.decide(hookBuiltin("Read", { file_path: "/outside/secret.txt" })).permission).toBe("deny");

@@ -542,6 +542,10 @@ describe("V3ProtocolNormalizer", () => {
       expect(events.every((e) => "subAgentId" in e && e.subAgentId === "task-1")).toBe(true);
     });
 
+    it("ignores a refusal that names no call: there is no row to fail", () => {
+      expect(normalize(makeProtocolEvent("custom", { name: TOOL_REFUSED_EVENT, tool_name: "execute", message: "x" }))).toEqual([]);
+    });
+
     it("ignores any other custom event", () => {
       expect(normalize(makeProtocolEvent("custom", { name: "someone.else", tool_call_id: "c" }))).toEqual([]);
       expect(normalize(makeProtocolEvent("custom", { payload: 1 }))).toEqual([]);

@@ -636,7 +636,7 @@ function nativeBoundToolNames(options: { readonly shellCapable: boolean; readonl
  * anything: its native built-ins and the connected servers' live tools. The
  * platform's own servers are left out: no list can name them.
  */
-function turnToolInventory(
+export function turnToolInventory(
   boundNames: readonly string[],
   tools: DeepAgentTools,
   platformServerSlugs: ReadonlySet<string>,

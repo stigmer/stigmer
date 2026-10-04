@@ -232,10 +232,12 @@ function entryMatches(entry: ToolListEntry, subject: Subject): boolean {
       return entry.tool === null || entry.tool === subject.tool;
     case "unknown":
       return false;
+    /* v8 ignore start -- @preserve: the never arm; the compiler proves no entry kind reaches it */
     default: {
       const exhaustive: never = entry;
       throw new Error(`entryMatches: unknown entry ${String(exhaustive)}`);
     }
+    /* v8 ignore stop */
   }
 }
 
@@ -507,10 +509,12 @@ function entryNamesSomething(entry: ToolListEntry, inventory: TurnToolInventory)
       return entry.server === null ? inventory.anyMcp : inventory.hasMcp(entry.server, entry.tool);
     case "unknown":
       return false;
+    /* v8 ignore start -- @preserve: the never arm; the compiler proves no entry kind reaches it */
     default: {
       const exhaustive: never = entry;
       throw new Error(`entryNamesSomething: unknown entry ${String(exhaustive)}`);
     }
+    /* v8 ignore stop */
   }
 }
 
@@ -520,12 +524,16 @@ function entryInScope(entry: ToolListEntry, scope: ToolScope): boolean {
       return scope.allowsClaudeTool(entry.tool);
     case "mcp":
       return entry.tool === null ? scope.allowsMcpFamily(entry.server) : scope.allowsMcpTool(entry.server ?? "", entry.tool);
+    /* v8 ignore start -- @preserve: checkToolListResolution asks only an entry that names something, which an unknown one never does */
     case "unknown":
       return false;
+    /* v8 ignore stop */
+    /* v8 ignore start -- @preserve: the never arm; the compiler proves no entry kind reaches it */
     default: {
       const exhaustive: never = entry;
       throw new Error(`entryInScope: unknown entry ${String(exhaustive)}`);
     }
+    /* v8 ignore stop */
   }
 }
 

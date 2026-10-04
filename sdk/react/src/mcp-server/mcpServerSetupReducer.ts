@@ -368,8 +368,11 @@ export function mcpServerSetupReducer(
       return INITIAL_MCP_SETUP_STATE;
 
     default: {
+      // An action this reducer does not know (a caller built against a
+      // different version of the union) leaves the state as it was.
       const exhaustive: never = action;
-      return exhaustive;
+      void exhaustive;
+      return state;
     }
   }
 }

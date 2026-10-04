@@ -138,4 +138,27 @@ describe("AgentDetailView tool lists", () => {
       }),
     ]);
   });
+
+  it("keeps the existing sub-agents' lists when a sub-agent is added", async () => {
+    const { update } = renderView(
+      agentWith({
+        instructions: "Answer tickets.",
+        subAgents: [{ name: "researcher", tools: ["Read"], disallowedTools: ["Bash"] }],
+      }),
+      { editable: true },
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit sub-agents" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add sub-agent" }));
+    fireEvent.change(screen.getByPlaceholderText("Sub-agent name (required)"), {
+      target: { value: "writer" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(update.mock.calls[0][0].subAgents).toEqual([
+      expect.objectContaining({ name: "researcher", tools: ["Read"], disallowedTools: ["Bash"] }),
+      expect.objectContaining({ name: "writer" }),
+    ]);
+  });
 });

@@ -824,7 +824,7 @@ interface MockMcpClientOpts {
   tools: Array<{
     name: string;
     description: string;
-    inputSchema: any;
+    inputSchema: unknown;
     annotations?: { destructiveHint?: boolean; readOnlyHint?: boolean };
   }>;
   resourceTemplates?: Array<{ uriTemplate: string; name: string; description: string; mimeType: string }>;

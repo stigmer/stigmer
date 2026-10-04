@@ -1184,13 +1184,11 @@ function SubAgentDetails({
         </div>
       )}
 
-      {hasToolLists(sa) && (
-        <AgentToolLists
-          tools={sa.tools}
-          disallowedTools={sa.disallowedTools}
-          density="compact"
-        />
-      )}
+      <AgentToolLists
+        tools={sa.tools}
+        disallowedTools={sa.disallowedTools}
+        density="compact"
+      />
 
       {sa.skillRefs.length > 0 && (
         <div>

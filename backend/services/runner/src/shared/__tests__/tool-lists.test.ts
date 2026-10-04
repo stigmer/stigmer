@@ -110,6 +110,13 @@ describe("ToolScope resolution", () => {
     expect(scope.allowsMcpTool("github", "search")).toBe(true);
   });
 
+  it("an entry this runner does not know names nothing and governs nothing", () => {
+    const scope = scopeOf(["NoSuchTool", "Read"], ["AlsoUnknown"]);
+    expect(scope.allowsClaudeTool("Read")).toBe(true);
+    expect(scope.allowsClaudeTool("Bash"), "the unknown entry allows nothing").toBe(false);
+    expect(scopeOf([], ["AlsoUnknown"]).allowsClaudeTool("Bash"), "nor denies anything").toBe(true);
+  });
+
   it("an allow-list is exact: only what it names", () => {
     const scope = scopeOf(["Read", "Grep"]);
     expect(scope.allowsClaudeTool("Read")).toBe(true);
