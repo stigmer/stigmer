@@ -17,10 +17,9 @@
  * sweep needs no map from names back to sessions. A Sandbox whose session
  * has no executions (the session is gone, and its delete did not remove
  * the Sandbox) reads as idle since its creation and is suspended like any
- * other, and so is one of ours that names no session; both are logged.
- * One whose label names another session than its own name says is left
- * alone and logged, since its label cannot be trusted to say whose
- * idleness puts it to sleep. The sweep never deletes anything: deleting a
+ * other, and logged. One of ours whose label names no session, or another
+ * session than its own name says, is left alone and logged: no session's
+ * idleness can be trusted to put it to sleep. The sweep never deletes anything: deleting a
  * workspace is the session delete's act, and a wrong read must cost a
  * sleeping pod, not a user's files.
  *
@@ -119,7 +118,12 @@ export async function runAgentSandboxSweepPass(
     try {
       const sessionId = sandbox.labels[SANDBOX_ID_LABEL] ?? "";
       if (sessionId === "") {
-        await suspendUnnamed(sandbox, options);
+        // No label, no session to read: nothing says it is idle, and an
+        // ensure never puts the label back, so a sleep here could come
+        // mid-turn after every wake. Left alone, and said.
+        logger.warn("agent-sandbox sandbox names no session; left it alone", {
+          sandbox: sandbox.name,
+        });
         continue;
       }
       // A label that names another session than the Sandbox's own name
@@ -185,17 +189,4 @@ function decide(
     now: new Date(now),
     suspendAfterMs: options.settings.suspendAfterSeconds * 1000,
   });
-}
-
-async function suspendUnnamed(
-  sandbox: AgentSandboxView,
-  options: AgentSandboxSweepOptions,
-): Promise<void> {
-  const outcome = await options.driver.suspend(sandbox.name, async () => true);
-  if (outcome === "done") {
-    options.logger.error(
-      "agent-sandbox sandbox names no session; suspended it (its workspace is kept)",
-      { sandbox: sandbox.name },
-    );
-  }
 }

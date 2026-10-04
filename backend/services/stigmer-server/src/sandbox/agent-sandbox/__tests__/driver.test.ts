@@ -20,8 +20,10 @@
  *     failed one leaves the queue usable;
  *   - the sweep's suspend patches a Running Sandbox only when its guard,
  *     asked inside the queue, agrees, and skips one that is gone, being
- *     deleted or already Suspended without asking; the driver remembers
- *     its last ensure of each Sandbox until it deprovisions it.
+ *     deleted or already Suspended without asking; a suspend and an ensure
+ *     of one Sandbox take turns in its queue, neither starting before the
+ *     other ends; the driver remembers its last ensure of each Sandbox
+ *     until it deprovisions it.
  */
 import { describe, expect, it } from "vitest";
 
@@ -430,6 +432,53 @@ describe("the sweep's suspend and the ensure record", () => {
     expect(cluster.calls.filter((call) => call.startsWith("patch"))).toEqual(
       [],
     );
+  });
+
+  it("a suspend waits behind an ensure of the same Sandbox, and an ensure behind a suspend", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    const { provisioner, internals } = driverWithInternals(cluster);
+    cluster.seed(buildAgentSandbox("session", "ses_1", env, config), "Running");
+    let release: () => void = () => {};
+    const applySecret = cluster.applySecret.bind(cluster);
+    cluster.applySecret = async (secret) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return applySecret(secret);
+    };
+    const ensured = provisioner.ensureSessionSandbox("ses_1", env);
+    const suspended = internals.suspend(name, async () => true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // The ensure holds the queue (blocked writing its Secret): the suspend
+    // has not read the Sandbox yet.
+    expect(cluster.calls).toEqual([`get:${name}`]);
+    release();
+    await Promise.all([ensured, suspended]);
+    expect(cluster.calls).toEqual([
+      `get:${name}`,
+      `secret:${name}-env`,
+      `get:${name}`,
+      `patch:${name}:Suspended`,
+    ]);
+
+    cluster.calls.length = 0;
+    cluster.applySecret = applySecret;
+    let proceed: (answer: boolean) => void = () => {};
+    const suspending = internals.suspend(
+      name,
+      () => new Promise<boolean>((resolve) => (proceed = resolve)),
+    );
+    cluster.sandboxes.get(name)!.operatingMode = "Running";
+    const waking = provisioner.ensureSessionSandbox("ses_1", env);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(cluster.calls).toEqual([`get:${name}`]);
+    proceed(false);
+    await Promise.all([suspending, waking]);
+    expect(cluster.calls).toEqual([
+      `get:${name}`,
+      `get:${name}`,
+      `secret:${name}-env`,
+    ]);
   });
 
   it("remembers when it last ensured a Sandbox, and forgets it on deprovision", async () => {
