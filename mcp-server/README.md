@@ -39,8 +39,8 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
   session and a plain JSON reply: no tool sends anything outside its own
   response, so any number of replicas can serve, and a restart drops no
   client. `GET` and `DELETE` answer `405` (no stream to open, no session to
-  end), a body that is not JSON answers `400`, and a body over 4 MiB answers
-  `413`.
+  end), a body that is not JSON answers `400`, and a body over 10 MiB
+  (stigmer-server's own message limit) answers `413`.
 - **`apply_*` ergonomics are generated.** The flattened, LLM-friendly input
   schemas for the `apply_*` tools (metadata hoisting, enum→string, reference
   flattening, oneof / `task_config` expansion) are produced at build time by the
@@ -164,7 +164,8 @@ await run(defaultConfig(), controller.signal);
 ```
 
 Or mount the HTTP handler on a listener the host already runs, beside its own
-routes. The host answers its own probes; the handler serves the four MCP routes
+routes. The request must reach the handler unread (it reads the body itself,
+under its cap). The host answers its own probes; the handler serves the four MCP routes
 (`/`, `/channels`, `/conversation`, `/memory`) and the RFC 9728 metadata
 document, refuses any other path with `404`, and never rejects. The optional
 `authenticate` check lets a host that can verify tokens refuse one at the door:

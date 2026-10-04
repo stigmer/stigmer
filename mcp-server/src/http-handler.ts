@@ -50,10 +50,11 @@ import { trimTrailing } from "./trim.js";
 export const PROTECTED_RESOURCE_METADATA_PATH = "/.well-known/oauth-protected-resource";
 
 /**
- * Default request-body cap: gRPC's default maximum receive message size, so
- * no body this handler admits is one stigmer-server would refuse for size.
+ * Default request-body cap: stigmer-server's own message limit
+ * (MAX_MESSAGE_BYTES, 10 MiB, backend/services/stigmer-server/src/transport/constants.ts),
+ * so a tool call the server would accept is never refused here for size.
  */
-export const DEFAULT_MAX_BODY_BYTES = 4 * 1024 * 1024;
+export const DEFAULT_MAX_BODY_BYTES = 10 * 1024 * 1024;
 
 /**
  * A host's verdict on a bearer token: accepted (serve the request), refused
@@ -88,7 +89,10 @@ export interface McpHttpHandlerOptions extends McpHttpHandlerSettings {
   readonly target: BackendTarget;
 }
 
-/** A node:http request handler. It never rejects. */
+/**
+ * A node:http request handler. It never rejects. The request must reach it
+ * unread: the handler reads the body itself, under its cap.
+ */
 export type McpHttpHandler = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 
 /**
@@ -199,6 +203,9 @@ async function serveRequest(
         Connection: "close",
       });
       return;
+    case "consumed":
+      // A host mounted the handler behind something that read the body.
+      throw new Error("the request body was read before the MCP handler; mount it on an unread request");
     case "aborted":
       return;
     /* v8 ignore next 4 -- @preserve: the exhaustiveness guard; BodyRead is a closed union, so no value reaches it */
@@ -258,10 +265,18 @@ type BodyRead =
   | { readonly kind: "ok"; readonly body: unknown }
   | { readonly kind: "invalid" }
   | { readonly kind: "too-large" }
+  | { readonly kind: "consumed" }
   | { readonly kind: "aborted" };
 
-/** Read and parse a JSON body, never buffering more than `maxBytes`. */
+/**
+ * Read and parse a JSON body, never buffering more than `maxBytes`. A
+ * stream something else already read never emits again, so it is refused
+ * at once rather than waited on.
+ */
 function readBody(req: IncomingMessage, maxBytes: number): Promise<BodyRead> {
+  if (req.readableEnded) {
+    return Promise.resolve({ kind: "consumed" });
+  }
   const declared = Number(req.headers["content-length"]);
   if (Number.isFinite(declared) && declared > maxBytes) {
     return Promise.resolve({ kind: "too-large" });

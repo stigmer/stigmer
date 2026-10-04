@@ -232,6 +232,20 @@ describe("containment", () => {
     await expect(Promise.all(settled)).resolves.toBeDefined();
   });
 
+  it("answers 500 at once when the host already read the body, never waits on it", async () => {
+    const handler = createRoutedHandler(() => echoServer(), { authRequired: false, oauth: { ...OAUTH, enabled: false } });
+    host = createServer((req, res) => {
+      // A host mounted behind something that consumed the stream.
+      req.resume();
+      req.once("end", () => settled.push(handler(req, res)));
+    });
+    await new Promise<void>((resolve) => host!.listen(0, "127.0.0.1", resolve));
+    const base = `http://127.0.0.1:${(host.address() as AddressInfo).port}`;
+    const res = await fetch(`${base}/`, { method: "POST", headers: headers(), body: TOOLS_LIST, signal: AbortSignal.timeout(5_000) });
+    expect(res.status).toBe(500);
+    await expect(Promise.all(settled)).resolves.toBeDefined();
+  });
+
   it("logs a failing server close instead of rejecting", async () => {
     const server = echoServer();
     server.close = async () => {
