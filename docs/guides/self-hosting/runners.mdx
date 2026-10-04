@@ -195,8 +195,9 @@ delivers the way it delivers the runner's token, and
 `STIGMER_SANDBOX_RUNNER_ENV` for plain settings (`ANTHROPIC_BASE_URL`). The
 server refuses to boot when a listed variable is unset, when one name is on both
 lists, when the plain list names one of the runner's own secrets, when a list
-names a variable the driver sets itself, such as `STIGMER_TOKEN` or `HOME`, or
-when it names `NODE_OPTIONS` or `NODE_PATH`, which the runner clears at start.
+names a variable the driver sets itself, such as `STIGMER_TOKEN`, or, with any
+driver but `local-process`, when it names `HOME`, which those drivers set, or
+`NODE_OPTIONS` or `NODE_PATH`, which the runner image clears at start.
 
 The runner keeps its own secrets (the model and Cursor keys, and its Temporal
 and payload-encryption keys) out of every process an Agent starts. Any other

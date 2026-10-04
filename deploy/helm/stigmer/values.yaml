@@ -161,8 +161,9 @@ runner:
     storageClass: ""
   # The compose-runner image runs as root by its own contract (it installs
   # packages at runtime), as it does in compose. Every capability is
-  # dropped. A non-root runner image is an OSS follow-up; when it lands,
-  # set runAsNonRoot and runAsUser here.
+  # dropped. Root is required, not a default to tighten: the image's start
+  # script (/runner/bin/start) refuses to start the runner as any other
+  # user, so a runAsUser or runAsNonRoot here stops the pod at once.
   securityContext:
     allowPrivilegeEscalation: false
     capabilities:
