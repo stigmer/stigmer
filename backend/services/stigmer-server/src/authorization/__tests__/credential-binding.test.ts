@@ -321,6 +321,33 @@ describe("the rule, for a caller bound to one organization", () => {
     ).toBe("outside");
   });
 
+  it("refuses an instance that names no blueprint, or whose blueprint is gone", async () => {
+    const f = fixture([
+      row("agent_instance", "ain_orphan", BETA, { spec: { agentId: "" } }),
+      row("agent_instance", "ain_gone", BETA, { spec: { agentId: "agt_gone" } }),
+    ]);
+    const binding = newCredentialBinding(f.deps);
+    for (const id of ["ain_orphan", "ain_gone"]) {
+      expect(
+        await binding.verdict(boundTo(ALPHA), {
+          kind: ApiResourceKind.agent_instance,
+          id,
+          permission: VIEW,
+        }),
+      ).toBe("outside");
+    }
+  });
+
+  it("keeps list candidates by their facts: every one for an unbound caller, the organization by id, and kinds no organization owns", () => {
+    const binding = newCredentialBinding(fixture([]).deps);
+    const candidate = entry("x", BETA);
+    expect(binding.keepsEntry(unbound, ApiResourceKind.agent, candidate)).toBe(true);
+    expect(binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.organization, entry(ALPHA, ""))).toBe(true);
+    expect(binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.organization, entry(BETA, ""))).toBe(false);
+    expect(binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.api_key, candidate)).toBe(true);
+    expect(binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.agent, candidate)).toBe(false);
+  });
+
   it("reads a target once per caller object, and asks again after a failed read", async () => {
     const f = fixture([row("session", "ses_a", ALPHA)]);
     const binding = newCredentialBinding(f.deps);

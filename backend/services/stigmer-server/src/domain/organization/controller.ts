@@ -245,9 +245,7 @@ async function createOrganization(
     .addStep(newRefuseBoundCredentialStep())
     .addStep(newResolveSlugStep())
     .addStep(newValidateProtoStep())
-    .addStep(
-      newRefuseOrganizationOrgStep(newOrganizationNameResolver(deps.store)),
-    )
+    .addStep(newRefuseOrganizationOrgStep(newOrganizationNameResolver(deps.store)))
     .addStep(newValidateVisibilityStep())
     .addStep(newCheckOrgDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
@@ -404,9 +402,7 @@ async function apply(
     )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep())
-    .addStep(
-      newRefuseOrganizationOrgStep(newOrganizationNameResolver(deps.store)),
-    )
+    .addStep(newRefuseOrganizationOrgStep(newOrganizationNameResolver(deps.store)))
     .addStep(newLoadOrganizationForApplyStep(deps.store))
     .build()
     .execute(reqCtx);

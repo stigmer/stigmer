@@ -30,6 +30,7 @@
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { CLOUD_ENV, provisionConsolePerson, requireDirectLoginTenant } from "../harness/cloud-env";
+import { createTransport, makeClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { anthropicText, openAiText } from "@stigmer/test-support/llm-wire";
 import { makeAgent } from "../support/agents";
@@ -540,5 +541,6 @@ async function mintOutsiderToken(): Promise<string> {
   if (address === "") {
     throw new Error(`the proxy suite needs ${CLOUD_ENV.address} to mint an outsider`);
   }
-  return (await provisionConsolePerson(address, requireDirectLoginTenant())).token;
+  const presenting = (token: string) => makeClients(createTransport(address, { bearerToken: token }));
+  return (await provisionConsolePerson(requireDirectLoginTenant(), presenting)).token;
 }

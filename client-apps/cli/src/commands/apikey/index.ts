@@ -75,6 +75,7 @@ async function runCreate(options: ApiKeyCreateFlags): Promise<void> {
   const client = connectBackend();
   ensureAuthenticated(client.config);
 
+  /* v8 ignore next -- @preserve: the command's network half; apiKeyCreateInput, which builds the request it sends, is tested (__tests__/create-input.test.ts) */
   const created = await client.stigmer.apiKey.create(
     apiKeyCreateInput(
       options,

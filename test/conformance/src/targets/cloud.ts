@@ -371,7 +371,7 @@ export class CloudTarget implements TargetProfile {
   // provisioned: the outsider for isolation assertions.
   async provisionIdentity(): Promise<ConformanceClients> {
     const person = await this.newPerson("provisionIdentity");
-    return makeClients(createTransport(this.requireBaseUrl("provisionIdentity"), { bearerToken: person.token }));
+    return this.clientsPresenting(person.token);
   }
 
   // A brand-new console person granted exactly `member` on the tenancy, as
@@ -387,14 +387,14 @@ export class CloudTarget implements TargetProfile {
     }
     const person = await this.newPerson("provisionMember");
     await this.clients().iamPolicyCommand.create(organizationMemberGrant(organizationId, person.accountId));
-    return makeClients(createTransport(this.requireBaseUrl("provisionMember"), { bearerToken: person.token }));
+    return this.clientsPresenting(person.token);
   }
 
   private newPerson(caller: string): Promise<ConsolePerson> {
     if (this.tenant === undefined) {
       throw new Error(`CloudTarget.setup() must be called before ${caller}()`);
     }
-    return provisionConsolePerson(this.requireBaseUrl(caller), this.tenant);
+    return provisionConsolePerson(this.tenant, (token) => this.clientsPresenting(token));
   }
 
   async teardown(): Promise<void> {

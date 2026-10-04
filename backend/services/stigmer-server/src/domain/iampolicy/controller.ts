@@ -443,9 +443,7 @@ async function revokeOrgAccess(
   if (guardOwners) {
     const ownerRoleChange = orgAccessOwnerRoleChange(deps.policies);
     pipeline
-      .addStep(
-        newAuthorizeOwnerAssignmentStep(deps.authorizer, ownerRoleChange),
-      )
+      .addStep(newAuthorizeOwnerAssignmentStep(deps.authorizer, ownerRoleChange))
       .addStep(newKeepOneOwnerStep(deps.policies, ownerRoleChange));
   }
   await pipeline

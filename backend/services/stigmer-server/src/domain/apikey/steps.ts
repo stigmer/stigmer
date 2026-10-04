@@ -191,9 +191,7 @@ export function newPreserveKeyMaterialStep(): PipelineStep<ApiKeyDesc> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as ApiKey | undefined;
       if (existing === undefined) {
         throw internalError(
-          new Error(
-            "existing resource not in context - LoadExisting must run first",
-          ),
+          new Error("existing resource not in context - LoadExisting must run first"),
           "preserve key material",
         );
       }
@@ -232,10 +230,7 @@ export function newLoadByKeyHashStep(
     async execute(ctx: RequestContext<typeof ApiKeyHashSchema>): Promise<void> {
       const found = await findApiKeyByHash(store, ctx.input.value);
       if (found === undefined) {
-        throw new ConnectError(
-          API_KEY_NOT_FOUND_BY_HASH_MESSAGE,
-          Code.NotFound,
-        );
+        throw new ConnectError(API_KEY_NOT_FOUND_BY_HASH_MESSAGE, Code.NotFound);
       }
       ctx.set(TARGET_RESOURCE_KEY, found);
     },

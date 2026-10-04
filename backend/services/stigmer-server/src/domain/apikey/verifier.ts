@@ -95,10 +95,7 @@ import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import {
-  ApiKeySchema,
-  ApiKeyStatusSchema,
-} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import { ApiKeySchema, ApiKeyStatusSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -226,14 +223,9 @@ function recordKeyUse(
     now,
     logger,
     write: (stamp) =>
-      store.updateResource(
-        ApiResourceKind.api_key,
-        id,
-        ApiKeySchema,
-        (live) => {
-          live.status ??= create(ApiKeyStatusSchema);
-          stamp(live.status);
-        },
-      ),
+      store.updateResource(ApiResourceKind.api_key, id, ApiKeySchema, (live) => {
+        live.status ??= create(ApiKeyStatusSchema);
+        stamp(live.status);
+      }),
   });
 }

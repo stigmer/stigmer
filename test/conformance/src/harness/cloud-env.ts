@@ -20,11 +20,9 @@
 // organization they hold a role in, which is what the suites' founder,
 // member and outsider are. PlatformClient tokens appear only in the suites
 // that test PlatformClient.
-import { createClient } from "@connectrpc/connect";
-import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import type { DirectLoginTenant } from "../targets/target";
-import { createTransport } from "./clients";
+import type { ConformanceClients } from "./clients";
 import { newDirectLoginTenant, readDirectLoginTenantMaterial } from "./direct-login-tenant";
 import { organizationRoleGrant } from "./enforcing-lane";
 import { freshSubject } from "../support/identityaccounts";
@@ -123,17 +121,15 @@ export interface ConsolePerson {
 }
 
 // A brand-new person: a console token for a fresh subject, then the
-// first-login provisioning a console runs (provisionMyAccount), so the
-// person is a real account before any grant names them.
+// first-login provisioning a console runs (provisionMyAccount) through the
+// clients that present it, so the person is a real account before any grant
+// names them.
 export async function provisionConsolePerson(
-  grpcBaseUrl: string,
   tenant: DirectLoginTenant,
+  presenting: (token: string) => Pick<ConformanceClients, "identityAccountCommand">,
 ): Promise<ConsolePerson> {
   const token = tenant.mint({ subject: freshSubject(), ttlSeconds: CONSOLE_PERSON_TTL_SECONDS });
-  const account = await createClient(
-    IdentityAccountCommandController,
-    createTransport(grpcBaseUrl, { bearerToken: token }),
-  ).provisionMyAccount({});
+  const account = await presenting(token).identityAccountCommand.provisionMyAccount({});
   const accountId = account.metadata?.id ?? "";
   if (accountId === "") {
     throw new Error("provisionMyAccount answered no account for a fresh console person");
