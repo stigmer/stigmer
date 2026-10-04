@@ -98,7 +98,10 @@ type PluginStatus struct {
 	Materialized *PluginMaterialization `protobuf:"bytes,5,opt,name=materialized,proto3" json:"materialized,omitempty"`
 	// Warnings the last push recorded: components Stigmer does not carry,
 	// model hints it did not apply, names that shadow built-ins.
-	Warnings      []*PluginWarning `protobuf:"bytes,6,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	Warnings []*PluginWarning `protobuf:"bytes,6,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	// The plugin's hooks that run on Stigmer; unset when the plugin carries
+	// none that run.
+	Hooks         *HookConfig `protobuf:"bytes,7,opt,name=hooks,proto3" json:"hooks,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -178,6 +181,13 @@ func (x *PluginStatus) GetMaterialized() *PluginMaterialization {
 func (x *PluginStatus) GetWarnings() []*PluginWarning {
 	if x != nil {
 		return x.Warnings
+	}
+	return nil
+}
+
+func (x *PluginStatus) GetHooks() *HookConfig {
+	if x != nil {
+		return x.Hooks
 	}
 	return nil
 }
@@ -325,7 +335,7 @@ var File_ai_stigmer_agentic_plugin_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/plugin/v1/status.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xb3\x03\n" +
+	")ai/stigmer/agentic/plugin/v1/status.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xf3\x03\n" +
 	"\fPluginStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x120\n" +
 	"\x06digest\x18\x01 \x01(\tB\x18\xbaH\x15r\x132\x11^$|^[a-f0-9]{64}$R\x06digest\x120\n" +
@@ -333,7 +343,8 @@ const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\x05state\x18\x03 \x01(\x0e2).ai.stigmer.agentic.plugin.v1.PluginStateR\x05state\x12\x14\n" +
 	"\x05error\x18\x04 \x01(\tR\x05error\x12W\n" +
 	"\fmaterialized\x18\x05 \x01(\v23.ai.stigmer.agentic.plugin.v1.PluginMaterializationR\fmaterialized\x12G\n" +
-	"\bwarnings\x18\x06 \x03(\v2+.ai.stigmer.agentic.plugin.v1.PluginWarningR\bwarnings\"\x86\x01\n" +
+	"\bwarnings\x18\x06 \x03(\v2+.ai.stigmer.agentic.plugin.v1.PluginWarningR\bwarnings\x12>\n" +
+	"\x05hooks\x18\a \x01(\v2(.ai.stigmer.agentic.plugin.v1.HookConfigR\x05hooks\"\x86\x01\n" +
 	"\x15PluginMaterialization\x12\x16\n" +
 	"\x06skills\x18\x01 \x01(\x05R\x06skills\x12\x1f\n" +
 	"\vmcp_servers\x18\x02 \x01(\x05R\n" +
@@ -371,17 +382,19 @@ var file_ai_stigmer_agentic_plugin_v1_status_proto_goTypes = []any{
 	(*PluginMaterialization)(nil),        // 2: ai.stigmer.agentic.plugin.v1.PluginMaterialization
 	(*PluginWarning)(nil),                // 3: ai.stigmer.agentic.plugin.v1.PluginWarning
 	(*apiresource.ApiResourceAudit)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*HookConfig)(nil),                   // 5: ai.stigmer.agentic.plugin.v1.HookConfig
 }
 var file_ai_stigmer_agentic_plugin_v1_status_proto_depIdxs = []int32{
 	4, // 0: ai.stigmer.agentic.plugin.v1.PluginStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
 	0, // 1: ai.stigmer.agentic.plugin.v1.PluginStatus.state:type_name -> ai.stigmer.agentic.plugin.v1.PluginState
 	2, // 2: ai.stigmer.agentic.plugin.v1.PluginStatus.materialized:type_name -> ai.stigmer.agentic.plugin.v1.PluginMaterialization
 	3, // 3: ai.stigmer.agentic.plugin.v1.PluginStatus.warnings:type_name -> ai.stigmer.agentic.plugin.v1.PluginWarning
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	5, // 4: ai.stigmer.agentic.plugin.v1.PluginStatus.hooks:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_plugin_v1_status_proto_init() }
@@ -389,6 +402,7 @@ func file_ai_stigmer_agentic_plugin_v1_status_proto_init() {
 	if File_ai_stigmer_agentic_plugin_v1_status_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_plugin_v1_hooks_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

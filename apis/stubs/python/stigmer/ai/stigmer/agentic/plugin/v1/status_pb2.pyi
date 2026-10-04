@@ -1,3 +1,4 @@
+from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as _hooks_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
@@ -21,7 +22,7 @@ PLUGIN_STATE_READY: PluginState
 PLUGIN_STATE_FAILED: PluginState
 
 class PluginStatus(_message.Message):
-    __slots__ = ("audit", "digest", "artifact_storage_key", "state", "error", "materialized", "warnings")
+    __slots__ = ("audit", "digest", "artifact_storage_key", "state", "error", "materialized", "warnings", "hooks")
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     DIGEST_FIELD_NUMBER: _ClassVar[int]
     ARTIFACT_STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
@@ -29,6 +30,7 @@ class PluginStatus(_message.Message):
     ERROR_FIELD_NUMBER: _ClassVar[int]
     MATERIALIZED_FIELD_NUMBER: _ClassVar[int]
     WARNINGS_FIELD_NUMBER: _ClassVar[int]
+    HOOKS_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     digest: str
     artifact_storage_key: str
@@ -36,7 +38,8 @@ class PluginStatus(_message.Message):
     error: str
     materialized: PluginMaterialization
     warnings: _containers.RepeatedCompositeFieldContainer[PluginWarning]
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., digest: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., state: _Optional[_Union[PluginState, str]] = ..., error: _Optional[str] = ..., materialized: _Optional[_Union[PluginMaterialization, _Mapping]] = ..., warnings: _Optional[_Iterable[_Union[PluginWarning, _Mapping]]] = ...) -> None: ...
+    hooks: _hooks_pb2.HookConfig
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., digest: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., state: _Optional[_Union[PluginState, str]] = ..., error: _Optional[str] = ..., materialized: _Optional[_Union[PluginMaterialization, _Mapping]] = ..., warnings: _Optional[_Iterable[_Union[PluginWarning, _Mapping]]] = ..., hooks: _Optional[_Union[_hooks_pb2.HookConfig, _Mapping]] = ...) -> None: ...
 
 class PluginMaterialization(_message.Message):
     __slots__ = ("skills", "mcp_servers", "agents", "workflows")

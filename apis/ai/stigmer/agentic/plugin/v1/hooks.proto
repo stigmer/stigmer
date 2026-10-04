@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.plugin.v1;
+
+import "buf/validate/validate.proto";
+
+// HookConfig is the set of a plugin's hooks that run on Stigmer, in the format
+// the plugin wrote them.
+//
+// @internal
+// Derived at push from the plugin's hooks files (hooks/hooks.json and any
+// manifest-declared source) and stored on PluginStatus.hooks. It carries only
+// the events and handlers Stigmer runs; every event, handler type and field it
+// does not run is named in PluginStatus.warnings instead, so a reader needs no
+// table of its own to know what is live. Placeholders such as
+// ${CLAUDE_PLUGIN_ROOT} are kept verbatim; the runner substitutes them when it
+// mounts the plugin.
+message HookConfig {
+  // The format the hooks are written in, which decides their input and answer.
+  HookFormat format = 1;
+
+  // Hook groups, in the order the plugin declares them.
+  repeated HookGroup groups = 2;
+}
+
+// HookFormat is the hook format a plugin's hooks are written in.
+//
+// @internal
+// The one value the runner branches on: the JSON a hook reads on stdin, what
+// its matcher is tested against, and how its answer is parsed. Codex plugin
+// hooks are written in Claude Code's format and carry CLAUDE_CODE. This is
+// deliberately not PluginDialect, which is recorded for display and never
+// branches behaviour.
+enum HookFormat {
+  // Unspecified format (default/invalid).
+  HOOK_FORMAT_UNSPECIFIED = 0;
+
+  // Claude Code's hook format, also used by Codex plugins.
+  HOOK_FORMAT_CLAUDE_CODE = 1;
+
+  // Cursor's hook format.
+  HOOK_FORMAT_CURSOR = 2;
+}
+
+// HookGroup is one event, an optional matcher, and the handlers that run when
+// both match.
+message HookGroup {
+  // The event the handlers run on, spelled as the format spells it, e.g.
+  // "PreToolUse" or "beforeShellExecution".
+  string event = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Which calls the handlers run for, as written by the plugin; empty or "*"
+  // matches every call.
+  //
+  // @internal
+  // Kept verbatim: an exact list of names separated by "|" or ",", or an
+  // unanchored regular expression, with the format's own semantics. A Cursor
+  // handler's per-handler matcher becomes a group of one. Never rewritten to
+  // Stigmer names at install, because a hook's script sees the tool name too.
+  string matcher = 2;
+
+  // The handlers to run, in order.
+  repeated HookHandler handlers = 3;
+}
+
+// HookHandler is one command a hook runs.
+message HookHandler {
+  // The command to run, as written by the plugin.
+  string command = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Arguments for the command's exec form; when set, the command runs without
+  // a shell.
+  repeated string args = 2;
+
+  // Seconds the command may run before it is stopped; zero means the format's
+  // default.
+  int32 timeout_seconds = 3 [(buf.validate.field).int32.gte = 0];
+
+  // A permission rule that narrows when the handler runs, e.g.
+  // "Bash(git push *)"; empty means whenever the group matches.
+  //
+  // @internal
+  // Claude Code's "if" field, renamed because "if" is a keyword in every SDK
+  // language. Only its Tool or Tool(specifier) shape is checked at install;
+  // what the specifier matches is the runner's to evaluate.
+  string condition = 4;
+
+  // Whether a crash, timeout or missing answer blocks the call instead of
+  // letting it through.
+  //
+  // @internal
+  // Cursor's failClosed. Claude Code hooks fail open on a non-blocking error,
+  // so a Claude Code handler never sets it.
+  bool fail_closed = 5;
+}

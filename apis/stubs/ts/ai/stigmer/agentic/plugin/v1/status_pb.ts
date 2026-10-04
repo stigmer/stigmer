@@ -4,6 +4,8 @@
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { HookConfig } from "./hooks_pb.js";
+import { file_ai_stigmer_agentic_plugin_v1_hooks } from "./hooks_pb.js";
 import type { ApiResourceAudit } from "../../../commons/apiresource/status_pb.js";
 import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
@@ -13,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/plugin/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_plugin_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3N0YXR1cy5wcm90bxIcYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MSLqAgoMUGx1Z2luU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSKAoGZGlnZXN0GAEgASgJQhi6SBVyEzIRXiR8XlthLWYwLTldezY0fSQSHAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYAiABKAkSOAoFc3RhdGUYAyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblN0YXRlEg0KBWVycm9yGAQgASgJEkkKDG1hdGVyaWFsaXplZBgFIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luTWF0ZXJpYWxpemF0aW9uEj0KCHdhcm5pbmdzGAYgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5XYXJuaW5nIl8KFVBsdWdpbk1hdGVyaWFsaXphdGlvbhIOCgZza2lsbHMYASABKAUSEwoLbWNwX3NlcnZlcnMYAiABKAUSDgoGYWdlbnRzGAMgASgFEhEKCXdvcmtmbG93cxgEIAEoBSI8Cg1QbHVnaW5XYXJuaW5nEgwKBGtpbmQYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIMCgRwYXRoGAMgASgJKnkKC1BsdWdpblN0YXRlEhwKGFBMVUdJTl9TVEFURV9VTlNQRUNJRklFRBAAEhsKF1BMVUdJTl9TVEFURV9JTlNUQUxMSU5HEAESFgoSUExVR0lOX1NUQVRFX1JFQURZEAISFwoTUExVR0lOX1NUQVRFX0ZBSUxFRBADYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3N0YXR1cy5wcm90bxIcYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MSKjAwoMUGx1Z2luU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSKAoGZGlnZXN0GAEgASgJQhi6SBVyEzIRXiR8XlthLWYwLTldezY0fSQSHAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYAiABKAkSOAoFc3RhdGUYAyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblN0YXRlEg0KBWVycm9yGAQgASgJEkkKDG1hdGVyaWFsaXplZBgFIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luTWF0ZXJpYWxpemF0aW9uEj0KCHdhcm5pbmdzGAYgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5XYXJuaW5nEjcKBWhvb2tzGAcgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5Ib29rQ29uZmlnIl8KFVBsdWdpbk1hdGVyaWFsaXphdGlvbhIOCgZza2lsbHMYASABKAUSEwoLbWNwX3NlcnZlcnMYAiABKAUSDgoGYWdlbnRzGAMgASgFEhEKCXdvcmtmbG93cxgEIAEoBSI8Cg1QbHVnaW5XYXJuaW5nEgwKBGtpbmQYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIMCgRwYXRoGAMgASgJKnkKC1BsdWdpblN0YXRlEhwKGFBMVUdJTl9TVEFURV9VTlNQRUNJRklFRBAAEhsKF1BMVUdJTl9TVEFURV9JTlNUQUxMSU5HEAESFgoSUExVR0lOX1NUQVRFX1JFQURZEAISFwoTUExVR0lOX1NUQVRFX0ZBSUxFRBADYgZwcm90bzM", [file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
  * PluginStatus is the system-managed state of an installed plugin: the
@@ -71,6 +73,14 @@ export type PluginStatus = Message<"ai.stigmer.agentic.plugin.v1.PluginStatus"> 
    * @generated from field: repeated ai.stigmer.agentic.plugin.v1.PluginWarning warnings = 6;
    */
   warnings: PluginWarning[];
+
+  /**
+   * The plugin's hooks that run on Stigmer; unset when the plugin carries
+   * none that run.
+   *
+   * @generated from field: ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7;
+   */
+  hooks?: HookConfig;
 };
 
 /**

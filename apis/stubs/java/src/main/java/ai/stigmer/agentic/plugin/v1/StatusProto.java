@@ -51,37 +51,41 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n)ai/stigmer/agentic/plugin/v1/status.pr" +
-      "oto\022\034ai.stigmer.agentic.plugin.v1\032+ai/st" +
-      "igmer/commons/apiresource/status.proto\032\033" +
-      "buf/validate/validate.proto\"\263\003\n\014PluginSt" +
-      "atus\022F\n\005audit\030c \001(\01320.ai.stigmer.commons" +
-      ".apiresource.ApiResourceAuditR\005audit\0220\n\006" +
-      "digest\030\001 \001(\tB\030\272H\025r\0232\021^$|^[a-f0-9]{64}$R\006" +
-      "digest\0220\n\024artifact_storage_key\030\002 \001(\tR\022ar" +
-      "tifactStorageKey\022?\n\005state\030\003 \001(\0162).ai.sti" +
-      "gmer.agentic.plugin.v1.PluginStateR\005stat" +
-      "e\022\024\n\005error\030\004 \001(\tR\005error\022W\n\014materialized\030" +
-      "\005 \001(\01323.ai.stigmer.agentic.plugin.v1.Plu" +
-      "ginMaterializationR\014materialized\022G\n\010warn" +
-      "ings\030\006 \003(\0132+.ai.stigmer.agentic.plugin.v" +
-      "1.PluginWarningR\010warnings\"\206\001\n\025PluginMate" +
-      "rialization\022\026\n\006skills\030\001 \001(\005R\006skills\022\037\n\013m" +
-      "cp_servers\030\002 \001(\005R\nmcpServers\022\026\n\006agents\030\003" +
-      " \001(\005R\006agents\022\034\n\tworkflows\030\004 \001(\005R\tworkflo" +
-      "ws\"Q\n\rPluginWarning\022\022\n\004kind\030\001 \001(\tR\004kind\022" +
-      "\030\n\007message\030\002 \001(\tR\007message\022\022\n\004path\030\003 \001(\tR" +
-      "\004path*y\n\013PluginState\022\034\n\030PLUGIN_STATE_UNS" +
-      "PECIFIED\020\000\022\033\n\027PLUGIN_STATE_INSTALLING\020\001\022" +
-      "\026\n\022PLUGIN_STATE_READY\020\002\022\027\n\023PLUGIN_STATE_" +
-      "FAILED\020\003B\242\001B\013StatusProtoP\001\242\002\004ASAP\252\002\034Ai.S" +
-      "tigmer.Agentic.Plugin.V1\312\002\034Ai\\Stigmer\\Ag" +
-      "entic\\Plugin\\V1\342\002(Ai\\Stigmer\\Agentic\\Plu" +
-      "gin\\V1\\GPBMetadata\352\002 Ai::Stigmer::Agenti" +
-      "c::Plugin::V1b\006proto3"
+      "oto\022\034ai.stigmer.agentic.plugin.v1\032(ai/st" +
+      "igmer/agentic/plugin/v1/hooks.proto\032+ai/" +
+      "stigmer/commons/apiresource/status.proto" +
+      "\032\033buf/validate/validate.proto\"\363\003\n\014Plugin" +
+      "Status\022F\n\005audit\030c \001(\01320.ai.stigmer.commo" +
+      "ns.apiresource.ApiResourceAuditR\005audit\0220" +
+      "\n\006digest\030\001 \001(\tB\030\272H\025r\0232\021^$|^[a-f0-9]{64}$" +
+      "R\006digest\0220\n\024artifact_storage_key\030\002 \001(\tR\022" +
+      "artifactStorageKey\022?\n\005state\030\003 \001(\0162).ai.s" +
+      "tigmer.agentic.plugin.v1.PluginStateR\005st" +
+      "ate\022\024\n\005error\030\004 \001(\tR\005error\022W\n\014materialize" +
+      "d\030\005 \001(\01323.ai.stigmer.agentic.plugin.v1.P" +
+      "luginMaterializationR\014materialized\022G\n\010wa" +
+      "rnings\030\006 \003(\0132+.ai.stigmer.agentic.plugin" +
+      ".v1.PluginWarningR\010warnings\022>\n\005hooks\030\007 \001" +
+      "(\0132(.ai.stigmer.agentic.plugin.v1.HookCo" +
+      "nfigR\005hooks\"\206\001\n\025PluginMaterialization\022\026\n" +
+      "\006skills\030\001 \001(\005R\006skills\022\037\n\013mcp_servers\030\002 \001" +
+      "(\005R\nmcpServers\022\026\n\006agents\030\003 \001(\005R\006agents\022\034" +
+      "\n\tworkflows\030\004 \001(\005R\tworkflows\"Q\n\rPluginWa" +
+      "rning\022\022\n\004kind\030\001 \001(\tR\004kind\022\030\n\007message\030\002 \001" +
+      "(\tR\007message\022\022\n\004path\030\003 \001(\tR\004path*y\n\013Plugi" +
+      "nState\022\034\n\030PLUGIN_STATE_UNSPECIFIED\020\000\022\033\n\027" +
+      "PLUGIN_STATE_INSTALLING\020\001\022\026\n\022PLUGIN_STAT" +
+      "E_READY\020\002\022\027\n\023PLUGIN_STATE_FAILED\020\003B\242\001B\013S" +
+      "tatusProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer.Agentic" +
+      ".Plugin.V1\312\002\034Ai\\Stigmer\\Agentic\\Plugin\\V" +
+      "1\342\002(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMeta" +
+      "data\352\002 Ai::Stigmer::Agentic::Plugin::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.agentic.plugin.v1.HooksProto.getDescriptor(),
           ai.stigmer.commons.apiresource.StatusProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
@@ -90,7 +94,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_plugin_v1_PluginStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_PluginStatus_descriptor,
-        new java.lang.String[] { "Audit", "Digest", "ArtifactStorageKey", "State", "Error", "Materialized", "Warnings", });
+        new java.lang.String[] { "Audit", "Digest", "ArtifactStorageKey", "State", "Error", "Materialized", "Warnings", "Hooks", });
     internal_static_ai_stigmer_agentic_plugin_v1_PluginMaterialization_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_plugin_v1_PluginMaterialization_fieldAccessorTable = new
@@ -104,6 +108,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_plugin_v1_PluginWarning_descriptor,
         new java.lang.String[] { "Kind", "Message", "Path", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.agentic.plugin.v1.HooksProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

@@ -368,6 +368,47 @@ private static final long serialVersionUID = 0L;
     return warnings_.get(index);
   }
 
+  public static final int HOOKS_FIELD_NUMBER = 7;
+  private ai.stigmer.agentic.plugin.v1.HookConfig hooks_;
+  /**
+   * <pre>
+   * The plugin's hooks that run on Stigmer; unset when the plugin carries
+   * none that run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+   * @return Whether the hooks field is set.
+   */
+  @java.lang.Override
+  public boolean hasHooks() {
+    return ((bitField0_ & 0x00000004) != 0);
+  }
+  /**
+   * <pre>
+   * The plugin's hooks that run on Stigmer; unset when the plugin carries
+   * none that run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+   * @return The hooks.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.HookConfig getHooks() {
+    return hooks_ == null ? ai.stigmer.agentic.plugin.v1.HookConfig.getDefaultInstance() : hooks_;
+  }
+  /**
+   * <pre>
+   * The plugin's hooks that run on Stigmer; unset when the plugin carries
+   * none that run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.HookConfigOrBuilder getHooksOrBuilder() {
+    return hooks_ == null ? ai.stigmer.agentic.plugin.v1.HookConfig.getDefaultInstance() : hooks_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -399,6 +440,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < warnings_.size(); i++) {
       output.writeMessage(6, warnings_.get(i));
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(7, getHooks());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -438,6 +482,10 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(7, getHooks());
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -476,6 +524,11 @@ private static final long serialVersionUID = 0L;
     }
     if (!getWarningsList()
         .equals(other.getWarningsList())) return false;
+    if (hasHooks() != other.hasHooks()) return false;
+    if (hasHooks()) {
+      if (!getHooks()
+          .equals(other.getHooks())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -506,6 +559,10 @@ private static final long serialVersionUID = 0L;
     if (getWarningsCount() > 0) {
       hash = (37 * hash) + WARNINGS_FIELD_NUMBER;
       hash = (53 * hash) + getWarningsList().hashCode();
+    }
+    if (hasHooks()) {
+      hash = (37 * hash) + HOOKS_FIELD_NUMBER;
+      hash = (53 * hash) + getHooks().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -645,6 +702,7 @@ private static final long serialVersionUID = 0L;
         internalGetAuditFieldBuilder();
         internalGetMaterializedFieldBuilder();
         internalGetWarningsFieldBuilder();
+        internalGetHooksFieldBuilder();
       }
     }
     @java.lang.Override
@@ -672,6 +730,11 @@ private static final long serialVersionUID = 0L;
         warningsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000040);
+      hooks_ = null;
+      if (hooksBuilder_ != null) {
+        hooksBuilder_.dispose();
+        hooksBuilder_ = null;
+      }
       return this;
     }
 
@@ -743,6 +806,12 @@ private static final long serialVersionUID = 0L;
             : materializedBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.hooks_ = hooksBuilder_ == null
+            ? hooks_
+            : hooksBuilder_.build();
+        to_bitField0_ |= 0x00000004;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -807,6 +876,9 @@ private static final long serialVersionUID = 0L;
             warningsBuilder_.addAllMessages(other.warnings_);
           }
         }
+      }
+      if (other.hasHooks()) {
+        mergeHooks(other.getHooks());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -874,6 +946,13 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 50
+            case 58: {
+              input.readMessage(
+                  internalGetHooksFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 58
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -1888,6 +1967,172 @@ private static final long serialVersionUID = 0L;
         warnings_ = null;
       }
       return warningsBuilder_;
+    }
+
+    private ai.stigmer.agentic.plugin.v1.HookConfig hooks_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.HookConfig, ai.stigmer.agentic.plugin.v1.HookConfig.Builder, ai.stigmer.agentic.plugin.v1.HookConfigOrBuilder> hooksBuilder_;
+    /**
+     * <pre>
+     * The plugin's hooks that run on Stigmer; unset when the plugin carries
+     * none that run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+     * @return Whether the hooks field is set.
+     */
+    public boolean hasHooks() {
+      return ((bitField0_ & 0x00000080) != 0);
+    }
+    /**
+     * <pre>
+     * The plugin's hooks that run on Stigmer; unset when the plugin carries
+     * none that run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+     * @return The hooks.
+     */
+    public ai.stigmer.agentic.plugin.v1.HookConfig getHooks() {
+      if (hooksBuilder_ == null) {
+        return hooks_ == null ? ai.stigmer.agentic.plugin.v1.HookConfig.getDefaultInstance() : hooks_;
+      } else {
+        return hooksBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's hooks that run on Stigmer; unset when the plugin carries
+     * none that run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+     */
+    public Builder setHooks(ai.stigmer.agentic.plugin.v1.HookConfig value) {
+      if (hooksBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        hooks_ = value;
+      } else {
+        hooksBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's hooks that run on Stigmer; unset when the plugin carries
+     * none that run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+     */
+    public Builder setHooks(
+        ai.stigmer.agentic.plugin.v1.HookConfig.Builder builderForValue) {
+      if (hooksBuilder_ == null) {
+        hooks_ = builderForValue.build();
+      } else {
+        hooksBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's hooks that run on Stigmer; unset when the plugin carries
+     * none that run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+     */
+    public Builder mergeHooks(ai.stigmer.agentic.plugin.v1.HookConfig value) {
+      if (hooksBuilder_ == null) {
+        if (((bitField0_ & 0x00000080) != 0) &&
+          hooks_ != null &&
+          hooks_ != ai.stigmer.agentic.plugin.v1.HookConfig.getDefaultInstance()) {
+          getHooksBuilder().mergeFrom(value);
+        } else {
+          hooks_ = value;
+        }
+      } else {
+        hooksBuilder_.mergeFrom(value);
+      }
+      if (hooks_ != null) {
+        bitField0_ |= 0x00000080;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's hooks that run on Stigmer; unset when the plugin carries
+     * none that run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+     */
+    public Builder clearHooks() {
+      bitField0_ = (bitField0_ & ~0x00000080);
+      hooks_ = null;
+      if (hooksBuilder_ != null) {
+        hooksBuilder_.dispose();
+        hooksBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's hooks that run on Stigmer; unset when the plugin carries
+     * none that run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.HookConfig.Builder getHooksBuilder() {
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return internalGetHooksFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The plugin's hooks that run on Stigmer; unset when the plugin carries
+     * none that run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.HookConfigOrBuilder getHooksOrBuilder() {
+      if (hooksBuilder_ != null) {
+        return hooksBuilder_.getMessageOrBuilder();
+      } else {
+        return hooks_ == null ?
+            ai.stigmer.agentic.plugin.v1.HookConfig.getDefaultInstance() : hooks_;
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's hooks that run on Stigmer; unset when the plugin carries
+     * none that run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7 [json_name = "hooks"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.HookConfig, ai.stigmer.agentic.plugin.v1.HookConfig.Builder, ai.stigmer.agentic.plugin.v1.HookConfigOrBuilder> 
+        internalGetHooksFieldBuilder() {
+      if (hooksBuilder_ == null) {
+        hooksBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.plugin.v1.HookConfig, ai.stigmer.agentic.plugin.v1.HookConfig.Builder, ai.stigmer.agentic.plugin.v1.HookConfigOrBuilder>(
+                getHooks(),
+                getParentForChildren(),
+                isClean());
+        hooks_ = null;
+      }
+      return hooksBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.plugin.v1.PluginStatus)

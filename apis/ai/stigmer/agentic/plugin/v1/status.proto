@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.plugin.v1;
 
+import "ai/stigmer/agentic/plugin/v1/hooks.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 
@@ -49,6 +50,15 @@ message PluginStatus {
   // Warnings the last push recorded: components Stigmer does not carry,
   // model hints it did not apply, names that shadow built-ins.
   repeated PluginWarning warnings = 6;
+
+  // The plugin's hooks that run on Stigmer; unset when the plugin carries
+  // none that run.
+  //
+  // @internal
+  // Derived at push from the archive, beside materialized and warnings, so
+  // it is versioned with the archive like the rest of this status. The hooks
+  // the plugin carries but Stigmer does not run are named in warnings.
+  HookConfig hooks = 7;
 }
 
 // PluginState is the lifecycle state of a plugin install.

@@ -598,6 +598,44 @@ PluginStatus is the system-managed state of an installed plugin: the archive ide
     error: { type: "string", description: "One sentence naming what failed when state is FAILED; empty otherwise." },
     materialized: { type: "PluginMaterialization", description: "What the last push materialised, by kind.", typeDescriptionLink: "#pluginmaterialization" },
     warnings: { type: "PluginWarning[]", description: "Warnings the last push recorded: components Stigmer does not carry, model hints it did not apply, names that shadow built-ins.", typeDescriptionLink: "#pluginwarning" },
+    hooks: { type: "HookConfig", description: "The plugin's hooks that run on Stigmer; unset when the plugin carries none that run.", typeDescriptionLink: "#hookconfig" },
+  }}
+/>
+
+### HookConfig
+
+HookConfig is the set of a plugin's hooks that run on Stigmer, in the format the plugin wrote them.
+
+<TypeTable
+  type={{
+    format: { type: "HookFormat", description: "The format the hooks are written in, which decides their input and answer.", typeDescriptionLink: "#hookformat" },
+    groups: { type: "HookGroup[]", description: "Hook groups, in the order the plugin declares them.", typeDescriptionLink: "#hookgroup" },
+  }}
+/>
+
+### HookGroup
+
+HookGroup is one event, an optional matcher, and the handlers that run when both match.
+
+<TypeTable
+  type={{
+    event: { type: "string", description: "The event the handlers run on, spelled as the format spells it, e.g. \"PreToolUse\" or \"beforeShellExecution\"." },
+    matcher: { type: "string", description: "Which calls the handlers run for, as written by the plugin; empty or \"*\" matches every call." },
+    handlers: { type: "HookHandler[]", description: "The handlers to run, in order.", typeDescriptionLink: "#hookhandler" },
+  }}
+/>
+
+### HookHandler
+
+HookHandler is one command a hook runs.
+
+<TypeTable
+  type={{
+    command: { type: "string", description: "The command to run, as written by the plugin." },
+    args: { type: "string[]", description: "Arguments for the command's exec form; when set, the command runs without a shell." },
+    timeoutSeconds: { type: "number", description: "Seconds the command may run before it is stopped; zero means the format's default." },
+    condition: { type: "string", description: "A permission rule that narrows when the handler runs, e.g. \"Bash(git push *)\"; empty means whenever the group matches." },
+    failClosed: { type: "boolean", description: "Whether a crash, timeout or missing answer blocks the call instead of letting it through." },
   }}
 />
 
@@ -635,6 +673,15 @@ PluginState is the lifecycle state of a plugin install.
 | `PLUGIN_STATE_INSTALLING` | The archive is stored and its members are being materialised. |
 | `PLUGIN_STATE_READY` | Every member of the last push is materialised. |
 | `PLUGIN_STATE_FAILED` | A member failed to materialise; `error` names it. |
+
+### HookFormat
+
+HookFormat is the hook format a plugin's hooks are written in.
+
+| Value | Description |
+|-------|-------------|
+| `HOOK_FORMAT_CLAUDE_CODE` | Claude Code's hook format, also used by Codex plugins. |
+| `HOOK_FORMAT_CURSOR` | Cursor's hook format. |
 
 ### PluginDialect
 
