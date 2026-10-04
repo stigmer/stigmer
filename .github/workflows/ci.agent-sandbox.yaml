@@ -25,7 +25,11 @@
 # its queue, which every main build is (ci.runner and ci.compose-stack gate
 # the runner's own build); building the image here would add minutes to every
 # run, and pinning a main tag would need a bump nobody owns. A red that only
-# follows a new runner image names the image in the step's log.
+# follows a new runner image names the image in the step's log. One change
+# this rules out landing in one step: a launch command (the server's
+# src/sandbox/runner-launch.ts) that the published runner does not yet know.
+# The runner side lands first, backward compatible, and the launch command
+# moves once main has published it.
 #
 # Red: a gate run blocks its change; the weekly run's failure files an issue
 # from ci.agent-sandbox-upstream.yaml, which holds the issue permission this
