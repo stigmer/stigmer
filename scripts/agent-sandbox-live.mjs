@@ -17,10 +17,15 @@
  *     on an arm64 machine build the sandbox image
  *     (`docker build --target sandbox -f backend/services/runner/Dockerfile.sandbox .`)
  *     and name it in RUNNER_IMAGE;
- *   - a Temporal dev server on a free port, bound only where a pod reaches
- *     the host: the kind network's gateway on Linux, and the loopback on
- *     Docker Desktop, whose host.docker.internal reaches the host's loopback.
- *     Never every interface: the dev server has no authentication.
+ *   - a Temporal dev server on a free port, which a pod reaches at the kind
+ *     network's IPv4 gateway on Linux and at host.docker.internal on Docker
+ *     Desktop. It binds the loopback on Docker Desktop, whose
+ *     host.docker.internal reaches the host's loopback. On Linux it binds
+ *     every interface for the run, because the dev server bound to the
+ *     gateway alone dials its own internal services on the loopback and
+ *     refuses itself (seen in the lane, 2026-10-04); the dev server has no
+ *     authentication, so on a Linux laptop the run's port is open to its
+ *     network for those minutes.
  * Then it runs `npm run test:live` in the server package with those
  * addresses. A red test is followed by every object in the namespace, the
  * runner pods' events and logs and the controller's log, before it tears
@@ -132,9 +137,9 @@ export function hostFromKindNetwork(platform, gateway) {
   return DOCKER_DESKTOP.has(platform) ? "host.docker.internal" : gateway;
 }
 
-/** The address the Temporal dev server binds: only the one a pod reaches the host through. */
-export function temporalBindAddress(platform, gateway) {
-  return DOCKER_DESKTOP.has(platform) ? "127.0.0.1" : gateway;
+/** The address the Temporal dev server binds (the header says why Linux binds every interface). */
+export function temporalBindAddress(platform) {
+  return DOCKER_DESKTOP.has(platform) ? "127.0.0.1" : "0.0.0.0";
 }
 
 /** Starts a child and resolves its exit code; a child that cannot start (a missing binary) resolves 127. */
@@ -227,14 +232,14 @@ async function main(argv) {
 
     const gateway = ipv4Gateway(run("docker", ["network", "inspect", "kind", "--format", "{{range .IPAM.Config}}{{.Gateway}} {{end}}"]));
     const host = hostFromKindNetwork(process.platform, gateway);
-    const bind = temporalBindAddress(process.platform, gateway);
+    const bind = temporalBindAddress(process.platform);
     const port = await freePort();
     temporal = spawnChild(
       "temporal",
       ["server", "start-dev", "--headless", "--ip", bind, "--port", String(port), "--ui-port", String(await freePort()), "--log-level", "warn"],
       { stdio: "inherit" },
     );
-    await waitForPort(bind, port, 60_000, temporal.exited);
+    await waitForPort("127.0.0.1", port, 60_000, temporal.exited);
 
     const env = {
       ...process.env,
@@ -245,7 +250,7 @@ async function main(argv) {
       // server, and the live test asserts the poll, not a turn.
       STIGMER_SANDBOX_BACKEND_ENDPOINT: `http://${host}:1`,
       STIGMER_SANDBOX_RUNNER_IMAGE: opts.runnerImage,
-      STIGMER_AGENT_SANDBOX_LIVE_TEMPORAL: `${bind}:${port}`,
+      STIGMER_AGENT_SANDBOX_LIVE_TEMPORAL: `127.0.0.1:${port}`,
     };
     code = await spawnChild("npm", ["run", "test:live"], {
       cwd: join(ROOT, "backend/services/stigmer-server"),

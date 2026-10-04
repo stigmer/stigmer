@@ -2,7 +2,7 @@
  * Pins scripts/agent-sandbox-live.mjs's own decisions, without a cluster:
  * the arguments and environment it takes and refuses, the manifest it
  * applies for a version, the kind network's IPv4 gateway, the address a pod
- * reaches the host at and the one Temporal binds (never every interface),
+ * reaches the host at and the one Temporal binds,
  * and that the release it tests
  * against is the one the operator guide tells operators to install.
  */
@@ -74,10 +74,10 @@ test("the kind network's IPv4 gateway is found whichever subnet is listed first,
   assert.throws(() => ipv4Gateway("fc00:f853:ccd:e793::1 "), /the kind network has no IPv4 gateway \(gateways: 'fc00:f853:ccd:e793::1'\)/);
 });
 
-test("Temporal binds only where a pod reaches the host, never every interface", () => {
-  assert.equal(temporalBindAddress("linux", "172.18.0.1"), "172.18.0.1");
-  assert.equal(temporalBindAddress("darwin", "172.18.0.1"), "127.0.0.1");
-  assert.equal(temporalBindAddress("win32", "172.18.0.1"), "127.0.0.1");
+test("Temporal binds the loopback on Docker Desktop, and every interface on Linux, where a gateway bind refuses itself", () => {
+  assert.equal(temporalBindAddress("linux"), "0.0.0.0");
+  assert.equal(temporalBindAddress("darwin"), "127.0.0.1");
+  assert.equal(temporalBindAddress("win32"), "127.0.0.1");
 });
 
 test("the operator guide installs the release the driver is tested against", () => {
