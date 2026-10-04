@@ -791,7 +791,7 @@ MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
 
 <TypeTable
   type={{
-    org: { type: "string", description: "Organization slug from the share URL (required)." },
+    org: { type: "string", description: "Organization from the share URL, by id or slug (required)." },
     slug: { type: "string", description: "Share slug from the share URL (required)." },
     guestCookieId: { type: "string", description: "Per-browser visitor cookie id from a prior mint (optional)." },
     embedOrigin: { type: "string", description: "Web origin of the page embedding the shared agent (optional)." },

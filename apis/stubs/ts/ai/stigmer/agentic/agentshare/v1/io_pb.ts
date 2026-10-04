@@ -176,7 +176,8 @@ export const RotateShareLinkInputSchema: GenMessage<RotateShareLinkInput> = /*@_
  */
 export type GetSharedProfileRequest = Message<"ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest"> & {
   /**
-   * Organization slug from the share URL.
+   * Organization from the share URL: its id, as links built from a share's
+   * stored org carry it, or its slug, as older links do.
    *
    * @generated from field: string org = 1;
    */

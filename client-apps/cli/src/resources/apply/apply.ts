@@ -327,10 +327,35 @@ async function injectOrg(
   return `resource org '${declaredLabel}' differs from target org '${targetLabel}'; using '${declaredLabel}'`;
 }
 
-/** The organization get the shared name helpers ask, over the raw query controller. */
+/**
+ * The organization get the shared name helpers ask, over the raw query
+ * controller, asked once per value for as long as the controller lives (one
+ * command): a manifest of many documents naming one organization makes one
+ * lookup, not two per document.
+ */
 function organizationReader(controller: ControllerFn): OrganizationReader {
-  return { organization: { get: (value) => controller(OrganizationQueryController).get({ value }) } };
+  let gets = organizationGets.get(controller);
+  if (gets === undefined) {
+    gets = new Map();
+    organizationGets.set(controller, gets);
+  }
+  const memo = gets;
+  return {
+    organization: {
+      get: (value) => {
+        let got = memo.get(value);
+        if (got === undefined) {
+          got = controller(OrganizationQueryController).get({ value });
+          memo.set(value, got);
+        }
+        return got;
+      },
+    },
+  };
 }
+
+/** Each controller's organization gets, by the value asked. */
+const organizationGets = new WeakMap<ControllerFn, Map<string, ReturnType<OrganizationReader["organization"]["get"]>>>();
 
 function buildApplyResult(handler: ApplyHandler, applied: Message, created: boolean): CommandResult {
   const meta = metaOf(applied);

@@ -137,7 +137,7 @@ export const MintUserTokenResponseSchema: GenMessage<MintUserTokenResponse> = /*
  */
 export type MintGuestTokenRequest = Message<"ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest"> & {
   /**
-   * Organization slug from the share URL (required).
+   * Organization from the share URL, by id or slug (required).
    *
    * @generated from field: string org = 1;
    */

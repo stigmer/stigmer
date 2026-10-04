@@ -796,7 +796,7 @@ Input for resolving a share's public profile.
 
 <TypeTable
   type={{
-    org: { type: "string", description: "Organization slug from the share URL." },
+    org: { type: "string", description: "Organization from the share URL: its id, as links built from a share's stored org carry it, or its slug, as older links do." },
     slug: { type: "string", description: "Share slug from the share URL." },
     linkToken: { type: "string", description: "Link token from the share URL's `?k=` parameter." },
   }}

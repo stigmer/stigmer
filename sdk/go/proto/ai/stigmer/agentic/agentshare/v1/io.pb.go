@@ -313,7 +313,8 @@ func (x *RotateShareLinkInput) GetResourceId() string {
 // the link token when the share URL carries one.
 type GetSharedProfileRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization slug from the share URL.
+	// Organization from the share URL: its id, as links built from a share's
+	// stored org carry it, or its slug, as older links do.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Share slug from the share URL.
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`

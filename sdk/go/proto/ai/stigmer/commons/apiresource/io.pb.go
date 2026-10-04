@@ -363,7 +363,8 @@ type RenameInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the resource being renamed.
 	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
-	// The new slug. Same format as metadata.slug.
+	// The new slug. Same format as metadata.slug, at most 63 characters: the
+	// longest a reference's org takes.
 	Slug          string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -553,11 +554,11 @@ const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\n" +
 	"visibility\x18\x02 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceVisibilityB\n" +
 	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\n" +
-	"visibility\"q\n" +
+	"visibility\"s\n" +
 	"\vRenameInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"resourceId\x129\n" +
-	"\x04slug\x18\x02 \x01(\tB%\xbaH\"\xc8\x01\x01r\x1d\x10\x022\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\"\xc3\x02\n" +
+	"resourceId\x12;\n" +
+	"\x04slug\x18\x02 \x01(\tB'\xbaH$\xc8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\"\xc3\x02\n" +
 	"\x14ApiResourceReference\x12J\n" +
 	"\x03org\x18\x01 \x01(\tB8\xbaH5r3\x18?2/^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-9a-z]{26}$R\x03org\x12S\n" +
 	"\x04kind\x18\x02 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12;\n" +

@@ -206,7 +206,7 @@ func (x *MintUserTokenResponse) GetExpiresIn() int32 {
 // MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
 type MintGuestTokenRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization slug from the share URL (required).
+	// Organization from the share URL, by id or slug (required).
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Share slug from the share URL (required).
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`

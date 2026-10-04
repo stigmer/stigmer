@@ -77,7 +77,8 @@ message RotateShareLinkInput {
 // is the shared URL's identity, and cross-org slug matching on a public
 // endpoint would enable enumeration.
 message GetSharedProfileRequest {
-  // Organization slug from the share URL.
+  // Organization from the share URL: its id, as links built from a share's
+  // stored org carry it, or its slug, as older links do.
   string org = 1;
 
   // Share slug from the share URL.

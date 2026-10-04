@@ -12,7 +12,7 @@ public interface MintGuestTokenRequestOrBuilder extends
 
   /**
    * <pre>
-   * Organization slug from the share URL (required).
+   * Organization from the share URL, by id or slug (required).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface MintGuestTokenRequestOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization slug from the share URL (required).
+   * Organization from the share URL, by id or slug (required).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>

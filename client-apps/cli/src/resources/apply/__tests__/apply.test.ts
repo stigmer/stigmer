@@ -311,6 +311,21 @@ describe("applyMessage org-mismatch warning", () => {
     expect(outcome.warning).toBeUndefined();
   });
 
+  it("asks once per organization for a whole command, however many documents name it", async () => {
+    const asked: string[] = [];
+    const counting = (() => ({
+      get: ({ value }: { value: string }) => {
+        asked.push(value);
+        return Promise.resolve(organization(value, ACME_ID));
+      },
+    })) as unknown as ControllerFn;
+    const { handler } = handlerWith({ applyReturns: agent(ApiResourceVisibility.visibility_org) });
+    for (let document = 0; document < 3; document++) {
+      await applyMessage(counting, handler, agent(ApiResourceVisibility.api_resource_visibility_unspecified), ACME_ID, true);
+    }
+    expect(asked.sort()).toEqual(["acme", ACME_ID].sort());
+  });
+
   it("warns when they name different organizations, or one the caller cannot see", async () => {
     const { handler } = handlerWith({ applyReturns: agent(ApiResourceVisibility.visibility_org) });
     const outcome = await applyMessage(

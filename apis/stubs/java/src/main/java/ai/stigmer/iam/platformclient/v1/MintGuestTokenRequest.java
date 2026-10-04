@@ -62,7 +62,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object org_ = "";
   /**
    * <pre>
-   * Organization slug from the share URL (required).
+   * Organization from the share URL, by id or slug (required).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -83,7 +83,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Organization slug from the share URL (required).
+   * Organization from the share URL, by id or slug (required).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -715,7 +715,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object org_ = "";
     /**
      * <pre>
-     * Organization slug from the share URL (required).
+     * Organization from the share URL, by id or slug (required).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -735,7 +735,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug from the share URL (required).
+     * Organization from the share URL, by id or slug (required).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -756,7 +756,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug from the share URL (required).
+     * Organization from the share URL, by id or slug (required).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -773,7 +773,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug from the share URL (required).
+     * Organization from the share URL, by id or slug (required).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -787,7 +787,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug from the share URL (required).
+     * Organization from the share URL, by id or slug (required).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>

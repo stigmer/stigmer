@@ -92,22 +92,22 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "B\006\272H\003\310\001\001R\nresourceId\022a\n\nvisibility\030\002 \001(\016" +
       "25.ai.stigmer.commons.apiresource.ApiRes" +
       "ourceVisibilityB\n\272H\007\202\001\004\020\001 \000R\nvisibility\"" +
-      "q\n\013RenameInput\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003" +
-      "\310\001\001R\nresourceId\0229\n\004slug\030\002 \001(\tB%\272H\"r\035\020\0022\031" +
-      "^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001R\004slug\"\303\002\n\024A" +
-      "piResourceReference\022J\n\003org\030\001 \001(\tB8\272H5r3\030" +
-      "?2/^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-" +
-      "9a-z]{26}$R\003org\022S\n\004kind\030\002 \001(\0162?.ai.stigm" +
-      "er.commons.apiresource.apiresourcekind.A" +
-      "piResourceKindR\004kind\022;\n\004slug\030\003 \001(\tB\'\272H$r" +
-      "\037\020\002\030?2\031^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001R\004slu" +
-      "g\022M\n\007version\030\004 \001(\tB3\272H0r.2,^$|^latest$|^" +
-      "[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\007version" +
-      "B\245\001B\007IoProtoP\001\242\002\004ASCA\252\002\036Ai.Stigmer.Commo" +
-      "ns.Apiresource\312\002\036Ai\\Stigmer\\Commons\\Apir" +
-      "esource\342\002*Ai\\Stigmer\\Commons\\Apiresource" +
-      "\\GPBMetadata\352\002!Ai::Stigmer::Commons::Api" +
-      "resourceb\006proto3"
+      "s\n\013RenameInput\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003" +
+      "\310\001\001R\nresourceId\022;\n\004slug\030\002 \001(\tB\'\272H$r\037\020\002\030?" +
+      "2\031^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001R\004slug\"\303\002\n" +
+      "\024ApiResourceReference\022J\n\003org\030\001 \001(\tB8\272H5r" +
+      "3\030?2/^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[" +
+      "0-9a-z]{26}$R\003org\022S\n\004kind\030\002 \001(\0162?.ai.sti" +
+      "gmer.commons.apiresource.apiresourcekind" +
+      ".ApiResourceKindR\004kind\022;\n\004slug\030\003 \001(\tB\'\272H" +
+      "$r\037\020\002\030?2\031^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001R\004s" +
+      "lug\022M\n\007version\030\004 \001(\tB3\272H0r.2,^$|^latest$" +
+      "|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\007versi" +
+      "onB\245\001B\007IoProtoP\001\242\002\004ASCA\252\002\036Ai.Stigmer.Com" +
+      "mons.Apiresource\312\002\036Ai\\Stigmer\\Commons\\Ap" +
+      "iresource\342\002*Ai\\Stigmer\\Commons\\Apiresour" +
+      "ce\\GPBMetadata\352\002!Ai::Stigmer::Commons::A" +
+      "piresourceb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

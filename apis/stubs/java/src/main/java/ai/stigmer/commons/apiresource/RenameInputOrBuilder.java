@@ -32,7 +32,8 @@ public interface RenameInputOrBuilder extends
 
   /**
    * <pre>
-   * The new slug. Same format as metadata.slug.
+   * The new slug. Same format as metadata.slug, at most 63 characters: the
+   * longest a reference's org takes.
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -41,7 +42,8 @@ public interface RenameInputOrBuilder extends
   java.lang.String getSlug();
   /**
    * <pre>
-   * The new slug. Same format as metadata.slug.
+   * The new slug. Same format as metadata.slug, at most 63 characters: the
+   * longest a reference's org takes.
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>

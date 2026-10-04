@@ -63,7 +63,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object org_ = "";
   /**
    * <pre>
-   * Organization slug from the share URL.
+   * Organization from the share URL: its id, as links built from a share's
+   * stored org carry it, or its slug, as older links do.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>
@@ -84,7 +85,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Organization slug from the share URL.
+   * Organization from the share URL: its id, as links built from a share's
+   * stored org carry it, or its slug, as older links do.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>
@@ -557,7 +559,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object org_ = "";
     /**
      * <pre>
-     * Organization slug from the share URL.
+     * Organization from the share URL: its id, as links built from a share's
+     * stored org carry it, or its slug, as older links do.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -577,7 +580,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug from the share URL.
+     * Organization from the share URL: its id, as links built from a share's
+     * stored org carry it, or its slug, as older links do.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -598,7 +602,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug from the share URL.
+     * Organization from the share URL: its id, as links built from a share's
+     * stored org carry it, or its slug, as older links do.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -615,7 +620,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug from the share URL.
+     * Organization from the share URL: its id, as links built from a share's
+     * stored org carry it, or its slug, as older links do.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -629,7 +635,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization slug from the share URL.
+     * Organization from the share URL: its id, as links built from a share's
+     * stored org carry it, or its slug, as older links do.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>

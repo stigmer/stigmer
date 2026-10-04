@@ -94,10 +94,12 @@ message RenameInput {
   // ID of the resource being renamed.
   string resource_id = 1 [(buf.validate.field).required = true];
 
-  // The new slug. Same format as metadata.slug.
+  // The new slug. Same format as metadata.slug, at most 63 characters: the
+  // longest a reference's org takes.
   string slug = 2 [
     (buf.validate.field).required = true,
     (buf.validate.field).string.min_len = 2,
+    (buf.validate.field).string.max_len = 63,
     (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*[a-z0-9]$"
   ];
 }

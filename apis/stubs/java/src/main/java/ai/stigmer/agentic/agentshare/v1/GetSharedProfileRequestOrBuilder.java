@@ -12,7 +12,8 @@ public interface GetSharedProfileRequestOrBuilder extends
 
   /**
    * <pre>
-   * Organization slug from the share URL.
+   * Organization from the share URL: its id, as links built from a share's
+   * stored org carry it, or its slug, as older links do.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>
@@ -21,7 +22,8 @@ public interface GetSharedProfileRequestOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization slug from the share URL.
+   * Organization from the share URL: its id, as links built from a share's
+   * stored org carry it, or its slug, as older links do.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>

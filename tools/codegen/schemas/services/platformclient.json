@@ -401,7 +401,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization slug from the share URL (required).",
+          "description": "Organization from the share URL, by id or slug (required).",
           "required": false,
           "validation": {
             "minLength": 1

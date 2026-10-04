@@ -359,7 +359,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization slug from the share URL.",
+          "description": "Organization from the share URL: its id, as links built from a share's\n stored org carry it, or its slug, as older links do.",
           "required": false
         },
         {

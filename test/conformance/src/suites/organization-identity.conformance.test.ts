@@ -186,6 +186,14 @@ describe("Organization identity conformance", () => {
       Code.PermissionDenied,
       "a member renaming the organization",
     );
+    // An admin edits the organization but may not rename it: a rename moves
+    // every member's links and scripts, an owner's decision.
+    const admin = await lane.provisionWithRole(tenancy, "admin");
+    await expectGrpcCode(
+      () => admin.organizationCommand.rename({ resourceId: tenancy.org, slug: after }),
+      Code.PermissionDenied,
+      "an admin renaming the organization",
+    );
 
     await lane.clients.organizationCommand.rename({ resourceId: tenancy.org, slug: after });
 

@@ -18,6 +18,7 @@ import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/ap
 
 import type { OrganizationNameResolver } from "../../../pipeline/interceptors/organization-names.js";
 import { resolveOrganizationNames } from "../../../pipeline/interceptors/organization-names.js";
+import { metadataOf } from "../../../pipeline/steps/shapes.js";
 import { checkOverlayOrg, foreignOverlayOrg, parseOverlayDocument } from "./parse.js";
 
 export interface ParsedOverlayDocument<T> {
@@ -93,11 +94,13 @@ export async function resolveOverlayOrganizations(
     ...overlays.mcpServers.map((document) => ({ schema: McpServerSchema, document })),
   ];
   for (const { schema, document } of documents) {
+    const written = metadataOf(document.resource)?.org ?? "";
     await resolveOrganizationNames(schema, document.resource, resolver);
     // The refusal names the installing organization the way a person reads
-    // it, looked up only when there is a refusal to word.
+    // it, looked up only when there is a refusal to word, and the document's
+    // own org as its author wrote it.
     if (foreignOverlayOrg(document.resource, org) !== undefined) {
-      checkOverlayOrg(document.path, document.resource, org, await labelOf(org));
+      checkOverlayOrg(document.path, document.resource, org, await labelOf(org), written);
     }
   }
 }

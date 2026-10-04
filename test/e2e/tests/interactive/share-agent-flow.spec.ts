@@ -92,8 +92,10 @@ test.describe("Share agent flow", () => {
     await createShare(page, shareSlug);
 
     // The list shows the share with its chat link (name stays prefilled
-    // from the agent, so the row is addressed by the agent's name).
-    const expectedPath = `/chat/${testAgent.org}/${shareSlug}`;
+    // from the agent, so the row is addressed by the agent's name). The
+    // link carries the organization's id, which a later holder of its slug
+    // cannot capture.
+    const expectedPath = `/chat/${testAgent.orgId}/${shareSlug}`;
     await expect(page.getByText(expectedPath)).toBeVisible({
       timeout: 10_000,
     });
@@ -128,7 +130,7 @@ test.describe("Share agent flow", () => {
     await openAgentDetail(page, testAgent.org, testAgent.slug);
     await openSharesTab(page);
     await expect(
-      page.getByText(`/chat/${testAgent.org}/${shareSlug}`),
+      page.getByText(`/chat/${testAgent.orgId}/${shareSlug}`),
     ).toBeVisible({ timeout: 10_000 });
 
     await deleteShare(page, testAgent.slug);

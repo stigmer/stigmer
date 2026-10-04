@@ -113,12 +113,15 @@ export function checkOverlayOrg(
   message: Message,
   org: string,
   orgLabel: string = org,
+  written?: string,
 ): void {
   const foreign = foreignOverlayOrg(message, org);
   if (foreign !== undefined) {
+    // The document's org as its author wrote it, never what it resolved to:
+    // another organization's id would tell the author that the name exists.
     throw new OverlayParseError(
       path,
-      `metadata.org '${foreign}' is not the organization the plugin is installed into ('${orgLabel}')`,
+      `metadata.org '${written ?? foreign}' is not the organization the plugin is installed into ('${orgLabel}')`,
     );
   }
 }

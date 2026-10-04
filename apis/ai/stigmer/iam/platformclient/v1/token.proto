@@ -146,7 +146,7 @@ message MintUserTokenResponse {
 
 // MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
 message MintGuestTokenRequest {
-  // Organization slug from the share URL (required).
+  // Organization from the share URL, by id or slug (required).
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
   // Share slug from the share URL (required).

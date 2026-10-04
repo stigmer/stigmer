@@ -136,7 +136,7 @@ describe("resolveOverlayOrganizations", () => {
   it("refuses a document naming another organization, by slug or by a name nothing holds", async () => {
     await expect(
       resolveOverlayOrganizations(overlayOf("kind: Agent\nmetadata:\n  name: t\n  org: globex\n"), ACME_ID, resolver),
-    ).rejects.toThrow(`metadata.org '${GLOBEX_ID}' is not the organization the plugin is installed into ('${ACME_ID}')`);
+    ).rejects.toThrow(`metadata.org 'globex' is not the organization the plugin is installed into ('${ACME_ID}')`);
     await expect(
       resolveOverlayOrganizations(overlayOf("kind: Agent\nmetadata:\n  name: t\n  org: globex\n"), ACME_ID, resolver, () => Promise.resolve("acme")),
     ).rejects.toThrow("is not the organization the plugin is installed into ('acme')");
