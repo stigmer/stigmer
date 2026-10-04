@@ -478,9 +478,9 @@ var File_ai_stigmer_agentic_agentshare_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\",\n" +
-	"\fAgentShareId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x92\x01\n" +
+	")ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"1\n" +
+	"\fAgentShareId\x12!\n" +
+	"\x05value\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x05value\"\x92\x01\n" +
 	"\x1cGetAgentSharesByAgentRequest\x12!\n" +
 	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12=\n" +
 	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x12\x10\n" +

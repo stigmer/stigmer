@@ -23,6 +23,7 @@ import { createEmbedHost, type EmbedHost } from "./host.js";
 /** Attribute-driven configuration of `<stigmer-agent>`. */
 const OBSERVED_ATTRIBUTES = [
   "share",
+  "title",
   "token",
   "theme",
   "width",
@@ -112,9 +113,9 @@ export class StigmerAgentElement extends BaseElement {
       this.getAttribute("theme"),
     );
     // The element holds only the share's id, and the frame protocol carries
-    // no agent name, so the default title is generic; a host that knows the
-    // agent's name sets the element's own title.
-    iframe.title = "Chat with a shared agent";
+    // no agent name, so the frame's accessible name is generic unless the
+    // host names it with the element's own title attribute.
+    iframe.title = this.getAttribute("title") || "Chat with a shared agent";
     iframe.setAttribute("loading", "lazy");
     iframe.style.cssText =
       "width:100%;height:100%;border:0;border-radius:12px";

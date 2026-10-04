@@ -9,7 +9,10 @@ import "buf/validate/validate.proto";
 // AgentShareId wraps an agent share identifier.
 message AgentShareId {
   // Unique identifier of the agent share.
-  string value = 1 [(buf.validate.field).required = true];
+  string value = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 128
+  ];
 }
 
 // Input for retrieving all shares of a specific agent.

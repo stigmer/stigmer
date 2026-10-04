@@ -468,6 +468,11 @@ describe("AgentShare conformance — the member resolution lane", () => {
       Code.InvalidArgument,
       "member lookup without an id",
     );
+    await expectGrpcCode(
+      () => clients.agentShareQuery.getSharedProfileForMember({ value: `ash_${"x".repeat(125)}` }),
+      Code.InvalidArgument,
+      "member lookup with a 129-character id",
+    );
     const missingId = "ash_01confnevercreated";
     const missing = await expectGrpcCode(
       () => clients.agentShareQuery.getSharedProfileForMember({ value: missingId }),
