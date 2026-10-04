@@ -14,9 +14,11 @@
  * Retried: a connection failure and the router's 502, 503 and 504, which
  * mean the actor is still coming up (the router wakes and waits for an
  * actor on every request) or briefly unreachable, for up to 15 seconds.
- * Never retried: a refusal from the waiter itself, and a router whose
+ * Never retried: a refusal from the waiter itself, a router whose
  * certificate this server does not accept (RouterTlsError), which is a
- * configuration fault and not a router still coming up. Neither the body
+ * configuration fault and not a router still coming up, and a reply no
+ * router or waiter sends (RouterReplyError), which retrying would only
+ * answer with the runner's secrets again. Neither the body
  * nor any secret is ever logged; only the code and the waiter's text.
  *
  * The transport (newRouterFetch) is a fetch-shaped function over
@@ -57,6 +59,18 @@ export class RouterTlsError extends Error {
     super(message, { cause });
     this.name = "RouterTlsError";
     this.code = code;
+  }
+}
+
+/**
+ * The router's reply is not one a push can be answered with: a status
+ * outside 200-599, or a header a Response refuses. Thrown by the
+ * transport, rethrown by the push at once.
+ */
+export class RouterReplyError extends Error {
+  constructor(message: string, cause?: unknown) {
+    super(message, { cause });
+    this.name = "RouterReplyError";
   }
 }
 
@@ -200,8 +214,8 @@ export function newRouterFetch(
         if (status < 200 || status > 599) {
           reply.destroy();
           fail(
-            new Error(
-              `the router answered status ${status}, which no reply carries`,
+            new RouterReplyError(
+              `the router at ${url.origin} answered status ${status}, which no reply carries`,
             ),
           );
           return;
@@ -233,7 +247,12 @@ export function newRouterFetch(
               ),
             );
           } catch (error) {
-            fail(error);
+            fail(
+              new RouterReplyError(
+                `the router at ${url.origin} sent a reply no Response can carry: ${error instanceof Error ? error.message : String(error)}`,
+                error,
+              ),
+            );
           }
         });
       });
@@ -348,7 +367,8 @@ export async function pushAttach(
         signal: AbortSignal.timeout(RETRY_WINDOW_MS),
       });
     } catch (error) {
-      if (error instanceof RouterTlsError) throw error;
+      if (error instanceof RouterTlsError || error instanceof RouterReplyError)
+        throw error;
       failure = error instanceof Error ? error.message : String(error);
     }
     if (response !== undefined && !RETRYABLE_STATUSES.has(response.status)) {

@@ -15,6 +15,9 @@
  * newRouterFetch), which trusts the configured CA. A router reached over
  * http:// is accepted, because a local install reaches it by port-forward,
  * and logged once as a warning: the push carries the runner's secrets.
+ * An https:// public MCP endpoint with HTTPS egress off is accepted too
+ * (egress.ts), and logged once: no sandbox can reach it, which only a
+ * stdio MCP server that dials it would notice.
  */
 import type { Logger } from "../../boot/logger.js";
 import type {
@@ -59,6 +62,15 @@ export function newSubstrateSandboxDriver(options: {
     options.logger.warn(
       "Substrate's router is reached over http://, so the attach push carries the runner's secrets and session token in cleartext; give STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL as https:// with STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE (and STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME when the router is reached by another name than its certificate's)",
       { routerUrl: options.settings.routerUrl },
+    );
+  }
+  if (
+    options.settings.httpsEgress === "none" &&
+    options.config.mcpPublicEndpoint.startsWith("https://")
+  ) {
+    options.logger.warn(
+      "STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT is https:// while STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS is none, so no sandbox can reach it; a stdio MCP server that dials it will fail. Set STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS=all to carry it",
+      { mcpPublicEndpoint: options.config.mcpPublicEndpoint },
     );
   }
   const driver = newSubstrateSandboxDriverOverGateway({

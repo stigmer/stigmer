@@ -33,7 +33,12 @@ import {
   type TestCa,
   type TestServerCertificate,
 } from "../__test-utils__/test-ca.js";
-import { newRouterFetch, pushAttach, RouterTlsError } from "../push.js";
+import {
+  newRouterFetch,
+  pushAttach,
+  RouterReplyError,
+  RouterTlsError,
+} from "../push.js";
 
 const ROUTER_NAME = "atenet-router.ate-system.svc";
 
@@ -415,8 +420,10 @@ describe("an http:// router", () => {
     expect(time.elapsed()).toBeGreaterThanOrEqual(15_000);
   });
 
-  it("fails a push whose reply carries a status no Response can, instead of throwing out of the reply", async () => {
+  it("fails a push whose reply carries a status no Response can at once, never retried and never thrown out of the reply", async () => {
+    let requests = 0;
     const router = await httpRouter((_req, res) => {
+      requests += 1;
       res.writeHead(999);
       res.end();
     });
@@ -430,9 +437,13 @@ describe("an http:// router", () => {
       }),
       time,
     ).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(RouterReplyError);
     expect((failure as Error).message).toMatch(
-      /could not reach the router: the router answered status 999/,
+      /the router at http:\/\/127\.0\.0\.1:\d+ answered status 999/,
     );
+    // Sent once: a retry would hand the runner's secrets over again.
+    expect(requests).toBe(1);
+    expect(time.elapsed()).toBe(0);
   });
 
   it("gives a reply with no body as one", async () => {
@@ -510,9 +521,11 @@ describe("a push that does not finish", () => {
         routerCaFile: "",
         routerServerName: "",
       });
-      await expect(fetch(`${routerUrl}/attach`)).rejects.toThrow(
-        /the router answered status 101/,
+      const failure = await fetch(`${routerUrl}/attach`).catch(
+        (e: unknown) => e,
       );
+      expect(failure).toBeInstanceOf(RouterReplyError);
+      expect((failure as Error).message).toMatch(/answered status 101/);
     } finally {
       await new Promise<void>((resolve) => raw.close(() => resolve()));
     }
