@@ -43,7 +43,6 @@ import { isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { excludeAppliedFromGrants } from "../../shared/exact-apply.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { realpath } from "node:fs/promises";
-import { join } from "node:path";
 import {
   CURSOR_SDK_TOOL_COVERS,
   checkToolListResolution,
@@ -53,7 +52,7 @@ import {
 } from "../../shared/tool-lists.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { ensureHitlDir, getPlatformDir } from "../../shared/workspace/platform-dir.js";
-import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
+import { stigmerSymlinkPointsAt } from "../../shared/workspace/stigmer-link.js";
 import { compileHookToolScope } from "./hook-scope.js";
 import { computeAgentFingerprint, takeCachedAgent } from "./agent-session-cache.js";
 import { buildApprovalGrants, buildApprovalState, emitCursorGrantReceipts, reconstructAdjudicatedApprovals, watchDenialLedger, type ApprovalGrant } from "./approval-state.js";
@@ -227,19 +226,15 @@ function cursorToolInventory(servers: readonly ResolvedMcpServer[]): TurnToolInv
 }
 
 /**
- * The directories an excluded `Read` may still reach: the workspace's
- * `.stigmer/` route (as given and as the OS resolves the workspace, since the
- * hook resolves a relative path against the payload's `cwd`) and the
- * platform dir it links to.
+ * The real path an excluded `Read` may still reach files inside
+ * (`HookToolScope.readRoot`): the platform dir's, on a turn whose workspace
+ * `.stigmer` is the link to it (`stigmerSymlinkPointsAt`), else "". A turn
+ * that mounted no skill and no attachment made no link and has no platform
+ * content, so a `.stigmer` there is the repository's own and admits nothing.
  */
-async function platformReadRoots(primaryDir: string, sessionId: string): Promise<string[]> {
-  const roots = [join(primaryDir, STIGMER_LOCAL_STATE_DIR), getPlatformDir(sessionId)];
-  try {
-    roots.push(join(await realpath(primaryDir), STIGMER_LOCAL_STATE_DIR));
-  } catch {
-    // The workspace exists by this phase; a failed resolve only loses the alias.
-  }
-  return roots;
+export async function platformReadRoot(primaryDir: string, platformDir: string): Promise<string> {
+  if (!(await stigmerSymlinkPointsAt(primaryDir, platformDir))) return "";
+  return realpath(platformDir);
 }
 
 /**
@@ -339,7 +334,7 @@ export async function installGate(input: TurnInput, sink: TurnSink, rows: Adjudi
       scope: mcp.toolScope,
       servers: mcp.servers,
       platformServerSlugs: mcp.platformServerSlugs,
-      readRoots: mcp.toolScope.restricted ? await platformReadRoots(primaryDir, sessionId) : [],
+      readRoot: mcp.toolScope.restricted ? await platformReadRoot(primaryDir, getPlatformDir(sessionId)) : "",
       subAgentTypes: subAgentsInScope(input.blueprint.subAgents, mcp.toolScope).map((sa) => sa.name),
     }),
   );

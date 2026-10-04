@@ -115,7 +115,13 @@
 
 import { SALIENT_ARG_FIELDS, getBuiltInGatedCategories } from "./approval-policy.js";
 import { normalizeSubAgentType } from "../../shared/tool-lists.js";
-import { CURSOR_HOOK_MCP_PREFIX, ENGINE_EXTRA_SCOPE_KEY, SCOPE_KEY_PREFIX, TOOL_NAME_PLACEHOLDER } from "./hook-scope.js";
+import {
+  CURSOR_HOOK_MCP_PREFIX,
+  ENGINE_EXTRA_SCOPE_KEY,
+  READ_SCOPE_KEY,
+  SCOPE_KEY_PREFIX,
+  TOOL_NAME_PLACEHOLDER,
+} from "./hook-scope.js";
 import {
   EDIT_OLD_FIELDS,
   EDIT_NEW_FIELDS,
@@ -239,15 +245,19 @@ function buildContentDigestScript(): string {
  * say, so the list rules stay in `shared/tool-lists.ts` alone. Sets:
  *  - `sv`: "" (in scope, or no lists), "E" (could not evaluate), else
  *    base64(JSON) of the deny response, the refusal naming the tool;
- *  - `stk`: the ledger token a refusal is recorded under, the tool's scope
- *    token (`approval-state.ts` `scopeRefusalToken`): keyed by the built-in's
+ *  - `stk`: the ledger token a refusal is recorded under, the scope token
+ *    (`approval-state.ts` `scopeRefusalToken`): keyed by the built-in's
  *    `scopeKey` (every engine extra shares one), by `server/tool` for an MCP
  *    call (the `mcpToolKey` form), by the `Task` key for a sub-agent start;
+ *    and, for a tool the lists may exclude only in part (`READ_SCOPE_KEY`,
+ *    `AGENT_SCOPE_KEY`), discriminated by the call: the path as given, the
+ *    normalized sub-agent type;
  *  - `smsg`: base64 of the refusal text, which the ledger carries so the turn
  *    boundary can write the very words the model read onto the refused row.
- * An excluded `Read` is let through under `readRoots` (the `.stigmer/`
- * route), its path resolved against the payload's `cwd`, else the baked
- * workspace root (`process.argv[2]`). A `subagentStart` type is normalized
+ * An excluded `Read` is let through only when the file's REAL path lies
+ * inside `readRoot` (the platform dir's real path, "" on a turn with no
+ * platform link), the path resolved against the payload's `cwd`, else the
+ * baked workspace root (`process.argv[2]`); a missing file is refused. A `subagentStart` type is normalized
  * by the source of `normalizeSubAgentType` itself, embedded, so the hook
  * and the resolver share one rule. Expects `t`, `name`, `a`, `s`, `b`, `ev`
  * and `srv` in scope.
@@ -257,8 +267,9 @@ function buildScopeEvalScript(): string {
   const mcpPrefix = JSON.stringify(CURSOR_HOOK_MCP_PREFIX);
   const keyPrefix = JSON.stringify(SCOPE_KEY_PREFIX);
   const extraKey = JSON.stringify(ENGINE_EXTRA_SCOPE_KEY);
+  const readKey = JSON.stringify(READ_SCOPE_KEY);
   return [
-    `let sv="",stk="",smsg="";`,
+    `let sv="",stk="",smsg="",disc="";`,
     `try{`,
     `const st=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));`,
     `const sc=st.toolListsRestricted===true?JSON.parse(Buffer.from(String(st.toolScope),"base64").toString("utf8")):null;`,
@@ -270,6 +281,7 @@ function buildScopeEvalScript(): string {
     `const lt=(${normalizeSubAgentType.toString()})(ty);`,
     `ok=own(sc.subAgentTypes.types,lt)?sc.subAgentTypes.types[lt]===true:sc.subAgentTypes.otherTypes===true;`,
     `label="Agent("+ty+")";`,
+    `disc=lt;`,
     `key=own(sc.builtins,"Task")?sc.builtins.Task.key:"Task";`,
     `}else if(ev==="beforeMCPExecution"){`,
     `const sm=own(sc.mcp.servers,srv)?sc.mcp.servers[srv]:null;`,
@@ -279,17 +291,17 @@ function buildScopeEvalScript(): string {
     `const e=own(sc.builtins,name)?sc.builtins[name]:null;`,
     `ok=e?e.allowed===true:sc.otherBuiltins===true;`,
     `key=e?e.key:${extraKey};`,
-    `if(!ok&&name==="Read"&&s){`,
+    `if(key===${readKey})disc=s;`,
+    `if(!ok&&key===${readKey}&&s&&typeof sc.readRoot==="string"&&sc.readRoot!==""){`,
     `const pth=require("path");`,
     `const base=typeof t.cwd==="string"&&t.cwd?t.cwd:(process.argv[2]||"/");`,
-    `const ab=pth.resolve(base,s);`,
-    `ok=(Array.isArray(sc.readRoots)?sc.readRoots:[]).some((r)=>typeof r==="string"&&r!==""&&(ab===r||ab.startsWith(r+pth.sep)));`,
+    `try{ok=require("fs").realpathSync(pth.resolve(base,s)).startsWith(sc.readRoot+pth.sep);}catch(e){ok=false;}`,
     `}`,
     `}`,
     `if(!ok){`,
     `const msg=String(sc.refusal).split(${placeholder}).join(label);`,
     `sv=b(JSON.stringify(ev==="subagentStart"?{permission:"deny",user_message:msg}:{permission:"deny",agent_message:msg,user_message:msg}));`,
-    `stk=b(${keyPrefix}+key+"\\n");`,
+    `stk=b(${keyPrefix}+key+"\\n"+disc);`,
     `smsg=b(msg);`,
     `}`,
     `}`,

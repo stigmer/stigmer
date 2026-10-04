@@ -16,13 +16,13 @@
 
 import { describe, it, expect, onTestFinished } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { generateHookScript } from "../hook-script.js";
 import { buildApprovalState, grantToken, primaryToken, scopeRefusalToken, toolIdentity } from "../approval-state.js";
-import { compileHookToolScope, scopeKey } from "../hook-scope.js";
+import { AGENT_SCOPE_KEY, READ_SCOPE_KEY, compileHookToolScope, scopeKey } from "../hook-scope.js";
 import { CURSOR_SDK_TOOL_COVERS, ToolScope } from "../../../shared/tool-lists.js";
 import { mcpToolKey } from "../../../shared/approval-policy.js";
 import { contentDigest } from "../../../shared/file-tools.js";
@@ -332,16 +332,42 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(h.ledger()[0].kind).toBe("disabled");
     });
 
-    it("Read excluded: a read under the workspace's .stigmer/ route passes, anything else is refused", () => {
+    it("Read excluded: a real platform file read through the turn's .stigmer link passes; anything else is refused", () => {
       const h = setup({ lists: { tools: ["Grep"], disallowedTools: [] } });
+      mkdirSync(join(h.platformDir, "skills/a"), { recursive: true });
+      mkdirSync(join(h.platformDir, "inputs"), { recursive: true });
+      writeFileSync(join(h.platformDir, "skills/a/SKILL.md"), "# skill", "utf-8");
+      writeFileSync(join(h.platformDir, "inputs/spec.pdf"), "pdf", "utf-8");
+      mkdirSync(join(h.root, "src"), { recursive: true });
+      writeFileSync(join(h.root, "src/main.ts"), "code", "utf-8");
+      writeFileSync(join(h.root, "secrets.txt"), "secret", "utf-8");
+      // A link inside platform content pointing out of it, into the workspace.
+      symlinkSync(h.root, join(h.platformDir, "inputs/escape"), "dir");
+
       expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/skills/a/SKILL.md") })).permission).toBe("allow");
       expect(h.decide(hookBuiltin("Read", { file_path: ".stigmer/inputs/spec.pdf" }, h.root)).permission).toBe("allow");
-      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, "src/main.ts") })).permission).toBe("deny");
-      // A path that walks out of the route through ".." is resolved first.
-      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/../secrets.txt") })).permission).toBe("deny");
-      expect(h.decide(hookBuiltin("Read", { file_path: `${h.root}/.stigmer-other/x` })).permission).toBe("deny");
-      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled", "disabled", "disabled"]);
-      expect(h.ledger()[0].token).toBe(scopeRefusalToken(scopeKey("read", CURSOR_SDK_TOOL_COVERS)));
+      expect(h.ledger(), "an admitted read records nothing").toEqual([]);
+
+      const refused = [
+        join(h.root, "src/main.ts"),
+        // ".." is resolved before the real path is taken.
+        join(h.root, ".stigmer/../secrets.txt"),
+        // Through the platform link, out through a link inside the content.
+        join(h.root, ".stigmer/inputs/escape/secrets.txt"),
+        // A file that does not exist has no real path to admit.
+        join(h.root, ".stigmer/inputs/missing.pdf"),
+      ];
+      for (const file of refused) expect(h.decide(hookBuiltin("Read", { file_path: file })).permission, file).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled", "disabled", "disabled", "disabled"]);
+      // A Read refusal names the call: the path as given.
+      expect(h.ledger()[0].token).toBe(scopeRefusalToken(READ_SCOPE_KEY, join(h.root, "src/main.ts")));
+    });
+
+    it("Read excluded on an unlinked turn: a repository's own .stigmer symlink admits nothing", () => {
+      const h = setup({ lists: { tools: ["Grep"], disallowedTools: [] }, stigmerLink: "repo" });
+      writeFileSync(join(h.root, "repo-state/notes.md"), "repo file", "utf-8");
+      expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, ".stigmer/notes.md") })).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["disabled"]);
     });
 
     it("refuses an MCP tool by server AND tool, recorded under its server/tool scope token", () => {
@@ -403,7 +429,8 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(h.decide(hookSubagentStart("generalPurpose")).permission).toBe("deny");
       const ledger = h.ledger();
       expect(ledger.map((e) => e.kind)).toEqual(["disabled", "disabled"]);
-      expect(ledger[0].token).toBe(scopeRefusalToken(scopeKey("task", CURSOR_SDK_TOOL_COVERS)));
+      // A sub-agent start's refusal names the call: the normalized type.
+      expect(ledger[0].token).toBe(scopeRefusalToken(AGENT_SCOPE_KEY, "writer"));
     });
 
     it("subagentStart: Cursor's generalPurpose is the general-purpose type a list names", () => {
@@ -1043,7 +1070,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       scope: ToolScope.of('Agent "a"', { tools: ["Read"], disallowedTools: [] }),
       servers: [],
       platformServerSlugs: new Set(),
-      readRoots: [],
+      readRoot: "",
       subAgentTypes: [],
     });
     writeFileSync(

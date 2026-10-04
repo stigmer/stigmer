@@ -22,7 +22,8 @@
  * (`enforcesSubAgentLists: false`, pinned by `__tests__/check-tool-scope.test.ts`).
  */
 
-import { join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { setupCursorHookHarness, hasBash, hookInputFor, hookRead, streamArgsFor, STREAM_NAME } from "./cursor-hook-harness.js";
 import { toolIdentity, type ApprovalGrant } from "../approval-state.js";
 import { contentDigest } from "../../../shared/file-tools.js";
@@ -136,10 +137,16 @@ export function createCursorSubstrate(): GatewaySubstrate {
         destructiveMcpTools: destructiveToolsOf(action),
         mcpServers: [{ slug, discoveredToolNames: null }],
       });
-      const input =
-        action.kind === "read" && action.platformContent
-          ? hookRead(join(harness.root, ".stigmer", action.resource))
-          : hookInputFor(action);
+      // The platform's content exists in the platform dir the turn's
+      // `.stigmer` links to: an excluded Read is admitted by the file's real
+      // path, so the file the action names is put there first.
+      const platformRead = action.kind === "read" && action.platformContent;
+      if (platformRead) {
+        const file = join(harness.platformDir, action.resource);
+        mkdirSync(dirname(file), { recursive: true });
+        writeFileSync(file, action.content ?? "platform content", "utf-8");
+      }
+      const input = platformRead ? hookRead(join(harness.root, ".stigmer", action.resource)) : hookInputFor(action);
       const { permission, raw } = harness.decide(input);
       const refused = permission === "deny" && raw.includes("is not available to this agent");
       const executed = permission === "allow";

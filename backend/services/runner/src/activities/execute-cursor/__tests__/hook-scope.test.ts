@@ -97,7 +97,7 @@ describe("compileHookToolScope", () => {
         scope: ToolScope.unrestricted(),
         servers,
         platformServerSlugs: new Set(["stigmer-memory"]),
-        readRoots: ["/ws/.stigmer"],
+        readRoot: "/platform",
         subAgentTypes: ["researcher"],
       }),
     ).toEqual(UNRESTRICTED_HOOK_SCOPE);
@@ -109,7 +109,7 @@ describe("compileHookToolScope", () => {
       scope,
       servers,
       platformServerSlugs: new Set(["stigmer-memory"]),
-      readRoots: ["/ws/.stigmer", "/ws/.stigmer"],
+      readRoot: "/platform",
       subAgentTypes: [],
     });
     expect(compiled.restricted).toBe(true);
@@ -120,7 +120,7 @@ describe("compileHookToolScope", () => {
     expect(compiled.otherBuiltins, "an allow-list hides engine extras").toBe(false);
     expect(compiled.mcp.servers.github.tools).toEqual({ list_prs: true, merge_pr: false });
     expect(compiled.mcp.servers["stigmer-memory"]).toEqual({ tools: {}, otherTools: true });
-    expect(compiled.readRoots).toEqual(["/ws/.stigmer"]);
+    expect(compiled.readRoot).toBe("/platform");
     expect(compiled.refusal).toContain(`${TOOL_NAME_PLACEHOLDER} is not available to this agent`);
     expect(compiled.refusal).toContain('Agent "support": tools [Read, mcp__github__list_prs]');
   });
@@ -130,7 +130,7 @@ describe("compileHookToolScope", () => {
       scope: ToolScope.of('Agent "a"', { tools: [], disallowedTools: ["Bash"] }),
       servers: [],
       platformServerSlugs: new Set(),
-      readRoots: [],
+      readRoot: "",
       subAgentTypes: [],
     });
     expect(compiled.otherBuiltins).toBe(true);

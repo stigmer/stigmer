@@ -17,7 +17,7 @@
 
 import { onTestFinished } from "vitest";
 import { execFileSync, execSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync, readlinkSync, realpathSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -46,6 +46,8 @@ export const hasBash: boolean = (() => {
 export interface CursorHookHarness {
   /** The throwaway workspace root (git repo when capture mode is on). */
   readonly root: string;
+  /** The throwaway platform dir (outside the workspace) the `platform` link points at. */
+  readonly platformDir: string;
   /** Run the hook against a single hook-input payload and report its decision. */
   decide(input: object): { permission: string; raw: string };
   /**
@@ -120,10 +122,17 @@ export interface CursorHookHarnessOptions {
   unattendedSkip?: boolean;
   /**
    * The main agent's tool lists. Compiled into the state exactly as the
-   * runner compiles them (`hook-scope.ts`), with the throwaway workspace's
-   * `.stigmer/` as the read route.
+   * runner compiles them (`hook-scope.ts`).
    */
   lists?: ToolLists;
+  /**
+   * What the workspace's `.stigmer` is this turn (default: the platform link
+   * when `lists` is set, else nothing): `platform`, the runner's link to the
+   * harness's throwaway platform dir; `repo`, a repository's own symlink to a
+   * real directory inside the workspace (an unlinked turn); `none`. The read
+   * root is derived from it as `turn-setup.ts` `platformReadRoot` derives it.
+   */
+  stigmerLink?: "platform" | "repo" | "none";
   /** The turn's MCP servers and the tools discovery knows of (null: never discovered). */
   mcpServers?: Array<{ slug: string; discoveredToolNames: string[] | null }>;
   /** The platform's synthesized attachment slugs (always in scope). */
@@ -173,6 +182,19 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
     "utf-8",
   );
 
+  const platformDir = mkdtempSync(join(tmpdir(), "hook-platform-"));
+  onTestFinished(() => rmSync(platformDir, { recursive: true, force: true }));
+  const link = opts.stigmerLink ?? (opts.lists ? "platform" : "none");
+  if (link === "platform") symlinkSync(platformDir, join(ws, ".stigmer"), "dir");
+  if (link === "repo") {
+    mkdirSync(join(ws, "repo-state"), { recursive: true });
+    symlinkSync(join(ws, "repo-state"), join(ws, ".stigmer"), "dir");
+  }
+  // `platformReadRoot`'s rule, synchronously: the platform dir's real path
+  // only when the workspace's `.stigmer` is the link to it.
+  const linkTarget = link === "none" ? "" : readlinkSync(join(ws, ".stigmer"));
+  const readRoot = linkTarget === platformDir ? realpathSync(platformDir) : "";
+
   if (!opts.noStateFile) {
     const mcpDefault: McpApprovalDefault = {
       destructive: new Set((opts.destructiveMcpTools ?? []).map((tool) => mcpToolKey("srv", tool))),
@@ -182,7 +204,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
       scope: opts.lists ? ToolScope.of('Agent "test"', opts.lists) : ToolScope.unrestricted(),
       servers: opts.mcpServers ?? [],
       platformServerSlugs: new Set(opts.platformServerSlugs ?? []),
-      readRoots: [join(ws, ".stigmer")],
+      readRoot,
       subAgentTypes: opts.subAgentTypes ?? [],
     });
     const state = buildApprovalState(
@@ -201,6 +223,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
 
   return {
     root: ws,
+    platformDir,
     hitlDir: dir,
     decide(input: object) {
       const raw = execFileSync("bash", [scriptPath], { input: JSON.stringify(input) }).toString();

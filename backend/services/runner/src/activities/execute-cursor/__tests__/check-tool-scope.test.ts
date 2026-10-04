@@ -2,18 +2,22 @@
  * The Cursor engine's setup-time refusals over the agent's tool lists
  * (`turn-setup.ts` `checkToolScope`) and how the turn classifies them: each
  * is a typed refusal the adapter settles on the `actionable` surface with its
- * own sentence (`turn.ts`), never the internal-error copy. The hermetic
+ * own sentence (`turn.ts`), never the internal-error copy. Also the read root
+ * an excluded `Read` is confined to (`platformReadRoot`). The hermetic
  * tool-lists test pins the settled status for the two refusals a local
  * session can reach; the cloud refusal is pinned here, because the runner
  * routes every session local today.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { TurnInput } from "../../../harness/types.js";
 import { ToolListResolutionError, ToolScope, type ToolLists } from "../../../shared/tool-lists.js";
-import { CursorToolListRefusal, checkToolScope } from "../turn-setup.js";
+import { CursorToolListRefusal, checkToolScope, platformReadRoot } from "../turn-setup.js";
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 /** One resolved server as the inventory reads it: its slug and what discovery knows. */
 interface ServerFacts {
@@ -82,5 +86,31 @@ describe("checkToolScope", () => {
   it("refuses a tools list that names nothing the turn has with the shared resolution error", () => {
     const run = () => checkToolScope(input({ tools: ["NotebookEdit"], disallowedTools: [] }), { agentMode: "local" });
     expect(run).toThrow(ToolListResolutionError);
+  });
+});
+
+describe("platformReadRoot", () => {
+  function dirs(): { workspace: string; platform: string } {
+    const workspace = mkdtempSync(join(tmpdir(), "read-root-ws-"));
+    const platform = mkdtempSync(join(tmpdir(), "read-root-platform-"));
+    onTestFinished(() => {
+      rmSync(workspace, { recursive: true, force: true });
+      rmSync(platform, { recursive: true, force: true });
+    });
+    return { workspace, platform };
+  }
+
+  it("is the platform dir's real path on a turn whose .stigmer links to it", async () => {
+    const { workspace, platform } = dirs();
+    symlinkSync(platform, join(workspace, ".stigmer"), "dir");
+    expect(await platformReadRoot(workspace, platform)).toBe(realpathSync(platform));
+  });
+
+  it("is empty on a turn with no link, or with the repository's own .stigmer link", async () => {
+    const { workspace, platform } = dirs();
+    expect(await platformReadRoot(workspace, platform)).toBe("");
+    mkdirSync(join(workspace, "elsewhere"));
+    symlinkSync(join(workspace, "elsewhere"), join(workspace, ".stigmer"), "dir");
+    expect(await platformReadRoot(workspace, platform)).toBe("");
   });
 });

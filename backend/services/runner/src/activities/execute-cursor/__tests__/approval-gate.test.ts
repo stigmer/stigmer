@@ -208,7 +208,7 @@ describe("buildApprovalState", () => {
       scope: ToolScope.of('Agent "a"', { tools: ["Read", "mcp__planton__get_cloud_resource"], disallowedTools: [] }),
       servers: [{ slug: "planton", discoveredToolNames: ["get_cloud_resource", "apply_x"] }],
       platformServerSlugs: new Set(),
-      readRoots: ["/ws/.stigmer"],
+      readRoot: "/platform",
       subAgentTypes: [],
     });
     const restricted = buildApprovalState(mcpPolicies, false, new Set(), undefined, false, false, true, false, scope);

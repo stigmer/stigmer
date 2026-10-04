@@ -12,9 +12,14 @@
  *  - Built-ins, by the hook's own names (`CURSOR_HOOK_TOOL_COVERS`, plus the
  *    platform's `think`); a name the table lacks is an engine extra, refused
  *    only under an allow-list (`ToolScope.allowsCovering([])`).
- *  - `Read` when the lists exclude it: still allowed under the `.stigmer/`
- *    platform route, the agent's skills, attached inputs and approved plan,
- *    which are the platform's content and not the workspace's.
+ *  - `Read` when the lists exclude it: still allowed for a file whose real
+ *    path lies inside the platform dir (the agent's skills, attached inputs
+ *    and approved plan, the platform's content and not the workspace's), on a
+ *    turn whose `.stigmer` link points there. Real path, not prefix: a
+ *    repository's own `.stigmer` link on an unlinked turn, or a link inside
+ *    platform content pointing out, would otherwise stretch the confinement
+ *    to any target. The native engine admits the same set
+ *    (`execute-deep-agent/platform-route.ts` `confinedReadAdmission`).
  *  - MCP tools, by server and tool (`ToolScope.mcpTable`): every tool the turn
  *    discovered and every one an entry names, plus one shared answer for the
  *    rest of a server and one for any other server. The platform's own
@@ -79,8 +84,12 @@ export interface HookToolScope {
   readonly builtins: Readonly<Record<string, HookBuiltinScope>>;
   /** The answer for a built-in name `builtins` lacks. */
   readonly otherBuiltins: boolean;
-  /** Absolute directories an excluded `Read` may still reach: the workspace's `.stigmer/` route and the platform dir it links to. */
-  readonly readRoots: readonly string[];
+  /**
+   * The platform dir's real path, inside which an excluded `Read` may still
+   * reach a file by its real path; "" on a turn whose `.stigmer` link does
+   * not point at the platform dir (no platform content to read).
+   */
+  readonly readRoot: string;
   readonly mcp: McpScopeTable;
   readonly subAgentTypes: SubAgentTypeTable;
 }
@@ -107,7 +116,7 @@ export const UNRESTRICTED_HOOK_SCOPE: HookToolScope = {
   refusal: "",
   builtins: {},
   otherBuiltins: true,
-  readRoots: [],
+  readRoot: "",
   mcp: { servers: {}, otherServers: true },
   subAgentTypes: { types: {}, otherTypes: true },
 };
@@ -127,13 +136,25 @@ export function scopeKey(name: string, table: ReadonlyMap<string, readonly Claud
   return covers && covers.length > 0 ? [...covers].sort().join("+") : ENGINE_EXTRA_SCOPE_KEY;
 }
 
+/**
+ * The scope keys whose refusals name the CALL, not only the tool, because the
+ * lists may exclude part of the tool: an excluded `Read` is confined to the
+ * platform's content, and `Agent(type, …)` excludes some types. A refusal of
+ * these carries a discriminator (the path as given, the normalized sub-agent
+ * type), so the turn boundary settles only the row that was refused. Baked
+ * into the hook script; read by `boundary-rows.ts`.
+ */
+export const READ_SCOPE_KEY = scopeKey("Read", CURSOR_HOOK_TOOL_COVERS);
+export const AGENT_SCOPE_KEY = scopeKey("Task", CURSOR_HOOK_TOOL_COVERS);
+
 /** What {@link compileHookToolScope} reads, all of it from the turn's record. */
 export interface HookToolScopeInput {
   readonly scope: ToolScope;
   readonly servers: readonly Pick<ResolvedMcpServer, "slug" | "discoveredToolNames">[];
   /** The synthesized attachments' slugs: the platform's servers, outside every list. */
   readonly platformServerSlugs: ReadonlySet<string>;
-  readonly readRoots: readonly string[];
+  /** {@link HookToolScope.readRoot}, resolved by the caller (`turn-setup.ts` `platformReadRoot`). */
+  readonly readRoot: string;
   /** The custom sub-agent names registered with the SDK. */
   readonly subAgentTypes: readonly string[];
 }
@@ -168,7 +189,7 @@ export function compileHookToolScope(input: HookToolScopeInput): HookToolScope {
     refusal: outOfScopeMessage(TOOL_NAME_PLACEHOLDER, scope),
     builtins,
     otherBuiltins: scope.allowsCovering([]),
-    readRoots: [...new Set(input.readRoots)],
+    readRoot: input.readRoot,
     mcp,
     subAgentTypes: scope.subAgentTypeTable(input.subAgentTypes),
   };

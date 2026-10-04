@@ -12,18 +12,29 @@
  * their production order: `stampScopeRefusedToolCalls`, then
  * `detectUnattributedHookBlocks`. Pinned for a built-in, an MCP tool (keyed by
  * server and tool), and an engine extra whose hook name and stream name
- * differ, on the root transcript and inside a sub-agent's.
+ * differ, on the root transcript and inside a sub-agent's; and, for a tool
+ * the lists exclude only in part (`Agent(type, …)`, a confined `Read`), that
+ * only the call the refusal names is settled, never an allowed call of the
+ * same tool still in flight, and never an earlier turn's row.
  */
 
 import { describe, expect, it } from "vitest";
 import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ToolScope, outOfScopeMessage, type ToolLists } from "../../../shared/tool-lists.js";
 import type { McpApprovalDefault } from "../../../shared/approval-policy.js";
-import { readDenialLedger } from "../approval-state.js";
+import { grantToken, readDenialLedger } from "../approval-state.js";
 import { detectUnattributedHookBlocks, stampScopeRefusedToolCalls } from "../boundary-rows.js";
 import { CursorFold } from "../__test-utils__/fold.js";
 import { sdkEvents } from "../__test-utils__/scripted-agent.js";
-import { hasBash, hookBuiltin, hookMcp, hookShell, setupCursorHookHarness } from "../__test-utils__/cursor-hook-harness.js";
+import {
+  hasBash,
+  hookBuiltin,
+  hookMcp,
+  hookShell,
+  hookSubagentStart,
+  setupCursorHookHarness,
+} from "../__test-utils__/cursor-hook-harness.js";
+import { join } from "node:path";
 
 const d = hasBash ? describe : describe.skip;
 const ev = sdkEvents("agent-1", "run-1");
@@ -58,7 +69,7 @@ d("tool-list refusals on the timeline", () => {
 
     const ledger = await readDenialLedger(h.hitlDir);
     const { messages, subAgentExecutions } = fold.status;
-    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger)).toBe(2);
+    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(2);
 
     const scope = ToolScope.of(OWNER, lists);
     for (const [id, label, hookRaw] of [
@@ -103,7 +114,7 @@ d("tool-list refusals on the timeline", () => {
     const { messages, subAgentExecutions } = fold.status;
     const ledger = await readDenialLedger(h.hitlDir);
 
-    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger)).toBe(2);
+    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(2);
     const expected = outOfScopeMessage("GenerateImage", ToolScope.of(OWNER, lists));
     const subRow = subAgentExecutions[0].messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === "sub-gen-1")!;
     for (const row of [fold.row("g1"), subRow]) {
@@ -126,13 +137,101 @@ d("tool-list refusals on the timeline", () => {
     expect(fold.row("s1").completedAt).toBe("");
     const { messages, subAgentExecutions } = fold.status;
     const ledger = await readDenialLedger(h.hitlDir);
-    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger)).toBe(1);
+    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(1);
     expect(fold.row("s1").status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(fold.row("s1").error).toContain("Shell is not available to this agent");
     expect(fold.row("s1").isStreaming).toBe(false);
     expect(fold.row("s1").completedAt, "a settled row is complete").not.toBe("");
     expect(fold.row("g1").error).toBe(HOOK_BLOCK);
     expect(detectUnattributedHookBlocks(messages, 0, ledger).map((b) => b.toolCallId)).toEqual(["g1"]);
+  });
+
+  it("a refused sub-agent type settles only its own task row, never an allowed type's task still running", async () => {
+    const h = setupCursorHookHarness({ lists: { tools: ["Read", "Agent(explore)"], disallowedTools: [] } });
+    expect(h.decide(hookSubagentStart("generalPurpose")).permission).toBe("deny");
+    const explore = { subagentType: "explore", description: "Look", prompt: "Look around." };
+    const general = { subagentType: "generalPurpose", description: "Do", prompt: "Do it." };
+    const fold = new CursorFold().events(
+      ev.toolCall("t-explore", "task", "running", explore),
+      ev.toolCall("t-general", "task", "running", general),
+      ev.toolCall("t-general", "task", "error", general, HOOK_BLOCK),
+    );
+    const { messages, subAgentExecutions } = fold.status;
+    const ledger = await readDenialLedger(h.hitlDir);
+    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(1);
+    expect(fold.row("t-general").error).toContain("Agent(generalPurpose) is not available to this agent");
+    expect(fold.row("t-explore").status, "the allowed sub-agent is still running").toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    expect(fold.row("t-explore").error).toBe("");
+  });
+
+  it("a refused Read settles only the read it names, matched across absolute and relative spellings; an allowed .stigmer/ read in flight stays", async () => {
+    const h = setupCursorHookHarness({ lists: { tools: ["Grep"], disallowedTools: [] } });
+    expect(h.decide(hookBuiltin("Read", { file_path: join(h.root, "src/main.ts") })).permission).toBe("deny");
+    const fold = new CursorFold().events(
+      // The stream names the refused file relative to the workspace.
+      ev.toolCall("r-out", "read", "running", { path: "src/main.ts" }),
+      ev.toolCall("r-out", "read", "error", { path: "src/main.ts" }, HOOK_BLOCK),
+      ev.toolCall("r-skill", "read", "running", { path: ".stigmer/skills/a/SKILL.md" }),
+    );
+    const { messages, subAgentExecutions } = fold.status;
+    const ledger = await readDenialLedger(h.hitlDir);
+    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0, h.root)).toBe(1);
+    expect(fold.row("r-out").error).toContain("Read is not available to this agent");
+    expect(fold.row("r-skill").status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    // Without the workspace to normalize against, the spellings never meet.
+    const again = new CursorFold().events(
+      ev.toolCall("r-out", "read", "running", { path: "src/main.ts" }),
+      ev.toolCall("r-out", "read", "error", { path: "src/main.ts" }, HOOK_BLOCK),
+    );
+    expect(stampScopeRefusedToolCalls(again.status.messages, [], ledger, 0)).toBe(0);
+    expect(detectUnattributedHookBlocks(messages, 0, ledger, h.root)).toEqual([]);
+  });
+
+  it("only this turn's rows and this turn's sub-agents are settled", async () => {
+    const h = setupCursorHookHarness({ lists: { tools: ["Read", "Agent"], disallowedTools: [] } });
+    expect(h.decide(hookShell("ls")).permission).toBe("deny");
+    expect(h.decide(hookBuiltin("GenerateImage", { prompt: "a cat" })).permission).toBe("deny");
+    const taskArgs = { subagentType: "helper", description: "Draw", prompt: "Draw." };
+    const blob = {
+      conversationSteps: [
+        { toolCall: { toolCallId: "old-sub-gen", generateImageToolCall: { args: { prompt: "a cat" }, result: { error: HOOK_BLOCK } } } },
+      ],
+    };
+    const fold = new CursorFold().events(
+      // An earlier turn: a shell left running and a sub-agent's blocked call.
+      ev.assistant("Earlier turn."),
+      ev.toolCall("old-shell", "shell", "running", { command: "ls" }),
+      ev.toolCall("old-task", "task", "running", taskArgs),
+      ev.toolCall("old-task", "task", "completed", taskArgs, blob),
+      ev.assistant("This turn."),
+      ev.toolCall("new-shell", "shell", "running", { command: "ls" }),
+    );
+    const { messages, subAgentExecutions } = fold.status;
+    const turnStart = messages.findIndex((m) => m.content === "This turn.");
+    expect(turnStart).toBeGreaterThan(0);
+    const ledger = await readDenialLedger(h.hitlDir);
+    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, turnStart, h.root)).toBe(1);
+    expect(fold.row("new-shell").status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(fold.row("old-shell").status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    const oldSub = subAgentExecutions[0].messages.flatMap((m) => m.toolCalls)[0];
+    expect(oldSub.error).toBe(HOOK_BLOCK);
+  });
+
+  it("a disabled entry that is not a scope token, or does not decode, rewrites nothing", () => {
+    const mcpArgs = { providerIdentifier: "srv", toolName: "click", args: {} };
+    const fold = new CursorFold().events(
+      ev.toolCall("m1", "mcp", "running", mcpArgs),
+      ev.toolCall("m1", "mcp", "error", mcpArgs, HOOK_BLOCK),
+    );
+    const ledger = [
+      // An MCP name token, as an approval denial carries: no scope prefix.
+      { toolName: "click", token: grantToken("click", ""), kind: "disabled", message: "refused" },
+      // No newline once decoded: not an identity token at all.
+      { toolName: "click", token: "bm90LWEtdG9rZW4=", kind: "disabled", message: "refused" },
+    ];
+    const { messages, subAgentExecutions } = fold.status;
+    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, ledger, 0)).toBe(0);
+    expect(fold.row("m1").error).toBe(HOOK_BLOCK);
   });
 
   it("a row that failed for its own reason is left alone, even for a tool the lists confine", async () => {
@@ -145,7 +244,7 @@ d("tool-list refusals on the timeline", () => {
       ev.toolCall("r2", "read", "error", { path: ".stigmer/skills/a/SKILL.md" }, "ENOENT: no such file"),
     );
     const { messages, subAgentExecutions } = fold.status;
-    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, await readDenialLedger(h.hitlDir))).toBe(1);
+    expect(stampScopeRefusedToolCalls(messages, subAgentExecutions, await readDenialLedger(h.hitlDir), 0, h.root)).toBe(1);
     expect(fold.row("r1").error).toContain("Read is not available to this agent");
     expect(fold.row("r2").error).toBe("ENOENT: no such file");
   });

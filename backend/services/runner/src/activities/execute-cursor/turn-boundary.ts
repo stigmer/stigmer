@@ -253,7 +253,13 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // lists (kind "disabled"); settle their rows to the native shape, a FAILED
   // call carrying the refusal the model read, no approval, no provenance.
   // Before the #205 pass, so a refused call is never read as a foreign block.
-  const stampedRefusals = stampScopeRefusedToolCalls(status.messages, status.subAgentExecutions, deniedLedger);
+  const stampedRefusals = stampScopeRefusedToolCalls(
+    status.messages,
+    status.subAgentExecutions,
+    deniedLedger,
+    turnStartMessageIndex,
+    primaryWorkspaceDir,
+  );
   if (stampedRefusals > 0) {
     console.log(
       `ExecuteCursor turn boundary: ${stampedRefusals} tool call(s) refused by the agent's tool lists ` +

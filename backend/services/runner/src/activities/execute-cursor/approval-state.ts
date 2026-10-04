@@ -266,14 +266,16 @@ export function grantToken(key: string, salient: string): string {
 }
 
 /**
- * The ledger token of a built-in scope refusal: the TOOL, not the call, since
- * a list excludes a tool whole. The turn boundary attributes a hook-blocked
- * stream call to it by the stream name's `scopeKey` (`hook-scope.ts`), or by
- * `mcpToolKey(server, tool)` for an MCP call; the hook records
- * the same bytes (`grantToken` of the prefixed key and an empty salient).
+ * The ledger token of a scope refusal: the TOOL (`key`: the stream name's
+ * `scopeKey`, `hook-scope.ts`, or `mcpToolKey(server, tool)` for an MCP call),
+ * plus, for a tool the lists may exclude only in part (`READ_SCOPE_KEY`,
+ * `AGENT_SCOPE_KEY`), the call's discriminator: the path as given, or the
+ * normalized sub-agent type. An empty discriminator names the whole tool.
+ * The hook records the same bytes (`grantToken` of the prefixed key and the
+ * discriminator); the turn boundary decodes them (`decodeIdentityToken`).
  */
-export function scopeRefusalToken(key: string): string {
-  return grantToken(`${SCOPE_KEY_PREFIX}${key}`, "");
+export function scopeRefusalToken(key: string, discriminator = ""): string {
+  return grantToken(`${SCOPE_KEY_PREFIX}${key}`, discriminator);
 }
 
 /**
