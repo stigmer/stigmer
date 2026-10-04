@@ -554,6 +554,21 @@ describe("recentActivity(sessionId)", () => {
       rows: r.counts.rows - counts.rows,
       byId: r.counts.byId - counts.byId,
     }).toEqual({ rows: 0, byId: 2 });
+    // The active run ends, long outside the window: its by-id read sees it.
+    await save(
+      execution(
+        "aex_old",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(-90 * 60_000),
+        at(-80 * 60_000),
+      ),
+    );
+    r.advance(PASS_MS);
+    expect(await r.reader.recentActivity("ses_a")).toEqual({
+      busy: false,
+      lastActiveAt: at(-60 * 60_000 + 19 * 60_000 + 30_000),
+    });
   });
 
   it("re-reads the run holding the latest stamp once it is older than the window", async () => {
@@ -740,12 +755,20 @@ describe("recentActivity(sessionId)", () => {
         at(-60 * 60_000),
         at(-59 * 60_000),
       ),
+      execution(
+        "aex_9",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(-30 * 60_000),
+        at(-29 * 60_000),
+      ),
     );
     await r.reader.recentActivity("ses_a");
     r.advance(ENTRY_IDLE_EVICT_MS - 1);
     await r.reader.recentActivity("ses_b");
     r.advance(1);
-    // A recover the cheap read would lag behind, were the entry still kept.
+    // A recover the cheap read would lag behind, were the entry still kept
+    // (aex_1 does not hold the latest stamp, so no re-read catches it).
     await save(
       execution(
         "aex_1",
