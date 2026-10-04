@@ -57,8 +57,7 @@ type AgentInvocation struct {
 	// This is how a tool-using agent becomes runnable unattended: bind
 	// an org-shared environment holding the needed credentials (for
 	// example an MCP server's shared secret), and the runs receive its
-	// values at runtime. The agent and its default instance stay
-	// untouched.
+	// values at runtime. The agent itself stays untouched.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
 	// Per-invocation model choice and run bounds. Unset fields inherit
 	// the embedding surface's platform execution profile.

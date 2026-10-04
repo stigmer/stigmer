@@ -1176,7 +1176,9 @@ removed: a Session names its Agent directly (`agent_ref`) and runs the version
 it started on, and Environments are bound to what starts a run (a Schedule, a
 Workflow `agent_call` task, a PlatformClient), with the personal Environment of
 the person sending the message filling the Agent's declared keys that nothing
-else supplies.
+else supplies when the Agent belongs to the run's own Organization (an Agent
+another Organization published reads none, and an MCP Server's OAuth variable
+comes only from the sign-in to that server).
 
 - **Capitalize**: Yes, when naming the retired kind in an upgrade note.
 - **Context rule**: Do not use in new writing. A reader still meets the word in

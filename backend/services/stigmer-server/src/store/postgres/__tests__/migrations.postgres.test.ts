@@ -17,9 +17,11 @@
  * agent and pins its current version (or keeps a deleted agent's id, or
  * continues with the built-in assistant when the instance is gone or names
  * no agent), reading instances and sessions across keyset pages, and the
- * instance rows leave every table; a session, instance or agent row it
- * cannot decode fails the step, naming the row, and leaves the database at
- * v8. A step's
+ * instance rows leave every table; the store opened on the migrated
+ * database finds each moved session through the session list index's
+ * `agent` key, the one listByAgent reads; a session, instance or agent row
+ * it cannot decode fails the step, naming the row, and leaves the database
+ * at v8. A step's
  * starting database is built by running the chain up to the step before it.
  * Newer schemas are refused without writes or reconciliation; refusal
  * releases the migration lock and closes a failed store's pool.
@@ -59,6 +61,7 @@ import {
   retiredSessionRow,
   sessionBytes,
 } from "../../__tests__/retired-instance-rows.js";
+import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { PostgresStore } from "../store.js";
 import {
   createTestDatabase,
@@ -887,7 +890,10 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             }),
           );
           expect(await data(client, "session", "ses_instance_gone")).toEqual(
-            sessionBytes({ metadata: metadata("ses_instance_gone"), spec: SPEC }),
+            sessionBytes({
+              metadata: metadata("ses_instance_gone"),
+              spec: SPEC,
+            }),
           );
           expect(await data(client, "session", "ses_assistant")).toEqual(
             assistant,
@@ -904,6 +910,24 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             expect(await count(client, table, "agent_instance")).toBe(0);
           }
           expect(await count(client, "resources", "agent")).toBe(1);
+
+          // The store the server opens on the migrated database lists each
+          // moved session under its agent, through the key listByAgent reads.
+          const store = await PostgresStore.open(db.databaseUrl, undefined, {
+            listIndexes: [sessionListIndex],
+          });
+          try {
+            const byAgent = async (agentId: string): Promise<string[]> =>
+              (
+                await store.queryResources(sessionListIndex, {
+                  anyKey: [{ name: "agent", value: agentId }],
+                })
+              ).map((row) => row.id);
+            expect(await byAgent("agt_1")).toEqual(["ses_live"]);
+            expect(await byAgent("agt_gone")).toEqual(["ses_agent_gone"]);
+          } finally {
+            await store.close();
+          }
         } finally {
           await client.end();
         }
@@ -920,7 +944,10 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               client,
               "session",
               id,
-              retiredSessionRow({ metadata: metadata(id), instanceId: "ain_1" }),
+              retiredSessionRow({
+                metadata: metadata(id),
+                instanceId: "ain_1",
+              }),
             );
           }
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_9);

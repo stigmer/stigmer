@@ -106,7 +106,7 @@ public interface AgentOrBuilder extends
 
   /**
    * <pre>
-   * System-managed state including audit trail and default instance ID.
+   * System-managed state including audit trail and current version hash.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -115,7 +115,7 @@ public interface AgentOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * System-managed state including audit trail and default instance ID.
+   * System-managed state including audit trail and current version hash.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -124,7 +124,7 @@ public interface AgentOrBuilder extends
   ai.stigmer.agentic.agent.v1.AgentStatus getStatus();
   /**
    * <pre>
-   * System-managed state including audit trail and default instance ID.
+   * System-managed state including audit trail and current version hash.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>

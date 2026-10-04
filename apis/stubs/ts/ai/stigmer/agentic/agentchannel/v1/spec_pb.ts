@@ -83,7 +83,7 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
-   * runtime. The agent and its default instance stay untouched.
+   * runtime. The agent itself stays untouched.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4;
    */

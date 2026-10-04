@@ -1897,9 +1897,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           onThinkingModeChange={setThinkingMode}
         />
       </div>
-      {disclosePersonalKeys && agentRef && (
+      {disclosePersonalKeys && agentRef && org && (
         <PersonalKeyDisclosure
           agentRef={agentRef}
+          runOrg={org}
           versionHash={personalKeysVersionHash}
           className="stg:mt-2 stg:px-1"
         />

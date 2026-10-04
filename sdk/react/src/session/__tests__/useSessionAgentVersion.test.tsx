@@ -16,12 +16,13 @@ import { useSessionAgentVersion } from "../useSessionAgentVersion";
 // unreadable agent offers nothing; and labels read as a version's tag where
 // it has one, else a short hash. Update calls the move it is given and
 // reports a failure instead of throwing. The current version's declared
-// keys are reported, sorted, for the notice to name before an update.
+// keys are reported, sorted, for the notice to name before an update, and
+// none when the agent belongs to another organization than the session.
 // ---------------------------------------------------------------------------
 
-function session(pin: string): Session {
+function session(pin: string, org = "org_acme"): Session {
   return create(SessionSchema, {
-    metadata: { id: "ses_1" },
+    metadata: { id: "ses_1", org },
     spec: { agentRef: { org: "org_acme", slug: "reviewer", kind: 40 } },
     status: { agentId: "agt_1", agentVersionHash: pin },
   });
@@ -68,7 +69,24 @@ describe("useSessionAgentVersion", () => {
     await waitFor(() => expect(result.current.labelOf("h_new")).toBe("v3"));
     expect(result.current.labelOf("h_old")).toBe("h_old");
     expect(result.current.labelOf("0123456789abcdef0123")).toBe("0123456789ab");
-    expect(result.current.currentPersonalKeys).toEqual(["GITHUB_TOKEN", "LINEAR_API_KEY"]);
+    await waitFor(() =>
+      expect(result.current.currentPersonalKeys).toEqual(["GITHUB_TOKEN", "LINEAR_API_KEY"]),
+    );
+  });
+
+  it("reports no keys for an agent of another organization than the session's", async () => {
+    const client = makeClient("h_new");
+    const { result } = renderHook(
+      () =>
+        useSessionAgentVersion(session("h_old", "org_globex"), {
+          enabled: true,
+          moveToCurrentVersion: vi.fn(),
+        }),
+      { wrapper: wrapperFor(client) },
+    );
+
+    await waitFor(() => expect(result.current.isOutdated).toBe(true));
+    expect(result.current.currentPersonalKeys).toEqual([]);
   });
 
   it("is not outdated when the session runs the agent's current version", async () => {

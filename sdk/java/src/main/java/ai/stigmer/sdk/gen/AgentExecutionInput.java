@@ -75,7 +75,7 @@ public final class AgentExecutionInput {
         if (this.sessionSpec != null) {
             spec.setSessionSpec(this.sessionSpec.toProto());
         }
-        if (this.sessionId != null) {
+        if (this.sessionId != null && !this.sessionId.isEmpty()) {
             spec.setSessionId(this.sessionId);
         }
         if (this.message != null) {

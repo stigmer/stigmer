@@ -20,7 +20,9 @@
  * instance's agent and pins its current version (or keeps a deleted
  * agent's id, or continues with the built-in assistant when the instance is
  * gone, or names no agent), across keyset pages, and the instance rows
- * leave every table; a session, instance or agent row it cannot decode
+ * leave every table; the store opened on the migrated database finds each
+ * moved session through the session list index's `agent` key, the one
+ * listByAgent reads; a session, instance or agent row it cannot decode
  * fails the step, naming the row, and leaves the database at v13.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
@@ -43,6 +45,7 @@ import {
   CONTRACT_SESSION_INDEX,
   CONTRACT_STORE_OPTIONS,
 } from "../../__tests__/store-contract.js";
+import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { SqliteStore } from "../store.js";
 import {
   CURRENT_SCHEMA_VERSION,
@@ -934,7 +937,7 @@ describe("v14: sessions name their agent and the agent instance rows leave", () 
     );
   }
 
-  it("moves every session onto its instance's agent and removes the instance rows from every table", () => {
+  it("moves every session onto its instance's agent and removes the instance rows from every table", async () => {
     const { dbPath, db: setup } = v13Database();
     seedInstances(setup);
     const metadata = (id: string) => ({ id, org: ORG, slug: id });
@@ -1022,6 +1025,21 @@ describe("v14: sessions name their agent and the agent instance rows leave", () 
       expect(count(db, table, "agent_instance")).toBe(0);
     }
     expect(count(db, "resources", "agent")).toBe(1);
+
+    // The store the server opens on the migrated database lists each moved
+    // session under its agent, through the key listByAgent reads.
+    const store = SqliteStore.open(dbPath, undefined, {
+      listIndexes: [sessionListIndex],
+    });
+    cleanups.push(() => store.close());
+    const byAgent = async (agentId: string): Promise<string[]> =>
+      (
+        await store.queryResources(sessionListIndex, {
+          anyKey: [{ name: "agent", value: agentId }],
+        })
+      ).map((row) => row.id);
+    expect(await byAgent("agt_1")).toEqual(["ses_live"]);
+    expect(await byAgent("agt_gone")).toEqual(["ses_agent_gone"]);
   });
 
   it("reads sessions across keyset pages, missing none past the first page", () => {

@@ -270,7 +270,7 @@ describe("AgentExecution conformance — a turn runs the agent its session pinne
         "a turn in a session whose agent was deleted",
       );
       expect(refused.rawMessage).toBe(
-        `session '${sessionId}' runs agent '${agent.metadata!.id}', which no longer exists; update the session to another agent, or to none for the built-in assistant`,
+        `session '${sessionId}' runs agent '${agent.metadata!.id}', which no longer exists; update the session to another agent, or start a new conversation`,
       );
       const listed = await clients.agentExecutionQuery.listBySession({ sessionId });
       expect(listed.entries, "refused before any side effect").toHaveLength(0);

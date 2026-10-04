@@ -23,6 +23,6 @@ message Agent {
   // Configurable properties: instructions, MCP servers, skills, and sub-agents.
   AgentSpec spec = 4;
 
-  // System-managed state including audit trail and default instance ID.
+  // System-managed state including audit trail and current version hash.
   AgentStatus status = 5;
 }

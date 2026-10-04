@@ -79,8 +79,7 @@ export type AgentInvocation = Message<"ai.stigmer.agentic.agentexecution.v1.Agen
    * This is how a tool-using agent becomes runnable unattended: bind
    * an org-shared environment holding the needed credentials (for
    * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent and its default instance stay
-   * untouched.
+   * values at runtime. The agent itself stays untouched.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5;
    */

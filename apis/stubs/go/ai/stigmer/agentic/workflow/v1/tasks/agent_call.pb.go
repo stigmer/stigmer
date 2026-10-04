@@ -94,8 +94,8 @@ type AgentCallTaskConfig struct {
 	//
 	// This is how a tool-using agent becomes runnable from a workflow:
 	// bind an org-shared environment holding the needed credentials, and
-	// the child runs receive its values at runtime. The agent and its
-	// default instance stay untouched.
+	// the child runs receive its values at runtime. The agent itself stays
+	// untouched.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,8,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache

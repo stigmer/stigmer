@@ -9,8 +9,10 @@
  * without a version keeps that pin (see `useSessionConversation`). Two
  * references name the same agent when organization and slug match; an
  * organization named by slug in one and by id in the other reads as a
- * different agent here, and the server, which normalizes both, treats a
- * write of it as an echo that keeps the pin.
+ * different agent here, and the server treats a write of it as an echo
+ * that keeps the pin: its edge rewrites an organization's slug to its id
+ * in every request field named `org`, a reference's included, before any
+ * step compares them.
  *
  * Pinned by `__tests__/agentRefOfSession.test.ts`.
  */

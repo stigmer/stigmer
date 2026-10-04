@@ -8,7 +8,9 @@
  *   - the session is applied on the RESOLVED agent's own reference (its
  *     organization and slug, no version: the server pins the current one),
  *     never on a stand-in, so a step naming an agent cannot silently run
- *     the built-in assistant (stigmer#1770);
+ *     the built-in assistant (stigmer#1770); a resolved row missing its id,
+ *     organization or slug is refused before anything is written, since an
+ *     empty reference would name that assistant;
  *   - the turn is created in that session and linked to the workflow run by
  *     `parent` (execution id, the workflow to signal, the task token), and
  *     is refused before anything is written when the workflow execution id
@@ -178,6 +180,28 @@ describe("callAgentAction", () => {
           appConfig,
         ),
       ).rejects.toThrow("resolved but has no metadata.id");
+    });
+
+    // The session names the agent by org and slug, and an empty reference
+    // is the built-in assistant: a row missing either never reaches the
+    // session apply.
+    it.each([
+      ["slug", { id: "agt_test123", org: "org_agents", slug: "" }, "has no metadata.slug"],
+      ["org", { id: "agt_test123", org: "", slug: "my-agent" }, "has no metadata.org"],
+    ])("throws when resolved agent has no metadata.%s", async (_field, metadata, message) => {
+      mockGetAgentByReference.mockResolvedValue({ metadata });
+
+      await expect(
+        callAgentAction(
+          { agent: "my-agent", message: "Hello" },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
+          "wfl_parent",
+          appConfig,
+        ),
+      ).rejects.toThrow(message);
+
+      expect(mockCreateSession).not.toHaveBeenCalled();
+      expect(mockCreateAgentExecution).not.toHaveBeenCalled();
     });
   });
 

@@ -5,7 +5,9 @@
  * creates nothing per agent. Pinned: an agent whose keys the personal
  * environment already holds resolves `saved` without asking, and saving
  * typed values writes them to the personal environment and resolves
- * `saved`, with no other resource written.
+ * `saved`, with no other resource written. An agent of another
+ * organization reads none of the person's keys, so it resolves `direct`
+ * asking nothing and writing nothing.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -43,7 +45,7 @@ const REVIEWER = create(AgentSchema, {
 type Writes = string[];
 
 /** A client whose personal environment holds `held` keys. */
-function client(writes: Writes, held: readonly string[]) {
+function client(writes: Writes, held: readonly string[], agent = REVIEWER) {
   const personal = create(EnvironmentSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: "env_1", org: ACME_ID, slug: "personal" }),
     spec: { data: Object.fromEntries(held.map((key) => [key, { value: "", isSecret: true }])) },
@@ -52,7 +54,7 @@ function client(writes: Writes, held: readonly string[]) {
     baseUrl: "/",
     getAccessToken: () => "t",
     customTransport: createRouterTransport(({ service }) => {
-      service(AgentQueryController, { getByReference: () => REVIEWER });
+      service(AgentQueryController, { getByReference: () => agent });
       service(EnvironmentQueryController, {
         list: () => create(EnvironmentListSchema, { items: held.length > 0 ? [personal] : [] }),
       });
@@ -124,5 +126,31 @@ describe("useAgentSetup and the personal environment", () => {
     }
     expect(writes.every((write) => write.startsWith("environment."))).toBe(true);
     expect(writes.join(" ")).toContain("API_TOKEN");
+  });
+
+  it("asks nothing of an agent of another organization, whose runs read none of the person's keys", async () => {
+    const writes: Writes = [];
+    const foreign = create(AgentSchema, {
+      ...REVIEWER,
+      metadata: create(ApiResourceMetadataSchema, {
+        id: "agt_2",
+        org: "org_01jgggggggggggggggggggggggg",
+        slug: "reviewer",
+        name: "Reviewer",
+      }),
+    });
+    const { result } = renderHook(() => useAgentSetup(ACME_ID), {
+      wrapper: wrapper(client(writes, [], foreign)),
+    });
+
+    await act(async () => {
+      await result.current.resolveAgent({ org: "globex", slug: "reviewer" });
+    });
+
+    expect(result.current.state.status).toBe("ready");
+    if (result.current.state.status === "ready") {
+      expect(result.current.state.resolution).toEqual({ mode: "direct" });
+    }
+    expect(writes).toEqual([]);
   });
 });

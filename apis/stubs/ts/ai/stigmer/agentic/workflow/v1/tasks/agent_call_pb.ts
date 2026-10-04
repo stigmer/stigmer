@@ -131,8 +131,8 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    *
    * This is how a tool-using agent becomes runnable from a workflow:
    * bind an org-shared environment holding the needed credentials, and
-   * the child runs receive its values at runtime. The agent and its
-   * default instance stay untouched.
+   * the child runs receive its values at runtime. The agent itself stays
+   * untouched.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8;
    */

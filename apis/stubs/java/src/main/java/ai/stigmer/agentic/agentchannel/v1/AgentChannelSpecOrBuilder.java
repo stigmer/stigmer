@@ -128,7 +128,7 @@ public interface AgentChannelSpecOrBuilder extends
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
-   * runtime. The agent and its default instance stay untouched.
+   * runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -143,7 +143,7 @@ public interface AgentChannelSpecOrBuilder extends
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
-   * runtime. The agent and its default instance stay untouched.
+   * runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -157,7 +157,7 @@ public interface AgentChannelSpecOrBuilder extends
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
-   * runtime. The agent and its default instance stay untouched.
+   * runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -171,7 +171,7 @@ public interface AgentChannelSpecOrBuilder extends
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
-   * runtime. The agent and its default instance stay untouched.
+   * runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -186,7 +186,7 @@ public interface AgentChannelSpecOrBuilder extends
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
    * a read-only API token), and channel executions receive its values at
-   * runtime. The agent and its default instance stay untouched.
+   * runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>

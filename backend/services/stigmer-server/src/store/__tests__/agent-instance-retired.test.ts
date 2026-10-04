@@ -6,7 +6,8 @@
  *     with no spec names none;
  *   - a session whose instance survives with its agent names that agent by
  *     organization id and slug and pins its current version, dropping the
- *     retired field and keeping every other field it carried;
+ *     retired field and keeping every other field it carried, the audit
+ *     its status already held included;
  *   - a session whose instance survives its deleted agent keeps the agent's
  *     id with no reference;
  *   - a session whose instance is gone, or whose retired field is empty,
@@ -98,6 +99,43 @@ describe("migrateSessionRow", () => {
         status: { agentId: "agt_1", agentVersionHash: HEAD },
       }),
     );
+  });
+
+  it("keeps the audit a session's status already carried beside the pin", () => {
+    const audit = {
+      specAudit: {
+        createdBy: { id: "usr_1" },
+        createdAt: { seconds: 1_756_684_800n },
+        updatedAt: { seconds: 1_756_771_200n },
+        event: "updated",
+      },
+      statusAudit: {
+        updatedAt: { seconds: 1_756_771_200n },
+        event: "updated",
+      },
+    };
+    const old = retiredSessionRow({
+      metadata,
+      instanceId: "ain_1",
+      spec,
+      status: { audit },
+    });
+
+    const migrated = migrateSessionRow(old, agents({ ain_1: LIVE }));
+
+    expect(migrated).toEqual(
+      sessionBytes({
+        metadata,
+        spec: {
+          ...spec,
+          agentRef: { kind: ApiResourceKind.agent, org: ORG, slug: "reviewer" },
+        },
+        status: { audit, agentId: "agt_1", agentVersionHash: HEAD },
+      }),
+    );
+    const status = fromBinary(SessionSchema, migrated!).status;
+    expect(status?.audit?.specAudit?.createdBy?.id).toBe("usr_1");
+    expect(status?.audit?.statusAudit?.updatedAt?.seconds).toBe(1_756_771_200n);
   });
 
   it("keeps a deleted agent's id with no reference", () => {

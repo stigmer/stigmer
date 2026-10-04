@@ -15,26 +15,40 @@
  *
  * A conversation runs the version its session pinned, so when the host
  * names that version (`versionHash`) the keys come from the spec that
- * version stored, not from the agent's current one: an author's later
- * save that adds a key is not what this conversation's next message
- * runs. A version the history does not hold (an agent last written
- * before agents were versioned) reads the current spec; while the history
- * loads, or when it cannot be read, the line says nothing rather than
- * name another version's keys.
+ * version stored (read by the agent's id and the hash), not from the
+ * agent's current one: an author's later save that adds a key is not
+ * what this conversation's next message runs. A version the agent does
+ * not hold (one last written before agents were versioned) reads the
+ * current spec; while the version loads, or when it cannot be read, the
+ * line says nothing rather than name another version's keys.
+ *
+ * The keys are the ones the server fills (usePersonalKeys): none for an
+ * agent of another organization than the conversation's (`runOrg`), and
+ * never a server's OAuth variable, which its sign-in fills.
  *
  * Pinned by `__tests__/PersonalKeyDisclosure.test.tsx`.
  */
 
-import { useMemo } from "react";
+import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/theme";
-import type { ResourceRef } from "@stigmer/sdk";
+import { GetAgentVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
+import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { isNotFound, type ResourceRef } from "@stigmer/sdk";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
 import { useAgent } from "../agent/useAgent.js";
-import { useAgentVersions } from "../agent/useAgentVersions.js";
+import { usePersonalKeys } from "../agent/usePersonalKeys.js";
 
 /** Props for {@link PersonalKeyDisclosure}. */
 export interface PersonalKeyDisclosureProps {
   /** The agent the conversation is about to start on. */
   readonly agentRef: ResourceRef;
+  /**
+   * The organization the conversation runs in, by id: an agent of another
+   * organization reads none of the person's keys, so the line says
+   * nothing for it.
+   */
+  readonly runOrg: string;
   /**
    * The version the conversation is pinned to, when it already has one:
    * the keys are read from that version's spec. Omitted for a
@@ -45,33 +59,56 @@ export interface PersonalKeyDisclosureProps {
   readonly className?: string;
 }
 
+/** The pinned version's spec: absent when the agent holds no such version. */
+type PinnedSpec =
+  | { readonly kind: "spec"; readonly spec: AgentSpec | undefined }
+  | { readonly kind: "absent" }
+  | { readonly kind: "unknown" };
+
 /**
- * Names the keys `agentRef` declares, in the order a reader scans them
- * (sorted), as the keys the agent can read from the person's personal
- * environment.
+ * Names the keys a run of `agentRef` reads from the person's personal
+ * environment, in the order a reader scans them (sorted).
  *
  * @example
  * ```tsx
- * <PersonalKeyDisclosure agentRef={{ org: "acme", slug: "pr-reviewer" }} />
+ * <PersonalKeyDisclosure agentRef={{ org: "acme", slug: "pr-reviewer" }} runOrg="org_acme" />
  * // This agent can read these keys from your personal environment: GITHUB_TOKEN, LINEAR_API_KEY
  * ```
  */
 export function PersonalKeyDisclosure({
   agentRef,
+  runOrg,
   versionHash = "",
   className,
 }: PersonalKeyDisclosureProps) {
+  const stigmer = useStigmer();
   const { agent } = useAgent(agentRef.org || null, agentRef.slug || null);
+  const agentId = agent?.metadata?.id ?? "";
   const pinned = versionHash !== "";
-  const history = useAgentVersions(
-    pinned ? agentRef.org || null : null,
-    pinned ? agentRef.slug || null : null,
+  const { data: pinnedSpec } = useFetch<PinnedSpec>(
+    pinned && agentId !== ""
+      ? async () => {
+          try {
+            const entry = await stigmer.agent.getVersion(
+              create(GetAgentVersionInputSchema, { agentId, versionHash }),
+            );
+            return { kind: "spec", spec: entry.specSnapshot };
+          } catch (err) {
+            return isNotFound(err) ? { kind: "absent" } : { kind: "unknown" };
+          }
+        }
+      : null,
+    [pinned, agentId, versionHash, stigmer],
+    { kind: "unknown" },
   );
-  const historyUnknown = pinned && (history.isLoading || history.error !== null);
-  const spec = historyUnknown
-    ? undefined
-    : ((pinned ? history.getSpec(versionHash) : null) ?? agent?.spec);
-  const keys = useMemo(() => Object.keys(spec?.env ?? {}).sort(), [spec]);
+  const spec = !pinned
+    ? agent?.spec
+    : pinnedSpec.kind === "spec"
+      ? pinnedSpec.spec
+      : pinnedSpec.kind === "absent"
+        ? agent?.spec
+        : undefined;
+  const { keys } = usePersonalKeys(agent ?? null, spec, runOrg);
 
   if (keys.length === 0) return null;
 

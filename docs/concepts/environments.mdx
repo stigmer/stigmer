@@ -174,20 +174,25 @@ declare from these sources, in order:
 2. **Values passed for this one run.** The request's `runtime_env` overrides
    every Environment for the keys it carries and is deleted when the run ends.
 3. **Your connections and your personal Environment, for keys still missing.**
-   An access token from a tool you connected through OAuth, then the value saved
-   in the personal Environment of the person who sent the message. A run with no
-   person, such as a Schedule fire, reads no one's personal Environment.
+   An MCP Server's OAuth variable comes only from the sign-in to that server; no
+   personal Environment ever fills it. The other missing keys come from the
+   personal Environment of the person who sent the message. The keys the
+   conversation's MCP Servers declare are always read from it, and the keys the
+   Agent declares only when the Agent belongs to the Organization the run is in:
+   an Agent another Organization published reads none of your values. A run with
+   no person, such as a Schedule fire, reads no one's personal Environment.
 
 When the run declares any keys, a key nobody declared is dropped, whatever its
 source.
 
 <Callout type="warn">
   The keys an Agent declares reach its tools and its shell, and those follow the
-  instructions the Agent's author wrote. When you send a message to someone
-  else's Agent, the keys it declares that only your personal Environment holds
-  go to that Agent. Before your first message in a conversation, the console
-  names the keys the Agent will read from your personal Environment, so you can
-  decide before anything is sent.
+  instructions the Agent's author wrote. When you send a message to an Agent a
+  teammate in your Organization wrote, the keys it declares that only your
+  personal Environment holds go to that Agent. An Agent from another
+  Organization never receives them. Before your first message in a conversation,
+  the console names the keys the Agent declares, so you can decide before
+  anything is sent.
 </Callout>
 
 Stigmer merges the values into a single **ExecutionContext**. That merged map is

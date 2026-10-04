@@ -99,9 +99,8 @@ function ComposerToolbar() {
 
 ### PersonalKeyDisclosure
 
-Names the keys `agentRef` declares, in the order a reader scans them
-(sorted), as the keys the agent can read from the person's personal
-environment.
+Names the keys a run of `agentRef` reads from the person's personal
+environment, in the order a reader scans them (sorted).
 
 **Props** — `PersonalKeyDisclosureProps`
 
@@ -109,12 +108,13 @@ environment.
   type={{
     agentRef: { type: "ResourceRef", description: "The agent the conversation is about to start on.", required: true },
     className: { type: "string", description: "Additional CSS classes for the line." },
+    runOrg: { type: "string", description: "The organization the conversation runs in, by id: an agent of another organization reads none of the person's keys, so the line says nothing for it.", required: true },
     versionHash: { type: "string", description: "The version the conversation is pinned to, when it already has one: the keys are read from that version's spec. Omitted for a conversation not yet started, which pins the current version." },
   }}
 />
 
 ```tsx
-<PersonalKeyDisclosure agentRef={{ org: "acme", slug: "pr-reviewer" }} />
+<PersonalKeyDisclosure agentRef={{ org: "acme", slug: "pr-reviewer" }} runOrg="org_acme" />
 // This agent can read these keys from your personal environment: GITHUB_TOKEN, LINEAR_API_KEY
 ```
 

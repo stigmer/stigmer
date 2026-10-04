@@ -9,6 +9,7 @@ import { GetOAuthGrantStatusInputSchema, OAuthConnectionHealth } from "@stigmer/
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
+import { useOrganizationId } from "./usePersonalKeys.js";
 import { diffEnv } from "../environment/diffEnv.js";
 import {
   agentSetupReducer,
@@ -238,6 +239,7 @@ export function useAgentSetup(
 ): UseAgentSetupReturn {
   const stigmer = useStigmer();
   const personalEnv = usePersonalEnvironment(org);
+  const orgId = useOrganizationId(org ?? "");
 
   const [state, dispatch] = useReducer(agentSetupReducer, INITIAL_STATE);
 
@@ -294,7 +296,14 @@ export function useAgentSetup(
         }
 
         // No env declarations — agent is immediately ready (direct mode).
-        if (!envDeclarations || Object.keys(envDeclarations).length === 0) {
+        // Nor is anything asked of an agent of another organization: a run
+        // reads none of the person's keys for it, so a key saved here
+        // would never reach it.
+        if (
+          !envDeclarations ||
+          Object.keys(envDeclarations).length === 0 ||
+          (agent.metadata?.org ?? "") !== orgId
+        ) {
           const resolution: AgentResolution = { mode: "direct" };
           dispatch({
             type: "RESOLVE_READY",
@@ -358,7 +367,7 @@ export function useAgentSetup(
         throw err;
       }
     },
-    [org, stigmer, personalEnv, poolKeys],
+    [org, orgId, stigmer, personalEnv, poolKeys],
   );
 
   // -------------------------------------------------------------------------

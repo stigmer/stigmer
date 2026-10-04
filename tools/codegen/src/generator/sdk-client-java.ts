@@ -9,7 +9,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { firstMemberWinsOrder, goQuote, hasExplicitPresence, isEmptyType, isIDType, isSpecialType, searchListSupersedesMethod, tsClientFieldName } from "./gen-common.js";
+import { firstMemberWinsOrder, goQuote, hasExplicitPresence, isEmptyType, isIDType, isRealOneofMember, isSpecialType, searchListSupersedesMethod, tsClientFieldName } from "./gen-common.js";
 import { javaCamel, javaCapCamel } from "./lang-names.js";
 import { apiResourceKindEnumNames } from "./resource-kind.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
@@ -1374,6 +1374,12 @@ function emitJavaToProtoField(buf: string[], f: FieldSchema, indent: string): vo
     buf.push(`${indent}}\n`);
   } else if (t.kind === "string" && t.enumType !== undefined && t.enumType !== "") {
     buf.push(`${indent}if (this.${fieldName} != null) {\n`);
+    buf.push(`${indent}    spec.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
+    buf.push(`${indent}}\n`);
+  } else if (t.kind === "string" && isRealOneofMember(f)) {
+    // A oneof member claims the oneof when set, so an empty string is
+    // unset here, as in every other SDK's input.
+    buf.push(`${indent}if (this.${fieldName} != null && !this.${fieldName}.isEmpty()) {\n`);
     buf.push(`${indent}    spec.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
     buf.push(`${indent}}\n`);
   } else if (t.kind === "string") {

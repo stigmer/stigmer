@@ -109,15 +109,14 @@ message AgentInvocation {
   // This is how a tool-using agent becomes runnable unattended: bind
   // an org-shared environment holding the needed credentials (for
   // example an MCP server's shared secret), and the runs receive its
-  // values at runtime. The agent and its default instance stay
-  // untouched.
+  // values at runtime. The agent itself stays untouched.
   //
   // @internal
   // The AgentShare/AgentChannel/Schedule environment_refs lineage.
   // Resolution stays with the embedding
   // surface's pipeline (CreateExecutionContextStep branch, claim-
-  // driven, LOWEST merge priority — instance refs and runtime_env
-  // override on key conflicts). No write-time existence or visibility
+  // driven, LOWEST merge priority — runtime_env overrides on key
+  // conflicts). No write-time existence or visibility
   // check: enforcement lives solely at runtime resolution, which
   // fails closed.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [

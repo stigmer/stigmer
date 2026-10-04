@@ -37,7 +37,7 @@ export function sessionAgentGoneMessage(
   sessionId: string,
   agentId: string,
 ): string {
-  return `session '${sessionId}' runs agent '${agentId}', which no longer exists; update the session to another agent, or to none for the built-in assistant`;
+  return `session '${sessionId}' runs agent '${agentId}', which no longer exists; update the session to another agent, or start a new conversation`;
 }
 
 /**

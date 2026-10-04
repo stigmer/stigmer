@@ -142,8 +142,7 @@ public interface AgentInvocationOrBuilder extends
    * This is how a tool-using agent becomes runnable unattended: bind
    * an org-shared environment holding the needed credentials (for
    * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent and its default instance stay
-   * untouched.
+   * values at runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -158,8 +157,7 @@ public interface AgentInvocationOrBuilder extends
    * This is how a tool-using agent becomes runnable unattended: bind
    * an org-shared environment holding the needed credentials (for
    * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent and its default instance stay
-   * untouched.
+   * values at runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -173,8 +171,7 @@ public interface AgentInvocationOrBuilder extends
    * This is how a tool-using agent becomes runnable unattended: bind
    * an org-shared environment holding the needed credentials (for
    * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent and its default instance stay
-   * untouched.
+   * values at runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -188,8 +185,7 @@ public interface AgentInvocationOrBuilder extends
    * This is how a tool-using agent becomes runnable unattended: bind
    * an org-shared environment holding the needed credentials (for
    * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent and its default instance stay
-   * untouched.
+   * values at runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -204,8 +200,7 @@ public interface AgentInvocationOrBuilder extends
    * This is how a tool-using agent becomes runnable unattended: bind
    * an org-shared environment holding the needed credentials (for
    * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent and its default instance stay
-   * untouched.
+   * values at runtime. The agent itself stays untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>

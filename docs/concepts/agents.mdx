@@ -116,9 +116,12 @@ The Agent's `env` map declares the keys it needs, never their values. Values
 reach a run when it starts: from the [Environments](/docs/concepts/environments)
 bound to whatever started it (a Schedule, a Workflow task, a PlatformClient),
 from values the request passes for that one run, and, for keys still missing,
-from the personal Environment of the person sending the message. The same Agent
-runs with test credentials from one Schedule and production credentials from
-another, and its definition never changes.
+from the personal Environment of the person sending the message, when the Agent
+belongs to the Organization the run is in (an Agent another Organization
+published reads no one's personal Environment, and an MCP Server's OAuth
+variable comes only from the sign-in to that server). The same Agent runs with
+test credentials from one Schedule and production credentials from another, and
+its definition never changes.
 
 ### Sessions and Executions
 

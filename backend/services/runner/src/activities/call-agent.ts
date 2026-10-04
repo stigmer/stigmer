@@ -5,7 +5,8 @@
  * Flow:
  * 1. Extract Temporal task token (for async completion callback)
  * 2. Resolve runtime placeholders (${.secrets.*}, ${.env_vars.*})
- * 3. Resolve the agent by reference, for its id and its env declarations
+ * 3. Resolve the agent by reference, for its id and its env declarations;
+ *    a row missing its id, organization or slug is refused
  * 4. Apply the Session on the agent's reference (idempotent get-or-create
  *    by name); the server pins the agent's current version on create and
  *    keeps that pin when a retry re-applies the same reference
@@ -145,6 +146,16 @@ export async function callAgentAction(
 
   if (!agentId) {
     throw new Error(`Agent '${resolved.agent}' resolved but has no metadata.id`);
+  }
+  // The session below names the agent by its org and slug, and a session
+  // whose agent reference carries an empty slug is the built-in assistant
+  // (session/v1/spec.proto): a row missing either is refused here, so the
+  // step runs the agent it names or fails.
+  if (!agent.metadata?.org) {
+    throw new Error(`Agent '${resolved.agent}' resolved but has no metadata.org`);
+  }
+  if (!agent.metadata?.slug) {
+    throw new Error(`Agent '${resolved.agent}' resolved but has no metadata.slug`);
   }
 
   let sessionName: string;

@@ -317,12 +317,12 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent.
-     * Deletion also removes the agent's system-managed default instance and
-     * every AgentShare in the agent's own organization referencing it, so a
-     * later agent created at the same org/slug starts clean. Personal
-     * instances and sessions are not deleted, nor is a share written in
-     * another organization before sharing across organizations was retired;
-     * such a share stops resolving instead.
+     * Deletion also removes the agent's version history and every
+     * AgentShare in the agent's own organization referencing it, so a later
+     * agent created at the same org/slug starts clean. Sessions on the agent
+     * are not deleted: their next message fails, naming the agent. Nor is a
+     * share written in another organization before sharing across
+     * organizations was retired; such a share stops resolving instead.
      * </pre>
      */
     default void delete(ai.stigmer.agentic.agent.v1.AgentId request,
@@ -431,12 +431,12 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent.
-     * Deletion also removes the agent's system-managed default instance and
-     * every AgentShare in the agent's own organization referencing it, so a
-     * later agent created at the same org/slug starts clean. Personal
-     * instances and sessions are not deleted, nor is a share written in
-     * another organization before sharing across organizations was retired;
-     * such a share stops resolving instead.
+     * Deletion also removes the agent's version history and every
+     * AgentShare in the agent's own organization referencing it, so a later
+     * agent created at the same org/slug starts clean. Sessions on the agent
+     * are not deleted: their next message fails, naming the agent. Nor is a
+     * share written in another organization before sharing across
+     * organizations was retired; such a share stops resolving instead.
      * </pre>
      */
     public void delete(ai.stigmer.agentic.agent.v1.AgentId request,
@@ -529,12 +529,12 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent.
-     * Deletion also removes the agent's system-managed default instance and
-     * every AgentShare in the agent's own organization referencing it, so a
-     * later agent created at the same org/slug starts clean. Personal
-     * instances and sessions are not deleted, nor is a share written in
-     * another organization before sharing across organizations was retired;
-     * such a share stops resolving instead.
+     * Deletion also removes the agent's version history and every
+     * AgentShare in the agent's own organization referencing it, so a later
+     * agent created at the same org/slug starts clean. Sessions on the agent
+     * are not deleted: their next message fails, naming the agent. Nor is a
+     * share written in another organization before sharing across
+     * organizations was retired; such a share stops resolving instead.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent delete(ai.stigmer.agentic.agent.v1.AgentId request) throws io.grpc.StatusException {
@@ -625,12 +625,12 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent.
-     * Deletion also removes the agent's system-managed default instance and
-     * every AgentShare in the agent's own organization referencing it, so a
-     * later agent created at the same org/slug starts clean. Personal
-     * instances and sessions are not deleted, nor is a share written in
-     * another organization before sharing across organizations was retired;
-     * such a share stops resolving instead.
+     * Deletion also removes the agent's version history and every
+     * AgentShare in the agent's own organization referencing it, so a later
+     * agent created at the same org/slug starts clean. Sessions on the agent
+     * are not deleted: their next message fails, naming the agent. Nor is a
+     * share written in another organization before sharing across
+     * organizations was retired; such a share stops resolving instead.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent delete(ai.stigmer.agentic.agent.v1.AgentId request) {
@@ -725,12 +725,12 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Delete an agent.
-     * Deletion also removes the agent's system-managed default instance and
-     * every AgentShare in the agent's own organization referencing it, so a
-     * later agent created at the same org/slug starts clean. Personal
-     * instances and sessions are not deleted, nor is a share written in
-     * another organization before sharing across organizations was retired;
-     * such a share stops resolving instead.
+     * Deletion also removes the agent's version history and every
+     * AgentShare in the agent's own organization referencing it, so a later
+     * agent created at the same org/slug starts clean. Sessions on the agent
+     * are not deleted: their next message fails, naming the agent. Nor is a
+     * share written in another organization before sharing across
+     * organizations was retired; such a share stops resolving instead.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> delete(

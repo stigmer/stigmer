@@ -158,9 +158,9 @@ message PlatformClientSpec {
   // environment's own visibility is not consulted, because the server
   // resolves it on the run's behalf. An execution in an organization other
   // than the client's receives nothing. A referenced environment that no
-  // longer exists fails the execution's create, as the instance layer's
-  // does. Edits apply to the next execution: the client is read, not
-  // cached.
+  // longer exists fails the execution's create, as a Schedule's or an
+  // agent_call task's does. Edits apply to the next execution: the client
+  // is read, not cached.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [
     (ai.stigmer.commons.apiresource.reference_kind) = environment,
     (buf.validate.field).repeated.items.cel = {

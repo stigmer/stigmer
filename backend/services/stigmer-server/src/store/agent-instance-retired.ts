@@ -20,9 +20,14 @@
  *   - the instance survives but its agent is gone: the session keeps the
  *     agent's id with no reference, and its next turn fails naming the
  *     agent, as any conversation whose agent is deleted does;
- *   - the instance is gone (agent delete cascaded its instances): no agent
- *     identity is left anywhere in the store, and the session continues
- *     with the built-in assistant;
+ *   - the instance is gone: no agent identity is left in any row the
+ *     step reads, and the session continues with the built-in assistant.
+ *     Either agent delete cascaded its instances, or the instance was
+ *     deleted on its own while its agent lived; in the second case the
+ *     agent still exists, but nothing the step reads names it, and the
+ *     session moving to the built-in assistant is the accepted outcome.
+ *     Its turns keep the agent stamps they were created with, so a turn
+ *     that recorded its agent still names it in its history;
  *   - a session that named no instance (the built-in assistant) is left
  *     byte for byte as it is.
  *

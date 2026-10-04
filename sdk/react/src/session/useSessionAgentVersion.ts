@@ -28,6 +28,7 @@ import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import { toError } from "../internal/toError.js";
 import { agentVersionLabel, useAgentVersions } from "../agent/useAgentVersions.js";
+import { usePersonalKeys } from "../agent/usePersonalKeys.js";
 
 /** Options for {@link useSessionAgentVersion}. */
 export interface UseSessionAgentVersionOptions {
@@ -53,9 +54,11 @@ export interface UseSessionAgentVersionReturn {
   /** The agent's display name (its name, else its slug); `""` until it loads. */
   readonly agentName: string;
   /**
-   * The keys the agent's current version declares (`spec.env`), sorted:
-   * what an update hands the agent from the person's personal
-   * environment. Empty until the agent loads.
+   * The keys the agent's current version reads from the person's personal
+   * environment (usePersonalKeys: its declared keys, minus its servers'
+   * OAuth variables, and none for an agent of another organization than
+   * the session's), sorted: what an update hands the agent. Empty until the
+   * agent and its servers load.
    */
   readonly currentPersonalKeys: readonly string[];
   /**
@@ -121,10 +124,10 @@ export function useSessionAgentVersion(
 
   const currentHash = agent?.status?.versionHash ?? "";
   const agentName = agent?.metadata?.name || agent?.metadata?.slug || "";
-  const currentEnv = agent?.spec?.env;
-  const currentPersonalKeys = useMemo(
-    () => Object.keys(currentEnv ?? {}).sort(),
-    [currentEnv],
+  const { keys: currentPersonalKeys } = usePersonalKeys(
+    agent ?? null,
+    agent?.spec,
+    session?.metadata?.org ?? "",
   );
   const isOutdated =
     pinnedHash !== "" && currentHash !== "" && pinnedHash !== currentHash;
