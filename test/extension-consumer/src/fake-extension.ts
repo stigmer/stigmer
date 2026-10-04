@@ -981,7 +981,8 @@ const consumerSubstrateDriver: SandboxProvisionerFactory = ({
     };
     for (const actor of await lifecycle.list()) {
       if (!(await recorded(actor.name))) {
-        const deleted: SubstrateSleepOutcome = await lifecycle.deleteByName(
+        const deleted: Exclude<SubstrateSleepOutcome, "thawed"> =
+          await lifecycle.deleteByName(
           actor.name,
           orphanGuard,
         );

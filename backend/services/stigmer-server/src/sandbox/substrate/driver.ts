@@ -536,10 +536,12 @@ export function newSubstrateSandboxDriverOverGateway(
         try {
           const actor = await gateway.getActor(name);
           if (actor === undefined) {
-            path ??= "created";
             const template = await keeper.ready();
             try {
-              await gateway.createActor(name, template);
+              // Created here, or by another server meanwhile: then this
+              // ensure names the state it finds next, as any other.
+              if ((await gateway.createActor(name, template)) === "created")
+                path ??= "created";
             } catch (error) {
               // The template a moment ago ready is gone when another
               // server retired it: prepare it again, once.
@@ -683,21 +685,28 @@ export function newSubstrateSandboxDriverOverGateway(
 
   /**
    * Deletes the actor `name`, with a guard only if it proceeds, and forgets
-   * what this process knew of it; a skipped delete forgets nothing.
+   * what this process knew of it. A delete the guard refused forgets
+   * nothing; one that found the sandbox already gone skips and forgets.
    */
   async function deleteNamed(
     name: string,
     guard: SubstrateSleepGuard | undefined,
   ): Promise<"done" | "skipped"> {
+    let gone = false;
     const outcome = await serialize(
       name,
       async (): Promise<"done" | "skipped"> => {
-        if (!(await proceeds(name, guard))) return "skipped";
+        if (guard !== undefined) {
+          const actor = await gateway.getActor(name);
+          gone = actor === undefined;
+          if (actor === undefined || !(await guard.proceed(summaryOf(actor))))
+            return "skipped";
+        }
         await gateway.deleteActor(name);
         return "done";
       },
     );
-    if (outcome === "done") forget(name);
+    if (outcome === "done" || gone) forget(name);
     return outcome;
   }
 

@@ -534,6 +534,16 @@ describe("the ensure's log line names the path it took", () => {
     expect(await armOf(h, ensured)).toBe("created");
   });
 
+  it("an absent sandbox another server created meanwhile is named by the state found next, not created", async () => {
+    const { h, ensured } = logged();
+    const create = h.substrate.createActor.bind(h.substrate);
+    h.substrate.createActor = async (name, template) => {
+      h.substrate.put({ name, state: ActorState.RUNNING, template });
+      return create(name, template);
+    };
+    expect(await armOf(h, ensured)).toBe("running");
+  });
+
   it("suspended: woken from storage", async () => {
     const { h, ensured } = logged();
     h.substrate.put({
@@ -1151,6 +1161,19 @@ describe("the lifecycle a composition's own sweep calls", () => {
     expect(h.substrate.actors.has(ACTOR)).toBe(false);
     expect(await h.driver.lifecycle.deleteByName(ACTOR, guard)).toBe("skipped");
     expect(asked).toBe(1);
+  });
+
+  it("forgets a sandbox a guarded delete found already gone", async () => {
+    const h = harness();
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    expect(h.driver.internals.lastEnsuredAt(ACTOR)).toBeDefined();
+    h.substrate.actors.delete(ACTOR);
+    expect(
+      await h.driver.lifecycle.deleteByName(ACTOR, {
+        proceed: async () => true,
+      }),
+    ).toBe("skipped");
+    expect(h.driver.internals.lastEnsuredAt(ACTOR)).toBeUndefined();
   });
 
   it("skips a sandbox whose upkeep fails, and stops before retiring when asked", async () => {
