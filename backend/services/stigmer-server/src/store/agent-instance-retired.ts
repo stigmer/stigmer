@@ -29,8 +29,9 @@
  * Agent rows and agent executions are not rewritten: an agent's retired
  * default-instance pointer rides as an unknown field no reader decodes, and
  * a turn keeps the history it was created with (recover records a session's
- * pin on a turn that recorded no agent, when it runs it). The search index
- * entries and list keys of the removed rows go with them.
+ * pin on a turn that recorded no agent, when it runs it). The list keys of
+ * the removed rows go with them; their search entries are boot's rebuild's
+ * to drop.
  *
  * An undecodable row fails the step, the rule the other data migrations
  * keep (public-visibility-retired.ts): the driver's transaction rolls back

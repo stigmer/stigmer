@@ -25,6 +25,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { WorkflowParentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
@@ -226,7 +227,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
     );
     const execution = create(AgentExecutionSchema, {
       metadata: { id: executionId, name: executionId },
-      spec: { sessionId },
+      spec: { target: { case: "sessionId", value: sessionId } },
     });
     await store.saveResource(
       ApiResourceKind.agent_execution,
@@ -300,7 +301,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
     );
     const execution = create(AgentExecutionSchema, {
       metadata: { id: executionId, name: executionId, org: "org-test" },
-      spec: { sessionId },
+      spec: { target: { case: "sessionId", value: sessionId } },
     });
 
     await ensureSessionSandboxForExecution(
@@ -345,7 +346,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
   it("skips when the lane is disabled without touching the store", async () => {
     const execution = create(AgentExecutionSchema, {
       metadata: { id: "axr_disabled" },
-      spec: { sessionId: "ses_never_loaded" },
+      spec: { target: { case: "sessionId", value: "ses_never_loaded" } },
     });
     // A store that fails every read proves the disabled arm never reads.
     const explodingStore = new Proxy(store, {
@@ -365,11 +366,13 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
     );
   });
 
-  it("skips on the wfexec: queue-override lane (child sandbox affinity)", async () => {
+  it("skips a workflow run's child turn routed to its run's wfexec: queue (child sandbox affinity)", async () => {
     const provisioner = fakeProvisioner();
     const { execution } = await seed(ExecutionTarget.CLOUD);
     if (execution.spec !== undefined) {
-      execution.spec.activityTaskQueue = "wfexec:wfx_parent";
+      execution.spec.parent = create(WorkflowParentSchema, {
+        workflowExecutionId: "wfx_parent",
+      });
     }
     await ensureSessionSandboxForExecution(
       {
@@ -377,11 +380,36 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         logger: silentLogger,
         lane: lane(provisioner),
         temporalConfig: sessionRoutingCloudDefault,
+        workflowRunQueue: (id) => `wfexec:${id}`,
       },
       execution,
       TEST_CALLER,
     );
     expect(provisioner.ensured).toEqual([]);
+  });
+
+  it("provisions a child turn whose workflow run has no queue of its own (global routing), as any turn", async () => {
+    const provisioner = fakeProvisioner();
+    const { sessionId, execution } = await seed(ExecutionTarget.CLOUD);
+    if (execution.spec !== undefined) {
+      execution.spec.parent = create(WorkflowParentSchema, {
+        workflowExecutionId: "wfx_parent",
+      });
+    }
+    await ensureSessionSandboxForExecution(
+      {
+        store,
+        logger: silentLogger,
+        lane: lane(provisioner),
+        temporalConfig: sessionRoutingCloudDefault,
+        workflowRunQueue: () => "",
+      },
+      execution,
+      TEST_CALLER,
+    );
+    expect(provisioner.ensured.map((ensured) => ensured.id)).toEqual([
+      sessionId,
+    ]);
   });
 
   it("skips (warn) on CLOUD target under global routing — the dark-config belt", async () => {
@@ -461,7 +489,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       AgentExecutionSchema,
       create(AgentExecutionSchema, {
         metadata: { id: executionId, name: executionId },
-        spec: { sessionId },
+        spec: { target: { case: "sessionId", value: sessionId } },
         status: { error: "the real root cause" },
       }),
     );

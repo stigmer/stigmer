@@ -92,7 +92,7 @@ function stampedBy(id: string) {
 /** The one agent execution the capture arms read: Carol's run in `acme`, on session `ses_carol`. */
 const AGENT_RUN = create(AgentExecutionSchema, {
   metadata: { id: "aex_agent_run", name: "aex_agent_run", org: "acme" },
-  spec: { sessionId: "ses_carol" },
+  spec: { target: { case: "sessionId", value: "ses_carol" } },
   status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS, ...stampedBy(HUMAN) },
 });
 
@@ -105,7 +105,7 @@ const WORKFLOW_RUN = create(WorkflowExecutionSchema, {
 /** A run created before sign-in was on: its stamp names nobody the server recognizes. */
 const NOBODYS_RUN = create(AgentExecutionSchema, {
   metadata: { id: "aex_nobodys_run", name: "aex_nobodys_run", org: "acme" },
-  spec: { sessionId: "ses_old" },
+  spec: { target: { case: "sessionId", value: "ses_old" } },
   status: {
     phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
     ...stampedBy("system"),

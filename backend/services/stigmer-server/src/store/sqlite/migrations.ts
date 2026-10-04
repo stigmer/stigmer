@@ -611,7 +611,9 @@ function migrateToV13(db: DatabaseSync): void {
  * point read, then every session in keyset pages, rewritten when it names
  * an instance with `updated_at` bumped (the list index re-derives a row
  * whose stamp no longer matches, at open). The instance rows, their
- * history, their search entries and their list keys are then deleted.
+ * history and their list keys are then deleted; the search index is left
+ * to boot's RebuildIndex, which re-indexes only the registered kinds (the
+ * v9 precedent).
  * Runs inside applyInTransaction's BEGIN, so a throw rolls the whole step
  * back and the boot stops on the row it names.
  */
@@ -688,12 +690,7 @@ function migrateToV14(db: DatabaseSync): void {
     }
   }
 
-  for (const table of [
-    "resource_audit",
-    "search_index",
-    "resource_list_keys",
-    "resources",
-  ]) {
+  for (const table of ["resource_audit", "resource_list_keys", "resources"]) {
     db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(
       RETIRED_INSTANCE_KIND,
     );

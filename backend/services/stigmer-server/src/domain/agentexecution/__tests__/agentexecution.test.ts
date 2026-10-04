@@ -188,11 +188,14 @@ function seedInput(overrides?: {
       org: overrides?.org ?? ORG_ID,
     },
     spec: {
-      sessionId: overrides?.sessionId ?? `ses_test_${counter}`,
-      agentId: overrides?.agentId ?? `agt_test_${counter}`,
+      target: {
+        case: "sessionId",
+        value: overrides?.sessionId ?? `ses_test_${counter}`,
+      },
       message: "Say hello.",
     },
     status: {
+      agentId: overrides?.agentId ?? `agt_test_${counter}`,
       phase: overrides?.phase ?? ExecutionPhase.EXECUTION_COMPLETED,
       startedAt: overrides?.startedAt ?? "",
       completedAt: overrides?.completedAt ?? "",
@@ -235,6 +238,17 @@ async function expectCode(
   throw new Error(`expected code ${Code[code]}, call succeeded`);
 }
 
+/** The agent the create tests seed, named as a new conversation names it. */
+const GATE_AGENT_REF = {
+  kind: ApiResourceKind.agent,
+  org: ORG,
+  slug: "gate-agent",
+};
+const GATE_AGENT_CONVERSATION = {
+  case: "sessionSpec" as const,
+  value: { agentRef: GATE_AGENT_REF },
+};
+
 describe("create over the wire (engine gate)", () => {
   it("valid create refuses Unavailable at the engine gate, BEFORE any side effect", async () => {
     // Seed an agent the request references, so target resolution and
@@ -246,7 +260,12 @@ describe("create over the wire (engine gate)", () => {
       create(AgentSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Agent",
-        metadata: { id: "agt_create_gate", name: "gate-agent", org: ORG_ID },
+        metadata: {
+          id: "agt_create_gate",
+          name: "gate-agent",
+          slug: "gate-agent",
+          org: ORG_ID,
+        },
       }),
     );
 
@@ -256,7 +275,7 @@ describe("create over the wire (engine gate)", () => {
           apiVersion: API_VERSION,
           kind: KIND,
           metadata: { name: "gated-exec", org: ORG },
-          spec: { agentId: "agt_create_gate", message: "hello" },
+          spec: { target: GATE_AGENT_CONVERSATION, message: "hello" },
         }),
       Code.Unavailable,
     );
@@ -278,7 +297,7 @@ describe("create over the wire (engine gate)", () => {
     const sessions = await server.store.listResources(ApiResourceKind.session);
     for (const data of sessions) {
       const row = fromBinary(SessionSchema, data);
-      expect(row.spec?.agentInstanceId ?? "").not.toContain("agt_create_gate");
+      expect(row.status?.agentId ?? "").not.toBe("agt_create_gate");
       expect(row.spec?.subject).not.toBe("Auto-created session");
     }
   });
@@ -291,7 +310,7 @@ describe("create over the wire (engine gate)", () => {
           kind: KIND,
           metadata: { name: "bad-tier-exec", org: ORG },
           spec: {
-            agentId: "agt_create_gate",
+            target: GATE_AGENT_CONVERSATION,
             message: "hello",
             executionConfig: { serviceTier: ServiceTier.FAST },
           },
@@ -299,23 +318,6 @@ describe("create over the wire (engine gate)", () => {
       Code.InvalidArgument,
     );
     expect(err.rawMessage).toContain("requires execution_config.model_name");
-  });
-
-  it("session_id and session_spec together refuse at proto validation", async () => {
-    await expectCode(
-      () =>
-        command.create({
-          apiVersion: API_VERSION,
-          kind: KIND,
-          metadata: { name: "both-exec", org: ORG },
-          spec: {
-            message: "hello",
-            sessionId: "ses_1",
-            sessionSpec: { agentInstanceId: "inst_1" },
-          },
-        }),
-      Code.InvalidArgument,
-    );
   });
 
   it("a forged server-owned harness_state_id in session_spec refuses at proto validation", async () => {
@@ -330,9 +332,12 @@ describe("create over the wire (engine gate)", () => {
           metadata: { name: "forged-exec", org: ORG },
           spec: {
             message: "hello",
-            sessionSpec: {
-              agentInstanceId: "inst_1",
-              harnessStateId: "thread-forged",
+            target: {
+              case: "sessionSpec",
+              value: {
+                agentRef: GATE_AGENT_REF,
+                harnessStateId: "thread-forged",
+              },
             },
           },
         }),
@@ -478,8 +483,7 @@ describe("update / delete over the wire", () => {
       kind: KIND,
       metadata: init.metadata,
       spec: {
-        sessionId: init.spec?.sessionId,
-        agentId: init.spec?.agentId,
+        target: init.spec?.target,
         message: "Say goodbye.",
       },
     });
@@ -835,11 +839,11 @@ function gatedSeed(overrides?: {
     kind: KIND,
     metadata: { id, name: slug, slug, org: ORG_ID },
     spec: {
-      sessionId: `ses_${id}`,
-      agentId: `agt_${id}`,
+      target: { case: "sessionId", value: `ses_${id}` },
       message: "Say hello.",
     },
     status: {
+      agentId: `agt_${id}`,
       phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
       messages: [
         {

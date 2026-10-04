@@ -3,7 +3,9 @@
  * execution name (THE idempotency key, byte-pinned on both editions), the
  * fire-context message rendering (the model's only "today"), the
  * owner-vs-platform clamps, the find-before-create idempotency, the
- * refusal-code partition, and the execution-request shape.
+ * refusal-code partition, and the execution-request shape: a new
+ * conversation on the schedule's agent, its session_spec naming the agent
+ * at the version the schedule names.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -75,6 +77,7 @@ function scheduleWith(overrides?: {
   maxCostUsd?: number;
   serviceTier?: ServiceTier;
   agentSlug?: string;
+  agentVersion?: string;
   slug?: string;
 }): Schedule {
   return create(ScheduleSchema, {
@@ -90,7 +93,10 @@ function scheduleWith(overrides?: {
       target: {
         case: "agent",
         value: {
-          agentRef: { slug: overrides?.agentSlug ?? "helper" },
+          agentRef: {
+            slug: overrides?.agentSlug ?? "helper",
+            version: overrides?.agentVersion ?? "",
+          },
           message: overrides?.message ?? "Do the morning rounds",
           harness: overrides?.harness ?? Harness.UNSPECIFIED,
           runConfig: {
@@ -221,11 +227,19 @@ describe("RunStarter.startRun — against a real store", () => {
     expect(seen?.metadata?.name).toBe("sch-01test-20260825t093000z");
     expect(seen?.metadata?.org).toBe("acme");
     expect(seen?.metadata?.labels[SCHEDULE_ID_LABEL_KEY]).toBe("sch_01test");
-    expect(seen?.spec?.agentId).toBe("agt_01helper");
+    // A new conversation on the schedule's agent: the turn names no
+    // agent of its own, its session_spec does.
+    expect(seen?.spec?.target.case).toBe("sessionSpec");
+    const sessionSpec =
+      seen?.spec?.target.case === "sessionSpec"
+        ? seen.spec.target.value
+        : undefined;
+    expect(sessionSpec?.agentRef?.kind).toBe(ApiResourceKind.agent);
+    expect(sessionSpec?.agentRef?.org).toBe("acme");
+    expect(sessionSpec?.agentRef?.slug).toBe("helper");
+    expect(sessionSpec?.agentRef?.version).toBe("");
     expect(seen?.spec?.message).toContain("(Scheduled fire time: ");
-    expect(seen?.spec?.sessionSpec?.subject).toBe(
-      `${SESSION_SUBJECT_PREFIX}daily`,
-    );
+    expect(sessionSpec?.subject).toBe(`${SESSION_SUBJECT_PREFIX}daily`);
     expect(seen?.spec?.executionConfig?.approvalMode).toBe(
       ApprovalMode.UNATTENDED,
     );
@@ -245,6 +259,28 @@ describe("RunStarter.startRun — against a real store", () => {
       ScheduleSchema,
     );
     expect(row.status?.lastExecutionId).toBe("aex_01new");
+  });
+
+  it("starts the fire's session on the version the schedule's agent reference names", async () => {
+    let seen: AgentExecution | undefined;
+    const runStarter = starter(async (execution) => {
+      seen = execution;
+      return create(AgentExecutionSchema, {
+        metadata: { id: "aex_01pinned", org: "acme" },
+      });
+    });
+
+    await runStarter.startRun(
+      scheduleWith({ agentVersion: "stable" }),
+      NOMINAL,
+    );
+
+    const sessionSpec =
+      seen?.spec?.target.case === "sessionSpec"
+        ? seen.spec.target.value
+        : undefined;
+    expect(sessionSpec?.agentRef?.slug).toBe("helper");
+    expect(sessionSpec?.agentRef?.version).toBe("stable");
   });
 
   it("finds an existing execution by the deterministic name instead of creating (idempotent retry)", async () => {

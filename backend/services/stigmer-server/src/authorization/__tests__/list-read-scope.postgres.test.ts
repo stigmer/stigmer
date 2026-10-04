@@ -93,7 +93,7 @@ const SEEDED_KINDS = [
   ApiResourceKind.memory,
   ApiResourceKind.api_key,
   ApiResourceKind.environment,
-  ApiResourceKind.agent_instance,
+  ApiResourceKind.workflow,
 ];
 
 function resolved(accountId: string): CallerIdentity {
@@ -170,6 +170,12 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
         function rowsOf(kind: ApiResourceKind): object[] {
           return [...(rows.get(kind)?.values() ?? [])];
+        }
+
+        /** The two instances of `wfl_org`, its default and the member's personal one, offered as a lane holds them. */
+        function instancesOfWorkflow(): object[] {
+          const held = rows.get(ApiResourceKind.workflow_instance);
+          return ["wfi_default", "wfi_member"].map((id) => held!.get(id)!);
         }
 
         async function grant(spec: ReturnType<typeof orgRole>) {
@@ -289,7 +295,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             org: ORG,
             visibility: ApiResourceVisibility.visibility_org,
             createdBy: FOUNDER,
-            status: { defaultInstanceId: "ai_default" },
           });
           await save("agent", {
             id: "agt_member_private",
@@ -343,7 +348,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
               org: ORG,
               visibility: ApiResourceVisibility.visibility_private,
               createdBy: "",
-              spec: { sessionId: session },
+              spec: { target: { case: "sessionId", value: session } },
             });
           }
 
@@ -397,21 +402,28 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             spec: { subjectIdentityAccountId: MEMBER },
           });
 
-          // Instances of the org-visible agent: its default (the
+          // Instances of an org-visible workflow: its default (the
           // blueprint's pointer names it) and the member's personal one.
-          await save("agent_instance", {
-            id: "ai_default",
+          await save("workflow", {
+            id: "wfl_org",
+            org: ORG,
+            visibility: ApiResourceVisibility.visibility_org,
+            createdBy: FOUNDER,
+            status: { defaultInstanceId: "wfi_default" },
+          });
+          await save("workflow_instance", {
+            id: "wfi_default",
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: FOUNDER,
-            spec: { agentId: "agt_org" },
+            spec: { workflowId: "wfl_org" },
           });
-          await save("agent_instance", {
-            id: "ai_member",
+          await save("workflow_instance", {
+            id: "wfi_member",
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: MEMBER,
-            spec: { agentId: "agt_org" },
+            spec: { workflowId: "wfl_org" },
           });
           storeReads = { rows: 0, scans: 0 };
           accountReads = 0;
@@ -521,14 +533,26 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
           it("an instance reaches whoever reads its blueprint only when it is the DEFAULT (`viewer from default_of`); a personal instance is its owner's", async () => {
             expect(
-              await listAs(resolved(VIEWER), ApiResourceKind.agent_instance),
-            ).toEqual(["ai_default"]);
+              await listAs(
+                resolved(VIEWER),
+                ApiResourceKind.workflow_instance,
+                instancesOfWorkflow(),
+              ),
+            ).toEqual(["wfi_default"]);
             expect(
-              await listAs(resolved(MEMBER), ApiResourceKind.agent_instance),
-            ).toEqual(["ai_default", "ai_member"]);
+              await listAs(
+                resolved(MEMBER),
+                ApiResourceKind.workflow_instance,
+                instancesOfWorkflow(),
+              ),
+            ).toEqual(["wfi_default", "wfi_member"]);
             expect(
-              await listAs(resolved(FOUNDER), ApiResourceKind.agent_instance),
-            ).toEqual(["ai_default"]);
+              await listAs(
+                resolved(FOUNDER),
+                ApiResourceKind.workflow_instance,
+                instancesOfWorkflow(),
+              ),
+            ).toEqual(["wfi_default"]);
           });
         });
 
@@ -796,7 +820,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             // The viewer owns neither instance, so `viewer from default_of`
             // is evaluated for both: two instance rows, the one blueprint,
             // the one organization.
-            await listAs(resolved(VIEWER), ApiResourceKind.agent_instance);
+            await listAs(
+              resolved(VIEWER),
+              ApiResourceKind.workflow_instance,
+              instancesOfWorkflow(),
+            );
             expect(storeReads).toEqual({ rows: 4, scans: 0 });
           });
 

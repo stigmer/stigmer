@@ -4,10 +4,22 @@
  * client, and the full interceptor chain.
  *
  * The load-bearing pins:
- *   - an empty agent_instance_id is the built-in assistant: create stores
- *     it empty (nothing resolves it into an instance), an explicit id is
- *     kept as given, and a session may gain an agent or drop back to the
- *     assistant on update — the instance is not an immutable field;
+ *   - an empty agent_ref is the built-in assistant: create stores no
+ *     reference and no pin; a reference to an agent is kept as given and
+ *     pins the agent's id and current version in status; a session may
+ *     gain an agent, change it or drop back to the assistant on update,
+ *     the pin following each time — the agent is not an immutable field;
+ *   - `latest` is an instruction, not a state: an update naming it moves
+ *     the pin to the agent's current version and stores the reference
+ *     with no version, while an echo of the stored reference keeps the
+ *     pin after the author saved;
+ *   - update runs the reference rule on what it introduces: adding a
+ *     missing agent or skill, or another organization's agent that is not
+ *     platform-visible, is refused and the stored row is left as it was;
+ *     an echo of a skill deleted since the session named it passes (the
+ *     runner's harness-state write-back sends the whole row);
+ *   - listByAgent answers the sessions whose pin names the agent, and
+ *     refuses an empty agent_id;
  *   - harness immutability locks only once harness_state_id is non-empty,
  *     with UNSPECIFIED==NATIVE equivalence in both directions and the
  *     exact FAILED_PRECONDITION copy;
@@ -37,6 +49,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
@@ -48,6 +61,9 @@ import {
   Harness,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
@@ -64,7 +80,10 @@ import {
   newConfigFromEnv,
 } from "../../agentexecution/temporal/config.js";
 import { newValidateExecutionTargetImmutabilityStep } from "../steps.js";
-import { seedOrganizations } from "../../organization/__tests__/support.js";
+import {
+  seedOrganizations,
+  type OrganizationIds,
+} from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -74,6 +93,7 @@ const silentLogger = createLogger({
 
 const API_VERSION = "agentic.stigmer.ai/v1";
 const ORG = "acme";
+const OTHER_ORG = "globex";
 
 const HARNESS_IMMUTABILITY_REFUSAL =
   "session harness cannot be changed after the first execution — each harness owns its conversation state independently";
@@ -84,6 +104,7 @@ let transport: Transport;
 let agentCommand: Client<typeof AgentCommandController>;
 let command: Client<typeof SessionCommandController>;
 let query: Client<typeof SessionQueryController>;
+let orgIds: OrganizationIds;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "session-domain-test-"));
@@ -108,7 +129,7 @@ beforeAll(async () => {
   });
   const port = await server.start();
   transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
-  await seedOrganizations(transport, [ORG]);
+  orgIds = await seedOrganizations(transport, [ORG, OTHER_ORG]);
   agentCommand = createClient(AgentCommandController, transport);
   command = createClient(SessionCommandController, transport);
   query = createClient(SessionQueryController, transport);
@@ -127,6 +148,16 @@ async function createAgent(name: string) {
     spec: {
       instructions: "You are a helpful agent used by the session tests.",
     },
+  });
+}
+
+/** A same-organization reference to an agent, as a client writes it. */
+function agentRef(slug: string, version = ""): ApiResourceReference {
+  return create(ApiResourceReferenceSchema, {
+    kind: ApiResourceKind.agent,
+    org: ORG,
+    slug,
+    version,
   });
 }
 
@@ -190,7 +221,7 @@ async function seedExecution(
     apiVersion: API_VERSION,
     kind: "AgentExecution",
     metadata: { id, name: `Execution ${executionCounter}`, org: ORG },
-    spec: { sessionId },
+    spec: { target: { case: "sessionId", value: sessionId } },
     status: { phase },
   });
   await server.store.saveResource(
@@ -214,50 +245,268 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
   }
 }
 
-describe("session create and update — the built-in assistant", () => {
-  it("stores an empty agent_instance_id as given: no agent is resolved for the session", async () => {
+describe("session create and update — the agent it names", () => {
+  it("stores no agent_ref and no pin for the built-in assistant", async () => {
     const session = await createSession({});
-    expect(session.spec?.agentInstanceId).toBe("");
+    expect(session.spec?.agentRef).toBeUndefined();
+    expect(session.status?.agentId ?? "").toBe("");
+    expect(session.status?.agentVersionHash ?? "").toBe("");
     const fetched = await query.get({ value: session.metadata!.id });
-    expect(fetched.spec?.agentInstanceId).toBe("");
+    expect(fetched.spec?.agentRef).toBeUndefined();
+    expect(fetched.status?.agentId ?? "").toBe("");
     await command.delete({ value: session.metadata!.id });
   });
 
-  it("keeps an explicit agent_instance_id as given", async () => {
-    const session = await createSession({ agentInstanceId: "ain_explicit" });
-    expect(session.spec?.agentInstanceId).toBe("ain_explicit");
+  it("keeps the agent_ref as given and pins the agent's current version", async () => {
+    const agent = await createAgent("Pinned agent");
+    const session = await createSession({
+      agentRef: agentRef(agent.metadata!.slug),
+    });
+    expect(session.spec?.agentRef?.slug).toBe(agent.metadata!.slug);
+    expect(session.spec?.agentRef?.version).toBe("");
+    expect(session.status?.agentId).toBe(agent.metadata!.id);
+    expect(session.status?.agentVersionHash).toBe(
+      agent.status?.versionHash ?? "",
+    );
+    expect(session.status?.agentVersionHash).not.toBe("");
     await command.delete({ value: session.metadata!.id });
   });
 
-  it("lets a conversation gain an agent and drop back to the assistant on update", async () => {
+  it("lets a conversation gain an agent, change it and drop back to the assistant on update", async () => {
+    const first = await createAgent("Gained agent");
+    const second = await createAgent("Changed agent");
     const session = await createSession({});
 
     const withAgent = await command.update(
-      updateInput(session, { agentInstanceId: "ain_picked" }),
+      updateInput(session, { agentRef: agentRef(first.metadata!.slug) }),
     );
-    expect(withAgent.spec?.agentInstanceId).toBe("ain_picked");
+    expect(withAgent.spec?.agentRef?.slug).toBe(first.metadata!.slug);
+    expect(withAgent.status?.agentId).toBe(first.metadata!.id);
 
-    const dropped = await command.update(
-      updateInput(withAgent, { agentInstanceId: "" }),
+    const changed = await command.update(
+      updateInput(withAgent, { agentRef: agentRef(second.metadata!.slug) }),
     );
-    expect(dropped.spec?.agentInstanceId).toBe("");
+    expect(changed.status?.agentId).toBe(second.metadata!.id);
+
+    const dropped = await command.update(updateInput(changed, {}));
+    expect(dropped.spec?.agentRef).toBeUndefined();
+    expect(dropped.status?.agentId ?? "").toBe("");
     const fetched = await query.get({ value: session.metadata!.id });
-    expect(fetched.spec?.agentInstanceId).toBe("");
+    expect(fetched.status?.agentId ?? "").toBe("");
 
     await command.delete({ value: session.metadata!.id });
+  });
+
+  it("keeps the pin on an echo after the author saves, and moves it on latest, storing no version", async () => {
+    const agent = await createAgent("Saved again agent");
+    const session = await createSession({
+      agentRef: agentRef(agent.metadata!.slug),
+    });
+    const firstHash = session.status!.agentVersionHash;
+
+    const saved = await agentCommand.update({
+      ...agent,
+      spec: {
+        ...agent.spec!,
+        instructions: "You are the agent's second version.",
+      },
+    });
+    const secondHash = saved.status?.versionHash ?? "";
+    expect(secondHash).not.toBe("");
+    expect(secondHash).not.toBe(firstHash);
+
+    const echoed = await command.update(
+      updateInput(session, {
+        agentRef: agentRef(agent.metadata!.slug),
+        subject: "echoed",
+      }),
+    );
+    expect(echoed.status?.agentVersionHash).toBe(firstHash);
+
+    const moved = await command.update(
+      updateInput(echoed, {
+        agentRef: agentRef(agent.metadata!.slug, "latest"),
+        subject: "echoed",
+      }),
+    );
+    expect(moved.status?.agentId).toBe(agent.metadata!.id);
+    expect(moved.status?.agentVersionHash).toBe(secondHash);
+    expect(moved.spec?.agentRef?.version).toBe("");
+    const fetched = await query.get({ value: session.metadata!.id });
+    expect(fetched.spec?.agentRef?.version).toBe("");
+    expect(fetched.status?.agentVersionHash).toBe(secondHash);
+
+    await command.delete({ value: session.metadata!.id });
+  });
+});
+
+describe("session update — the reference rule", () => {
+  async function expectRefusedAndUnchanged(
+    session: Session,
+    spec: Partial<Omit<SessionSpec, "$typeName">>,
+    named: string,
+  ): Promise<void> {
+    const error = await grpcError(() =>
+      command.update(updateInput(session, spec)),
+    );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toContain(named);
+    const fetched = await query.get({ value: session.metadata!.id });
+    expect(fetched.spec?.agentRef?.slug ?? "").toBe(
+      session.spec?.agentRef?.slug ?? "",
+    );
+    expect(fetched.spec?.skillRefs ?? []).toEqual(
+      session.spec?.skillRefs ?? [],
+    );
+    expect(fetched.status?.agentId ?? "").toBe(session.status?.agentId ?? "");
+  }
+
+  it("refuses repointing to an agent that does not exist", async () => {
+    const agent = await createAgent("Kept by a refused update");
+    const session = await createSession({
+      agentRef: agentRef(agent.metadata!.slug),
+    });
+    await expectRefusedAndUnchanged(
+      session,
+      { agentRef: agentRef("no-such-agent") },
+      "no-such-agent",
+    );
+    await command.delete({ value: session.metadata!.id });
+  });
+
+  it("refuses adding a skill that does not exist", async () => {
+    const session = await createSession({});
+    await expectRefusedAndUnchanged(
+      session,
+      {
+        skillRefs: [
+          create(ApiResourceReferenceSchema, {
+            kind: ApiResourceKind.skill,
+            org: ORG,
+            slug: "no-such-skill",
+          }),
+        ],
+      },
+      "no-such-skill",
+    );
+    await command.delete({ value: session.metadata!.id });
+  });
+
+  it("refuses another organization's agent that is not platform-visible", async () => {
+    const foreign = await agentCommand.create({
+      apiVersion: API_VERSION,
+      kind: "Agent",
+      metadata: { name: "Foreign agent", org: OTHER_ORG },
+      spec: { instructions: "You belong to another organization." },
+    });
+    const session = await createSession({});
+    await expectRefusedAndUnchanged(
+      session,
+      {
+        agentRef: create(ApiResourceReferenceSchema, {
+          kind: ApiResourceKind.agent,
+          org: OTHER_ORG,
+          slug: foreign.metadata!.slug,
+        }),
+      },
+      foreign.metadata!.slug,
+    );
+    await command.delete({ value: session.metadata!.id });
+  });
+});
+
+describe("session update — references the stored row already carries", () => {
+  it("passes an echo of a skill deleted since the session named it", async () => {
+    const orgId = orgIds.get(ORG)!;
+    await server.store.saveResource(
+      ApiResourceKind.skill,
+      "skl_session_echo",
+      SkillSchema,
+      create(SkillSchema, {
+        apiVersion: API_VERSION,
+        kind: "Skill",
+        metadata: {
+          id: "skl_session_echo",
+          name: "echoed-skill",
+          slug: "echoed-skill",
+          org: orgId,
+          visibility: ApiResourceVisibility.visibility_org,
+        },
+      }),
+    );
+    const skillRef = create(ApiResourceReferenceSchema, {
+      kind: ApiResourceKind.skill,
+      org: ORG,
+      slug: "echoed-skill",
+    });
+    const session = await createSession({ skillRefs: [skillRef] });
+    await server.store.deleteResource(
+      ApiResourceKind.skill,
+      "skl_session_echo",
+    );
+
+    const echoed = await command.update(
+      updateInput(session, {
+        skillRefs: [skillRef],
+        harnessStateId: "thread-written-back",
+      }),
+    );
+    expect(echoed.spec?.harnessStateId).toBe("thread-written-back");
+    expect(echoed.spec?.skillRefs.map((ref) => ref.slug)).toEqual([
+      "echoed-skill",
+    ]);
+
+    // The same missing skill, added by a write that did not carry it, is
+    // refused.
+    const fresh = await createSession({});
+    const error = await grpcError(() =>
+      command.update(updateInput(fresh, { skillRefs: [skillRef] })),
+    );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toContain("echoed-skill");
+
+    await command.delete({ value: session.metadata!.id });
+    await command.delete({ value: fresh.metadata!.id });
+  });
+});
+
+describe("session listByAgent", () => {
+  it("answers the sessions pinned to the agent, and none of another's", async () => {
+    const listed = await createAgent("Listed agent");
+    const other = await createAgent("Unlisted agent");
+    const mine = await createSession({
+      agentRef: agentRef(listed.metadata!.slug),
+    });
+    const theirs = await createSession({
+      agentRef: agentRef(other.metadata!.slug),
+    });
+    const assistant = await createSession({});
+
+    const page = await query.listByAgent({ agentId: listed.metadata!.id });
+    expect(page.entries.map((s) => s.metadata?.id)).toEqual([
+      mine.metadata!.id,
+    ]);
+
+    for (const session of [mine, theirs, assistant]) {
+      await command.delete({ value: session.metadata!.id });
+    }
+  });
+
+  it("refuses an empty agent_id as INVALID_ARGUMENT", async () => {
+    const error = await grpcError(() => query.listByAgent({ agentId: "" }));
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toContain("agent_id");
   });
 });
 
 describe("session update — harness immutability", () => {
   it("allows a harness change while harness_state_id is empty (session not yet used)", async () => {
     const session = await createSession({
-      agentInstanceId: "ain_h1",
       harness: Harness.NATIVE,
     });
 
     const updated = await command.update(
       updateInput(session, {
-        agentInstanceId: "ain_h1",
         harness: Harness.CURSOR,
       }),
     );
@@ -266,7 +515,6 @@ describe("session update — harness immutability", () => {
 
   it("rejects a harness change after the first execution with the exact copy", async () => {
     const session = await createSession({
-      agentInstanceId: "ain_h2",
       harness: Harness.NATIVE,
     });
     await markSessionUsed(session.metadata!.id, "thread-1");
@@ -274,7 +522,6 @@ describe("session update — harness immutability", () => {
     const error = await grpcError(() =>
       command.update(
         updateInput(session, {
-          agentInstanceId: "ain_h2",
           harness: Harness.CURSOR,
         }),
       ),
@@ -285,14 +532,12 @@ describe("session update — harness immutability", () => {
 
   it("treats UNSPECIFIED as NATIVE: existing NATIVE + input UNSPECIFIED passes", async () => {
     const session = await createSession({
-      agentInstanceId: "ain_h3",
       harness: Harness.NATIVE,
     });
     await markSessionUsed(session.metadata!.id, "thread-3");
 
     const updated = await command.update(
       updateInput(session, {
-        agentInstanceId: "ain_h3",
         subject: "still native",
       }),
     );
@@ -300,12 +545,11 @@ describe("session update — harness immutability", () => {
   });
 
   it("treats UNSPECIFIED as NATIVE: existing UNSPECIFIED + input NATIVE passes; CURSOR is refused", async () => {
-    const session = await createSession({ agentInstanceId: "ain_h4" });
+    const session = await createSession({});
     await markSessionUsed(session.metadata!.id, "thread-4");
 
     const updated = await command.update(
       updateInput(session, {
-        agentInstanceId: "ain_h4",
         harness: Harness.NATIVE,
       }),
     );
@@ -316,7 +560,6 @@ describe("session update — harness immutability", () => {
     const error = await grpcError(() =>
       command.update(
         updateInput(session, {
-          agentInstanceId: "ain_h4",
           harness: Harness.CURSOR,
         }),
       ),
@@ -328,22 +571,21 @@ describe("session update — harness immutability", () => {
 
 describe("session update — execution-target immutability (oss#397)", () => {
   it("passes an unset→unset round-trip on the local-default deployment (both resolve LOCAL)", async () => {
-    const session = await createSession({ agentInstanceId: "ain_t1" });
+    const session = await createSession({});
     await markSessionUsed(session.metadata!.id, "thread-t1");
 
     const updated = await command.update(
-      updateInput(session, { agentInstanceId: "ain_t1", subject: "no move" }),
+      updateInput(session, { subject: "no move" }),
     );
     expect(updated.spec?.subject).toBe("no move");
   });
 
   it("passes unset→LOCAL on the local-default deployment (no dispatch change)", async () => {
-    const session = await createSession({ agentInstanceId: "ain_t2" });
+    const session = await createSession({});
     await markSessionUsed(session.metadata!.id, "thread-t2");
 
     const updated = await command.update(
       updateInput(session, {
-        agentInstanceId: "ain_t2",
         executionTarget: ExecutionTarget.LOCAL,
       }),
     );
@@ -351,13 +593,12 @@ describe("session update — execution-target immutability (oss#397)", () => {
   });
 
   it("refuses unset→CLOUD with the exact copy (Go enum names + the config default string)", async () => {
-    const session = await createSession({ agentInstanceId: "ain_t3" });
+    const session = await createSession({});
     await markSessionUsed(session.metadata!.id, "thread-t3");
 
     const error = await grpcError(() =>
       command.update(
         updateInput(session, {
-          agentInstanceId: "ain_t3",
           executionTarget: ExecutionTarget.CLOUD,
         }),
       ),
@@ -440,13 +681,12 @@ describe("session update — execution-target immutability (oss#397)", () => {
 
 describe("session update — server-owned harness_state_id_history", () => {
   it("appends the replaced id, never duplicates, and discards client-sent history", async () => {
-    const session = await createSession({ agentInstanceId: "ain_hist" });
+    const session = await createSession({});
     await markSessionUsed(session.metadata!.id, "hs-1");
 
     // Replace hs-1 with hs-2: the replaced id lands in the history.
     const first = await command.update(
       updateInput(session, {
-        agentInstanceId: "ain_hist",
         harnessStateId: "hs-2",
       }),
     );
@@ -457,7 +697,6 @@ describe("session update — server-owned harness_state_id_history", () => {
     // the forged entry is discarded (server-owned field).
     const second = await command.update(
       updateInput(session, {
-        agentInstanceId: "ain_hist",
         harnessStateId: "hs-2",
         harnessStateIdHistory: ["client-forged"],
       }),
@@ -468,7 +707,6 @@ describe("session update — server-owned harness_state_id_history", () => {
     // A second replacement appends behind the first.
     const third = await command.update(
       updateInput(session, {
-        agentInstanceId: "ain_hist",
         harnessStateId: "hs-3",
       }),
     );
@@ -482,8 +720,9 @@ describe("session update — server-owned harness_state_id_history", () => {
 
 describe("session updateSubject — field-level RMW (#540 spec_audit slot)", () => {
   it("updates only the subject, stamps spec_audit, and leaves status_audit untouched", async () => {
+    const agent = await createAgent("Subject agent");
     const session = await createSession({
-      agentInstanceId: "ain_subj",
+      agentRef: agentRef(agent.metadata!.slug),
       subject: "original",
       harness: Harness.NATIVE,
     });
@@ -496,7 +735,8 @@ describe("session updateSubject — field-level RMW (#540 spec_audit slot)", () 
 
     expect(updated.spec?.subject).toBe("renamed thread");
     // Every other spec field survives the RMW.
-    expect(updated.spec?.agentInstanceId).toBe("ain_subj");
+    expect(updated.spec?.agentRef?.slug).toBe(agent.metadata!.slug);
+    expect(updated.status?.agentId).toBe(agent.metadata!.id);
     expect(updated.spec?.harness).toBe(Harness.NATIVE);
 
     // The SPEC slot took the update stamp...
@@ -534,7 +774,7 @@ describe("session delete — active-execution guard and cascade", () => {
 
   for (const [name, phase] of activePhases) {
     it(`blocks delete while an execution is ${name} (exact count copy)`, async () => {
-      const session = await createSession({ agentInstanceId: "ain_guard" });
+      const session = await createSession({});
       const executionId = await seedExecution(session.metadata!.id, phase);
 
       const error = await grpcError(() =>
@@ -560,8 +800,8 @@ describe("session delete — active-execution guard and cascade", () => {
   }
 
   it("terminal executions don't block; the cascade removes exactly the session's own executions", async () => {
-    const doomed = await createSession({ agentInstanceId: "ain_cascade" });
-    const survivor = await createSession({ agentInstanceId: "ain_cascade" });
+    const doomed = await createSession({});
+    const survivor = await createSession({});
 
     const completedId = await seedExecution(
       doomed.metadata!.id,
@@ -601,7 +841,10 @@ describe("session delete — active-execution guard and cascade", () => {
       survivorExecutionId,
       AgentExecutionSchema,
     );
-    expect(untouched.spec?.sessionId).toBe(survivor.metadata?.id);
+    expect(untouched.spec?.target).toEqual({
+      case: "sessionId",
+      value: survivor.metadata?.id,
+    });
 
     await command.delete({ value: survivor.metadata!.id });
   });

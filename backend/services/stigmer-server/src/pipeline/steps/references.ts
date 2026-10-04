@@ -110,6 +110,14 @@
  * through the session it starts, which pins it; a skill's at run start), and
  * an unversioned kind's is ignored.
  *
+ * A chain whose stored row is rewritten by machines as well as people (a
+ * session, whose harness state the runner writes back with the whole row)
+ * asks ValidateReferences to judge only the references a write introduces
+ * (`judge: "introduced"`): a reference the stored row already carries was
+ * judged when it was written, and one that has since left or stopped being
+ * shared is the run's to refuse, the escalation door's posture above. Every
+ * other chain judges every reference, as it always has.
+ *
  * ValidateReferences records what it resolved on the request context under
  * RESOLVED_REFERENCE_TARGETS_KEY, so a later step that needs a reference's
  * id (a session pinning its agent) reads the answer this write already paid
@@ -710,15 +718,27 @@ export function resolvedReferenceTargets<Desc extends DescMessage>(
     | undefined;
 }
 
+/** Which references ValidateReferences judges (the module header). */
+export interface ValidateReferencesOptions {
+  /**
+   * `every` (the default): every reference the spec carries. `introduced`:
+   * only those the stored row does not already carry (by kind,
+   * organization and slug); a create judges every one either way.
+   */
+  readonly judge?: "every" | "introduced";
+}
+
 /**
- * ValidateReferences: every reference the spec carries, judged for the
+ * ValidateReferences: the references the spec carries, judged for the
  * request's caller against the stored row (EXISTING_RESOURCE_KEY on an
  * update; none on a create) — the module header's clauses and its writer
- * clause. Records the targets it resolved (RESOLVED_REFERENCE_TARGETS_KEY).
+ * clause. Records the targets it resolved for every reference
+ * (RESOLVED_REFERENCE_TARGETS_KEY), judged or not.
  */
 export function newValidateReferencesStep<Desc extends DescMessage>(
   store: Store,
   authorizer: Authorizer,
+  options: ValidateReferencesOptions = {},
 ): PipelineStep<Desc> {
   return {
     name: "ValidateReferences",
@@ -741,14 +761,21 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
         visibility: metadata.visibility,
       };
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined;
+      const stored =
+        existing === undefined
+          ? []
+          : collectSpecReferences(ctx.schema, existing);
+      const judged =
+        options.judge === "introduced"
+          ? refs.filter(
+              (ref) => !stored.some((held) => sameReference(held, ref)),
+            )
+          : refs;
       const targets = await loadReferenceTargets(store, refs);
-      const refusal = await judgeReferences(targets, store, parent, refs, {
+      const refusal = await judgeReferences(targets, store, parent, judged, {
         authorizer,
         caller: ctx.callerIdentity,
-        stored:
-          existing === undefined
-            ? []
-            : collectSpecReferences(ctx.schema, existing),
+        stored,
       });
       if (refusal !== undefined) {
         throw refusal;

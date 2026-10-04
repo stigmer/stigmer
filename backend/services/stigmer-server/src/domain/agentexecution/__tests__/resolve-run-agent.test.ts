@@ -1,15 +1,31 @@
 /**
  * Pins ResolveRunAgent (resolve-run-agent.ts) over a real SQLite store and
- * the real pipeline RequestContext:
- *   - a turn on a session bound to an agent records that agent's id and
- *     its head version hash;
- *   - the instance the default-instance step resolved wins over the
- *     session's (the agent_id request shape);
- *   - an agent with no recorded version records its id alone;
- *   - the built-in assistant (a session with no instance) records nothing;
- *   - a row that cannot be found, or a turn with no session, records
- *     nothing and leaves the refusal to the context build that follows;
- *   - a failing store is Internal.
+ * the real pipeline RequestContext.
+ *
+ * The create step:
+ *   - a turn in an existing session takes the session's pin from the row
+ *     ValidateSessionOrganization recorded (STORED_SESSION_KEY), never the
+ *     agent's current version, and reads nothing else about the session;
+ *   - a pinned agent since deleted refuses with FAILED_PRECONDITION naming
+ *     the session and the agent;
+ *   - a new conversation resolves session_spec.agent_ref through the ids
+ *     ValidateReferences recorded (RESOLVED_REFERENCE_TARGETS_KEY): its
+ *     current version, a live tag, and a refusal for a version the agent
+ *     does not hold; a reference with no recorded targets is a chain built
+ *     out of order (Internal);
+ *   - the stamp is written even when empty (the built-in assistant, in a
+ *     new conversation or a session pinning no agent), so nothing left in
+ *     status survives it;
+ *   - a session id that names no row stamps nothing (the loading steps own
+ *     that refusal);
+ *   - a store fault is Internal.
+ *
+ * The recover twin (newStampRecoveredRunAgentStep):
+ *   - a turn with no stamp records its session's pin, persisted on its row
+ *     and handed on as the loaded execution;
+ *   - a turn that recorded an agent, a session pinning none, and a skipped
+ *     recover are left as they are;
+ *   - running before the execution was loaded is Internal.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -20,21 +36,38 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import {
+  AgentExecutionSchema,
+  AgentExecutionStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import { RecoverAgentExecutionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { AgentExecutionSpec } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
-import { RequestContext } from "../../../pipeline/request-context.js";
+import {
+  LOADED_EXECUTION_KEY,
+  RequestContext,
+} from "../../../pipeline/request-context.js";
+import {
+  loadReferenceTargets,
+  RESOLVED_REFERENCE_TARGETS_KEY,
+} from "../../../pipeline/steps/references.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 
-import { DEFAULT_INSTANCE_ID_KEY } from "../create-steps.js";
-import { newResolveRunAgentStep } from "../resolve-run-agent.js";
+import { sessionAgentGoneMessage } from "../constants.js";
+import {
+  newResolveRunAgentStep,
+  newStampRecoveredRunAgentStep,
+} from "../resolve-run-agent.js";
+import { STORED_SESSION_KEY } from "../session-binding.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -42,7 +75,8 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-const HASH = "c".repeat(64);
+const HEAD = "c".repeat(64);
+const PINNED = "d".repeat(64);
 
 let dir: string;
 let store: Store;
@@ -58,140 +92,318 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-async function seedAgent(id: string, versionHash: string): Promise<void> {
+async function seedAgent(
+  id: string,
+  versionHash: string,
+  tag = "",
+): Promise<void> {
   await store.saveResource(
     ApiResourceKind.agent,
     id,
     AgentSchema,
     create(AgentSchema, {
-      metadata: { id, org: "test-org", slug: id },
+      metadata: { id, org: "test-org", slug: id, version: { tag } },
       status: { versionHash },
     }),
   );
 }
 
-async function seedInstance(id: string, agentId: string): Promise<void> {
-  await store.saveResource(
-    ApiResourceKind.agent_instance,
-    id,
-    AgentInstanceSchema,
-    create(AgentInstanceSchema, {
-      metadata: { id, org: "test-org", slug: id },
-      spec: { agentId },
-    }),
-  );
+function pinnedSession(
+  id: string,
+  agentId: string,
+  agentVersionHash: string,
+): Session {
+  return create(SessionSchema, {
+    metadata: { id, org: "test-org", slug: id },
+    spec:
+      agentId === "" ? {} : { agentRef: { org: "test-org", slug: agentId } },
+    status: { agentId, agentVersionHash },
+  });
 }
 
-async function seedSession(id: string, agentInstanceId: string): Promise<void> {
-  await store.saveResource(
-    ApiResourceKind.session,
-    id,
-    SessionSchema,
-    create(SessionSchema, {
-      metadata: { id, org: "test-org", slug: id },
-      spec: { agentInstanceId },
-    }),
-  );
+async function seedSession(session: Session): Promise<void> {
+  const id = session.metadata?.id ?? "";
+  await store.saveResource(ApiResourceKind.session, id, SessionSchema, session);
 }
 
-async function stampFor(
-  sessionId: string,
-  preResolvedInstanceId?: string,
-): Promise<AgentExecution> {
-  const ctx = new RequestContext(
+function turnContext(
+  target: AgentExecutionSpec["target"],
+): RequestContext<typeof AgentExecutionSchema> {
+  return new RequestContext(
     AgentExecutionSchema,
     create(AgentExecutionSchema, {
       metadata: { name: "exec", org: "test-org" },
-      spec: { sessionId, message: "hi" },
+      spec: { target, message: "hi" },
     }),
     testCallerIdentity(),
     ApiResourceKind.agent_execution,
   );
-  if (preResolvedInstanceId !== undefined) {
-    ctx.set(DEFAULT_INSTANCE_ID_KEY, preResolvedInstanceId);
+}
+
+/** A turn in an existing session, with the row ValidateSessionOrganization recorded. */
+async function stampInSession(
+  sessionId: string,
+  stored: Session | undefined,
+  run: Store = store,
+): Promise<AgentExecution> {
+  const ctx = turnContext({ case: "sessionId", value: sessionId });
+  if (stored !== undefined) {
+    ctx.set(STORED_SESSION_KEY, stored);
+  }
+  await newResolveRunAgentStep(run, silentLogger).execute(ctx);
+  return ctx.newState;
+}
+
+/** A new conversation on org/slug@version, with the targets ValidateReferences recorded. */
+async function stampNewConversation(
+  slug: string,
+  version: string,
+  recordTargets = true,
+): Promise<AgentExecution> {
+  const ref = { kind: ApiResourceKind.agent, org: "test-org", slug, version };
+  const ctx = turnContext({
+    case: "sessionSpec",
+    value: create(SessionSpecSchema, { agentRef: ref }),
+  });
+  if (recordTargets) {
+    ctx.set(
+      RESOLVED_REFERENCE_TARGETS_KEY,
+      await loadReferenceTargets(store, [ref]),
+    );
   }
   await newResolveRunAgentStep(store, silentLogger).execute(ctx);
   return ctx.newState;
 }
 
-describe("ResolveRunAgent", () => {
-  it("records the session's agent and its head version", async () => {
-    await seedAgent("agt_1", HASH);
-    await seedInstance("agi_1", "agt_1");
-    await seedSession("ses_1", "agi_1");
+async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
+  const error = await promise.then(
+    () => undefined,
+    (e: unknown) => e,
+  );
+  expect(error).toBeInstanceOf(ConnectError);
+  return error as ConnectError;
+}
 
-    const execution = await stampFor("ses_1");
+describe("ResolveRunAgent (create)", () => {
+  it("takes the session's pin, not the agent's current version", async () => {
+    await seedAgent("agt_1", HEAD);
+    const session = pinnedSession("ses_1", "agt_1", PINNED);
+
+    const execution = await stampInSession("ses_1", session);
 
     expect(execution.status?.agentId).toBe("agt_1");
-    expect(execution.status?.agentVersionHash).toBe(HASH);
+    expect(execution.status?.agentVersionHash).toBe(PINNED);
   });
 
-  it("takes the instance the default-instance step resolved over the session's", async () => {
-    await seedAgent("agt_a", HASH);
-    await seedAgent("agt_b", "d".repeat(64));
-    await seedInstance("agi_a", "agt_a");
-    await seedInstance("agi_b", "agt_b");
-    await seedSession("ses_2", "agi_b");
+  it("reads the recorded session, never the stored row", async () => {
+    await seedAgent("agt_recorded", HEAD);
+    await seedAgent("agt_stored", HEAD);
+    await seedSession(pinnedSession("ses_1", "agt_stored", HEAD));
 
-    const execution = await stampFor("ses_2", "agi_a");
+    const execution = await stampInSession(
+      "ses_1",
+      pinnedSession("ses_1", "agt_recorded", PINNED),
+    );
 
-    expect(execution.status?.agentId).toBe("agt_a");
+    expect(execution.status?.agentId).toBe("agt_recorded");
   });
 
-  it("records an agent with no version by its id alone", async () => {
-    await seedAgent("agt_old", "");
-    await seedInstance("agi_old", "agt_old");
-    await seedSession("ses_3", "agi_old");
+  it("refuses a turn whose session pins an agent since deleted, naming both", async () => {
+    const error = await refusal(
+      stampInSession("ses_gone", pinnedSession("ses_gone", "agt_gone", HEAD)),
+    );
 
-    const execution = await stampFor("ses_3");
-
-    expect(execution.status?.agentId).toBe("agt_old");
-    expect(execution.status?.agentVersionHash).toBe("");
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toBe(
+      sessionAgentGoneMessage("ses_gone", "agt_gone"),
+    );
   });
 
-  it("records nothing for the built-in assistant", async () => {
-    await seedSession("ses_4", "");
+  it("stamps an empty agent for a session pinning none, over anything left in status", async () => {
+    const ctx = turnContext({ case: "sessionId", value: "ses_4" });
+    ctx.set(STORED_SESSION_KEY, pinnedSession("ses_4", "", ""));
+    ctx.newState.status = create(AgentExecutionStatusSchema, {
+      agentId: "agt_forged",
+      agentVersionHash: HEAD,
+    });
 
-    const execution = await stampFor("ses_4");
+    await newResolveRunAgentStep(store, silentLogger).execute(ctx);
 
-    expect(execution.status?.agentId ?? "").toBe("");
-    expect(execution.status?.agentVersionHash ?? "").toBe("");
+    expect(ctx.newState.status?.agentId).toBe("");
+    expect(ctx.newState.status?.agentVersionHash).toBe("");
   });
 
-  it("records nothing when a row is missing, leaving the refusal to the context build", async () => {
-    await seedSession("ses_5", "agi_missing");
-    expect((await stampFor("ses_5")).status?.agentId ?? "").toBe("");
+  it("stamps nothing for a session id that names no row", async () => {
+    const execution = await stampInSession("ses_missing", undefined);
 
-    await seedInstance("agi_orphan", "agt_gone");
-    await seedSession("ses_6", "agi_orphan");
-    expect((await stampFor("ses_6")).status?.agentId ?? "").toBe("");
+    expect(execution.status).toBeUndefined();
   });
 
-  it("records nothing for a turn with neither a resolved instance nor a session", async () => {
-    expect((await stampFor("")).status?.agentId ?? "").toBe("");
+  it("resolves a new conversation's agent_ref to the agent's current version", async () => {
+    await seedAgent("agt_new", HEAD);
+
+    for (const version of ["", "latest"]) {
+      const execution = await stampNewConversation("agt_new", version);
+      expect(execution.status?.agentId).toBe("agt_new");
+      expect(execution.status?.agentVersionHash).toBe(HEAD);
+    }
   });
 
-  it("is Internal when the store fails, never a turn on an unrecorded agent", async () => {
+  it("resolves a new conversation's live tag to the version it names", async () => {
+    await seedAgent("agt_tagged", HEAD, "v2");
+
+    const execution = await stampNewConversation("agt_tagged", "v2");
+
+    expect(execution.status?.agentVersionHash).toBe(HEAD);
+  });
+
+  it("refuses a new conversation naming a version the agent does not hold", async () => {
+    await seedAgent("agt_v", HEAD);
+
+    const error = await refusal(stampNewConversation("agt_v", "no-such-tag"));
+
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toContain("'test-org/agt_v'");
+    expect(error.rawMessage).toContain("'no-such-tag'");
+  });
+
+  it("is Internal when the reference rule recorded no targets", async () => {
+    await seedAgent("agt_unrecorded", HEAD);
+
+    const error = await refusal(
+      stampNewConversation("agt_unrecorded", "", false),
+    );
+
+    expect(error.code).toBe(Code.Internal);
+  });
+
+  it("stamps an empty agent for a new conversation with the built-in assistant", async () => {
+    const ctx = turnContext({ case: undefined });
+    ctx.newState.status = create(AgentExecutionStatusSchema, {
+      agentId: "agt_forged",
+    });
+
+    await newResolveRunAgentStep(store, silentLogger).execute(ctx);
+
+    expect(ctx.newState.status?.agentId).toBe("");
+    expect(ctx.newState.status?.agentVersionHash).toBe("");
+  });
+
+  it("is Internal when the store fails, never a turn on an unchecked agent", async () => {
     const failing = {
       getResource: async () => {
         throw new Error("store is down");
       },
     } as unknown as Store;
-    const ctx = new RequestContext(
+
+    const error = await refusal(
+      stampInSession(
+        "ses_any",
+        pinnedSession("ses_any", "agt_any", HEAD),
+        failing,
+      ),
+    );
+
+    expect(error.code).toBe(Code.Internal);
+  });
+});
+
+describe("ResolveRunAgent (recover)", () => {
+  async function seedTurn(
+    id: string,
+    sessionId: string,
+    agentId = "",
+  ): Promise<AgentExecution> {
+    const turn = create(AgentExecutionSchema, {
+      metadata: { id, org: "test-org", slug: id },
+      spec: { target: { case: "sessionId", value: sessionId } },
+      status: { agentId },
+    });
+    await store.saveResource(
+      ApiResourceKind.agent_execution,
+      id,
       AgentExecutionSchema,
-      create(AgentExecutionSchema, {
-        metadata: { name: "exec", org: "test-org" },
-        spec: { sessionId: "ses_any", message: "hi" },
+      turn,
+    );
+    return turn;
+  }
+
+  async function recover(
+    loaded: AgentExecution | undefined,
+    skip = false,
+  ): Promise<RequestContext<typeof RecoverAgentExecutionInputSchema>> {
+    const ctx = new RequestContext(
+      RecoverAgentExecutionInputSchema,
+      create(RecoverAgentExecutionInputSchema, {
+        id: loaded?.metadata?.id ?? "aex_none",
       }),
       testCallerIdentity(),
       ApiResourceKind.agent_execution,
     );
+    if (loaded !== undefined) {
+      ctx.set(LOADED_EXECUTION_KEY, loaded);
+    }
+    await newStampRecoveredRunAgentStep(
+      store,
+      silentLogger,
+      () => skip,
+    ).execute(ctx);
+    return ctx;
+  }
 
-    const error = await Promise.resolve(newResolveRunAgentStep(failing, silentLogger).execute(ctx)).catch(
-      (e: unknown) => e,
+  async function storedTurn(id: string): Promise<AgentExecution> {
+    return store.getResource(
+      ApiResourceKind.agent_execution,
+      id,
+      AgentExecutionSchema,
     );
+  }
 
-    expect(error).toBeInstanceOf(ConnectError);
-    expect((error as ConnectError).code).toBe(Code.Internal);
+  it("records the session's pin on a turn with no stamp, persisted and handed on", async () => {
+    await seedSession(pinnedSession("ses_r", "agt_r", PINNED));
+    const turn = await seedTurn("aex_r", "ses_r");
+
+    const ctx = await recover(turn);
+
+    const persisted = await storedTurn("aex_r");
+    expect(persisted.status?.agentId).toBe("agt_r");
+    expect(persisted.status?.agentVersionHash).toBe(PINNED);
+    const handedOn = ctx.get(LOADED_EXECUTION_KEY) as AgentExecution;
+    expect(handedOn.status?.agentId).toBe("agt_r");
+    expect(handedOn.status?.agentVersionHash).toBe(PINNED);
+  });
+
+  it("leaves a turn that recorded its agent as it is", async () => {
+    await seedSession(pinnedSession("ses_moved", "agt_now", HEAD));
+    const turn = await seedTurn("aex_stamped", "ses_moved", "agt_then");
+
+    const ctx = await recover(turn);
+
+    expect((await storedTurn("aex_stamped")).status?.agentId).toBe("agt_then");
+    expect(ctx.get(LOADED_EXECUTION_KEY)).toBe(turn);
+  });
+
+  it("leaves a turn whose session pins no agent as it is", async () => {
+    await seedSession(pinnedSession("ses_builtin", "", ""));
+    const turn = await seedTurn("aex_builtin", "ses_builtin");
+
+    await recover(turn);
+
+    expect((await storedTurn("aex_builtin")).status?.agentId ?? "").toBe("");
+  });
+
+  it("does nothing when the recover is skipped", async () => {
+    await seedSession(pinnedSession("ses_skip", "agt_skip", HEAD));
+    const turn = await seedTurn("aex_skip", "ses_skip");
+
+    await recover(turn, true);
+
+    expect((await storedTurn("aex_skip")).status?.agentId ?? "").toBe("");
+  });
+
+  it("is Internal when it runs before the execution was loaded", async () => {
+    const error = await refusal(recover(undefined));
+
+    expect(error.code).toBe(Code.Internal);
   });
 });

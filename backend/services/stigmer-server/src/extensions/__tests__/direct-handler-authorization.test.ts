@@ -92,7 +92,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Session",
         metadata: { id: "ses_01authztarget", name: "target", org: "acme" },
-        spec: { agentInstanceId: "ain_01x", subject: "original" },
+        spec: { subject: "original" },
       }),
     );
     await server.store.saveResource(

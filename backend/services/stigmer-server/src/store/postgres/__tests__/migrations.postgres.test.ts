@@ -12,8 +12,13 @@
  * organization-slug ledger and fills it: every live organization unretired,
  * every organization a surviving scoped row names with none live retired,
  * across keyset pages; a scoped row it cannot decode fails the step and
- * leaves the database at v6 with no ledger. A step's starting database is
- * built by running the chain up to the step before it.
+ * leaves the database at v6 with no ledger. v9 removes the agent instance
+ * kind: every session that ran against an instance names the instance's
+ * agent and pins its current version (or keeps a deleted agent's id, or
+ * continues with the built-in assistant when the instance is gone), across
+ * keyset pages, and the instance rows leave every table; a session it
+ * cannot decode fails the step and leaves the database at v8. A step's
+ * starting database is built by running the chain up to the step before it.
  * Newer schemas are refused without writes or reconciliation; refusal
  * releases the migration lock and closes a failed store's pool.
  *
@@ -25,7 +30,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import pg from "pg";
 
-import { create, fromJson, toBinary } from "@bufbuild/protobuf";
+import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -43,8 +48,15 @@ import {
   SCHEMA_VERSION_5,
   SCHEMA_VERSION_7,
   SCHEMA_VERSION_8,
+  SCHEMA_VERSION_9,
   runMigrations,
 } from "../migrations.js";
+import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
+import {
+  retiredInstanceRow,
+  retiredSessionRow,
+  sessionBytes,
+} from "../../__tests__/retired-instance-rows.js";
 import { PostgresStore } from "../store.js";
 import {
   createTestDatabase,
@@ -159,7 +171,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         ]);
         const session = create(SessionSchema, {
           metadata: { id: "ses_preserved", org: "acme" },
-          spec: { agentInstanceId: "ain_preserved" },
+          status: { agentId: "agt_preserved" },
         });
         await client.query(
           `INSERT INTO resources (kind, id, data) VALUES ('session', 'ses_preserved', $1)`,
@@ -462,14 +474,15 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             [orgBytes, privateBytes, seededAt],
           );
 
-          const reopened = await PostgresStore.open(db.databaseUrl);
-          await reopened.close();
+          // The chain stops at v5: v9 removes the retired agent instance
+          // rows this step moves.
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_5);
 
           const version = await client.query(
             `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
           );
           expect(Number((version.rows[0] as { version: string }).version)).toBe(
-            CURRENT_SCHEMA_VERSION,
+            SCHEMA_VERSION_5,
           );
           for (const entry of PUBLIC_ROW_KINDS_AT_RETIREMENT) {
             const moved = await row(client, entry.kind, `${entry.kind}_public`);
@@ -713,6 +726,280 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               expires_at: "",
             },
           ]);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v9: sessions name their agent and the agent instance rows leave", () => {
+      const ORG = "org_01jz0000000000000000000000";
+      const HEAD = "e".repeat(64);
+      const SPEC = { subject: "Release notes" };
+      const seededAt = new Date("2026-09-01T00:00:00Z");
+
+      /** A v8 database, the one v9 starts from, and a client on it for the seeding. */
+      async function v8Client(): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_9 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insert(
+        client: pg.Client,
+        kind: string,
+        id: string,
+        data: Uint8Array,
+      ): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`,
+          [kind, id, Buffer.from(data), seededAt],
+        );
+      }
+
+      async function data(
+        client: pg.Client,
+        kind: string,
+        id: string,
+      ): Promise<Uint8Array> {
+        const result = await client.query<{ data: Buffer }>(
+          `SELECT data FROM resources WHERE kind = $1 AND id = $2`,
+          [kind, id],
+        );
+        return new Uint8Array(result.rows[0]!.data);
+      }
+
+      async function count(
+        client: pg.Client,
+        table: string,
+        kind: string,
+      ): Promise<number> {
+        const result = await client.query<{ n: string }>(
+          `SELECT COUNT(*) AS n FROM ${table} WHERE kind = $1`,
+          [kind],
+        );
+        return Number(result.rows[0]!.n);
+      }
+
+      async function seedInstances(client: pg.Client): Promise<void> {
+        await insert(
+          client,
+          "agent",
+          "agt_1",
+          toBinary(
+            AgentSchema,
+            create(AgentSchema, {
+              metadata: { id: "agt_1", org: ORG, slug: "reviewer" },
+              status: { versionHash: HEAD },
+            }),
+          ),
+        );
+        await insert(
+          client,
+          "agent_instance",
+          "ain_1",
+          retiredInstanceRow({
+            metadata: { id: "ain_1", org: ORG, slug: "reviewer-default" },
+            agentId: "agt_1",
+          }),
+        );
+        await insert(
+          client,
+          "agent_instance",
+          "ain_orphan",
+          retiredInstanceRow({
+            metadata: { id: "ain_orphan", org: ORG, slug: "gone-default" },
+            agentId: "agt_gone",
+          }),
+        );
+      }
+
+      const metadata = (id: string) => ({ id, org: ORG, slug: id });
+
+      it("moves every session onto its instance's agent and removes the instance rows from every table", async () => {
+        const client = await v8Client();
+        try {
+          await seedInstances(client);
+          await insert(
+            client,
+            "session",
+            "ses_live",
+            retiredSessionRow({
+              metadata: metadata("ses_live"),
+              instanceId: "ain_1",
+              spec: SPEC,
+            }),
+          );
+          await insert(
+            client,
+            "session",
+            "ses_agent_gone",
+            retiredSessionRow({
+              metadata: metadata("ses_agent_gone"),
+              instanceId: "ain_orphan",
+              spec: SPEC,
+            }),
+          );
+          await insert(
+            client,
+            "session",
+            "ses_instance_gone",
+            retiredSessionRow({
+              metadata: metadata("ses_instance_gone"),
+              instanceId: "ain_deleted",
+              spec: SPEC,
+            }),
+          );
+          const assistant = retiredSessionRow({
+            metadata: metadata("ses_assistant"),
+            instanceId: "",
+            spec: SPEC,
+          });
+          await insert(client, "session", "ses_assistant", assistant);
+          await client.query(
+            `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('agent_instance', 'ain_1', $1, '', '')`,
+            [Buffer.from([0x00])],
+          );
+          await client.query(
+            `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('agent_instance', 'ain_1', 'agent', 'agt_1', '')`,
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_9);
+
+          expect(await data(client, "session", "ses_live")).toEqual(
+            sessionBytes({
+              metadata: metadata("ses_live"),
+              spec: {
+                ...SPEC,
+                agentRef: { kind: 40, org: ORG, slug: "reviewer" },
+              },
+              status: { agentId: "agt_1", agentVersionHash: HEAD },
+            }),
+          );
+          expect(await data(client, "session", "ses_agent_gone")).toEqual(
+            sessionBytes({
+              metadata: metadata("ses_agent_gone"),
+              spec: SPEC,
+              status: { agentId: "agt_gone" },
+            }),
+          );
+          expect(await data(client, "session", "ses_instance_gone")).toEqual(
+            sessionBytes({ metadata: metadata("ses_instance_gone"), spec: SPEC }),
+          );
+          expect(await data(client, "session", "ses_assistant")).toEqual(
+            assistant,
+          );
+          const untouched = await client.query<{ updated_at: Date }>(
+            `SELECT updated_at FROM resources WHERE kind = 'session' AND id = 'ses_assistant'`,
+          );
+          expect(untouched.rows[0]!.updated_at).toEqual(seededAt);
+          for (const table of [
+            "resources",
+            "resource_audit",
+            "resource_list_keys",
+          ]) {
+            expect(await count(client, table, "agent_instance")).toBe(0);
+          }
+          expect(await count(client, "resources", "agent")).toBe(1);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads sessions across keyset pages, missing none past the first page", async () => {
+        const client = await v8Client();
+        try {
+          await seedInstances(client);
+          const total = RETIREMENT_PAGE_SIZE + 3;
+          for (let i = 0; i < total; i++) {
+            const id = `ses_${String(i).padStart(4, "0")}`;
+            await insert(
+              client,
+              "session",
+              id,
+              retiredSessionRow({ metadata: metadata(id), instanceId: "ain_1" }),
+            );
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_9);
+          const rows = await client.query<{ data: Buffer }>(
+            `SELECT data FROM resources WHERE kind = 'session'`,
+          );
+          expect(rows.rowCount).toBe(total);
+          for (const row of rows.rows) {
+            expect(
+              fromBinary(SessionSchema, new Uint8Array(row.data)).status
+                ?.agentId,
+            ).toBe("agt_1");
+          }
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a session that does not decode fails the step, names the row, and leaves the database at v8", async () => {
+        const client = await v8Client();
+        try {
+          await seedInstances(client);
+          await insert(
+            client,
+            "session",
+            "ses_broken",
+            new Uint8Array([0x22, 0xff]),
+          );
+          await expect(
+            migrateTo(db.databaseUrl, SCHEMA_VERSION_9),
+          ).rejects.toThrow(
+            "session 'ses_broken' cannot be read to retire the agent instance kind",
+          );
+          const version = await client.query(
+            `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+          );
+          expect(Number(version.rows[0].version)).toBe(SCHEMA_VERSION_9 - 1);
+          expect(await count(client, "resources", "agent_instance")).toBe(2);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("replays the frozen steps over instance rows from v4 exactly as they shipped, then removes them", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_5 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          await insert(
+            client,
+            "agent_instance",
+            "ain_public",
+            retiredInstanceRow({
+              metadata: {
+                id: "ain_public",
+                org: "deleted-org",
+                slug: "bot-shared",
+                visibility: ApiResourceVisibility.visibility_public,
+              },
+              agentId: "agt_1",
+            }),
+          );
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_7);
+          expect(await data(client, "agent_instance", "ain_public")).toEqual(
+            retiredInstanceRow({
+              metadata: {
+                id: "ain_public",
+                org: "deleted-org",
+                slug: "bot-shared",
+                visibility: ApiResourceVisibility.visibility_org,
+              },
+              agentId: "agt_1",
+            }),
+          );
+          const ledger = await client.query(
+            `SELECT slug, retired_at IS NOT NULL AS retired FROM organization_slugs`,
+          );
+          expect(ledger.rows).toEqual([{ slug: "deleted-org", retired: true }]);
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_9);
+          expect(await count(client, "resources", "agent_instance")).toBe(0);
         } finally {
           await client.end();
         }

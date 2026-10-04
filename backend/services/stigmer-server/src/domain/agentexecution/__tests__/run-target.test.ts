@@ -1,12 +1,15 @@
 /**
- * Pins the agent-execution run-target resolver: the target is dispatched
- * on the request shape in the CHAIN's
- * own precedence — session_id, then session_spec.agent_instance_id, then
- * agent_id (CreateDefaultInstanceIfNeeded / CreateSessionIfNeeded read
- * them in exactly that order) — so the gate authorizes the target the
- * chain will actually use. Each shape carries its own permission and its
- * own byte-pinned deny copy; a record with none of the three has no
- * target (EnsureSessionOrAgentResolved owns that arm as an invariant).
+ * Pins the agent-execution run-gate resolvers, the turn's two questions:
+ *   - agentExecutionRunTarget (AuthorizeRunTarget) asks only about the
+ *     conversation a turn continues: session#can_create_execution_in on
+ *     the target's session_id, with its byte-pinned deny copy. A new
+ *     conversation (a session_spec, whatever agent it names) and the
+ *     built-in assistant (no target) answer no target here: the session
+ *     create the chain runs asks about the agent itself.
+ *   - agentExecutionRunAgent (AuthorizeRunAgent) asks agent#can_execute on
+ *     the stamp ResolveRunAgent wrote (status.agent_id), never on anything
+ *     the request names in spec; no stamp is the built-in assistant, with
+ *     no target.
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -18,15 +21,25 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import {
   addExecutionToSessionDeniedMessage,
   runAgentDeniedMessage,
-  runAgentInstanceDeniedMessage,
 } from "../constants.js";
-import { agentExecutionRunTarget } from "../run-target.js";
+import {
+  agentExecutionRunAgent,
+  agentExecutionRunTarget,
+} from "../run-target.js";
+
+const AGENT_REF = {
+  kind: ApiResourceKind.agent,
+  org: "acme",
+  slug: "pr-reviewer",
+};
 
 describe("agentExecutionRunTarget", () => {
   it("session_id → session#can_create_execution_in", () => {
     expect(
       agentExecutionRunTarget(
-        create(AgentExecutionSchema, { spec: { sessionId: "ses_01abc" } }),
+        create(AgentExecutionSchema, {
+          spec: { target: { case: "sessionId", value: "ses_01abc" } },
+        }),
       ),
     ).toEqual({
       permission: IamPermission.can_create_execution_in,
@@ -39,28 +52,51 @@ describe("agentExecutionRunTarget", () => {
     );
   });
 
-  it("session_spec.agent_instance_id → agent_instance#can_execute", () => {
+  it("asks about the session even when the turn's status names an agent", () => {
+    const target = agentExecutionRunTarget(
+      create(AgentExecutionSchema, {
+        spec: { target: { case: "sessionId", value: "ses_01abc" } },
+        status: { agentId: "agt_01abc" },
+      }),
+    );
+    expect(target?.resourceKind).toBe(ApiResourceKind.session);
+    expect(target?.resourceId).toBe("ses_01abc");
+  });
+
+  it("answers no target for a new conversation, whatever agent it names", () => {
     expect(
       agentExecutionRunTarget(
         create(AgentExecutionSchema, {
-          spec: { sessionSpec: { agentInstanceId: "agi_01abc" } },
+          spec: {
+            target: { case: "sessionSpec", value: { agentRef: AGENT_REF } },
+          },
         }),
       ),
-    ).toEqual({
-      permission: IamPermission.can_execute,
-      resourceKind: ApiResourceKind.agent_instance,
-      resourceId: "agi_01abc",
-      deniedMessage: runAgentInstanceDeniedMessage("agi_01abc"),
-    });
-    expect(runAgentInstanceDeniedMessage("agi_01abc")).toBe(
-      "unauthorized to run agent instance 'agi_01abc'",
-    );
+    ).toBeUndefined();
   });
 
-  it("agent_id → agent#can_execute", () => {
+  it("answers no target for the built-in assistant or an empty session_id", () => {
+    expect(
+      agentExecutionRunTarget(create(AgentExecutionSchema, {})),
+    ).toBeUndefined();
     expect(
       agentExecutionRunTarget(
-        create(AgentExecutionSchema, { spec: { agentId: "agt_01abc" } }),
+        create(AgentExecutionSchema, {
+          spec: { target: { case: "sessionId", value: "" } },
+        }),
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe("agentExecutionRunAgent", () => {
+  it("status.agent_id → agent#can_execute", () => {
+    expect(
+      agentExecutionRunAgent(
+        create(AgentExecutionSchema, {
+          spec: { target: { case: "sessionId", value: "ses_01abc" } },
+          status: { agentId: "agt_01abc", agentVersionHash: "h1" },
+        }),
       ),
     ).toEqual({
       permission: IamPermission.can_execute,
@@ -73,43 +109,17 @@ describe("agentExecutionRunTarget", () => {
     );
   });
 
-  it("precedence is the chain's: session_id wins over both, the instance over agent_id", () => {
-    const all = agentExecutionRunTarget(
-      create(AgentExecutionSchema, {
-        spec: {
-          sessionId: "ses_01abc",
-          agentId: "agt_01abc",
-          sessionSpec: { agentInstanceId: "agi_01abc" },
-        },
-      }),
-    );
-    expect(all?.resourceKind).toBe(ApiResourceKind.session);
-    expect(all?.resourceId).toBe("ses_01abc");
-
-    const instanceAndAgent = agentExecutionRunTarget(
-      create(AgentExecutionSchema, {
-        spec: {
-          agentId: "agt_01abc",
-          sessionSpec: { agentInstanceId: "agi_01abc" },
-        },
-      }),
-    );
-    expect(instanceAndAgent?.resourceKind).toBe(ApiResourceKind.agent_instance);
-    expect(instanceAndAgent?.resourceId).toBe("agi_01abc");
-  });
-
-  it("answers no target when none of the three references is set", () => {
+  it("answers no target when nothing is stamped, whatever the spec names", () => {
     expect(
-      agentExecutionRunTarget(create(AgentExecutionSchema, {})),
+      agentExecutionRunAgent(create(AgentExecutionSchema, {})),
     ).toBeUndefined();
     expect(
-      agentExecutionRunTarget(
+      agentExecutionRunAgent(
         create(AgentExecutionSchema, {
           spec: {
-            sessionId: "",
-            agentId: "",
-            sessionSpec: { agentInstanceId: "" },
+            target: { case: "sessionSpec", value: { agentRef: AGENT_REF } },
           },
+          status: { agentId: "" },
         }),
       ),
     ).toBeUndefined();

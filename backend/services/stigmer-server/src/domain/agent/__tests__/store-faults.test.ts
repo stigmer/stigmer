@@ -8,8 +8,6 @@
  * The surface is updateVisibility, reached through the registered handler on
  * an in-process router. The composed suites reach only a real store, which
  * cannot fail selectively, so it runs here against a store whose read throws.
- * The default-instance applier is untouchable: a load that fails must stop
- * the call before anything past it runs.
  *
  * Out of scope: the NotFound copy itself (wire contract) and getByAgent's
  * empty-list answer on an agent-read fault in the channel and share domains
@@ -25,11 +23,7 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { createLogger } from "../../../boot/logger.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
 import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/auth.js";
-import {
-  errorOf,
-  failingStore,
-  untouchable,
-} from "../../../pipeline/__tests__/support.js";
+import { errorOf, failingStore } from "../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
@@ -64,7 +58,6 @@ function agentCommand(store: Store): Client<typeof AgentCommandController> {
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
-        agentInstanceApplier: untouchable("agentInstanceApplier"),
       });
     },
     {

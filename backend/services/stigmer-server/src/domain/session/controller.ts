@@ -254,7 +254,10 @@ async function createSession(
  * BuildUpdateState (it mutates the merged state). The reference rule, the
  * pin and the run gate run as on create, so changing a session's agent is
  * gated like choosing it, and skills and MCP servers an update adds are
- * judged like those a create names.
+ * judged like those a create names. The rule judges only what the update
+ * introduces: the runner writes the session's harness state back with the
+ * whole row, and a skill deleted since the session named it must not stop
+ * that write (the runner skips a skill it cannot read).
  */
 async function update(
   deps: SessionControllerDeps,
@@ -279,7 +282,11 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(
+      newValidateReferencesStep(deps.store, deps.authorizer, {
+        judge: "introduced",
+      }),
+    )
     .addStep(newResolveSessionAgentStep(deps.store, deps.logger))
     .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
     .addStep(newRecordHarnessStateHistoryStep())

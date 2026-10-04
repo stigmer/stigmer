@@ -280,7 +280,6 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
         kind: "Session",
         metadata: { id: "ses_1", name: "s", org: "o" },
         spec: {
-          agentInstanceId: "ain_1",
           harness: Harness.CURSOR,
           executionTarget: ExecutionTarget.CLOUD,
         },

@@ -593,8 +593,9 @@ async function migrateToV8(client: PoolClient): Promise<void> {
  *   instance, with `updated_at` bumped the way the store's writes bump it,
  *   so the list index re-derives the row (its key changed with the
  *   session's revision) the way it re-derives any unproven row.
- * - The instance rows, their history, their search entries and their list
- *   keys are then deleted. The chain's advisory lock keeps a second
+ * - The instance rows, their history and their list keys are then
+ *   deleted; the search index is left to boot's RebuildIndex, which
+ *   re-indexes only the registered kinds (the v4 precedent). The chain's advisory lock keeps a second
  *   instance's boot out of the step, and the transaction makes it whole or
  *   nothing.
  */
@@ -680,9 +681,6 @@ async function migrateToV9(client: PoolClient): Promise<void> {
   }
 
   await client.query(`DELETE FROM resource_audit WHERE kind = $1`, [
-    RETIRED_INSTANCE_KIND,
-  ]);
-  await client.query(`DELETE FROM search_index WHERE kind = $1`, [
     RETIRED_INSTANCE_KIND,
   ]);
   await client.query(`DELETE FROM resource_list_keys WHERE kind = $1`, [

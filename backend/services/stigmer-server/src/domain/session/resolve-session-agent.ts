@@ -10,14 +10,18 @@
  *   - a write naming no agent clears the pin: the built-in assistant;
  *   - a version of `latest` pins the agent's current version now (the
  *     reference grammar's meaning), which is how a conversation moves to
- *     the version its author last saved;
- *   - a tag or a content hash pins the version it names, refused when the
- *     agent holds no such version;
- *   - a reference unchanged from the stored one (same organization and
- *     slug), with no version, keeps the stored pin: an edit that echoes the
- *     stored spec moves nothing (the echo rule the reference rule's writer
- *     clause uses for attachments);
- *   - any other reference with no version pins the agent's current version.
+ *     the version its author last saved. `latest` is an instruction, not a
+ *     state: the stored reference keeps no version, so a later echo of the
+ *     stored spec cannot move the conversation again;
+ *   - a reference unchanged from the stored one (same organization, slug
+ *     and version) keeps the stored pin: an edit that echoes the stored
+ *     spec moves nothing, whoever sends it (a person editing the
+ *     conversation's tools, the runner recording its harness state) and
+ *     even when the tag it names has moved since (the echo rule the
+ *     reference rule's writer clause uses for attachments);
+ *   - any other reference pins the version it names — a tag or a content
+ *     hash, refused when the agent holds no such version — or, with no
+ *     version, the agent's current version.
  *
  * The agent's id is the one ValidateReferences resolved for this write
  * (RESOLVED_REFERENCE_TARGETS_KEY), so a write pays the one scan the
@@ -86,7 +90,7 @@ export function newResolveSessionAgentStep(
 
       const stored = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
       const version = ref.version.trim();
-      if (version === "" && keepsStoredPin(stored, ref)) {
+      if (version !== LATEST && keepsStoredPin(stored, ref, version)) {
         status.agentId = stored?.status?.agentId ?? "";
         status.agentVersionHash = stored?.status?.agentVersionHash ?? "";
         return;
@@ -97,6 +101,9 @@ export function newResolveSessionAgentStep(
         resolvedReferenceTargets(ctx),
         ref,
       );
+      if (version === LATEST) {
+        ref.version = "";
+      }
       status.agentId = pin.agentId;
       status.agentVersionHash = pin.versionHash;
       logger.debug("Pinned the agent version this session runs", {
@@ -106,6 +113,9 @@ export function newResolveSessionAgentStep(
     },
   };
 }
+
+/** The reference grammar's name for an agent's current version. */
+const LATEST = "latest";
 
 /** The agent a reference names and the version hash it pins. */
 export interface AgentPin {
@@ -162,19 +172,21 @@ export async function resolveAgentPin(
 
 /**
  * Whether an update's reference echoes the stored one: the same agent by
- * organization and slug, on a session that already holds a pin. A
- * reference that names a version is never an echo (the caller asked for
- * that version); the caller of this function has checked that.
+ * organization and slug, naming the same version (none, a tag or a hash),
+ * on a session that already holds a pin. `latest` is never an echo; the
+ * caller of this function has checked that.
  */
 function keepsStoredPin(
   stored: Session | undefined,
   ref: ApiResourceReference,
+  version: string,
 ): boolean {
   const held = stored?.spec?.agentRef;
   return (
     held !== undefined &&
     held.org === ref.org &&
     held.slug === ref.slug &&
+    held.version.trim() === version &&
     (stored?.status?.agentId ?? "") !== ""
   );
 }

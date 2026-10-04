@@ -97,11 +97,15 @@ export function fixtureRow(
   return create(declaration.schema, init);
 }
 
-/** `kind_meta`'s parent spec fields for the kind, by generated name, each naming `<parentKind>-1`. */
-function parentFieldsOf(declaration: StoredKindDeclaration): Record<string, string> {
+/**
+ * `kind_meta`'s parent spec fields for the kind, by generated name, each
+ * naming `<parentKind>-1`; a parent field that is a oneof member is set
+ * through its oneof (`{ case, value }`), the shape protobuf-es holds it in.
+ */
+function parentFieldsOf(declaration: StoredKindDeclaration): Record<string, unknown> {
   const config = getKindMeta(declaration.kind).authorization;
   const spec = specSchemaOf(declaration.schema);
-  const fields: Record<string, string> = {};
+  const fields: Record<string, unknown> = {};
   if (config === undefined || spec === undefined) {
     return fields;
   }
@@ -116,7 +120,14 @@ function parentFieldsOf(declaration: StoredKindDeclaration): Record<string, stri
         `${declaration.type}: kind_meta names spec field '${parent.specField}', which ${spec.typeName} does not have`,
       );
     }
-    fields[field.localName] = fixtureParentId(parent.kind);
+    if (field.oneof === undefined) {
+      fields[field.localName] = fixtureParentId(parent.kind);
+    } else {
+      fields[field.oneof.localName] = {
+        case: field.localName,
+        value: fixtureParentId(parent.kind),
+      };
+    }
   }
   return fields;
 }

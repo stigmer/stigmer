@@ -173,8 +173,8 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "AgentExecution",
         metadata: { id, name: "own-behalf", org: "acme" },
-        spec: { agentId: "agt_1", sessionId: "ses_1" },
-        status: { phase, messages },
+        spec: { target: { case: "sessionId", value: "ses_1" } },
+        status: { agentId: "agt_1", phase, messages },
       }),
     );
   }

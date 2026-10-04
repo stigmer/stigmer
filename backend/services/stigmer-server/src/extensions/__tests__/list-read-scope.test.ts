@@ -293,16 +293,16 @@ describe("restrictListByReadScope", () => {
     await restrictListByReadScope(
       recording,
       caller,
-      ApiResourceKind.agent_instance,
+      ApiResourceKind.workflow_instance,
       [
         {
           metadata: {
-            id: "ai_1",
+            id: "wfi_1",
             org: "acme",
             labels: {},
             visibility: ApiResourceVisibility.visibility_org,
           },
-          spec: { agentId: "agt_1" },
+          spec: { workflowId: "wfl_1" },
           status: {
             audit: create(ApiResourceAuditSchema, {
               specAudit: { createdBy: { id: "ida_carol" } },
@@ -314,7 +314,7 @@ describe("restrictListByReadScope", () => {
     );
     expect(seen).toEqual([
       {
-        id: "ai_1",
+        id: "wfi_1",
         org: "acme",
         labels: {},
         createdBy: "ida_carol",
@@ -322,9 +322,9 @@ describe("restrictListByReadScope", () => {
         parentLinks: [
           organizationLink("acme"),
           {
-            relation: "agent",
-            parentKind: ApiResourceKind.agent,
-            parentId: "agt_1",
+            relation: "workflow",
+            parentKind: ApiResourceKind.workflow,
+            parentId: "wfl_1",
           },
         ],
       },
@@ -348,15 +348,15 @@ describe("restrictListByReadScope", () => {
       const executions = [
         {
           metadata: { id: "aex_1", org: "acme", labels: {} },
-          spec: { sessionId: "ses_a" },
+          spec: { target: { case: "sessionId", value: "ses_a" } },
         },
         {
           metadata: { id: "aex_2", org: "acme", labels: {} },
-          spec: { sessionId: "ses_a" },
+          spec: { target: { case: "sessionId", value: "ses_a" } },
         },
         {
           metadata: { id: "aex_3", org: "acme", labels: {} },
-          spec: { sessionId: "ses_b" },
+          spec: { target: { case: "sessionId", value: "ses_b" } },
         },
       ];
       const { scope, seen } = recordingScope(["aex_1", "aex_3"]);
@@ -446,7 +446,7 @@ describe("restrictListByReadScope", () => {
       const executions = [
         {
           metadata: { id: "aex_1", org: "acme", labels: {} },
-          spec: { sessionId: "ses_a" },
+          spec: { target: { case: "sessionId", value: "ses_a" } },
         },
       ];
       const kept = await restrictListByReadScope(

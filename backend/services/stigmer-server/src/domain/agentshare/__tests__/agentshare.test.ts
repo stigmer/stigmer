@@ -581,8 +581,8 @@ describe("getSharedProfile (anonymous lane)", () => {
     expect(noShareErr.rawMessage).toBe("Agent not found: ash_never_created");
 
     // Enabled share resolves by its id to the trimmed profile — display
-    // fields from the AGENT, org and slug from the SHARE, never the full
-    // Agent.
+    // fields from the AGENT, org, slug and the agent reference the hosted
+    // page starts its sessions on from the SHARE, never the full Agent.
     const share = await shares.create(shareFor(agent, true));
     const ref = { shareId: share.metadata!.id };
     const missing = `Agent not found: ${share.metadata!.id}`;
@@ -592,7 +592,7 @@ describe("getSharedProfile (anonymous lane)", () => {
     expect(profile.name).toBe(agent.metadata!.name);
     expect(profile.description).toBe(agent.spec!.description);
     expect(profile.iconUrl).toBe(agent.spec!.iconUrl);
-    expect(profile.defaultInstanceId).not.toBe("");
+    expect(profile.agentRef).toEqual(share.spec!.agentRef);
 
     // Disabled: byte-identical to no-share.
     share.spec!.enabled = false;
