@@ -29,19 +29,3 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # One pull request moves the hosted chat link, the guest-token mint and the
-  # embed from an organization and a share slug to the share's own id: it
-  # deletes GetSharedProfileRequest's and MintGuestTokenRequest's org and slug
-  # (their numbers and names are reserved) for share_id, and
-  # getSharedProfileForMember takes AgentShareId. It is made before launch: no
-  # outside consumer uses these messages, and the release notes name every
-  # change under Upgrading. This block exists for that one pull request. While
-  # it stays, buf breaking does not report these rules on the listed files, so
-  # the pull request that removes it lands straight after the merge
-  # (https://github.com/stigmer/stigmer/issues/1856).
-  ignore_only:
-    FIELD_NO_DELETE:
-      - ai/stigmer/agentic/agentshare/v1/io.proto
-      - ai/stigmer/iam/platformclient/v1/token.proto
-    RPC_SAME_REQUEST_TYPE:
-      - ai/stigmer/agentic/agentshare/v1/query.proto
