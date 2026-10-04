@@ -80,7 +80,7 @@ describe("selecting the agent-sandbox driver", () => {
     );
   });
 
-  it("builds the driver over the kubeconfig the client resolves, as kubectl would, with the idle sweep as its background work", () => {
+  it("builds the driver over the kubeconfig the client resolves, as kubectl would, with the idle sweep as its background work", async () => {
     const dir = mkdtempSync(join(tmpdir(), "agent-sandbox-kubeconfig-"));
     cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
     const path = join(dir, "config");
@@ -99,6 +99,17 @@ describe("selecting the agent-sandbox driver", () => {
     const provisioner = newAgentSandboxProvisioner({ config, logger });
     expect(typeof provisioner.ensureSessionSandbox).toBe("function");
     expect(typeof provisioner.startBackground).toBe("function");
+    // Its sweep starts and stops; the kubeconfig names no reachable
+    // cluster, so the pass fails, is logged, and the sweep stays stoppable.
+    const handle = provisioner.startBackground?.({
+      sessions: {
+        activity: async () => ({ busy: false, lastActiveAt: undefined }),
+        recentActivity: async () => ({ busy: false, lastActiveAt: undefined }),
+        sessionIds: async function* () {},
+      },
+      logger,
+    });
+    await handle?.stop();
   });
 
   it("refuses a malformed idle window at boot, naming the variable", () => {

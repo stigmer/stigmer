@@ -16,7 +16,8 @@
  *     no session, are suspended and logged as errors, never deleted;
  *   - a Sandbox the pass fails on is skipped and logged, and the pass goes
  *     on; a stopping sweep ends a pass between Sandboxes;
- *   - started, the sweep runs a pass at once, and logs a pass that fails.
+ *   - started, the sweep runs a pass at once, logs a pass that fails, starts
+ *     no pass while one runs, and none once stopped.
  */
 import { describe, expect, it, vi } from "vitest";
 
@@ -412,5 +413,41 @@ describe("the started sweep", () => {
       message: "agent-sandbox idle sweep pass failed",
       fields: { error: "list refused" },
     });
+  });
+
+  it("starts no pass while one is running, and none once stopped", async () => {
+    vi.useFakeTimers();
+    try {
+      const h = harness();
+      let release: () => void = () => {};
+      let lists = 0;
+      h.cluster.listSandboxes = async () => {
+        lists += 1;
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return [];
+      };
+      const handle = startAgentSandboxSweep({
+        driver: h.driver.internals,
+        settings,
+        sessions: h.sessions,
+        logger: h.logger,
+        now: h.now,
+      });
+      await vi.advanceTimersByTimeAsync(
+        settings.sweepIntervalSeconds * 1000 * 3,
+      );
+      expect(lists).toBe(1);
+      release();
+      const stopped = handle.stop();
+      await vi.advanceTimersByTimeAsync(
+        settings.sweepIntervalSeconds * 1000 * 3,
+      );
+      await stopped;
+      expect(lists).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
