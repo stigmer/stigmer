@@ -2948,7 +2948,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "ID of the agent this turn ran. Empty when the turn ran the built-in\n assistant, which is not a stored agent.\n\n The pair with agent_version_hash: a version hash is unique only within\n its agent, and the session's route to its agent can change after the\n turn, so the id is recorded beside the version.",
+        "description": "ID of the agent this turn ran. Empty when the turn ran the built-in\n assistant, which is not a stored agent.",
         "required": false
       },
       {

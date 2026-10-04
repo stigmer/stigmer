@@ -106,6 +106,32 @@ export function useAgentVersions(
   );
 }
 
+/**
+ * How many versions an agent has, read as one entry and the history's total
+ * so a count (a tab badge) never loads the history's specs. `0` while
+ * loading, for an agent with no version yet, and when `org` or `slug` is
+ * `null`.
+ */
+export function useAgentVersionCount(
+  org: string | null,
+  slug: string | null,
+): number {
+  const stigmer = useStigmer();
+  const { data } = useFetch(
+    org && slug
+      ? async () => {
+          const response = await stigmer.agent.listVersions(
+            create(ListAgentVersionsInputSchema, { org, slug, pageSize: 1 }),
+          );
+          return response.totalCount;
+        }
+      : null,
+    [org, slug, stigmer],
+    0,
+  );
+  return data;
+}
+
 function mapProtoToVersionEntry(proto: ProtoAgentVersionEntry): VersionEntry {
   return {
     id: proto.versionHash,

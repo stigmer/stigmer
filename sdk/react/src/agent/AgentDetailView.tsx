@@ -38,7 +38,7 @@ import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useOrgIdForRef, useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { AgentVersionsTab } from "./AgentVersionsTab.js";
-import { useAgentVersions } from "./useAgentVersions.js";
+import { useAgentVersionCount } from "./useAgentVersions.js";
 
 const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
@@ -297,13 +297,11 @@ export function AgentDetailView({
     spec: agent?.spec,
   });
 
-  // The history is listed for the tab's badge; the tab itself reads it again
-  // through the same hook when it opens.
-  const { versions } = useAgentVersions(
+  // The badge reads the count alone; the tab loads the history when opened.
+  const versionCount = useAgentVersionCount(
     agent?.metadata?.org ?? null,
     agent?.metadata?.slug ?? null,
   );
-  const versionCount = versions.length;
 
   const builtInTabs = useMemo<readonly TabItem[]>(
     () => [

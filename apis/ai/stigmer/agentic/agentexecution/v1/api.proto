@@ -403,17 +403,17 @@ message AgentExecutionStatus {
   // execution rebuilds its context from it, so an author saving a new
   // version while the turn is queued or running never changes what runs.
   //
-  // Server-only, like approval_event_stream: a client-sent value is
-  // discarded at create, and the runner's status writes never touch either
-  // field.
+  // Server-only: a client-sent value is discarded at create, and status
+  // writes never change either field.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // ID of the agent this turn ran. Empty when the turn ran the built-in
   // assistant, which is not a stored agent.
   //
-  // The pair with agent_version_hash: a version hash is unique only within
+  // @internal
+  // Recorded beside agent_version_hash: a version hash is unique only within
   // its agent, and the session's route to its agent can change after the
-  // turn, so the id is recorded beside the version.
+  // turn.
   string agent_id = 27;
 
   // Content hash of the agent version this turn ran (AgentStatus.version_hash

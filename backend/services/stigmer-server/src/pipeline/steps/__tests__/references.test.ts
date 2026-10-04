@@ -287,6 +287,7 @@ describe("checkReference", () => {
     expect(checkReferenceVersion(versioned(K.skill, "org-skill"), [])).toBeUndefined();
     expect(checkReferenceVersion(versioned(K.mcp_server, "github"), [])).toBeUndefined();
     expect(checkReferenceVersion({ kind: K.agent, org: "acme", slug: "reviewer" }, [])).toBeUndefined();
+    expect(checkReferenceVersion(versioned(K.agent, "reviewer", "latest"), [])).toBeUndefined();
     expect(
       REFERENCE_TARGET_KINDS.filter((e) => !e.mayNameVersion).map((e) => e.kind),
     ).toEqual([K.agent]);

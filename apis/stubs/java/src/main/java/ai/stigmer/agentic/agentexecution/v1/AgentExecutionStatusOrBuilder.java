@@ -932,10 +932,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * <pre>
    * ID of the agent this turn ran. Empty when the turn ran the built-in
    * assistant, which is not a stored agent.
-   *
-   * The pair with agent_version_hash: a version hash is unique only within
-   * its agent, and the session's route to its agent can change after the
-   * turn, so the id is recorded beside the version.
    * </pre>
    *
    * <code>string agent_id = 27 [json_name = "agentId"];</code>
@@ -946,10 +942,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * <pre>
    * ID of the agent this turn ran. Empty when the turn ran the built-in
    * assistant, which is not a stored agent.
-   *
-   * The pair with agent_version_hash: a version hash is unique only within
-   * its agent, and the session's route to its agent can change after the
-   * turn, so the id is recorded beside the version.
    * </pre>
    *
    * <code>string agent_id = 27 [json_name = "agentId"];</code>

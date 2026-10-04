@@ -854,6 +854,7 @@ export {
   AgentPicker,
   AgentDetailView,
   useAgentVersions,
+  useAgentVersionCount,
   AgentVersionsTab,
   AgentEnvForm,
   diffEnv,

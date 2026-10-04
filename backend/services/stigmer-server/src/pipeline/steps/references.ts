@@ -415,9 +415,12 @@ export function checkReferenceVersion(
   ref: SpecReference,
   stored: ReadonlyArray<SpecReference>,
 ): ReferenceVerdict | undefined {
-  const version = ref.version ?? "";
+  const version = (ref.version ?? "").trim();
   if (
     version === "" ||
+    // "latest" is the contract's explicit name for the current version,
+    // which is what these surfaces run.
+    version === "latest" ||
     referenceTargetKind(ref.kind)?.mayNameVersion !== false ||
     stored.some(
       (held) => sameReference(held, ref) && (held.version ?? "") === version,

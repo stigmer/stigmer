@@ -328,10 +328,6 @@ export type AgentExecutionStatus = Message<"ai.stigmer.agentic.agentexecution.v1
    * ID of the agent this turn ran. Empty when the turn ran the built-in
    * assistant, which is not a stored agent.
    *
-   * The pair with agent_version_hash: a version hash is unique only within
-   * its agent, and the session's route to its agent can change after the
-   * turn, so the id is recorded beside the version.
-   *
    * @generated from field: string agent_id = 27;
    */
   agentId: string;

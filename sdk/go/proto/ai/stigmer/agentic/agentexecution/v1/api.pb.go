@@ -235,10 +235,6 @@ type AgentExecutionStatus struct {
 	RecalledMemoriesReport *RecalledMemoriesReport `protobuf:"bytes,26,opt,name=recalled_memories_report,json=recalledMemoriesReport,proto3" json:"recalled_memories_report,omitempty"`
 	// ID of the agent this turn ran. Empty when the turn ran the built-in
 	// assistant, which is not a stored agent.
-	//
-	// The pair with agent_version_hash: a version hash is unique only within
-	// its agent, and the session's route to its agent can change after the
-	// turn, so the id is recorded beside the version.
 	AgentId string `protobuf:"bytes,27,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	// Content hash of the agent version this turn ran (AgentStatus.version_hash
 	// at create; resolvable through AgentQueryController.getVersion with

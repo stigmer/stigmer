@@ -13,7 +13,7 @@
         "kind": "message",
         "messageType": "ApiResourceReference"
       },
-      "description": "Reference to the agent this channel serves.",
+      "description": "Reference to the agent this channel serves.\n\n The reference names no version (or \"latest\"): this runs the agent's\n current version, and a reference naming another version is refused.",
       "required": true,
       "referenceKind": 40,
       "validation": {

@@ -266,6 +266,27 @@ if (result.status === "needsEnvVars") {
 ```
 
 
+### useAgentVersionCount
+
+How many versions an agent has, read as one entry and the history's total
+so a count (a tab badge) never loads the history's specs. `0` while
+loading, for an agent with no version yet, and when `org` or `slug` is
+`null`.
+
+**Signature**
+
+```tsx
+function useAgentVersionCount(org: string | null, slug: string | null): number
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "", required: true },
+    slug: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+
 ### useAgentVersions
 
 Data hook that fetches an agent's version history.

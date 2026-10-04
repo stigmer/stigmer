@@ -34,6 +34,9 @@ const (
 type AgentChannelSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Reference to the agent this channel serves.
+	//
+	// The reference names no version (or "latest"): this runs the agent's
+	// current version, and a reference naming another version is refused.
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Whether serving traffic on this channel is enabled.
 	//

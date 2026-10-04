@@ -1,6 +1,7 @@
 /**
  * The agent detail view's Versions tab: the tab carries the number of
- * versions the agent has; it lists them newest first through the shared
+ * versions the agent has, read as the history's total from a one-entry
+ * page; it lists them newest first through the shared
  * timeline, the current one marked; selecting an older version shows how
  * its instructions differ from the current version's; and an agent with no
  * recorded version yet says its next change records the first.
@@ -20,7 +21,12 @@ const OLDER = "a".repeat(64);
 
 function renderView(versions: ReturnType<typeof create<typeof AgentVersionEntrySchema>>[]) {
   const agent = samples.agent({ name: "Reviewer", org: ACME_ID });
-  const listVersions = vi.fn(async () => ({ versions, totalCount: versions.length, nextPageToken: "" }));
+  // The server pages: a request for one entry answers one, with the total.
+  const listVersions = vi.fn(async (req: { pageSize: number }) => ({
+    versions: req.pageSize > 0 ? versions.slice(0, req.pageSize) : versions,
+    totalCount: versions.length,
+    nextPageToken: "",
+  }));
   render(<AgentDetailView org="acme" slug="reviewer" />, {
     wrapper: orgWrapper(
       {
@@ -37,7 +43,7 @@ function renderView(versions: ReturnType<typeof create<typeof AgentVersionEntryS
 
 describe("AgentDetailView — the Versions tab", () => {
   it("lists the versions with the current one marked, and diffs an older version's instructions against the current", async () => {
-    renderView([
+    const { listVersions } = renderView([
       create(AgentVersionEntrySchema, {
         versionHash: CURRENT,
         isCurrent: true,
@@ -53,7 +59,9 @@ describe("AgentDetailView — the Versions tab", () => {
     ]);
 
     const tab = await screen.findByRole("tab", { name: /Versions/ });
-    expect(within(tab).getByText("2")).toBeTruthy();
+    // The badge is the history's total, read without loading the history.
+    expect(await within(tab).findByText("2")).toBeTruthy();
+    expect(listVersions).toHaveBeenCalledWith(expect.objectContaining({ pageSize: 1 }));
     fireEvent.click(tab);
 
     expect(await screen.findByText("tighter review")).toBeTruthy();
