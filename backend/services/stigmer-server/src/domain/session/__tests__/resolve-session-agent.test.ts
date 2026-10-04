@@ -37,6 +37,8 @@ import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import {
+  notAvailableReferenceMessage,
+  referenceTargetKind,
   RESOLVED_REFERENCE_TARGETS_KEY,
   type ReferenceTargets,
 } from "../../../pipeline/steps/references.js";
@@ -338,6 +340,36 @@ describe("ResolveSessionAgent", () => {
     });
     expect(session.status?.agentId).toBe("agt_new");
     expect(session.status?.agentVersionHash).toBe(HEAD);
+  });
+
+  it("judges the agent that holds the slug now by the reference rule: another organization's private agent is refused", async () => {
+    await seedAgent("agt_new", "reviewer");
+    const inOtherOrg = (session: Session): Session => {
+      session.metadata!.org = "org_other";
+      return session;
+    };
+    const stored = inOtherOrg(
+      sessionNaming("reviewer", "", {
+        agentId: "agt_deleted",
+        agentVersionHash: OLDER,
+      }),
+    );
+    const error = await refusal(
+      pin(inOtherOrg(sessionNaming("reviewer", "latest")), {
+        stored,
+        targets: targetsOf({}),
+      }),
+    );
+    expect(error.rawMessage).toBe(
+      notAvailableReferenceMessage(
+        referenceTargetKind(ApiResourceKind.agent)!,
+        {
+          kind: ApiResourceKind.agent,
+          org: ORG,
+          slug: "reviewer",
+        },
+      ),
+    );
   });
 
   it("refuses naming the slug again when no agent holds it any more", async () => {

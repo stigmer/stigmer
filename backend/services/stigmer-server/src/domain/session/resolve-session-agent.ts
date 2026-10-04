@@ -55,6 +55,7 @@ import type {
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -69,6 +70,7 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
+  checkReferences,
   resolvedReferenceTargets,
   type ReferenceTargets,
 } from "../../pipeline/steps/references.js";
@@ -129,6 +131,25 @@ export function newResolveSessionAgentStep(
           authorizer,
           caller: ctx.callerIdentity,
           heldAgentId: heldAgentIdOf(stored, ref),
+          judgeResolvedAgain: async () => {
+            // The write names the slug again, but the reference rule
+            // passed it over as one the stored row carries: judge it now,
+            // as a reference this write introduces.
+            const refusal = await checkReferences(
+              store,
+              {
+                org: session.metadata?.org ?? "",
+                visibility:
+                  session.metadata?.visibility ??
+                  ApiResourceVisibility.visibility_private,
+              },
+              [{ kind: ApiResourceKind.agent, org: ref.org, slug: ref.slug }],
+              { authorizer, caller: ctx.callerIdentity, stored: [] },
+            );
+            if (refusal !== undefined) {
+              throw refusal;
+            }
+          },
         },
       );
       if (version === LATEST) {
@@ -163,9 +184,17 @@ export interface PinAsker {
    * by id, never resolved by its slug again (so a slug taken by another
    * agent never redirects it, and an unchanged name costs no scan). Only
    * when that agent is gone does a write that names its slug again resolve
-   * the slug to the agent that holds it now.
+   * the slug to the agent that holds it now, judged first by
+   * judgeResolvedAgain.
    */
   readonly heldAgentId?: string;
+  /**
+   * The reference rule over the reference, for the agent a slug resolves
+   * to when the held agent is gone: the chain's ValidateReferences passed
+   * the reference over as one the stored row already carries, so the
+   * agent that holds the slug now was never judged. Throws its refusal.
+   */
+  readonly judgeResolvedAgain?: () => Promise<void>;
 }
 
 /**
@@ -220,6 +249,7 @@ export async function resolveAgentPin(
         )
       )?.metadata?.id;
     if (now !== undefined && now !== "" && now !== held) {
+      await asker.judgeResolvedAgain?.();
       agentId = now;
       agent = await readAgent(store, now);
     }

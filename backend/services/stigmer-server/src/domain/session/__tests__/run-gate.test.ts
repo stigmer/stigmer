@@ -282,7 +282,7 @@ describe("session-update run gate (composed server)", () => {
     expect(stored.status?.agentId).toBe(first.id);
   });
 
-  it("asks nothing for an echo of the stored reference or a move to latest on the same agent", async () => {
+  it("asks nothing for an echo of the stored reference or a latest that resolves to the pinned version", async () => {
     const agent = await createAgent("Update kept agent");
     const session = await createPinnedSession(agent.slug, "Kept session");
 
