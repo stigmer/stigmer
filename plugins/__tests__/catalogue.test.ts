@@ -46,11 +46,19 @@ const GUIDE_FILES: ReadonlySet<string> = new Set(["AGENTS.md", "CLAUDE.md"]);
 /**
  * Warning kinds a byte-for-byte copy cannot avoid and an install can live
  * with: a sub-agent field or model alias Stigmer does not read, a skill
- * whose frontmatter name differs from its directory. Anything else on a
+ * whose frontmatter name differs from its directory, and a hook Stigmer
+ * does not run (an event, a handler or a field of one). Anything else on a
  * vendored entry is a question for a person, and `mcp-server-auth-ignored`
  * in particular names a server whose declared credential no header sends.
  */
-const VENDORED_WARNINGS_ALLOWED: ReadonlySet<string> = new Set(["sub-agent-field-ignored", "sub-agent-model-unknown", "skill-name-differs-from-directory"]);
+const VENDORED_WARNINGS_ALLOWED: ReadonlySet<string> = new Set([
+  "sub-agent-field-ignored",
+  "sub-agent-model-unknown",
+  "skill-name-differs-from-directory",
+  "hook-event-not-run",
+  "hook-handler-not-run",
+  "hook-field-ignored",
+]);
 
 const listing = listDirectory(CATALOGUE_ROOT);
 const outcome = readMarketplace(asPluginFiles(listing));

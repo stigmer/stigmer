@@ -3,7 +3,8 @@
 // .stigmerignore), symlinks never followed, and the JSON projection that
 // reduces overlay documents to their paths; then the prepared push (the
 // deterministic archive and its SHA-256, the server's own digest), the
-// install summary renderer (only the kinds installed are counted; the Next
+// install summary renderer (only the kinds installed are counted; the hooks
+// that run are summarised per event, offline and after an install; the Next
 // section says what each server still needs), and `readNextSteps` against an
 // in-memory backend: a sign-in for an OAuth server without a grant, "signed
 // in" with one, the variables an API-key server wants and where they are
@@ -375,5 +376,80 @@ describe("readNextSteps", () => {
     expect(text).not.toContain("0 skills");
     expect(text).toContain("Next");
     expect(text).toContain("Sign in to linear:  stigmer connect mcp-server linear");
+  });
+});
+
+describe("the hooks summary", () => {
+  async function human(result: import("../../output/command-result.js").CommandResult): Promise<string> {
+    const { renderResult } = await import("../../output/command-result.js");
+    const lines: string[] = [];
+    const original = process.stderr.write.bind(process.stderr);
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      lines.push(String(chunk));
+      return true;
+    }) as typeof process.stderr.write;
+    try {
+      renderResult(result, "human");
+    } finally {
+      process.stderr.write = original;
+    }
+    return lines.join("");
+  }
+
+  it("counts handlers per event in first-seen order", async () => {
+    const { hooksSummary } = await import("../plugin.js");
+    expect(
+      hooksSummary("Claude Code", [
+        { event: "PreToolUse", handlers: [1, 2] },
+        { event: "PostToolUse", handlers: [1] },
+        { event: "PreToolUse", handlers: [1] },
+      ]),
+    ).toBe("Claude Code format: PreToolUse 3, PostToolUse 1");
+  });
+
+  it("names the hooks and the main agent a package would install, offline", async () => {
+    const { describePackageOn } = await import("../plugin.js");
+    const { CommandResult } = await import("../../output/command-result.js");
+    const { claudePlugin, inMemoryPluginFiles } = await import("@stigmer/plugin-package/testing");
+    const fixture = claudePlugin({
+      name: "guard",
+      agents: [{ file: "lead", frontmatter: { description: "Leads." } }],
+      settings: { agent: "lead" },
+      hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "guard" }] }] },
+    });
+    const outcome = readPluginPackage(inMemoryPluginFiles(fixture));
+    if (!outcome.ok) throw new Error("fixture refused");
+    const text = await human(
+      describePackageOn(CommandResult.success("ok"), outcome.plugin, outcome.warnings, {
+        filesIncluded: 3,
+        filesIgnored: 0,
+        dirsSkipped: 0,
+        totalSize: 0,
+      }),
+    );
+    expect(text).toContain("Main agent");
+    expect(text).toContain("Claude Code format: PreToolUse 1");
+  });
+
+  it("names the hooks an install recorded", async () => {
+    const { renderPushOutcome } = await import("../plugin.js");
+    const { create } = await import("@bufbuild/protobuf");
+    const { PluginSchema } = await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb");
+    const { HookFormat } = await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb");
+    const plugin = create(PluginSchema, {
+      metadata: { id: "plg_2", slug: "guard" },
+      status: {
+        hooks: {
+          format: HookFormat.CURSOR,
+          groups: [
+            { event: "preToolUse", handlers: [{ command: "a" }] },
+            { event: "beforeShellExecution", handlers: [{ command: "b" }] },
+          ],
+        },
+      },
+    });
+    const text = await human(renderPushOutcome({ plugin, members: [], archiveBytes: 10 }));
+    expect(text).toContain("Installed plugin 'guard' (nothing installed)");
+    expect(text).toContain("Cursor format: preToolUse 1, beforeShellExecution 1");
   });
 });

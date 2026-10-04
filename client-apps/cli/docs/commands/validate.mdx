@@ -8,9 +8,9 @@ It also validates a plugin directory: a folder with a `plugin.json`,
 `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
 `.codex-plugin/plugin.json` manifest, in the open Agent Plugins format or the
 Cursor, Claude Code or Codex dialect. Validation reports what an install would
-produce (skills, MCP servers, sub-agents, variables), every warning, and every
-component Stigmer does not install, or refuses the plugin with one sentence per
-problem.
+produce (skills, MCP servers, sub-agents, hooks, variables), every warning, and
+every component Stigmer does not install, or refuses the plugin with one
+sentence per problem.
 
 Use this command before `stigmer apply` to catch errors early — especially
 useful in CI pipelines.
@@ -71,6 +71,7 @@ Installs:
   Skills         none
   MCP servers    1: github (http)
   Sub-agents     none
+  Hooks          none
   Variables      1: GITHUB_PERSONAL_ACCESS_TOKEN
 
 Not installed:

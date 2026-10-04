@@ -18,7 +18,7 @@
 
 import type { CatalogueFacts, EntryFacts } from "./entries.js";
 import type { AuditVerdicts, EntryVerdict, ServerJudgement } from "./classify.js";
-import { describeReachability, isReachable } from "./classify.js";
+import { carriesHooks, describeReachability, isReachable } from "./classify.js";
 import type { ProbeResult } from "./probe.js";
 
 export interface AuditRun {
@@ -171,7 +171,7 @@ function becomes(entry: EntryFacts): string {
   if (read.subAgents.length > 0) parts.push(`${read.subAgents.length} sub-agent${read.subAgents.length === 1 ? "" : "s"}`);
   if (read.servers.length > 0) parts.push(`${read.servers.length} server${read.servers.length === 1 ? "" : "s"}`);
   if (parts.length === 0) {
-    const ignored = [...new Set(read.ignored.map((component) => component.kind))].sort();
+    const ignored = [...new Set([...read.ignored.map((component) => component.kind), ...(carriesHooks(read) ? ["hooks"] : [])])].sort();
     return ignored.length === 0 ? "nothing" : `nothing (${ignored.join(", ")})`;
   }
   return parts.join(", ");
