@@ -10,7 +10,7 @@
 // raw proto stubs and asserts the cross-edition contract.
 //
 // The caller is the organization's creator on every target — the local
-// operator, the cloud's PlatformClient-minted primary — so it holds
+// operator, the cloud's console-signed primary — so it holds
 // `owner` on every organization this file creates (the built-in role
 // lifecycle in open source, the tuple driver on cloud; both honour the
 // kind's DIRECT attribution) and with it can_grant_access. The principal of

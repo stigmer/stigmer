@@ -19,10 +19,10 @@
 //
 // What the two hide from the arms:
 //
-//   - How a person exists. Cloud: a PlatformClient-minted user token whose
-//     `sub` becomes the account id. Sibling: an issuer-minted access token
-//     for a fresh subject, then `provisionMyAccount` — the console's first
-//     sign-in, over the wire.
+//   - How a person exists. Cloud: a console token the environment's
+//     direct-login tenant mints for a fresh subject. Sibling: an
+//     issuer-minted access token for a fresh subject. Either way, then
+//     `provisionMyAccount` — the console's first sign-in, over the wire.
 //   - What a newcomer holds. Cloud: nothing. Open source: the membership
 //     rules make every later arrival a MEMBER of every
 //     organization that already exists. `provisionIdentity` therefore

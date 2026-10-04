@@ -15,12 +15,10 @@
 // ceiling (visible-full, never silent eviction), and org-scoped listing.
 //
 // The create RPC's strict first-party-human-operator gate is capability
-// split (firstPartyMemoryCapture, see targets/target.ts): local OSS runs
-// the full matrix (single-user posture, no gate); on cloud the primary
-// conformance user is a PlatformClient-minted token — the credential
-// class the first-party gate deliberately excludes — so this suite pins
-// the gate refusal itself, and the full cloud lifecycle is covered by the
-// hosted edition's own suites.
+// split (firstPartyMemoryCapture, see targets/target.ts): a target whose
+// conformance user passes the gate (every target today: local OSS in its
+// single-user posture, cloud through a console sign-in) runs the full
+// matrix; a target whose user the gate excludes pins the refusal itself.
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
@@ -91,10 +89,9 @@ async function createMemory(org: string, content?: string) {
 }
 
 describe("Memory conformance", () => {
-  // Cloud-only pin (see the suite header): the primary conformance
-  // user is a PlatformClient-minted token, and even with the org
-  // switch ON the gate refuses — client-side context never overrides
-  // the control plane's caller classification.
+  // For a target whose conformance user the gate excludes (see the suite
+  // header): even with the org switch ON the gate refuses — client-side
+  // context never overrides the control plane's caller classification.
   it.skipIf(capabilities.firstPartyMemoryCapture)("create is refused for callers outside the first-party-human gate", async () => {
 
     const org = await createOrg(true);
