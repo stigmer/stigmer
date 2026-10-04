@@ -59,6 +59,7 @@ export { hasMarketplaceFile, readMarketplace, readMarketplaceFile } from "./mark
 export { readPluginPackage } from "./read-plugin-package.js";
 export { type PluginPresentation, readPluginPresentation } from "./presentation.js";
 export type {
+  HookFormat,
   IgnoredComponent,
   IgnoredComponentKind,
   ModelAlias,
@@ -68,6 +69,9 @@ export type {
   OverlayServerDocument,
   PluginAuthor,
   PluginDialect,
+  PluginHookGroup,
+  PluginHookHandler,
+  PluginHooks,
   PluginMcpServer,
   PluginPackage,
   PluginSkill,

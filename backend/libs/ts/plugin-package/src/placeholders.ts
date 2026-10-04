@@ -49,6 +49,11 @@ export function rewriteUserConfig(value: string): string {
   return value.replace(USER_CONFIG_PATTERN, (_match, key: string) => `\${${key}}`);
 }
 
+/** The `KEY`s of every `${user_config.KEY}` in `value`, in order of appearance. */
+export function userConfigReferences(value: string): readonly string[] {
+  return [...value.matchAll(USER_CONFIG_PATTERN)].map((match) => match[1]).filter((name): name is string => name !== undefined);
+}
+
 /** The first plugin-root placeholder in `value`, or `undefined`. */
 export function findPluginRootPlaceholder(value: string): string | undefined {
   for (const placeholder of PLUGIN_ROOT_PLACEHOLDERS) {

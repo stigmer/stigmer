@@ -19,10 +19,18 @@
  * quietly stripped.
  *
  * `model` is classified into an alias, never a model id (see `ModelHint`).
- * Claude `skills:` names are matched against the plugin's own skills. Every
- * other frontmatter field (`tools`, `disallowedTools`, `effort`, `maxTurns`,
- * `readonly`, `is_background`, `memory`, `isolation`, ...) is a warning,
- * once per field per agent: they configure the IDE's loop, not the
+ * Claude `skills:` names are matched against the plugin's own skills.
+ * Claude's two tool lists, `tools` ("only these") and `disallowedTools`
+ * ("never these"), are read as written: a comma-separated string split on
+ * commas outside parentheses (so `Agent(a, b)` stays one entry), or a YAML
+ * list of strings; entries trimmed, empty ones dropped. A list of another
+ * type is refused, because dropping it would widen an agent its author
+ * narrowed. Rewriting names to Stigmer's and checking them is the
+ * installer's, which knows the plugin's materialised servers. Every other
+ * frontmatter field (`effort`, `maxTurns`, `readonly`, `is_background`,
+ * `memory`, `isolation`, and the `hooks`, `mcpServers`, `permissionMode`
+ * and `initialPrompt` Claude Code itself ignores on a plugin's agents) is a
+ * warning, once per field per agent: they configure the IDE's loop, not the
  * sub-agent's prompt.
  */
 
@@ -38,7 +46,7 @@ export const DEFAULT_AGENTS_DIR = "agents";
 /** The proto's `SubAgent.instructions` `min_len`. */
 export const SUB_AGENT_INSTRUCTIONS_MIN = 10;
 
-const READ_FIELDS: ReadonlySet<string> = new Set(["name", "description", "model", "skills"]);
+const READ_FIELDS: ReadonlySet<string> = new Set(["name", "description", "model", "skills", "tools", "disallowedTools"]);
 
 export function normaliseSubAgents(
   index: PluginFileIndex,
@@ -149,14 +157,53 @@ function readSubAgent(
     if (!READ_FIELDS.has(field)) findings.warn("sub-agent-field-ignored", { path, subject: name, detail: field });
   }
 
+  const tools = readToolList(fieldsMap, "tools");
+  const disallowedTools = readToolList(fieldsMap, "disallowedTools");
+  for (const [field, list] of [["tools", tools], ["disallowedTools", disallowedTools]] as const) {
+    if (list === null) findings.error("sub-agent-tool-list-invalid", { path, subject: name, detail: field });
+  }
+  if (tools === null || disallowedTools === null) return undefined;
+
   return {
     name,
     ...(typeof description === "string" && description !== "" && { description }),
     instructions,
     skillNames: matchedSkills,
     ...(modelHint !== undefined && { modelHint }),
+    ...(tools !== undefined && { tools }),
+    ...(disallowedTools !== undefined && { disallowedTools }),
     path,
   };
+}
+
+/** A tool list as written; `undefined` when absent (or YAML null), `null` when it is neither a string nor a list of strings. */
+function readToolList(fieldsMap: Readonly<Record<string, unknown>>, field: string): readonly string[] | undefined | null {
+  const value = fieldsMap[field];
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "string") return splitToolList(value);
+  if (Array.isArray(value) && value.every((entry) => typeof entry === "string")) {
+    return value.map((entry: string) => entry.trim()).filter((entry) => entry !== "");
+  }
+  return null;
+}
+
+/** Split on commas outside parentheses: `Read, Agent(a, b)` is two entries. */
+export function splitToolList(value: string): readonly string[] {
+  const entries: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const char of value) {
+    if (char === "(") depth++;
+    else if (char === ")" && depth > 0) depth--;
+    if (char === "," && depth === 0) {
+      entries.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  entries.push(current);
+  return entries.map((entry) => entry.trim()).filter((entry) => entry !== "");
 }
 
 /**

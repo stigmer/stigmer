@@ -30,6 +30,8 @@ const OPEN_MANIFEST_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.sch
 const OPEN_MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json";
 const HTTP = { type: "streamable-http", url: "https://mcp.example.com/mcp" } as const;
 const CURSOR_HTTP = { type: "http", url: "https://mcp.example.com/mcp" } as const;
+const COMMAND = { type: "command", command: "node check.js" } as const;
+const preToolUse = (group: Readonly<Record<string, unknown>>) => claudePlugin({ hooks: { PreToolUse: [group] } });
 
 const errors = (...kinds: PluginErrorKind[]): Kinds => ({ errors: [...kinds].sort(), warnings: [] });
 const withWarnings = (kinds: Kinds, ...warnings: PluginWarningKind[]): Kinds => ({ errors: kinds.errors, warnings: [...warnings].sort() });
@@ -273,6 +275,43 @@ const ERROR_CASES: Record<PluginErrorKind, Case> = {
     kinds: errors("sub-agent-name-duplicate"),
     message: "sub-agent name 'same' appears more than once (again in 'agents/b.md')",
   },
+  "sub-agent-tool-list-invalid": {
+    files: claudePlugin({ agents: [{ file: "a", frontmatter: { tools: 5 } }] }),
+    kinds: errors("sub-agent-tool-list-invalid"),
+    message: "sub-agent 'a' in 'agents/a.md' has a 'tools' field that is neither a comma-separated string nor a list of strings",
+  },
+
+  "hooks-unreadable": {
+    files: withFile(claudePlugin(), "hooks/hooks.json", "{ nope"),
+    kinds: errors("hooks-unreadable"),
+    message: /^hooks file 'hooks\/hooks.json' is not valid JSON: /.source,
+  },
+  "hooks-shape": {
+    files: withFile(claudePlugin(), "hooks/hooks.json", JSON.stringify({ PreToolUse: [{ hooks: [COMMAND] }] })),
+    kinds: errors("hooks-shape"),
+    message: "hooks 'hooks/hooks.json' are not in a shape Stigmer reads: a hooks file wraps its events in a top-level 'hooks' object",
+  },
+  "hook-command-missing": {
+    files: preToolUse({ hooks: [{ type: "command" }] }),
+    kinds: errors("hook-command-missing"),
+    message: "a hook in 'hooks/hooks.json' on 'PreToolUse' has no 'command'; a command hook names the command it runs",
+  },
+  "hook-matcher-invalid": {
+    files: preToolUse({ matcher: "mcp__(", hooks: [COMMAND] }),
+    kinds: errors("hook-matcher-invalid"),
+    message: "a hook in 'hooks/hooks.json' on 'PreToolUse' has a matcher 'mcp__(' that is neither '*', a list of names, nor a valid regular expression",
+  },
+  "hook-condition-invalid": {
+    files: preToolUse({ matcher: "Bash", hooks: [{ ...COMMAND, if: "git push" }] }),
+    kinds: errors("hook-condition-invalid"),
+    message: "a hook in 'hooks/hooks.json' on 'PreToolUse' has an 'if' 'git push' that is not a permission rule such as 'Bash' or 'Bash(git push *)'",
+  },
+
+  "settings-unreadable": {
+    files: withFile(claudePlugin(), "settings.json", "agent: reviewer"),
+    kinds: errors("settings-unreadable"),
+    message: /^plugin settings 'settings.json' are not valid JSON: /.source,
+  },
 
   "variable-name-invalid": {
     files: cursorPlugin({ variables: { "my-token": { type: "string" } } }),
@@ -353,7 +392,7 @@ const WARNING_CASES: Record<PluginWarningKind, Case> = {
   "variable-unreferenced": {
     files: cursorPlugin({ variables: { UNUSED: { type: "string" } } }),
     kinds: warnings("variable-unreferenced"),
-    message: "variable 'UNUSED' in '.cursor-plugin/plugin.json' is declared but no MCP server references it",
+    message: "variable 'UNUSED' in '.cursor-plugin/plugin.json' is declared but no MCP server or hook references it",
   },
   "variable-default-dropped": {
     files: claudePlugin({ userConfig: { MODE: { type: "string", default: "fast" } }, mcpServers: { s: { command: "npx", args: ["${MODE}"] } } }),
@@ -389,6 +428,47 @@ const WARNING_CASES: Record<PluginWarningKind, Case> = {
     files: cursorPlugin({ agents: [{ file: "a", frontmatter: { readonly: true } }] }),
     kinds: warnings("sub-agent-field-ignored"),
     message: "sub-agent 'a' in 'agents/a.md' has a field 'readonly' Stigmer does not read, ignored",
+  },
+  "hook-event-not-run": {
+    files: claudePlugin({ hooks: { Stop: [{ hooks: [COMMAND] }] } }),
+    kinds: warnings("hook-event-not-run"),
+    message: "hooks in 'hooks/hooks.json' on 'Stop' are not run on Stigmer, which reads hooks on tool calls only",
+  },
+  "hook-handler-not-run": {
+    files: preToolUse({ hooks: [{ type: "http", url: "https://hooks.example.com/check" }] }),
+    kinds: warnings("hook-handler-not-run"),
+    message: "a hook in 'hooks/hooks.json' on 'PreToolUse' is not run on Stigmer: its type is 'http', and Stigmer runs command hooks",
+  },
+  "hook-field-ignored": {
+    files: preToolUse({ hooks: [{ ...COMMAND, statusMessage: "Checking" }] }),
+    kinds: warnings("hook-field-ignored"),
+    message: "hooks in 'hooks/hooks.json' on 'PreToolUse' have a field 'statusMessage' Stigmer does not read, ignored",
+  },
+  "hooks-format-not-run": {
+    files: new Map([
+      ...claudePlugin({ hooks: { PreToolUse: [{ hooks: [COMMAND] }] } }),
+      ...cursorPlugin({
+        manifest: { hooks: "./hooks/cursor.json" },
+        files: { "hooks/cursor.json": JSON.stringify({ version: 1, hooks: { preToolUse: [{ command: "node check.js" }] } }) },
+      }),
+    ]),
+    kinds: warnings("hooks-format-not-run"),
+    message: "hooks in 'hooks/cursor.json' are in Cursor's format and are not run, because the plugin's Claude Code hooks are",
+  },
+  "skill-hooks-not-run": {
+    files: claudePlugin({ skills: [{ name: "s", description: "d", frontmatter: { hooks: { PreToolUse: [] } } }] }),
+    kinds: warnings("skill-hooks-not-run"),
+    message: "skill 's' in 'skills/s/SKILL.md' declares hooks in its frontmatter, which Stigmer does not run",
+  },
+  "settings-agent-unknown": {
+    files: claudePlugin({ settings: { agent: "ghost" } }),
+    kinds: warnings("settings-agent-unknown"),
+    message: "plugin settings in 'settings.json' name 'ghost' as the main agent, which is not one of the plugin's agents, ignored",
+  },
+  "settings-key-ignored": {
+    files: claudePlugin({ settings: { subagentStatusLine: { type: "command", command: "x" } } }),
+    kinds: warnings("settings-key-ignored"),
+    message: "plugin settings in 'settings.json' have a key 'subagentStatusLine' Stigmer does not apply, ignored",
   },
 };
 

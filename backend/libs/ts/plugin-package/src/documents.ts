@@ -54,7 +54,7 @@ export function readBytes(
 export function parseJsonObject(
   text: string,
   path: string,
-  kind: Extract<PluginErrorKind, "manifest-unreadable" | "mcp-config-unreadable">,
+  kind: Extract<PluginErrorKind, "manifest-unreadable" | "mcp-config-unreadable" | "hooks-unreadable" | "settings-unreadable">,
   findings: Findings,
 ): JsonObject | undefined {
   let value: unknown;

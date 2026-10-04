@@ -2,8 +2,11 @@
  * Pins the pure half of a push — what the plan says a package becomes,
  * before any write: the composed agent's instructions (the versioned
  * template, snapshot-pinned), the agent's usages naming servers by SLUG,
- * sub-agents carrying no tool lists so they inherit the agent's whole
- * toolset, `model_override` staying empty while the hint becomes a warning,
+ * sub-agents with no tool lists inheriting the agent's whole toolset, a
+ * Claude plugin's lists rewritten to Stigmer's names (its own servers and
+ * agents) with unstorable entries dropped and an emptied sub-agent left
+ * out, the settings' main agent running the main thread, the hooks riding
+ * the plan to the status, `model_override` staying empty while the hint becomes a warning,
  * a built-in name becoming a warning, an MCP-only package planning no
  * agent, the `mcpServers` key-to-slug rule, a skill archive rooted at its
  * SKILL.md with the plugin's labels on the request, a version the tag
@@ -21,7 +24,11 @@ import {
   readPluginPackage,
 } from "@stigmer/plugin-package";
 import type { PluginPackage } from "@stigmer/plugin-package";
-import { cursorPlugin, openPlugin } from "@stigmer/plugin-package/testing";
+import {
+  claudePlugin,
+  cursorPlugin,
+  openPlugin,
+} from "@stigmer/plugin-package/testing";
 import type { PluginFixture } from "@stigmer/plugin-package/testing";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -49,6 +56,7 @@ import {
 import type { PluginIdentity } from "../materialize/identity.js";
 import { McpServerOverlayError } from "../materialize/mcp-servers.js";
 import { planMaterialization } from "../materialize/plan.js";
+import { ToolListEmptiedError } from "../materialize/tool-lists.js";
 
 const IDENTITY: PluginIdentity = {
   org: "acme",
@@ -162,7 +170,7 @@ describe("planMaterialization", () => {
     ).toContain("name: thermo-review");
   });
 
-  it("names servers by slug in the agent's usages; sub-agents carry no lists and inherit them", () => {
+  it("names servers by slug in the agent's usages; sub-agents without lists carry none and inherit them", () => {
     expect(plan.mcpServers[0]).toMatchObject({
       name: "my_github",
       slug: "mygithub",
@@ -361,5 +369,265 @@ describe("planned members: the system flag", () => {
       "",
     );
     expect(plan.members.every((m) => m.system === false)).toBe(true);
+  });
+});
+
+describe("a Claude plugin's tool lists, main agent and hooks", () => {
+  const plan = (fixture: PluginFixture) =>
+    planMaterialization(
+      read(fixture),
+      inMemoryPluginFiles(fixture),
+      { workflows: [], mcpServers: [] },
+      IDENTITY,
+      "",
+    );
+  // Shaped like Anthropic's claude-security: plugin-scoped agent types and
+  // a Claude-only workflow tool, plus the plugin's own server by its Claude name.
+  const scanner = (extra: Parameters<typeof claudePlugin>[0] = {}) =>
+    claudePlugin({
+      name: "security-scanner",
+      mcpServers: {
+        db_tools: { command: "npx", args: ["-y", "@acme/db-mcp"] },
+      },
+      agents: [
+        {
+          file: "lead",
+          frontmatter: {
+            description: "Leads a scan.",
+            model: "opus",
+            tools:
+              "Read, Bash, Agent(security-scanner:explore, security-scanner:verify), Workflow(security-scanner:scan), " +
+              "mcp__plugin_security-scanner_db_tools__query, mcp__claude_ai_Slack__post, LS",
+          },
+          body: "You lead the security scan and delegate.",
+        },
+        {
+          file: "explore",
+          frontmatter: {
+            description: "Explores.",
+            tools: ["mcp__claude_ai_Slack__post"],
+          },
+        },
+        {
+          file: "verify",
+          frontmatter: {
+            description: "Verifies.",
+            disallowedTools: "mcp__plugin_security-scanner_db_tools, Write",
+          },
+        },
+      ],
+      ...extra,
+    });
+
+  it("rewrites the plugin's own server and agents to Stigmer's names and keeps Claude-only tools", () => {
+    const agent = plan(scanner()).agent!.resource.spec!;
+    const lead = agent.subAgents.find((s) => s.name === "lead")!;
+    // explore is left out (its tools list empties), so its type keeps the
+    // plugin-scoped name rather than naming a sub-agent the agent lacks.
+    expect(lead.tools).toEqual([
+      "Read",
+      "Bash",
+      "Agent(security-scanner:explore, verify)",
+      "Workflow(security-scanner:scan)",
+      "mcp__dbtools__query",
+      "LS",
+    ]);
+    const verify = agent.subAgents.find((s) => s.name === "verify")!;
+    expect([verify.tools, verify.disallowedTools]).toEqual([
+      [],
+      ["mcp__dbtools", "Write"],
+    ]);
+    expect(agent.tools).toEqual([]);
+  });
+
+  it("drops an entry the contract cannot store, and leaves out a sub-agent whose tools list empties", () => {
+    const planned = plan(scanner());
+    expect(planned.agent!.resource.spec!.subAgents.map((s) => s.name)).toEqual([
+      "lead",
+      "verify",
+    ]);
+    expect(
+      planned.warnings
+        .filter(
+          (w) =>
+            w.kind === "tool-list-entry-dropped" ||
+            w.kind === "sub-agent-not-installed",
+        )
+        .map((w) => `${w.kind}:${w.path}`),
+    ).toEqual([
+      "tool-list-entry-dropped:agents/explore.md",
+      "sub-agent-not-installed:agents/explore.md",
+      "tool-list-entry-dropped:agents/lead.md",
+    ]);
+    expect(
+      planned.warnings.find((w) => w.kind === "sub-agent-not-installed")
+        ?.message,
+    ).toBe(
+      "sub-agent 'explore' is not installed: every entry of its 'tools' list was dropped, and an empty list would give it every tool",
+    );
+    expect(
+      planned.warnings.find(
+        (w) =>
+          w.path === "agents/lead.md" && w.kind === "tool-list-entry-dropped",
+      )?.message,
+    ).toBe(
+      "agent 'lead' lists 'mcp__claude_ai_Slack__post' in 'tools', which is not a tool name Stigmer can store; the entry is dropped",
+    );
+  });
+
+  it("runs the settings' main agent as the agent: its body verbatim, its lists, not also a sub-agent", () => {
+    const planned = plan(
+      scanner({ settings: { agent: "security-scanner:lead" } }),
+    );
+    const spec = planned.agent!.resource.spec!;
+    expect(spec.instructions).toBe("You lead the security scan and delegate.");
+    expect(spec.tools).toEqual([
+      "Read",
+      "Bash",
+      "Agent(security-scanner:explore, verify)",
+      "Workflow(security-scanner:scan)",
+      "mcp__dbtools__query",
+      "LS",
+    ]);
+    expect(spec.subAgents.map((s) => s.name)).toEqual(["verify"]);
+    expect(spec.mcpServerUsages.map((u) => u.mcpServerRef?.slug)).toEqual([
+      "dbtools",
+    ]);
+    expect(planned.warnings.map((w) => `${w.kind}:${w.path}`)).toContain(
+      "model-hint-unresolved:agents/lead.md",
+    );
+    expect(
+      planned.warnings.find((w) => w.kind === "model-hint-unresolved")?.message,
+    ).toMatch(/^main agent 'lead' names model 'opus'/);
+  });
+
+  it("keeps an agent whose disallowedTools loses every entry, with its entries dropped and nothing narrowed away", () => {
+    const planned = plan(
+      claudePlugin({
+        name: "kit",
+        settings: { agent: "lead" },
+        agents: [
+          {
+            file: "lead",
+            frontmatter: {
+              description: "Leads.",
+              disallowedTools: "mcp__claude_ai_Slack__post",
+            },
+          },
+          {
+            file: "helper",
+            frontmatter: {
+              description: "Helps.",
+              disallowedTools: ["mcp__claude_ai_Slack__post"],
+            },
+          },
+        ],
+      }),
+    );
+    const spec = planned.agent!.resource.spec!;
+    expect([spec.tools, spec.disallowedTools]).toEqual([[], []]);
+    expect(spec.subAgents.map((s) => [s.name, s.disallowedTools])).toEqual([
+      ["helper", []],
+    ]);
+    expect(planned.warnings.map((w) => `${w.kind}:${w.path}`)).toEqual(
+      expect.arrayContaining([
+        "tool-list-entry-dropped:agents/lead.md",
+        "tool-list-entry-dropped:agents/helper.md",
+      ]),
+    );
+    expect(planned.warnings.map((w) => w.kind)).not.toContain(
+      "sub-agent-not-installed",
+    );
+  });
+
+  it("refuses the install when the main agent's tools list empties", () => {
+    expect(() => plan(scanner({ settings: { agent: "explore" } }))).toThrow(
+      new ToolListEmptiedError("explore", ["mcp__claude_ai_Slack__post"]),
+    );
+    expect(() => plan(scanner({ settings: { agent: "explore" } }))).toThrow(
+      "main agent 'explore' keeps none of the tools its 'tools' list names ('mcp__claude_ai_Slack__post'); an agent whose list empties would get every tool, so the plugin is not installed",
+    );
+  });
+
+  it("keeps an authored agent.yaml over the settings, with a warning", () => {
+    const fixture = scanner({
+      settings: { agent: "lead" },
+      files: { "ai.stigmer/agent.yaml": "kind: Agent\n" },
+    });
+    const authored = create(AgentSchema, {
+      spec: create(AgentSpecSchema, {
+        instructions: "Authored instructions here.",
+      }),
+    });
+    const planned = planMaterialization(
+      read(fixture),
+      inMemoryPluginFiles(fixture),
+      {
+        workflows: [],
+        mcpServers: [],
+        agent: { path: "ai.stigmer/agent.yaml", resource: authored },
+      },
+      IDENTITY,
+      "",
+    );
+    expect(planned.agent!.resource.spec?.instructions).toBe(
+      "Authored instructions here.",
+    );
+    expect(
+      planned.warnings.find((w) => w.kind === "settings-agent-not-applied"),
+    ).toMatchObject({
+      path: "ai.stigmer/agent.yaml",
+      message:
+        "the plugin's settings name 'lead' as the main agent, but 'ai.stigmer/agent.yaml' defines the agent, so the settings are not applied",
+    });
+  });
+
+  it("carries the hooks on the plan, and plans no member for a plugin that is only hooks", () => {
+    const hooks = {
+      PreToolUse: [
+        { matcher: "Bash", hooks: [{ type: "command", command: "guard" }] },
+      ],
+    };
+    const planned = plan(claudePlugin({ hooks }));
+    expect(planned.members).toEqual([]);
+    expect(planned.agent).toBeUndefined();
+    expect(planned.hooks).toEqual({
+      format: "claude-code",
+      groups: [
+        {
+          event: "PreToolUse",
+          matcher: "Bash",
+          handlers: [{ command: "guard", args: [], failClosed: false }],
+        },
+      ],
+    });
+    expect(plan(claudePlugin()).hooks).toBeUndefined();
+  });
+
+  it("says in one warning that recorded hooks are not run yet, and says nothing without them", () => {
+    const hooks = {
+      PreToolUse: [{ hooks: [{ type: "command", command: "guard" }] }],
+    };
+    const warned = plan(claudePlugin({ hooks })).warnings.filter(
+      (w) => w.kind === "hooks-not-run-yet",
+    );
+    expect(warned.map((w) => w.message)).toEqual([
+      "the plugin's tool-call hooks are recorded but not run yet: this version of Stigmer runs no plugin hook, so none of them checks a call",
+    ]);
+    const lifecycleOnly = claudePlugin({
+      hooks: { Stop: [{ hooks: [{ type: "command", command: "x" }] }] },
+    });
+    expect(plan(lifecycleOnly).warnings.map((w) => w.kind)).not.toContain(
+      "hooks-not-run-yet",
+    );
+  });
+
+  it("names hooks and settings among what Stigmer reads when it ignores a component", () => {
+    const planned = plan(cursorPlugin({ files: { "rules/a.mdc": "rule" } }));
+    expect(
+      planned.warnings.find((w) => w.kind === "component-ignored")?.message,
+    ).toBe(
+      "rules at 'rules/' is not installed; Stigmer reads skills, MCP servers, sub-agents, hooks, a Claude plugin's settings and the ai.stigmer/ overlay",
+    );
   });
 });

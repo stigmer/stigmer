@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.plugin.v1;
 
+import "ai/stigmer/agentic/plugin/v1/hooks.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 
@@ -49,6 +50,17 @@ message PluginStatus {
   // Warnings the last push recorded: components Stigmer does not carry,
   // model hints it did not apply, names that shadow built-ins.
   repeated PluginWarning warnings = 6;
+
+  // The plugin's tool-call hooks, as recorded at install; unset when the
+  // plugin carries none.
+  //
+  // @internal
+  // Derived at push from the archive, beside materialized and warnings, so
+  // it is versioned with the archive like the rest of this status. The hooks
+  // the plugin carries but Stigmer does not read are named in warnings. No
+  // engine runs these yet; the "hooks-not-run-yet" warning says so on every
+  // install that records any.
+  HookConfig hooks = 7;
 }
 
 // PluginState is the lifecycle state of a plugin install.
@@ -88,8 +100,10 @@ message PluginMaterialization {
 
 // PluginWarning is one thing a push noticed but did not refuse.
 message PluginWarning {
-  // Stable warning kind, e.g. "component-ignored", "member-adopted",
-  // "model-hint-unresolved", "sub-agent-name-builtin", "version-not-taggable".
+  // Stable warning kind, e.g. "component-ignored", "hooks-not-run-yet",
+  // "member-adopted", "model-hint-unresolved", "settings-agent-not-applied",
+  // "sub-agent-name-builtin", "sub-agent-not-installed",
+  // "tool-list-entry-dropped", "version-not-taggable".
   //
   // @internal
   // The library's PluginWarningKind values plus the server's own; a string

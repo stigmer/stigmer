@@ -139,6 +139,11 @@ export interface AuditVerdicts {
   readonly preRegisteredVendors: readonly PreRegisteredVendor[];
 }
 
+/** True when the entry's hooks files carry anything, run or not. */
+export function carriesHooks(read: Extract<EntryFacts["read"], { ok: true }>): boolean {
+  return read.hookEvents.length > 0 || read.warnings.some((finding) => finding.kind === "hook-event-not-run" || finding.kind === "hook-handler-not-run");
+}
+
 /** Judge every entry of every catalogue against the rubric, given the probes by URL. */
 export function classifyCatalogues(catalogues: readonly CatalogueFacts[], probes: ReadonlyMap<string, ProbeResult>): AuditVerdicts {
   const entries = catalogues.flatMap((catalogue) => catalogue.entries.map((entry) => judgeEntry(entry, probes)));
@@ -166,9 +171,13 @@ export function judgeEntry(entry: EntryFacts, probes: ReadonlyMap<string, ProbeR
     failures.push({ rule: "2-becomes-something", detail });
   } else if (read.skills.length === 0 && read.subAgents.length === 0 && read.servers.length === 0) {
     const ignored = [...new Set(read.ignored.map((component) => component.kind))].sort();
+    const carried = [
+      ...(read.hookEvents.length > 0 ? ["hooks"] : carriesHooks(read) ? ["hooks Stigmer does not run"] : []),
+      ...(ignored.length > 0 ? [`${ignored.join(", ")}, which Stigmer does not install`] : []),
+    ];
     failures.push({
       rule: "2-becomes-something",
-      detail: ignored.length === 0 ? "it carries no skill, sub-agent or MCP server" : `it carries only ${ignored.join(", ")}, which Stigmer does not install`,
+      detail: `it carries no skill, sub-agent or MCP server${carried.length === 0 ? "" : `, only ${carried.join("; and ")}`}`,
     });
   }
 

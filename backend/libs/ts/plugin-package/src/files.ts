@@ -49,6 +49,10 @@ export const PLUGIN_DOCUMENT_LIMITS = {
   manifest: 256 * 1024,
   /** An MCP configuration file. */
   mcpConfig: 256 * 1024,
+  /** A hooks file (`hooks/hooks.json` or a declared one): JSON, the manifest's cap. */
+  hooks: 256 * 1024,
+  /** A Claude plugin's `settings.json`: JSON, the manifest's cap. */
+  settings: 256 * 1024,
   /**
    * A `SKILL.md`. The server's skill push gate inflates a `SKILL.md` alone
    * under the same 1 MB cap, so a skill this library accepts is one the push

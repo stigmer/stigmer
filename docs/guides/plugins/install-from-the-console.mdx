@@ -74,9 +74,10 @@ keeps its manifest in one): zip the folder and upload the `.zip` instead.
 Before anything is pushed, the console reads the plugin's files and shows the
 same description `stigmer validate -f` prints: the plugin's name, version and
 format; the Skills, MCP Servers and Sub-Agents it installs; the variables its
-tools need; the reader's warnings; and what is not installed (rules, hooks and
-the other components Stigmer does not read). A plugin the reader refuses is
-shown with every problem named, the way the CLI prints it.
+tools need; the reader's warnings, which name every hook the plugin carries that
+Stigmer does not run; and what is not installed (rules, commands and the other
+components Stigmer does not read). A plugin the reader refuses is shown with
+every problem named, the way the CLI prints it.
 
 The preview also states one fact the CLI states only after the act:
 

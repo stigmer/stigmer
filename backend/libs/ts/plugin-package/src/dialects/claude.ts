@@ -8,14 +8,17 @@
  * to the default `skills/` scan and may name a directory that is itself a
  * skill; `agents` REPLACES the default `agents/` and its entries are files
  * or directories. `mcpServers` is a path, an inline object, or an array of
- * either, defaulting to `.mcp.json` at the plugin root. `userConfig`
- * declares the variables a user is prompted for. Hooks, LSP servers,
- * channels, output styles, workflows and the experimental components are
- * recorded as ignored.
+ * either, defaulting to `.mcp.json` at the plugin root. `hooks` is the same
+ * three forms, merged with `hooks/hooks.json` when that file exists.
+ * `userConfig` declares the variables a user is prompted for. `settings`
+ * is the inline form of the plugin's `settings.json` (only its `agent` key
+ * takes effect on Stigmer; `normalise/settings.ts`). LSP servers, channels,
+ * output styles, workflows and the experimental components are recorded as
+ * ignored.
  *
  * The reader is exported with its known-field set so the Codex dialect,
- * whose legacy manifest is this shape plus `apps` and `interface`, reuses it
- * rather than restating it.
+ * whose legacy manifest is this shape plus `apps` and `interface` and minus
+ * `settings`, reuses it rather than restating it.
  */
 
 import type { JsonObject } from "../documents.js";
@@ -25,6 +28,7 @@ import {
   type DialectManifest,
   ignoredFieldComponents,
   readDeclaredPaths,
+  readHookSources,
   readIdentity,
   readMcpSources,
   warnUnknownFields,
@@ -52,6 +56,7 @@ export const CLAUDE_KNOWN_FIELDS: ReadonlySet<string> = new Set([
   "channels",
   "dependencies",
   "defaultEnabled",
+  "settings",
 ]);
 
 /** The default MCP configuration file when the manifest declares none. */
@@ -80,9 +85,11 @@ export function readClaudeShapedManifest(
     identity,
     skillPaths,
     mcpConfigs: declaredMcp,
+    hookSources: readHookSources(object, path, dialect, findings),
     ignored: ignoredFieldComponents(object, path),
   };
   if (agentPaths !== undefined) manifest.agentPaths = agentPaths;
+  if (dialect === "claude" && object["settings"] !== undefined) manifest.settings = object["settings"];
   if (object["userConfig"] !== undefined) {
     manifest.variables = { dialect: "claude", value: object["userConfig"], manifest: path };
   }
