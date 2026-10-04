@@ -12,15 +12,17 @@
  *     a minute ahead counts as it is;
  *   - a session with no executions has no clock;
  *   - every session id is paged out, past one page;
- *   - the cheap read (recentActivity) answers as the full read does through
- *     creates, completions, deletions and a stamp ahead of the clock,
- *     reading only the look-back window, and by id the active runs and
- *     the run holding the latest stamp, so that run's delete, recover or
- *     rewritten completion is never missed; it lags only another recovered
- *     run and a run seen later than the look-back, never busier or later
- *     than the full read, and one full read heals it; a run stamped inside the look-back before one already seen is
- *     caught, and an ended run is decoded once; an entry untouched for ten
- *     minutes is dropped.
+ *   - the cheap read (recentActivity) answers as the full read does
+ *     through creates, completions, deletions and a stamp ahead of the
+ *     clock, reading only the look-back window, and by id the active
+ *     runs and the run holding the latest stamp, so that run's delete,
+ *     recover or rewritten completion is never missed; it lags only
+ *     another recovered run and a run seen later than the look-back,
+ *     never busier or later than the full read, and one full read heals
+ *     it; a run stamped inside the look-back before one already seen is
+ *     caught, and an ended run is decoded once, until a by-id read
+ *     finds it active again; a held run that cannot be read sends it to
+ *     the full read; an entry untouched for ten minutes is dropped.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -519,6 +521,55 @@ describe("recentActivity(sessionId)", () => {
           : PASS_MS,
       );
       if (step.startsWith("the clock reaches")) r.advance(60_000);
+    }
+  });
+
+  it("re-reads a folded run that a by-id read found active again, until it ends", async () => {
+    const r = rig();
+    await save(
+      // Its end stamped by a runner a little more than the allowance
+      // ahead, so the stamp is held back and its run re-read once reached.
+      execution(
+        "aex_x",
+        "ses_a",
+        ExecutionPhase.EXECUTION_FAILED,
+        at(-10_000),
+        at(61_500),
+      ),
+      execution(
+        "aex_y",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        at(-5_000),
+        at(0),
+      ),
+    );
+    await r.reader.recentActivity("ses_a");
+    // Recovered: the held-back stamp is reached on the next read, which
+    // re-reads the run by id and finds it active.
+    await save(
+      execution(
+        "aex_x",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        at(-10_000),
+      ),
+    );
+    r.advance(PASS_MS);
+    expect(await r.reader.recentActivity("ses_a")).toEqual(await r.truth());
+    await save(
+      execution(
+        "aex_x",
+        "ses_a",
+        ExecutionPhase.EXECUTION_FAILED,
+        at(-10_000),
+        at(40_000),
+      ),
+    );
+    for (let pass = 2; pass <= 5; pass += 1) {
+      r.advance(PASS_MS);
+      const cheap = await r.reader.recentActivity("ses_a");
+      expect({ pass, ...cheap }).toEqual({ pass, ...(await r.truth()) });
     }
   });
 

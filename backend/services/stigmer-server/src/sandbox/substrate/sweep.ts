@@ -28,19 +28,20 @@
  * Each action is decided twice: once from the pass's reads, then again
  * inside the driver's per-actor queue right before the call, from fresh
  * reads. The pass reads only what changed in the session since its last
- * look (SessionActivityReader.recentActivity), which may lag a recovered
- * run but never makes a session look busier or later than it is; the
- * second decision reads the session's every execution, so a lag can only
- * cost an act that the second decision refuses. A pause is followed by one more busy check: every turn's
- * execution is saved before its ensure runs (the create chain persists,
- * starts the workflow, then ensures), so a turn that began while the
- * pause was in flight shows as busy here and the sweep resumes the
- * sandbox at once. That closes the race with a turn on another server
- * replica too, for pauses. For suspends it does not: a turn whose push
- * lands on another replica in the moment between this replica's last
- * check and its suspend loses its runner and times out; the user's next
- * message wakes the sandbox again. Every suspend comes from PAUSED, so
- * the window is that narrow.
+ * look (SessionActivityReader.recentActivity), which may lag a
+ * recovered run but never makes a session look busier or later than it
+ * is; the second decision reads the session's every execution, so a lag
+ * can only cost an act that the second decision refuses. A pause is
+ * followed by one more busy check: every turn's execution is saved
+ * before its ensure runs (the create chain persists, starts the
+ * workflow, then ensures), so a turn that began while the pause was in
+ * flight shows as busy here and the sweep resumes the sandbox at once.
+ * That closes the race with a turn on another server replica too, for
+ * pauses. For suspends it does not: a turn whose push lands on another
+ * replica in the moment between this replica's last check and its
+ * suspend loses its runner and times out; the user's next message wakes
+ * the sandbox again. Every suspend comes from PAUSED, so the window is
+ * that narrow.
  *
  * The pause and the suspend themselves, and every pass's upkeep (egress
  * made current, a sleeping sandbox moved to the current template, unused

@@ -24,33 +24,35 @@
  * progress never needs a clock.
  *
  * An idle sweep asks every awake session on every pass, and a session's
- * full history is the store's fattest rows (domain/agentexecution/list-index.ts),
- * so the reader keeps one entry per session it has read and offers a
- * second, cheap read beside the full one (stigmer#1803). `recentActivity`
- * reads only the session's executions created since its previous read,
- * less RECENT_LOOKBACK_MS, and re-reads by id the ones that were active
- * and the one holding the latest stamp. Every other execution had already
- * ended when it was folded, and an ended execution changes only through
- * Recover (domain/agentexecution/lifecycle.ts), a late status report that
+ * full history is the store's fattest rows
+ * (domain/agentexecution/list-index.ts), so the reader keeps one entry
+ * per session it has read and offers a second, cheap read beside the
+ * full one (stigmer#1803). `recentActivity` reads only the session's
+ * executions created since its previous read, less RECENT_LOOKBACK_MS,
+ * and re-reads by id the ones that were active and the one holding the
+ * latest stamp. Every other execution had already ended when it was
+ * folded, and an ended execution changes only through Recover
+ * (domain/agentexecution/lifecycle.ts), a late status report that
  * rewrites its completion (update-status.ts), or a delete. Any of those
  * can only lower the full read's latest stamp when it befalls the
- * execution holding it, which is why that one is re-read: when its stamp
- * has gone or moved earlier, the cheap read falls back to the full one.
- * It does the same when an execution it holds anything of cannot be read
- * (a row that will not decode, a store fault): the full read skips such
- * a row as it always has, so a bad row never keeps a session busy.
- * The look-back covers a run stamped up to a minute before it became
- * visible (its create chain stamps it before the gate and the save) on a
- * replica whose clock is up to a minute behind. So the cheap read can
- * miss only a recovered run or a rewritten completion of another
- * execution, or a run that became visible later than the look-back: it
- * may report a session idle, or last active earlier, when it is not,
- * never busier or later. `activity`, the full read, rebuilds the entry,
- * so the driver's guard read before every act heals any lag. An entry no
- * read has touched for ENTRY_IDLE_EVICT_MS is dropped, so memory follows
- * the sessions that are awake. The created-since read is the list
- * index's existing bound (store/list-index.ts, `createdAtOrAfter`) and
- * the by-id read is `getResource`.
+ * execution holding it, which is why that one is re-read: when its
+ * stamp has gone or moved earlier, the cheap read falls back to the
+ * full one. It does the same when an execution it holds anything of
+ * cannot be read (a row that will not decode, a store fault): the full
+ * read skips such a row as it always has, so a bad row never keeps a
+ * session busy. The look-back covers a run stamped up to a minute
+ * before it became visible (its create chain stamps it before the gate
+ * and the save) on a replica whose clock is up to a minute behind. So
+ * the cheap read can miss only a recovered run or a rewritten
+ * completion of another execution, or a run that became visible later
+ * than the look-back: it may report a session idle, or last active
+ * earlier, when it is not, never busier or later. `activity`, the full
+ * read, rebuilds the entry, so the driver's guard read before every act
+ * heals any lag. An entry no read has touched for ENTRY_IDLE_EVICT_MS
+ * is dropped, so memory follows the sessions that are awake. The
+ * created-since read is the list index's existing bound
+ * (store/list-index.ts, `createdAtOrAfter`) and the by-id read is
+ * `getResource`.
  */
 import { fromBinary } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -398,6 +400,9 @@ function foldExecution(
   }
   if (isActiveExecutionPhase(status.phase)) {
     entry.busyIds.add(id);
+    // An active run is read on every pass, so it is never one the
+    // window may skip as already folded (a recovered run read by id).
+    entry.foldedIds.delete(id);
   } else {
     entry.busyIds.delete(id);
   }
