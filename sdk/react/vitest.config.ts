@@ -103,6 +103,15 @@ export default defineConfig({
     // the informative testing-library error (element query + DOM dump)
     // instead of tripping vitest's own 5s default first.
     testTimeout: 15000,
+    // A vmForks worker keeps a few MB of every file it runs (each file's VM
+    // context), so on the CI runner's three workers one worker reaches the
+    // ~4 GB default heap after ~180 files and dies mid-run (stigmer#1851;
+    // reproduced on a Mac with `--maxWorkers=3`, and with one worker). A
+    // worker past this threshold is replaced between files. Measured
+    // 2026-10-04 with three workers: without it 529 of 530 files, 96.7 s;
+    // with it 530 of 530 twice, 70.7 s and 69.6 s. Set here, at the root:
+    // on the `vm` project it is not honoured.
+    poolOptions: { vmForks: { memoryLimit: "1.5GB" } },
     // One suite, two pools. Each project inherits everything above; the
     // `exclude` a project adds is appended to the shared list.
     projects: [
