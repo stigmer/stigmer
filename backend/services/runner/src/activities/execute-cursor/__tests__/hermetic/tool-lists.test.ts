@@ -6,7 +6,9 @@
  *  - an allow-list reaches `Agent.create` as the SDK's `tools`, in its own
  *    names, with `read` kept (the hook confines it) and the excluded tools
  *    absent;
- *  - `Agent(type, …)` registers only the custom sub-agent types it allows;
+ *  - an `Agent(type, …)` type list fails the turn before any agent is created,
+ *    naming the entry: Cursor's own sub-agent types start through a `task`
+ *    call no hook sees, so the list could not bind; bare `Agent` runs;
  *  - a sub-agent carrying lists of its own fails the turn before any agent is
  *    created, naming the sub-agent: the hook cannot tell a sub-agent's call
  *    from the main agent's, so its lists could not bind;
@@ -167,14 +169,26 @@ describe("ExecuteCursor hermetic — tool lists", () => {
     expect(options).not.toHaveProperty("disallowedTools");
   });
 
-  it("registers only the sub-agent types Agent(type, …) allows", async () => {
+  it("refuses an Agent(type, …) type list, naming the entry, before any agent exists", async () => {
+    const neverUsed = new ScriptedCursorAgent({ agentId: "agent-lists-never-types", turns: [] });
+    const { scenario, phase, final } = await run(
+      { message: USER_MESSAGE, tools: ["Read", "Agent(explore)"], subAgents: [subAgent("researcher")] },
+      neverUsed,
+    );
+    expect(phase).toBe("EXECUTION_FAILED");
+    expect(final.error).toMatch(/^.+ lists Agent\(explore\), which the Cursor engine cannot enforce: it cannot limit which sub-agents an agent starts\./);
+    expect(systemRows(final)).toEqual([`Execution failed: ${final.error}`]);
+    expect(scenario.sdk.resolutions, "the SDK was never reached").toHaveLength(0);
+  });
+
+  it("runs an agent that lists bare Agent, registering its sub-agents and keeping task", async () => {
     const { scenario, phase } = await run(
-      { message: USER_MESSAGE, tools: ["Read", "Agent(researcher)"], subAgents: [subAgent("researcher"), subAgent("writer")] },
+      { message: USER_MESSAGE, tools: ["Read", "Agent"], subAgents: [subAgent("researcher"), subAgent("writer")] },
       answeringAgent("agent-lists-types", "run-lists-types", clock),
     );
     expect(phase).toBe("EXECUTION_COMPLETED");
     const options = scenario.sdk.resolutions[0].options!;
-    expect(Object.keys(options.agents ?? {})).toEqual(["researcher"]);
+    expect(Object.keys(options.agents ?? {}).sort()).toEqual(["researcher", "writer"]);
     expect(options.tools).toContain("task");
   });
 

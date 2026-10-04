@@ -102,12 +102,35 @@ describe("checkToolScope", () => {
 
   it("checks only the sub-agents Agent(type, …) admits: an excluded one's lists cannot matter", () => {
     const lists = { tools: ["Read", "Agent(sub-1)"], disallowedTools: [] };
-    // sub-0 carries lists but Agent(sub-1) excludes it: never registered, never run.
+    // sub-0 carries lists but Agent(sub-1) excludes it: its lists are not the
+    // refusal; the type list itself is.
     const excludedOnly = input(lists, [{ tools: ["Read"], disallowedTools: [] }, { tools: [], disallowedTools: [] }]);
-    expect(() => checkToolScope(excludedOnly, { agentMode: "local" })).not.toThrow();
-    // The admitted sub-1 carrying lists still refuses the turn.
+    const run = () => checkToolScope(excludedOnly, { agentMode: "local" });
+    expect(run).toThrow("lists Agent(sub-1), which the Cursor engine cannot enforce");
+    expect(run).not.toThrow("sub-0");
+    // The admitted sub-1 carrying lists refuses the turn, named, first.
     const admitted = input(lists, [{ tools: [], disallowedTools: [] }, { tools: ["Read"], disallowedTools: [] }]);
     expect(() => checkToolScope(admitted, { agentMode: "local" })).toThrow('Sub-agent "sub-1" carries its own tool lists');
+  });
+
+  describe("an Agent(type, …) type list", () => {
+    const check = (tools: string[], disallowedTools: string[] = []) => () =>
+      checkToolScope(input({ tools, disallowedTools }), { agentMode: "local" });
+
+    it("is refused on this engine, naming the entry: Cursor's own sub-agent types start unseen", () => {
+      expect(check(["Read", "Agent(explore)"])).toThrow(CursorToolListRefusal);
+      expect(check(["Read", "Agent(explore)"])).toThrow(
+        'Agent "a" lists Agent(explore), which the Cursor engine cannot enforce: it cannot limit which sub-agents an agent starts. ' +
+          "Run this agent on the native engine, or list Agent without types.",
+      );
+    });
+
+    it("is not refused when there is no type limit: bare Agent, bare Agent beside a typed one, or Agent excluded", () => {
+      expect(check(["Read", "Agent"])).not.toThrow();
+      expect(check(["Agent(explore)", "Agent"])).not.toThrow();
+      expect(check(["Read"])).not.toThrow();
+      expect(check([], ["Agent"])).not.toThrow();
+    });
   });
 
   it("refuses a tools list that names nothing the turn has with the shared resolution error", () => {

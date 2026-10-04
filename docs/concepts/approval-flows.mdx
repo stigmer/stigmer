@@ -76,10 +76,11 @@ commands, write files, or cancel an order. The lists hold on both
 the whole run. A sub-agent can narrow its parent's tools with its own lists but
 never widen them. On the Cursor harness a sub-agent cannot carry lists of its
 own: Cursor does not say which sub-agent made a call, so a turn whose sub-agent
-has lists is refused there, with the sub-agent named; run such an Agent on the
-native harness. With `Read` left out, the Agent still reads its own Skills,
-inputs and plan. The platform's channel, conversation and memory tools, and
-`think`, are outside the lists.
+has lists is refused there, with the sub-agent named, and so is a turn whose
+Agent limits `Agent` to types, since Cursor cannot hold back its own built-in
+sub-agents. Run such an Agent on the native harness. With `Read` left out, the
+Agent still reads its own Skills, inputs and plan. The platform's channel,
+conversation and memory tools, and `think`, are outside the lists.
 
 ## Approving everything
 

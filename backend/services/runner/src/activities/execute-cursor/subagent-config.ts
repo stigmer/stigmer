@@ -10,11 +10,12 @@
  * Tool lists: an `AgentDefinition` carries no tool list, and the hook cannot
  * tell which sub-agent made a call, so a sub-agent with lists of its own is
  * refused at setup (`turn-setup.ts` `checkToolScope`); every registered
- * sub-agent runs within the main agent's scope, which the hook enforces. The
- * main agent's `Agent(type, …)` is honoured twice: a custom type it does not
- * allow is never registered ({@link subAgentsInScope}), and the hook's
- * `subagentStart` arm refuses any type it does not allow, Cursor's built-in
- * ones included.
+ * sub-agent runs within the main agent's scope, which the hook enforces. A
+ * main agent's `Agent(type, …)` type list is refused at setup on this engine:
+ * Cursor's built-in sub-agent types start through a `task` call that fires no
+ * hook on the 1.0.31 local runtime (live probe, 2026-10-05), so nothing could
+ * hold them back. {@link subAgentsInScope} still keeps a custom type the list
+ * does not allow unregistered, for the turns that pass that check.
  *
  * Built-in kinds (`explore`, `shell`, `generalPurpose`) are provided by
  * Cursor's own runtime and must NOT be registered here — doing so would

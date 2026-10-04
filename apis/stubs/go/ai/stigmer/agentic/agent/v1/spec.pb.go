@@ -53,8 +53,10 @@ type AgentSpec struct {
 	// one MCP server, mcp__<server-slug>__<tool> for one tool, and mcp__* for
 	// every MCP tool. A specifier in parentheses, as in Bash(git push *), is
 	// accepted and governs the whole tool. Agent(explore, shell) also limits
-	// which sub-agents this agent may start. The lists hold on both engines,
-	// and under "approve everything" too.
+	// which sub-agents this agent may start; the Cursor engine cannot hold its
+	// built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+	// types. The lists hold on both engines, and under "approve everything"
+	// too.
 	Tools []string `protobuf:"bytes,10,rep,name=tools,proto3" json:"tools,omitempty"`
 	// Tools this agent may never use, in the same names as tools.
 	// Applied before tools, so a tool named in both is excluded.

@@ -64,8 +64,10 @@ const TOOL_APPROVAL_RULE_FILE = "stigmer-tool-approval.mdc";
  * Cursor hook events the gate registers, all pointing at the same script (which
  * branches on `hook_event_name`). `preToolUse` gates built-in tools
  * (Write/Shell/Delete); `beforeMCPExecution` is the only event Cursor enforces
- * for MCP tool calls; `subagentStart` lets the agent's `Agent(type, …)` list
- * refuse a sub-agent type, Cursor's built-in ones included.
+ * for MCP tool calls; `subagentStart` answers the agent's `Agent(type, …)` list
+ * on a runtime that fires it, a second line only: the 1.0.31 local runtime
+ * does not fire it for a `task` call (live probe, 2026-10-05), so a type list
+ * is refused at setup (`turn-setup.ts` `checkToolScope`).
  */
 const PRE_TOOL_USE_EVENT = "preToolUse";
 const BEFORE_MCP_EVENT = "beforeMCPExecution";
@@ -162,7 +164,8 @@ export async function installHitlGate(params: {
   );
   // One script, three events: preToolUse gates built-ins; beforeMCPExecution
   // is the only event Cursor enforces for MCP tools; subagentStart answers the
-  // agent's sub-agent types. The script branches internally on hook_event_name
+  // agent's sub-agent types where the runtime fires it (a second line; see
+  // SUBAGENT_START_EVENT). The script branches internally on hook_event_name
   // so MCP is gated in exactly one place.
   const hookHandle = await installWorkspaceHook(workspaceRoot, [
     { event: PRE_TOOL_USE_EVENT, scriptPath: approvalScriptPath },

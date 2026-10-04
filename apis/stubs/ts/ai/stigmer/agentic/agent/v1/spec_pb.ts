@@ -86,8 +86,10 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * one MCP server, mcp__<server-slug>__<tool> for one tool, and mcp__* for
    * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start. The lists hold on both engines,
-   * and under "approve everything" too.
+   * which sub-agents this agent may start; the Cursor engine cannot hold its
+   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+   * types. The lists hold on both engines, and under "approve everything"
+   * too.
    *
    * @generated from field: repeated string tools = 10;
    */

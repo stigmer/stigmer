@@ -11,8 +11,14 @@
  *                            (`mcp_server_name`). MCP is therefore gated in
  *                            exactly ONE place, so a denial is never
  *                            double-recorded.
- *   - `subagentStart`      — fires before a sub-agent starts, with its
- *                            `subagent_type`; only the scope arm answers it.
+ *   - `subagentStart`      — documented to fire before a sub-agent starts,
+ *                            with its `subagent_type`; only the scope arm
+ *                            answers it. The 1.0.31 local runtime does not
+ *                            fire it for a `task` call (live probe,
+ *                            2026-10-05), so it is a second line for a
+ *                            runtime that does, never the guard: an
+ *                            `Agent(type, …)` type list is refused at setup
+ *                            (`turn-setup.ts` `checkToolScope`).
  * The script branches on the payload's `hook_event_name`.
  *
  * The hook script:
@@ -260,8 +266,10 @@ function buildContentDigestScript(): string {
  * platform link), the path resolved against the payload's `cwd`, else the
  * baked workspace root (`process.argv[2]`); a missing file is refused. A
  * `Task` call naming its `subagent_type` is held to `Agent(type, …)` here as
- * well as at `subagentStart`, refused under the same discriminator, so the
- * type list binds Cursor's built-in sub-agent types at the call itself. A
+ * well as at `subagentStart`, refused under the same discriminator. Both are a
+ * second line for a runtime that fires them, never the guard: the 1.0.31
+ * local runtime fires neither for a `task` call (live probe, 2026-10-05), so
+ * an `Agent(type, …)` type list is refused at setup (`turn-setup.ts`). A
  * sub-agent type is normalized by the source of `normalizeSubAgentType`
  * itself, embedded, so the hook and the resolver share one rule. Expects `t`, `name`, `a`, `s`, `b`, `ev`
  * and `srv` in scope.

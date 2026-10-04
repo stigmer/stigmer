@@ -287,8 +287,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
    * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start. The lists hold on both engines,
-   * and under "approve everything" too.
+   * which sub-agents this agent may start; the Cursor engine cannot hold its
+   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+   * types. The lists hold on both engines, and under "approve everything"
+   * too.
    * </pre>
    *
    * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
@@ -305,8 +307,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
    * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start. The lists hold on both engines,
-   * and under "approve everything" too.
+   * which sub-agents this agent may start; the Cursor engine cannot hold its
+   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+   * types. The lists hold on both engines, and under "approve everything"
+   * too.
    * </pre>
    *
    * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
@@ -322,8 +326,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
    * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start. The lists hold on both engines,
-   * and under "approve everything" too.
+   * which sub-agents this agent may start; the Cursor engine cannot hold its
+   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+   * types. The lists hold on both engines, and under "approve everything"
+   * too.
    * </pre>
    *
    * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>
@@ -340,8 +346,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * one MCP server, mcp__&lt;server-slug&gt;__&lt;tool&gt; for one tool, and mcp__* for
    * every MCP tool. A specifier in parentheses, as in Bash(git push *), is
    * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start. The lists hold on both engines,
-   * and under "approve everything" too.
+   * which sub-agents this agent may start; the Cursor engine cannot hold its
+   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
+   * types. The lists hold on both engines, and under "approve everything"
+   * too.
    * </pre>
    *
    * <code>repeated string tools = 10 [json_name = "tools", (.buf.validate.field) = { ... }</code>

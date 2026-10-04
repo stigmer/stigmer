@@ -190,6 +190,13 @@ export class CursorToolListRefusal extends Error {
  *    this one;
  *  - the agent has lists and the session runs a cloud agent, which takes
  *    neither the SDK's `tools` options nor the workspace hook;
+ *  - the main agent admits `Agent` but limits it to a type list
+ *    (`Agent(type, …)`): Cursor's built-in sub-agent types start through a
+ *    `task` call that fires neither `preToolUse` nor `subagentStart` on the
+ *    1.0.31 local runtime (live probe, 2026-10-05,
+ *    `cursor-hook-protocol.live.test.ts`), so nothing could hold one back.
+ *    The native engine enforces the list; bare `Agent` and an excluded
+ *    `Agent` need no type check and pass;
  *  - a non-empty `tools` names nothing this turn has (`checkToolListResolution`),
  *    as Claude refuses to launch such an agent.
  */
@@ -211,6 +218,17 @@ export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentM
   if (mode.agentMode === "cloud") {
     throw new CursorToolListRefusal(
       `${scope.owner} has tool lists, which a cloud Cursor agent cannot enforce. Run the session locally or on the native engine.`,
+    );
+  }
+  // Limited to a type list: Agent admitted, yet a type no entry names is not
+  // (a bare `Agent` beside a typed one lifts the limit, as in Claude).
+  if (scope.allowsClaudeTool("Agent") && !scope.subAgentTypeTable([]).otherTypes) {
+    const typeLists = scope.ownEntries.tools.filter(
+      (e) => e.kind === "builtin" && e.tool === "Agent" && e.agentTypes !== null,
+    );
+    throw new CursorToolListRefusal(
+      `${scope.owner} lists ${typeLists.map((e) => e.raw).join(", ")}, which the Cursor engine cannot enforce: ` +
+        "it cannot limit which sub-agents an agent starts. Run this agent on the native engine, or list Agent without types.",
     );
   }
   checkToolListResolution(scope, cursorToolInventory(input.mcp.servers, input.mcp.platformServerSlugs), (line) =>

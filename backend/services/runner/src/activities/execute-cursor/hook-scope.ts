@@ -24,9 +24,13 @@
  *    discovered and every one an entry names, plus one shared answer for the
  *    rest of a server and one for any other server. The platform's own
  *    attachment servers are always in scope.
- *  - Sub-agent types for `subagentStart` (`ToolScope.subAgentTypeTable`):
- *    `Agent(type, …)` limits which sub-agents the main agent may start, Cursor's
- *    built-in types included.
+ *  - Sub-agent types for `subagentStart` and a `Task` call's `subagent_type`
+ *    (`ToolScope.subAgentTypeTable`). A second line only, never the guard:
+ *    the `@cursor/sdk` 1.0.31 local runtime fires neither hook for a `task`
+ *    call (live probe, 2026-10-05, `cursor-hook-protocol.live.test.ts`), so an
+ *    `Agent(type, …)` type list is refused at setup on this engine
+ *    (`turn-setup.ts` `checkToolScope`) and these lookups bind only on a
+ *    runtime that does fire them.
  *
  * What it cannot answer, by construction: which sub-agent made a call. The
  * `preToolUse` payload carries no sub-agent id, so a sub-agent with lists of
