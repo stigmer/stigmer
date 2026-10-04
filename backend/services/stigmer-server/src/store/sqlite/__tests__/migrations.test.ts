@@ -16,13 +16,15 @@
  * unretired, every organization a surviving scoped row names with none live
  * retired, across keyset pages; a scoped row it cannot decode fails the
  * step and leaves the database at v11 with no ledger.
+ * A schema written by a newer release is refused before any migration or
+ * list-index reconciliation, with the failed store's connection closed.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -70,6 +72,98 @@ function tableNames(db: DatabaseSync): string[] {
     .all() as Array<{ name: string }>;
   return rows.map((row) => row.name);
 }
+
+describe("newer database schema", () => {
+  it.each([CURRENT_SCHEMA_VERSION, CURRENT_SCHEMA_VERSION + 1])(
+    "rejects a newer schema without changing schema or data, even with target %i",
+    (targetVersion) => {
+      const db = new DatabaseSync(tempDbPath());
+      cleanups.push(() => db.close());
+      runMigrations(db);
+      const newerVersion = CURRENT_SCHEMA_VERSION + 1;
+      db.prepare(`INSERT INTO schema_version (version) VALUES (?)`).run(
+        newerVersion,
+      );
+      db.prepare(`INSERT INTO bootstrap_state (key, value) VALUES (?, ?)`).run(
+        "preserved",
+        "before-reopen",
+      );
+      const schema = db
+        .prepare(`SELECT * FROM sqlite_master ORDER BY name`)
+        .all();
+      const versions = db
+        .prepare(`SELECT * FROM schema_version ORDER BY version`)
+        .all();
+      const state = db.prepare(`SELECT * FROM bootstrap_state`).all();
+
+      expect(() => runMigrations(db, targetVersion)).toThrow(
+        `Database schema version ${newerVersion} is newer than this server supports (maximum ${CURRENT_SCHEMA_VERSION}). Run a newer Stigmer release that supports this schema, or restore a backup from before the database upgrade.`,
+      );
+
+      expect(
+        db.prepare(`SELECT * FROM sqlite_master ORDER BY name`).all(),
+      ).toEqual(schema);
+      expect(
+        db.prepare(`SELECT * FROM schema_version ORDER BY version`).all(),
+      ).toEqual(versions);
+      expect(db.prepare(`SELECT * FROM bootstrap_state`).all()).toEqual(state);
+      expect(db.isTransaction).toBe(false);
+    },
+  );
+
+  it("rejects a newer schema before reconciliation and closes the failed store", async () => {
+    const dbPath = tempDbPath();
+    const db = new DatabaseSync(dbPath);
+    runMigrations(db);
+    const newerVersion = CURRENT_SCHEMA_VERSION + 1;
+    db.prepare(`INSERT INTO schema_version (version) VALUES (?)`).run(
+      newerVersion,
+    );
+    const session = create(SessionSchema, {
+      metadata: { id: "ses_preserved", org: "acme" },
+      spec: { agentInstanceId: "ain_preserved" },
+    });
+    db.prepare(
+      `INSERT INTO resources (kind, id, data) VALUES ('session', 'ses_preserved', ?)`,
+    ).run(toBinary(SessionSchema, session));
+    const row = db
+      .prepare(`SELECT * FROM resources WHERE id = 'ses_preserved'`)
+      .get();
+    db.close();
+
+    const close = vi.spyOn(DatabaseSync.prototype, "close");
+    let opened: SqliteStore | undefined;
+    try {
+      expect(() => {
+        opened = SqliteStore.open(dbPath, undefined, CONTRACT_STORE_OPTIONS);
+      }).toThrow(
+        `Database schema version ${newerVersion} is newer than this server supports (maximum ${CURRENT_SCHEMA_VERSION})`,
+      );
+      expect(close).toHaveBeenCalledTimes(1);
+    } finally {
+      close.mockRestore();
+      await opened?.close();
+    }
+
+    const reopened = new DatabaseSync(dbPath);
+    cleanups.push(() => reopened.close());
+    expect(
+      reopened
+        .prepare(`SELECT * FROM resources WHERE id = 'ses_preserved'`)
+        .get(),
+    ).toEqual(row);
+    expect(getSchemaVersion(reopened)).toBe(newerVersion);
+  });
+
+  it("keeps a supported schema newer than a fixture target unchanged", () => {
+    const db = new DatabaseSync(tempDbPath());
+    cleanups.push(() => db.close());
+    runMigrations(db);
+
+    expect(() => runMigrations(db, 1)).not.toThrow();
+    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
+  });
+});
 
 describe("fresh database", () => {
   it("replays the full chain to the current version with every table present", async () => {

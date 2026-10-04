@@ -6,6 +6,8 @@
  * predates this driver). Same runner discipline as sqlite/migrations.ts —
  * deliberate, versioned, each step in its own transaction, `schema_version`
  * = MAX(version).
+ * A schema newer than this server supports is refused before migrations:
+ * an older release must not serve a database it does not understand.
  *
  * Physical-layout choices and their rationale:
  *
@@ -94,6 +96,11 @@ export async function runMigrations(
     `);
 
     const currentVersion = await getSchemaVersion(client);
+    if (currentVersion > CURRENT_SCHEMA_VERSION) {
+      throw new Error(
+        `Database schema version ${currentVersion} is newer than this server supports (maximum ${CURRENT_SCHEMA_VERSION}). Run a newer Stigmer release that supports this schema, or restore a backup from before the database upgrade.`,
+      );
+    }
 
     const chain: ReadonlyArray<
       readonly [number, (client: PoolClient) => Promise<void>]
