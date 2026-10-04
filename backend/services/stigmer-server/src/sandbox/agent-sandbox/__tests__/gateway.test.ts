@@ -10,7 +10,7 @@
  *   - a 404 read is "absent", a 409 create is "exists", a 404 create names
  *     the agent-sandbox install (quoting the API server's message or its
  *     plain text), a 404 delete is success, a delete propagates in the
- *     background, and any other refusal is passed on;
+ *     foreground, and any other refusal is passed on;
  *   - a Secret that exists is replaced whole;
  *   - the view reads a Sandbox's uid, mode (unset is Running) and deletion.
  */
@@ -191,7 +191,7 @@ describe("the Sandbox calls", () => {
     ]);
   });
 
-  it("deletes in the background, and a missing Sandbox is success", async () => {
+  it("deletes in the foreground, and a missing Sandbox is success", async () => {
     const replies: Reply[] = [
       { status: 200, body: {} },
       status(404, "not found"),
@@ -204,7 +204,7 @@ describe("the Sandbox calls", () => {
     await gateway.deleteSandbox("sbx-ses-1");
     expect(seen[0]?.method).toBe("DELETE");
     expect(seen[0]?.url).toBe(
-      `${SANDBOXES}/sbx-ses-1?propagationPolicy=Background`,
+      `${SANDBOXES}/sbx-ses-1?propagationPolicy=Foreground`,
     );
   });
 

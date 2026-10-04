@@ -263,7 +263,7 @@ describe("the ensure", () => {
     }
   });
 
-  it("a failed ensure leaves the sandbox's queue usable and empty", async () => {
+  it("a failed ensure leaves the sandbox's queue usable", async () => {
     const cluster = new FakeAgentSandboxCluster();
     const driver = driverOver(cluster);
     const applySecret = cluster.applySecret.bind(cluster);

@@ -19,8 +19,15 @@
  * otherwise: 404 is "absent" on a read and success on a delete; 409 on a
  * create is "already exists"; a 404 on a create means the namespace or
  * the resource type is missing, which becomes AgentSandboxNotInstalledError
- * naming what to install. A Sandbox is deleted in the background: its pod,
- * claim and Secret go with it through their owner references.
+ * naming what to install.
+ *
+ * A Sandbox is deleted in the foreground: it stays, marked as being
+ * deleted, until the pod and the claim it controls are gone, and its
+ * Secret goes with it too. The pod and the claim carry the Sandbox's name,
+ * and the controller will not build a new Sandbox's pod or claim over
+ * objects an old one still controls, so an ensure that finds a Sandbox
+ * being deleted waits for it (driver.ts) and is then free to create.
+ * agent-sandbox's controller does nothing to a Sandbox being deleted.
  */
 import {
   ApiException,
@@ -194,7 +201,7 @@ export function newAgentSandboxClientGateway(
         await custom.deleteNamespacedCustomObject({
           ...resource,
           name,
-          propagationPolicy: "Background",
+          propagationPolicy: "Foreground",
         });
       } catch (error) {
         if (!isStatus(error, 404)) throw error;

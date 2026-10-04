@@ -24,7 +24,8 @@
  *     restarts, so a turn in flight is never disturbed, and a runner the
  *     kubelet restarts later boots with a token that is still valid (a
  *     sandbox token lives for hours, lane.ts, and a pod can outlive it).
- *   - being deleted: wait, bounded, until it is gone, then create it.
+ *   - being deleted: wait, bounded, until it is gone (with its pod and
+ *     claim: gateway.ts deletes in the foreground), then create it.
  *
  * No readiness wait after any arm: a sandbox that never polls its queue
  * surfaces as the activity's ScheduleToStartTimeout, and the ensure step's
