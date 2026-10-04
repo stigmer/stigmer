@@ -2,7 +2,9 @@
  * Pins the shared template and its keeper (template.ts):
  *
  *   - the template runs the attach waiter behind its /readyz probe, holds
- *     only plain per-target settings (no runner secret, no token), mounts
+ *     only plain per-target settings (no runner secret, no token), gives the
+ *     runner root's HOME (its user is the image's, which Substrate cannot
+ *     set; the start script refuses one that is not root), mounts
  *     the workspace and the actor's own name, and
  *     snapshots FULL on pause, DATA on commit, golden on resume;
  *   - HTTPS egress adds the gateway's trust bundle and points every tool's
@@ -19,7 +21,7 @@ import { describe, expect, it } from "vitest";
 
 import { createLogger } from "../../../boot/logger.js";
 import type { SandboxDriverConfig } from "../../provisioner.js";
-import { waiterCommand } from "../../runner-launch.js";
+import { RUNNER_HOME, waiterCommand } from "../../runner-launch.js";
 import { FakeSubstrate } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
 import {
@@ -95,6 +97,7 @@ describe("the template", () => {
       TEMPORAL_SERVICE_ADDRESS: "temporal.stigmer.svc:7233",
       TEMPORAL_NAMESPACE: "default",
       WORKSPACE_ROOT_DIR: "/workspace",
+      HOME: RUNNER_HOME,
       STIGMER_MCP_PUBLIC_ENDPOINT: "http://stigmer-mcp.stigmer.svc:8080",
       ANTHROPIC_BASE_URL: "http://fake-model.example:18555",
       STIGMER_SANDBOX_NAME_FILE: "/run/ate/actor-name",

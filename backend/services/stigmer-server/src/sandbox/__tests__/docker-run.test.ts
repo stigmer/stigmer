@@ -1,6 +1,7 @@
 /**
  * Pins one docker sandbox's `docker run` (docker.ts, buildDockerRun) with
- * no Docker: the label and env contract in argv, the operator's plain
+ * no Docker: the label and env contract in argv, the runner as root with
+ * root's HOME in /workspace (runner-launch.ts), the operator's plain
  * runner settings by value, and every credential (the token, the Temporal
  * connection settings, the operator's runner secrets) as a value-less
  * `--env NAME` whose value only the CLI's environment holds.
@@ -10,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { buildDockerRun } from "../docker.js";
 import { sandboxBaseName } from "../naming.js";
 import type { SandboxDriverConfig } from "../provisioner.js";
-import { runnerCommand } from "../runner-launch.js";
+import { RUNNER_HOME, RUNNER_UID, runnerCommand } from "../runner-launch.js";
 
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://host.docker.internal:7234",
@@ -42,10 +43,22 @@ describe("buildDockerRun", () => {
     expect(args).toContain("STIGMER_TASK_QUEUE=session:ses_1");
     expect(args).toContain("ANTHROPIC_BASE_URL=http://gateway.example:8080");
     expect(args).not.toContain("STIGMER_MCP_PUBLIC_ENDPOINT=");
-    expect(args.slice(-3)).toEqual([
+    // The start script as the entrypoint, so a base image's own ENTRYPOINT
+    // never wraps it; the entry as the image's arguments.
+    expect(args.slice(-4)).toEqual([
+      "--entrypoint",
+      runnerCommand()[0],
       "ghcr.io/stigmer/runner:latest",
-      ...runnerCommand(),
+      ...runnerCommand().slice(1),
     ]);
+  });
+
+  it("runs the runner as root with root's HOME, in /workspace", () => {
+    const { args } = buildDockerRun("session", "ses_1", env, config);
+    expect(args[args.indexOf("--user") + 1]).toBe(`${RUNNER_UID}:${RUNNER_UID}`);
+    expect(args[args.indexOf("--workdir") + 1]).toBe("/workspace");
+    expect(args).toContain(`HOME=${RUNNER_HOME}`);
+    expect(args.indexOf("--user")).toBeLessThan(args.indexOf(config.runnerImage));
   });
 
   it("passes every credential by name only, its value through the CLI's environment", () => {

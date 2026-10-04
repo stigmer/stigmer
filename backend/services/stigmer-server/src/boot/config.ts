@@ -29,7 +29,12 @@ import {
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 
 import { SERVER_VERSION } from "../domain/platform/version.js";
-import { SANDBOX_DRIVER_OWNED_RUNNER_ENV } from "../sandbox/provisioner.js";
+import {
+  SANDBOX_CLEARED_RUNNER_ENV,
+  SANDBOX_DRIVER_OWNED_RUNNER_ENV,
+  SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE,
+  SANDBOX_IMAGE_DRIVER_OWNED_RUNNER_ENV,
+} from "../sandbox/provisioner.js";
 import { RUNNER_SECRET_NAMES } from "../sandbox/runner-secret-names.js";
 
 export interface ServerConfig {
@@ -576,6 +581,11 @@ function defaultArtifactPath(): string {
  * environment variable names, and never one a driver sets itself
  * (SANDBOX_DRIVER_OWNED_RUNNER_ENV and the Temporal connection names): a
  * list must not be able to replace a sandbox's queue, token or endpoints.
+ * Under a driver that starts a runner image (every driver but
+ * SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE), nor HOME, which that driver sets
+ * (SANDBOX_IMAGE_DRIVER_OWNED_RUNNER_ENV), nor a Node setting the runner
+ * layer clears at start (SANDBOX_CLEARED_RUNNER_ENV), which would never
+ * reach the runner; `local-process` passes all three through.
  */
 function loadSandboxRunnerEnv(env: NodeJS.ProcessEnv): {
   sandboxRunnerEnv: Readonly<Record<string, string>>;
@@ -583,6 +593,26 @@ function loadSandboxRunnerEnv(env: NodeJS.ProcessEnv): {
 } {
   const plain = sandboxRunnerList(env, "STIGMER_SANDBOX_RUNNER_ENV");
   const secret = sandboxRunnerList(env, "STIGMER_SANDBOX_RUNNER_SECRETS");
+  const driver = envString(env, "SANDBOX_PROVISIONER_TYPE", "");
+  if (!SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE.includes(driver)) {
+    for (const [key, list] of [
+      ["STIGMER_SANDBOX_RUNNER_ENV", plain],
+      ["STIGMER_SANDBOX_RUNNER_SECRETS", secret],
+    ] as const) {
+      for (const name of Object.keys(list)) {
+        if (SANDBOX_IMAGE_DRIVER_OWNED_RUNNER_ENV.includes(name)) {
+          throw new Error(
+            `${key} lists ${name}, which the ${driver} sandbox driver sets itself — remove it from the list`,
+          );
+        }
+        if (SANDBOX_CLEARED_RUNNER_ENV.includes(name)) {
+          throw new Error(
+            `${key} lists ${name}, which the runner layer clears when the runner starts, so the runner's Node and the commands its agents run never see it — remove it from the list`,
+          );
+        }
+      }
+    }
+  }
   for (const name of Object.keys(plain)) {
     if (RUNNER_SECRET_NAMES.includes(name)) {
       throw new Error(

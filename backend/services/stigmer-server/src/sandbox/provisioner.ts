@@ -247,6 +247,39 @@ export const SANDBOX_DRIVER_OWNED_RUNNER_ENV: readonly string[] = [
   "STIGMER_SANDBOX_NAME_FILE",
 ];
 
+/**
+ * The drivers that start no runner image: `local-process` runs the runner
+ * as a child of the server, on its own Node and the server's environment,
+ * and "" constructs no provisioner. Every other driver, a composition's
+ * included, starts the image through the runner layer's start script.
+ */
+export const SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE: readonly string[] = [
+  "",
+  "local-process",
+];
+
+/**
+ * The runner variables a driver that starts a runner image sets itself
+ * (runner-launch.ts: RUNNER_HOME), whatever the image's own ENV says, beside
+ * SANDBOX_DRIVER_OWNED_RUNNER_ENV.
+ */
+export const SANDBOX_IMAGE_DRIVER_OWNED_RUNNER_ENV: readonly string[] = [
+  "HOME",
+];
+
+/**
+ * The runner variables the runner layer's start script unsets before it
+ * starts the runner's Node (backend/services/runner/layer/start.sh), so
+ * neither the runner nor the commands its agents run inherit a base
+ * image's Node settings. A value listed for one would never arrive under a
+ * driver that starts a runner image, so the operator's runner lists refuse
+ * them at boot there rather than drop them in silence.
+ */
+export const SANDBOX_CLEARED_RUNNER_ENV: readonly string[] = [
+  "NODE_OPTIONS",
+  "NODE_PATH",
+];
+
 /** Constructs a driver. Factories, not instances — an unselected driver constructs nothing. */
 export type SandboxProvisionerFactory = (options: {
   readonly config: SandboxDriverConfig;

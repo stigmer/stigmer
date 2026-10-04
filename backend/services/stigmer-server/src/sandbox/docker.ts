@@ -25,6 +25,11 @@
  *     `docker inspect`, the same trust boundary as the cloud's
  *     per-sandbox Secret (cluster admins can read those too).
  *
+ * The runner runs as root with root's HOME, in /workspace (which
+ * `--workdir` also creates on a base image that has none), set here rather
+ * than inherited, because the image may be a base Stigmer did not build,
+ * with its own USER and ENV (runner-launch.ts).
+ *
  * Both endpoints are construct-time REQUIRED: a container cannot reach
  * the server or Temporal on this process's localhost, and a driver that
  * launched sandboxes pointing nowhere would fail as activity timeouts
@@ -48,7 +53,7 @@ import {
   SANDBOX_SCOPE_LABEL,
   sandboxBaseName,
 } from "./naming.js";
-import { runnerCommand } from "./runner-launch.js";
+import { RUNNER_HOME, RUNNER_UID, runnerCommand } from "./runner-launch.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -81,6 +86,10 @@ export function buildDockerRun(
     `${SANDBOX_SCOPE_LABEL}=${scope}`,
     "--label",
     `${SANDBOX_ID_LABEL}=${id}`,
+    "--user",
+    `${RUNNER_UID}:${RUNNER_UID}`,
+    "--workdir",
+    CONTAINER_WORKSPACE_DIR,
     "--env",
     "MODE=local",
     "--env",
@@ -93,6 +102,8 @@ export function buildDockerRun(
     `TEMPORAL_NAMESPACE=${config.temporalNamespace}`,
     "--env",
     `WORKSPACE_ROOT_DIR=${CONTAINER_WORKSPACE_DIR}`,
+    "--env",
+    `HOME=${RUNNER_HOME}`,
     ...(config.mcpPublicEndpoint !== ""
       ? ["--env", `STIGMER_MCP_PUBLIC_ENDPOINT=${config.mcpPublicEndpoint}`]
       : []),
@@ -107,9 +118,11 @@ export function buildDockerRun(
   };
   if (env.stigmerToken !== "") secretEnv["STIGMER_TOKEN"] = env.stigmerToken;
   for (const name of Object.keys(secretEnv)) args.push("--env", name);
-  // The image's CMD is /bin/bash by design; the driver sets the command,
-  // exactly as the Kubernetes pod spec does.
-  args.push(config.runnerImage, ...runnerCommand());
+  // The driver sets the command, exactly as the Kubernetes pod spec's
+  // `command` does: the start script replaces the image's ENTRYPOINT (a base
+  // Stigmer did not build may carry one), and the entry replaces its CMD.
+  const [entrypoint, ...entryArgs] = runnerCommand();
+  args.push("--entrypoint", entrypoint!, config.runnerImage, ...entryArgs);
   return { args, secretEnv };
 }
 

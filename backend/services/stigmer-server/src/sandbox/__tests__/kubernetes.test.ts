@@ -11,6 +11,9 @@
  *   - the manifests carry the Java shapes: Recreate, the runner command,
  *     MODE=local, the secretKeyRef token env only when a token exists,
  *     the empty Secret for token-less sandboxes;
+ *   - the runner runs as root with root's HOME in /workspace, whatever the
+ *     image's own USER and ENV, and a start-script refusal reaches the
+ *     pod's last-state message (runner-launch.ts);
  *   - the server's public address rides as STIGMER_MCP_PUBLIC_ENDPOINT
  *     only when configured (stigmer/stigmer#1447);
  *   - the operator's runner settings ride as values and its runner secrets
@@ -25,7 +28,7 @@ import type {
 } from "@kubernetes/client-node";
 
 import { sandboxBaseName } from "../naming.js";
-import { runnerCommand } from "../runner-launch.js";
+import { RUNNER_HOME, RUNNER_UID, runnerCommand } from "../runner-launch.js";
 import type { SandboxDriverConfig } from "../provisioner.js";
 import type { KubernetesSandboxGateway } from "../kubernetes.js";
 import {
@@ -226,6 +229,20 @@ describe("the manifest shapes (the Java SandboxManifestFactory pins)", () => {
     expect(deployment.spec?.template.spec?.automountServiceAccountToken).toBe(
       false,
     );
+  });
+
+  it("runs the runner as root with root's HOME in /workspace, and keeps a refusal's line", () => {
+    const deployment = buildSandboxDeployment("session", "ses_1", env, config);
+    const container = deployment.spec?.template.spec?.containers[0];
+    expect(container?.securityContext).toEqual({
+      runAsUser: RUNNER_UID,
+      runAsGroup: RUNNER_UID,
+      allowPrivilegeEscalation: false,
+      capabilities: { drop: ["ALL"] },
+    });
+    expect(container?.env).toContainEqual({ name: "HOME", value: RUNNER_HOME });
+    expect(container?.workingDir).toBe("/workspace");
+    expect(container?.terminationMessagePolicy).toBe("FallbackToLogsOnError");
   });
 
   it("a server with no public address hands the runner none", () => {

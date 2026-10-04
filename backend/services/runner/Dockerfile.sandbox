@@ -17,7 +17,10 @@
 #                      for agents. The `base` stage is Stigmer's default; it
 #                      holds nothing of the runner.
 #   the runner layer — Stigmer's runner and the Node that runs it, all under
-#                      /runner, nothing anywhere else: /runner/bin/node, and
+#                      /runner, nothing anywhere else: /runner/bin/node,
+#                      /runner/bin/start (the launch command: it refuses a
+#                      base the runner cannot run on, naming what is
+#                      missing, then execs that Node), and
 #                      /runner/dist, the slim runner artifact
 #                      (scripts/bundle-slim.mjs) as its self-contained
 #                      directory, node_modules inside it. The entries keep
@@ -27,7 +30,7 @@
 #                      server's src/sandbox/runner-launch.ts.
 #
 # The runner's Node is never on the agent's PATH: the drivers start it by
-# absolute path, and the agent's `node` is the base's own, so a runner Node
+# absolute path, through /runner/bin/start, and the agent's `node` is the base's own, so a runner Node
 # upgrade is never a change an agent's commands can see. Both are the
 # repository's .nvmrc version (scripts/dockerfile-node-pin.test.mjs).
 #
@@ -40,8 +43,10 @@
 #                    this build's platform (its @cursor/sdk platform package
 #                    is the one npm installed here, so each arch's leg
 #                    builds its own)
-#   runner-layer   — FROM scratch, /runner only
-#   sandbox        — base plus the runner layer's three layers. The
+#   runner-layer   — FROM scratch, /runner only. Published as
+#                    ghcr.io/stigmer/runner-layer, and `base` as
+#                    ghcr.io/stigmer/runner-base (release.sandbox-cloud)
+#   sandbox        — base plus the runner layer's four layers. The
 #                    CLOUD sandbox image (release.sandbox-cloud builds
 #                    `--target sandbox`). The runner process is started by
 #                    the control plane (the drivers set the command), so CMD
@@ -69,8 +74,11 @@
 # 372 of 400 MB new bytes): the base's layers change only when its tools do,
 # and a runner-only release changes the one runner layer.
 #
-# Platforms: linux/amd64 + linux/arm64. The slim artifact is glibc-only
-# (bundle-slim.mjs's native triples), so a base must be glibc too. The only
+# Platforms: linux/amd64 + linux/arm64. The runner's Node and the slim
+# artifact's native modules are glibc-only (bundle-slim.mjs's native
+# triples; the Node needs glibc 2.28 with libstdc++ and libgcc_s), so a base
+# must be glibc too, and /runner/bin/start refuses one that is not. The base
+# image contract is in docs/guides/self-hosting/runners.mdx. The only
 # arch-named asset in `base` is the yq download, parameterized below.
 
 # The official Node image at the .nvmrc version, by its multi-arch index
@@ -176,7 +184,10 @@ RUN cd backend/libs/ts/outbound && npm run build
 # bundles, which change with the runner). Every file's time is set to npm's
 # fixed tarball date, so an unchanged dependency tree is the same layer
 # bytes build after build and a node holding it pulls only the bundles
-# (stigmer/stigmer#1244). Its bundler imports the repository's one rule for
+# (stigmer/stigmer#1244). The layer's start script (layer/start.sh) leaves
+# through here too rather than by a COPY from the build context, which would
+# keep the checkout's file time and so be a new layer on every build. Its
+# bundler imports the repository's one rule for
 # source-map pragmas, so that file is copied to the path it imports from.
 # meta.json is esbuild's build diagnostics, which no runtime reads (the
 # desktop's staging skips it too).
@@ -193,29 +204,34 @@ RUN npm ci --legacy-peer-deps
 COPY backend/services/runner/ .
 RUN npm run build:slim && rm dist-slim/meta.json && \
     mkdir -p /build/slim && mv dist-slim/node_modules /build/slim/node_modules && \
-    mv dist-slim /build/slim/dist && \
+    mv dist-slim /build/slim/dist && cp layer/start.sh /build/slim/start && \
     find /build/slim -exec touch -h -d 1985-10-26T08:15:00Z {} +
 
 # ---------- The runner layer ----------
 # Everything Stigmer adds to a base image, under /runner and nowhere else,
-# as three layers ordered by how often they change: the Node binary alone
-# (no npm: the runner needs nothing else of it), the staged packages, the
-# bundles. Together they are the slim artifact's self-contained directory
-# at /runner/dist.
+# as four layers ordered by how often they change: the Node binary alone
+# (no npm: the runner needs nothing else of it), the start script every
+# driver launches (it checks the base, then execs that Node: layer/start.sh),
+# the staged packages, the bundles. The last two are the slim artifact's
+# self-contained directory at /runner/dist. Published per release as
+# ghcr.io/stigmer/runner-layer, which deploy/runner-layer/Dockerfile adds to
+# a base image Stigmer did not build.
 FROM scratch AS runner-layer
 
 COPY --from=node-runtime /usr/local/bin/node /runner/bin/node
+COPY --from=builder /build/slim/start /runner/bin/start
 COPY --from=builder /build/slim/node_modules/ /runner/dist/node_modules/
 COPY --from=builder /build/slim/dist/ /runner/dist/
 
 # ---------- The cloud sandbox image ----------
-# The default base plus the runner layer: the same three COPY lines as the
+# The default base plus the runner layer: the same four COPY lines as the
 # runner-layer stage (scripts/runner-launch-contract.test.mjs holds them
-# equal), so the image keeps the runner layer's three layers rather than
+# equal), so the image keeps the runner layer's four layers rather than
 # one, and a runner-only release changes only the bundles.
 FROM base AS sandbox
 
 COPY --from=node-runtime /usr/local/bin/node /runner/bin/node
+COPY --from=builder /build/slim/start /runner/bin/start
 COPY --from=builder /build/slim/node_modules/ /runner/dist/node_modules/
 COPY --from=builder /build/slim/dist/ /runner/dist/
 
@@ -281,5 +297,6 @@ ENV HOME=/data
 # Compose is this image's control plane (the sandbox header's contract),
 # so the launch command is baked here rather than repeated in every
 # compose file: the server's runner launch command (src/sandbox/runner-launch.ts,
-# whose test pins this line to it), the runner's own Node by absolute path.
-CMD ["/runner/bin/node", "/runner/dist/main.js"]
+# whose test pins this line to it): the layer's start script, which checks
+# the image and execs the runner's own Node.
+CMD ["/runner/bin/start", "/runner/dist/main.js"]

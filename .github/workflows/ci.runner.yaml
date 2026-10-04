@@ -51,6 +51,54 @@ env:
   STIGMER_TEST_GATE: "1"
 
 jobs:
+  # The runner layer's start script (backend/services/runner/layer/start.sh)
+  # passes on to the runner's Node only as root on glibc, which no step
+  # above runs as, so its success case (arguments through unchanged,
+  # NODE_OPTIONS and NODE_PATH gone, a warning per missing optional tool)
+  # runs here, in Node's Debian image at the .nvmrc version, where
+  # STIGMER_TEST_AS_ROOT=1 makes that case's skip a failure. The checkout is
+  # mounted read-only; the suite writes only to the container's temp dir.
+  # Then the script alone, on Alpine: a musl base with none of the required
+  # tools, which no Linux runner's own tree can stand in for, must be
+  # refused with exit 78 and the line that names the contract.
+  layer-start-as-root:
+    name: Runner layer start script (as root)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Run the start script's suite as root on glibc
+        run: |
+          NODE_VERSION="$(tr -d '[:space:]v' < .nvmrc)"
+          docker run --rm --volume "$PWD:/repo:ro" --workdir /repo \
+            --env STIGMER_TEST_AS_ROOT=1 \
+            "node:${NODE_VERSION}-bookworm" \
+            node --test scripts/runner-layer-start.test.mjs
+
+      - name: Refuse a musl base (alpine)
+        run: |
+          set +e
+          message="$(docker run --rm \
+            --volume "$PWD/backend/services/runner/layer/start.sh:/runner/bin/start:ro" \
+            alpine /runner/bin/start /runner/dist/main.js 2>&1)"
+          status=$?
+          set -e
+          echo "$message"
+          if [ "$status" != 78 ]; then
+            echo "expected the start script's refusal (exit 78), got exit $status" >&2
+            exit 1
+          fi
+          for expected in "no glibc dynamic loader" "musl" "missing from PATH: bash, git" "runners#bring-your-own-base-image"; do
+            if [[ "$message" != *"$expected"* ]]; then
+              echo "the refusal does not say '$expected'" >&2
+              exit 1
+            fi
+          done
+
   runner-vitest:
     name: Runner Vitest
     runs-on: ubuntu-latest

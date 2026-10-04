@@ -1,5 +1,6 @@
 /**
- * Drift-locks between a docs listing and the tour fixture that depicts it.
+ * Drift-locks between a docs listing and the tour fixture that depicts it,
+ * or the repository file it quotes.
  *
  * Some tour depictions — stills and embeds — sit directly under a docs code
  * fence with the promise "here's how this looks in the console"; the
@@ -13,6 +14,12 @@
  * fence and the fixture are the same text (skills.mdx ↔ SKILL_MD), and
  * value-by-value when structured constants are quoted inside a larger
  * listing (review-payloads.mdx ↔ article-review.ts's gate identity).
+ *
+ * A guide that prints a file for the reader to save and build quotes the
+ * file in the repository that a release lane builds, byte for byte
+ * (runners.mdx ↔ deploy/runner-layer/Dockerfile, which
+ * release.sandbox-cloud joins onto foreign bases on every change), so the
+ * command the guide prints is the one proven to work.
  *
  * Pairs are keyed on fence *content* (a marker string), never fence position,
  * so docs restructuring cannot silently re-point a lock at the wrong listing.
@@ -104,4 +111,20 @@ test("review-payloads.mdx workflow YAML matches article-review.ts's gate identit
         `this exact gate — update both sides together.`,
     );
   }
+});
+
+test("runners.mdx's runner layer Dockerfile is deploy/runner-layer/Dockerfile byte for byte", () => {
+  const listing = extractFence(
+    "docs/guides/self-hosting/runners.mdx",
+    "COPY --from=runner-layer /runner /runner",
+  );
+  const file = readFileSync(join(root, "deploy/runner-layer/Dockerfile"), "utf8");
+  assert.equal(
+    listing,
+    file.replace(/\n$/, ""),
+    "docs/guides/self-hosting/runners.mdx's runner layer Dockerfile and " +
+      "deploy/runner-layer/Dockerfile have drifted — the guide tells operators " +
+      "to build that file, and the sandbox image lane builds the repository's " +
+      "copy, so they must stay byte-identical. Update both together.",
+  );
 });

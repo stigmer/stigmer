@@ -28,6 +28,13 @@
  * triggering turn); the repair and provision arms always write the
  * freshest token.
  *
+ * The runner runs as root with root's HOME and /workspace as its working
+ * directory, set here rather than inherited, because the image may be a
+ * base Stigmer did not build, with its own USER and ENV (runner-launch.ts).
+ * A base the runner cannot run on exits through the start script's
+ * refusal, and FallbackToLogsOnError puts that line in the pod's
+ * last-state message, where `kubectl describe pod` shows it.
+ *
  * Deliberate divergence from the cloud manifest, named: MODE=local, not
  * cloud — MODE selects the runner's proxy-transport posture (cloud-only
  * lanes), not isolation. OSS sandboxes talk to the backend directly.
@@ -59,7 +66,7 @@ import {
   SANDBOX_SCOPE_LABEL,
   sandboxBaseName,
 } from "./naming.js";
-import { runnerCommand } from "./runner-launch.js";
+import { RUNNER_HOME, RUNNER_UID, runnerCommand } from "./runner-launch.js";
 
 // ---------------------------------------------------------------------------
 // Manifest constants — the Java SandboxManifestFactory values, kept
@@ -315,6 +322,7 @@ export function buildSandboxDeployment(
     { name: "TEMPORAL_SERVICE_ADDRESS", value: config.temporalAddress },
     { name: "TEMPORAL_NAMESPACE", value: config.temporalNamespace },
     { name: "WORKSPACE_ROOT_DIR", value: WORKSPACE_MOUNT_PATH },
+    { name: "HOME", value: RUNNER_HOME },
   ];
   if (config.mcpPublicEndpoint !== "") {
     containerEnv.push({ name: "STIGMER_MCP_PUBLIC_ENDPOINT", value: config.mcpPublicEndpoint });
@@ -373,12 +381,16 @@ export function buildSandboxDeployment(
               image: config.runnerImage,
               // The image CMD is /bin/bash by design; the driver sets the command.
               command: runnerCommand(),
+              workingDir: WORKSPACE_MOUNT_PATH,
               env: containerEnv,
               resources: {
                 requests: { ...RUNNER_RESOURCES.requests },
                 limits: { ...RUNNER_RESOURCES.limits },
               },
+              terminationMessagePolicy: "FallbackToLogsOnError",
               securityContext: {
+                runAsUser: RUNNER_UID,
+                runAsGroup: RUNNER_UID,
                 allowPrivilegeEscalation: false,
                 capabilities: { drop: ["ALL"] },
               },

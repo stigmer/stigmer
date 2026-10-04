@@ -71,7 +71,8 @@
  * (client-apps/desktop/scripts/verify-staged-runtime.mjs): its pinned Node
  * runtime against resources/runner, whose entry is dist/main.js. The sandbox
  * image's release smoke runs it inside the image against /runner/dist with
- * /runner/bin/node. The script imports only Node built-ins and its sibling
+ * /runner/bin/start, the layer's start script, which execs /runner/bin/node.
+ * The script imports only Node built-ins and its sibling
  * verify-attach-boot.mjs, so it runs from a mounted checkout.
  */
 

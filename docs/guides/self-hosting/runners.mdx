@@ -179,10 +179,12 @@ it knows how to launch. A development build, or a program that embeds the
 `@stigmer/server` library, defaults to `latest`; name the image there. The image
 is Stigmer's default base image (Debian with git, Node.js, Python, Go, ripgrep,
 and the other tools Agents use) with the runner layer added. Everything of the
-runner lives under `/runner`, and the drivers start it with its own Node,
-`/runner/bin/node`, so the `node` an Agent's commands run is the base image's,
-not the runner's. The image's own command is a shell; the container drivers set
-the runner's command themselves.
+runner lives under `/runner`, and the drivers start it through
+`/runner/bin/start`, which checks the image and then runs the runner on its own
+Node, `/runner/bin/node`, so the `node` an Agent's commands run is the base
+image's, not the runner's. The image's own command is a shell; the container
+drivers set the runner's command themselves. To run Agents in an image of your
+own instead, see [Bring your own base image](#bring-your-own-base-image).
 
 A runner outside Stigmer Cloud calls its model with its own key, so a sandboxed
 runner needs the keys the shared runner would have. Name them in two lists on
@@ -192,8 +194,10 @@ reads from its own process at boot: `STIGMER_SANDBOX_RUNNER_SECRETS` for secrets
 delivers the way it delivers the runner's token, and
 `STIGMER_SANDBOX_RUNNER_ENV` for plain settings (`ANTHROPIC_BASE_URL`). The
 server refuses to boot when a listed variable is unset, when one name is on both
-lists, when the plain list names one of the runner's own secrets, or when a list
-names a variable the driver sets itself, such as `STIGMER_TOKEN`.
+lists, when the plain list names one of the runner's own secrets, when a list
+names a variable the driver sets itself, such as `STIGMER_TOKEN`, or, with any
+driver but `local-process`, when it names `HOME`, which those drivers set, or
+`NODE_OPTIONS` or `NODE_PATH`, which the runner image clears at start.
 
 The runner keeps its own secrets (the model and Cursor keys, and its Temporal
 and payload-encryption keys) out of every process an Agent starts. Any other
@@ -223,6 +227,105 @@ SANDBOX_PROVISIONER_TYPE='docker' requires a per-queue routing mode — set STIG
   mechanism so the settings you meet in the server's configuration make sense;
   it isn't a procedure.
 </Callout>
+
+### Bring your own base image
+
+The runner layer is everything Stigmer adds to an image: the runner, and the
+Node it runs on, under `/runner` and nowhere else. Stigmer publishes it on its
+own as `ghcr.io/stigmer/runner-layer`, for `linux/amd64` and `linux/arm64`,
+tagged with the release it belongs to. Add it to the image your Agents should
+work in, the one your engineers already use, and name the result in
+`STIGMER_SANDBOX_RUNNER_IMAGE`. Your tools stay yours; nothing has to be copied
+out of Stigmer's own Dockerfile. The preceding warning still holds for the
+shipped stacks: this is how a driver's image is made, ready for when they can
+select one.
+
+The join is one file, `deploy/runner-layer/Dockerfile` in the Stigmer
+repository:
+
+```dockerfile
+# check=skip=InvalidDefaultArgInFrom
+# Adds the Stigmer runner layer to a base image of your own; see
+# https://stigmer.ai/docs/guides/self-hosting/runners#bring-your-own-base-image
+ARG BASE_IMAGE
+ARG STIGMER_VERSION
+FROM ghcr.io/stigmer/runner-layer:${STIGMER_VERSION} AS runner-layer
+FROM ${BASE_IMAGE}
+COPY --from=runner-layer /runner /runner
+```
+
+Build it with your base and your server's version:
+
+```bash
+docker buildx build \
+  --build-arg BASE_IMAGE=registry.example.com/platform/devbox:2026.10 \
+  --build-arg STIGMER_VERSION=v3.42.0 \
+  --file Dockerfile \
+  --tag registry.example.com/platform/devbox-stigmer:3.42.0 \
+  --push .
+```
+
+Add `--platform linux/amd64,linux/arm64` for both architectures when your base
+has both. Stigmer's release pipeline builds this same file onto Ubuntu 24.04 on
+every change, and checks that it refuses Alpine.
+
+**The layer's version is the server's.** A server starts the runner with the
+command its own release names, so the layer must come from the same release:
+re-join your image at every server upgrade. Nothing checks the pairing yet
+([stigmer#1831](https://github.com/stigmer/stigmer/issues/1831)). The layer is
+one image layer, about 78 MB compressed, so each node pulls it once per release,
+while your base's layers stay cached.
+
+**What the base image needs.** The runner refuses to start on an image that
+can't run it, and says why. The requirements:
+
+| Requirement                                                                 | Without it                                                                                                            |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| glibc 2.28 or newer, with `libstdc++` and `libgcc_s`, on `amd64` or `arm64` | the runner can't start: refused                                                                                       |
+| root (below)                                                                | refused                                                                                                               |
+| `/bin/sh`                                                                   | the runner can't start, and only the kernel's "no such file or directory" says so: the check itself is a shell script |
+| `bash`, `git`, and `/proc`                                                  | refused                                                                                                               |
+| `cat`, `sed`, `grep`, `head`, `cut`, `awk`, `tr`, `base64`, `dirname`       | refused: the Cursor harness's approval hook runs them                                                                 |
+| CA certificates for `git` and `curl`                                        | cloning a repository over HTTPS fails                                                                                 |
+| `python3`                                                                   | a warning; Workflow script tasks in Python fail                                                                       |
+| `node`                                                                      | a warning; Workflow script tasks in JavaScript fail                                                                   |
+| `rg` (ripgrep)                                                              | a warning; the native harness's grep falls back to a plain search                                                     |
+| nothing of your own at `/runner`                                            | the layer replaces it                                                                                                 |
+
+Debian 10 and newer, Ubuntu 20.04 and newer, and RHEL 8 and its rebuilds meet
+the glibc floor. Alpine and other musl images don't, and can't be made to.
+
+A refused image stops the runner at once with exit code 78, printing one line
+that lists everything missing. On Kubernetes, `kubectl describe pod` shows it as
+the container's last state:
+
+```text
+stigmer runner: this base image cannot run the runner layer: no glibc dynamic loader (/lib64/ld-linux-x86-64.so.2 or /lib/ld-linux-aarch64.so.1); it looks like a musl base such as Alpine; missing from PATH: bash, git. The base image needs glibc 2.28 or newer, root, bash, git and standard text tools: https://stigmer.ai/docs/guides/self-hosting/runners#bring-your-own-base-image
+```
+
+A glibc older than 2.28 isn't detected up front. The runner's Node refuses it
+itself, naming the version it needs:
+
+```text
+/runner/bin/node: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.28' not found (required by /runner/bin/node)
+```
+
+**Root, `HOME` and Node settings.** The runner runs as root, because Agents
+install packages at runtime. The `kubernetes` and `docker` drivers set the user
+to root, `HOME` to `/root` and the working directory to `/workspace` whatever
+your image says. Agent Substrate can't set a container's user, so on the
+`substrate` driver your image's own `USER` must be root, or the runner refuses
+to start. The runner clears `NODE_OPTIONS` and `NODE_PATH` before it starts, so
+a monitoring library your image loads through them (an APM tracer, say) never
+loads into the runner, nor into the commands Agents run. To trust an extra
+certificate authority in Node, use `NODE_EXTRA_CA_CERTS`, which is kept. The
+server refuses to boot when either cleared name is on its runner lists.
+
+**Stigmer's toolbox plus one tool.** To keep Stigmer's default tools and add
+one, start your base from `ghcr.io/stigmer/runner-base`, the default image
+without the runner, and join the layer onto it the same way. Pin the base by its
+digest, so your tool's layer stays cached across Stigmer releases and only the
+runner layer changes.
 
 ### Sessions that sleep, with the `substrate` driver
 

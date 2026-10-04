@@ -1,10 +1,17 @@
 name: release.sandbox-cloud
 
 # Builds and publishes the cloud sandbox runner image, ghcr.io/stigmer/runner,
-# the image the hosted edition launches its sandboxes from.
+# the image the hosted edition launches its sandboxes from, and the two
+# images it is made of: ghcr.io/stigmer/runner-base (the default base image,
+# the agent's tools) and ghcr.io/stigmer/runner-layer (the runner, under
+# /runner, FROM scratch), which an operator adds to a base image of their
+# own with deploy/runner-layer/Dockerfile. `runner` is amd64; the base and
+# the layer are amd64 and arm64.
 #
 # This pipeline is a pure artifact publisher: build -> push (main-<sha>) ->
-# smoke-test -> promote what passed. The tags:
+# smoke-test -> promote what passed. The base and the layer are pushed per
+# arch (main-<sha>-<arch>), proven on foreign bases, then merged into
+# main-<sha>, latest and v<X.Y.Z> (never prod). The runner tags:
 #   - main-<sha>: every build, before the smoke; the bytes the smoke tests.
 #   - latest: every build that passed the smoke (development, and an OSS
 #     server with no release of its own, follow latest).
@@ -20,7 +27,8 @@ name: release.sandbox-cloud
 # A dispatch runs the workflow of the ref it is dispatched from: from a tag
 # whose workflow predates the in-image smoke below, that workflow pushes
 # latest at build time, which would move latest back to an image without
-# /runner/bin/node, the launch path every newer server uses. Re-publish
+# /runner/bin/node (or, from a tag before the start script, without
+# /runner/bin/start), the launch path every newer server uses. Re-publish
 # such a release by its version tag only, never by dispatching its build.
 #
 # Triggers:
@@ -72,6 +80,10 @@ jobs:
               - 'backend/services/runner/package-lock.json'
               - 'backend/services/runner/tsconfig*.json'
               - 'backend/services/runner/Dockerfile.sandbox'
+              # The layer's start script, and the join the foreign-base
+              # checks build as the self-hosting guide prints it.
+              - 'backend/services/runner/layer/**'
+              - 'deploy/runner-layer/**'
               # The image's runner is the slim artifact these scripts build
               # (bundle-slim.mjs and what it imports and aliases).
               - 'backend/services/runner/scripts/**'
@@ -95,13 +107,49 @@ jobs:
         env:
           STEPS_FILTER_OUTPUTS_RUNNER: ${{ steps.filter.outputs.runner }}
 
+  # One leg per arch, each on its own native runner (the builder bundles its
+  # own arch's @cursor/sdk platform package, so QEMU would be both slow and
+  # wrong). Both legs build the whole Dockerfile once into one builder, so
+  # the base, the runner layer and (on amd64) the cloud sandbox image come
+  # from the same stages and the same cache.
+  #
+  # amd64 also builds, smokes and promotes ghcr.io/stigmer/runner, the
+  # cloud's image, first and exactly as it did before the legs existed: the
+  # cloud fleet is amd64, and its image never waits on arm64 (fail-fast is
+  # off, so an arm64 failure cancels nothing here).
+  #
+  # Every leg then pushes ghcr.io/stigmer/runner-base (the default base: the
+  # agent's tools, no runner) and ghcr.io/stigmer/runner-layer (FROM scratch,
+  # /runner only) under per-arch tags, and proves the layer on two bases
+  # Stigmer did not build, joined by deploy/runner-layer/Dockerfile, the
+  # file the self-hosting guide tells operators to build:
+  #   - ubuntu:24.04 with git: the runner's slim check boots it as the
+  #     drivers start it, through /runner/bin/start; and the start script
+  #     hands Node its arguments unchanged with a base's NODE_OPTIONS gone;
+  #   - alpine (musl): /runner/bin/start refuses it, exit 78, naming the
+  #     contract, before the runner's Node is ever run.
+  # The joins use the `docker` builder, which sees the probe base this leg
+  # just built into the local image store (the docker-container builder
+  # setup-buildx makes current would not).
   build-and-push:
     needs: detect-changes
     if: needs.detect-changes.outputs.should_build == 'true'
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
+    # The same on both legs: one commit, one ref.
+    outputs:
+      short_sha: ${{ steps.tags.outputs.short_sha }}
+      version_tag: ${{ steps.tags.outputs.version_tag }}
 
     steps:
       - name: Checkout code
@@ -140,74 +188,89 @@ jobs:
           fi
           echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
           echo "moves_prod=$MOVES_PROD" >> "$GITHUB_OUTPUT"
-          echo "Building: main-$SHORT_SHA; after the smoke: latest, version tag '${VERSION_TAG:-none}', moves prod: $MOVES_PROD"
+          echo "Building: main-$SHORT_SHA; after the checks: latest, version tag '${VERSION_TAG:-none}', moves prod: $MOVES_PROD"
 
       # --target sandbox: the Dockerfile's final stage is the self-host
       # compose runner (sandbox + stigmer CLI, published separately as
       # ghcr.io/stigmer/stigmer-runner by release.npm-libs.yaml); this lane
       # ships the CLOUD sandbox stage: the default base image plus the runner
-      # layer. amd64 stays this lane's platform — the cloud fleet is amd64;
-      # the multi-arch proof lives on the compose-runner lane.
+      # layer, amd64 only. On arm64 the same build fills the builder and the
+      # cache and outputs nothing, so the base and layer builds below are
+      # served from it on both legs.
       # The layer cache is what lets an unchanged step produce the SAME layer
       # bytes build after build, so a node holding the last image pulls only
       # what changed (stigmer/stigmer#1244; the Dockerfile cuts its layers
       # by owner: the base's change with its tools, the runner layer with
-      # each runner change). A registry cache in its own package, not
-      # type=gha, whose export has hung releases for up to an hour
-      # (release.mcp-server, v3.1.11); a failed cache export is ignored, so
-      # the cache can slow a release down but never fail one.
-      - name: Build and push sandbox image
+      # each runner change). A registry cache in its own package, one tag
+      # per arch, not type=gha, whose export has hung releases for up to an
+      # hour (release.mcp-server, v3.1.11); a failed cache export is ignored,
+      # so the cache can slow a release down but never fail one.
+      - name: Build the sandbox image (amd64 pushes it)
         env:
-          CACHE_REF: ghcr.io/${{ github.repository_owner }}/runner-buildcache:sandbox-amd64
-          STEPS_TAGS_OUTPUTS_SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+          ARCH: ${{ matrix.arch }}
+          CACHE_REF: ghcr.io/${{ github.repository_owner }}/runner-buildcache:sandbox-${{ matrix.arch }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/runner
+          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
         run: |
+          if [ "$ARCH" = "amd64" ]; then
+            OUTPUT=(--tag "$IMAGE:main-$SHORT_SHA" --push)
+          else
+            OUTPUT=(--output type=cacheonly)
+          fi
           docker buildx build \
-            --platform linux/amd64 \
+            --platform "linux/$ARCH" \
             --target sandbox \
             --cache-from "type=registry,ref=$CACHE_REF" \
             --cache-to "type=registry,ref=$CACHE_REF,mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true" \
             --file backend/services/runner/Dockerfile.sandbox \
-            --tag ghcr.io/${{ github.repository_owner }}/runner:main-"${STEPS_TAGS_OUTPUTS_SHORT_SHA}" \
-            --push \
+            "${OUTPUT[@]}" \
             .
 
       # Package visibility is an org-settings fact, not a step (GHCR has no
       # REST endpoint for it; the PUT this job carried answered 404 on
-      # every run, masked into an error annotation). `runner` is public.
+      # every run, masked into an error annotation). `runner` is public;
+      # `runner-base` and `runner-layer` are created private by their first
+      # push and made public once, by an org admin, in the package settings.
 
       - name: Set up the Temporal CLI
         uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
 
+      - name: Start a Temporal dev server
+        run: |
+          nohup temporal server start-dev --headless --log-level error >/dev/null 2>&1 &
+          for _ in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && exit 0
+            sleep 1
+          done
+          echo "the Temporal dev server did not come up" >&2
+          exit 1
+
       # Gate before promotion: the runner itself boots inside the built image,
-      # started as the drivers start it (its own /runner/bin/node, the slim
-      # artifact at /runner/dist). The runner's slim check runs from the
-      # checkout, mounted read-only (its scripts import only Node built-ins
-      # and each other), against a Temporal dev server on the host network:
-      # the cloud-mode boot to the Temporal dial, @cursor/sdk and its platform
+      # started as the drivers start it (/runner/bin/start, which checks the
+      # image and execs its own /runner/bin/node; the slim artifact at
+      # /runner/dist). The runner's slim check runs from the checkout,
+      # mounted read-only (its scripts import only Node built-ins and each
+      # other), against the Temporal dev server on the host network: the
+      # cloud-mode boot to the Temporal dial, @cursor/sdk and its platform
       # package, the attach waiter, a worker that reaches RUNNING, the
       # manager lifecycle, and a warm-pool member booted with an OTLP endpoint
       # set, as production sets one. A broken image or a runner that dies at boot (the
       # 2026-04 stale-image failure mode) fails here, and no tag but
       # main-<sha> names it.
       - name: Smoke-test the runner in the image
+        if: matrix.arch == 'amd64'
         timeout-minutes: 8
         env:
           IMAGE: ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }}
         run: |
-          temporal server start-dev --headless --log-level error &
-          TEMPORAL_PID=$!
-          trap "kill $TEMPORAL_PID" EXIT
-          for i in $(seq 1 30); do
-            temporal operator cluster health >/dev/null 2>&1 && break
-            sleep 1
-          done
           docker run --rm --network host \
             --volume "$GITHUB_WORKSPACE/backend/services/runner/scripts:/verify:ro" \
             --env TEMPORAL_SERVICE_ADDRESS=127.0.0.1:7233 \
             "$IMAGE" \
-            /runner/bin/node /verify/verify-slim-artifact.mjs --node /runner/bin/node --artifact /runner/dist
+            /runner/bin/node /verify/verify-slim-artifact.mjs --node /runner/bin/start --artifact /runner/dist
 
       - name: Promote the smoke-tested image
+        if: matrix.arch == 'amd64'
         env:
           IMAGE: ghcr.io/${{ github.repository_owner }}/runner
           SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
@@ -216,7 +279,7 @@ jobs:
       - name: Promote the tested release image
         # Only a smoke-tested build of a v* tag gets here: the version tag
         # names that release's runner, and prod moves for a release only.
-        if: steps.tags.outputs.version_tag != ''
+        if: matrix.arch == 'amd64' && steps.tags.outputs.version_tag != ''
         env:
           IMAGE: ghcr.io/${{ github.repository_owner }}/runner
           SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
@@ -229,22 +292,136 @@ jobs:
           fi
           docker buildx imagetools create "${TAGS[@]}" "$IMAGE:main-$SHORT_SHA"
 
+      - name: Push the base image and the runner layer (per-arch tags)
+        env:
+          ARCH: ${{ matrix.arch }}
+          CACHE_REF: ghcr.io/${{ github.repository_owner }}/runner-buildcache:sandbox-${{ matrix.arch }}
+          OWNER: ${{ github.repository_owner }}
+          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+        run: |
+          for target in base runner-layer; do
+            docker buildx build \
+              --platform "linux/$ARCH" \
+              --target "$target" \
+              --cache-from "type=registry,ref=$CACHE_REF" \
+              --file backend/services/runner/Dockerfile.sandbox \
+              --tag "ghcr.io/$OWNER/runner-${target#runner-}:main-$SHORT_SHA-$ARCH" \
+              --push \
+              .
+          done
+
+      # The guide's join, as the guide prints it (deploy/runner-layer/Dockerfile,
+      # held byte-identical to the guide by scripts/verify-docs-tour-parity),
+      # onto a glibc base Stigmer did not build: the runner boots there through
+      # its start script, and the start script passes Node its arguments
+      # unchanged while dropping a base's NODE_OPTIONS (one that would kill
+      # the runner at boot if it arrived).
+      - name: Prove the layer on a foreign glibc base (ubuntu:24.04)
+        timeout-minutes: 10
+        env:
+          ARCH: ${{ matrix.arch }}
+          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+        run: |
+          docker buildx build --builder default --tag probe-base/ubuntu-git - <<'EOF'
+          FROM ubuntu:24.04
+          RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+          EOF
+          docker buildx build --builder default \
+            --build-arg BASE_IMAGE=probe-base/ubuntu-git \
+            --build-arg STIGMER_VERSION="main-$SHORT_SHA-$ARCH" \
+            --file deploy/runner-layer/Dockerfile \
+            --tag probe/ubuntu-joined \
+            deploy/runner-layer
+          docker run --rm --network host \
+            --volume "$GITHUB_WORKSPACE/backend/services/runner/scripts:/verify:ro" \
+            --env TEMPORAL_SERVICE_ADDRESS=127.0.0.1:7233 \
+            probe/ubuntu-joined \
+            /runner/bin/node /verify/verify-slim-artifact.mjs --node /runner/bin/start --artifact /runner/dist
+          got="$(docker run --rm --env 'NODE_OPTIONS=--require /nonexistent.js' --env NODE_PATH=/nonexistent \
+            probe/ubuntu-joined \
+            /runner/bin/start -e 'console.log(JSON.stringify([process.argv.slice(1), process.env.NODE_OPTIONS ?? null, process.env.NODE_PATH ?? null]))' a 'b c' 2>/dev/null)"
+          want='[["a","b c"],null,null]'
+          if [ "$got" != "$want" ]; then
+            echo "the start script passed Node '$got', expected '$want'" >&2
+            exit 1
+          fi
+          echo "start script: arguments unchanged, NODE_OPTIONS and NODE_PATH cleared"
+
+      - name: Prove the layer refuses a musl base (alpine)
+        env:
+          ARCH: ${{ matrix.arch }}
+          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+        run: |
+          docker buildx build --builder default \
+            --build-arg BASE_IMAGE=alpine \
+            --build-arg STIGMER_VERSION="main-$SHORT_SHA-$ARCH" \
+            --file deploy/runner-layer/Dockerfile \
+            --tag probe/alpine-joined \
+            deploy/runner-layer
+          set +e
+          message="$(docker run --rm probe/alpine-joined /runner/bin/start /runner/dist/main.js 2>&1)"
+          status=$?
+          set -e
+          echo "$message"
+          if [ "$status" != 78 ]; then
+            echo "expected the start script's refusal (exit 78), got exit $status" >&2
+            exit 1
+          fi
+          for expected in "no glibc dynamic loader" "musl" "runners#bring-your-own-base-image"; do
+            if [[ "$message" != *"$expected"* ]]; then
+              echo "the refusal does not say '$expected'" >&2
+              exit 1
+            fi
+          done
+
+  # After both legs' checks: one multi-arch tag per image, then its moving
+  # tags. `latest` follows main like runner's; a v* tag's build also gets
+  # its version tag, which the self-hosting guide's join names (a server's
+  # release is the layer's). Never prod: that tag is the cloud's, and only
+  # runner's.
+  publish-layer-and-base:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge the per-arch tags and move latest (and the version tag)
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SHORT_SHA: ${{ needs.build-and-push.outputs.short_sha }}
+          VERSION_TAG: ${{ needs.build-and-push.outputs.version_tag }}
+        run: |
+          for image in runner-base runner-layer; do
+            ref="ghcr.io/$OWNER/$image"
+            docker buildx imagetools create --tag "$ref:main-$SHORT_SHA" \
+              "$ref:main-$SHORT_SHA-amd64" "$ref:main-$SHORT_SHA-arm64"
+            TAGS=(--tag "$ref:latest")
+            if [ -n "$VERSION_TAG" ]; then
+              TAGS+=(--tag "$ref:$VERSION_TAG")
+            fi
+            docker buildx imagetools create "${TAGS[@]}" "$ref:main-$SHORT_SHA"
+            docker buildx imagetools inspect "$ref:main-$SHORT_SHA"
+          done
+
       - name: Summary
         env:
-          IMAGE: ghcr.io/${{ github.repository_owner }}/runner
-          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
-          VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
-          MOVES_PROD: ${{ steps.tags.outputs.moves_prod }}
+          OWNER: ${{ github.repository_owner }}
+          SHORT_SHA: ${{ needs.build-and-push.outputs.short_sha }}
+          VERSION_TAG: ${{ needs.build-and-push.outputs.version_tag }}
         run: |
           {
-            echo "## Cloud Sandbox Image Published"
+            echo "## Cloud Sandbox, Runner Layer and Base Images Published"
             echo ""
-            echo "**Image:** \`$IMAGE\`"
-            echo "**Tags:** \`main-$SHORT_SHA\`; after the smoke \`latest\`${VERSION_TAG:+, \`$VERSION_TAG\`}"
-            echo "**Architecture:** linux/amd64"
-            if [ "$MOVES_PROD" = "true" ]; then
-              echo "**prod:** moved to \`$VERSION_TAG\`, the latest smoke-tested release"
-            else
-              echo "**prod:** unchanged (moves on a release tag only)"
-            fi
+            echo "**Cloud sandbox image:** \`ghcr.io/$OWNER/runner\` (linux/amd64): \`main-$SHORT_SHA\`, after the smoke \`latest\`${VERSION_TAG:+, \`$VERSION_TAG\`}; prod moves on a release tag only"
+            echo "**Runner layer:** \`ghcr.io/$OWNER/runner-layer\` (linux/amd64, linux/arm64): \`main-$SHORT_SHA\`, \`latest\`${VERSION_TAG:+, \`$VERSION_TAG\`}"
+            echo "**Default base:** \`ghcr.io/$OWNER/runner-base\` (linux/amd64, linux/arm64): \`main-$SHORT_SHA\`, \`latest\`${VERSION_TAG:+, \`$VERSION_TAG\`}"
+            echo ""
+            echo "Both legs booted the layer on ubuntu:24.04 and saw it refuse alpine."
           } >> "$GITHUB_STEP_SUMMARY"
