@@ -273,7 +273,11 @@ export const SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE: readonly string[] = [
 /**
  * The runner variables a driver that starts a runner image sets itself
  * (runner-launch.ts: RUNNER_HOME and SERVER_RELEASE_ENV), whatever the
- * image's own ENV says, beside SANDBOX_DRIVER_OWNED_RUNNER_ENV.
+ * image's own ENV says, beside SANDBOX_DRIVER_OWNED_RUNNER_ENV. The
+ * built-in drivers set both; a composition's own image driver sets the
+ * release from SandboxDriverConfig.serverRelease, and until it does its
+ * sandboxes start unchecked. The names are reserved for every image driver
+ * either way, so an operator's list can never stand in for the server.
  */
 export const SANDBOX_IMAGE_DRIVER_OWNED_RUNNER_ENV: readonly string[] = [
   "HOME",
