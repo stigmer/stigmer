@@ -4,6 +4,7 @@
 // Pins what a host relies on: the door-check verdicts map to the wire shapes
 // OAuth clients act on (refused is 401 with the challenge, unavailable and a
 // throwing check are 503, a token-less request never reaches the check), the
+// trusted-proxy mode ignores the Authorization header entirely, the
 // body cap answers 413 whether the size is declared or streamed, and no
 // failure escapes the handler's promise (a transport fault before or after its
 // headers, a failing close, a client gone mid-upload or mid-answer): a
@@ -134,6 +135,29 @@ describe("the host's door check", () => {
     );
     const res = await fetch(`${base}/`, { method: "POST", headers: headers("t"), body: TOOLS_LIST });
     expect(res.status).toBe(503);
+  });
+
+  it("ignores the Authorization header in trusted-proxy mode, so the startup key stays the credential", async () => {
+    // With auth off every tool call runs on the operator's startup key; a
+    // header a client or proxy adds must never replace it, and the check
+    // is never asked.
+    const check = vi.fn(async () => "refused" as const);
+    const base = await mount(
+      createRoutedHandler(() => echoServer(), {
+        authRequired: false,
+        oauth: { ...OAUTH, enabled: false },
+        authenticate: check,
+      }),
+    );
+    const res = await fetch(`${base}/`, {
+      method: "POST",
+      headers: headers("proxy-token"),
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "whoami", arguments: {} } }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { result: { content: Array<{ text: string }> } };
+    expect(body.result.content[0]?.text).toBe("<none>");
+    expect(check).not.toHaveBeenCalled();
   });
 
   it("challenges a token-less request without consulting the check", async () => {

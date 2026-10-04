@@ -25,6 +25,9 @@
 //   request still forwards its own bearer to stigmer-server, which
 //   authorizes every tool call. Without the hook the handler is a pure,
 //   non-validating passthrough.
+// - With auth off (trusted-proxy mode) the Authorization header is ignored:
+//   every tool call runs on the operator's startup credential, and a header
+//   a client or proxy adds can never replace it.
 // - Exported types name only Node and package types, so a host's typecheck
 //   never depends on the MCP SDK's typings.
 
@@ -61,16 +64,20 @@ export type BearerVerdict = "accepted" | "refused" | "unavailable";
 
 /** Settings shared by every handler, whatever builds its route's servers. */
 export interface McpHttpHandlerSettings {
-  /** Whether a request must carry `Authorization: Bearer <token>`. */
+  /**
+   * Whether a request must carry `Authorization: Bearer <token>`, which then
+   * becomes that request's credential. Off is the trusted-proxy mode: the
+   * header is ignored and every tool call uses the target's startup key.
+   */
   readonly authRequired: boolean;
   /** RFC 9728 discovery; when enabled, the metadata document is served and 401s carry the challenge. */
   readonly oauth: OAuthConfig;
   /** Request-body cap in bytes; {@link DEFAULT_MAX_BODY_BYTES} when unset. */
   readonly maxBodyBytes?: number;
   /**
-   * The host's door check, consulted on every request that carries a
-   * bearer. A throw reads as "unavailable": a host fault must never read as
-   * a bad credential.
+   * The host's door check, consulted on every request when auth is
+   * required. A throw reads as "unavailable": a host fault must never read
+   * as a bad credential.
    */
   readonly authenticate?: (token: string) => Promise<BearerVerdict>;
 }
@@ -133,12 +140,12 @@ async function serveRequest(
     return;
   }
 
-  const token = extractBearerToken(req);
-  if (token === "" && settings.authRequired) {
-    jsonRpcError(res, 401, -32000, "missing or malformed Authorization: Bearer header", challenge(settings.oauth));
-    return;
-  }
-  if (token !== "") {
+  if (settings.authRequired) {
+    const token = extractBearerToken(req);
+    if (token === "") {
+      jsonRpcError(res, 401, -32000, "missing or malformed Authorization: Bearer header", challenge(settings.oauth));
+      return;
+    }
     const verdict = await admit(settings, token);
     switch (verdict) {
       case "accepted":
@@ -160,18 +167,19 @@ async function serveRequest(
     req.auth = { token, clientId: "stigmer-mcp-passthrough", scopes: [] };
   }
 
+  // Stateless: no stream to open (GET) and no session to end (DELETE). The
+  // streamable-HTTP spec reads 405 on GET as "no stream offered". Answered
+  // before any roster is built.
+  if (req.method !== "POST") {
+    jsonRpcError(res, 405, -32000, "Method not allowed.", { Allow: "POST" });
+    return;
+  }
+
   // The closed route table: an unknown route is a deployment mismatch and
   // is refused, never served a default roster (see routedServerFactory).
   const server = makeServer(path);
   if (server === undefined) {
     jsonRpcError(res, 404, -32000, `unknown MCP route: ${path}`);
-    return;
-  }
-
-  // Stateless: no stream to open (GET) and no session to end (DELETE). The
-  // streamable-HTTP spec reads 405 on GET as "no stream offered".
-  if (req.method !== "POST") {
-    jsonRpcError(res, 405, -32000, "Method not allowed.", { Allow: "POST" });
     return;
   }
 
