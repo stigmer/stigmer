@@ -83,6 +83,22 @@ describe("resolveBlueprint", () => {
     expect(client.getAgent).not.toHaveBeenCalled();
   });
 
+  it("keeps a recorded-version failure that is not a status as its message, naming the version", async () => {
+    const client = mockStigmerClient({
+      getAgentVersion: vi.fn().mockRejectedValue(new Error("socket hang up")),
+    });
+    const session = create(SessionSchema, { metadata: { id: "ses_6" }, spec: { agentInstanceId: "agi_1" } });
+
+    const failure = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }).catch(
+      (e: unknown) => e,
+    );
+
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).not.toBeInstanceOf(ConnectError);
+    expect((failure as Error).message).toContain(`agent agt_1, version ${HASH}`);
+    expect((failure as Error).message).toContain("socket hang up");
+  });
+
   it("reads a recorded agent with no version as it is now, not the session's agent", async () => {
     const client = mockStigmerClient({
       getAgent: vi.fn().mockResolvedValue(

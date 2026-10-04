@@ -50,11 +50,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
-import {
-  internalError,
-  invalidArgumentError,
-  notFoundError,
-} from "../../pipeline/errors.js";
+import { internalError, notFoundError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -681,20 +677,16 @@ async function listVersions(
 
 /**
  * getVersion — one version by hash, with its full spec: what a turn
- * recorded on that version runs. The annotation's can_view on agent_id is
- * evaluated here (the lane has no pipeline).
+ * recorded on that version runs. The validation interceptor has already
+ * refused an empty agent_id and a hash that is not 64 hex characters (the
+ * input's field rules); the annotation's can_view on agent_id is evaluated
+ * here (the lane has no pipeline).
  */
 async function getVersion(
   deps: AgentControllerDeps,
   req: GetAgentVersionInput,
   identity: CallerIdentity,
 ): Promise<AgentVersionEntry> {
-  if (req.agentId === "") {
-    throw invalidArgumentError("agent_id is required");
-  }
-  if (req.versionHash === "") {
-    throw invalidArgumentError("version_hash is required");
-  }
   await authorizeDirect(
     AgentQueryController.method.getVersion,
     deps.authorizer,

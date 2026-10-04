@@ -233,6 +233,17 @@ describe("agent versions: reading them", () => {
       Code.NotFound,
       "agent version",
     );
+    // The input's field rules refuse before the handler runs.
+    await expectCode(
+      query.getVersion({ agentId: "", versionHash: "0".repeat(64) }),
+      Code.InvalidArgument,
+      "agent_id",
+    );
+    await expectCode(
+      query.getVersion({ agentId: id, versionHash: "stable" }),
+      Code.InvalidArgument,
+      "version_hash",
+    );
   });
 });
 

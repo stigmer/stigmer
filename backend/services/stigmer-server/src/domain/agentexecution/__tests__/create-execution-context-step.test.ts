@@ -999,3 +999,76 @@ it("refuses, naming the version, when the recorded version no longer resolves", 
   expect((failure as ConnectError).code).toBe(Code.NotFound);
   expect((failure as ConnectError).rawMessage).toContain(RECORDED_HASH);
 });
+
+it("keeps a recorded-version load failure that is not a status as its message, naming the version", async () => {
+  const deps = recordedAgentDeps(async () => {
+    throw new Error("socket hang up");
+  }, []);
+
+  const failure = await buildAndPersistExecutionContext(
+    deps,
+    recordedTurn("aex_recorded_fault"),
+    "",
+  ).catch((e: unknown) => e);
+
+  expect(failure).toBeInstanceOf(Error);
+  expect((failure as Error).message).toContain(RECORDED_HASH);
+  expect((failure as Error).message).toContain("socket hang up");
+});
+
+it("loads a turn that recorded its agent without a version as the agent is now, keeping a refusal's code", async () => {
+  const deps: ExecutionContextBuilderDeps = {
+    ...recordedAgentDeps(async () => {
+      throw new Error("no version is recorded on this turn");
+    }, []),
+    agentLoader: () => ({
+      get: async () => {
+        throw new ConnectError("agent not found", Code.NotFound);
+      },
+      getVersion: async () => {
+        throw new Error("no version is recorded on this turn");
+      },
+    }),
+  };
+  const turn = create(AgentExecutionSchema, {
+    metadata: { id: "aex_unversioned", org: "acme" },
+    spec: { sessionId: "ses_rec", message: "hi" },
+    status: { agentId: "agt_rec" },
+  });
+
+  const failure = await buildAndPersistExecutionContext(deps, turn, "").catch(
+    (e: unknown) => e,
+  );
+
+  expect(failure).toBeInstanceOf(ConnectError);
+  expect((failure as ConnectError).code).toBe(Code.NotFound);
+  expect((failure as ConnectError).rawMessage).toContain("load agent agt_rec");
+});
+
+it("keeps a head-load failure that is not a status as its message, for a turn that recorded no version", async () => {
+  const deps: ExecutionContextBuilderDeps = {
+    ...recordedAgentDeps(async () => {
+      throw new Error("no version is recorded on this turn");
+    }, []),
+    agentLoader: () => ({
+      get: async () => {
+        throw new Error("socket hang up");
+      },
+      getVersion: async () => {
+        throw new Error("no version is recorded on this turn");
+      },
+    }),
+  };
+  const turn = create(AgentExecutionSchema, {
+    metadata: { id: "aex_unversioned_fault", org: "acme" },
+    spec: { sessionId: "ses_rec", message: "hi" },
+  });
+
+  const failure = await buildAndPersistExecutionContext(deps, turn, "").catch(
+    (e: unknown) => e,
+  );
+
+  expect(failure).toBeInstanceOf(Error);
+  expect(failure).not.toBeInstanceOf(ConnectError);
+  expect((failure as Error).message).toBe("load agent agt_rec: socket hang up");
+});

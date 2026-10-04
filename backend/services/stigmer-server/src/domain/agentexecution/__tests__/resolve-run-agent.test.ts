@@ -7,14 +7,16 @@
  *     session's (the agent_id request shape);
  *   - an agent with no recorded version records its id alone;
  *   - the built-in assistant (a session with no instance) records nothing;
- *   - a row that cannot be found records nothing and leaves the refusal to
- *     the context build that follows.
+ *   - a row that cannot be found, or a turn with no session, records
+ *     nothing and leaves the refusal to the context build that follows;
+ *   - a failing store is Internal.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -158,9 +160,38 @@ describe("ResolveRunAgent", () => {
 
   it("records nothing when a row is missing, leaving the refusal to the context build", async () => {
     await seedSession("ses_5", "agi_missing");
+    expect((await stampFor("ses_5")).status?.agentId ?? "").toBe("");
 
-    const execution = await stampFor("ses_5");
+    await seedInstance("agi_orphan", "agt_gone");
+    await seedSession("ses_6", "agi_orphan");
+    expect((await stampFor("ses_6")).status?.agentId ?? "").toBe("");
+  });
 
-    expect(execution.status?.agentId ?? "").toBe("");
+  it("records nothing for a turn with neither a resolved instance nor a session", async () => {
+    expect((await stampFor("")).status?.agentId ?? "").toBe("");
+  });
+
+  it("is Internal when the store fails, never a turn on an unrecorded agent", async () => {
+    const failing = {
+      getResource: async () => {
+        throw new Error("store is down");
+      },
+    } as unknown as Store;
+    const ctx = new RequestContext(
+      AgentExecutionSchema,
+      create(AgentExecutionSchema, {
+        metadata: { name: "exec", org: "test-org" },
+        spec: { sessionId: "ses_any", message: "hi" },
+      }),
+      testCallerIdentity(),
+      ApiResourceKind.agent_execution,
+    );
+
+    const error = await Promise.resolve(newResolveRunAgentStep(failing, silentLogger).execute(ctx)).catch(
+      (e: unknown) => e,
+    );
+
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.Internal);
   });
 });
