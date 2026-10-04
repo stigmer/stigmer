@@ -19,6 +19,7 @@
 import { mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import * as http from "node:http";
 import * as https from "node:https";
+import * as net from "node:net";
 import type { AddressInfo, Socket } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -462,10 +463,10 @@ describe("a push that does not finish", () => {
     });
     await expect(
       fetch(`${router.url}/attach`, { signal: AbortSignal.abort() }),
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({ name: "AbortError" });
     await expect(
       fetch(`${router.url}/attach`, { signal: AbortSignal.timeout(50) }),
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({ name: "TimeoutError" });
 
     const reasonless = new AbortController();
     const pending = fetch(`${router.url}/attach`, {
@@ -486,7 +487,35 @@ describe("a push that does not finish", () => {
       routerCaFile: "",
       routerServerName: "",
     });
-    await expect(fetch(`${router.url}/attach`)).rejects.toThrow();
+    await expect(fetch(`${router.url}/attach`)).rejects.toMatchObject({
+      code: "ECONNRESET",
+    });
+  });
+
+  it("rejects a 101 reply, whose body never ends, at once instead of hanging", async () => {
+    const raw = net.createServer((socket) => {
+      // Switches and keeps the connection, as an upgrade would.
+      socket.once("data", () =>
+        socket.write("HTTP/1.1 101 Switching Protocols\r\n\r\n"),
+      );
+    });
+    await new Promise<void>((resolve) =>
+      raw.listen(0, "127.0.0.1", () => resolve()),
+    );
+    try {
+      const { port } = raw.address() as AddressInfo;
+      const routerUrl = `http://127.0.0.1:${port}`;
+      const fetch = newRouterFetch({
+        routerUrl,
+        routerCaFile: "",
+        routerServerName: "",
+      });
+      await expect(fetch(`${routerUrl}/attach`)).rejects.toThrow(
+        /the router answered status 101/,
+      );
+    } finally {
+      await new Promise<void>((resolve) => raw.close(() => resolve()));
+    }
   });
 });
 

@@ -160,15 +160,21 @@ export function newRouterFetch(
         ? { servername: settings.routerServerName }
         : {}),
     };
-    const signal = request.signal;
+    // The caller's own signal, held here: a Request's derived signal
+    // follows it only weakly, so an inline AbortSignal.timeout nothing else
+    // holds could be collected and never fire.
+    const signal = init?.signal ?? request.signal;
 
     return new Promise<Response>((resolve, reject) => {
+      // Settles the push itself, not only through the request's error:
+      // a request Node already destroyed emits nothing more.
       const onAbort = (): void => {
-        outgoing.destroy(
+        const reason =
           signal.reason instanceof Error
             ? signal.reason
-            : new Error("the push was aborted"),
-        );
+            : new Error("the push was aborted");
+        outgoing.destroy(reason);
+        fail(reason);
       };
       const fail = (error: unknown): void => {
         signal.removeEventListener("abort", onAbort);
@@ -187,22 +193,28 @@ export function newRouterFetch(
         reject(error);
       };
       const outgoing = (tls ? https : http).request(url, options, (reply) => {
+        const status = reply.statusCode ?? 502;
+        // The reply is relayed from inside a sandbox. A status no reply to a
+        // push carries (a 101, whose body never ends; one past 599) fails
+        // the push at once.
+        if (status < 200 || status > 599) {
+          reply.destroy();
+          fail(
+            new Error(
+              `the router answered status ${status}, which no reply carries`,
+            ),
+          );
+          return;
+        }
         const chunks: Buffer[] = [];
         reply.on("data", (chunk: Buffer) => chunks.push(chunk));
         reply.on("error", fail);
         reply.on("end", () => {
           signal.removeEventListener("abort", onAbort);
-          const status = reply.statusCode ?? 502;
-          // The reply is relayed from inside a sandbox, so it is built
-          // inside a catch: a status a Response cannot carry, or a header
-          // it refuses, fails this push instead of throwing out of an
-          // event listener and taking the server down.
+          // Built inside a catch: a header a Response refuses fails this
+          // push instead of throwing out of an event listener and taking
+          // the server down.
           try {
-            if (status < 200 || status > 599) {
-              throw new Error(
-                `the router answered status ${status}, which no reply carries`,
-              );
-            }
             const replyHeaders = new Headers();
             for (let i = 0; i + 1 < reply.rawHeaders.length; i += 2) {
               replyHeaders.append(
@@ -226,6 +238,15 @@ export function newRouterFetch(
         });
       });
       outgoing.on("error", fail);
+      // Every path above settles before the request closes; any that does
+      // not fails here, so a reply relayed from a sandbox can never leave a
+      // push pending. Deferred a turn, so a reply's own error (a body cut
+      // short), which Node emits after the request's close, is reported.
+      outgoing.on("close", () =>
+        setImmediate(() =>
+          fail(new Error("the router closed the connection before replying")),
+        ),
+      );
       if (signal.aborted) onAbort();
       else signal.addEventListener("abort", onAbort, { once: true });
       outgoing.end(body);
