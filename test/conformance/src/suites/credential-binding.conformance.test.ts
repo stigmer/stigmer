@@ -72,15 +72,6 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// The lane, or a visible skip naming why this target has none.
-function requireLane(ctx: { skip: (note?: string) => void }): EnforcingLane | undefined {
-  if (lane === undefined) {
-    ctx.skip(laneReason);
-    return undefined;
-  }
-  return lane;
-}
-
 async function tenancy(on: EnforcingLane): Promise<TenancyContext> {
   const context = await on.provisionTenancy();
   fixtures.defer(() => on.cleanupTenancy(context));
@@ -169,11 +160,10 @@ async function expectBoundTo(
 
 describe("credential binding — a credential that names an organization works there only", () => {
   it("[rpc:PlatformClientTokenController.mintUserToken] a PlatformClient user token works in its client's organization alone, though the user holds a role in another", async (ctx) => {
-    const on = requireLane(ctx);
-    if (on === undefined) return;
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
     if (!target.capabilities.platformClientTokens) {
-      ctx.skip("this target's enforcing lane mints no PlatformClient user tokens");
-      return;
+      return ctx.skip("this target's enforcing lane mints no PlatformClient user tokens");
     }
     const a = await tenancy(on);
     const b = await tenancy(on);
@@ -193,8 +183,8 @@ describe("credential binding — a credential that names an organization works t
   });
 
   it("[rpc:ApiKeyCommandController.create] a key limited to A is refused in B, works in A, and sees A alone", async (ctx) => {
-    const on = requireLane(ctx);
-    if (on === undefined) return;
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
     const a = await tenancy(on);
     const b = await tenancy(on);
     const person = await on.provisionMember(a);
@@ -215,11 +205,10 @@ describe("credential binding — a credential that names an organization works t
   });
 
   it("[rpc:IamPolicyQueryController.checkAuthorization] a key limited to A gets false when it asks about a resource of B", async (ctx) => {
-    const on = requireLane(ctx);
-    if (on === undefined) return;
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
     if (!target.capabilities.authorizationQueries) {
-      ctx.skip("this target composes no authorization query engine");
-      return;
+      return ctx.skip("this target composes no authorization query engine");
     }
     const a = await tenancy(on);
     const b = await tenancy(on);
@@ -242,8 +231,8 @@ describe("credential binding — a credential that names an organization works t
   });
 
   it("[rpc:OrganizationCommandController.create] a key limited to A cannot found an organization", async (ctx) => {
-    const on = requireLane(ctx);
-    if (on === undefined) return;
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
     const a = await tenancy(on);
     const person = await on.provisionMember(a);
     const key = await keyOf(on, person, a.org);
@@ -261,8 +250,8 @@ describe("credential binding — a credential that names an organization works t
   });
 
   it("[rpc:ApiKeyCommandController.create] a key limited to A mints only keys limited to A", async (ctx) => {
-    const on = requireLane(ctx);
-    if (on === undefined) return;
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
     const a = await tenancy(on);
     const b = await tenancy(on);
     const person = await on.provisionMember(a);
@@ -285,8 +274,8 @@ describe("credential binding — a credential that names an organization works t
   });
 
   it("[rpc:ApiKeyCommandController.create] a key can be limited only to an organization its owner can view", async (ctx) => {
-    const on = requireLane(ctx);
-    if (on === undefined) return;
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
     const a = await tenancy(on);
     const notMine = await tenancy(on);
     const person = await on.provisionMember(a);
