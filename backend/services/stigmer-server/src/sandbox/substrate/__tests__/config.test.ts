@@ -33,7 +33,7 @@ describe("newSubstrateSettingsFromEnv", () => {
       extraHttpEgress: [],
       pauseAfterSeconds: 300,
       suspendAfterSeconds: 330,
-      sweepIntervalSeconds: 60,
+      sweepIntervalSeconds: 30,
     });
   });
 
@@ -126,9 +126,12 @@ describe("newSubstrateSettingsFromEnv", () => {
 });
 
 describe("validateWindows", () => {
-  it("accepts the shipped windows and the proof's short ones", () => {
+  it("accepts the shipped windows, the longest pause the bound allows, and the proof's short ones", () => {
     expect(() =>
-      validateWindows({ pauseAfterSeconds: 300, suspendAfterSeconds: 1800 }),
+      validateWindows({ pauseAfterSeconds: 300, suspendAfterSeconds: 330 }),
+    ).not.toThrow();
+    expect(() =>
+      validateWindows({ pauseAfterSeconds: 300, suspendAfterSeconds: 300 + 30 * 60 }),
     ).not.toThrow();
     expect(() =>
       validateWindows({ pauseAfterSeconds: 60, suspendAfterSeconds: 180 }),

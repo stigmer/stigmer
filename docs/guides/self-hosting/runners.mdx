@@ -247,10 +247,12 @@ runner starting work on it, at the ninety-fifth percentile:
 | In storage                           | 1.7 s            |
 | New                                  | 1.8 s            |
 
-A pause of minutes wakes slower than storage, so a Session stays paused only
-briefly. Storage in a cloud bucket adds its download time to a wake from
-storage. A paused runner may sleep at most 30 minutes, so the server refuses
-windows that would keep it paused longer.
+A pause of minutes wakes slower than storage in its tail, so a Session stays
+paused only briefly: the sweep runs every
+`STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS` (30), and the suspend lands
+on the pass after the pause. Storage in a cloud bucket adds its download time to
+a wake from storage. A paused runner may sleep at most 30 minutes, so the server
+refuses windows that would keep it paused longer.
 
 A new value for one of the runner's secrets, a model key for one, takes effect
 when the server restarts with it, and reaches each sandbox at its next fresh

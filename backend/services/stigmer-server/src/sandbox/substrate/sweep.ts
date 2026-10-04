@@ -1,8 +1,9 @@
 /**
  * The open-source idle sweep for the substrate driver: it pauses a
- * session's sandbox after a few idle minutes and suspends it to storage
- * after half an hour, so an idle session holds a stored workspace instead
- * of a running machine. Open source keeps no record of its sandboxes, so
+ * session's sandbox after its pause window and suspends it to storage after
+ * its suspend window (config.ts: 300 s and 330 s by default, on a pass
+ * every 30 s), so an idle session holds a stored workspace instead of a
+ * running machine. Open source keeps no record of its sandboxes, so
  * the sweep keeps none either and reads what the server already has
  * (SessionActivityReader): a session's executions say whether it is busy
  * and when it was last active.
