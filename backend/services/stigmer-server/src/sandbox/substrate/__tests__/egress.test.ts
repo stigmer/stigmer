@@ -3,9 +3,12 @@
  *
  *   - the runner's lanes and the operator's extra destinations as cleartext
  *     rules, and the HTTPS wildcard only when HTTPS egress is on;
- *   - an https:// backend or MCP endpoint is a boot throw, whatever the
- *     HTTPS setting (Substrate's gateway can carry TLS only by intercepting
- *     it; Temporal's TLS is its connection settings, refused in driver.ts);
+ *   - an https:// backend endpoint is a boot throw, whatever the HTTPS
+ *     setting (Substrate's gateway can carry TLS only by intercepting it;
+ *     Temporal's TLS is its connection settings, refused in driver.ts);
+ *   - an https:// public MCP endpoint, a hosted server's public address,
+ *     adds no rule: the HTTPS wildcard carries it when HTTPS egress is on,
+ *     and nothing does when it is off;
  *   - no rule ever names Substrate's own services: a configured destination
  *     that is the router, the Control API, or anything under `ate-system`
  *     is a boot throw, and so is a pattern, a single-label name (resolved in
@@ -28,6 +31,7 @@ const config: SandboxDriverConfig = {
   kubernetesNamespace: "",
   runnerEnv: {},
   runnerSecretEnv: {},
+  serverRelease: "",
 };
 
 const settings: SubstrateDriverSettings = {
@@ -36,6 +40,8 @@ const settings: SubstrateDriverSettings = {
   apiCaFile: "",
   apiTokenFile: "/unused",
   routerUrl: "http://127.0.0.1:18200",
+  routerCaFile: "",
+  routerServerName: "",
   atespace: "stigmer",
   storageLocation: "gs://b/p",
   workerSelector: { workload: "stigmer" },
@@ -87,24 +93,45 @@ describe("the rules", () => {
 });
 
 describe("a runner lane over TLS", () => {
-  it("is a boot throw, whichever lane and whatever the HTTPS setting, until Substrate forwards TLS untouched", () => {
+  it("is a boot throw, whatever the HTTPS setting, until Substrate forwards TLS untouched", () => {
     for (const httpsEgress of ["all", "none"] as const) {
-      const with_ = { ...settings, httpsEgress };
       expect(() =>
         buildEgressRules(
           { ...config, backendEndpoint: "https://stigmer.example.com" },
-          with_,
+          { ...settings, httpsEgress },
         ),
       ).toThrow(
         /STIGMER_SANDBOX_BACKEND_ENDPOINT is a TLS lane \(stigmer\.example\.com:443\)/,
       );
-      expect(() =>
-        buildEgressRules(
-          { ...config, mcpPublicEndpoint: "https://stigmer.example.com" },
-          with_,
-        ),
-      ).toThrow(/STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT is a TLS lane/);
     }
+  });
+});
+
+describe("an https:// public MCP endpoint", () => {
+  it("adds no rule: the HTTPS wildcard carries it when HTTPS egress is on, and nothing when it is off", () => {
+    const hosted = { ...config, mcpPublicEndpoint: "https://api.stigmer.ai" };
+    expect(
+      shape(buildEgressRules(hosted, { ...settings, httpsEgress: "all" })),
+    ).toEqual([
+      "http host.docker.internal:7234",
+      "http host.docker.internal:7233",
+      "https *:-",
+    ]);
+    expect(
+      shape(buildEgressRules(hosted, { ...settings, httpsEgress: "none" })),
+    ).toEqual([
+      "http host.docker.internal:7234",
+      "http host.docker.internal:7233",
+    ]);
+  });
+
+  it("is still read as a URL, so a malformed one is a boot throw", () => {
+    expect(() =>
+      buildEgressRules(
+        { ...config, mcpPublicEndpoint: "https://[bad" },
+        settings,
+      ),
+    ).toThrow(/STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT is not a URL/);
   });
 });
 

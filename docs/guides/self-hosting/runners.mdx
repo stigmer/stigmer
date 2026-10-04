@@ -196,8 +196,9 @@ delivers the way it delivers the runner's token, and
 server refuses to boot when a listed variable is unset, when one name is on both
 lists, when the plain list names one of the runner's own secrets, when a list
 names a variable the driver sets itself, such as `STIGMER_TOKEN`, or, with any
-driver but `local-process`, when it names `HOME`, which those drivers set, or
-`NODE_OPTIONS` or `NODE_PATH`, which the runner image clears at start.
+driver but `local-process`, when it names `HOME` or `STIGMER_SERVER_RELEASE`,
+which those drivers set, or `NODE_OPTIONS` or `NODE_PATH`, which the runner
+image clears at start.
 
 The runner keeps its own secrets (the model and Cursor keys, and its Temporal
 and payload-encryption keys) out of every process an Agent starts. Any other
@@ -271,10 +272,17 @@ every change, and checks that it refuses Alpine.
 
 **The layer's version is the server's.** A server starts the runner with the
 command its own release names, so the layer must come from the same release:
-re-join your image at every server upgrade. Nothing checks the pairing yet
-([stigmer#1831](https://github.com/stigmer/stigmer/issues/1831)). The layer is
-one image layer, about 78 MB compressed, so each node pulls it once per release,
-while your base's layers stay cached.
+re-join your image at every server upgrade. Forget, and a new sandbox on the old
+layer exits with code 78 as it starts, printing one line that names both
+releases (below). Development builds of the server or the layer name no release
+and are never refused; a released server over a development layer starts it with
+a warning. A release's build also moves the layer's `latest` tag, which names
+that release until the next development build replaces it. The check runs from
+the first release whose layer carries it: a layer from an earlier release has no
+check of its own. It runs when a sandbox starts, so a sandbox started before the
+upgrade keeps its runner until it is replaced. The layer is one image layer,
+about 78 MB compressed, so each node pulls it once per release, while your
+base's layers stay cached.
 
 **What the base image needs.** The runner refuses to start on an image that
 can't run it, and says why. The requirements:
@@ -301,6 +309,18 @@ the container's last state:
 
 ```text
 stigmer runner: this base image cannot run the runner layer: no glibc dynamic loader (/lib64/ld-linux-x86-64.so.2 or /lib/ld-linux-aarch64.so.1); it looks like a musl base such as Alpine; missing from PATH: bash, git. The base image needs glibc 2.28 or newer, root, bash, git and standard text tools: https://stigmer.ai/docs/guides/self-hosting/runners#bring-your-own-base-image
+```
+
+A base that passes, carrying a layer from another release than the server's, is
+refused the same way: exit code 78 and one line. With the `docker` driver,
+`docker logs` on the sandbox's container shows it. With `substrate`, the shared
+template fails to prepare, and the server logs only that its golden actor
+crashed; the line itself is in the log of the Substrate worker pod that booted
+it, in an entry labelled with the template's name
+([stigmer#1848](https://github.com/stigmer/stigmer/issues/1848)):
+
+```text
+stigmer runner: this runner layer is from release 3.42.0, but the server is 3.43.0: use the runner layer of release 3.43.0 (re-join your image at every server upgrade): https://stigmer.ai/docs/guides/self-hosting/runners#bring-your-own-base-image
 ```
 
 A glibc older than 2.28 isn't detected up front. The runner's Node refuses it
@@ -381,7 +401,17 @@ What the driver needs:
   `STIGMER_SANDBOX_SUBSTRATE_API_TOKEN_FILE`, and reads the file again when it
   changes, so a projected ServiceAccount token can rotate.
 - **Its router**: `STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL`, the address the server
-  pushes each Session's queue and credentials through.
+  pushes each Session's queue and credentials through. In the cluster, use
+  `https://atenet-router.ate-system.svc` with
+  `STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE` set to the cluster's servicedns
+  trust bundle, the same CA the Control API's certificate chains to. The server
+  reads that file again when it changes, so the CA can rotate under it. The
+  router's certificate names only `atenet-router.ate-system.svc`, so when you
+  reach the router another way, through a port-forward for instance, set
+  `STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME` to that name. An `http://`
+  router works too, as a port-forward to its port 80, but the push then carries
+  the Session's token and the runner's secrets, model keys among them, across
+  the cluster in cleartext, and the server logs a warning at boot.
 - **Where actors live**: an atespace the server owns
   (`STIGMER_SANDBOX_SUBSTRATE_ATESPACE`; the server creates it), the labels of
   the WorkerPool they run on (`STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR`, as
@@ -393,13 +423,17 @@ What the driver needs:
   egress rules name hosts, and Substrate's gateway resolves a short name among
   its own services.
 - **Cleartext lanes inside the cluster.** The runner reaches the server and
-  Temporal in cleartext: an `http://` backend endpoint (and MCP endpoint, when
-  you set one), and none of the server's `STIGMER_TEMPORAL_*` connection
-  settings (TLS, an API key, certificates). Substrate's gateway can carry TLS
-  only by decrypting it, which breaks a Temporal client certificate or a pinned
-  CA, and Substrate v0.3.0 doesn't yet serve its rule for passing TLS through
-  untouched. The server refuses to boot otherwise; these lanes can use TLS once
-  Substrate serves that rule.
+  Temporal in cleartext: an `http://` backend endpoint, and none of the server's
+  `STIGMER_TEMPORAL_*` connection settings (TLS, an API key, certificates).
+  Substrate's gateway can carry TLS only by decrypting it, which breaks a
+  Temporal client certificate or a pinned CA, and Substrate v0.3.0 doesn't yet
+  serve its rule for passing TLS through untouched. The server refuses to boot
+  otherwise; these lanes can use TLS once Substrate serves that rule. The public
+  MCP endpoint (`STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT`) isn't one of these lanes:
+  an `http://` one gets its own rule, and an `https://` one, a public address
+  such as your server's, is reached like any HTTPS site, so only while HTTPS
+  egress is on. With HTTPS egress off, the server logs a warning at boot that no
+  sandbox can reach it.
 
 What an Agent can reach: the server's endpoints, any extra cleartext `host:port`
 you list in `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTP`, and HTTPS to any name

@@ -1,6 +1,7 @@
 /**
  * Pins the substrate driver's settings (config.ts): the required values,
- * the defaults, the parsing of the selector and the extra destinations,
+ * the defaults, the router's CA and server name (only for an https://
+ * router), the parsing of the selector and the extra destinations,
  * and the two rules the idle windows must keep (a pause before a suspend;
  * no pause longer than a paused runner can sleep and renew).
  */
@@ -25,6 +26,8 @@ describe("newSubstrateSettingsFromEnv", () => {
       apiCaFile: "",
       apiTokenFile: "/var/run/secrets/ate/token",
       routerUrl: "http://atenet-router.ate-system.svc",
+      routerCaFile: "",
+      routerServerName: "",
       atespace: "stigmer",
       storageLocation: "gs://ate-snapshots/stigmer",
       workerSelector: { workload: "stigmer" },
@@ -107,6 +110,34 @@ describe("newSubstrateSettingsFromEnv", () => {
         STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL: "router:80",
       }),
     ).toThrow(/http:\/\//);
+  });
+
+  it("reads the router's CA and server name for an https:// router, and refuses either for an http:// one", () => {
+    const tls = newSubstrateSettingsFromEnv({
+      ...base,
+      STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL:
+        "https://atenet-router.ate-system.svc",
+      STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE: " /var/run/ate/ca.pem ",
+      STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME:
+        "atenet-router.ate-system.svc",
+    });
+    expect(tls).toMatchObject({
+      routerUrl: "https://atenet-router.ate-system.svc",
+      routerCaFile: "/var/run/ate/ca.pem",
+      routerServerName: "atenet-router.ate-system.svc",
+    });
+    for (const name of [
+      "STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE",
+      "STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME",
+    ]) {
+      expect(() =>
+        newSubstrateSettingsFromEnv({ ...base, [name]: "x" }),
+      ).toThrow(
+        new RegExp(
+          `${name} applies only to an https:// router; STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL is http://`,
+        ),
+      );
+    }
   });
 
   it("refuses windows that are not positive whole seconds", () => {

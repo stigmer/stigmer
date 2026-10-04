@@ -53,7 +53,12 @@ import {
   SANDBOX_SCOPE_LABEL,
   sandboxBaseName,
 } from "./naming.js";
-import { RUNNER_HOME, RUNNER_UID, runnerCommand } from "./runner-launch.js";
+import {
+  RUNNER_HOME,
+  RUNNER_UID,
+  SERVER_RELEASE_ENV,
+  runnerCommand,
+} from "./runner-launch.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -106,6 +111,9 @@ export function buildDockerRun(
     `HOME=${RUNNER_HOME}`,
     ...(config.mcpPublicEndpoint !== ""
       ? ["--env", `STIGMER_MCP_PUBLIC_ENDPOINT=${config.mcpPublicEndpoint}`]
+      : []),
+    ...(config.serverRelease !== ""
+      ? ["--env", `${SERVER_RELEASE_ENV}=${config.serverRelease}`]
       : []),
     ...Object.entries(config.runnerEnv).flatMap(([name, value]) => [
       "--env",

@@ -11,8 +11,8 @@
  * second exception, pinned below: a listed variable the server does not
  * have, a name on both lists, a runner secret on the plain list, or a name
  * a driver sets itself fails the boot; under a driver that starts a runner
- * image, so do HOME and the Node settings the runner layer clears at start,
- * which `local-process` passes through.
+ * image, so do HOME, the server's release and the Node settings the runner
+ * layer clears at start, which `local-process` passes through.
  */
 import { describe, expect, it } from "vitest";
 
@@ -276,12 +276,14 @@ describe("loadConfig", () => {
       }
     });
 
-    it("fail the boot, under a driver that starts a runner image, on HOME and on a Node setting the runner layer clears at start", () => {
+    it("fail the boot, under a driver that starts a runner image, on HOME, the server's release and a Node setting the runner layer clears at start", () => {
       for (const driver of ["kubernetes", "docker", "substrate", "cloud-kubernetes"]) {
         for (const list of ["STIGMER_SANDBOX_RUNNER_ENV", "STIGMER_SANDBOX_RUNNER_SECRETS"]) {
-          expect(() => loadConfig({ SANDBOX_PROVISIONER_TYPE: driver, [list]: "HOME", HOME: "/home/op" })).toThrow(
-            `${list} lists HOME, which the ${driver} sandbox driver sets itself — remove it from the list`,
-          );
+          for (const owned of ["HOME", "STIGMER_SERVER_RELEASE"]) {
+            expect(() => loadConfig({ SANDBOX_PROVISIONER_TYPE: driver, [list]: owned, [owned]: "x" })).toThrow(
+              `${list} lists ${owned}, which the ${driver} sandbox driver sets itself — remove it from the list`,
+            );
+          }
           for (const cleared of ["NODE_OPTIONS", "NODE_PATH"]) {
             expect(() =>
               loadConfig({ SANDBOX_PROVISIONER_TYPE: driver, [list]: cleared, [cleared]: "--max-old-space-size=4096" }),
@@ -293,16 +295,18 @@ describe("loadConfig", () => {
       }
     });
 
-    it("pass HOME and the Node settings through for local-process, which starts no runner image", () => {
+    it("pass HOME, the server's release and the Node settings through for local-process, which starts no runner image", () => {
       const config = loadConfig({
         SANDBOX_PROVISIONER_TYPE: "local-process",
-        STIGMER_SANDBOX_RUNNER_ENV: "HOME,NODE_OPTIONS,NODE_PATH",
+        STIGMER_SANDBOX_RUNNER_ENV: "HOME,STIGMER_SERVER_RELEASE,NODE_OPTIONS,NODE_PATH",
         HOME: "/home/op",
+        STIGMER_SERVER_RELEASE: "3.42.0",
         NODE_OPTIONS: "--max-old-space-size=4096",
         NODE_PATH: "/opt/lib",
       });
       expect(config.sandboxRunnerEnv).toEqual({
         HOME: "/home/op",
+        STIGMER_SERVER_RELEASE: "3.42.0",
         NODE_OPTIONS: "--max-old-space-size=4096",
         NODE_PATH: "/opt/lib",
       });

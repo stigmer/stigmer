@@ -1,4 +1,4 @@
-// The runner layer's start script refuses a base image it cannot run on, in one message that names the contract.
+// The runner layer's start script refuses a base image it cannot run on, in one message that names the contract, and a layer of another release than the server's.
 // Run via `node --test scripts/runner-layer-start.test.mjs` (wired into root `npm test`).
 //
 // backend/services/runner/layer/start.sh is /runner/bin/start in the image,
@@ -6,7 +6,11 @@
 // refusal lists every problem it found in one line (so a pod's last-state
 // message holds all of it), names the guide's section, and exits 78; a
 // relative $0 is refused rather than guessed at; the tools the script
-// checks are the ones the guide's contract names; and the script passes
+// checks are the ones the guide's contract names; a layer whose RELEASE
+// names another release than STIGMER_SERVER_RELEASE is refused in one line
+// naming both, a layer naming no release is warned about under a release
+// server, and a server naming no release checks nothing (stigmer#1831); a
+// broken base is refused before a release skew; and the script passes
 // shellcheck.
 //
 // The script's success path needs root on a glibc Linux, which a
@@ -14,7 +18,8 @@
 // compute what this machine lacks (the loader, /proc, root) and expect
 // exactly that beside the tools a case hides. The success case (the Node
 // beside the script exec'd with its arguments unchanged, NODE_OPTIONS and
-// NODE_PATH gone) runs only as root on glibc and otherwise skips. The
+// NODE_PATH gone) and the release cases, which the script reaches only
+// once the base passes, run only as root on glibc and otherwise skip. The
 // runner lane runs this file again as root in Node's Debian image, with
 // STIGMER_TEST_AS_ROOT=1, where that skip is a failure; the image itself
 // proves the same on every build (release.sandbox-cloud's layer checks, and
@@ -24,7 +29,7 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { after, test } from "node:test";
@@ -69,15 +74,23 @@ function pathWith(tools) {
   return dir;
 }
 
-/** The layer's /runner/bin, in miniature: the script as `start`, a `node` that reports what it got. */
-function layerBin() {
-  const bin = mkdtempSync(join(work, "bin-"));
+/**
+ * The layer's /runner, in miniature, one per case so no case reads
+ * another's RELEASE: the script as `bin/start`, a `bin/node` that reports
+ * what it got, and `RELEASE` holding `release` as written (none when
+ * undefined). Returns the `bin` directory.
+ */
+function layerBin(release) {
+  const root = mkdtempSync(join(work, "runner-"));
+  const bin = join(root, "bin");
+  mkdirSync(bin);
   copyFileSync(SCRIPT, join(bin, "start"));
   writeFileSync(
     join(bin, "node"),
     '#!/bin/sh\nprintf "args=%s|" "$@"\nprintf "NODE_OPTIONS=%s NODE_PATH=%s\\n" "${NODE_OPTIONS-unset}" "${NODE_PATH-unset}"\n',
     { mode: 0o755 },
   );
+  if (release !== undefined) writeFileSync(join(root, "RELEASE"), release);
   return bin;
 }
 
@@ -124,11 +137,73 @@ test("a relative $0 is refused, not resolved", () => {
   assert.equal(result.stderr, "stigmer runner: start it by its absolute path (/runner/bin/start), not as start\n");
 });
 
-test(
-  "on a base it can run on, it warns per missing optional tool, clears the Node variables and execs the Node beside it",
+/** Where the base passes the script's checks, so it goes on to the release and the exec. */
+const ON_A_RUNNABLE_BASE =
   (hasLoader && hasProc && isRoot) || process.env.STIGMER_TEST_AS_ROOT === "1"
     ? {}
-    : { skip: "needs root on a glibc Linux; the runner lane runs it as root" },
+    : { skip: "needs root on a glibc Linux; the runner lane runs it as root" };
+
+/** stderr without the optional tools' warnings, which depend on this machine's PATH. */
+const withoutToolWarnings = (stderr) =>
+  stderr.split("\n").filter((line) => line !== "" && !/^stigmer runner: warning: \S+ is not on PATH/.test(line));
+
+test("on a base it cannot run on, the base is refused before a release skew is", () => {
+  const result = start(layerBin("3.41.1\n"), pathWith(REQUIRED.filter((t) => t !== "git")), [], {
+    STIGMER_SERVER_RELEASE: "3.42.0",
+  });
+  assert.equal(result.status, 78);
+  assert.match(result.stderr, /^stigmer runner: this base image cannot run the runner layer: .*missing from PATH: git\./);
+  assert.equal(result.stderr.split("\n").length, 2, "one line, then the newline");
+});
+
+test("a layer of another release than the server's is refused in one line naming both, and exits 78", ON_A_RUNNABLE_BASE, () => {
+  const result = start(layerBin("3.41.1\n"), pathWith(REQUIRED), ["/runner/dist/main.js"], {
+    STIGMER_SERVER_RELEASE: "3.42.0",
+  });
+  assert.equal(result.status, 78);
+  assert.equal(result.stdout, "");
+  assert.equal(
+    result.stderr,
+    "stigmer runner: this runner layer is from release 3.41.1, but the server is 3.42.0: " +
+      `use the runner layer of release 3.42.0 (re-join your image at every server upgrade): ${GUIDE_URL}\n`,
+  );
+});
+
+test("a layer of the server's own release starts, with or without the file's newline", ON_A_RUNNABLE_BASE, () => {
+  for (const written of ["3.42.0-rc.1\n", "3.42.0-rc.1"]) {
+    const result = start(layerBin(written), pathWith(REQUIRED), ["/runner/dist/main.js"], {
+      STIGMER_SERVER_RELEASE: "3.42.0-rc.1",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, "args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset\n");
+    assert.deepEqual(withoutToolWarnings(result.stderr), []);
+  }
+});
+
+test("a server naming no release checks nothing, whatever the layer is", ON_A_RUNNABLE_BASE, () => {
+  for (const release of ["3.41.1\n", "", undefined]) {
+    const result = start(layerBin(release), pathWith(REQUIRED), ["/runner/dist/main.js"], { STIGMER_SERVER_RELEASE: "" });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(withoutToolWarnings(result.stderr), []);
+  }
+});
+
+test("a layer naming no release, empty or without the file, is warned about under a release server and starts", ON_A_RUNNABLE_BASE, () => {
+  for (const release of ["", undefined]) {
+    const result = start(layerBin(release), pathWith(REQUIRED), ["/runner/dist/main.js"], {
+      STIGMER_SERVER_RELEASE: "3.42.0",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, "args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset\n");
+    assert.deepEqual(withoutToolWarnings(result.stderr), [
+      `stigmer runner: warning: this runner layer names no release, so it is not checked against the server, which is 3.42.0 (${GUIDE_URL})`,
+    ]);
+  }
+});
+
+test(
+  "on a base it can run on, it warns per missing optional tool, clears the Node variables and execs the Node beside it",
+  ON_A_RUNNABLE_BASE,
   () => {
     const result = start(layerBin(), pathWith(REQUIRED), ["/runner/dist/main.js", "a b"], {
       NODE_OPTIONS: "--require /nonexistent.js",

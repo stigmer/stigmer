@@ -6,9 +6,10 @@
 // Dockerfile.sandbox, and its compose-runner stage bakes the same command
 // as its CMD, because compose sets none. The two files live in two
 // packages, so this test reads both and fails when the CMD is not the
-// server's runner command, or when the runner layer does not put the start
-// script, the Node it execs and the slim artifact where that command looks
-// for them.
+// server's runner command, when the runner layer does not put the start
+// script, the Node it execs, the slim artifact and the release file where
+// that command looks for them, or when the release file the server names is
+// not the one the start script reads beside itself.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -21,7 +22,13 @@ const DOCKERFILE = readFileSync(
   join(ROOT, "backend/services/runner/Dockerfile.sandbox"),
   "utf8",
 );
-const { RUNNER_START, RUNNER_NODE, RUNNER_ENTRY, runnerCommand } = await import(
+const {
+  RUNNER_START,
+  RUNNER_NODE,
+  RUNNER_ENTRY,
+  RUNNER_RELEASE_FILE,
+  runnerCommand,
+} = await import(
   join(ROOT, "backend/services/stigmer-server/src/sandbox/runner-launch.ts")
 );
 
@@ -42,10 +49,10 @@ test("the compose runner's CMD is the server's runner command", () => {
   assert.deepEqual(JSON.parse(cmd[0].replace(/^CMD\s+/, "")), runnerCommand());
 });
 
-test("the runner layer puts the start script, the Node and the artifact where the command starts them", () => {
+test("the runner layer puts the start script, the Node, the artifact and the release where the command starts them", () => {
   const copies = stage("runner-layer").filter((line) => /^COPY\s/.test(line));
   const destinations = copies.map((line) => line.trim().split(/\s+/).at(-1));
-  for (const path of [RUNNER_START, RUNNER_NODE]) {
+  for (const path of [RUNNER_START, RUNNER_NODE, RUNNER_RELEASE_FILE]) {
     assert.ok(
       destinations.includes(path),
       `no COPY lands on ${path}: ${destinations.join(", ")}`,
@@ -54,6 +61,22 @@ test("the runner layer puts the start script, the Node and the artifact where th
   assert.ok(
     destinations.includes(`${dirname(RUNNER_ENTRY)}/`),
     `no COPY lands on ${dirname(RUNNER_ENTRY)}/: ${destinations.join(", ")}`,
+  );
+});
+
+test("the release file is the one the start script reads beside its own directory", () => {
+  const script = readFileSync(
+    join(ROOT, "backend/services/runner/layer/start.sh"),
+    "utf8",
+  );
+  assert.match(
+    script,
+    /"\$\{0%\/\*\}\/\.\.\/RELEASE"/,
+    "start.sh no longer reads ${0%/*}/../RELEASE",
+  );
+  assert.equal(
+    RUNNER_RELEASE_FILE,
+    join(dirname(dirname(RUNNER_START)), "RELEASE"),
   );
 });
 
