@@ -34,6 +34,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | AgentCommandController.create | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org` |
 | AgentCommandController.update | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org` |
 | AgentQueryController.getByReference | `org` |
+| AgentQueryController.listVersions | `org` |
 
 ## `ai.stigmer.agentic.agentchannel.v1`
 

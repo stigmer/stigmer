@@ -33,6 +33,7 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | AgentCommandController.create | metadata.org |
 | AgentCommandController.update | metadata.org |
 | AgentQueryController.getByReference | org |
+| AgentQueryController.listVersions | org |
 
 ## `ai.stigmer.agentic.agentchannel.v1`
 
