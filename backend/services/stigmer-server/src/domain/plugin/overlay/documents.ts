@@ -18,7 +18,7 @@ import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/ap
 
 import type { OrganizationNameResolver } from "../../../pipeline/interceptors/organization-names.js";
 import { resolveOrganizationNames } from "../../../pipeline/interceptors/organization-names.js";
-import { checkOverlayOrg, parseOverlayDocument } from "./parse.js";
+import { checkOverlayOrg, foreignOverlayOrg, parseOverlayDocument } from "./parse.js";
 
 export interface ParsedOverlayDocument<T> {
   readonly path: string;
@@ -85,7 +85,7 @@ export async function resolveOverlayOrganizations(
   overlays: ParsedOverlays,
   org: string,
   resolver: OrganizationNameResolver,
-  orgLabel: string = org,
+  labelOf: (org: string) => Promise<string> = (value) => Promise.resolve(value),
 ): Promise<void> {
   const documents = [
     ...(overlays.agent === undefined ? [] : [{ schema: AgentSchema, document: overlays.agent }]),
@@ -94,6 +94,10 @@ export async function resolveOverlayOrganizations(
   ];
   for (const { schema, document } of documents) {
     await resolveOrganizationNames(schema, document.resource, resolver);
-    checkOverlayOrg(document.path, document.resource, org, orgLabel);
+    // The refusal names the installing organization the way a person reads
+    // it, looked up only when there is a refusal to word.
+    if (foreignOverlayOrg(document.resource, org) !== undefined) {
+      checkOverlayOrg(document.path, document.resource, org, await labelOf(org));
+    }
   }
 }

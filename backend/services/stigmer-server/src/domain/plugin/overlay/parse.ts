@@ -114,11 +114,17 @@ export function checkOverlayOrg(
   org: string,
   orgLabel: string = org,
 ): void {
-  const metadata = metadataOf(message);
-  if (metadata !== undefined && metadata.org !== "" && metadata.org !== org) {
+  const foreign = foreignOverlayOrg(message, org);
+  if (foreign !== undefined) {
     throw new OverlayParseError(
       path,
-      `metadata.org '${metadata.org}' is not the organization the plugin is installed into ('${orgLabel}')`,
+      `metadata.org '${foreign}' is not the organization the plugin is installed into ('${orgLabel}')`,
     );
   }
+}
+
+/** The document's own organization when it is not `org` (empty is `org`), else undefined. */
+export function foreignOverlayOrg(message: Message, org: string): string | undefined {
+  const own = metadataOf(message)?.org ?? "";
+  return own !== "" && own !== org ? own : undefined;
 }

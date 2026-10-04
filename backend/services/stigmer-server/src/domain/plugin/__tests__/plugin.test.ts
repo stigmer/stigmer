@@ -756,6 +756,20 @@ describe("Plugin push — refusals before any write", () => {
     expect(agent.metadata?.labels[PLUGIN_LABEL]).toBe(installed.metadata?.id);
   });
 
+  it("refuses an overlay that names another organization, naming the installing one by its slug", async () => {
+    const name = uniqueName("overlayforeign");
+    const fixture = withFile(
+      thermosLike(name),
+      "ai.stigmer/agent.yaml",
+      `apiVersion: agentic.stigmer.ai/v1\nkind: Agent\nmetadata:\n  name: ${name}\n  org: somebody-else\nspec:\n  instructions: The author's own instructions for this agent.\n`,
+    );
+    await expectCode(
+      plugins.push({ org: ORG, artifact: archiveOf(fixture) }),
+      Code.InvalidArgument,
+      `metadata.org 'somebody-else' is not the organization the plugin is installed into ('${ORG}')`,
+    );
+  });
+
   it("installs an overlay that names its organization by slug, filing it under the organization's id", async () => {
     const name = uniqueName("overlayslug");
     const fixture = withFile(

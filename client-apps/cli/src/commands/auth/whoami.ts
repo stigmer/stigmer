@@ -23,7 +23,7 @@ import {
   save,
 } from "../../config/index.js";
 import { CommandResult } from "../../output/index.js";
-import { organizationLabel } from "../../client/organizations.js";
+import { organizationNamed, type OrganizationNames } from "../../client/organizations.js";
 import { omitsOrganization } from "../../client/single-org.js";
 
 /** What the call learned beyond the account itself. */
@@ -103,11 +103,13 @@ export async function runWhoami(): Promise<CommandResult> {
 }
 
 /**
- * The context organization as the backend names it now: its live slug when
- * the caller can see it, else the slug `context set` stored, else the value
- * as configured; with its id beside a label that is not the value itself.
- * A live slug that differs from the stored one (the organization was renamed
- * since `set`) is stored in its place, so `config context show` catches up.
+ * The context organization as the backend names it now: its live slug and
+ * id when the caller can see it, else the slug `context set` stored, else
+ * the value as configured. The config catches up with what the backend
+ * answers: a context an older CLI wrote by slug is rewritten to the id (with
+ * the slug beside it), and a stored slug the organization was renamed from
+ * is replaced, so `config context show` shows it too. Printing never fails
+ * the command: any failure of the lookup falls back to what is stored.
  */
 async function liveContextOrganization(
   stigmer: Stigmer,
@@ -115,19 +117,31 @@ async function liveContextOrganization(
 ): Promise<{ readonly label: string; readonly id: string }> {
   const org = resolveContextOrganization(config);
   if (org === "") return { label: "", id: "" };
-  const live = await organizationLabel(stigmer, org);
   const stored = config.context?.org_slug ?? "";
-  const label = live !== org ? live : stored || org;
-  if (live !== org && stored !== "" && live !== stored) {
-    rememberSlug(org, live);
+  let named: OrganizationNames | undefined;
+  try {
+    named = await organizationNamed(stigmer, org);
+  } catch {
+    named = undefined;
   }
-  return { label, id: label === org ? "" : org };
+  if (named === undefined) {
+    const label = stored || org;
+    return { label, id: label === org ? "" : org };
+  }
+  if (named.id !== org) {
+    rememberContext(org, { org: named.id, org_slug: named.slug });
+  } else if (stored !== "" && stored !== named.slug) {
+    rememberContext(org, { org: named.id, org_slug: named.slug });
+  }
+  const label = named.slug || named.id;
+  return { label, id: label === named.id ? "" : named.id };
 }
 
-/** Store a context organization's current slug, unless the file names another organization by now. */
-function rememberSlug(org: string, slug: string): void {
+/** Store what the backend answers for the context organization, unless the file names another organization by now. */
+function rememberContext(org: string, context: { readonly org: string; readonly org_slug: string }): void {
   const config = load();
   if (config.context?.org !== org) return;
-  config.context.org_slug = slug;
+  config.context.org = context.org;
+  config.context.org_slug = context.org_slug;
   save(config);
 }

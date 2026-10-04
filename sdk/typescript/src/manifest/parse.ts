@@ -189,10 +189,10 @@ export function metadataOf(message: Message): ApiResourceMetadata | undefined {
 // Inject the target org into metadata.org when the document omitted it. When
 // the document specifies a *different* org, the document's value is honored
 // and a warning is returned (matching `stigmer apply`). An organization is
-// named by its id or its slug, and parsing asks no server: the target is
-// known by `org` and `orgNames`, and a document's org is known to differ
-// only when it is none of those and one of them has its form (two ids, or
-// two slugs).
+// named by its id or its slug, and parsing asks no server. Given
+// `orgNames`, the target is known by every name, so any other value is a
+// different organization. Given `org` alone, a document's org is known to
+// differ only when it has the same form (two ids, or two slugs).
 function injectOrg(message: Message, org: string, orgNames: readonly string[]): string | undefined {
   if (org === "") return undefined;
   const holder = message as unknown as { metadata?: ApiResourceMetadata };
@@ -208,7 +208,7 @@ function injectOrg(message: Message, org: string, orgNames: readonly string[]): 
   const target = [org, ...orgNames];
   if (
     !target.includes(documentOrg) &&
-    target.some((name) => isOrganizationId(name) === isOrganizationId(documentOrg))
+    (orgNames.length > 0 || isOrganizationId(org) === isOrganizationId(documentOrg))
   ) {
     const targetLabel = target.find((name) => !isOrganizationId(name)) ?? org;
     return (

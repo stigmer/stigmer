@@ -182,7 +182,7 @@ describe("Agent conformance — the reference rule at write", () => {
     expect(admitted.spec?.mcpServerUsages[0]?.mcpServerRef?.org).toBe(otherOrg);
 
     const sentenceFor = (slug: string) =>
-      `referenced MCP server '${otherOrg}/${slug}' is not available to this organization; ` +
+      `referenced MCP server '${slug}' of another organization is not available to this organization; ` +
       "another organization's resource can be referenced only when that organization shares it at platform visibility.";
 
     const notShared = await expectGrpcCode(
@@ -198,6 +198,15 @@ describe("Agent conformance — the reference rule at write", () => {
       "create agent referencing another organization's missing MCP server",
     );
     expect(missing.rawMessage).toBe(sentenceFor("no-such-server"));
+
+    // A name no organization holds reads exactly as a held one: the refusal
+    // never tells the writer which names exist.
+    const unheld = await expectGrpcCode(
+      () => clients.agentCommand.create(agentReferencing(org, uniqueName("nobody-org"), "no-such-server")),
+      Code.FailedPrecondition,
+      "create agent referencing an MCP server of an organization nobody holds",
+    );
+    expect(unheld.rawMessage).toBe(sentenceFor("no-such-server"));
   });
 
   it("[rpc:AgentCommandController.create] [rpc:AgentCommandController.updateVisibility] the floor at both doors: an org-visible agent may not run a private MCP server, at create and when raised", async () => {

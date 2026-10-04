@@ -147,9 +147,10 @@ export class CloudTarget implements TargetProfile {
   private grpcBaseUrl: string | undefined;
   private conformanceClients: ConformanceClients | undefined;
   private operatorClients: ConformanceClients | undefined;
-  // Org slug -> resource id, so cleanupTenancy can delete by id without
-  // widening TenancyContext beyond the shape the suites share with local
-  // targets.
+  // The organizations this target provisioned, keyed by the id a
+  // TenancyContext names (the value repeats it): cleanup deletes only what
+  // this target made, without widening TenancyContext beyond the shape the
+  // suites share with local targets.
   private readonly provisionedOrgIds = new Map<string, string>();
 
   // Present only when the environment carries an operator credential — the

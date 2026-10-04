@@ -805,7 +805,7 @@ describe("Workflow conformance — agent_call references at write", () => {
       "a workflow calling another organization's org-visible agent",
     );
     expect(refused.rawMessage).toBe(
-      `referenced agent '${otherOrg}/${internal.metadata!.slug}' is not available to this organization; ` +
+      `referenced agent '${internal.metadata!.slug}' of another organization is not available to this organization; ` +
         "another organization's resource can be referenced only when that organization shares it at platform visibility.",
     );
   });

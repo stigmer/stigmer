@@ -32,9 +32,20 @@ vi.mock("next/navigation", () => ({
 // mounted instances. The workflow marker additionally requests
 // full-viewport through the REAL hook to pin the layout's behavior when
 // the overlay drives that shared flag.
-vi.mock("@/domain/library/agents/AgentDetailPage", () => ({
-  AgentDetailPageInner: () => <div data-testid="agent-detail" />,
-}));
+// How many times the agent detail view mounted: a remount refetches and
+// drops any edit in progress.
+let agentDetailMounts = 0;
+vi.mock("@/domain/library/agents/AgentDetailPage", async () => {
+  const { useEffect } = await import("react");
+  return {
+    AgentDetailPageInner: () => {
+      useEffect(() => {
+        agentDetailMounts += 1;
+      }, []);
+      return <div data-testid="agent-detail" />;
+    },
+  };
+});
 vi.mock("@/domain/library/skills/SkillDetailPage", () => ({
   SkillDetailPageInner: () => <div data-testid="skill-detail" />,
 }));
@@ -67,12 +78,28 @@ const canonicalBySegment = new Map([
   ["acme-old", "acme"],
 ]);
 
-vi.mock("@stigmer/react", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@stigmer/react")>()),
-  useOrgSlugForId: () => (id: string) => slugById.get(id) ?? id,
-  useCanonicalOrgSlug: (segment: string | null) =>
-    canonicalBySegment.get(segment ?? "") ?? null,
-}));
+// A slug the org was renamed away from is not in the person's list, so the
+// real hook learns its current slug from an organization.get: after the
+// first render. The mock answers it the same way; the others at once.
+const answeredByLookup = new Set(["acme-old"]);
+
+vi.mock("@stigmer/react", async (importOriginal) => {
+  const { useEffect, useState } = await import("react");
+  return {
+    ...(await importOriginal<typeof import("@stigmer/react")>()),
+    useOrgSlugForId: () => (id: string) => slugById.get(id) ?? id,
+    useCanonicalOrgSlug: (segment: string | null) => {
+      const looked = answeredByLookup.has(segment ?? "");
+      const [answer, setAnswer] = useState<string | null>(null);
+      useEffect(() => {
+        if (!looked) return;
+        const timer = setTimeout(() => setAnswer(canonicalBySegment.get(segment ?? "") ?? null), 0);
+        return () => clearTimeout(timer);
+      }, [looked, segment]);
+      return looked ? answer : (canonicalBySegment.get(segment ?? "") ?? null);
+    },
+  };
+});
 
 vi.mock("@/domain/library/LibraryBreadcrumb", () => ({
   LibraryBreadcrumb: () => <nav data-testid="breadcrumb" />,
@@ -207,8 +234,9 @@ describe("LibraryLayout org segment", () => {
     expect(screen.getAllByTestId("agent-detail")).toHaveLength(1);
   });
 
-  it("replaces a slug the org was renamed away from", async () => {
+  it("replaces a slug the org was renamed away from, without remounting the detail it shows", async () => {
     setRoute("/library/agents/acme-old/support-bot");
+    agentDetailMounts = 0;
 
     render(
       <LibraryLayout>
@@ -219,6 +247,7 @@ describe("LibraryLayout org segment", () => {
     await waitFor(() =>
       expect(window.location.pathname).toBe("/library/agents/acme/support-bot"),
     );
+    expect(agentDetailMounts).toBe(1);
   });
 
   it("leaves a current slug alone", () => {

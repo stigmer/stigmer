@@ -280,7 +280,7 @@ export function newParseOverlayDocumentsStep(
       const pkg = ctx.get(PLUGIN_PACKAGE_KEY) as PluginPackage;
       try {
         const overlays = parseOverlays(pkg.overlay);
-        await resolveOverlayOrganizations(overlays, ctx.input.org, resolver, await organizationSlugOf(store, ctx.input.org));
+        await resolveOverlayOrganizations(overlays, ctx.input.org, resolver, (org) => organizationSlugOf(store, org));
         ctx.set(PLUGIN_OVERLAYS_KEY, overlays);
       } catch (error) {
         if (error instanceof OverlayParseError) {

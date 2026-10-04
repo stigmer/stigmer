@@ -16,7 +16,9 @@
  *     workflow runs in (agent-call-references.ts, "RELATIVE");
  *   - a value holding `${`, fixed only when the task runs;
  *   - a value already shaped as an id, and a name nobody holds, which the
- *     reference rule then refuses as a missing target with its own copy;
+ *     reference rule then refuses as another organization's resource that
+ *     is not available, in the same sentence it gives a held name, which
+ *     names neither organization (pipeline/steps/references.ts);
  *   - a config that does not decode, which spec validation has refused.
  *
  * An organization from an earlier release is filed under its first slug,

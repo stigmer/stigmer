@@ -63,6 +63,7 @@ import {
   encodeInProcessCaller,
   serverActingFor,
 } from "../../pipeline/interceptors/auth.js";
+import { organizationNameKey } from "../../domain/organization/names.js";
 import { newSingleOrganizationHolder } from "../../pipeline/interceptors/single-organization.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 
@@ -255,6 +256,30 @@ describe("ensureSingleOrganization", () => {
     expect(lines).toContainEqual(
       expect.objectContaining({ level: "warn", organizations: 2 }),
     );
+  });
+
+  it("a store whose ledger retired the slug, holding none, warns, fills nothing and boots", async () => {
+    await composeWith();
+    // The upgrade carries a slug the old ledger retired as a name reserved
+    // for good: an earlier release's deleted `stigmer`, whose id it was.
+    await server.store.resourceNames.claim(organizationNameKey("stigmer"), "stigmer", new Date().toISOString());
+    await server.store.resourceNames.release("organization", "", "stigmer");
+    const { holder, run } = ensure();
+    const started = Date.now();
+    await run();
+
+    expect(Date.now() - started, "no wait for a winner that will never come").toBeLessThan(500);
+    expect(await organizations()).toHaveLength(0);
+    expect(holder.current()).toBeUndefined();
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
+    // Marked owed before the create, which made nothing: no longer owed.
+    expect(
+      await server.store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
+    ).toBe("");
+    expect(lines).toContainEqual(
+      expect.objectContaining({ level: "warn", slug: "stigmer" }),
+    );
+    expect(lines.some((line) => line.message.includes("is reserved for an organization an earlier release made and deleted"))).toBe(true);
   });
 
   it.each([

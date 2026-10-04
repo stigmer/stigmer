@@ -522,12 +522,18 @@ function levelWord(level: ApiResourceVisibility): string {
     : ApiResourceVisibility[level];
 }
 
-/** Clause (iii)'s one sentence — the same whether the target is missing or not platform-visible. */
+/**
+ * Clause (iii)'s one sentence — the same whether the target is missing or
+ * not platform-visible, and whether the organization it names exists: the
+ * other organization is not named at all, because a name the edge resolved
+ * would come back as that organization's id and a name nobody holds as
+ * written, which would tell the writer which names exist.
+ */
 export function notAvailableReferenceMessage(
   entry: ReferenceTargetKind,
   ref: SpecReference,
 ): string {
-  return `referenced ${singular(entry)} '${ref.org}/${ref.slug}' is not available to this organization; another organization's resource can be referenced only when that organization shares it at platform visibility.`;
+  return `referenced ${singular(entry)} '${ref.slug}' of another organization is not available to this organization; another organization's resource can be referenced only when that organization shares it at platform visibility.`;
 }
 
 /** The writer clause's sentence: the target, and what the writer may attach instead. */
@@ -749,15 +755,21 @@ export async function checkReferences(
 /**
  * The verdicts with the writer's own organization named by its slug, for
  * the refusal's copy: references are judged by id, but a person reads the
- * sentence. Another organization's id is left as the reference holds it, so
- * a refusal never maps someone else's id to its name.
+ * sentence. Another organization is never named by a refusal at all
+ * (notAvailableReferenceMessage says why).
  */
-async function namedForPeople<V extends { readonly ref: SpecReference }>(
+async function namedForPeople<
+  V extends { readonly ref: SpecReference; readonly verdict: ReferenceVerdict },
+>(
   store: Store,
   parent: ReferenceParent,
   verdicts: ReadonlyArray<V>,
 ): Promise<ReadonlyArray<V>> {
-  if (parent.org === "" || !verdicts.some(({ ref }) => ref.org === parent.org)) {
+  // Only a refusal is read by a person; a write that passes reads nothing.
+  const refusesOwn = verdicts.some(
+    ({ ref, verdict }) => ref.org === parent.org && verdict.kind !== "ok",
+  );
+  if (parent.org === "" || !refusesOwn) {
     return verdicts;
   }
   const slug = (

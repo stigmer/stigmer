@@ -2,6 +2,7 @@
 
 import { cn } from "@stigmer/theme";
 import {
+  detailKey,
   LibraryNavigationProvider,
   useLibraryNavigation,
   type ActiveDetail,
@@ -77,7 +78,7 @@ function LibraryLayoutContent({ children }: { children: React.ReactNode }) {
       {activeDetail != null && (
         <LibraryDetailContent
           detail={activeDetail}
-          key={`${activeDetail.resourceType}/${activeDetail.org}/${activeDetail.slug}`}
+          key={detailKey(activeDetail)}
         />
       )}
     </div>

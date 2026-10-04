@@ -142,7 +142,7 @@ vi.mock("../../../backend.js", async () => {
       stigmer: {
         organization: {
           get: async (value: string) => {
-            if (organizationAnswer === "hidden" || value !== ACME_ID) {
+            if (organizationAnswer === "hidden" || (value !== ACME_ID && value !== "acme-old")) {
               throw new ConnectError("permission denied", Code.PermissionDenied);
             }
             if (organizationAnswer === "unreachable") {
@@ -232,6 +232,23 @@ describe("runWhoami's organization", () => {
     const result = await runWhoami();
     expect(fields(result).Organization).toBe("acme-corp");
     expect(load()).toEqual(before);
+  });
+
+  it("rewrites a context an older CLI wrote by slug to the organization's id, once the backend names it", async () => {
+    // The organization was renamed from acme-old since, and the old slug
+    // still leads to it.
+    writeConfig(["context:", "  org: acme-old"]);
+    organizationAnswer = { slug: "acme-corp" };
+    const result = await runWhoami();
+    expect(fields(result)).toMatchObject({ Organization: "acme-corp", "Organization ID": ACME_ID });
+    expect(load().context).toEqual({ org: ACME_ID, org_slug: "acme-corp" });
+
+    organizationAnswer = "hidden";
+    writeConfig(["context:", "  org: acme-old"]);
+    const hidden = await runWhoami();
+    expect(fields(hidden).Organization).toBe("acme-old");
+    expect(fields(hidden)["Organization ID"]).toBeUndefined();
+    expect(load().context).toEqual({ org: "acme-old" });
   });
 
   it("falls back to the id when no slug is stored, and stores none it was not asked to keep", async () => {

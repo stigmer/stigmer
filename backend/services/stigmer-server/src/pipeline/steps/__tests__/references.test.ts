@@ -440,8 +440,13 @@ describe("the refusal copy", () => {
     expect(
       notAvailableReferenceMessage(skill, ref(K.skill, "globex", "x")),
     ).toBe(
-      "referenced skill 'globex/x' is not available to this organization; " +
+      "referenced skill 'x' of another organization is not available to this organization; " +
         "another organization's resource can be referenced only when that organization shares it at platform visibility.",
+    );
+    // The other organization is never named: a held name and one nobody
+    // holds read the same.
+    expect(notAvailableReferenceMessage(skill, ref(K.skill, "org_01jbbbbbbbbbbbbbbbbbbbbbbb", "x"))).toBe(
+      notAvailableReferenceMessage(skill, ref(K.skill, "nobody", "x")),
     );
     expect(noOrgReferenceMessage(skill, "x")).toBe(
       "referenced skill(s) 'x' names no organization; a reference is 'org/slug', or 'slug' for a resource of this organization.",

@@ -41,6 +41,17 @@ interface ActiveDetail {
   readonly resourceType: LibraryResourceType;
   readonly org: string;
   readonly slug: string;
+  /**
+   * The org segment the detail was opened with, when its spelling was
+   * corrected since (an id, or a slug the org was renamed from, replaced by
+   * the current slug): the view keeps its identity across the correction.
+   */
+  readonly opened?: string;
+}
+
+/** The detail view's identity: a correction of the org segment's spelling keeps it. */
+export function detailKey(detail: ActiveDetail): string {
+  return `${detail.resourceType}/${detail.opened ?? detail.org}/${detail.slug}`;
 }
 
 interface LibraryNavigationValue {
@@ -177,7 +188,7 @@ export function LibraryNavigationProvider({
   // and the URL then follows the state in place, adding no history entry.
   const canonicalOrg = useCanonicalOrgSlug(activeDetail?.org ?? null);
   if (canonicalOrg && activeDetail && activeDetail.org !== canonicalOrg) {
-    setActiveDetail({ ...activeDetail, org: canonicalOrg });
+    setActiveDetail({ ...activeDetail, org: canonicalOrg, opened: activeDetail.opened ?? activeDetail.org });
   }
   useEffect(() => {
     if (!activeDetail) return;
