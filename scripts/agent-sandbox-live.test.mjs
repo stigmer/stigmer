@@ -3,9 +3,10 @@
  * the arguments and environment it takes and refuses, the manifest it
  * applies for a version, the kind network's IPv4 gateway, the address a pod
  * reaches the host at, the one Temporal binds and the warning a laptop run
- * prints when that is every interface,
- * and that the release it tests
- * against is the one the operator guide tells operators to install.
+ * prints when that is every interface, whether a cluster is listed, who owns
+ * the name after a failed create, what the teardown does with it, when a red
+ * run is diagnosed, and that the release it tests against is the one the
+ * operator guide tells operators to install.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -13,6 +14,10 @@ import { test } from "node:test";
 
 import {
   AGENT_SANDBOX_VERSION,
+  clusterListed,
+  ownsAfterFailedCreate,
+  shouldDiagnose,
+  teardownAction,
   DEFAULT_RUNNER_IMAGE,
   exposureWarning,
   hostFromKindNetwork,
@@ -95,4 +100,32 @@ test("the operator guide installs the release the driver is tested against", () 
     `runners.mdx must install ${manifestUrl(AGENT_SANDBOX_VERSION)}`,
   );
   assert.ok(guide.includes(`tested against agent-sandbox ${AGENT_SANDBOX_VERSION}`));
+});
+
+test("a cluster is found by its exact name in kind's list", () => {
+  assert.equal(clusterListed("kind\nstigmer-agent-sandbox-live\n", "stigmer-agent-sandbox-live"), true);
+  assert.equal(clusterListed("stigmer-agent-sandbox-live\r\n", "stigmer-agent-sandbox-live"), true);
+  assert.equal(clusterListed("stigmer-agent-sandbox-live-2\n", "stigmer-agent-sandbox-live"), false);
+  assert.equal(clusterListed("No kind clusters found.\n", "stigmer-agent-sandbox-live"), false);
+});
+
+test("an interrupted create's leftovers are the run's; a name another run took after the check is not", () => {
+  assert.equal(ownsAfterFailedCreate({ interrupted: true, listedNow: true }), true);
+  assert.equal(ownsAfterFailedCreate({ interrupted: false, listedNow: false }), true);
+  assert.equal(ownsAfterFailedCreate({ interrupted: false, listedNow: true }), false);
+});
+
+test("the teardown deletes only a name the run owns, and keeps it for --keep", () => {
+  assert.equal(teardownAction({ owned: false, keep: false }), "none");
+  assert.equal(teardownAction({ owned: false, keep: true }), "none");
+  assert.equal(teardownAction({ owned: true, keep: true }), "keep");
+  assert.equal(teardownAction({ owned: true, keep: false }), "delete");
+});
+
+test("a red run is diagnosed once its cluster answers, a setup step's included, but never after an interrupt", () => {
+  assert.equal(shouldDiagnose({ ready: true, code: 1, interrupted: false }), true);
+  assert.equal(shouldDiagnose({ ready: true, code: 2, interrupted: false }), true);
+  assert.equal(shouldDiagnose({ ready: true, code: 0, interrupted: false }), false);
+  assert.equal(shouldDiagnose({ ready: false, code: 2, interrupted: false }), false);
+  assert.equal(shouldDiagnose({ ready: true, code: 2, interrupted: true }), false);
 });
