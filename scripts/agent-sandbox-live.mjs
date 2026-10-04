@@ -29,12 +29,14 @@
  * Then it runs `npm run test:live` in the server package with those
  * addresses. A red test is followed by every object in the namespace, the
  * runner pods' events and logs and the controller's log, before it tears
- * down; so is a step of the setup that fails once the cluster answers. It
- * tears down when the test fails and on SIGINT or SIGTERM (a Ctrl-C on a
- * laptop) too, an interrupted `kind create` included, whose leftovers it
- * deletes by the cluster's name. It refuses to start when a cluster of that
- * name already exists, which it would otherwise neither make nor remove (`--keep` leaves the
- * cluster for a reader, and prints how to remove it).
+ * down; so is a step of the setup that fails once the cluster answers, but
+ * not an interrupt, which nobody asked to diagnose. It tears down when the
+ * test fails and on SIGINT or SIGTERM (a Ctrl-C on a laptop) too, an
+ * interrupted `kind create` included, whose leftovers it deletes by the
+ * cluster's name (`--keep` leaves the cluster for a reader, and prints how to
+ * remove it). It never removes a cluster it did not make: it refuses to start
+ * when a cluster of that name already exists, and a create that fails because
+ * another run took the name in the meantime leaves that cluster alone.
  *
  * Needs kind, kubectl, docker and the Temporal CLI on PATH (CI pins kind and
  * installs the Temporal CLI through .github/actions/temporal-cli), and the
@@ -106,9 +108,47 @@ async function latestVersion() {
   return tag;
 }
 
+/** Whether a signal has interrupted the run: a child killed by one, or the run itself. */
+let interrupted = false;
+
 function run(command, args, options = {}) {
   console.log(`$ ${command} ${args.join(" ")}`);
-  return execFileSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], ...options });
+  try {
+    return execFileSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], ...options });
+  } catch (error) {
+    if (error?.signal) interrupted = true;
+    throw error;
+  }
+}
+
+/** Whether `kind get clusters` lists the named cluster. */
+export function clusterListed(output, name) {
+  return output.split(/\r?\n/).some((line) => line.trim() === name);
+}
+
+/**
+ * Whether the run still owns the cluster's name after its `kind create`
+ * failed. kind removes what a failed create made unless the create was
+ * interrupted, so an interrupted create's leftovers are this run's to delete,
+ * while a cluster listed under the name after an uninterrupted failure is
+ * another run's, which took the name between the check and the create.
+ */
+export function ownsAfterFailedCreate({ interrupted: byASignal, listedNow }) {
+  return byASignal || !listedNow;
+}
+
+/**
+ * What the teardown does with the cluster's name: nothing when the run never
+ * claimed it, keep it for a --keep reader, or delete whatever kind made under it.
+ */
+export function teardownAction({ owned, keep }) {
+  if (!owned) return "none";
+  return keep ? "keep" : "delete";
+}
+
+/** Whether a red run is diagnosed in its cluster before the teardown. */
+export function shouldDiagnose({ ready, code, interrupted: byASignal }) {
+  return ready && code !== 0 && !byASignal;
 }
 
 async function freePort() {
@@ -160,7 +200,10 @@ function spawnChild(command, args, options) {
       console.error(`agent-sandbox-live: ${command} could not start: ${error.message}`);
       resolveCode(127);
     });
-    child.once("exit", (exit) => resolveCode(exit ?? 1));
+    child.once("exit", (exit, signal) => {
+      if (signal) interrupted = true;
+      resolveCode(exit ?? 1);
+    });
   });
   return { child, exited };
 }
@@ -228,9 +271,10 @@ async function main(argv) {
     if (tornDown) return;
     tornDown = true;
     temporal?.child.kill("SIGTERM");
-    if (!owned) {
+    const action = teardownAction({ owned, keep: opts.keep });
+    if (action === "none") {
       rmSync(state, { recursive: true, force: true });
-    } else if (opts.keep) {
+    } else if (action === "keep") {
       console.log(`kept: KUBECONFIG=${kubeconfig}; remove with kind delete cluster --name ${CLUSTER} --kubeconfig ${kubeconfig}`);
     } else {
       try {
@@ -244,6 +288,7 @@ async function main(argv) {
   // run takes down what it made before it exits.
   for (const [signal, exit] of [["SIGINT", 130], ["SIGTERM", 143]]) {
     process.once(signal, () => {
+      interrupted = true;
       console.error(`agent-sandbox-live: ${signal}, tearing down`);
       try {
         teardown();
@@ -256,15 +301,26 @@ async function main(argv) {
     console.log(`agent-sandbox ${version}, runner image ${opts.runnerImage}, state ${state}`);
     // A cluster of this name that is not this run's (kept by --keep, or
     // another run's) stops the run here, and is never deleted by it.
-    if (run("kind", ["get", "clusters"]).split("\n").includes(CLUSTER)) {
+    if (clusterListed(run("kind", ["get", "clusters"]), CLUSTER)) {
       throw new Error(
         `a kind cluster named ${CLUSTER} already exists (a --keep run's, or another run's): delete it with kind delete cluster --name ${CLUSTER} first`,
       );
     }
     owned = true;
-    run("kind", ["create", "cluster", "--name", CLUSTER, "--kubeconfig", kubeconfig, "--wait", "180s"], {
-      stdio: ["ignore", "inherit", "inherit"],
-    });
+    try {
+      run("kind", ["create", "cluster", "--name", CLUSTER, "--kubeconfig", kubeconfig, "--wait", "180s"], {
+        stdio: ["ignore", "inherit", "inherit"],
+      });
+    } catch (error) {
+      let listedNow = true;
+      try {
+        listedNow = clusterListed(run("kind", ["get", "clusters"]), CLUSTER);
+      } catch {
+        // Unreadable: take the cluster as another run's, and delete nothing.
+      }
+      owned = ownsAfterFailedCreate({ interrupted, listedNow });
+      throw error;
+    }
     ready = true;
     kube("apply", "-f", manifestUrl(version));
     kube("-n", "agent-sandbox-system", "rollout", "status", "deploy/agent-sandbox-controller", "--timeout=300s");
@@ -311,7 +367,7 @@ async function main(argv) {
   } finally {
     // Any red after the cluster answers is diagnosed in it, a setup step's
     // (the controller's rollout, say) as much as the test's.
-    if (ready && code !== 0) diagnose(kube);
+    if (shouldDiagnose({ ready, code, interrupted })) diagnose(kube);
     teardown();
   }
   return code;
