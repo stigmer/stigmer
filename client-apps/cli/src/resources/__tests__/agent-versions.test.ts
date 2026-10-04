@@ -1,16 +1,16 @@
-// Pins the agent's version surfaces in the resource layer: the history table
+// Pins the version surfaces in the resource layer: the history table
 // (`get agent <ref> --version-history`) lists every version newest first with
-// its short hash, tag, current marker and message, the same layout a
-// workflow's history uses; an empty history points at apply with an agent
-// manifest; and `--version` reads the agent at a hash or a tag through the
-// reference ladder.
+// its short hash, tag, current marker and message, one table for agents and
+// workflows; an empty history points at apply with an agent manifest; and
+// `--version` reads the agent at a hash or a tag through the reference ladder.
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import type { Stigmer } from "@stigmer/sdk";
-import { getAgentAtVersion, renderAgentVersionHistory } from "../version.js";
+import { WorkflowVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
+import { getAgentAtVersion, renderAgentVersionHistory, renderWorkflowVersionHistory } from "../version.js";
 
 const V2 = "b".repeat(64);
 const V1 = "a".repeat(64);
@@ -47,6 +47,24 @@ describe("renderAgentVersionHistory", () => {
     expect(rendered).toContain("No version history found for reviewer\n");
     expect(rendered).toContain("Tip: Apply an agent to create the first version:");
     expect(rendered).toContain("stigmer apply -f agent.yaml");
+  });
+});
+
+describe("renderWorkflowVersionHistory", () => {
+  it("renders a workflow's history with the same table", async () => {
+    const client = {
+      workflow: {
+        listVersions: async () => ({
+          versions: [create(WorkflowVersionEntrySchema, { versionHash: V1, isCurrent: true, tag: "prod" })],
+          totalCount: 1,
+        }),
+      },
+    } as unknown as Stigmer;
+
+    const rendered = await renderWorkflowVersionHistory(client, "", "deploy");
+
+    expect(rendered).toContain("Version History (1 total)");
+    expect(rendered).toMatch(/aaaaaaaaaaaa +prod +- +\*/);
   });
 });
 
