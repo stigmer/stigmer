@@ -5,6 +5,10 @@
  *   - absent → the template prepared and awaited, the actor created, its
  *     egress policy written, resumed, attached by one push carrying the
  *     queue and exactly the secrets (never a plain setting);
+ *   - the ensure's log line names the path it took from the first settled
+ *     state it found (created, suspended, paused, paused-stale, running,
+ *     crashed), never the arm it ended in, so a created sandbox is not
+ *     counted as a wake from storage; a state in transition names nothing;
  *   - SUSPENDED → moved to the current template only when that template is
  *     ready, its policy repaired when missing, resumed, pushed;
  *   - PAUSED → resumed in place, unless paused past the in-place bound, then
@@ -30,11 +34,14 @@
  *     per process for a sandbox still awake, moves only a sleeping sandbox
  *     off an older template, then retires, skipping a sandbox whose upkeep fails and stopping before
  *     retirement when asked; `deleteByName` deletes only a name this driver
- *     gives; `prepare` readies the template and never rejects.
+ *     gives, and with a guard asks it inside the actor's queue from a
+ *     fresh read, so a sandbox a turn woke while the delete waited is
+ *     skipped, never deleted; `prepare` readies the template and never
+ *     rejects.
  */
 import { describe, expect, it } from "vitest";
 
-import { createLogger } from "../../../boot/logger.js";
+import { createLogger, type LogEntry } from "../../../boot/logger.js";
 import { sandboxBaseName } from "../../naming.js";
 import type {
   SandboxDriverConfig,
@@ -100,6 +107,7 @@ const env: SandboxEnvironment = {
 function harness(
   answer?: Parameters<typeof fakeRouter>[0],
   runnerMode?: "local" | "cloud",
+  logger = silentLogger,
 ) {
   let t = Date.parse("2026-10-03T12:00:00Z");
   const now = () => t;
@@ -111,7 +119,7 @@ function harness(
   const driver = newSubstrateSandboxDriverOverGateway({
     config,
     settings,
-    logger: silentLogger,
+    logger,
     gateway: substrate,
     ...(runnerMode === undefined ? {} : { runnerMode }),
     fetch: router.fetch,
@@ -494,6 +502,107 @@ describe("a pause from before this server process", () => {
       `getActor ${ACTOR}`,
       `ensureEgressPolicy ${ACTOR}`,
     ]);
+  });
+});
+
+describe("the ensure's log line names the path it took", () => {
+  /** A harness whose logger keeps every "ensured" line's fields. */
+  function logged() {
+    const ensured: LogEntry[] = [];
+    const logger = createLogger({
+      level: "info",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => {
+        if (entry.message === "Substrate sandbox ensured") ensured.push(entry);
+      },
+    });
+    return { h: harness(undefined, undefined, logger), ensured };
+  }
+
+  async function armOf(
+    h: ReturnType<typeof harness>,
+    ensured: LogEntry[],
+  ): Promise<unknown> {
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    expect(ensured).toHaveLength(1);
+    return ensured[0]?.fields?.["arm"];
+  }
+
+  it("created: an absent sandbox created and woken is not counted as a wake from storage", async () => {
+    const { h, ensured } = logged();
+    expect(await armOf(h, ensured)).toBe("created");
+  });
+
+  it("an absent sandbox another server created meanwhile is named by the state found next, not created", async () => {
+    const { h, ensured } = logged();
+    const create = h.substrate.createActor.bind(h.substrate);
+    h.substrate.createActor = async (name, template) => {
+      h.substrate.put({ name, state: ActorState.RUNNING, template });
+      return create(name, template);
+    };
+    expect(await armOf(h, ensured)).toBe("running");
+  });
+
+  it("suspended: woken from storage", async () => {
+    const { h, ensured } = logged();
+    h.substrate.put({
+      name: ACTOR,
+      state: ActorState.SUSPENDED,
+      template: "t",
+    });
+    expect(await armOf(h, ensured)).toBe("suspended");
+  });
+
+  it("paused: thawed in place", async () => {
+    const { h, ensured } = logged();
+    h.advance(CLOCK_SKEW_ALLOWANCE_MS);
+    h.substrate.put({ name: ACTOR, state: ActorState.PAUSED, template: "t" });
+    h.advance(1000);
+    expect(await armOf(h, ensured)).toBe("paused");
+  });
+
+  it("paused-stale: found paused too long, suspended, then woken from storage", async () => {
+    const { h, ensured } = logged();
+    h.substrate.put({ name: ACTOR, state: ActorState.PAUSED, template: "t" });
+    h.advance(MAX_IN_PLACE_PAUSE_SECONDS * 1000 + 1);
+    expect(await armOf(h, ensured)).toBe("paused-stale");
+  });
+
+  it("paused-stale: found paused from before this server process", async () => {
+    const { h, ensured } = logged();
+    h.substrate.put({ name: ACTOR, state: ActorState.PAUSED, template: "t" });
+    h.advance(1000);
+    expect(await armOf(h, ensured)).toBe("paused-stale");
+  });
+
+  it("running: already awake, pushed only", async () => {
+    const { h, ensured } = logged();
+    h.substrate.put({ name: ACTOR, state: ActorState.RUNNING, template: "t" });
+    expect(await armOf(h, ensured)).toBe("running");
+  });
+
+  it("crashed: reverted, then brought up", async () => {
+    const { h, ensured } = logged();
+    h.substrate.put({ name: ACTOR, state: ActorState.CRASHED, template: "t" });
+    expect(await armOf(h, ensured)).toBe("crashed");
+  });
+
+  it("a state in transition names nothing: the path is the settled state it acts on", async () => {
+    const { h, ensured } = logged();
+    const actor = h.substrate.put({
+      name: ACTOR,
+      state: ActorState.SUSPENDING,
+      template: "t",
+    });
+    let polls = 0;
+    const getActor = h.substrate.getActor.bind(h.substrate);
+    h.substrate.getActor = async (name) => {
+      polls += 1;
+      if (polls === 2) actor.state = ActorState.SUSPENDED;
+      return getActor(name);
+    };
+    expect(await armOf(h, ensured)).toBe("suspended");
   });
 });
 
@@ -989,9 +1098,9 @@ describe("the lifecycle a composition's own sweep calls", () => {
   it("deletes a sandbox known only by its name, and refuses a name it never gives", async () => {
     const h = harness();
     h.substrate.put({ name: ACTOR, state: ActorState.RUNNING, template: "t" });
-    await h.driver.lifecycle.deleteByName(ACTOR);
+    expect(await h.driver.lifecycle.deleteByName(ACTOR)).toBe("done");
     expect(h.substrate.actors.has(ACTOR)).toBe(false);
-    await h.driver.lifecycle.deleteByName(ACTOR);
+    expect(await h.driver.lifecycle.deleteByName(ACTOR)).toBe("done");
     for (const foreign of [
       "golden-t",
       "sbx-anything",
@@ -1007,6 +1116,64 @@ describe("the lifecycle a composition's own sweep calls", () => {
       );
       expect(h.substrate.actors.has(foreign)).toBe(true);
     }
+  });
+
+  it("asks a delete's guard inside the actor's queue, so a sandbox a turn woke meanwhile is skipped, not deleted", async () => {
+    const h = harness();
+    h.substrate.put({
+      name: ACTOR,
+      state: ActorState.SUSPENDED,
+      template: "stigmer-runner-old",
+    });
+    const seen: string[] = [];
+    // The wake is queued first; the delete's guard must see what it left.
+    const wake = h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    const outcome = h.driver.lifecycle.deleteByName(ACTOR, {
+      proceed: async (actor) => {
+        seen.push(`${actor.name} ${actor.state}`);
+        return actor.state === "suspended";
+      },
+    });
+    await wake;
+    expect(await outcome).toBe("skipped");
+    expect(seen).toEqual([`${ACTOR} running`]);
+    expect(h.substrate.calls).not.toContain(`deleteActor ${ACTOR}`);
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.RUNNING);
+    // A skipped delete forgets nothing this process knew of the sandbox.
+    expect(h.driver.internals.lastEnsuredAt(ACTOR)).toBeDefined();
+  });
+
+  it("deletes when a delete's guard proceeds, and never asks about a sandbox that is gone", async () => {
+    const h = harness();
+    h.substrate.put({
+      name: ACTOR,
+      state: ActorState.SUSPENDED,
+      template: "t",
+    });
+    let asked = 0;
+    const guard = {
+      proceed: async () => {
+        asked += 1;
+        return true;
+      },
+    };
+    expect(await h.driver.lifecycle.deleteByName(ACTOR, guard)).toBe("done");
+    expect(h.substrate.actors.has(ACTOR)).toBe(false);
+    expect(await h.driver.lifecycle.deleteByName(ACTOR, guard)).toBe("skipped");
+    expect(asked).toBe(1);
+  });
+
+  it("forgets a sandbox a guarded delete found already gone", async () => {
+    const h = harness();
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    expect(h.driver.internals.lastEnsuredAt(ACTOR)).toBeDefined();
+    h.substrate.actors.delete(ACTOR);
+    expect(
+      await h.driver.lifecycle.deleteByName(ACTOR, {
+        proceed: async () => true,
+      }),
+    ).toBe("skipped");
+    expect(h.driver.internals.lastEnsuredAt(ACTOR)).toBeUndefined();
   });
 
   it("skips a sandbox whose upkeep fails, and stops before retiring when asked", async () => {
