@@ -58,6 +58,7 @@ describe.skipIf(!optedIn || !dockerAnswers())(
       kubernetesNamespace: "unused-by-this-driver",
       runnerEnv: { ANTHROPIC_BASE_URL: "http://host.docker.internal:18555" },
       runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-docker-smoke" },
+      serverRelease: "",
     };
     const driver = newDockerSandboxProvisioner({
       config,

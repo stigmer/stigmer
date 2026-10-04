@@ -53,6 +53,7 @@ const driverConfig: SandboxDriverConfig = {
   kubernetesNamespace: "stigmer-sandboxes",
   runnerEnv: {},
   runnerSecretEnv: {},
+  serverRelease: "",
 };
 
 function fakeFactory(marker: {

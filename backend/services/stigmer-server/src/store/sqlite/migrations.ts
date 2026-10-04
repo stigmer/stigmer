@@ -11,6 +11,8 @@
  * code path, no adoption special-casing. Each migration runs in its own
  * transaction and records its version row; `schema_version` is
  * MAX(version), exactly as Go computes it.
+ * A schema newer than this server supports is refused before migrations:
+ * an older release must not serve a database it does not understand.
  *
  * v7 brings the three tables Go's consumer stores create lazily OUTSIDE
  * the chain (signal_dedupe — workflowexecution/dedupe; oauth_grant and
@@ -84,6 +86,11 @@ export function runMigrations(
   `);
 
   const currentVersion = getSchemaVersion(db);
+  if (currentVersion > CURRENT_SCHEMA_VERSION) {
+    throw new Error(
+      `Database schema version ${currentVersion} is newer than this server supports (maximum ${CURRENT_SCHEMA_VERSION}). Run a newer Stigmer release that supports this schema, or restore a backup from before the database upgrade.`,
+    );
+  }
 
   const chain: ReadonlyArray<readonly [number, (db: DatabaseSync) => void]> = [
     [SCHEMA_VERSION_1, migrateToV1],

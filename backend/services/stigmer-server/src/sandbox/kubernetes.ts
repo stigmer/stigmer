@@ -66,7 +66,12 @@ import {
   SANDBOX_SCOPE_LABEL,
   sandboxBaseName,
 } from "./naming.js";
-import { RUNNER_HOME, RUNNER_UID, runnerCommand } from "./runner-launch.js";
+import {
+  RUNNER_HOME,
+  RUNNER_UID,
+  SERVER_RELEASE_ENV,
+  runnerCommand,
+} from "./runner-launch.js";
 
 // ---------------------------------------------------------------------------
 // Manifest constants — the Java SandboxManifestFactory values, kept
@@ -326,6 +331,9 @@ export function buildSandboxDeployment(
   ];
   if (config.mcpPublicEndpoint !== "") {
     containerEnv.push({ name: "STIGMER_MCP_PUBLIC_ENDPOINT", value: config.mcpPublicEndpoint });
+  }
+  if (config.serverRelease !== "") {
+    containerEnv.push({ name: SERVER_RELEASE_ENV, value: config.serverRelease });
   }
   // The operator's plain runner settings ride as values, like the
   // endpoints above; the runner's secrets ride the Secret, like the token.

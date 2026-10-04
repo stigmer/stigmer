@@ -11,6 +11,9 @@
  *     trust variable at it; off, neither is there;
  *   - its name is its content: the same input the same name, a new image a
  *     new name;
+ *   - a release server's release reaches the start script, and so names a
+ *     new template; a development server adds nothing, so a re-pin between
+ *     development builds keeps the template (stigmer/stigmer#1831);
  *   - it writes the runner's mode it is given (`cloud` for a composition
  *     hosting many organisations), which no operator setting overrides;
  *   - the keeper prepares once however many callers wait, waits for the
@@ -21,7 +24,11 @@ import { describe, expect, it } from "vitest";
 
 import { createLogger } from "../../../boot/logger.js";
 import type { SandboxDriverConfig } from "../../provisioner.js";
-import { RUNNER_HOME, waiterCommand } from "../../runner-launch.js";
+import {
+  RUNNER_HOME,
+  SERVER_RELEASE_ENV,
+  waiterCommand,
+} from "../../runner-launch.js";
 import { FakeSubstrate } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
 import {
@@ -49,6 +56,7 @@ const config: SandboxDriverConfig = {
   kubernetesNamespace: "unused",
   runnerEnv: { ANTHROPIC_BASE_URL: "http://fake-model.example:18555" },
   runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-test" },
+  serverRelease: "",
 };
 
 const settings: SubstrateDriverSettings = {
@@ -231,6 +239,18 @@ describe("the template", () => {
     expect(a).toMatch(/^stigmer-runner-[0-9a-f]{12}$/);
     expect(b).toBe(a);
     expect(c).not.toBe(a);
+  });
+
+  it("hands the start script a release server's release, and nothing for a development server", () => {
+    const dev = buildRunnerTemplate({ config, settings, runnerMode: "local" });
+    const released = buildRunnerTemplate({
+      config: { ...config, serverRelease: "3.42.0" },
+      settings,
+      runnerMode: "local",
+    });
+    expect(envOf(dev)).not.toHaveProperty(SERVER_RELEASE_ENV);
+    expect(envOf(released)[SERVER_RELEASE_ENV]).toBe("3.42.0");
+    expect(released.metadata?.name).not.toBe(dev.metadata?.name);
   });
 });
 

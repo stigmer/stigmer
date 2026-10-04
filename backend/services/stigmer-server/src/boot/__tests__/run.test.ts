@@ -8,7 +8,8 @@
  *   - SIGTERM runs the composed shutdown and exits 0, and a second signal
  *     does nothing more; a shutdown that fails is logged and exits 1;
  *   - a failed start is logged and exits 1, with no ready line;
- *   - a composition failure rejects, for the entry to report on stderr.
+ *   - a composition failure rejects, for the entry to report on stderr;
+ *   - a newer database schema rejects before listening or announcing readiness.
  *
  * The shipped entry itself (main.ts) is proven on the built artifact by
  * scripts/verify-boot.mjs.
@@ -16,6 +17,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 import { createClient } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -29,6 +31,10 @@ import type { ProcessHost } from "../run.js";
 import { openSourceEdition } from "../../editions/open-source.js";
 import type { SandboxProvisioner } from "../../sandbox/provisioner.js";
 import { resetOperatorIdentityForTests } from "../../pipeline/steps/defaults.js";
+import {
+  CURRENT_SCHEMA_VERSION,
+  runMigrations,
+} from "../../store/sqlite/migrations.js";
 
 interface RecordingHost extends ProcessHost {
   readonly signals: Map<string, () => void>;
@@ -207,5 +213,33 @@ describe("runServer", () => {
       runServer({ extensions: [{ name: "odd", orgLimit: 0 }], host }),
     ).rejects.toThrow(/declares orgLimit 0/);
     expect(host.exits).toEqual([]);
+  });
+
+  it("a newer database schema rejects before listening or announcing readiness", async () => {
+    const db = new DatabaseSync(path.join(dir, "stigmer.db"));
+    try {
+      runMigrations(db);
+      db.prepare(`INSERT INTO schema_version (version) VALUES (?)`).run(
+        CURRENT_SCHEMA_VERSION + 1,
+      );
+    } finally {
+      db.close();
+    }
+    const host = recordingHost();
+    try {
+      await expect(
+        runServer({ extensions: [openSourceEdition], host }),
+      ).rejects.toThrow(
+        `Database schema version ${CURRENT_SCHEMA_VERSION + 1} is newer than this server supports (maximum ${CURRENT_SCHEMA_VERSION})`,
+      );
+      expect(host.signals.size).toBe(0);
+      expect(host.stdout).toEqual([]);
+    } finally {
+      const shutdown = host.signals.get("SIGTERM");
+      if (shutdown !== undefined) {
+        shutdown();
+        await host.exited;
+      }
+    }
   });
 });

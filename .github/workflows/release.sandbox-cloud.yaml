@@ -205,21 +205,33 @@ jobs:
       # per arch, not type=gha, whose export has hung releases for up to an
       # hour (release.mcp-server, v3.1.11); a failed cache export is ignored,
       # so the cache can slow a release down but never fail one.
+      # A v* tag's build writes its release into the runner layer
+      # (/runner/RELEASE, the tag without its v), which the start script
+      # holds against the server's release (stigmer/stigmer#1831); every
+      # other build leaves the file empty, a development layer. The file is
+      # the layer's last, so the release costs one tiny layer and the
+      # bundles stay the cached bytes.
       - name: Build the sandbox image (amd64 pushes it)
         env:
           ARCH: ${{ matrix.arch }}
           CACHE_REF: ghcr.io/${{ github.repository_owner }}/runner-buildcache:sandbox-${{ matrix.arch }}
           IMAGE: ghcr.io/${{ github.repository_owner }}/runner
           SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+          VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
         run: |
           if [ "$ARCH" = "amd64" ]; then
             OUTPUT=(--tag "$IMAGE:main-$SHORT_SHA" --push)
           else
             OUTPUT=(--output type=cacheonly)
           fi
+          RELEASE=()
+          if [ -n "$VERSION_TAG" ]; then
+            RELEASE=(--build-arg "RUNNER_LAYER_RELEASE=${VERSION_TAG#v}")
+          fi
           docker buildx build \
             --platform "linux/$ARCH" \
             --target sandbox \
+            "${RELEASE[@]}" \
             --cache-from "type=registry,ref=$CACHE_REF" \
             --cache-to "type=registry,ref=$CACHE_REF,mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true" \
             --file backend/services/runner/Dockerfile.sandbox \
@@ -292,17 +304,25 @@ jobs:
           fi
           docker buildx imagetools create "${TAGS[@]}" "$IMAGE:main-$SHORT_SHA"
 
+      # The runner layer carries the same release as the sandbox image; the
+      # base builds no runner, so it takes none.
       - name: Push the base image and the runner layer (per-arch tags)
         env:
           ARCH: ${{ matrix.arch }}
           CACHE_REF: ghcr.io/${{ github.repository_owner }}/runner-buildcache:sandbox-${{ matrix.arch }}
           OWNER: ${{ github.repository_owner }}
           SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+          VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
         run: |
           for target in base runner-layer; do
+            RELEASE=()
+            if [ "$target" = runner-layer ] && [ -n "$VERSION_TAG" ]; then
+              RELEASE=(--build-arg "RUNNER_LAYER_RELEASE=${VERSION_TAG#v}")
+            fi
             docker buildx build \
               --platform "linux/$ARCH" \
               --target "$target" \
+              "${RELEASE[@]}" \
               --cache-from "type=registry,ref=$CACHE_REF" \
               --file backend/services/runner/Dockerfile.sandbox \
               --tag "ghcr.io/$OWNER/runner-${target#runner-}:main-$SHORT_SHA-$ARCH" \
@@ -315,12 +335,15 @@ jobs:
       # onto a glibc base Stigmer did not build: the runner boots there through
       # its start script, and the start script passes Node its arguments
       # unchanged while dropping a base's NODE_OPTIONS (one that would kill
-      # the runner at boot if it arrived).
+      # the runner at boot if it arrived). The joined layer names this
+      # build's release (none but a v* tag's), and a release layer refuses a
+      # server of another release.
       - name: Prove the layer on a foreign glibc base (ubuntu:24.04)
         timeout-minutes: 10
         env:
           ARCH: ${{ matrix.arch }}
           SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+          VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
         run: |
           docker buildx build --builder default --tag probe-base/ubuntu-git - <<'EOF'
           FROM ubuntu:24.04
@@ -346,6 +369,23 @@ jobs:
             exit 1
           fi
           echo "start script: arguments unchanged, NODE_OPTIONS and NODE_PATH cleared"
+          release="$(docker run --rm probe/ubuntu-joined cat /runner/RELEASE)"
+          if [ "$release" != "${VERSION_TAG#v}" ]; then
+            echo "the layer's /runner/RELEASE says '$release', expected '${VERSION_TAG#v}'" >&2
+            exit 1
+          fi
+          echo "layer release: '${release:-none, a development layer}'"
+          if [ -n "$VERSION_TAG" ]; then
+            set +e
+            message="$(docker run --rm --env STIGMER_SERVER_RELEASE=0.0.0 probe/ubuntu-joined /runner/bin/start /runner/dist/main.js 2>&1)"
+            status=$?
+            set -e
+            echo "$message"
+            if [ "$status" != 78 ] || [[ "$message" != *"this runner layer is from release ${VERSION_TAG#v}, but the server is 0.0.0"* ]]; then
+              echo "expected the start script to refuse server release 0.0.0 (exit 78), got exit $status" >&2
+              exit 1
+            fi
+          fi
 
       - name: Prove the layer refuses a musl base (alpine)
         env:

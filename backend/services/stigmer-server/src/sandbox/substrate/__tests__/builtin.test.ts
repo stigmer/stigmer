@@ -56,6 +56,7 @@ const config: SandboxDriverConfig = {
   kubernetesNamespace: "",
   runnerEnv: {},
   runnerSecretEnv: {},
+  serverRelease: "",
 };
 
 let dir: string;

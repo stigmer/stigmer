@@ -22,7 +22,11 @@
  *     port, and without one an ephemeral port still derives nothing
  *     (stigmer#1200);
  *   - a sandbox driver's background work starts with the server, reading
- *     the server's own sessions, and is stopped, awaited, at shutdown.
+ *     the server's own sessions, and is stopped, awaited, at shutdown;
+ *   - a sandbox driver is handed, as the server's release, the version
+ *     getServerInfo reports when it is a release, and "" for a development
+ *     version, so the runner layer's pairing check can never compare a
+ *     layer with a version the server does not report (stigmer#1831).
  */
 import { createClient } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -31,6 +35,7 @@ import {
   HealthCheckResponse_ServingStatus as ServingStatus,
 } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
+import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import {
@@ -52,6 +57,7 @@ import { seedOrganizations } from "../../domain/organization/__tests__/support.j
 import type { ServerExtension } from "../../extensions/registry.js";
 import type {
   SandboxBackgroundContext,
+  SandboxDriverConfig,
   SandboxProvisioner,
 } from "../../sandbox/provisioner.js";
 
@@ -65,6 +71,7 @@ function compose(
   env: NodeJS.ProcessEnv = {},
   logger: Logger = silentLogger,
   extensions: ReadonlyArray<ServerExtension> = [],
+  version?: string,
 ) {
   // Each composed server gets a throwaway database — the storage stage
   // opens DB_PATH for real (never the developer's ~/.stigmer).
@@ -89,6 +96,7 @@ function compose(
     portOverride: 0,
     host: "127.0.0.1",
     extensions,
+    version,
   });
 }
 
@@ -352,4 +360,52 @@ describe("a sandbox driver's background work", () => {
     }
     expect(events).toEqual(["started", "stopped"]);
   });
+});
+
+describe("the server's release in the sandbox driver bag", () => {
+  it.each([
+    ["3.42.0", "3.42.0"],
+    ["3.42.0-rc.1", "3.42.0-rc.1"],
+    ["3.42.0-dev.20261004013001.g5b1a7967f91e", ""],
+    ["dev", ""],
+  ])(
+    "a server stating %s hands its drivers %j, and reports what it stated",
+    async (version, release) => {
+      let handed: SandboxDriverConfig | undefined;
+      const provisioner = {} as SandboxProvisioner;
+      vi.stubEnv("STIGMER_ACTIVITY_ROUTING", "session");
+      const server = await compose(
+        { SANDBOX_PROVISIONER_TYPE: "recording" },
+        silentLogger,
+        [
+          {
+            name: "recording-sandboxes",
+            drivers: {
+              sandboxProvisionerDrivers: new Map([
+                [
+                  "recording",
+                  ({ config }: { config: SandboxDriverConfig }) => {
+                    handed = config;
+                    return provisioner;
+                  },
+                ],
+              ]),
+            },
+          },
+        ],
+        version,
+      );
+      try {
+        expect(handed?.serverRelease).toBe(release);
+        const info = await createClient(
+          PlatformQueryController,
+          server.inProcessTransport,
+        ).getServerInfo({});
+        expect(info.version).toBe(version);
+      } finally {
+        await server.shutdown();
+        vi.unstubAllEnvs();
+      }
+    },
+  );
 });
