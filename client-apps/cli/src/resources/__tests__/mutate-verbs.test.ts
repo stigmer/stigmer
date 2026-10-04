@@ -2,7 +2,7 @@
 //
 // Stands up a real Connect backend over h2c serving the query *and* command
 // controllers these verbs call, points an SDK node client at it, and drives the
-// resource layer (planDelete → perform, tagVersion) end to end. Asserts the
+// resource layer (planDelete → perform, tagVersion for workflows and agents) end to end. Asserts the
 // rendered result shape, the special-case routing (execution→cancel,
 // already-terminal), and that backend errors map to the right CLI exit code.
 
@@ -107,6 +107,7 @@ const openSessions = new Set<ServerHttp2Session>();
 // Spies for the command-side calls, reset per test.
 let cancelCalls: string[] = [];
 let tagCalls: { workflowId: string; versionHash: string; tag: string }[] = [];
+let agentTagCalls: { agentId: string; versionHash: string; tag: string }[] = [];
 // Force-carrying deletes record what actually rode the RPC.
 let environmentDeletes: { resourceId: string; force: boolean }[] = [];
 let channelAppDeletes: { resourceId: string; force: boolean }[] = [];
@@ -119,6 +120,7 @@ let workflowInstanceDeleteIds: string[] = [];
 beforeEach(() => {
   cancelCalls = [];
   tagCalls = [];
+  agentTagCalls = [];
   environmentDeletes = [];
   channelAppDeletes = [];
   channelDeleteIds = [];
@@ -140,6 +142,10 @@ beforeAll(async () => {
     });
     router.service(AgentCommandController, {
       delete: () => knownAgent,
+      tagVersion: (req) => {
+        agentTagCalls.push({ agentId: req.agentId, versionHash: req.versionHash, tag: req.tag });
+        return knownAgent;
+      },
     });
 
     router.service(AgentInstanceQueryController, {
@@ -435,7 +441,7 @@ describe("delete execution (cancel special case)", () => {
   });
 });
 
-describe("tag (workflow versions)", () => {
+describe("tag (workflow and agent versions)", () => {
   it("tags a workflow version and truncates the hash in the message", async () => {
     const result = await tagVersion(client, "workflow", "acme/deploy", "abcdef1234567890", "stable", "acme");
     expect(result.status).toBe("success");
@@ -448,8 +454,16 @@ describe("tag (workflow versions)", () => {
     expect(tagCalls[0]?.workflowId).toBe("wfl_1");
   });
 
-  it("rejects unsupported resource types with a usage error", async () => {
-    const err = await tagVersion(client, "agent", "acme/x", "abc", "v1", "acme").catch((e) => e);
+  it("tags an agent version, resolving the agent by reference", async () => {
+    const result = await tagVersion(client, "agent", "acme/reviewer", "abcdef1234567890", "stable", "acme");
+    expect(result.message).toBe("Tagged version abcdef123456 as 'stable'");
+    expect(agentTagCalls).toEqual([{ agentId: "agt_1", versionHash: "abcdef1234567890", tag: "stable" }]);
+    expect(tagCalls).toEqual([]);
+  });
+
+  it("rejects unsupported resource types with a usage error naming the supported ones", async () => {
+    const err = await tagVersion(client, "skill", "acme/x", "abc", "v1", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    expect((err as Error).message).toContain("Supported types: workflow, agent");
   });
 });

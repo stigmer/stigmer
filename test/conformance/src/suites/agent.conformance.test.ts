@@ -1,5 +1,6 @@
 // Conformance suite for the Agent domain.
-// Domain: agentic / agent — a flat (non-versioned) blueprint resource.
+// Domain: agentic / agent — a versioned blueprint resource (its versions:
+// agent-versions.conformance.test.ts).
 //
 // Drives AgentCommandController + AgentQueryController through the raw proto
 // stubs and asserts the contract: CRUD round-trips, apply create/update

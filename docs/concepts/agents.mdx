@@ -150,6 +150,30 @@ user sends a message, Stigmer creates an Execution that:
 Executions are **durable** — if the process crashes mid-execution, Stigmer
 recovers and resumes from where it left off.
 
+## Versions
+
+Every change to an Agent is kept. When you apply an Agent whose definition
+differs from every version it has had, Stigmer records a new version under a
+fingerprint of its content. Applying it unchanged records nothing, and applying
+an earlier definition again points the Agent back at that version.
+
+You can list an Agent's versions, open any of them, and give one a tag such as
+`stable`, the same way [Workflows](/docs/concepts/workflows) are versioned:
+
+```bash
+stigmer get agent code-reviewer --version-history
+stigmer get agent code-reviewer --version stable
+stigmer tag agent acme-corp/code-reviewer <version-hash> stable
+```
+
+Every Execution records the Agent version it ran, and runs that version to the
+end. If someone changes the Agent while your message is queued or running, your
+Execution keeps the instructions it started with, and anyone can later open that
+version to see exactly what the Agent was told.
+
+Schedules, channels, and shares run the Agent's current version. A reference
+from one of them that names a version is refused.
+
 ## The built-in assistant
 
 A Session that names no Agent runs the **built-in assistant**. It is what the

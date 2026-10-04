@@ -36,11 +36,27 @@ stigmer get agent my-agent --output yaml
 
 ## Options
 
-| Flag                | Type     | Default | Description                                        |
-| ------------------- | -------- | ------- | -------------------------------------------------- |
-| `--json`            | `bool`   |         | shorthand for --output json                        |
-| `--output`, `-o`    | `string` |         | output format: table, json, or yaml                |
-| `--version-history` | `bool`   |         | show the version history timeline (workflows only) |
+| Flag                | Type     | Default | Description                                              |
+| ------------------- | -------- | ------- | -------------------------------------------------------- |
+| `--json`            | `bool`   |         | shorthand for --output json                              |
+| `--output`, `-o`    | `string` |         | output format: table, json, or yaml                      |
+| `--version-history` | `bool`   |         | show the version history timeline (workflows and agents) |
+
+### Versions
+
+Workflows and Agents keep every version an apply records. Show the history, or
+fetch one version by its content hash or a tag:
+
+```bash
+# The version history, newest first; * marks the current version
+stigmer get agent acme-corp/code-reviewer --version-history
+
+# The agent as the version tagged "stable" stored it
+stigmer get agent acme-corp/code-reviewer --version stable
+
+# A workflow version prints its validated YAML
+stigmer get workflow acme-corp/deploy-pipeline --version stable
+```
 
 ### Supported resource types
 

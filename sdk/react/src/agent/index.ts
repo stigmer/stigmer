@@ -46,6 +46,12 @@ export type { UseAgentReturn } from "./useAgent.js";
 export { AgentDetailView } from "./AgentDetailView.js";
 export type { AgentDetailViewProps } from "./AgentDetailView.js";
 
+export { useAgentVersions } from "./useAgentVersions.js";
+export type { UseAgentVersionsReturn } from "./useAgentVersions.js";
+
+export { AgentVersionsTab } from "./AgentVersionsTab.js";
+export type { AgentVersionsTabProps } from "./AgentVersionsTab.js";
+
 
 export { useCreateAgent } from "./useCreateAgent.js";
 export type { UseCreateAgentReturn } from "./useCreateAgent.js";
