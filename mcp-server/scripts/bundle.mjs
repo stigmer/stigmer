@@ -3,18 +3,18 @@
 /**
  * Bundles the mcp-server-stigmer bin into a self-contained single file.
  *
- * Why this exists: @stigmer/mcp-server's dependency @stigmer/sdk is authored for
- * bundlers (extensionless relative imports), so a plain `tsc` build cannot run
- * under a bare `node` / `npx` / Docker — it would try to import the
- * non-runnable SDK at runtime. Bundling inlines the SDK (and the rest of the
- * dependency tree) into one file that runs under a bare Node. Mirrors the
- * approach @stigmer/runner takes for its slim artifact
+ * Why this exists: the bin once had to inline @stigmer/sdk, which was authored
+ * for bundlers (extensionless relative imports) and could not run under a bare
+ * `node` / `npx` / Docker. The published SDK now runs under plain Node (its
+ * node entry carries explicit extensions), and hosts import the library entry
+ * (dist/index.js, the "." export) unbundled; the bin stays one self-contained
+ * file, so `npx` and the image start it without resolving a dependency tree.
+ * Mirrors the approach @stigmer/runner takes for its slim artifact
  * (backend/services/runner/scripts/bundle-slim.mjs), scaled down to a pure-JS
  * server with no native modules.
  *
  * Run after `tsc` (it consumes the compiled dist/). Only the executable bin is
- * bundled; the library entry (dist/index.js, the "." export) is intentionally
- * left as the tsc output for bundler consumers.
+ * bundled; the library entry is left as the tsc output.
  */
 
 import { build } from "esbuild";
