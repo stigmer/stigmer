@@ -36,6 +36,9 @@
  * can only lower the full read's latest stamp when it befalls the
  * execution holding it, which is why that one is re-read: when its stamp
  * has gone or moved earlier, the cheap read falls back to the full one.
+ * It does the same when an execution it holds anything of cannot be read
+ * (a row that will not decode, a store fault): the full read skips such
+ * a row as it always has, so a bad row never keeps a session busy.
  * The look-back covers a run stamped up to a minute before it became
  * visible (its create chain stamps it before the gate and the save) on a
  * replica whose clock is up to a minute behind. So the cheap read can
@@ -79,6 +82,9 @@ export const FUTURE_STAMP_ALLOWANCE_MS = 60_000;
  * (module header).
  */
 export const RECENT_LOOKBACK_MS = 120_000;
+
+/** A by-id read that failed other than by the row being gone. */
+const UNREADABLE = Symbol("unreadable");
 
 /** An entry no read has touched for this long is dropped (module header). */
 export const ENTRY_IDLE_EVICT_MS = 10 * 60_000;
@@ -179,8 +185,15 @@ export function newStoreSessionActivityReader(
     return activityOfEntry(entry);
   };
 
-  /** The execution by id, or undefined once it is deleted. */
-  const reread = async (id: string): Promise<AgentExecution | undefined> => {
+  /**
+   * The execution by id, undefined once it is deleted, or UNREADABLE when
+   * the read fails any other way (a row that will not decode, a store
+   * fault): never taken for a delete.
+   */
+  const reread = async (
+    sessionId: string,
+    id: string,
+  ): Promise<AgentExecution | undefined | typeof UNREADABLE> => {
     try {
       return await store.getResource(
         ApiResourceKind.agent_execution,
@@ -191,7 +204,12 @@ export function newStoreSessionActivityReader(
       if (error instanceof ResourceNotFoundError) {
         return undefined;
       }
-      throw error;
+      logger.warn("Failed to re-read execution; reading the session in full", {
+        sessionId,
+        executionId: id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return UNREADABLE;
     }
   };
 
@@ -220,6 +238,13 @@ export function newStoreSessionActivityReader(
       const latestMs = entry.lastActiveMs;
       let latestNow: AgentExecution | undefined;
       let latestRead = false;
+      // An execution the entry holds something of that cannot be read
+      // now is one only the full read answers for: it skips a row that
+      // will not decode, and fails on a store fault.
+      const held = (id: string): boolean =>
+        id === latest ||
+        entry.busyIds.has(id) ||
+        entry.aheadStamps.some((ahead) => ahead.id === id);
       const present = new Set<string>();
       /** Executions decoded on this read, so current as of it. */
       const current = new Set<string>();
@@ -229,20 +254,27 @@ export function newStoreSessionActivityReader(
           continue;
         }
         const execution = decode(sessionId, row);
+        if (execution === undefined) {
+          if (held(row.id)) {
+            return activity(sessionId);
+          }
+          continue;
+        }
         if (row.id === latest) {
           latestNow = execution;
           latestRead = true;
         }
-        if (execution !== undefined) {
-          current.add(row.id);
-          foldRow(entry, row, execution, nowMs, nextBound);
-        }
+        current.add(row.id);
+        foldRow(entry, row, execution, nowMs, nextBound);
       }
       for (const id of [...entry.busyIds]) {
         if (present.has(id)) {
           continue;
         }
-        const execution = await reread(id);
+        const execution = await reread(sessionId, id);
+        if (execution === UNREADABLE) {
+          return activity(sessionId);
+        }
         if (id === latest) {
           latestNow = execution;
           latestRead = true;
@@ -255,7 +287,11 @@ export function newStoreSessionActivityReader(
         foldExecution(entry, id, execution, nowMs);
       }
       if (latest !== undefined && !latestRead) {
-        latestNow = await reread(latest);
+        const execution = await reread(sessionId, latest);
+        if (execution === UNREADABLE) {
+          return activity(sessionId);
+        }
+        latestNow = execution;
         if (latestNow !== undefined) {
           current.add(latest);
           foldExecution(entry, latest, latestNow, nowMs);
@@ -280,7 +316,10 @@ export function newStoreSessionActivityReader(
           .map((ahead) => ahead.id),
       );
       for (const id of reachedIds) {
-        const execution = await reread(id);
+        const execution = await reread(sessionId, id);
+        if (execution === UNREADABLE) {
+          return activity(sessionId);
+        }
         if (execution === undefined) {
           removeAheadStamps(entry, id);
         } else {

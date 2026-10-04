@@ -745,7 +745,7 @@ describe("recentActivity(sessionId)", () => {
     }
   });
 
-  it("never takes a store fault on a by-id read for a delete: the read fails", async () => {
+  it("reads in full when a by-id read fails other than by the row being gone, never taking it for a delete", async () => {
     const r = rig();
     await save(
       execution(
@@ -755,20 +755,49 @@ describe("recentActivity(sessionId)", () => {
         at(-60 * 60_000),
       ),
     );
+    const warnings: string[] = [];
+    const logger = createLogger({
+      level: "warn",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => warnings.push(entry.message),
+    });
     const failing = new Proxy(store, {
       get(target, prop, receiver) {
         if (prop === "getResource") {
-          return () => Promise.reject(new Error("database is locked"));
+          return () => Promise.reject(new Error("premature end of input"));
         }
         return Reflect.get(target, prop, receiver) as unknown;
       },
     });
-    const reader = newStoreSessionActivityReader(failing, silentLogger, r.now);
+    const reader = newStoreSessionActivityReader(failing, logger, r.now);
     await reader.recentActivity("ses_a");
     r.advance(PASS_MS);
-    await expect(reader.recentActivity("ses_a")).rejects.toThrow(
-      "database is locked",
+    expect(await reader.recentActivity("ses_a")).toEqual(await r.truth());
+    expect(warnings).toContain(
+      "Failed to re-read execution; reading the session in full",
     );
+  });
+
+  it("reads in full when an active run's row in the window will not decode, so a bad row never keeps the session busy", async () => {
+    const r = rig();
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        at(-10_000),
+      ),
+    );
+    expect((await r.reader.recentActivity("ses_a")).busy).toBe(true);
+    r.advance(PASS_MS);
+    r.corrupt.add("aex_1");
+    // The full read skips the row it cannot decode, as it always has.
+    expect(await r.reader.recentActivity("ses_a")).toEqual({
+      busy: false,
+      lastActiveAt: undefined,
+    });
+    expect(r.warnings).toContain("Failed to unmarshal execution, skipping");
   });
 
   it("drops an entry no read has touched for ten minutes, so a stale memory is never read from", async () => {
