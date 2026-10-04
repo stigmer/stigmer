@@ -215,7 +215,10 @@ on a person's approval, is never put to sleep.
 looks (30 seconds), so a sandbox sleeps within one interval of its idle time. A
 cluster whose nodes pull the runner image afresh wakes more slowly; lengthen the
 idle time there. A sleeping sandbox is never deleted: it goes when its Session
-does.
+does. Give each server its own namespace. A server puts to sleep only the
+sandboxes of Sessions its own store holds, and logs and leaves alone any other
+it finds there, so a second server in the same namespace keeps its sandboxes
+awake but gains no sleep for them.
 
 The server needs a Role in that namespace allowing `get`, `list`, `create`,
 `patch` and `delete` on `sandboxes.agents.x-k8s.io`, and `create`, `update` and

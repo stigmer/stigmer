@@ -89,7 +89,8 @@ describe("selecting the agent-sandbox driver", () => {
       [
         "apiVersion: v1",
         "kind: Config",
-        "clusters: [{name: c, cluster: {server: 'https://127.0.0.1:6443'}}]",
+        // Port 1 on the loopback refuses at once: no real cluster is reached.
+        "clusters: [{name: c, cluster: {server: 'https://127.0.0.1:1'}}]",
         "users: [{name: u, user: {token: t}}]",
         "contexts: [{name: x, context: {cluster: c, user: u}}]",
         "current-context: x",
@@ -101,14 +102,25 @@ describe("selecting the agent-sandbox driver", () => {
     expect(typeof provisioner.startBackground).toBe("function");
     // Its sweep starts and stops; the kubeconfig names no reachable
     // cluster, so the pass fails, is logged, and the sweep stays stoppable.
+    const lines: string[] = [];
+    const recording = createLogger({
+      level: "info",
+      pretty: false,
+      write: (line) => lines.push(line),
+    });
     const handle = provisioner.startBackground?.({
       sessions: {
         activity: async () => ({ busy: false, lastActiveAt: undefined }),
         recentActivity: async () => ({ busy: false, lastActiveAt: undefined }),
         sessionIds: async function* () {},
       },
-      logger,
+      logger: recording,
     });
+    await vi.waitFor(() =>
+      expect(lines.join("\n")).toContain(
+        "agent-sandbox idle sweep pass failed",
+      ),
+    );
     await handle?.stop();
   });
 

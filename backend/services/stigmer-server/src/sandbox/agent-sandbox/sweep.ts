@@ -14,14 +14,18 @@
  * by their labels.
  *
  * A Sandbox names its session in its `stigmer.ai/sandbox-id` label, so the
- * sweep needs no map from names back to sessions. A Sandbox whose session
- * has no executions (the session is gone, and its delete did not remove
- * the Sandbox) reads as idle since its creation and is suspended like any
- * other, and logged. One of ours whose label names no session, or another
- * session than its own name says, is left alone and logged: no session's
- * idleness can be trusted to put it to sleep. The sweep never deletes anything: deleting a
- * workspace is the session delete's act, and a wrong read must cost a
- * sleeping pod, not a user's files.
+ * sweep needs no map from names back to sessions. It suspends only a
+ * Sandbox whose session this server's store knows, idle by that store's
+ * executions. Every Stigmer server labels its Sandboxes the same way, so a
+ * second server pointed at the same namespace lists this one's too; this
+ * store holds no executions for their sessions, and reading that as idle
+ * would put another server's busy session to sleep. So a Sandbox whose
+ * session has no executions here (another server's, or a session deleted
+ * while its Sandbox's delete failed) is left alone and logged once; so is
+ * one whose label names no session, or another session than its own name
+ * says. The sweep never deletes anything: deleting a workspace is the
+ * session delete's act, and a wrong read must cost a running pod, not a
+ * user's files.
  *
  * Each suspend is decided twice: once from the pass's reads, then again
  * inside the driver's per-sandbox queue right before the patch, from
@@ -65,6 +69,8 @@ export interface AgentSandboxSweepOptions {
   readonly now?: () => number;
   /** True once the sweep is stopping: a pass ends between sandboxes. */
   readonly stopping?: () => boolean;
+  /** The Sandboxes already logged as left alone, so each is said once per sweep. */
+  readonly reported?: Set<string>;
 }
 
 /** Starts the sweep: one pass now, then one per interval, never two at once. */
@@ -75,9 +81,14 @@ export function startAgentSandboxSweep(
   let running: Promise<void> | undefined;
   let stopped = false;
 
+  const reported = new Set<string>();
   const tick = (): void => {
     if (stopped || running !== undefined) return;
-    running = runAgentSandboxSweepPass({ ...options, stopping: () => stopped })
+    running = runAgentSandboxSweepPass({
+      ...options,
+      stopping: () => stopped,
+      reported,
+    })
       .catch((error: unknown) => {
         logger.error("agent-sandbox idle sweep pass failed", {
           error: error instanceof Error ? error.message : String(error),
@@ -107,6 +118,16 @@ export async function runAgentSandboxSweepPass(
   const { driver, sessions, logger } = options;
   const now = options.now ?? Date.now;
   const stopping = options.stopping ?? (() => false);
+  const reported = options.reported ?? new Set<string>();
+  const leftAlone = (
+    sandbox: AgentSandboxView,
+    message: string,
+    fields: Record<string, unknown>,
+  ): void => {
+    if (reported.has(sandbox.name)) return;
+    reported.add(sandbox.name);
+    logger.warn(message, { sandbox: sandbox.name, ...fields });
+  };
   const sandboxes = await driver.gateway.listSandboxes(
     SESSION_SANDBOX_SELECTOR,
   );
@@ -121,45 +142,51 @@ export async function runAgentSandboxSweepPass(
         // No label, no session to read: nothing says it is idle, and an
         // ensure never puts the label back, so a sleep here could come
         // mid-turn after every wake. Left alone, and said.
-        logger.warn("agent-sandbox sandbox names no session; left it alone", {
-          sandbox: sandbox.name,
-        });
+        leftAlone(
+          sandbox,
+          "agent-sandbox sandbox names no session; left it alone",
+          {},
+        );
         continue;
       }
       // A label that names another session than the Sandbox's own name
       // (edited or copied by hand) could put a busy session's pod to sleep
       // on another session's idleness: left alone, and said.
       if (sandbox.name !== sandboxBaseName("session", sessionId)) {
-        logger.warn(
+        leftAlone(
+          sandbox,
           "agent-sandbox sandbox's session label does not match its name; left it alone",
-          { sandbox: sandbox.name, sessionId },
+          { sessionId },
         );
         continue;
       }
-      const planned = decide(
-        sandbox,
-        await sessions.recentActivity(sessionId),
-        options,
-        now(),
-      );
-      if (!planned) continue;
-      let lastActivity: SessionActivity | undefined;
+      let activity = await sessions.recentActivity(sessionId);
+      if (activity.lastActiveAt === undefined) {
+        // The cheap read may lag; only the full read says the session has
+        // no executions in this store at all.
+        activity = await sessions.activity(sessionId);
+        if (activity.lastActiveAt === undefined) {
+          leftAlone(
+            sandbox,
+            "agent-sandbox sandbox's session has no executions in this server's store (another server's, or a deleted session's); left it alone",
+            { sessionId },
+          );
+          continue;
+        }
+      }
+      if (!decide(sandbox, activity, options, now())) continue;
       const outcome = await driver.suspend(sandbox.name, async (fresh) => {
-        lastActivity = await sessions.activity(sessionId);
-        return decide(fresh, lastActivity, options, now());
+        const latest = await sessions.activity(sessionId);
+        return (
+          latest.lastActiveAt !== undefined &&
+          decide(fresh, latest, options, now())
+        );
       });
       if (outcome !== "done") continue;
-      if (lastActivity?.lastActiveAt === undefined) {
-        logger.error(
-          "agent-sandbox sandbox's session has no executions; suspended it (its workspace is kept)",
-          { sandbox: sandbox.name, sessionId },
-        );
-      } else {
-        logger.info("agent-sandbox sandbox suspended (idle)", {
-          sandbox: sandbox.name,
-          sessionId,
-        });
-      }
+      logger.info("agent-sandbox sandbox suspended (idle)", {
+        sandbox: sandbox.name,
+        sessionId,
+      });
     } catch (error) {
       logger.warn("agent-sandbox idle sweep skipped a sandbox", {
         sandbox: sandbox.name,

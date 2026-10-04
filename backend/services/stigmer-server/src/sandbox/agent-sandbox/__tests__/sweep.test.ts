@@ -12,9 +12,11 @@
  *   - each suspend is decided from the cheap read, then again inside the
  *     driver's queue from a full read, so a turn the cheap read lags
  *     behind keeps its pod;
- *   - a Sandbox whose session has no executions is suspended and logged as
- *     an error, never deleted; one of ours that names no session, or whose
- *     session label does not match its name, is left alone and logged;
+ *   - a Sandbox whose session has no executions in this store (another
+ *     server's, sharing the namespace, or a deleted session's), one that
+ *     names no session, and one whose session label does not match its
+ *     name are left alone and logged once; a suspend whose session lost its
+ *     executions by the second read is refused;
  *   - a Sandbox another replica made, never ensured here, keeps its pod for
  *     the window from its creation;
  *   - a Sandbox the pass fails on is skipped and logged, and the pass goes
@@ -284,27 +286,63 @@ describe("the idle sweep", () => {
     );
   });
 
-  it("suspends a Sandbox whose session has no executions, logging it, and never deletes it", async () => {
+  it("leaves alone, and logs once, a Sandbox whose session has no executions in this store", async () => {
     const h = harness();
     h.cluster.seed(
-      buildAgentSandbox("session", "ses_gone", env("session:ses_gone"), config),
+      buildAgentSandbox(
+        "session",
+        "ses_other",
+        env("session:ses_other"),
+        config,
+      ),
       "Running",
     );
-    h.advance(5.5 * MIN);
-    await h.pass();
-    expect(modeOf(h.cluster, "ses_gone")).toBe("Suspended");
-    expect(h.cluster.calls.filter((call) => call.startsWith("delete"))).toEqual(
-      [],
-    );
-    expect(h.logger.entries).toContainEqual({
-      level: "error",
-      message:
-        "agent-sandbox sandbox's session has no executions; suspended it (its workspace is kept)",
-      fields: {
-        sandbox: sandboxBaseName("session", "ses_gone"),
-        sessionId: "ses_gone",
+    h.advance(60 * MIN);
+    const reported = new Set<string>();
+    for (let pass = 0; pass < 2; pass += 1) {
+      await runAgentSandboxSweepPass({
+        driver: h.driver.internals,
+        settings,
+        sessions: h.sessions,
+        logger: h.logger,
+        now: h.now,
+        reported,
+      });
+    }
+    expect(modeOf(h.cluster, "ses_other")).toBe("Running");
+    expect(h.sessions.kinds).toEqual(["recent", "full", "recent", "full"]);
+    expect(
+      h.cluster.calls.filter(
+        (call) => call.startsWith("patch") || call.startsWith("delete"),
+      ),
+    ).toEqual([]);
+    expect(h.logger.entries).toEqual([
+      {
+        level: "warn",
+        message:
+          "agent-sandbox sandbox's session has no executions in this server's store (another server's, or a deleted session's); left it alone",
+        fields: {
+          sandbox: sandboxBaseName("session", "ses_other"),
+          sessionId: "ses_other",
+        },
       },
+    ]);
+  });
+
+  it("refuses the suspend when the session's executions are gone by the second read", async () => {
+    const h = harness();
+    await h.driver.provisioner.ensureSessionSandbox(
+      "ses_1",
+      env("session:ses_1"),
+    );
+    h.sessions.lagging.set("ses_1", {
+      busy: false,
+      lastActiveAt: new Date(T0),
     });
+    h.advance(6 * MIN);
+    await h.pass();
+    expect(h.sessions.kinds).toEqual(["recent", "full"]);
+    expect(modeOf(h.cluster, "ses_1")).toBe("Running");
   });
 
   it("leaves alone, and logs, one of ours that names no session", async () => {
@@ -334,6 +372,10 @@ describe("the idle sweep", () => {
 
   it("starts the idle clock at the Sandbox's creation, for one another replica made", async () => {
     const h = harness();
+    h.sessions.activities.set("ses_new", {
+      busy: false,
+      lastActiveAt: new Date(T0 - 30 * MIN),
+    });
     h.cluster.seed(
       buildAgentSandbox("session", "ses_new", env("session:ses_new"), config),
       "Running",
@@ -433,6 +475,10 @@ describe("the started sweep", () => {
       "ses_1",
       env("session:ses_1"),
     );
+    h.sessions.activities.set("ses_1", {
+      busy: false,
+      lastActiveAt: new Date(T0),
+    });
     h.advance(6 * MIN);
     const handle = startAgentSandboxSweep({
       driver: h.driver.internals,
