@@ -4,7 +4,9 @@
 //
 // Unlike the other suites — which drive the raw proto controllers via a
 // TargetProfile — this one exercises the MCP tool surface end-to-end through
-// an in-memory MCP client. It proves the full path: MCP tool input -> codegen
+// an in-memory MCP client, and once more over Streamable HTTP through the
+// stateless handler a host mounts (createMcpHttpHandler), where every request
+// carries its own bearer and builds its own server. It proves the full path: MCP tool input -> codegen
 // apply projection (toProto) -> gRPC Apply on the real server -> protojson
 // back through the read tool. A small backend resolver (not a TargetProfile)
 // is used because the MCP server exposes tools, not proto clients — but it
@@ -14,10 +16,14 @@
 //     conformance user; the bridge's startup apiKey carries the user's JWT
 //     (BackendTarget.apiKey is the stdio credential resolveToken falls back
 //     to), so every tool call traverses real auth + FGA.
+import { createServer as createHttpServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
+
 import { createClient } from "@connectrpc/connect";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { createServer } from "@stigmer/mcp-server";
+import { createMcpHttpHandler, createServer } from "@stigmer/mcp-server";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -258,5 +264,48 @@ ${taskConfig}
     expect(JSON.stringify(celVerdict.errors)).toContain(
       "at least one duration field must be non-zero",
     );
+  });
+});
+
+describe("MCP server conformance over Streamable HTTP (stateless handler)", () => {
+  let host: Server;
+  let httpClient: Client;
+  let httpTransport: StreamableHTTPClientTransport;
+
+  beforeAll(async () => {
+    // The handler as a host mounts it: no startup credential, so every tool
+    // call runs on the bearer its own request carried.
+    const handler = createMcpHttpHandler({
+      target: { serverAddress: backend.serverAddress, apiKey: "" },
+      authRequired: backend.apiKey !== "",
+      oauth: { enabled: false, resource: "", authorizationServers: [], scopesSupported: [] },
+    });
+    host = createHttpServer((req, res) => void handler(req, res));
+    await new Promise<void>((resolve) => host.listen(0, "127.0.0.1", resolve));
+    const port = (host.address() as AddressInfo).port;
+    httpTransport = new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/`), {
+      requestInit: backend.apiKey === "" ? undefined : { headers: { Authorization: `Bearer ${backend.apiKey}` } },
+    });
+    httpClient = new Client({ name: "mcp-conformance-http", version: "test" });
+    await httpClient.connect(httpTransport);
+  });
+
+  afterAll(async () => {
+    await httpClient?.close();
+    await new Promise<void>((resolve) => (host ? host.close(() => resolve()) : resolve()));
+  });
+
+  it("applies and reads back an agent with no MCP session", async () => {
+    const slug = uniqueName("http-agent");
+    const applied = (await httpClient.callTool({
+      name: "apply_agent",
+      arguments: { name: slug, org: orgSlug, instructions: "Served over the stateless handler." },
+    })) as ToolResult;
+    expect(applied.isError, applied.content[0]?.text).toBeFalsy();
+
+    const fetched = (await httpClient.callTool({ name: "get_agent", arguments: { org: orgSlug, slug } })) as ToolResult;
+    expect(fetched.isError, fetched.content[0]?.text).toBeFalsy();
+    expect(JSON.parse(fetched.content[0]?.text ?? "{}").spec?.instructions).toBe("Served over the stateless handler.");
+    expect(httpTransport.sessionId, "the server never issues a session").toBeUndefined();
   });
 });

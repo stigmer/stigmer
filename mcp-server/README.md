@@ -16,7 +16,7 @@ the retired Go `mcp-server/`.
 ## Architecture
 
 ```
-MCP client ──JSON-RPC──▶ stdio | HTTP session ──▶ tool handler
+MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handler
                                                       │
                                           resolveToken (per request)
                                                       │
@@ -35,6 +35,12 @@ MCP client ──JSON-RPC──▶ stdio | HTTP session ──▶ tool handler
   `Authorization: Bearer` token, which is forwarded unchanged to
   `stigmer-server`; the MCP server never validates it. In `stdio`/`both` mode the
   startup `STIGMER_API_KEY` is used.
+- **Stateless HTTP.** Every HTTP request is served on its own, with no MCP
+  session and a plain JSON reply: no tool sends anything outside its own
+  response, so any number of replicas can serve, and a restart drops no
+  client. `GET` and `DELETE` answer `405` (no stream to open, no session to
+  end), a body that is not JSON answers `400`, and a body over 4 MiB answers
+  `413`.
 - **`apply_*` ergonomics are generated.** The flattened, LLM-friendly input
   schemas for the `apply_*` tools (metadata hoisting, enum→string, reference
   flattening, oneof / `task_config` expansion) are produced at build time by the
@@ -142,16 +148,40 @@ STIGMER_MCP_HTTP_PORT=8080 \
 npx -y -p @stigmer/mcp-server mcp-server-stigmer
 ```
 
-In `http` mode the server also exposes `GET /health` (unauthenticated liveness).
+In `http` mode the server also exposes `GET /health` (unauthenticated
+liveness) and `GET /ready` (liveness and a working backend hop).
 
 ### Embedding
 
-```ts
-import { createServer, serveStdio } from "@stigmer/mcp-server";
+Run the whole server in-process, as the `stigmer` CLI does:
 
-const server = createServer({ serverAddress: "localhost:7234", apiKey: "sk-..." });
+```ts
+import { defaultConfig, run } from "@stigmer/mcp-server";
+
 const controller = new AbortController();
-await serveStdio(server, controller.signal);
+process.on("SIGINT", () => controller.abort());
+await run(defaultConfig(), controller.signal);
+```
+
+Or mount the HTTP handler on a listener the host already runs, beside its own
+routes. The host answers its own probes; the handler serves the four MCP routes
+(`/`, `/channels`, `/conversation`, `/memory`) and the RFC 9728 metadata
+document, refuses any other path with `404`, and never rejects. The optional
+`authenticate` check lets a host that can verify tokens refuse one at the door:
+`refused` answers `401` with the OAuth challenge, so clients refresh and retry,
+and `unavailable` answers `503`.
+
+```ts
+import { createServer } from "node:http";
+import { createMcpHttpHandler } from "@stigmer/mcp-server";
+
+const handler = createMcpHttpHandler({
+  target: { serverAddress: "127.0.0.1:7234", apiKey: "" },
+  authRequired: true,
+  oauth: { enabled: false, resource: "", authorizationServers: [], scopesSupported: [] },
+  authenticate: async (token) => ((await verify(token)) ? "accepted" : "refused"),
+});
+createServer((req, res) => void handler(req, res)).listen(8080);
 ```
 
 ## Development
