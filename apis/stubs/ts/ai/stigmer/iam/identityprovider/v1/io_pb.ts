@@ -116,7 +116,8 @@ export const ListIdentityProvidersByOrgInputSchema: GenMessage<ListIdentityProvi
  */
 export type OrganizationSsoLookup = Message<"ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup"> & {
   /**
-   * Organization slug to look up SSO configuration for.
+   * Organization to look up SSO configuration for: its id, as the shared
+   * SSO sign-in link carries it, or its slug, as a person types it.
    *
    * @generated from field: string org = 1;
    */

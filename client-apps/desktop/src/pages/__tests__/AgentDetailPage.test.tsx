@@ -9,7 +9,8 @@
  *
  * Also pins how the page names organizations: the viewer's org reaches the
  * view as its id, and a referenced resource, which names its org by id,
- * opens at a URL carrying the org's slug.
+ * opens at a URL carrying the org's slug. A share link names neither: it
+ * points at the web console's `/chat/<share id>`, never the Tauri origin.
  */
 import type { ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -37,6 +38,7 @@ interface DetailProps {
   onSkillClick: (ref: { org: string; slug: string }) => void;
   onMcpServerClick: (ref: { org: string; slug: string }) => void;
   onPluginClick: (ref: { org: string; slug: string }) => void;
+  buildShareUrl: (shareId: string) => string;
 }
 
 const page = vi.hoisted(() => ({
@@ -161,5 +163,14 @@ describe("desktop AgentDetailPage — organizations", () => {
     act(() => page.detail.at(-1)?.onPluginClick({ org: ACME_ID, slug: "toolkit" }));
 
     expect(screen.getByTestId("location").textContent).toBe("/library/plugins/acme/toolkit");
+  });
+
+  it("builds a share link on the web console from the share's id alone", () => {
+    page.agent = AGENT;
+    renderAgent();
+
+    expect(page.detail.at(-1)?.buildShareUrl("ash_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
+      `${CONSOLE_URL}/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2`,
+    );
   });
 });

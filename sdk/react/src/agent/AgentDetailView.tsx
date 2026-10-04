@@ -146,10 +146,11 @@ export interface AgentDetailViewProps {
    * Builds the absolute public chat URL for shares in the Shares tab.
    * The host application owns URL construction — its configured public
    * origin may differ from the rendering origin (e.g. the desktop app).
-   * When omitted, share links fall back to the relative
-   * `/chat/<org>/<slug>` path.
+   * It receives the share's id (`metadata.id`), the one identity a link
+   * carries. When omitted, share links fall back to the relative
+   * `/chat/<share id>` path.
    */
-  readonly buildShareUrl?: (org: string, slug: string) => string;
+  readonly buildShareUrl?: (shareId: string) => string;
   /**
    * The viewer's active organization id, feeding the Instances tab: it
    * scopes the instance list to this org's rows, so a member of several

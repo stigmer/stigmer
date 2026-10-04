@@ -87,9 +87,9 @@ export class AgentShareClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getSharedProfileForMember(ref: ResourceRef): Promise<SharedAgentProfile> {
+  async getSharedProfileForMember(id: string): Promise<SharedAgentProfile> {
     try {
-      return await this.query.getSharedProfileForMember(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.agent_share }));
+      return await this.query.getSharedProfileForMember(create(AgentShareIdSchema, { value: id }));
     } catch (e) { throw wrapError(e); }
   }
 }

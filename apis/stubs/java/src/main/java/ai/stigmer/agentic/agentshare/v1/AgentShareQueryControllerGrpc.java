@@ -170,27 +170,27 @@ public final class AgentShareQueryControllerGrpc {
     return getGetSharedProfileMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.ApiResourceReference,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.AgentShareId,
       ai.stigmer.agentic.agentshare.v1.SharedAgentProfile> getGetSharedProfileForMemberMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "getSharedProfileForMember",
-      requestType = ai.stigmer.commons.apiresource.ApiResourceReference.class,
+      requestType = ai.stigmer.agentic.agentshare.v1.AgentShareId.class,
       responseType = ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.ApiResourceReference,
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.AgentShareId,
       ai.stigmer.agentic.agentshare.v1.SharedAgentProfile> getGetSharedProfileForMemberMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.agentic.agentshare.v1.SharedAgentProfile> getGetSharedProfileForMemberMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.AgentShareId, ai.stigmer.agentic.agentshare.v1.SharedAgentProfile> getGetSharedProfileForMemberMethod;
     if ((getGetSharedProfileForMemberMethod = AgentShareQueryControllerGrpc.getGetSharedProfileForMemberMethod) == null) {
       synchronized (AgentShareQueryControllerGrpc.class) {
         if ((getGetSharedProfileForMemberMethod = AgentShareQueryControllerGrpc.getGetSharedProfileForMemberMethod) == null) {
           AgentShareQueryControllerGrpc.getGetSharedProfileForMemberMethod = getGetSharedProfileForMemberMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.agentic.agentshare.v1.SharedAgentProfile>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentshare.v1.AgentShareId, ai.stigmer.agentic.agentshare.v1.SharedAgentProfile>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getSharedProfileForMember"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()))
+                  ai.stigmer.agentic.agentshare.v1.AgentShareId.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.getDefaultInstance()))
               .setSchemaDescriptor(new AgentShareQueryControllerMethodDescriptorSupplier("getSharedProfileForMember"))
@@ -313,7 +313,7 @@ public final class AgentShareQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get the public profile of a shared agent by the share's org/slug.
+     * Get the public profile of a shared agent by the share's id.
      * This is the resolution path for the hosted chat page: anonymous
      * visitors (no Stigmer account, no token) resolve a shared link to the
      * trimmed SharedAgentProfile — never the full Agent, whose spec carries
@@ -323,10 +323,10 @@ public final class AgentShareQueryControllerGrpc {
      * org-internal share from a nonexistent one; use
      * getSharedProfileForMember instead), or the share link is locked and
      * link_token does not match the share's current status.share_link_token.
-     * The cases are deliberately indistinguishable so an unshared, revoked,
-     * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
-     * empty: org+slug is the shared URL's identity, and cross-org slug
-     * matching on a public endpoint would enable enumeration.
+     * The same NOT_FOUND answers when the share's organization no longer
+     * exists. The cases are deliberately indistinguishable so an unshared,
+     * revoked, or rotated URL leaks nothing. Returns INVALID_ARGUMENT when
+     * share_id is empty.
      * </pre>
      */
     default void getSharedProfile(ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest request,
@@ -344,14 +344,15 @@ public final class AgentShareQueryControllerGrpc {
      * Also resolves public-audience shares, so an authenticated caller can
      * use one resolution path for any share.
      * Returns NOT_FOUND when the share does not exist, is disabled, the
-     * caller is not a member of the sharing organization, or the share is a
-     * public-audience share locked with a link token (this tokenless path
-     * must not reveal a killed link's profile) — the cases are deliberately
-     * indistinguishable so a share URL leaks nothing to non-members.
-     * Returns INVALID_ARGUMENT when org is empty.
+     * caller is not a member of the sharing organization, the share's
+     * organization no longer exists, or the share is a public-audience share
+     * locked with a link token (this tokenless path must not reveal a killed
+     * link's profile) — the cases are deliberately indistinguishable so a
+     * share URL leaks nothing to non-members. Returns INVALID_ARGUMENT when
+     * the id is empty.
      * </pre>
      */
-    default void getSharedProfileForMember(ai.stigmer.commons.apiresource.ApiResourceReference request,
+    default void getSharedProfileForMember(ai.stigmer.agentic.agentshare.v1.AgentShareId request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.SharedAgentProfile> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetSharedProfileForMemberMethod(), responseObserver);
     }
@@ -440,7 +441,7 @@ public final class AgentShareQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get the public profile of a shared agent by the share's org/slug.
+     * Get the public profile of a shared agent by the share's id.
      * This is the resolution path for the hosted chat page: anonymous
      * visitors (no Stigmer account, no token) resolve a shared link to the
      * trimmed SharedAgentProfile — never the full Agent, whose spec carries
@@ -450,10 +451,10 @@ public final class AgentShareQueryControllerGrpc {
      * org-internal share from a nonexistent one; use
      * getSharedProfileForMember instead), or the share link is locked and
      * link_token does not match the share's current status.share_link_token.
-     * The cases are deliberately indistinguishable so an unshared, revoked,
-     * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
-     * empty: org+slug is the shared URL's identity, and cross-org slug
-     * matching on a public endpoint would enable enumeration.
+     * The same NOT_FOUND answers when the share's organization no longer
+     * exists. The cases are deliberately indistinguishable so an unshared,
+     * revoked, or rotated URL leaks nothing. Returns INVALID_ARGUMENT when
+     * share_id is empty.
      * </pre>
      */
     public void getSharedProfile(ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest request,
@@ -472,14 +473,15 @@ public final class AgentShareQueryControllerGrpc {
      * Also resolves public-audience shares, so an authenticated caller can
      * use one resolution path for any share.
      * Returns NOT_FOUND when the share does not exist, is disabled, the
-     * caller is not a member of the sharing organization, or the share is a
-     * public-audience share locked with a link token (this tokenless path
-     * must not reveal a killed link's profile) — the cases are deliberately
-     * indistinguishable so a share URL leaks nothing to non-members.
-     * Returns INVALID_ARGUMENT when org is empty.
+     * caller is not a member of the sharing organization, the share's
+     * organization no longer exists, or the share is a public-audience share
+     * locked with a link token (this tokenless path must not reveal a killed
+     * link's profile) — the cases are deliberately indistinguishable so a
+     * share URL leaks nothing to non-members. Returns INVALID_ARGUMENT when
+     * the id is empty.
      * </pre>
      */
-    public void getSharedProfileForMember(ai.stigmer.commons.apiresource.ApiResourceReference request,
+    public void getSharedProfileForMember(ai.stigmer.agentic.agentshare.v1.AgentShareId request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.SharedAgentProfile> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetSharedProfileForMemberMethod(), getCallOptions()), request, responseObserver);
@@ -551,7 +553,7 @@ public final class AgentShareQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get the public profile of a shared agent by the share's org/slug.
+     * Get the public profile of a shared agent by the share's id.
      * This is the resolution path for the hosted chat page: anonymous
      * visitors (no Stigmer account, no token) resolve a shared link to the
      * trimmed SharedAgentProfile — never the full Agent, whose spec carries
@@ -561,10 +563,10 @@ public final class AgentShareQueryControllerGrpc {
      * org-internal share from a nonexistent one; use
      * getSharedProfileForMember instead), or the share link is locked and
      * link_token does not match the share's current status.share_link_token.
-     * The cases are deliberately indistinguishable so an unshared, revoked,
-     * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
-     * empty: org+slug is the shared URL's identity, and cross-org slug
-     * matching on a public endpoint would enable enumeration.
+     * The same NOT_FOUND answers when the share's organization no longer
+     * exists. The cases are deliberately indistinguishable so an unshared,
+     * revoked, or rotated URL leaks nothing. Returns INVALID_ARGUMENT when
+     * share_id is empty.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.SharedAgentProfile getSharedProfile(ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest request) throws io.grpc.StatusException {
@@ -582,14 +584,15 @@ public final class AgentShareQueryControllerGrpc {
      * Also resolves public-audience shares, so an authenticated caller can
      * use one resolution path for any share.
      * Returns NOT_FOUND when the share does not exist, is disabled, the
-     * caller is not a member of the sharing organization, or the share is a
-     * public-audience share locked with a link token (this tokenless path
-     * must not reveal a killed link's profile) — the cases are deliberately
-     * indistinguishable so a share URL leaks nothing to non-members.
-     * Returns INVALID_ARGUMENT when org is empty.
+     * caller is not a member of the sharing organization, the share's
+     * organization no longer exists, or the share is a public-audience share
+     * locked with a link token (this tokenless path must not reveal a killed
+     * link's profile) — the cases are deliberately indistinguishable so a
+     * share URL leaks nothing to non-members. Returns INVALID_ARGUMENT when
+     * the id is empty.
      * </pre>
      */
-    public ai.stigmer.agentic.agentshare.v1.SharedAgentProfile getSharedProfileForMember(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.agentshare.v1.SharedAgentProfile getSharedProfileForMember(ai.stigmer.agentic.agentshare.v1.AgentShareId request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetSharedProfileForMemberMethod(), getCallOptions(), request);
     }
@@ -660,7 +663,7 @@ public final class AgentShareQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get the public profile of a shared agent by the share's org/slug.
+     * Get the public profile of a shared agent by the share's id.
      * This is the resolution path for the hosted chat page: anonymous
      * visitors (no Stigmer account, no token) resolve a shared link to the
      * trimmed SharedAgentProfile — never the full Agent, whose spec carries
@@ -670,10 +673,10 @@ public final class AgentShareQueryControllerGrpc {
      * org-internal share from a nonexistent one; use
      * getSharedProfileForMember instead), or the share link is locked and
      * link_token does not match the share's current status.share_link_token.
-     * The cases are deliberately indistinguishable so an unshared, revoked,
-     * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
-     * empty: org+slug is the shared URL's identity, and cross-org slug
-     * matching on a public endpoint would enable enumeration.
+     * The same NOT_FOUND answers when the share's organization no longer
+     * exists. The cases are deliberately indistinguishable so an unshared,
+     * revoked, or rotated URL leaks nothing. Returns INVALID_ARGUMENT when
+     * share_id is empty.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.SharedAgentProfile getSharedProfile(ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest request) {
@@ -691,14 +694,15 @@ public final class AgentShareQueryControllerGrpc {
      * Also resolves public-audience shares, so an authenticated caller can
      * use one resolution path for any share.
      * Returns NOT_FOUND when the share does not exist, is disabled, the
-     * caller is not a member of the sharing organization, or the share is a
-     * public-audience share locked with a link token (this tokenless path
-     * must not reveal a killed link's profile) — the cases are deliberately
-     * indistinguishable so a share URL leaks nothing to non-members.
-     * Returns INVALID_ARGUMENT when org is empty.
+     * caller is not a member of the sharing organization, the share's
+     * organization no longer exists, or the share is a public-audience share
+     * locked with a link token (this tokenless path must not reveal a killed
+     * link's profile) — the cases are deliberately indistinguishable so a
+     * share URL leaks nothing to non-members. Returns INVALID_ARGUMENT when
+     * the id is empty.
      * </pre>
      */
-    public ai.stigmer.agentic.agentshare.v1.SharedAgentProfile getSharedProfileForMember(ai.stigmer.commons.apiresource.ApiResourceReference request) {
+    public ai.stigmer.agentic.agentshare.v1.SharedAgentProfile getSharedProfileForMember(ai.stigmer.agentic.agentshare.v1.AgentShareId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetSharedProfileForMemberMethod(), getCallOptions(), request);
     }
@@ -773,7 +777,7 @@ public final class AgentShareQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get the public profile of a shared agent by the share's org/slug.
+     * Get the public profile of a shared agent by the share's id.
      * This is the resolution path for the hosted chat page: anonymous
      * visitors (no Stigmer account, no token) resolve a shared link to the
      * trimmed SharedAgentProfile — never the full Agent, whose spec carries
@@ -783,10 +787,10 @@ public final class AgentShareQueryControllerGrpc {
      * org-internal share from a nonexistent one; use
      * getSharedProfileForMember instead), or the share link is locked and
      * link_token does not match the share's current status.share_link_token.
-     * The cases are deliberately indistinguishable so an unshared, revoked,
-     * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
-     * empty: org+slug is the shared URL's identity, and cross-org slug
-     * matching on a public endpoint would enable enumeration.
+     * The same NOT_FOUND answers when the share's organization no longer
+     * exists. The cases are deliberately indistinguishable so an unshared,
+     * revoked, or rotated URL leaks nothing. Returns INVALID_ARGUMENT when
+     * share_id is empty.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.SharedAgentProfile> getSharedProfile(
@@ -805,15 +809,16 @@ public final class AgentShareQueryControllerGrpc {
      * Also resolves public-audience shares, so an authenticated caller can
      * use one resolution path for any share.
      * Returns NOT_FOUND when the share does not exist, is disabled, the
-     * caller is not a member of the sharing organization, or the share is a
-     * public-audience share locked with a link token (this tokenless path
-     * must not reveal a killed link's profile) — the cases are deliberately
-     * indistinguishable so a share URL leaks nothing to non-members.
-     * Returns INVALID_ARGUMENT when org is empty.
+     * caller is not a member of the sharing organization, the share's
+     * organization no longer exists, or the share is a public-audience share
+     * locked with a link token (this tokenless path must not reveal a killed
+     * link's profile) — the cases are deliberately indistinguishable so a
+     * share URL leaks nothing to non-members. Returns INVALID_ARGUMENT when
+     * the id is empty.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.SharedAgentProfile> getSharedProfileForMember(
-        ai.stigmer.commons.apiresource.ApiResourceReference request) {
+        ai.stigmer.agentic.agentshare.v1.AgentShareId request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetSharedProfileForMemberMethod(), getCallOptions()), request);
     }
@@ -864,7 +869,7 @@ public final class AgentShareQueryControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.SharedAgentProfile>) responseObserver);
           break;
         case METHODID_GET_SHARED_PROFILE_FOR_MEMBER:
-          serviceImpl.getSharedProfileForMember((ai.stigmer.commons.apiresource.ApiResourceReference) request,
+          serviceImpl.getSharedProfileForMember((ai.stigmer.agentic.agentshare.v1.AgentShareId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.SharedAgentProfile>) responseObserver);
           break;
         default:
@@ -924,7 +929,7 @@ public final class AgentShareQueryControllerGrpc {
           getGetSharedProfileForMemberMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.commons.apiresource.ApiResourceReference,
+              ai.stigmer.agentic.agentshare.v1.AgentShareId,
               ai.stigmer.agentic.agentshare.v1.SharedAgentProfile>(
                 service, METHODID_GET_SHARED_PROFILE_FOR_MEMBER)))
         .build();

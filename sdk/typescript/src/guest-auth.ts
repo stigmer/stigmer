@@ -26,8 +26,8 @@ export interface GuestIdStorage {
  *
  * Unlike {@link PlatformClientAuthConfig}, this carries **no
  * credentials** — `mintGuestToken` is a public RPC gated server-side
- * on an enabled AgentShare at the given org/slug. It is therefore safe
- * to use directly from a browser.
+ * on an enabled AgentShare with the given id. It is therefore safe to
+ * use directly from a browser.
  *
  * @example
  * ```typescript
@@ -35,8 +35,7 @@ export interface GuestIdStorage {
  *
  * const guestAuth = createGuestAuth({
  *   baseUrl: "https://api.stigmer.ai",
- *   org: "acme",
- *   slug: "support-agent",
+ *   shareId: "ash_01j9z3k8f2q4m6n7p8r9s0t1v2",
  * });
  * ```
  */
@@ -44,15 +43,11 @@ export interface GuestAuthConfig {
   /** Stigmer API server URL (e.g., "https://api.stigmer.ai"). */
   readonly baseUrl: string;
 
-  /** The organization from the share URL, by id or slug. */
-  readonly org: string;
-
   /**
-   * Share slug from the share URL. Defaults to the shared agent's slug
-   * when the owner never customized it, so existing links pass the
-   * agent's slug here unchanged.
+   * Id of the share, from the hosted chat link (`/chat/<share id>`) or
+   * the embed's `share` attribute: the AgentShare's `metadata.id`.
    */
-  readonly slug: string;
+  readonly shareId: string;
 
   /**
    * Where to persist the visitor's guest id across visits.
@@ -60,7 +55,8 @@ export interface GuestAuthConfig {
    * Defaults to `localStorage` when available, falling back to
    * in-memory storage (guest identity then lasts one page load).
    * The stored value is an opaque server-generated id — not a
-   * credential — that keys this browser's session read-isolation.
+   * credential — that keys this browser's session read-isolation. It is
+   * kept per share, the one thing a link names.
    */
   readonly storage?: GuestIdStorage;
 
@@ -102,7 +98,7 @@ export interface GuestAuthConfig {
  */
 const EXPIRY_SKEW_MS = 60_000;
 
-/** Storage key prefix for the persisted guest id, namespaced per org. */
+/** Storage key prefix for the persisted guest id, namespaced per share. */
 const GUEST_ID_STORAGE_PREFIX = "stigmer:guest-id:";
 
 /**
@@ -128,8 +124,7 @@ const GUEST_ID_STORAGE_PREFIX = "stigmer:guest-id:";
  * ```typescript
  * const guestAuth = createGuestAuth({
  *   baseUrl: "https://api.stigmer.ai",
- *   org: "acme",
- *   slug: "support-agent",
+ *   shareId: "ash_01j9z3k8f2q4m6n7p8r9s0t1v2",
  * });
  *
  * const client = new Stigmer({
@@ -140,8 +135,7 @@ const GUEST_ID_STORAGE_PREFIX = "stigmer:guest-id:";
  */
 export class GuestAuth {
   private readonly tokenClient: Client<typeof PlatformClientTokenController>;
-  private readonly org: string;
-  private readonly slug: string;
+  private readonly shareId: string;
   private readonly storage: GuestIdStorage;
   private readonly storageKey: string;
   private readonly embedOrigin: string;
@@ -152,10 +146,9 @@ export class GuestAuth {
 
   /** @internal Use {@link createGuestAuth} instead. */
   constructor(config: GuestAuthConfig) {
-    this.org = config.org;
-    this.slug = config.slug;
+    this.shareId = config.shareId;
     this.storage = config.storage ?? resolveDefaultStorage();
-    this.storageKey = `${GUEST_ID_STORAGE_PREFIX}${config.org}`;
+    this.storageKey = `${GUEST_ID_STORAGE_PREFIX}${config.shareId}`;
     this.embedOrigin = config.embedOrigin ?? "";
     this.linkToken = config.linkToken ?? "";
 
@@ -191,8 +184,8 @@ export class GuestAuth {
    * @throws {StigmerError} with code `"permission-denied"` when
    *   `embedOrigin` is not in the agent's `allowed_origins` — embeds
    *   should hide the widget on this code rather than surface an error
-   * @throws {StigmerError} with code `"invalid-argument"` when org or
-   *   slug is malformed
+   * @throws {StigmerError} with code `"invalid-argument"` when the share
+   *   id is empty
    */
   readonly getAccessToken = async (): Promise<string | null> => {
     if (this.cached && this.cached.expiresAt - Date.now() > EXPIRY_SKEW_MS) {
@@ -214,8 +207,7 @@ export class GuestAuth {
     try {
       const response = await this.tokenClient.mintGuestToken(
         create(MintGuestTokenRequestSchema, {
-          org: this.org,
-          slug: this.slug,
+          shareId: this.shareId,
           guestCookieId: safeGetItem(this.storage, this.storageKey) ?? "",
           embedOrigin: this.embedOrigin,
           linkToken: this.linkToken,
@@ -307,8 +299,7 @@ function safeSetItem(storage: GuestIdStorage, key: string, value: string): void 
  *
  * const guestAuth = createGuestAuth({
  *   baseUrl: "https://api.stigmer.ai",
- *   org: "acme",
- *   slug: "support-agent",
+ *   shareId: "ash_01j9z3k8f2q4m6n7p8r9s0t1v2",
  * });
  *
  * const client = new Stigmer({
@@ -317,7 +308,7 @@ function safeSetItem(storage: GuestIdStorage, key: string, value: string): void 
  * });
  * ```
  *
- * @throws {Error} if `baseUrl`, `org`, or `slug` is missing or empty
+ * @throws {Error} if `baseUrl` or `shareId` is missing or empty
  */
 export function createGuestAuth(config: GuestAuthConfig): GuestAuth {
   if (!config.baseUrl) {
@@ -325,14 +316,9 @@ export function createGuestAuth(config: GuestAuthConfig): GuestAuth {
       "createGuestAuth: baseUrl is required (e.g., \"https://api.stigmer.ai\")",
     );
   }
-  if (!config.org) {
+  if (!config.shareId) {
     throw new Error(
-      "createGuestAuth: org is required — the organization from the share URL",
-    );
-  }
-  if (!config.slug) {
-    throw new Error(
-      "createGuestAuth: slug is required — the share slug from the share URL",
+      "createGuestAuth: shareId is required — the share's id from the share link",
     );
   }
 

@@ -86,9 +86,9 @@ public final class AgentShareClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public SharedAgentProfile getSharedProfileForMember(ResourceRef ref) {
+    public SharedAgentProfile getSharedProfileForMember(String id) {
         try {
-            return query.getSharedProfileForMember(ref.toProto().toBuilder().setKind(ApiResourceKind.agent_share).build());
+            return query.getSharedProfileForMember(AgentShareId.newBuilder().setValue(id).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

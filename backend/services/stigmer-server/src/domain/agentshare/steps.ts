@@ -3,7 +3,8 @@
  * and the get_shared_profile.go helpers: share defaults and the
  * same-organization invariant on agent_ref, the agent-id rebind pin, the
  * update immutability rules, the uniform-NotFound profile resolution
- * helpers, and the constant-time link-token predicate.
+ * helpers (the share a hosted chat link names, by its id), and the
+ * constant-time link-token predicate.
  *
  * A share's agent lives in the share's own organization. The
  * cross-organization arm this domain once carried (a share of another
@@ -34,11 +35,13 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import type { AgentShareIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { AgentShareStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/status_pb";
 import { SharedAgentProfileSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import type { SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import {
   failedPreconditionError,
@@ -54,8 +57,8 @@ import {
   evaluateAuthorizer,
 } from "../../pipeline/steps/authorize.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
-import type { GetByReferenceDesc } from "../../pipeline/steps/authorize-resolved-target.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
   AGENT_REF_SLUG_REQUIRED_MESSAGE,
@@ -66,6 +69,13 @@ import {
 } from "./constants.js";
 
 type AgentShareDesc = typeof AgentShareSchema;
+
+/**
+ * Context key for the share both profile lanes resolved from the link's
+ * share id: the loaders write it, AuthorizeMemberAudience and the
+ * projections read it.
+ */
+export const RESOLVED_SHARE_KEY = "resolvedAgentShare";
 
 /**
  * Context key for the agent resolved from spec.agent_ref during
@@ -121,56 +131,106 @@ export function resolveShareCreateTargets(
 
 /**
  * The single refusal for every anonymous/member resolution miss: share
- * missing, share disabled, dangling agent_ref, stale pin, wrong or absent
- * link token — Go sharedNotFound. The message deliberately says "Agent":
- * the visitor asked for an agent's chat page, and the share resource is an
- * internal modeling detail a public error must not teach. One constructor
- * guarantees the byte-identical-errors contract by construction.
+ * missing, share disabled, its organization gone, dangling agent_ref,
+ * stale pin, wrong or absent link token — Go sharedNotFound. It echoes
+ * the share id the caller sent, which the caller already holds. The
+ * message deliberately says "Agent": the visitor asked for an agent's
+ * chat page, and the share resource is an internal modeling detail a
+ * public error must not teach. One constructor guarantees the
+ * byte-identical-errors contract by construction.
  */
-export function sharedNotFound(slug: string): ConnectError {
-  return notFoundError("Agent", slug);
+export function sharedNotFound(shareId: string): ConnectError {
+  return notFoundError("Agent", shareId);
 }
 
 /**
- * AuthorizeMemberAudience — the member-profile lane's gate, membership
- * BEFORE existence: the Java AgentShareGetSharedProfileForMemberHandler
- * order. getSharedProfileForMember is the signed-in resolution path for a
- * share URL, and the proto pins its contract: a share that does not exist,
- * is disabled, or is asked for by someone who is not a member of the
- * sharing organization all answer the SAME NOT_FOUND, so a share URL
- * teaches a non-member nothing — not even whether the share exists. A
- * non-member resolving a public share uses the anonymous lane instead.
+ * Loads the share a hosted chat link names, for both profile lanes. A
+ * link carries only the share's id, which never changes and is never
+ * reused, so no rename of the share's organization breaks it and no later
+ * holder of that organization's name can capture it. A missing row (an
+ * unknown id, or another kind's id) and a share whose organization no
+ * longer exists answer the uniform refusal: deleting an organization
+ * removes its row but not yet what it owned, and a link must stop working
+ * when its organization is deleted. Each read is by primary key; any
+ * other store failure is Internal.
+ */
+export async function loadLinkedShare(
+  store: Store,
+  shareId: string,
+): Promise<AgentShare> {
+  let share: AgentShare;
+  try {
+    share = await store.getResource(
+      ApiResourceKind.agent_share,
+      shareId,
+      AgentShareSchema,
+    );
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw sharedNotFound(shareId);
+    }
+    throw internalError(error, "failed to load agent share");
+  }
+  try {
+    await store.getResource(
+      ApiResourceKind.organization,
+      share.metadata?.org ?? "",
+      OrganizationSchema,
+    );
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw sharedNotFound(shareId);
+    }
+    throw internalError(error, "failed to load organization");
+  }
+  return share;
+}
+
+/**
+ * AuthorizeMemberAudience — the member-profile lane's gate, after the
+ * share loads. getSharedProfileForMember is the signed-in resolution path
+ * for a share link, and the proto pins its contract: a share that does not
+ * exist, is disabled, or is asked for by someone who is not a member of the
+ * sharing organization all answer the SAME NOT_FOUND, so a share link
+ * teaches a non-member nothing. A non-member resolving a public share uses
+ * the anonymous lane instead.
  *
- * The question is can_view on the organization named in the reference (the
- * viewer set: members and above), asked live on every call so a revoked
- * member loses access at once; the RPC is is_skip_authorization because
- * the target is the reference's organization, not a request field the
- * annotation can key on. This is deliberately NOT the shared
- * AuthorizeResolvedTarget step: that step answers deny with
- * PERMISSION_DENIED, and this lane's wire contract is the indistinguishable
- * NOT_FOUND above, so the lane keeps its own mapping over the same
- * evaluation (the decision form checkMyPermission uses). An empty org is
- * left to the loader's INVALID_ARGUMENT, the proto's own copy for it; an
+ * The link names only the share, so the organization to ask about is the
+ * loaded share's own: the step runs after LoadShareForMemberProfile. Its
+ * refusal is byte-identical to the loader's for a missing share, so the
+ * order changes no answer; only its timing differs, and only for a caller
+ * who already holds the share's id.
+ *
+ * The question is can_view on that organization (the viewer set: members
+ * and above), asked live on every call so a revoked member loses access at
+ * once; the RPC is is_skip_authorization because the target is the share's
+ * organization, not a request field the annotation can key on. This is
+ * deliberately NOT the shared AuthorizeResolvedTarget step: that step
+ * answers deny with PERMISSION_DENIED, and this lane's wire contract is the
+ * indistinguishable NOT_FOUND above, so the lane keeps its own mapping over
+ * the same evaluation (the decision form checkMyPermission uses). An
  * unavailable authorizer is INTERNAL, never softened into a refusal; the
  * `internal` class is exempt as everywhere.
  */
 export function newAuthorizeMemberAudienceStep(
   authorizer: Authorizer,
-): PipelineStep<GetByReferenceDesc> {
+): PipelineStep<typeof AgentShareIdSchema> {
   return {
     name: "AuthorizeMemberAudience",
-    async execute(ctx: RequestContext<GetByReferenceDesc>): Promise<void> {
-      const ref = ctx.input;
-      if (ref.org === "" || ctx.callerIdentity.callerClass === "internal") {
+    async execute(
+      ctx: RequestContext<typeof AgentShareIdSchema>,
+    ): Promise<void> {
+      if (ctx.callerIdentity.callerClass === "internal") {
         return;
       }
+      const share = ctx.get(RESOLVED_SHARE_KEY) as AgentShare;
       const decision = await evaluateAuthorizer(
         authorizer,
         ctx.callerIdentity,
         {
           permission: IamPermission.can_view,
           resourceKind: ApiResourceKind.organization,
-          resourceId: ref.org,
+          resourceId: share.metadata?.org ?? "",
         },
       );
       switch (decision.kind) {
@@ -178,7 +238,7 @@ export function newAuthorizeMemberAudienceStep(
           return;
         case "deny":
         case "not-found":
-          throw sharedNotFound(ref.slug);
+          throw sharedNotFound(ctx.input.value);
         case "unavailable":
           throw internalError(
             decision.cause,
@@ -261,32 +321,6 @@ async function findAgentByOrgAndSlug(
     }
     if (agent.metadata?.slug === slug && agent.metadata.org === org) {
       return agent;
-    }
-  }
-  return undefined;
-}
-
-/** Scans shares for an org+slug match — Go findShareByOrgAndSlug. */
-export async function findShareByOrgAndSlug(
-  store: Store,
-  org: string,
-  slug: string,
-): Promise<AgentShare | undefined> {
-  let rows: Uint8Array[];
-  try {
-    rows = await store.listResources(ApiResourceKind.agent_share);
-  } catch (error) {
-    throw internalError(error, "failed to list agent share resources");
-  }
-  for (const data of rows) {
-    let share: AgentShare;
-    try {
-      share = fromBinary(AgentShareSchema, data);
-    } catch {
-      continue;
-    }
-    if (share.metadata?.slug === slug && share.metadata.org === org) {
-      return share;
     }
   }
   return undefined;
@@ -432,10 +466,10 @@ export function newValidateShareUpdateStep(): PipelineStep<AgentShareDesc> {
 /**
  * Projects a share and its referenced agent to the trimmed public profile
  * — Go buildSharedAgentProfile, the single projection shared by the
- * anonymous and member paths. URL identity (org, slug) comes from the
+ * anonymous and member paths. The share's org and slug come from the
  * SHARE; display fields and default_instance_id from the AGENT. Three
- * misses all fail closed with the uniform refusal, indistinguishable from
- * absence: a dangling agent_ref, a stale agent-id pin (the rebind guard),
+ * misses all fail closed with the uniform refusal, naming the share's id
+ * as every other miss does, indistinguishable from absence: a dangling agent_ref, a stale agent-id pin (the rebind guard),
  * and an agent in another organization (a share written before the
  * same-organization invariant; this release serves no such share).
  */
@@ -450,16 +484,16 @@ export async function buildSharedAgentProfile(
     ref?.slug ?? "",
   );
   if (agent === undefined) {
-    throw sharedNotFound(share.metadata?.slug ?? "");
+    throw sharedNotFound(share.metadata?.id ?? "");
   }
 
   const pin = share.status?.agentId ?? "";
   if (pin !== "" && pin !== (agent.metadata?.id ?? "")) {
-    throw sharedNotFound(share.metadata?.slug ?? "");
+    throw sharedNotFound(share.metadata?.id ?? "");
   }
 
   if ((share.metadata?.org ?? "") !== (agent.metadata?.org ?? "")) {
-    throw sharedNotFound(share.metadata?.slug ?? "");
+    throw sharedNotFound(share.metadata?.id ?? "");
   }
 
   return create(SharedAgentProfileSchema, {

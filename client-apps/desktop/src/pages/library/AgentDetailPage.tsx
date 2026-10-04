@@ -21,14 +21,15 @@ import {
   useOrgSlugForId,
 } from "@stigmer/react";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import { buildChatUrl } from "@stigmer/sdk";
 import { CONSOLE_URL } from "../../config";
 
 /**
  * Share links must be reachable by anyone, so they point at the public
  * web console — never the desktop app's own Tauri origin.
  */
-function buildShareUrl(org: string, slug: string): string {
-  return `${CONSOLE_URL}/chat/${org}/${slug}`;
+function buildShareUrl(shareId: string): string {
+  return buildChatUrl(CONSOLE_URL, shareId);
 }
 
 /**

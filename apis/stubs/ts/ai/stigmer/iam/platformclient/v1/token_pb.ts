@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/token.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_token: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEitwEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhsKB3VzZXJfaWQYAyABKAlCCrpIB3IFEAEYgAISHAoKdXNlcl9lbWFpbBgEIAEoCUIIukgFcgMYwAISGwoJdXNlcl9uYW1lGAUgASgJQgi6SAVyAxiAAhILCgNvcmcYBiABKAkiVQoVTWludFVzZXJUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhIKCmV4cGlyZXNfaW4YAyABKAUiyQMKFU1pbnRHdWVzdFRva2VuUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESFQoEc2x1ZxgCIAEoCUIHukgEcgIQARIXCg9ndWVzdF9jb29raWVfaWQYAyABKAkSywIKDGVtYmVkX29yaWdpbhgEIAEoCUK0ArpIsAK6AawCChNlbWJlZF9vcmlnaW4uZm9ybWF0EndlbWJlZF9vcmlnaW4gbXVzdCBiZSBlbXB0eSwgIm51bGwiLCBvciBhbiBleGFjdCB3ZWIgb3JpZ2luIGxpa2UgaHR0cHM6Ly9leGFtcGxlLmNvbSAobm8gcGF0aCwgcXVlcnksIG9yIHRyYWlsaW5nIHNsYXNoKRqbAXRoaXMgPT0gJycgfHwgdGhpcyA9PSAnbnVsbCcgfHwgdGhpcy5tYXRjaGVzKCdeaHR0cHM/Oi8vW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8oXFwuW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8pKig6WzAtOV17MSw1fSk/JCcpEhwKCmxpbmtfdG9rZW4YBSABKAlCCLpIBXIDGIABIm8KFk1pbnRHdWVzdFRva2VuUmVzcG9uc2USFAoMYWNjZXNzX3Rva2VuGAEgASgJEhIKCnRva2VuX3R5cGUYAiABKAkSEgoKZXhwaXJlc19pbhgDIAEoBRIXCg9ndWVzdF9jb29raWVfaWQYBCABKAkytAIKHVBsYXRmb3JtQ2xpZW50VG9rZW5Db250cm9sbGVyEoYBCg1taW50VXNlclRva2VuEjYuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludFVzZXJUb2tlblJlcXVlc3QaNy5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50VXNlclRva2VuUmVzcG9uc2UiBMi4GAESiQEKDm1pbnRHdWVzdFRva2VuEjcuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludEd1ZXN0VG9rZW5SZXF1ZXN0GjguYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludEd1ZXN0VG9rZW5SZXNwb25zZSIEyLgYAWIGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEitwEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhsKB3VzZXJfaWQYAyABKAlCCrpIB3IFEAEYgAISHAoKdXNlcl9lbWFpbBgEIAEoCUIIukgFcgMYwAISGwoJdXNlcl9uYW1lGAUgASgJQgi6SAVyAxiAAhILCgNvcmcYBiABKAkiVQoVTWludFVzZXJUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhIKCmV4cGlyZXNfaW4YAyABKAUi0QMKFU1pbnRHdWVzdFRva2VuUmVxdWVzdBIcCghzaGFyZV9pZBgGIAEoCUIKukgHcgUQARiAARIXCg9ndWVzdF9jb29raWVfaWQYAyABKAkSywIKDGVtYmVkX29yaWdpbhgEIAEoCUK0ArpIsAK6AawCChNlbWJlZF9vcmlnaW4uZm9ybWF0EndlbWJlZF9vcmlnaW4gbXVzdCBiZSBlbXB0eSwgIm51bGwiLCBvciBhbiBleGFjdCB3ZWIgb3JpZ2luIGxpa2UgaHR0cHM6Ly9leGFtcGxlLmNvbSAobm8gcGF0aCwgcXVlcnksIG9yIHRyYWlsaW5nIHNsYXNoKRqbAXRoaXMgPT0gJycgfHwgdGhpcyA9PSAnbnVsbCcgfHwgdGhpcy5tYXRjaGVzKCdeaHR0cHM/Oi8vW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8oXFwuW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8pKig6WzAtOV17MSw1fSk/JCcpEhwKCmxpbmtfdG9rZW4YBSABKAlCCLpIBXIDGIABSgQIARACSgQIAhADUgNvcmdSBHNsdWcibwoWTWludEd1ZXN0VG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFEhcKD2d1ZXN0X2Nvb2tpZV9pZBgEIAEoCTK0AgodUGxhdGZvcm1DbGllbnRUb2tlbkNvbnRyb2xsZXIShgEKDW1pbnRVc2VyVG9rZW4SNi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50VXNlclRva2VuUmVxdWVzdBo3LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRVc2VyVG9rZW5SZXNwb25zZSIEyLgYARKJAQoObWludEd1ZXN0VG9rZW4SNy5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50R3Vlc3RUb2tlblJlcXVlc3QaOC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50R3Vlc3RUb2tlblJlc3BvbnNlIgTIuBgBYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * MintUserTokenRequest contains the credentials and user identity needed
@@ -137,18 +137,11 @@ export const MintUserTokenResponseSchema: GenMessage<MintUserTokenResponse> = /*
  */
 export type MintGuestTokenRequest = Message<"ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest"> & {
   /**
-   * Organization from the share URL, by id or slug (required).
+   * Id of the share, from the hosted chat link (required).
    *
-   * @generated from field: string org = 1;
+   * @generated from field: string share_id = 6;
    */
-  org: string;
-
-  /**
-   * Share slug from the share URL (required).
-   *
-   * @generated from field: string slug = 2;
-   */
-  slug: string;
+  shareId: string;
 
   /**
    * Per-browser visitor cookie id from a prior mint (optional).
@@ -175,7 +168,7 @@ export type MintGuestTokenRequest = Message<"ai.stigmer.iam.platformclient.v1.Mi
   embedOrigin: string;
 
   /**
-   * Link token from the share URL's `?k=` parameter (optional).
+   * Link token from the share link's `?k=` parameter (optional).
    *
    * Required when the share link has been locked with rotateShareLink;
    * ignored for plain share links.
@@ -305,9 +298,10 @@ export const PlatformClientTokenController: GenService<{
   /**
    * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
    *
-   * Resolves org+slug to an AgentShare, provisions the org's system-managed
-   * PlatformClient and guest identity account lazily, and returns a short-lived
-   * Stigmer-signed JWT scoped to that org.
+   * Resolves the share id from the hosted chat link to an AgentShare,
+   * provisions its org's system-managed PlatformClient and guest identity
+   * account lazily, and returns a short-lived Stigmer-signed JWT scoped to
+   * that org.
    *
    * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintGuestToken
    */

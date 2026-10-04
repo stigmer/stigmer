@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agentshare/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9xdWVyeS5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEy0gYKGUFnZW50U2hhcmVRdWVyeUNvbnRyb2xsZXISlQEKA2dldBIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmVJZBosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiMMK4GCwIARAuIgV2YWx1ZSofdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudCBzaGFyZRJ6Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiBNC4GAEShAEKCmdldEJ5QWdlbnQSPi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5HZXRBZ2VudFNoYXJlc0J5QWdlbnRSZXF1ZXN0GjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZUxpc3QiBNC4GAESeAoEbGlzdBI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkxpc3RBZ2VudFNoYXJlc1JlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlTGlzdCIE0LgYARKJAQoQZ2V0U2hhcmVkUHJvZmlsZRI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkdldFNoYXJlZFByb2ZpbGVSZXF1ZXN0GjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuU2hhcmVkQWdlbnRQcm9maWxlIgTIuBgBEo0BChlnZXRTaGFyZWRQcm9maWxlRm9yTWVtYmVyEjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlGjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuU2hhcmVkQWdlbnRQcm9maWxlIgTQuBgBGgSg/ysuYgZwcm90bzM", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_agentic_agentshare_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9xdWVyeS5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEyzAYKGUFnZW50U2hhcmVRdWVyeUNvbnRyb2xsZXISlQEKA2dldBIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmVJZBosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiMMK4GCwIARAuIgV2YWx1ZSofdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudCBzaGFyZRJ6Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiBNC4GAEShAEKCmdldEJ5QWdlbnQSPi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5HZXRBZ2VudFNoYXJlc0J5QWdlbnRSZXF1ZXN0GjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZUxpc3QiBNC4GAESeAoEbGlzdBI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkxpc3RBZ2VudFNoYXJlc1JlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlTGlzdCIE0LgYARKJAQoQZ2V0U2hhcmVkUHJvZmlsZRI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkdldFNoYXJlZFByb2ZpbGVSZXF1ZXN0GjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuU2hhcmVkQWdlbnRQcm9maWxlIgTIuBgBEocBChlnZXRTaGFyZWRQcm9maWxlRm9yTWVtYmVyEi4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZUlkGjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuU2hhcmVkQWdlbnRQcm9maWxlIgTQuBgBGgSg/ysuYgZwcm90bzM", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_agentic_agentshare_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentShareQueryController handles read operations for agent shares.
@@ -71,7 +71,7 @@ export const AgentShareQueryController: GenService<{
     output: typeof AgentShareListSchema;
   },
   /**
-   * Get the public profile of a shared agent by the share's org/slug.
+   * Get the public profile of a shared agent by the share's id.
    *
    * This is the resolution path for the hosted chat page: anonymous
    * visitors (no Stigmer account, no token) resolve a shared link to the
@@ -83,10 +83,10 @@ export const AgentShareQueryController: GenService<{
    * org-internal share from a nonexistent one; use
    * getSharedProfileForMember instead), or the share link is locked and
    * link_token does not match the share's current status.share_link_token.
-   * The cases are deliberately indistinguishable so an unshared, revoked,
-   * or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is
-   * empty: org+slug is the shared URL's identity, and cross-org slug
-   * matching on a public endpoint would enable enumeration.
+   * The same NOT_FOUND answers when the share's organization no longer
+   * exists. The cases are deliberately indistinguishable so an unshared,
+   * revoked, or rotated URL leaks nothing. Returns INVALID_ARGUMENT when
+   * share_id is empty.
    *
    * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getSharedProfile
    */
@@ -106,17 +106,18 @@ export const AgentShareQueryController: GenService<{
    * use one resolution path for any share.
    *
    * Returns NOT_FOUND when the share does not exist, is disabled, the
-   * caller is not a member of the sharing organization, or the share is a
-   * public-audience share locked with a link token (this tokenless path
-   * must not reveal a killed link's profile) — the cases are deliberately
-   * indistinguishable so a share URL leaks nothing to non-members.
-   * Returns INVALID_ARGUMENT when org is empty.
+   * caller is not a member of the sharing organization, the share's
+   * organization no longer exists, or the share is a public-audience share
+   * locked with a link token (this tokenless path must not reveal a killed
+   * link's profile) — the cases are deliberately indistinguishable so a
+   * share URL leaks nothing to non-members. Returns INVALID_ARGUMENT when
+   * the id is empty.
    *
    * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getSharedProfileForMember
    */
   getSharedProfileForMember: {
     methodKind: "unary";
-    input: typeof ApiResourceReferenceSchema;
+    input: typeof AgentShareIdSchema;
     output: typeof SharedAgentProfileSchema;
   },
 }> = /*@__PURE__*/

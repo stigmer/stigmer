@@ -38,10 +38,11 @@ export interface AgentShareListProps {
   /**
    * Builds the absolute public chat URL for a share. The host
    * application owns URL construction (its configured public origin may
-   * differ from the rendering origin — e.g. the desktop app). When
-   * omitted, links fall back to the relative `/chat/<org>/<slug>`.
+   * differ from the rendering origin — e.g. the desktop app). It receives
+   * the share's id (`metadata.id`), the one identity a link carries. When
+   * omitted, links fall back to the relative `/chat/<share id>`.
    */
-  readonly buildShareUrl?: (org: string, slug: string) => string;
+  readonly buildShareUrl?: (shareId: string) => string;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -91,11 +92,10 @@ export function AgentShareList({
 
   const handleDelete = useCallback(
     async (share: AgentShare) => {
-      const slug = share.metadata?.slug ?? "";
       const confirmed = await confirm({
         title: "Delete share?",
         description:
-          `The link /chat/${share.metadata?.org}/${slug} stops working ` +
+          `The link ${chatPath(share.metadata?.id ?? "")} stops working ` +
           "immediately — including for visitors mid-conversation — and its " +
           "configuration (origins, messages, credential bindings) is gone. " +
           "To stop serving while keeping the configuration, pause it instead.",
@@ -212,7 +212,7 @@ export function AgentShareList({
 interface ShareRowProps {
   readonly share: AgentShare;
   readonly agent: Agent;
-  readonly buildShareUrl?: (org: string, slug: string) => string;
+  readonly buildShareUrl?: (shareId: string) => string;
   readonly onEditClick: (share: AgentShare) => void;
   readonly onDeleteClick: (share: AgentShare) => void;
   readonly refetch: () => void;
@@ -228,7 +228,6 @@ function ShareRow({
 }: ShareRowProps) {
   const meta = share.metadata;
   const id = meta?.id ?? "";
-  const org = meta?.org ?? "";
   const slug = meta?.slug ?? "";
   const enabled = share.spec?.enabled ?? false;
   const audience = sharingAudienceFromProto(share.spec?.audience);
@@ -253,9 +252,9 @@ function ShareRow({
   // The copyable URL carries the link token on public shares (org
   // audience is gated by membership, not the token). The display stays
   // the bare path — the token is a secret, not an address.
-  const displayPath = chatPath(org, slug);
+  const displayPath = chatPath(id);
   const copyUrl = (() => {
-    const base = buildShareUrl ? buildShareUrl(org, slug) : displayPath;
+    const base = buildShareUrl ? buildShareUrl(id) : displayPath;
     return audience === "org"
       ? base
       : appendLinkToken(base, share.status?.shareLinkToken ?? "");

@@ -41,7 +41,7 @@ public interface AgentShareStatusOrBuilder extends
    * <pre>
    * Rotatable token protecting the share's public link.
    *
-   * Empty means the hosted chat link is the plain `/chat/&lt;org&gt;/&lt;slug&gt;` —
+   * Empty means the hosted chat link is the plain `/chat/&lt;share id&gt;` —
    * the behavior of every share created without a token. When set, the
    * link only resolves with the matching `?k=&lt;token&gt;` query parameter; the
    * rotateShareLink RPC generates a fresh value, killing the old link
@@ -57,7 +57,7 @@ public interface AgentShareStatusOrBuilder extends
    * <pre>
    * Rotatable token protecting the share's public link.
    *
-   * Empty means the hosted chat link is the plain `/chat/&lt;org&gt;/&lt;slug&gt;` —
+   * Empty means the hosted chat link is the plain `/chat/&lt;share id&gt;` —
    * the behavior of every share created without a token. When set, the
    * link only resolves with the matching `?k=&lt;token&gt;` query parameter; the
    * rotateShareLink RPC generates a fresh value, killing the old link

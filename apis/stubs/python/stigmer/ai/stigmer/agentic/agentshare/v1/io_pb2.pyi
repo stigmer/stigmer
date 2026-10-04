@@ -57,14 +57,12 @@ class RotateShareLinkInput(_message.Message):
     def __init__(self, resource_id: _Optional[str] = ...) -> None: ...
 
 class GetSharedProfileRequest(_message.Message):
-    __slots__ = ("org", "slug", "link_token")
-    ORG_FIELD_NUMBER: _ClassVar[int]
-    SLUG_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("share_id", "link_token")
+    SHARE_ID_FIELD_NUMBER: _ClassVar[int]
     LINK_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    org: str
-    slug: str
+    share_id: str
     link_token: str
-    def __init__(self, org: _Optional[str] = ..., slug: _Optional[str] = ..., link_token: _Optional[str] = ...) -> None: ...
+    def __init__(self, share_id: _Optional[str] = ..., link_token: _Optional[str] = ...) -> None: ...
 
 class SharedAgentProfile(_message.Message):
     __slots__ = ("org", "slug", "name", "description", "icon_url", "default_instance_id")

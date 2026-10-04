@@ -30,6 +30,7 @@ const HOSTED_ONLY: ReadonlyArray<keyof CapabilityFlags> = [
   "federatedIdentityAccounts",
   "perResourceGrants",
   "authorizationQueries",
+  "guestMinting",
 ];
 
 describe("the open-source targets' capability flags", () => {

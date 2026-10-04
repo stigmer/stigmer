@@ -20,7 +20,7 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
 
 /**
  * Hosted chat page for a shared agent —
- * `/chat/<org>/<slug>`, the URL behind an agent's Share toggle and the
+ * `/chat/<share id>`, the URL behind an agent's Share toggle and the
  * page the `<stigmer-agent>` embed widget frames.
  *
  * Renders on an auth-OPTIONAL route (see `Providers.tsx`
@@ -76,8 +76,9 @@ type EmbedPhase =
 type AccessPath = "probing" | "guest" | "member";
 
 export default function SharedAgentChatPage() {
-  const org = useStaticRouteParam("org", 2);
-  const slug = useStaticRouteParam("slug", 1);
+  // The link names only the share, by its permanent id; its organization
+  // comes from the resolved profile.
+  const shareId = useStaticRouteParam("share", 1);
   const linkToken = useLinkTokenParam();
   const colorMode = usePageColorMode();
   const auth = useAuth();
@@ -103,7 +104,7 @@ export default function SharedAgentChatPage() {
   // guest vs member. Embeds skip it — they are public-audience only.
   const [accessPath, setAccessPath] = useState<AccessPath>("probing");
   useEffect(() => {
-    if (phase.kind !== "standalone" || !org || !slug) return;
+    if (phase.kind !== "standalone" || !shareId) return;
     let cancelled = false;
     const anon = new Stigmer({
       baseUrl: getApiBaseUrl(),
@@ -111,7 +112,7 @@ export default function SharedAgentChatPage() {
     });
     anon.agentShare
       .getSharedProfile(
-        create(GetSharedProfileRequestSchema, { org, slug, linkToken }),
+        create(GetSharedProfileRequestSchema, { shareId, linkToken }),
       )
       .then(
         () => {
@@ -130,19 +131,18 @@ export default function SharedAgentChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [phase.kind, org, slug, linkToken]);
+  }, [phase.kind, shareId, linkToken]);
 
-  // One guest-auth manager + client per resolved org/slug (+ embed
+  // One guest-auth manager + client per share (+ embed
   // context). Standalone pages mint lazily on the first RPC, so nothing
   // happens on the network until the page actually renders the chat.
   const guestRuntime = useMemo(() => {
-    if (!org || !slug) return null;
+    if (!shareId) return null;
     if (phase.kind === "resolving" || phase.kind === "refused") return null;
     const baseUrl = getApiBaseUrl();
     const guestAuth = createGuestAuth({
       baseUrl,
-      org,
-      slug,
+      shareId,
       // Required on locked links; harmless (ignored server-side) on plain ones.
       ...(linkToken ? { linkToken } : {}),
       // Absent on the standalone page — the server's absence-means-exempt
@@ -154,7 +154,7 @@ export default function SharedAgentChatPage() {
       getAccessToken: guestAuth.getAccessToken,
     });
     return { client, guestAuth };
-  }, [org, slug, linkToken, phase]);
+  }, [shareId, linkToken, phase]);
 
   // The member client carries the signed-in member's own token. Rebuilt
   // on token renewal, mirroring StigmerTransportBridge on authenticated
@@ -200,7 +200,7 @@ export default function SharedAgentChatPage() {
   // rather than a flash of the unavailable state. Refused embeds also
   // render nothing: the loader hides the element, and a blank frame is
   // the graceful fallback for hosts that ignore the protocol.
-  if (!org || !slug || !guestRuntime) {
+  if (!shareId || !guestRuntime) {
     return null;
   }
 
@@ -229,7 +229,7 @@ export default function SharedAgentChatPage() {
         preset="monochrome"
       >
         <div className="h-screen bg-background text-foreground">
-          <SharedAgentChat org={org} slug={slug} sharingAudience="org" />
+          <SharedAgentChat shareId={shareId} sharingAudience="org" />
         </div>
       </StigmerProvider>
     );
@@ -249,7 +249,7 @@ export default function SharedAgentChatPage() {
       preset="monochrome"
     >
       <div className="h-screen bg-background text-foreground">
-        <SharedAgentChat org={org} slug={slug} linkToken={linkToken} />
+        <SharedAgentChat shareId={shareId} linkToken={linkToken} />
       </div>
     </StigmerProvider>
   );

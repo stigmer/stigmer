@@ -85,6 +85,9 @@ export class LocalTarget implements TargetProfile {
     billingPlans: false,
     sideChannelProxy: false,
     publicLane: false,
+    // No unit composes the guest-token capability: the suite pins the
+    // UNIMPLEMENTED answer.
+    guestMinting: false,
     // Open source serves PlatformClient; the minting lane is the OIDC
     // sibling this target lends through enforcingLane(), where the key ring,
     // the platform-token verifier and the origin guard are composed.

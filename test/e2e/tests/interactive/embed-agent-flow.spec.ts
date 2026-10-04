@@ -42,17 +42,19 @@ let hostPageAttributes = "";
 // Sharing is an AgentShare resource: apply upserts the
 // canonical share by (org, slug) — creating it on first use, exactly the
 // commit path the Share dialog and CLI use.
+/** Applies an enabled share of the agent and answers its id, which the embed names. */
 async function enableSharing(
   client: Stigmer,
   agent: { org: string; slug: string },
-): Promise<void> {
-  await client.agentShare.apply({
+): Promise<string> {
+  const share = await client.agentShare.apply({
     org: agent.org,
     slug: agent.slug,
     name: agent.slug,
     agentRef: { org: agent.org, slug: agent.slug },
     enabled: true,
   });
+  return share.metadata!.id;
 }
 
 test.describe("Embed agent flow", () => {
@@ -83,9 +85,9 @@ test.describe("Embed agent flow", () => {
     testAgent,
     stigmerClient,
   }) => {
-    await enableSharing(stigmerClient, testAgent);
+    const shareId = await enableSharing(stigmerClient, testAgent);
 
-    hostPageAttributes = `org="${testAgent.org}" agent="${testAgent.slug}"`;
+    hostPageAttributes = `share="${shareId}"`;
     await page.goto(`${hostOrigin}/`);
 
     // The loader upgraded the element into an iframe pointed at the hosted
@@ -93,7 +95,7 @@ test.describe("Embed agent flow", () => {
     const embedFrame = page.locator("stigmer-agent iframe");
     await expect(embedFrame).toHaveAttribute(
       "src",
-      `${APP_URL}/chat/${testAgent.org}/${testAgent.slug}`,
+      `${APP_URL}/chat/${shareId}`,
       { timeout: 15_000 },
     );
 
@@ -116,16 +118,15 @@ test.describe("Embed agent flow", () => {
     testAgent,
     stigmerClient,
   }) => {
-    await enableSharing(stigmerClient, testAgent);
+    const shareId = await enableSharing(stigmerClient, testAgent);
 
-    hostPageAttributes =
-      `org="${testAgent.org}" agent="${testAgent.slug}" theme="dark" width="320" height="480"`;
+    hostPageAttributes = `share="${shareId}" theme="dark" width="320" height="480"`;
     await page.goto(`${hostOrigin}/`);
 
     const embedFrame = page.locator("stigmer-agent iframe");
     await expect(embedFrame).toHaveAttribute(
       "src",
-      `${APP_URL}/chat/${testAgent.org}/${testAgent.slug}?theme=dark`,
+      `${APP_URL}/chat/${shareId}?theme=dark`,
       { timeout: 15_000 },
     );
 

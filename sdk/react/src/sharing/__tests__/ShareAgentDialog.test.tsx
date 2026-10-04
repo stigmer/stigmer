@@ -149,8 +149,9 @@ function orgSharedEnv(slug: string, name?: string) {
   };
 }
 
-const buildShareUrl = (org: string, slug: string) =>
-  `https://app.example.com/chat/${org}/${slug}`;
+// A link names the share by its id alone — never its organization or slug.
+const buildShareUrl = (shareId: string) =>
+  `https://app.example.com/chat/${shareId}`;
 
 /** Render the dialog open. Pass `share` for edit mode; omit for create mode. */
 function renderOpenDialog(
@@ -202,21 +203,26 @@ describe("ShareAgentDialog", () => {
     expect(screen.getByText("Support Agent")).toBeTruthy();
     expect(screen.getByRole("switch", { hidden: true }).getAttribute("aria-checked")).toBe("true");
     expect(
-      screen.getByText("https://app.example.com/chat/acme/support-agent"),
+      screen.getByText("https://app.example.com/chat/ash_1"),
     ).toBeTruthy();
   });
 
-  it("builds the link from the SHARE's slug when it differs from the agent's", () => {
-    // A renamed share: the hosted URL lives at the share's slug.
+  it("builds the link from the SHARE's id, never its slug or organization", () => {
+    // A share whose slug differs from the agent's: the hosted URL still
+    // names only the share's id, so neither name reaches the link.
+    const buildShareUrlSpy = vi.fn(buildShareUrl);
     const renamed = {
       ...(makeShare({ enabled: true }) as Record<string, unknown>),
-      metadata: { id: "ash_1", org: "acme", slug: "help-desk", name: "Help Desk" },
+      metadata: { id: "ash_9", org: "acme", slug: "help-desk", name: "Help Desk" },
     } as never;
-    renderOpenDialog(createMockStigmer(), { share: renamed });
+    renderOpenDialog(createMockStigmer(), {
+      share: renamed,
+      buildShareUrl: buildShareUrlSpy,
+    });
 
-    expect(
-      screen.getByText("https://app.example.com/chat/acme/help-desk"),
-    ).toBeTruthy();
+    expect(screen.getByText("https://app.example.com/chat/ash_9")).toBeTruthy();
+    expect(buildShareUrlSpy).toHaveBeenCalledWith("ash_9");
+    expect(screen.queryByText(/chat\/acme|help-desk/)).toBeNull();
   });
 
   it("falls back to the relative /chat path when buildShareUrl is omitted", () => {
@@ -225,7 +231,7 @@ describe("ShareAgentDialog", () => {
       buildShareUrl: undefined,
     });
 
-    expect(screen.getByText("/chat/acme/support-agent")).toBeTruthy();
+    expect(screen.getByText("/chat/ash_1")).toBeTruthy();
   });
 
   describe("create mode (no share prop)", () => {
@@ -245,6 +251,14 @@ describe("ShareAgentDialog", () => {
       // Cancel rather than Done.
       expect(screen.queryByRole("switch", { hidden: true })).toBeNull();
       expect(screen.getByText("Cancel")).toBeTruthy();
+      // The slug names the share, not its link: the link names the share's
+      // id, which exists only once the share does, so none is previewed.
+      expect(
+        screen.getByText(
+          "Names this share in the CLI and API. The link is made when you create the share. Can't be changed later.",
+        ),
+      ).toBeTruthy();
+      expect(screen.queryByText(/\/chat\//)).toBeNull();
     });
 
     it("auto-derives the slug from the name until the slug is edited", () => {
@@ -281,7 +295,7 @@ describe("ShareAgentDialog", () => {
       // The dialog transitions to the editor on the created share.
       await waitFor(() =>
         expect(
-          screen.getByText("https://app.example.com/chat/acme/support-agent"),
+          screen.getByText("https://app.example.com/chat/ash_1"),
         ).toBeTruthy(),
       );
       expect(screen.getByText("Done")).toBeTruthy();
@@ -354,10 +368,11 @@ describe("ShareAgentDialog", () => {
       expect(input.org).toBe("acme");
       expect(input.agentRef).toEqual({ org: "acme", slug: "support-agent" });
 
-      // The editor shows the agent org's URL and offers the audience choice.
+      // The editor shows the created share's link, by the id the server
+      // minted, and offers the audience choice.
       await waitFor(() =>
         expect(
-          screen.getByText("https://app.example.com/chat/acme/support-agent"),
+          screen.getByText("https://app.example.com/chat/ash_new"),
         ).toBeTruthy(),
       );
       expect(screen.getByRole("radiogroup", { hidden: true })).toBeTruthy();
@@ -507,7 +522,7 @@ describe("ShareAgentDialog", () => {
   });
 
   describe("edit mode identity", () => {
-    it("names the agent in the header, offers the audience choice, and builds the link from the share's own org", () => {
+    it("names the agent in the header, offers the audience choice, and builds the link from the share's own id", () => {
       renderOpenDialog(createMockStigmer(), {
         share: makeShare({ enabled: true }),
       });
@@ -515,13 +530,14 @@ describe("ShareAgentDialog", () => {
       expect(screen.getByText("Support Agent")).toBeTruthy();
       expect(screen.getByRole("radiogroup", { hidden: true })).toBeTruthy();
       expect(
-        screen.getByText("https://app.example.com/chat/acme/support-agent"),
+        screen.getByText("https://app.example.com/chat/ash_1"),
       ).toBeTruthy();
     });
 
     it("edits a share written in another organization before the retirement by its own identity", () => {
       // Such a row no longer serves, but an edit must still address the
-      // row that exists rather than re-home it under the agent's org.
+      // row that exists rather than re-home it under the agent's org: its
+      // link names that row's own id.
       const legacyShare = {
         metadata: {
           id: "ash_ext",
@@ -537,7 +553,7 @@ describe("ShareAgentDialog", () => {
       renderOpenDialog(createMockStigmer(), { share: legacyShare });
 
       expect(
-        screen.getByText("https://app.example.com/chat/consumer-org/support-agent"),
+        screen.getByText("https://app.example.com/chat/ash_ext"),
       ).toBeTruthy();
     });
   });
@@ -667,7 +683,7 @@ describe("ShareAgentDialog", () => {
   });
 
   describe("Embed tab", () => {
-    it("shows the one-line script snippet: loader from the app origin + <stigmer-agent>", () => {
+    it("shows the one-line script snippet: loader from the app origin + <stigmer-agent> naming the share", () => {
       renderOpenDialog(createMockStigmer(), {
         share: makeShare({ enabled: true }),
       });
@@ -682,7 +698,7 @@ describe("ShareAgentDialog", () => {
       ).toBeTruthy();
       expect(
         screen.getByText(
-          /<stigmer-agent org="acme" agent="support-agent"><\/stigmer-agent>/,
+          /<stigmer-agent share="ash_1"><\/stigmer-agent>/,
         ),
       ).toBeTruthy();
     });
@@ -704,7 +720,7 @@ describe("ShareAgentDialog", () => {
       );
       expect(
         screen.getByText(
-          /src="https:\/\/app\.example\.com\/chat\/acme\/support-agent"/,
+          /src="https:\/\/app\.example\.com\/chat\/ash_1"/,
         ),
       ).toBeTruthy();
     });
@@ -964,11 +980,13 @@ describe("ShareAgentDialog", () => {
       });
 
       expect(
-        screen.getByText("https://app.example.com/chat/acme/support-agent?k=tok123"),
+        screen.getByText("https://app.example.com/chat/ash_1?k=tok123"),
       ).toBeTruthy();
 
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
-      expect(screen.getByText(/token="tok123"/)).toBeTruthy();
+      expect(
+        screen.getByText(/<stigmer-agent share="ash_1" token="tok123"><\/stigmer-agent>/),
+      ).toBeTruthy();
     });
 
     it("rotates on Reset link, adopts the fresh token, and notifies the host", async () => {
@@ -983,7 +1001,7 @@ describe("ShareAgentDialog", () => {
 
       // A plain link shows no token before the reset.
       expect(
-        screen.getByText("https://app.example.com/chat/acme/support-agent"),
+        screen.getByText("https://app.example.com/chat/ash_1"),
       ).toBeTruthy();
 
       fireEvent.click(screen.getByRole("button", { name: "Reset link", hidden: true }));
@@ -991,7 +1009,7 @@ describe("ShareAgentDialog", () => {
       await waitFor(() =>
         expect(
           screen.getByText(
-            "https://app.example.com/chat/acme/support-agent?k=fresh-token",
+            "https://app.example.com/chat/ash_1?k=fresh-token",
           ),
         ).toBeTruthy(),
       );
@@ -1014,7 +1032,7 @@ describe("ShareAgentDialog", () => {
       // Org access is gated by membership, not the link token: the member
       // link stays clean and the Reset lever is not offered.
       expect(
-        screen.getByText("https://app.example.com/chat/acme/support-agent"),
+        screen.getByText("https://app.example.com/chat/ash_1"),
       ).toBeTruthy();
       expect(
         screen.queryByRole("button", { name: "Reset link", hidden: true }),

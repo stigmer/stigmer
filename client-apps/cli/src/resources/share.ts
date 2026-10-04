@@ -256,13 +256,15 @@ function preservingShareInput(
   };
 }
 
-// Build the user-facing result. Org/slug come from the SHARE's metadata —
-// the identity in the hosted chat URL (a share may carry a non-default
-// slug) — falling back to the resolved agent's on disable-when-never-shared.
-// The link token comes from the share's status (post-rotation when
-// --reset-link ran) and rides the printed URL and snippet — public audience
-// only (org access is gated by membership). The link carries the
-// organization's id; the words a person reads name it by `orgLabel`, its slug.
+// Build the user-facing result. The hosted chat link and the embed name the
+// SHARE by its id, the one identity a link carries, so no rename of the
+// organization breaks them. The slug in the re-enable hint comes from the
+// share's metadata (a share may carry a non-default slug), falling back to
+// the resolved agent's on disable-when-never-shared. The link token comes
+// from the share's status (post-rotation when --reset-link ran) and rides the
+// printed URL and snippet — public audience only (org access is gated by
+// membership). The words a person reads name the organization by
+// `orgLabel`, its slug.
 function describeOutcome(
   agent: Agent,
   share: AgentShare | null,
@@ -271,7 +273,7 @@ function describeOutcome(
   alreadyInState: boolean,
   orgLabel: string,
 ): CommandResult {
-  const org = share?.metadata?.org || (agent.metadata?.org ?? "");
+  const shareId = share?.metadata?.id ?? "";
   const slug = share?.metadata?.slug || (agent.metadata?.slug ?? "");
   const name = agent.metadata?.name || slug;
   const linkToken = share?.status?.shareLinkToken ?? "";
@@ -296,7 +298,7 @@ function describeOutcome(
   const publicLinkToken = audience === "org" ? undefined : linkToken || undefined;
   result
     .addSection(audience === "org" ? "Member chat link" : "Public chat link")
-    .item(buildChatUrl(options.appOrigin, org, slug, publicLinkToken));
+    .item(buildChatUrl(options.appOrigin, shareId, publicLinkToken));
 
   if (audience === "org") {
     // Embeds serve anonymous guests, which org-members-only shares refuse
@@ -305,7 +307,7 @@ function describeOutcome(
     result.hint(`Members chat on ${orgLabel}'s credits.`);
   } else {
     const snippetSection = result.addSection("Embed on your site");
-    for (const line of buildEmbedSnippet(options.appOrigin, org, slug, publicLinkToken).split("\n")) {
+    for (const line of buildEmbedSnippet(options.appOrigin, shareId, publicLinkToken).split("\n")) {
       snippetSection.item(line);
     }
 

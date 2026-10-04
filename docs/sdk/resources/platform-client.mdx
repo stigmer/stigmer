@@ -98,9 +98,9 @@ PlatformClient supports three provisioning modes:
 
 ## Guest Tokens (Shared Agents)
 
-`mintGuestToken` is the credential-free exception to the client-credential model. It powers the hosted chat page for shared agents: an anonymous visitor resolves a share URL (`org` + agent `slug`) into a short-lived guest JWT without a Stigmer account and without PlatformClient credentials.
+`mintGuestToken` is the credential-free exception to the client-credential model. It powers the hosted chat page for shared agents: an anonymous visitor resolves a hosted chat link (`/chat/<share id>`, sent as `share_id`) into a short-lived guest JWT without a Stigmer account and without PlatformClient credentials.
 
-- **Gate**: the target agent must have an enabled AgentShare (the share URL's `org` + `slug` resolve the share, which references the agent). Unshared and nonexistent agents return an identical `NOT_FOUND`, so the endpoint leaks nothing about agent existence. The minted guest JWT carries a `share_id` claim, so every later guest request re-validates against the live share.
+- **Gate**: the target agent must have an enabled public AgentShare whose organization still exists (the link's `share_id` resolves the share, which references the agent, plus `link_token` when the link was locked by `rotateShareLink`). Disabled, missing, members-only and deleted-organization shares, and a wrong link token, all return an identical `NOT_FOUND`, so the endpoint leaks nothing about agent or share existence. The minted guest JWT carries a `share_id` claim, so every later guest request re-validates against the live share.
 - **System-managed client**: the first mint in an org lazily provisions a system-managed PlatformClient (reserved slug `system-share-client`, labeled `stigmer.ai/system-managed`). Its secret is discarded at creation — it exists only so guest JWTs carry a valid `platform_client_id`. User deletion and secret rotation on it are rejected.
 - **Guest identity**: all visitors in an org share one guest identity account (bounded cardinality). Per-visitor identity is the `guest_cookie_id` — a high-entropy bearer secret generated server-side on first mint, persisted by the hosted page in an httpOnly cookie, and echoed on subsequent mints. It scopes session/execution reads and continuation to the visitor who created them.
 - **Containment**: a guest token can only create sessions and executions against shared agents in the token's org. All other RPCs are denied, and disabling sharing immediately stops both new mints and new guest sessions.
@@ -530,14 +530,13 @@ PlatformClient platformClient = client.platformclients().delete(DeleteResourceIn
 
 Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
 
-Resolves org+slug to an AgentShare, provisions the org's system-managed PlatformClient and guest identity account lazily, and returns a short-lived Stigmer-signed JWT scoped to that org.
+Resolves the share id from the hosted chat link to an AgentShare, provisions its org's system-managed PlatformClient and guest identity account lazily, and returns a short-lived Stigmer-signed JWT scoped to that org.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
 const mintGuestTokenResponse = await stigmer.platformclient.mintGuestToken({
-  org: "...",
-  slug: "...",
+  shareId: "...",
   guestCookieId: "...",
   embedOrigin: "...",
   linkToken: "...",
@@ -547,8 +546,7 @@ const mintGuestTokenResponse = await stigmer.platformclient.mintGuestToken({
 <Tab value="Go">
 ```go
 mintGuestTokenResponse, err := client.PlatformClient.MintGuestToken(ctx, &stigmer.MintGuestTokenRequest{
-  Org:           "...",
-  Slug:          "...",
+  ShareId:       "...",
   GuestCookieId: "...",
   EmbedOrigin:   "...",
   LinkToken:     "...",
@@ -558,8 +556,7 @@ mintGuestTokenResponse, err := client.PlatformClient.MintGuestToken(ctx, &stigme
 <Tab value="Python">
 ```python
 mint_guest_token_response = client.platformclients.mint_guest_token(MintGuestTokenRequest(
-    org="...",
-    slug="...",
+    share_id="...",
     guest_cookie_id="...",
     embed_origin="...",
     link_token="...",
@@ -569,8 +566,7 @@ mint_guest_token_response = client.platformclients.mint_guest_token(MintGuestTok
 <Tab value="Java">
 ```java
 MintGuestTokenResponse mintGuestTokenResponse = client.platformclients().mintGuestToken(MintGuestTokenRequest.builder()
-    .org("...")
-    .slug("...")
+    .shareId("...")
     .guestCookieId("...")
     .embedOrigin("...")
     .linkToken("...")
@@ -791,11 +787,10 @@ MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
 
 <TypeTable
   type={{
-    org: { type: "string", description: "Organization from the share URL, by id or slug (required)." },
-    slug: { type: "string", description: "Share slug from the share URL (required)." },
+    shareId: { type: "string", description: "Id of the share, from the hosted chat link (required)." },
     guestCookieId: { type: "string", description: "Per-browser visitor cookie id from a prior mint (optional)." },
     embedOrigin: { type: "string", description: "Web origin of the page embedding the shared agent (optional)." },
-    linkToken: { type: "string", description: "Link token from the share URL's `?k=` parameter (optional)." },
+    linkToken: { type: "string", description: "Link token from the share link's `?k=` parameter (optional)." },
   }}
 />
 

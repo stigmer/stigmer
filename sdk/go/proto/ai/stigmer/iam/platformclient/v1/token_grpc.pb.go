@@ -82,9 +82,10 @@ type PlatformClientTokenControllerClient interface {
 	MintUserToken(ctx context.Context, in *MintUserTokenRequest, opts ...grpc.CallOption) (*MintUserTokenResponse, error)
 	// Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
 	//
-	// Resolves org+slug to an AgentShare, provisions the org's system-managed
-	// PlatformClient and guest identity account lazily, and returns a short-lived
-	// Stigmer-signed JWT scoped to that org.
+	// Resolves the share id from the hosted chat link to an AgentShare,
+	// provisions its org's system-managed PlatformClient and guest identity
+	// account lazily, and returns a short-lived Stigmer-signed JWT scoped to
+	// that org.
 	MintGuestToken(ctx context.Context, in *MintGuestTokenRequest, opts ...grpc.CallOption) (*MintGuestTokenResponse, error)
 }
 
@@ -175,9 +176,10 @@ type PlatformClientTokenControllerServer interface {
 	MintUserToken(context.Context, *MintUserTokenRequest) (*MintUserTokenResponse, error)
 	// Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
 	//
-	// Resolves org+slug to an AgentShare, provisions the org's system-managed
-	// PlatformClient and guest identity account lazily, and returns a short-lived
-	// Stigmer-signed JWT scoped to that org.
+	// Resolves the share id from the hosted chat link to an AgentShare,
+	// provisions its org's system-managed PlatformClient and guest identity
+	// account lazily, and returns a short-lived Stigmer-signed JWT scoped to
+	// that org.
 	MintGuestToken(context.Context, *MintGuestTokenRequest) (*MintGuestTokenResponse, error)
 }
 

@@ -1,6 +1,6 @@
 /**
  * Frame-side helpers — the half of the embed protocol that runs inside the
- * hosted chat page (`/chat/<org>/<slug>` in `client-apps/web`).
+ * hosted chat page (`/chat/<share id>` in `client-apps/web`).
  *
  * The embedding site cannot alter this code (it is served from the Stigmer app
  * origin), so the parent origin discovered here is honest by construction.

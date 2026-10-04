@@ -54,10 +54,10 @@ public interface AgentShareOrBuilder extends
    * <pre>
    * Resource metadata including name, organization, and labels.
    *
-   * The org and slug form the share's hosted chat URL
-   * (`/chat/&lt;org&gt;/&lt;slug&gt;`). The slug defaults to the referenced agent's
-   * slug and is immutable once created — to change a link, create a new
-   * share and delete the old one.
+   * The id forms the share's hosted chat link (`/chat/&lt;share id&gt;`). The
+   * slug names the share within its org, defaults to the referenced
+   * agent's slug and is immutable once created. To retire a leaked link
+   * while keeping the share, lock it with rotateShareLink.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -68,10 +68,10 @@ public interface AgentShareOrBuilder extends
    * <pre>
    * Resource metadata including name, organization, and labels.
    *
-   * The org and slug form the share's hosted chat URL
-   * (`/chat/&lt;org&gt;/&lt;slug&gt;`). The slug defaults to the referenced agent's
-   * slug and is immutable once created — to change a link, create a new
-   * share and delete the old one.
+   * The id forms the share's hosted chat link (`/chat/&lt;share id&gt;`). The
+   * slug names the share within its org, defaults to the referenced
+   * agent's slug and is immutable once created. To retire a leaked link
+   * while keeping the share, lock it with rotateShareLink.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -82,10 +82,10 @@ public interface AgentShareOrBuilder extends
    * <pre>
    * Resource metadata including name, organization, and labels.
    *
-   * The org and slug form the share's hosted chat URL
-   * (`/chat/&lt;org&gt;/&lt;slug&gt;`). The slug defaults to the referenced agent's
-   * slug and is immutable once created — to change a link, create a new
-   * share and delete the old one.
+   * The id forms the share's hosted chat link (`/chat/&lt;share id&gt;`). The
+   * slug names the share within its org, defaults to the referenced
+   * agent's slug and is immutable once created. To retire a leaked link
+   * while keeping the share, lock it with rotateShareLink.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

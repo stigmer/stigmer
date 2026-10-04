@@ -1,9 +1,10 @@
 apiVersion: agentic.stigmer.ai/v1
 kind: AgentShare
 metadata:
-  # The share's slug is the public chat URL segment:
-  # https://app.stigmer.ai/chat/stigmer/stigmer-docs — and the value the
-  # docs site's <stigmer-agent agent="stigmer-docs"> attribute points at.
+  # The slug names the share in the stigmer org. Its public chat link and the
+  # docs site's <stigmer-agent share="…"> attribute carry the share's id
+  # instead, which the server mints on the first apply (README.md, "Wire the
+  # docs site").
   name: stigmer-docs
   org: stigmer
 spec:
@@ -19,7 +20,7 @@ spec:
   # contract).
   audience: agent_share_audience_public
   # Embedding is locked to the docs site's origin. The hosted chat page at
-  # /chat/stigmer/stigmer-docs stays reachable for anyone with the link —
+  # /chat/<share id> stays reachable for anyone with the link —
   # allowed_origins constrains only which sites may IFRAME the widget.
   # NOTE: origins are exact — a preview or staging host needs its own entry.
   allowed_origins:

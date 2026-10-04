@@ -9,7 +9,9 @@ import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/re
 // which offers "sign in if you have access" to anonymous visitors and
 // renders the org-audience chat with the member's own client once signed
 // in. These tests pin that routing; the chat organism itself is covered
-// by the SDK's SharedAgentChat tests.
+// by the SDK's SharedAgentChat tests. The link (`/chat/<share id>`) names
+// only the share, by its id: the probe, the guest mint and the chat all
+// receive that id, never an organization or slug.
 // ---------------------------------------------------------------------------
 
 const authState = {
@@ -30,8 +32,16 @@ vi.mock("@/config/env", () => ({
   getApiBaseUrl: () => "https://api.example.com",
 }));
 
+const SHARE_ID = "ash_01j9z3k8f2q4m6n7p8r9s0t1v2";
+const route = vi.hoisted(() => ({
+  shareId: "ash_01j9z3k8f2q4m6n7p8r9s0t1v2" as string | null,
+  reads: [] as Array<[string, number]>,
+}));
 vi.mock("@/domain/_shared/hooks/useStaticRouteParam", () => ({
-  useStaticRouteParam: (name: string) => (name === "org" ? "acme" : "support-bot"),
+  useStaticRouteParam: (name: string, depth: number) => {
+    route.reads.push([name, depth]);
+    return name === "share" ? route.shareId : null;
+  },
 }));
 
 vi.mock("next-themes", () => ({
@@ -94,8 +104,10 @@ beforeEach(() => {
   sharedAgentChatProps.length = 0;
   stigmerConfigs.length = 0;
   guestAuthConfigs.length = 0;
+  route.reads.length = 0;
+  route.shareId = SHARE_ID;
   getSharedProfileMock.mockReset();
-  window.history.replaceState(null, "", "/chat/acme/support-bot");
+  window.history.replaceState(null, "", `/chat/${SHARE_ID}`);
   setAuth({
     isAuthenticated: false,
     isLoading: false,
@@ -107,6 +119,17 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("SharedAgentChatPage audience routing", () => {
+  it("renders nothing and asks nothing while the route has no share id (the static-export placeholder pass)", () => {
+    route.shareId = null;
+
+    const { container } = render(<SharedAgentChatPage />);
+
+    expect(container.innerHTML).toBe("");
+    expect(getSharedProfileMock).not.toHaveBeenCalled();
+    expect(guestAuthConfigs).toEqual([]);
+    expect(sharedAgentChatProps).toEqual([]);
+  });
+
   it("public share: probe resolves -> guest chat with the default (public) audience", async () => {
     getSharedProfileMock.mockResolvedValue({ org: "acme", slug: "support-bot" });
 
@@ -115,6 +138,32 @@ describe("SharedAgentChatPage audience routing", () => {
     await waitFor(() => expect(sharedAgentChatProps.length).toBeGreaterThan(0));
     expect(sharedAgentChatProps[0].sharingAudience).toBeUndefined();
     expect(screen.getByTestId("chat-probe")).toBeTruthy();
+  });
+
+  it("names the share by the link's one segment, its id, everywhere", async () => {
+    getSharedProfileMock.mockResolvedValue({ org: "acme", slug: "support-bot" });
+
+    render(<SharedAgentChatPage />);
+
+    await waitFor(() => expect(sharedAgentChatProps.length).toBeGreaterThan(0));
+    // The route has one dynamic segment: `/chat/[share]`.
+    expect(route.reads).toContainEqual(["share", 1]);
+    expect(route.reads.map(([name]) => name)).not.toContain("org");
+    expect(route.reads.map(([name]) => name)).not.toContain("slug");
+    // Probe, guest mint and chat all carry the share id and nothing else.
+    const probe = getSharedProfileMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(probe).toMatchObject({ shareId: route.shareId });
+    expect(probe).not.toHaveProperty("org");
+    expect(probe).not.toHaveProperty("slug");
+    expect(guestAuthConfigs[0]).toMatchObject({
+      baseUrl: "https://api.example.com",
+      shareId: route.shareId,
+    });
+    expect(guestAuthConfigs[0]).not.toHaveProperty("org");
+    expect(guestAuthConfigs[0]).not.toHaveProperty("slug");
+    expect(sharedAgentChatProps[0].shareId).toBe(route.shareId);
+    expect(sharedAgentChatProps[0]).not.toHaveProperty("org");
+    expect(sharedAgentChatProps[0]).not.toHaveProperty("slug");
   });
 
   it("org share, anonymous visitor: NOT_FOUND -> sign-in-if-you-have-access surface", async () => {
@@ -144,8 +193,7 @@ describe("SharedAgentChatPage audience routing", () => {
 
     await waitFor(() => expect(sharedAgentChatProps.length).toBeGreaterThan(0));
     expect(sharedAgentChatProps[0].sharingAudience).toBe("org");
-    expect(sharedAgentChatProps[0].org).toBe("acme");
-    expect(sharedAgentChatProps[0].slug).toBe("support-bot");
+    expect(sharedAgentChatProps[0].shareId).toBe(route.shareId);
   });
 
   it("transient probe failure falls back to the guest path (retry surface lives there)", async () => {
@@ -172,7 +220,7 @@ describe("SharedAgentChatPage audience routing", () => {
 
 describe("SharedAgentChatPage locked links (?k= token)", () => {
   it("threads the ?k= token through the probe, the guest mint, and the chat", async () => {
-    window.history.replaceState(null, "", "/chat/acme/support-bot?k=tok123");
+    window.history.replaceState(null, "", `/chat/${route.shareId}?k=tok123`);
     getSharedProfileMock.mockResolvedValue({ org: "acme", slug: "support-bot" });
 
     render(<SharedAgentChatPage />);
@@ -181,8 +229,7 @@ describe("SharedAgentChatPage locked links (?k= token)", () => {
     // Probe: the request message carries the token so a locked link
     // resolves as public instead of falling to the member path.
     expect(getSharedProfileMock.mock.calls[0][0]).toMatchObject({
-      org: "acme",
-      slug: "support-bot",
+      shareId: route.shareId,
       linkToken: "tok123",
     });
     // Guest mint: the same token rides mintGuestToken, where the server

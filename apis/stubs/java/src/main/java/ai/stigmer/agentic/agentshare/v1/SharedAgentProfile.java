@@ -70,7 +70,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object org_ = "";
   /**
    * <pre>
-   * Organization that owns the share.
+   * Id of the organization that owns the share. The hosted chat page
+   * creates the visitor's session in it.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>
@@ -91,7 +92,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Organization that owns the share.
+   * Id of the organization that owns the share. The hosted chat page
+   * creates the visitor's session in it.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>
@@ -117,8 +119,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object slug_ = "";
   /**
    * <pre>
-   * Slug of the share (unique within the org).
-   * Together with org, this is the identity in the hosted chat URL.
+   * Slug of the share: its name within its organization, as the CLI and
+   * getByReference address it. The hosted chat link names the share by
+   * its id, never by this slug.
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug"];</code>
@@ -139,8 +142,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Slug of the share (unique within the org).
-   * Together with org, this is the identity in the hosted chat URL.
+   * Slug of the share: its name within its organization, as the CLI and
+   * getByReference address it. The hosted chat link names the share by
+   * its id, never by this slug.
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug"];</code>
@@ -781,7 +785,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object org_ = "";
     /**
      * <pre>
-     * Organization that owns the share.
+     * Id of the organization that owns the share. The hosted chat page
+     * creates the visitor's session in it.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -801,7 +806,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns the share.
+     * Id of the organization that owns the share. The hosted chat page
+     * creates the visitor's session in it.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -822,7 +828,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns the share.
+     * Id of the organization that owns the share. The hosted chat page
+     * creates the visitor's session in it.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -839,7 +846,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns the share.
+     * Id of the organization that owns the share. The hosted chat page
+     * creates the visitor's session in it.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -853,7 +861,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns the share.
+     * Id of the organization that owns the share. The hosted chat page
+     * creates the visitor's session in it.
      * </pre>
      *
      * <code>string org = 1 [json_name = "org"];</code>
@@ -873,8 +882,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object slug_ = "";
     /**
      * <pre>
-     * Slug of the share (unique within the org).
-     * Together with org, this is the identity in the hosted chat URL.
+     * Slug of the share: its name within its organization, as the CLI and
+     * getByReference address it. The hosted chat link names the share by
+     * its id, never by this slug.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug"];</code>
@@ -894,8 +904,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the share (unique within the org).
-     * Together with org, this is the identity in the hosted chat URL.
+     * Slug of the share: its name within its organization, as the CLI and
+     * getByReference address it. The hosted chat link names the share by
+     * its id, never by this slug.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug"];</code>
@@ -916,8 +927,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the share (unique within the org).
-     * Together with org, this is the identity in the hosted chat URL.
+     * Slug of the share: its name within its organization, as the CLI and
+     * getByReference address it. The hosted chat link names the share by
+     * its id, never by this slug.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug"];</code>
@@ -934,8 +946,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the share (unique within the org).
-     * Together with org, this is the identity in the hosted chat URL.
+     * Slug of the share: its name within its organization, as the CLI and
+     * getByReference address it. The hosted chat link names the share by
+     * its id, never by this slug.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug"];</code>
@@ -949,8 +962,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the share (unique within the org).
-     * Together with org, this is the identity in the hosted chat URL.
+     * Slug of the share: its name within its organization, as the CLI and
+     * getByReference address it. The hosted chat link names the share by
+     * its id, never by this slug.
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug"];</code>
