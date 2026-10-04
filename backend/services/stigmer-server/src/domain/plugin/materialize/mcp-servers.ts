@@ -7,7 +7,7 @@
  * url and headers, or `stdio` command and args) and the variables the
  * server references, which become `EnvVarDeclaration`s the runner resolves
  * from the user's Environment. The overlay owns what only Stigmer reads:
- * OAuth (`auth`), scope hints, default and pinned tools, the icon, tags,
+ * OAuth (`auth`), scope hints, the icon, tags,
  * the repository link, and a richer description. An overlay that sets the
  * transport or declares env is refused: the portable file is the one home
  * of both, so a Cursor or Claude user installing the same plugin sees the
@@ -16,7 +16,7 @@
  * The server's name is the `mcpServers` key and its slug `generateSlug`
  * of it (the platform's one slug rule: lowercase, dots and spaces to
  * hyphens, every other symbol dropped, so `my_server` becomes `myserver`);
- * sub-agents and the agent's usages reference the slug.
+ * the agent's usages reference the slug.
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -165,10 +165,6 @@ function layerOverlay(
   if (authored.description !== "") spec.description = authored.description;
   if (authored.iconUrl !== "") spec.iconUrl = authored.iconUrl;
   if (authored.tags.length > 0) spec.tags = [...authored.tags];
-  if (authored.defaultEnabledTools.length > 0)
-    spec.defaultEnabledTools = [...authored.defaultEnabledTools];
-  if (authored.pinnedToolApprovals.length > 0)
-    spec.pinnedToolApprovals = [...authored.pinnedToolApprovals];
   if (authored.repositoryUrl !== "")
     spec.repositoryUrl = authored.repositoryUrl;
   if (authored.auth !== undefined) spec.auth = authored.auth;

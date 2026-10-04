@@ -155,12 +155,12 @@ reply.
 
 For actions the visitor's own request authorizes — booking their appointment,
 creating their ticket — design the Agent to confirm the specifics in
-conversation first ("I'm about to book Monday 10 AM — shall I go ahead?"), then
-un-gate that specific tool for this Agent
-(`tool_approval_overrides: requires_approval: false` on the Agent's MCP server
-usage). Keep truly destructive operations gated: for visitors they are skipped,
-which is exactly right — a stranger with your link should not be able to trigger
-them at all.
+conversation first ("I'm about to book Monday 10 AM — shall I go ahead?"), and
+use a tool that runs without approval: an MCP tool its server does not mark
+destructive. Keep truly destructive operations marked: for visitors they are
+skipped, which is exactly right — a stranger with your link should not be able
+to trigger them at all. To keep the Agent away from a tool entirely, leave it
+out of the Agent's `tools` list.
 
 ## Reset a public link
 

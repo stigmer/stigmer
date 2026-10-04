@@ -22,8 +22,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { generateHookScript } from "../hook-script.js";
-import { buildApprovalState, type ApprovalGrant, type McpToolPolicyEntry } from "../approval-state.js";
-import type { MergedToolPolicy, ApprovalCategory } from "../approval-policy.js";
+import { buildApprovalState, type ApprovalGrant } from "../approval-state.js";
+import type { ApprovalCategory, McpApprovalDefault } from "../approval-policy.js";
+import { mcpToolKey } from "../../../shared/approval-policy.js";
+import { ToolScope, type ToolLists } from "../../../shared/tool-lists.js";
+import { compileHookToolScope } from "../hook-scope.js";
 import { readCasObservations, type CasObservations } from "../cas-observations.js";
 import type { ProposedAction } from "../../../__test-utils__/approval-contract/types.js";
 
@@ -46,12 +49,15 @@ export interface CursorHookHarness {
   /** Run the hook against a single hook-input payload and report its decision. */
   decide(input: object): { permission: string; raw: string };
   /**
-   * The denial ledger entries the hook has appended this turn. `kind` is the
-   * attribution taxonomy (approval/secret/capture-error/fail-closed); `input`
-   * is the base64(JSON(tool_input)) the hook captures on APPROVAL-kind entries
-   * only (decode + JSON.parse to inspect).
+   * The denial ledger entries the hook has appended this turn, raw. `kind` is
+   * the attribution taxonomy (approval/secret/capture-error/fail-closed/
+   * disabled); `input` is the base64(JSON(tool_input)) the hook captures on
+   * APPROVAL-kind entries only; `message` the base64 refusal text on a
+   * tool-list refusal.
    */
-  ledger(): Array<{ toolName: string; token: string; kind?: string; input?: string }>;
+  ledger(): Array<{ toolName: string; token: string; kind?: string; input?: string; message?: string }>;
+  /** The hook's directory, the harness's `hitlDir` analog: `readDenialLedger(h.hitlDir)` reads what the runner reads. */
+  readonly hitlDir: string;
   /** Truncate the denial ledger (a fresh turn). */
   resetLedger(): void;
   /**
@@ -68,7 +74,10 @@ export interface CursorHookHarnessOptions {
   /** Built-in categories with a run-lifetime scoped lease. */
   leasedCategories?: ApprovalCategory[];
   grants?: ApprovalGrant[];
-  mcpPolicies?: Record<string, McpToolPolicyEntry>;
+  /** Tools of the MCP server "srv" (the one {@link hookMcp} names) that its server marks destructive. */
+  destructiveMcpTools?: string[];
+  /** MCP servers with a run-lifetime lease. */
+  leasedMcpServers?: string[];
   /** Omit the state file to exercise the fail-closed (deny) path. */
   noStateFile?: boolean;
   /**
@@ -110,14 +119,21 @@ export interface CursorHookHarnessOptions {
    */
   unattendedSkip?: boolean;
   /**
-   * Per-server enabled_tools allow-lists (issue #350) — restricted servers
-   * only. The hook's manifest arm denies a beforeMCPExecution call whose
-   * mcp_server_name is listed here with a tool name outside its list (kind
-   * "disabled", ahead of every approval bypass). hookMcp payloads carry
-   * mcp_server_name "srv".
+   * The main agent's tool lists. Compiled into the state exactly as the
+   * runner compiles them (`hook-scope.ts`), with the throwaway workspace's
+   * `.stigmer/` as the read route.
    */
-  mcpServerEnabledTools?: Record<string, string[]>;
+  lists?: ToolLists;
+  /** The turn's MCP servers and the tools discovery knows of (null: never discovered). */
+  mcpServers?: Array<{ slug: string; discoveredToolNames: string[] | null }>;
+  /** The platform's synthesized attachment slugs (always in scope). */
+  platformServerSlugs?: string[];
+  /** The custom sub-agent types registered with the SDK. */
+  subAgentTypes?: string[];
 }
+
+/** The approval default of a turn whose servers mark nothing destructive and hold no lease. */
+export const NO_MCP_DEFAULT: McpApprovalDefault = { destructive: new Set(), leasedServers: new Set() };
 
 /**
  * Build a throwaway workspace, write the generated hook + (optionally) the
@@ -158,20 +174,19 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
   );
 
   if (!opts.noStateFile) {
-    const policies = new Map<string, MergedToolPolicy>(
-      Object.entries(opts.mcpPolicies ?? {}).map(([name, p]) => [
-        `srv/${name}`,
-        {
-          toolName: name,
-          mcpServerSlug: "srv",
-          requiresApproval: p.requiresApproval,
-          approvalMessage: p.message ?? "",
-          source: "classifier_default" as const,
-        },
-      ]),
-    );
+    const mcpDefault: McpApprovalDefault = {
+      destructive: new Set((opts.destructiveMcpTools ?? []).map((tool) => mcpToolKey("srv", tool))),
+      leasedServers: new Set(opts.leasedMcpServers ?? []),
+    };
+    const toolScope = compileHookToolScope({
+      scope: opts.lists ? ToolScope.of('Agent "test"', opts.lists) : ToolScope.unrestricted(),
+      servers: opts.mcpServers ?? [],
+      platformServerSlugs: new Set(opts.platformServerSlugs ?? []),
+      readRoots: [join(ws, ".stigmer")],
+      subAgentTypes: opts.subAgentTypes ?? [],
+    });
     const state = buildApprovalState(
-      policies,
+      mcpDefault,
       opts.autoApproveAll ?? false,
       new Set(opts.leasedCategories ?? []),
       opts.grants,
@@ -179,13 +194,14 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
       opts.captureIgnored ?? false,
       opts.gitWorkspace ?? true,
       opts.unattendedSkip ?? false,
-      opts.mcpServerEnabledTools ?? {},
+      toolScope,
     );
     writeFileSync(statePath, JSON.stringify(state), "utf-8");
   }
 
   return {
     root: ws,
+    hitlDir: dir,
     decide(input: object) {
       const raw = execFileSync("bash", [scriptPath], { input: JSON.stringify(input) }).toString();
       const permission = raw.includes('"permission":"deny"')
@@ -225,12 +241,36 @@ export const hookRead = (filePath: string) => ({ tool_name: "Read", tool_input: 
 
 // Real beforeMCPExecution shape (captured live): bare tool_name, tool_input as a
 // JSON STRING, server identity, and the hook_event_name discriminator.
-export const hookMcp = (name: string, input: Record<string, unknown> = {}) => ({
+export const hookMcp = (name: string, input: Record<string, unknown> = {}, server = "srv") => ({
   tool_name: name,
   tool_input: JSON.stringify(input),
-  mcp_server_name: "srv",
-  command: "npx -y srv mcp",
+  mcp_server_name: server,
+  command: `npx -y ${server} mcp`,
   hook_event_name: "beforeMCPExecution",
+});
+
+// The preToolUse invocation Cursor makes for the same MCP call (its hooks
+// reference: MCP tools appear there as `MCP:<tool_name>`); the MCP event, not
+// this one, decides it.
+export const hookMcpPreToolUse = (name: string) => ({ tool_name: `MCP:${name}`, tool_input: {}, hook_event_name: "preToolUse" });
+
+// The subagentStart payload (`@cursor/sdk` 1.0.31 bundle): the hook answers it
+// from the agent's `Agent(type, …)` list.
+export const hookSubagentStart = (subagentType: string) => ({
+  subagent_id: "sa-1",
+  subagent_type: subagentType,
+  task: "do the thing",
+  parent_conversation_id: "conv-1",
+  tool_call_id: "tc-1",
+  hook_event_name: "subagentStart",
+});
+
+// A built-in preToolUse call by its hook name, with a cwd as Cursor sends it.
+export const hookBuiltin = (toolName: string, toolInput: Record<string, unknown>, cwd?: string) => ({
+  tool_name: toolName,
+  tool_input: toolInput,
+  ...(cwd !== undefined ? { cwd } : {}),
+  hook_event_name: "preToolUse",
 });
 
 // ── The contract kits' abstract action, in both of Cursor's taxonomies ──────

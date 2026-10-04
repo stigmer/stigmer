@@ -20,7 +20,7 @@ import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import { ApprovalAction, ApprovalPolicySource, MessageType, SubAgentStatus, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { TranscriptEvent } from "../../../harness/transcript/events.js";
-import type { MergedToolPolicy } from "../../../shared/approval-policy.js";
+import type { McpApprovalDefault } from "../../../shared/approval-policy.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { CursorFold, foldCursorEvents } from "../__test-utils__/fold.js";
 import { sdkEvents } from "../__test-utils__/scripted-agent.js";
@@ -31,7 +31,7 @@ const RUN = "run-1";
 const ev = sdkEvents("agent-1", RUN);
 
 function translator(seeded = create(AgentExecutionStatusSchema, {})): CursorTranslator {
-  return new CursorTranslator({ policies: new Map(), leases: { global: false, categories: new Set() }, seeded: seeded.messages });
+  return new CursorTranslator({ mcpDefault: { destructive: new Set(), leasedServers: new Set() }, leases: { global: false, categories: new Set() }, seeded: seeded.messages });
 }
 
 function kinds(events: readonly TranscriptEvent[]): string[] {
@@ -251,20 +251,18 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
 
 describe("CursorTranslator — the MCP envelope is unwrapped to the inner tool", () => {
   const MCP_ARGS = { providerIdentifier: "planton", toolName: "search_services", args: { query: "db" } };
-  const policies = new Map<string, MergedToolPolicy>([
-    ["planton/search_services", { toolName: "search_services", mcpServerSlug: "planton", requiresApproval: true, approvalMessage: "Search {{args.query}} on {{tool_name}}", source: "pinned_override" }],
-  ]);
+  const mcpDefault: McpApprovalDefault = { destructive: new Set(["planton/search_services"]), leasedServers: new Set() };
 
-  it("name is the inner tool, the server its provider, the input the inner args; auto-approved without a policy (classifier_default)", () => {
+  it("name is the inner tool, the server its provider, the input the inner args; a tool its server does not mark destructive carries no provenance", () => {
     const [started] = translator().translate(ev.toolCall("m1", "mcp", "running", MCP_ARGS));
-    expect(started).toEqual({ kind: "tool_started", callId: "m1", name: "search_services", input: { query: "db" }, mcpServerSlug: "planton", provenance: "classifier_default" });
+    expect(started).toEqual({ kind: "tool_started", callId: "m1", name: "search_services", input: { query: "db" }, mcpServerSlug: "planton" });
   });
 
-  it("a policy that requires approval is the call's provenance; the row is not held until the boundary parks it", () => {
-    const t = new CursorTranslator({ policies, leases: { global: false, categories: new Set() }, seeded: [] });
+  it("a destructive tool's provenance is the annotation; the row is not held until the boundary parks it", () => {
+    const t = new CursorTranslator({ mcpDefault, leases: { global: false, categories: new Set() }, seeded: [] });
     const [started] = t.translate(ev.toolCall("m1", "mcp", "running", MCP_ARGS));
-    expect(started).toEqual({ kind: "tool_started", callId: "m1", name: "search_services", input: { query: "db" }, mcpServerSlug: "planton", provenance: "pinned_override" });
-    const fold = new CursorFold({ policies }).events(ev.toolCall("m1", "mcp", "running", MCP_ARGS));
+    expect(started).toEqual({ kind: "tool_started", callId: "m1", name: "search_services", input: { query: "db" }, mcpServerSlug: "planton", provenance: "annotation_destructive_tighten" });
+    const fold = new CursorFold({ mcpDefault }).events(ev.toolCall("m1", "mcp", "running", MCP_ARGS));
     expect(fold.row("m1").toolKind).toBe(ToolKind.MCP);
     expect(fold.row("m1").requiresApproval).toBe(false);
     expect(fold.row("m1").argsPreview, "the row's own args, never the envelope").toBe(JSON.stringify({ query: "db" }));

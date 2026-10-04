@@ -1,14 +1,13 @@
 ---
 title: Approval Flows
 description:
-  Approval flows let you define which agent actions require human oversight.
-  Learn how tool-call approvals work, how to configure them, and how the agent
-  pauses and resumes.
+  Approval flows pause an agent before risky actions until a human decides.
+  Learn which tool calls ask, how to keep an agent away from a tool, and how the
+  agent pauses and resumes.
 ---
 
 [Tools](/docs/concepts/tools) give agents the ability to act. Approval flows
-give _you_ control over which actions happen automatically and which ones pause
-for a human decision.
+make the risky actions pause for a human decision.
 
 This is not a logging feature. When an Agent encounters an action that requires
 approval, it stops, presents what it wants to do and why, and waits for a human
@@ -18,7 +17,8 @@ to approve, skip, or reject before proceeding. The Agent's execution is durable
 ## How it works
 
 Here's an approval flow in action. A customer requests a return, and the Agent
-pauses before processing it because the `process_return` tool requires approval:
+pauses before processing it because the server marks the `process_return` tool
+destructive:
 
 <DemoApprovalFlowPlayback />
 
@@ -26,94 +26,57 @@ The approval request shows the tool name, the arguments the Agent wants to pass,
 and a human-readable message. The human sees exactly what the Agent is about to
 do and can make an informed decision.
 
-## Configuring approvals
+## What asks for approval
 
-Approval requirements are configured at three levels. Each level can add or
-override the one above it.
+There is nothing to configure. Stigmer asks before:
 
-{/* prettier-ignore */}
-<Mermaid
-  chart={`
-graph TD
-  M["MCP Server<br/>tool_approvals + pinned_tool_approvals"] --> A["Agent<br/>tool_approval_overrides"]
-  A --> S["Session<br/>tool_approval_overrides"]
-  S --> R["Runtime<br/>auto_approve_all"]
-`}
-/>
+- shell commands
+- file writes and deletes
+- any MCP tool whose server marks it destructive, with the MCP annotation
+  `destructiveHint: true`
 
-### 1. MCP Server defaults
+Nothing else asks. Stigmer reads the annotation when you connect the
+[MCP Server](/docs/concepts/tools), so the server's author decides which of its
+tools are destructive. A server that annotates nothing never asks.
 
-The [MCP Server](/docs/concepts/tools) resource carries approval policies at two
-levels. System-generated policies live in `status.tool_approvals` — Stigmer
-classifies each tool automatically when you click Connect. Manual overrides live
-in `spec.pinned_tool_approvals` — these persist across reconnects and take
-precedence over the automatic classifications:
+## Keeping an Agent away from a tool
 
-```yaml validate-as="McpServer"
-# Auto-classified (status.tool_approvals) — regenerated on each Connect
-status:
-  tool_approvals:
-    - tool_name: process_return
-      message: "Process return for order '{{args.order_id}}'"
+To stop an [Agent](/docs/concepts/agents) from using a tool at all, rather than
+asking about it, give the Agent one or both of Claude Code's two lists:
 
-# Manual overrides (spec.pinned_tool_approvals) — set by the server owner
-spec:
-  pinned_tool_approvals:
-    - tool_name: delete_agent
-      message: "Permanently delete agent '{{args.slug}}'"
-```
+- `tools`: only these tools
+- `disallowed_tools`: never these tools
 
-Each `ToolApprovalPolicy` has:
-
-| Field       | Purpose                                                                 |
-| ----------- | ----------------------------------------------------------------------- |
-| `tool_name` | The exact tool name that requires approval                              |
-| `message`   | A human-readable message with `{{args.field}}` placeholders for context |
-
-The `message` template resolves at runtime using the actual tool call arguments,
-so the human sees "Process return for order 'ORD-4821'" instead of a generic
-prompt.
-
-### 2. Agent overrides
-
-[Agents](/docs/concepts/agents) can override the default policy for each MCP
-Server they reference:
+Entries use Claude Code's names: `Read`, `Grep`, `Bash(git push *)`,
+`Agent(explore)`, `mcp__<server-slug>` for every tool of one server,
+`mcp__<server-slug>__<tool>` for one tool, and `mcp__*` for every MCP tool. The
+never-list is applied first.
 
 ```yaml validate-as="Agent"
-# In the Agent definition
 spec:
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server
         slug: order-management-api
-      tool_approval_overrides:
-        - tool_name: process_return
-          requires_approval: true
-          message: "Return requested for order '{{args.order_id}}'"
-        - tool_name: get_order
-          requires_approval: false
+  tools: [Read, Grep, mcp__order-management-api]
+  disallowed_tools: [mcp__order-management-api__cancel_order]
 ```
 
-A `ToolApprovalOverride` can:
+This Agent can read files and use the order server's tools, but cannot run shell
+commands, write files, or cancel an order. The lists hold on both
+[harnesses](/docs/concepts/harnesses), and even when someone chooses to trust
+the whole run. A sub-agent can narrow its parent's tools with its own lists but
+never widen them. With `Read` left out, the Agent still reads its own Skills,
+inputs and plan. The platform's channel, conversation and memory tools, and
+`think`, are outside the lists.
 
-- **Enable** approval for a tool that doesn't require it by default
-- **Disable** approval for a tool that does
-- **Change** the approval message
+## Approving everything
 
-An override applies only to the MCP Server referenced by its parent usage — a
-same-named tool on another server is unaffected. To override the same tool name
-on two servers, add an override under each server's usage.
-
-This lets the same MCP Server behave differently across Agents. A read-only
-Agent might disable approvals for query tools, while a full-access Agent keeps
-them enabled.
-
-### 3. Session and runtime overrides
-
-[Sessions](/docs/concepts/sessions) can further override approval settings for a
-specific conversation. At the execution level, `auto_approve_all` is a bypass
-flag that skips all approvals — useful for automated processes where a human has
-already authorized the operation.
+`auto_approve_all` on an execution skips every approval, which suits automated
+processes where a human has already authorized the operation. At an approval,
+**Approve all** for one kind of tool (every shell command, or every tool of one
+server) stops asking about that kind for the rest of the run. Neither widens the
+Agent's tool lists.
 
 Embedding products can also set the _default_ for their interactive Sessions:
 `StigmerProvider`'s `approvalDefaults` prop pre-arms the session-scoped
@@ -144,22 +107,23 @@ When a tool call triggers an approval:
 The execution is durable throughout this process. If the server restarts while
 waiting for approval, the Agent resumes from the same waiting state.
 
-## Designing approval policies
+## Designing for approvals
 
-A few principles for deciding what needs approval:
+A few principles:
 
-- **Destructive actions** should always require approval — deletes, refunds,
-  account changes
-- **Read-only actions** don't need approval — queries, searches, status checks
-- **High-value actions** benefit from approval even if they're not destructive —
-  sending emails to customers, creating orders
-- **Be specific in messages** — "Process return for order 'ORD-4821'" helps the
-  human decide faster than an uninformative message that only names the tool
-  `process_return` without further context.
+- **Mark destructive tools on the server.** If you write an MCP server, set
+  `destructiveHint: true` on every tool that deletes, refunds or changes an
+  account, so every Agent that uses it asks first.
+- **Leave out what an Agent should never do.** A support Agent that only looks
+  things up needs `tools: [Read, Grep, mcp__<server-slug>]`, not an approval on
+  every write.
+- **Approval is for the person at the conversation.** On a channel or a guest
+  share there is no approver, so a tool that asks is skipped there. Keep the
+  tools such an Agent needs free of `destructiveHint`, and confirm intent in the
+  conversation instead.
 
 The goal is to make the approval decision quick. The human should see the
-message and immediately understand what's happening, why, and whether to allow
-it.
+request and immediately understand what's happening and whether to allow it.
 
 ## What's next
 

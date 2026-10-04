@@ -33,7 +33,7 @@ export interface CursorFoldOptions {
    * over `status`'s own array.
    */
   readonly messages?: AgentMessage[];
-  readonly policies?: CursorTranslatorOptions["policies"];
+  readonly mcpDefault?: CursorTranslatorOptions["mcpDefault"];
   readonly leases?: CursorTranslatorOptions["leases"];
   /** The builder's observer, as the runtime passes its turn timeline; a test that moves a fake clock between folds passes one. */
   readonly observer?: TranscriptObserver;
@@ -48,7 +48,7 @@ export class CursorFold {
     this.status = options.status ?? create(AgentExecutionStatusSchema, {});
     if (options.messages) this.status.messages = options.messages;
     this.translator = new CursorTranslator({
-      policies: options.policies ?? new Map(),
+      mcpDefault: options.mcpDefault ?? { destructive: new Set(), leasedServers: new Set() },
       leases: options.leases ?? { global: false, categories: new Set() },
       seeded: this.status.messages,
     });

@@ -1,30 +1,27 @@
+/**
+ * The blueprint sub-agents as the Cursor SDK registers them: the
+ * `AgentDefinition` map and the `Agent(type, …)` filter in front of it. Pins
+ * the field mapping and fallbacks, that no definition carries an MCP config
+ * (the SDK gives sub-agents the parent's), and that a custom type the main
+ * agent's lists do not allow is never registered.
+ */
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import {
-  SubAgentSchema,
-  McpAccessSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { buildCursorSubAgentDefinitions } from "../subagent-config.js";
+import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { ToolScope } from "../../../shared/tool-lists.js";
+import { buildCursorSubAgentDefinitions, subAgentsInScope } from "../subagent-config.js";
 
 function makeSubAgent(opts: {
   name: string;
   description?: string;
   instructions?: string;
   modelOverride?: string;
-  mcpServers?: string[];
 }) {
   const sa = create(SubAgentSchema);
   sa.name = opts.name;
   sa.description = opts.description ?? "";
   sa.instructions = opts.instructions ?? "";
   sa.modelOverride = opts.modelOverride ?? "";
-  if (opts.mcpServers) {
-    sa.mcpAccess = opts.mcpServers.map((s) => {
-      const a = create(McpAccessSchema);
-      a.mcpServer = s;
-      return a;
-    });
-  }
   return sa;
 }
 
@@ -70,10 +67,8 @@ describe("buildCursorSubAgentDefinitions", () => {
         name: "tooluser",
         description: "uses tools",
         instructions: "use the echo tool",
-        mcpServers: ["server-a", "server-b"],
       }),
     ]);
-    // The SDK has no per-sub-agent MCP filtering; mcp_access is advisory only.
     expect(agents!.tooluser.mcpServers).toBeUndefined();
   });
 
@@ -95,6 +90,18 @@ describe("buildCursorSubAgentDefinitions", () => {
         makeSubAgent({ name: "   ", description: "d", instructions: "do it now" }),
       ]),
     ).toBeUndefined();
+  });
+
+  it("keeps only the types the main agent's Agent(type, …) allows, matched case-insensitively", () => {
+    const subAgents = [
+      makeSubAgent({ name: "Researcher", instructions: "research it" }),
+      makeSubAgent({ name: "writer", instructions: "write it" }),
+    ];
+    const scope = ToolScope.of('Agent "a"', { tools: ["Read", "Agent(researcher)"], disallowedTools: [] });
+    expect(subAgentsInScope(subAgents, scope).map((sa) => sa.name)).toEqual(["Researcher"]);
+    expect(subAgentsInScope(subAgents, ToolScope.unrestricted())).toHaveLength(2);
+    const noAgent = ToolScope.of('Agent "a"', { tools: [], disallowedTools: ["Agent"] });
+    expect(subAgentsInScope(subAgents, noAgent)).toEqual([]);
   });
 
   it("registers multiple sub-agents", () => {

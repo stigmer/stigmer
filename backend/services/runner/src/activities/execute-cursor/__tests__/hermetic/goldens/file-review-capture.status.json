@@ -19,7 +19,7 @@
           "argsPreview": "{\"path\":\"notes.md\",\"content\":\"# Notes\\n\\nA fixture file.\\n\\nReviewed by the hermetic run.\\n\"}",
           "toolKind": "TOOL_KIND_FILE_EDIT",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "phase-7",
+          "policyEngineVersion": "default-1",
           "fileChangeSetId": "aex_hermetic_0001:0"
         }
       ]

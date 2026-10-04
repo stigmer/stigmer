@@ -1,27 +1,25 @@
+/**
+ * The Cursor prompt's delegation sections: the blueprint sub-agents the main
+ * agent may start, how to reach them through the Task tool, and the guidance
+ * toward Cursor's built-in explore sub-agent. Pins that the section names
+ * each sub-agent and its model, and carries no tool-access prose (a
+ * sub-agent's tools are its lists' business, enforced, not prompted).
+ */
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import {
-  SubAgentSchema,
-  McpAccessSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   formatSubAgentsSection,
   formatExplorationGuidance,
   buildEnhancedPrompt,
 } from "../prompt-builder.js";
 
-function makeSubAgent(name: string, description: string, mcpServers?: string[]) {
+function makeSubAgent(name: string, description: string, modelOverride = "") {
   const sa = create(SubAgentSchema);
   sa.name = name;
   sa.description = description;
   sa.instructions = "do the thing thoroughly";
-  if (mcpServers) {
-    sa.mcpAccess = mcpServers.map((s) => {
-      const a = create(McpAccessSchema);
-      a.mcpServer = s;
-      return a;
-    });
-  }
+  sa.modelOverride = modelOverride;
   return sa;
 }
 
@@ -36,20 +34,9 @@ describe("formatSubAgentsSection", () => {
     expect(section).toContain("</sub_agent_delegation>");
   });
 
-  it("marks MCP access as advisory and explains the inheritance caveat", () => {
-    const section = formatSubAgentsSection([
-      makeSubAgent("tooluser", "uses tools", ["server-a"]),
-    ]);
-    expect(section).toContain("MCP access (advisory): server-a");
-    expect(section).toContain("advisory");
-    expect(section.toLowerCase()).toContain("inherit");
-  });
-
-  it("omits the MCP caveat line when no sub-agent declares mcp access", () => {
-    const section = formatSubAgentsSection([
-      makeSubAgent("plain", "no tools"),
-    ]);
-    expect(section).not.toContain("advisory");
+  it("names a sub-agent's model override", () => {
+    const section = formatSubAgentsSection([makeSubAgent("fast", "quick lookups", "claude-haiku")]);
+    expect(section).toContain("  Model: claude-haiku");
   });
 });
 

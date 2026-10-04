@@ -29,7 +29,7 @@ import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/age
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { DeepAgentTranslator } from "../translator.js";
 import type { DeepAgentGateState } from "../turn-setup.js";
-import type { MergedToolPolicy } from "../../../shared/approval-policy.js";
+import { mcpToolKey, type McpApprovalDefault } from "../../../shared/approval-policy.js";
 import {
   resetSeq,
   makeMessageStart,
@@ -285,19 +285,11 @@ describe("the native translator through the builder", () => {
       // hold reaches the transcript as approval_proposed from the post-stream
       // seed. A tool_started that does arrive is the engine's word that
       // the call was authorized, so the row is RUNNING and attributed — never
-      // WAITING at creation, whatever the policy says.
+      // WAITING at creation, whatever the default says.
       it("is RUNNING and attributed to its server; nothing waits", () => {
         const { sb, status } = makeBuilder();
         const gate = gateWith({
-          policies: new Map([
-            ["my-server/dangerous_tool", {
-              toolName: "dangerous_tool",
-              mcpServerSlug: "my-server",
-              requiresApproval: true,
-              approvalMessage: "This tool will modify {{args.path}}",
-              source: "classifier_default",
-            }],
-          ]),
+          mcpDefault: destructiveDefault(mcpToolKey("my-server", "dangerous_tool")),
           toolServerMap: new Map([["dangerous_tool", "my-server"]]),
         });
 
@@ -318,7 +310,7 @@ describe("the native translator through the builder", () => {
         expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
         expect(tc.requiresApproval).toBe(false);
         expect(tc.mcpServerSlug).toBe("my-server");
-        expect(tc.approvalPolicySource, "the policy's layer still attributes the row").toBe(ApprovalPolicySource.CLASSIFIER_DEFAULT);
+        expect(tc.approvalPolicySource, "the default's reason still attributes the row").toBe(ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN);
         expect(tc.approvalRequestedAt).toBe("");
       });
     });
@@ -584,10 +576,10 @@ describe("the native translator through the builder", () => {
   // (redaction, truncation) are `shared/__tests__/args-preview.test.ts`'s.
   // ═══════════════════════════════════════════════════════════════════
 
-  /** A gate posture for the translator: no policies, no leases, attended, not bypassed — unless overridden. */
+  /** A gate posture for the translator: nothing destructive, no leases, attended, not bypassed — unless overridden. */
   function gateWith(overrides: Partial<DeepAgentGateState> = {}): DeepAgentGateState {
     return {
-      policies: new Map(),
+      mcpDefault: destructiveDefault(),
       toolServerMap: new Map(),
       leasedCategories: new Set(),
       globalBypass: false,
@@ -597,11 +589,9 @@ describe("the native translator through the builder", () => {
     };
   }
 
-  function policyFor(serverSlug: string, toolName: string, message = "Approve?"): [string, MergedToolPolicy] {
-    return [
-      `${serverSlug}/${toolName}`,
-      { toolName, mcpServerSlug: serverSlug, requiresApproval: true, approvalMessage: message, source: "classifier_default" },
-    ];
+  /** An approval default under which the given `server/tool` keys are marked destructive by their servers. */
+  function destructiveDefault(...keys: string[]): McpApprovalDefault {
+    return { destructive: new Set(keys), leasedServers: new Set() };
   }
 
   /** A text turn, then one tool start, through a translator over the given gate posture. */
@@ -617,33 +607,33 @@ describe("the native translator through the builder", () => {
   }
 
   describe("attribution and provenance on tool_started", () => {
-    // The translator answers WHICH server a tool belongs to and WHICH policy
-    // layer governs it; it never answers whether the gate holds the call —
+    // The translator answers WHICH server a tool belongs to and WHAT reason
+    // the default gives; it never answers whether the gate holds the call —
     // on native a held call never starts (the interrupt precedes the
     // handler), so every started call is RUNNING and nothing here waits.
     // The decision itself, `resolveToolApproval`, has its own arms in
     // `shared/__tests__/approval-policy.test.ts`; the gate's use of it in
     // `middleware/__tests__/approval-gate.test.ts`.
 
-    it("an MCP tool with a gating policy STILL runs when it started, attributed to its server and the policy's layer", () => {
-      const [key, policy] = policyFor("github", "create_issue");
+    it("an MCP tool its server marks destructive STILL runs when it started, attributed to its server and the default's reason", () => {
+      const key = mcpToolKey("github", "create_issue");
       const { sb, tc } = firstToolCallUnder(
-        gateWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["create_issue", "github"]]) }),
+        gateWith({ mcpDefault: destructiveDefault(key), toolServerMap: new Map([["create_issue", "github"]]) }),
         "create_issue",
         { title: "Bug fix" },
       );
       expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
       expect(tc.requiresApproval).toBe(false);
       expect(tc.mcpServerSlug).toBe("github");
-      expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.CLASSIFIER_DEFAULT);
-      expect(tc.policyEngineVersion).toBe("phase-7");
+      expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN);
+      expect(tc.policyEngineVersion).toBe("default-1");
       expect(sb.awaitingApproval).toBe(false);
     });
 
     it("the global bypass (spec.auto_approve_all) attributes every row to it", () => {
-      const [key, policy] = policyFor("github", "delete_repo");
+      const key = mcpToolKey("github", "delete_repo");
       const { tc } = firstToolCallUnder(
-        gateWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["delete_repo", "github"]]), globalBypass: true }),
+        gateWith({ mcpDefault: destructiveDefault(key), toolServerMap: new Map([["delete_repo", "github"]]), globalBypass: true }),
         "delete_repo",
       );
       expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
@@ -651,15 +641,16 @@ describe("the native translator through the builder", () => {
       expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.AUTO_APPROVE_ALL);
     });
 
-    it("an MCP tool with no policy is attributed to its server, classifier_default", () => {
+    it("an MCP tool its server does not mark destructive is attributed to its server and needed no approval", () => {
       const { tc } = firstToolCallUnder(gateWith({ toolServerMap: new Map([["read", "filesystem"]]) }), "read");
       expect(tc.mcpServerSlug).toBe("filesystem");
-      expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.CLASSIFIER_DEFAULT);
+      expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
+      expect(tc.policyEngineVersion, "no provenance, no engine version").toBe("");
     });
 
-    it("a tool the server map does not know carries no server (the policy key needs the server)", () => {
-      const [key, policy] = policyFor("github", "create_pr");
-      const { tc } = firstToolCallUnder(gateWith({ policies: new Map([[key, policy]]), toolServerMap: new Map() }), "create_pr");
+    it("a tool the server map does not know carries no server (the destructive key needs the server)", () => {
+      const key = mcpToolKey("github", "create_pr");
+      const { tc } = firstToolCallUnder(gateWith({ mcpDefault: destructiveDefault(key), toolServerMap: new Map() }), "create_pr");
       expect(tc.mcpServerSlug).toBe("");
       expect(tc.approvalPolicySource, "an unknown built-in is governed by no layer").toBe(ApprovalPolicySource.UNSPECIFIED);
       expect(tc.policyEngineVersion).toBe("");
@@ -761,8 +752,8 @@ describe("the native translator through the builder", () => {
         ],
       });
       const sb = new TranscriptBuilder("exec-resume", status);
-      const [key, policy] = policyFor("my-server", "dangerous_tool", "Execute dangerous_tool");
-      const gate = gateWith({ policies: new Map([[key, policy]]), toolServerMap: new Map([["dangerous_tool", "my-server"]]) });
+      const key = mcpToolKey("my-server", "dangerous_tool");
+      const gate = gateWith({ mcpDefault: destructiveDefault(key), toolServerMap: new Map([["dangerous_tool", "my-server"]]) });
 
       // The durable checkpoint re-emits the SAME tool_call_id now that approval is granted.
       feedAll(sb, [

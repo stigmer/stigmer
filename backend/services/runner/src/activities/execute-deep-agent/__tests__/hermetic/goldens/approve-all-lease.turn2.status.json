@@ -28,7 +28,7 @@
           "argsPreview": "{\"command\":\"echo hermetic-a\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "phase-7"
+          "policyEngineVersion": "default-1"
         },
         {
           "id": "call-hermetic-exec-0002",
@@ -43,7 +43,7 @@
           "argsPreview": "{\"command\":\"echo hermetic-b\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
-          "policyEngineVersion": "phase-7"
+          "policyEngineVersion": "default-1"
         }
       ]
     },

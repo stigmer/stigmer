@@ -34,7 +34,7 @@ const pendingToolCall = create(ToolCallSchema, {
 const pendingApproval = create(PendingApprovalSchema, {
   toolCallId: "tc-process-return-1",
   toolName: "process_return",
-  message: "Process return for order 'ORD-4821'",
+  message: "Execute process_return",
   argsPreview: JSON.stringify({
     order_id: "ORD-4821",
     reason: "defective",
@@ -45,7 +45,8 @@ const pendingApproval = create(PendingApprovalSchema, {
   mcpServerSlug: "order-management-api",
   // Why-gated provenance the server projects onto the pending approval; renders
   // the ApprovalCard's "why this needs approval" line in the demo.
-  approvalPolicySource: ApprovalPolicySource.CLASSIFIER_DEFAULT,
+  // The server marks process_return destructive, so the default asks.
+  approvalPolicySource: ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN,
 });
 
 const completedToolCall = samples.toolCall(

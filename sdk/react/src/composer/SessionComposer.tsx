@@ -1354,8 +1354,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const initialMcpSeeded = useRef(false);
   const mcpSetupAddServerRef = useRef(mcpSetup.addServer);
   mcpSetupAddServerRef.current = mcpSetup.addServer;
-  const mcpSetupSetEnabledToolsRef = useRef(mcpSetup.setEnabledTools);
-  mcpSetupSetEnabledToolsRef.current = mcpSetup.setEnabledTools;
 
   useEffect(() => {
     if (!showMcp || initialMcpSeeded.current || !mcpServerUsages?.length) return;
@@ -1364,13 +1362,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     for (const usage of mcpServerUsages) {
       const ref = usage.mcpServerRef;
       if (!ref) continue;
-      const savedTools = usage.enabledTools;
 
-      mcpSetupAddServerRef.current(ref).then(() => {
-        if (savedTools?.length) {
-          mcpSetupSetEnabledToolsRef.current(ref, savedTools);
-        }
-      }).catch(() => {
+      mcpSetupAddServerRef.current(ref).catch(() => {
         // Non-fatal: server may have been deleted or become inaccessible.
         // The user can re-add it via the MCP picker.
       });
@@ -1623,8 +1616,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                   mcpSetup.submitEnvVars(ref, values, {
                     saveForFuture: opts.saveForFuture,
                   }),
-                onEnabledToolsChange: (ref, tools) =>
-                  mcpSetup.setEnabledTools(ref, tools),
               }}
               initialServerKey={configMcpInitialServerKeyRef.current}
               onDisplayNameResolved={handleDisplayNameResolved}

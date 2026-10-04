@@ -181,10 +181,43 @@ export interface ToolLists {
   readonly disallowedTools: readonly string[];
 }
 
+/**
+ * A name no list entry can carry. Asking about it answers for every server,
+ * tool or sub-agent type no entry names, which all resolve alike: that is
+ * what lets {@link ToolScope.mcpTable} and {@link ToolScope.subAgentTypeTable}
+ * hand a whole scope to an evaluator as a finite table.
+ */
+const UNNAMED: unique symbol = Symbol("unnamed");
+type Unnamed = typeof UNNAMED;
+
 /** What a list entry is asked about. */
 type Subject =
   | { readonly kind: "builtin"; readonly tool: ClaudeTool }
-  | { readonly kind: "mcp"; readonly server: string; readonly tool: string | null };
+  | { readonly kind: "mcp"; readonly server: string | Unnamed; readonly tool: string | null | Unnamed };
+
+/** One MCP server's answers in a {@link McpScopeTable}. */
+export interface McpServerScope {
+  /** In scope, per tool the turn knows of or an entry names. */
+  readonly tools: Readonly<Record<string, boolean>>;
+  /** The answer every other tool of this server shares. */
+  readonly otherTools: boolean;
+}
+
+/** A scope's MCP answers as data ({@link ToolScope.mcpTable}). */
+export interface McpScopeTable {
+  /** Per server the turn has or an entry names. */
+  readonly servers: Readonly<Record<string, McpServerScope>>;
+  /** The answer every tool of any other server shares. */
+  readonly otherServers: boolean;
+}
+
+/** A scope's `Agent(type, …)` answers as data ({@link ToolScope.subAgentTypeTable}). */
+export interface SubAgentTypeTable {
+  /** May the main agent start this type, per lowercased type known or named. */
+  readonly types: Readonly<Record<string, boolean>>;
+  /** The answer every other type shares. */
+  readonly otherTypes: boolean;
+}
 
 function entryMatches(entry: ToolListEntry, subject: Subject): boolean {
   switch (entry.kind) {
@@ -227,29 +260,43 @@ function layerAllows(layer: ScopeLayer, subject: Subject): boolean {
  * parent's. Immutable; {@link narrow} returns a new scope.
  */
 export class ToolScope {
-  private constructor(private readonly layers: readonly ScopeLayer[]) {}
+  /**
+   * @param layers each owner's lists, the main agent's first when it has any
+   * @param agentTypes the main agent's `Agent(type, …)` types, lower-cased;
+   *   `null` when its lists name no type list. Fixed at {@link of} and carried
+   *   unchanged by {@link narrow}: a sub-agent's type list is ignored, and a
+   *   sub-agent's layer can be the first one when the main agent has no lists.
+   */
+  private constructor(
+    private readonly layers: readonly ScopeLayer[],
+    private readonly agentTypes: ReadonlySet<string> | null,
+  ) {}
 
   /** No lists anywhere: every tool is in scope. */
   static unrestricted(): ToolScope {
-    return new ToolScope([]);
+    return new ToolScope([], null);
   }
 
   /** The main agent's scope. */
   static of(owner: string, lists: ToolLists): ToolScope {
-    return ToolScope.unrestricted().narrow(owner, lists);
+    const scope = ToolScope.unrestricted().narrow(owner, lists);
+    return new ToolScope(scope.layers, agentTypesOf(scope.layers[0]?.tools ?? []));
   }
 
   /** A sub-agent's scope: this one, narrowed by its own lists. */
   narrow(owner: string, lists: ToolLists): ToolScope {
     if (lists.tools.length === 0 && lists.disallowedTools.length === 0) return this;
-    return new ToolScope([
-      ...this.layers,
-      {
-        owner,
-        tools: lists.tools.map(parseToolListEntry),
-        disallowed: lists.disallowedTools.map(parseToolListEntry),
-      },
-    ]);
+    return new ToolScope(
+      [
+        ...this.layers,
+        {
+          owner,
+          tools: lists.tools.map(parseToolListEntry),
+          disallowed: lists.disallowedTools.map(parseToolListEntry),
+        },
+      ],
+      this.agentTypes,
+    );
   }
 
   /** True when any layer carries a list; an unrestricted scope needs no enforcement installed. */
@@ -301,33 +348,87 @@ export class ToolScope {
   }
 
   /**
-   * Whether a whole MCP server (or, for `null`, the whole MCP family) is
-   * in scope as a family: not denied outright, and named by a server- or
-   * family-level entry wherever an allow-list exists.
+   * Whether some tool of one MCP server (or, for `null`, of any server) can
+   * be in scope: no layer denies the server (or the whole family) outright,
+   * and every layer with an allow-list names it at some level — the server,
+   * one of its tools, or the family. A tool-level deny does not close the
+   * family: other tools of the server may remain.
    */
   allowsMcpFamily(server: string | null): boolean {
-    if (server !== null) return this.allows({ kind: "mcp", server, tool: null });
-    return !this.layers.some((l) => l.disallowed.some((e) => e.kind === "mcp" && e.server === null));
+    const deniesOutright = (e: ToolListEntry): boolean =>
+      e.kind === "mcp" && e.tool === null && (e.server === null || e.server === server);
+    const names = (e: ToolListEntry): boolean =>
+      e.kind === "mcp" && (server === null || e.server === null || e.server === server);
+    return this.layers.every(
+      (l) => !l.disallowed.some(deniesOutright) && (l.tools.length === 0 || l.tools.some(names)),
+    );
   }
 
   /**
-   * Whether the main agent may start a sub-agent of `type`. Only the first
-   * layer's `Agent(…)` type list counts: inside a sub-agent it is ignored.
+   * Whether the main agent may start a sub-agent of `type`. Only the main
+   * agent's `Agent(…)` type list counts: inside a sub-agent it is ignored.
    */
   allowsSubAgentType(type: string): boolean {
+    return this.allowsType(type.toLowerCase());
+  }
+
+  private allowsType(type: string | Unnamed): boolean {
     if (!this.allowsClaudeTool("Agent")) return false;
-    const root = this.layers[0];
-    if (!root || root.tools.length === 0) return true;
-    let types: Set<string> | null = new Set();
-    for (const e of root.tools) {
-      if (e.kind !== "builtin" || e.tool !== "Agent") continue;
-      if (e.agentTypes === null) {
-        types = null;
-        break;
-      }
-      for (const t of e.agentTypes) types.add(t);
+    return this.agentTypes === null || (type !== UNNAMED && this.agentTypes.has(type));
+  }
+
+  /**
+   * This scope's MCP answers as data, for an evaluator that cannot load this
+   * module (the Cursor hook runs in a process of its own). `known` maps each
+   * server the turn has to the tools it knows of. The table answers those and
+   * every server and tool an entry names, plus the one answer every other
+   * tool of a listed server shares and the one every tool of an unlisted
+   * server shares, so a lookup in it equals {@link allowsMcpTool} for any
+   * server and tool.
+   */
+  mcpTable(known: ReadonlyMap<string, readonly string[]>): McpScopeTable {
+    const named = new Map<string, Set<string>>();
+    const name = (server: string): Set<string> => {
+      const tools = named.get(server) ?? new Set<string>();
+      named.set(server, tools);
+      return tools;
+    };
+    for (const [server, tools] of known) {
+      const names = name(server);
+      for (const tool of tools) names.add(tool);
     }
-    return types === null || types.has(type.toLowerCase());
+    for (const layer of this.layers) {
+      for (const e of [...layer.tools, ...layer.disallowed]) {
+        if (e.kind !== "mcp" || e.server === null) continue;
+        const tools = name(e.server);
+        if (e.tool !== null) tools.add(e.tool);
+      }
+    }
+    const servers = Object.fromEntries(
+      [...named].map(([server, tools]): [string, McpServerScope] => [
+        server,
+        {
+          tools: Object.fromEntries([...tools].map((tool) => [tool, this.allowsMcpTool(server, tool)])),
+          otherTools: this.allows({ kind: "mcp", server, tool: UNNAMED }),
+        },
+      ]),
+    );
+    return { servers, otherServers: this.allows({ kind: "mcp", server: UNNAMED, tool: UNNAMED }) };
+  }
+
+  /**
+   * This scope's `Agent(type, …)` answers as data, for the same kind of
+   * evaluator: every type in `known` and every type the main agent names,
+   * plus the answer every other type shares. A lookup in it equals
+   * {@link allowsSubAgentType}.
+   */
+  subAgentTypeTable(known: readonly string[]): SubAgentTypeTable {
+    const types = new Set(known.map((t) => t.toLowerCase()));
+    for (const t of this.agentTypes ?? []) types.add(t);
+    return {
+      types: Object.fromEntries([...types].map((t) => [t, this.allowsType(t)])),
+      otherTypes: this.allowsType(UNNAMED),
+    };
   }
 
   /** The lists in force, for the refusal a model reads: owner by owner. */
@@ -352,6 +453,21 @@ export class ToolScope {
     const l = this.layers[this.layers.length - 1];
     return { tools: l?.tools ?? [], disallowed: l?.disallowed ?? [] };
   }
+}
+
+/**
+ * The sub-agent types a main agent's `tools` limits `Agent` to, or `null`
+ * when it does not: no allow-list, or an `Agent` entry with no type list.
+ */
+function agentTypesOf(tools: readonly ToolListEntry[]): ReadonlySet<string> | null {
+  if (tools.length === 0) return null;
+  const types = new Set<string>();
+  for (const e of tools) {
+    if (e.kind !== "builtin" || e.tool !== "Agent") continue;
+    if (e.agentTypes === null) return null;
+    for (const t of e.agentTypes) types.add(t);
+  }
+  return types;
 }
 
 /** The message a model reads when it calls a tool its lists exclude. */

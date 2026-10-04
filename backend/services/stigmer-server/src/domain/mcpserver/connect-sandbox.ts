@@ -18,7 +18,7 @@
  * started the run releases it when the run settles.
  *
  * The sandbox's credential acts as the person who asked for the connect.
- * The runner reads the McpServer and classifies its tools through the
+ * The runner reads the McpServer and records its tools through the
  * proxy with the credential baked into its sandbox, so it is minted for
  * that person, scoped to this one connect (`scope: "connect"`,
  * runnerauth/runner-credential-provider.ts). On the OSS execution-scoped

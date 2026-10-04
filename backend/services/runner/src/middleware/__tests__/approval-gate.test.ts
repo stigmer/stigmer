@@ -1,7 +1,14 @@
+/**
+ * Pins the native approval gate: what interrupts (mutating built-ins, MCP
+ * tools their server marks destructive), what a lease clears, the user's
+ * approve/skip/reject arms (a denied call never runs its handler), capture
+ * mode's flows and secret blocks, unattended skips, and the shadow receipt
+ * with its provenance and engine version. `interrupt()` is mocked.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToolMessage } from "@langchain/core/messages";
 import { createApprovalGateMiddleware, type ApprovalGateConfig } from "../approval-gate.js";
-import type { MergedToolPolicy } from "../../shared/approval-policy.js";
+import type { McpApprovalDefault } from "../../shared/approval-policy.js";
 import type { ToolCallRequest } from "../types.js";
 
 vi.mock("@langchain/langgraph", () => ({
@@ -34,9 +41,16 @@ function passthrough(req: ToolCallRequest) {
   });
 }
 
+const NO_MCP_DEFAULT: McpApprovalDefault = { destructive: new Set(), leasedServers: new Set() };
+
+/** An approval default under which the named `server/tool` keys are marked destructive by their servers. */
+function destructive(...keys: string[]): McpApprovalDefault {
+  return { destructive: new Set(keys), leasedServers: new Set() };
+}
+
 function makeConfig(overrides: Partial<ApprovalGateConfig> = {}): ApprovalGateConfig {
   return {
-    policies: new Map<string, MergedToolPolicy>(),
+    mcpDefault: NO_MCP_DEFAULT,
     toolServerMap: new Map<string, string>(),
     ...overrides,
   };
@@ -92,19 +106,11 @@ describe("ApprovalGateMiddleware", () => {
     expect(mockedInterrupt).not.toHaveBeenCalled();
   });
 
-  it("calls interrupt() for MCP tools matching a policy", async () => {
-    const policies = new Map<string, MergedToolPolicy>([
-      ["my-server/dangerous_tool", {
-        toolName: "dangerous_tool",
-        mcpServerSlug: "my-server",
-        requiresApproval: true,
-        approvalMessage: "Execute dangerous tool: {{args.target}}",
-        source: "classifier_default",
-      }],
-    ]);
+  it("calls interrupt() for an MCP tool its server marks destructive", async () => {
+    const mcpDefault = destructive("my-server/dangerous_tool");
 
     const mw = createApprovalGateMiddleware(makeConfig({
-      policies,
+      mcpDefault,
       toolServerMap: new Map([["dangerous_tool", "my-server"]]),
     }));
 
@@ -117,26 +123,18 @@ describe("ApprovalGateMiddleware", () => {
       tool_call_id: "call_abc123",
       tool_name: "dangerous_tool",
       mcp_server_slug: "my-server",
-      message: "Execute dangerous tool: prod",
-      policy_source: "classifier_default",
+      message: "Execute dangerous_tool",
+      policy_source: "annotation_destructive_tighten",
     });
     expect(result).toBeInstanceOf(ToolMessage);
     expect((result as ToolMessage).content).toBe("tool result");
   });
 
   it("returns skip message when user skips", async () => {
-    const policies = new Map<string, MergedToolPolicy>([
-      ["srv/tool_a", {
-        toolName: "tool_a",
-        mcpServerSlug: "srv",
-        requiresApproval: true,
-        approvalMessage: "Run tool_a",
-        source: "classifier_default",
-      }],
-    ]);
+    const mcpDefault = destructive("srv/tool_a");
 
     const mw = createApprovalGateMiddleware(makeConfig({
-      policies,
+      mcpDefault,
       toolServerMap: new Map([["tool_a", "srv"]]),
     }));
 
@@ -151,18 +149,10 @@ describe("ApprovalGateMiddleware", () => {
   });
 
   it("returns reject message when user rejects", async () => {
-    const policies = new Map<string, MergedToolPolicy>([
-      ["srv/tool_b", {
-        toolName: "tool_b",
-        mcpServerSlug: "srv",
-        requiresApproval: true,
-        approvalMessage: "Run tool_b",
-        source: "classifier_default",
-      }],
-    ]);
+    const mcpDefault = destructive("srv/tool_b");
 
     const mw = createApprovalGateMiddleware(makeConfig({
-      policies,
+      mcpDefault,
       toolServerMap: new Map([["tool_b", "srv"]]),
     }));
 
@@ -298,7 +288,7 @@ describe("ApprovalGateMiddleware", () => {
       // Provenance: a built-in mutating tool is decided by the taxonomy, and the
       // engine version is stamped for audit correlation.
       expect(r[0].policySource).toBe("builtin_category");
-      expect(r[0].policyEngineVersion).toBe("phase-7");
+      expect(r[0].policyEngineVersion).toBe("default-1");
     });
 
     it("emits an auto_approve receipt for an auto-approved MCP side effect", async () => {
@@ -314,23 +304,16 @@ describe("ApprovalGateMiddleware", () => {
       expect(r).toHaveLength(1);
       expect(r[0].authorization).toBe("auto_approve");
       expect(r[0].mcpServerSlug).toBe("github");
-      // Absent from the policy map = cleared by the MCP classifier chain.
-      expect(r[0].policySource).toBe("classifier_default");
-      expect(r[0].policyEngineVersion).toBe("phase-7");
+      // Not marked destructive by its server: the default does not ask, and
+      // the receipt carries no policy source.
+      expect(r[0].policySource).toBe("");
+      expect(r[0].policyEngineVersion).toBe("default-1");
     });
 
-    it("stamps the matched policy's source on a user-approved MCP gate", async () => {
-      const policies = new Map<string, MergedToolPolicy>([
-        ["github/delete_repo", {
-          toolName: "delete_repo",
-          mcpServerSlug: "github",
-          requiresApproval: true,
-          approvalMessage: "Delete {{args.repo}}",
-          source: "agent_override",
-        }],
-      ]);
+    it("stamps the destructive-annotation source on a user-approved MCP gate", async () => {
+      const mcpDefault = destructive("github/delete_repo");
       const mw = createApprovalGateMiddleware(makeConfig({
-        policies,
+        mcpDefault,
         toolServerMap: new Map([["delete_repo", "github"]]),
         fingerprintKey: "test-key",
         executionId: "exec-3",
@@ -341,8 +324,8 @@ describe("ApprovalGateMiddleware", () => {
 
       const r = receipts();
       expect(r).toHaveLength(1);
-      expect(r[0].policySource).toBe("agent_override");
-      expect(r[0].policyEngineVersion).toBe("phase-7");
+      expect(r[0].policySource).toBe("annotation_destructive_tighten");
+      expect(r[0].policyEngineVersion).toBe("default-1");
     });
 
     it("does NOT emit a receipt for read-only built-ins (not a side effect)", async () => {
@@ -457,17 +440,9 @@ describe("ApprovalGateMiddleware", () => {
     });
 
     it("never bypasses a gated MCP tool in capture mode", async () => {
-      const policies = new Map<string, MergedToolPolicy>([
-        ["srv/mutate", {
-          toolName: "mutate",
-          mcpServerSlug: "srv",
-          requiresApproval: true,
-          approvalMessage: "Run mutate",
-          source: "classifier_default",
-        }],
-      ]);
+      const mcpDefault = destructive("srv/mutate");
       const mw = createApprovalGateMiddleware(makeConfig({
-        policies,
+        mcpDefault,
         toolServerMap: new Map([["mutate", "srv"]]),
         fileCaptureMode: true,
         isCapturablePath: async () => true,
@@ -890,18 +865,10 @@ describe("ApprovalGateMiddleware", () => {
   });
 
   it("handles unknown action as skip", async () => {
-    const policies = new Map<string, MergedToolPolicy>([
-      ["srv/tool_c", {
-        toolName: "tool_c",
-        mcpServerSlug: "srv",
-        requiresApproval: true,
-        approvalMessage: "Run tool_c",
-        source: "classifier_default",
-      }],
-    ]);
+    const mcpDefault = destructive("srv/tool_c");
 
     const mw = createApprovalGateMiddleware(makeConfig({
-      policies,
+      mcpDefault,
       toolServerMap: new Map([["tool_c", "srv"]]),
     }));
 
@@ -915,20 +882,12 @@ describe("ApprovalGateMiddleware", () => {
   });
 
   describe("unattended approval mode", () => {
-    const gatedMcpPolicies = new Map<string, MergedToolPolicy>([
-      ["srv/gated_tool", {
-        toolName: "gated_tool",
-        mcpServerSlug: "srv",
-        requiresApproval: true,
-        approvalMessage: "Run gated_tool",
-        source: "classifier_default",
-      }],
-    ]);
+    const gatedMcpDefault = destructive("srv/gated_tool");
 
     it("skips a gated MCP tool without interrupting and records it in the registry", async () => {
       const unattendedSkips = new Set<string>();
       const mw = createApprovalGateMiddleware(makeConfig({
-        policies: gatedMcpPolicies,
+        mcpDefault: gatedMcpDefault,
         toolServerMap: new Map([["gated_tool", "srv"]]),
         unattended: true,
         unattendedSkips,
@@ -967,9 +926,9 @@ describe("ApprovalGateMiddleware", () => {
       expect(unattendedSkips.has("call_abc123")).toBe(true);
     });
 
-    it("still runs tools the policy chain auto-approved (un-gating stays the operator lever)", async () => {
-      // The operator's tool_approval_overrides path: an un-gated tool is
-      // absent from the policy map, so unattended mode never touches it.
+    it("still runs MCP tools the default does not ask for", async () => {
+      // A tool its server does not mark destructive never asks, so
+      // unattended mode never touches it.
       const unattendedSkips = new Set<string>();
       const mw = createApprovalGateMiddleware(makeConfig({
         toolServerMap: new Map([["book_appointment", "clinic"]]),
@@ -991,7 +950,7 @@ describe("ApprovalGateMiddleware", () => {
       const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       try {
         const mw = createApprovalGateMiddleware(makeConfig({
-          policies: gatedMcpPolicies,
+          mcpDefault: gatedMcpDefault,
           toolServerMap: new Map([["gated_tool", "srv"]]),
           unattended: true,
           unattendedSkips: new Set<string>(),

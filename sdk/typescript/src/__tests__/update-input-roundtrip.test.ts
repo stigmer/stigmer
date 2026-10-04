@@ -184,10 +184,6 @@ const MCP_USAGE = {
     version: "v3",
     kind: ApiResourceKind.mcp_server,
   },
-  enabledTools: ["create_issue"],
-  toolApprovalOverrides: [
-    { toolName: "create_issue", requiresApproval: true, message: "Careful." },
-  ],
 };
 
 const WORKSPACE_ENTRIES = [
@@ -240,7 +236,8 @@ describe("toAgentUpdateInput", () => {
             name: "researcher",
             description: "Digs into logs.",
             instructions: "Cite sources.",
-            mcpAccess: [{ mcpServer: "github-mcp", enabledTools: ["search_code"] }],
+            tools: ["Read", "mcp__github-mcp__search_code"],
+            disallowedTools: ["Bash(git push *)"],
             skillRefs: [
               { org: "acme", slug: "log-analysis", version: "v1", kind: ApiResourceKind.skill },
             ],
@@ -248,6 +245,8 @@ describe("toAgentUpdateInput", () => {
           },
         ],
         env: { API_KEY: { isSecret: true, description: "Vendor key", optional: true } },
+        tools: ["Read", "Grep", "Agent(researcher)", "mcp__github-mcp"],
+        disallowedTools: ["mcp__github-mcp__delete_repo"],
       },
     });
 
@@ -626,11 +625,7 @@ describe("toMcpServerUpdateInput", () => {
           case: "stdio",
           value: { command: "npx", args: ["-y", "github-mcp"], workingDir: "/srv" },
         },
-        defaultEnabledTools: ["search_code"],
         env: { GH_TOKEN: { isSecret: true, description: "PAT", optional: true } },
-        pinnedToolApprovals: [
-          { toolName: "create_issue", message: "Writes data.", fromDestructiveHint: true },
-        ],
         repositoryUrl: "https://github.com/acme/github-mcp",
         githubStars: 4200,
         auth: {

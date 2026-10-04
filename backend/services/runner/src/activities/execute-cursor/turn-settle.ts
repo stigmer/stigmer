@@ -91,7 +91,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // primary stream and both recovery retries fold into them.
   const transcript = sink.transcript;
   const translator = new CursorTranslator({
-    policies: mcp.policies,
+    mcpDefault: mcp.mcpDefault,
     leases: { global: mcp.leases.global, categories: mcp.leases.categories },
     seeded: status.messages,
   });
@@ -215,7 +215,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
       hitlDir: gate.hitlDir,
       primaryWorkspaceDir: workspace.primaryDir,
       turnStartMessageIndex,
-      mergedPolicies: mcp.policies,
+      mcpDefault: mcp.mcpDefault,
       denialCancelSettled: denialSettled,
       foreignGatingHooks: gate.hitlGate.foreignGatingHooks,
     });

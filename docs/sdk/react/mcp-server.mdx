@@ -170,7 +170,7 @@ function useMcpServerConnect(): UseMcpServerConnectReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Clear the error state." },
-    connect: { type: "(mcpServerId: string, org: string, runtimeEnv?: Record<string, EnvVarInput>) => Promise<McpServer>", description: "Connect to an MCP server: discover its tools, resource templates, and classify tool approval policies via a lightweight LLM call.  Uses the async connect lane (`startConnect` + polling via the SDK's `connectAndWait`, stigmer/stigmer#425): the promise still resolves when the operation settles — legitimately tens of seconds to minutes for heavy servers — but no RPC stays open that long, so the wait survives browser transport limits. Backends without the lane fall back to the blocking `connect` RPC transparently.  Without `runtimeEnv`, the backend resolves the server's declared variables itself: OAuth tokens from the managed grant, the rest from the caller's personal environment. The platform's own keys are filled by the runner, never sent from here (`SYSTEM_ENV_VAR_KEYS`).  With `runtimeEnv`, the backend connects with exactly those values and resolves nothing else (stigmer/stigmer#1453), so pass it only for a one-time connect whose values the caller supplies whole." },
+    connect: { type: "(mcpServerId: string, org: string, runtimeEnv?: Record<string, EnvVarInput>) => Promise<McpServer>", description: "Connect to an MCP server: discover its tools (with each tool's destructive hint) and resource templates.  Uses the async connect lane (`startConnect` + polling via the SDK's `connectAndWait`, stigmer/stigmer#425): the promise still resolves when the operation settles — legitimately tens of seconds to minutes for heavy servers — but no RPC stays open that long, so the wait survives browser transport limits. Backends without the lane fall back to the blocking `connect` RPC transparently.  Without `runtimeEnv`, the backend resolves the server's declared variables itself: OAuth tokens from the managed grant, the rest from the caller's personal environment. The platform's own keys are filled by the runner, never sent from here (`SYSTEM_ENV_VAR_KEYS`).  With `runtimeEnv`, the backend connects with exactly those values and resolves nothing else (stigmer/stigmer#1453), so pass it only for a one-time connect whose values the caller supplies whole." },
     error: { type: "Error | null", description: "Error from the most recent failed connect, or `null`." },
     isConnecting: { type: "boolean", description: "`true` while the connect operation is in flight (start through settle)." },
   }}
@@ -495,8 +495,7 @@ MCP servers selected in the [`McpServerPicker`](#mcpserverpicker).
 When a user toggles an MCP server ON, this hook fetches the server's
 full resource, checks its `env` declarations against the personal
 environment (via [`diffEnv`](/docs/sdk/react/environment#diffenv)), and determines whether credentials are
-needed. It also extracts discovered tools and approval policies for
-the tool selector UI.
+needed. It also extracts the server's discovered tools for display.
 
 The hook supports two credential delivery paths via the `saveForFuture`
 option on `submitEnvVars`:
@@ -534,7 +533,7 @@ function useMcpServerSetup(org: string | null, poolKeys?: Set<string>): UseMcpSe
 
 <TypeTable
   type={{
-    addServer: { type: "(ref: ResourceRef) => Promise<void>", description: "Add an MCP server to the setup flow.  Fetches the full server resource, checks `env` declarations against the personal environment, and resolves the entry to either `ready` (no credentials needed or all present) or `needsSetup` (missing variables). Also extracts discovered tools and approval policies for the tool selector.  If the server is already in entries, its entry is reset to `loading` and re-evaluated." },
+    addServer: { type: "(ref: ResourceRef) => Promise<void>", description: "Add an MCP server to the setup flow.  Fetches the full server resource, checks `env` declarations against the personal environment, and resolves the entry to either `ready` (no credentials needed or all present) or `needsSetup` (missing variables). Also extracts the server's discovered tools.  If the server is already in entries, its entry is reset to `loading` and re-evaluated." },
     allReady: { type: "boolean", description: "`true` when every selected server is in `ready` status, or when no servers are selected. `false` during `loading`, `needsSetup`, or `submitting` for any entry.  Use this for submission blocking in the session composer." },
     clearError: { type: "(ref: ResourceRef) => void", description: "Clear the error on a specific server entry without changing its phase." },
     entries: { type: "Readonly<Record<string, McpServerSetupEntry>>", description: "Per-server setup state, keyed by `\"org/slug\"` (see toServerKey).  Each entry tracks an individual MCP server through the setup lifecycle: `loading → needsSetup → submitting → ready` (or `loading → ready` when no credentials are required)." },
@@ -542,9 +541,8 @@ function useMcpServerSetup(org: string | null, poolKeys?: Set<string>): UseMcpSe
     pendingRuntimeEnv: { type: "Record<string, EnvVarInput>", description: "Accumulated one-time env vars from servers whose credentials were submitted with `saveForFuture: false`.  Consumed imperatively at session creation time and merged into the execution's `runtimeEnv`. Cleared on reset." },
     removeServer: { type: "(ref: ResourceRef) => void", description: "Remove an MCP server from the setup flow.  Removes the entry from state. Safe to call for servers not in entries (no-op)." },
     reset: { type: "() => void", description: "Reset all entries and pending runtime env to initial state." },
-    setEnabledTools: { type: "(ref: ResourceRef, tools: string[]) => void", description: "Update the enabled tools for a server in `ready` status.  Dispatches directly to the reducer. Safe to call frequently (e.g., from tool selector checkboxes)." },
     submitEnvVars: { type: "(ref: ResourceRef, values: Record<string, EnvVarInput>, options?: SubmitMcpEnvVarsOptions) => Promise<void>", description: "Complete credential collection for a server in `needsSetup` status.  Behavior depends on `options.saveForFuture`: - `true` (default) — Saves values to the personal environment via   `addVariables`. The server transitions to `ready`. - `false` — Accumulates values into pendingRuntimeEnv   without API calls. The server transitions to `ready` immediately.  Must only be called when the entry is in `needsSetup` status." },
-    usageInputs: { type: "McpServerUsageInput[]", description: "Ready servers as `McpServerUsageInput[]` for session creation.  Derived from entries: only `ready` entries are included. When a server's `enabledTools` matches all discovered tools, `enabledTools` is omitted (API convention for \"all tools\")." },
+    usageInputs: { type: "McpServerUsageInput[]", description: "Ready servers as `McpServerUsageInput[]` for session creation.  Derived from entries: only `ready` entries are included. Each usage attaches the whole server; the agent's tool lists narrow it." },
   }}
 />
 
@@ -553,7 +551,6 @@ const {
   entries,
   addServer,
   submitEnvVars,
-  setEnabledTools,
   allReady,
   usageInputs,
 } = useMcpServerSetup("acme", pool.availableKeys);
@@ -563,9 +560,6 @@ await addServer({ org: "acme", slug: "github", kind: ApiResourceKind.mcp_server 
 
 // If the entry resolves to "needsSetup":
 await submitEnvVars(ref, { GITHUB_TOKEN: { value: "ghp_...", isSecret: true } });
-
-// Customize tools for a ready server:
-setEnabledTools(ref, ["create_issue", "list_issues"]);
 
 // At session creation:
 const session = await createSession({ mcpServerUsages: usageInputs });
@@ -706,7 +700,7 @@ builders, guided tours) can render any form state — including a
 ### McpServerConfigPanel
 
 Per-server configuration panel composing a credentials form
-([`EnvVarForm`](/docs/sdk/react/environment#envvarform)) and a tool selector ([`McpToolSelector`](#mcptoolselector)).
+([`EnvVarForm`](/docs/sdk/react/environment#envvarform)) and a read-only list of the server's tools.
 
 Designed to render inside the same popover container as
 [`McpServerPicker`](#mcpserverpicker): the picker list transitions to this panel
@@ -714,10 +708,8 @@ when the user drills into a specific server's configuration.
 
 The panel's content is driven by the `credentials` prop:
 - **Present** (server needs setup) — the credentials form is shown
-  above the tool selector. The tool selector renders disabled as a
-  preview of what tools the server provides.
-- **Absent** (server is ready) — only the tool selector is shown,
-  fully interactive for customizing which tools to enable.
+  above the tool list, a preview of what the server provides.
+- **Absent** (server is ready) — only the tool list is shown.
 
 This is a **pure presentational component** with no knowledge of
 the setup hook, personal environments, or session creation. All
@@ -731,18 +723,15 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    credentials: { type: "McpServerCredentialsProps", description: "When provided, the credentials form is shown above the tool selector. Omit when no credentials are needed or they have already been provided.  While credentials are pending, the tool selector is rendered in a disabled state so the user completes step 1 (credentials) before step 2 (tool customization).", typeDescriptionLink: "#mcpservercredentialsprops" },
+    credentials: { type: "McpServerCredentialsProps", description: "When provided, the credentials form is shown above the tool list. Omit when no credentials are needed or they have already been provided.", typeDescriptionLink: "#mcpservercredentialsprops" },
     disabled: { type: "boolean", description: "Disables all interaction." },
-    discoveredTools: { type: "DiscoveredTool[]", description: "Discovered tools from `status.discovered_capabilities.tools`.", required: true },
-    enabledTools: { type: "string[]", description: "Currently enabled tool names (controlled).", required: true },
+    discoveredTools: { type: "DiscoveredTool[]", description: "Discovered tools from `status.discovered_capabilities.tools`, listed read-only: attaching a server attaches all of it, and the agent's own tool lists decide which of these tools it may call.", required: true },
     error: { type: "Error | null", description: "Error to display inline (e.g., from credential submission failure)." },
     mcpServer: { type: "McpServer", description: "The MCP server resource — used for header display (name, icon, description).", required: true, typeDescriptionLink: "/docs/sdk/resources/mcp-server" },
     oauthSignIn: { type: "McpServerOAuthSignInProps", description: "When provided, an inline OAuth sign-in button is rendered above the credentials form. The button initiates the popup-based OAuth flow.  Use alongside `credentials` for mixed-mode servers that require both OAuth and manual env vars, or on its own for OAuth-only servers.", typeDescriptionLink: "#mcpserveroauthsigninprops" },
     onBack: { type: "() => void", description: "Called when the user clicks \"Back\" to return to the picker list.", required: true },
-    onEnabledToolsChange: { type: "(enabledTools: string[]) => void", description: "Called when tool selection changes.", required: true },
     onSwitchToManual: { type: "() => void", description: "When provided, a \"Enter token manually\" link is shown below the OAuth sign-in section. Clicking it switches the panel to manual token entry mode — the caller is responsible for updating the `credentials` and `oauthSignIn` props accordingly." },
     onSwitchToOAuth: { type: "() => void", description: "When provided, a \"Sign in with OAuth instead\" link is shown near the credentials form. Clicking it reverts to the OAuth flow." },
-    toolApprovals: { type: "ToolApprovalPolicy[]", description: "Approval policies from `status.tool_approvals` and `spec.pinned_tool_approvals`.", required: true },
   }}
 />
 
@@ -755,19 +744,13 @@ All visual properties flow through `--stgm-*` design tokens.
     onSubmit: (values, opts) => submitEnvVars(ref, values, opts),
   }}
   discoveredTools={tools}
-  toolApprovals={approvals}
-  enabledTools={defaultEnabledTools}
-  onEnabledToolsChange={(t) => setEnabledTools(ref, t)}
   onBack={() => setView("list")}
 />
 
-// Server that is ready (tool customization only):
+// Server that is ready (tool list only):
 <McpServerConfigPanel
   mcpServer={server}
   discoveredTools={tools}
-  toolApprovals={approvals}
-  enabledTools={entry.enabledTools}
-  onEnabledToolsChange={(t) => setEnabledTools(ref, t)}
   onBack={() => setView("list")}
 />
 ```
@@ -865,13 +848,12 @@ Fetches the server via [`useMcpServer`](#usemcpserver) internally — or renders
 from hoisted state when the caller passes `mcpServerState` — and shows
 its full configuration: validation banner (if invalid), header,
 a **Connect bar** with a single Connect/Reconnect action, and a
-**tabbed capabilities panel** (Tools, Policies, and optionally
-Resources) showing read-only discovered data.
+**tabbed capabilities panel** (Tools, and optionally Resources)
+showing read-only discovered data.
 
 The Connect bar above the tabs is the single entry point for
-capability discovery and tool approval classification. It handles
-credential gating inline — when credentials are missing, the form
-slides in below the bar.
+capability discovery. It handles credential gating inline — when
+credentials are missing, the form slides in below the bar.
 
 Handles loading, error, and not-found states automatically.
 Zero Console dependencies — safe for platform builder embedding.
@@ -924,7 +906,7 @@ Operates in two modes:
 
 **Simple mode** (default) — toggle servers on/off. Selected servers
 produce `McpServerUsageInput[]` via `value`/`onChange`. No setup
-flow, no per-tool selection.
+flow.
 
 **Setup mode** (when `setup` is provided) — each selected server
 shows its setup status (loading, needs credentials, ready). Users
@@ -946,7 +928,7 @@ All visual properties flow through `--stgm-*` tokens.
     onDisplayNameResolved: { type: "(key: string, name: string) => void", description: "Called with the display name when an item is added (for chip rendering)." },
     org: { type: "string", description: "Organization whose MCP servers the picker searches.", required: true },
     poolValues: { type: "(key: string) => EnvVarInput | undefined", description: "Lookup function for pre-filling credential fields from the session env pool. Passed through to McpServerConfigPanel's credentials form. When a field's key returns a value, the field is pre-populated." },
-    setup: { type: "McpServerSetupIntegration", description: "When provided, enables setup-integrated mode: per-server status indicators, credential collection, tool selection, and drill-in to McpServerConfigPanel.  In this mode, `value` and `onChange` are not needed — selection is managed through `setup.entries` and the setup callbacks.  When omitted, the picker operates in simple mode (current behavior): toggle servers on/off with `value`/`onChange`.", typeDescriptionLink: "#mcpserversetupintegration" },
+    setup: { type: "McpServerSetupIntegration", description: "When provided, enables setup-integrated mode: per-server status indicators, credential collection, and drill-in to McpServerConfigPanel.  In this mode, `value` and `onChange` are not needed — selection is managed through `setup.entries` and the setup callbacks.  When omitted, the picker operates in simple mode (current behavior): toggle servers on/off with `value`/`onChange`.", typeDescriptionLink: "#mcpserversetupintegration" },
     value: { type: "McpServerUsageInput[]", description: "Currently selected MCP server usages.  Required in simple mode (when `setup` is not provided). In setup mode, selection is derived from `setup.entries` and this prop is not needed." },
   }}
 />
@@ -968,50 +950,7 @@ const mcpSetup = useMcpServerSetup("acme");
     onServerAdded: (ref) => mcpSetup.addServer(ref),
     onServerRemoved: (ref) => mcpSetup.removeServer(ref),
     onSubmitEnvVars: (ref, v, o) => mcpSetup.submitEnvVars(ref, v, o),
-    onEnabledToolsChange: (ref, t) => mcpSetup.setEnabledTools(ref, t),
   }}
-/>
-```
-
-
-### McpToolSelector
-
-Checklist of discovered MCP server tools with approval policy badges.
-
-Renders one checkbox row per tool with the tool name, a one-line
-description, and an "Approval" badge for tools that have an entry
-in `toolApprovals`. The header shows the tool count and compact
-"All" / "None" bulk-selection shortcuts.
-
-This is a **pure presentational component** — it has no knowledge
-of the setup hook, personal environments, or session creation.
-State is fully controlled via `enabledTools` and `onChange`.
-
-When `tools` is empty (capabilities not yet discovered), the
-component renders an informational empty state. The caller is
-responsible for deciding whether to render the selector at all.
-
-All visual properties flow through `--stgm-*` design tokens.
-
-**Props** — `McpToolSelectorProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    disabled: { type: "boolean", description: "Disables all interaction." },
-    enabledTools: { type: "string[]", description: "Currently enabled tool names (controlled).", required: true },
-    onChange: { type: "(enabledTools: string[]) => void", description: "Called when the set of enabled tools changes.", required: true },
-    toolApprovals: { type: "ToolApprovalPolicy[]", description: "Approval policies from `status.tool_approvals` and `spec.pinned_tool_approvals`.", required: true },
-    tools: { type: "DiscoveredTool[]", description: "Discovered tools from `status.discovered_capabilities.tools`.", required: true },
-  }}
-/>
-
-```tsx
-<McpToolSelector
-  tools={entry.discoveredTools}
-  toolApprovals={entry.toolApprovals}
-  enabledTools={entry.enabledTools}
-  onChange={(tools) => setEnabledTools(serverRef, tools)}
 />
 ```
 
@@ -1214,7 +1153,7 @@ Props for the setup-integrated mode of [`McpServerPicker`](#mcpserverpicker).
 
 When the `setup` prop is provided, the picker gains per-server status
 indicators, credential collection via drill-in to
-[`McpServerConfigPanel`](#mcpserverconfigpanel), and per-tool selection. Selection is
+[`McpServerConfigPanel`](#mcpserverconfigpanel), and a view of each server's tools. Selection is
 managed through `entries` and the setup callbacks instead of the
 simple `value`/`onChange` pair.
 
@@ -1229,7 +1168,6 @@ the object cleanly communicates which mode the component operates in.
 <TypeTable
   type={{
     entries: { type: "Readonly<Record<string, McpServerSetupEntry>>", description: "Per-server setup state, keyed by `\"org/slug\"`.  Typically sourced from `useMcpServerSetup().entries`. Each entry tracks an individual server through the setup lifecycle: `loading → needsSetup → submitting → ready`.", required: true },
-    onEnabledToolsChange: { type: "(ref: ResourceRef, tools: string[]) => void", description: "Called when the user changes the enabled tools for a server.", required: true },
     onServerAdded: { type: "(ref: ResourceRef) => void", description: "Called when the user selects a server from search results.", required: true },
     onServerRemoved: { type: "(ref: ResourceRef) => void", description: "Called when the user removes a server from the selected list.", required: true },
     onSubmitEnvVars: { type: "(ref: ResourceRef, values: Record<string, EnvVarInput>, options: EnvVarFormSubmitOptions) => void", description: "Called when the user submits credentials for a server.", required: true },
@@ -1244,7 +1182,7 @@ MCP server's setup flow managed by the orchestration hook
 (`useMcpServerSetup`).
 
 The `status` field serves as the discriminant. Phase-specific data
-(server resource, missing variables, discovered tools, enabled tools)
+(server resource, missing variables, discovered tools)
 is only present on the variants where it is meaningful, enabling
 TypeScript narrowing in consumer code.
 
@@ -1257,8 +1195,9 @@ Phases:
   or collected (one-time path). The UI should show a loading indicator
   on the submit button.
 - `"ready"` — The server is fully configured and ready for session
-  creation. Carries the effective `enabledTools` list. Covers both
-  the "no env needed" and "env vars resolved" cases.
+  creation. Covers both the "no env needed" and "env vars resolved"
+  cases. The picker attaches whole servers; which of a server's tools a
+  session may call is the agent's own tool lists' decision.
 
 
 ### McpServerSetupState

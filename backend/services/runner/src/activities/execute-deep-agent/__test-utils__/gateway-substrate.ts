@@ -14,22 +14,39 @@
  * execution; resource-exact leasing is not a property of this gate (sameness comes
  * from checkpoint replay), so `enforcesExactResource` is false and
  * `authorizeAfterGrant` is intentionally not implemented.
+ *
+ * The lists drive (`authorizeUnderLists`) runs the production
+ * {@link createToolScopeMiddleware} ahead of the gate, as `buildMiddlewareStack`
+ * orders them, over deepagents' REAL built-ins (`read_file`, `write_file`,
+ * `execute` on a `LocalShellBackend` over a throwaway directory): the scope
+ * decides by the engine's own tool names, so the probe aliases above would read
+ * as engine extras there. A sub-agent drive narrows the scope exactly as
+ * `subagent-wiring.ts` hands each sub-agent graph its own.
  */
 
-import { HumanMessage } from "@langchain/core/messages";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { Command, MemorySaver } from "@langchain/langgraph";
-import { createDeepAgent, StateBackend } from "deepagents";
+import { createDeepAgent, LocalShellBackend, StateBackend } from "deepagents";
 
 import { createApprovalGateMiddleware } from "../../../middleware/approval-gate.js";
-import { deriveLeaseScope } from "../../../shared/approval-policy.js";
+import { createToolScopeMiddleware } from "../../../middleware/tool-scope.js";
+import { deriveLeaseScope, mcpToolKey, type McpApprovalDefault } from "../../../shared/approval-policy.js";
+import { ToolScope } from "../../../shared/tool-lists.js";
+import { NATIVE_CONFINED_READ_ROOTS, PLATFORM_ROUTE_PREFIX } from "../platform-route.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { ScriptedModel, readPendingInterrupts } from "./scripted-model.js";
 import type {
+  ContractToolLists,
   GatewayDecision,
   GatewayOutcome,
   GatewaySubstrate,
+  ListsDriveOptions,
+  ListsOutcome,
   ProposedAction,
 } from "../../../__test-utils__/approval-contract/types.js";
 
@@ -106,7 +123,7 @@ async function runProbe(
 
   const toolServerMap = serverSlug ? new Map([[name, serverSlug]]) : new Map<string, string>();
   const gate = createApprovalGateMiddleware({
-    policies: new Map(),
+    mcpDefault: mcpDefaultFor(action),
     toolServerMap,
     leasedCategories,
   });
@@ -144,6 +161,119 @@ async function runProbe(
 
 const NO_LEASED_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
 
+/** The turn's approval default for one probe: its MCP tool asks only when the action says its server marks it destructive. */
+function mcpDefaultFor(action: ProposedAction): McpApprovalDefault {
+  const destructive = new Set<string>();
+  if (action.kind === "mcp" && action.mcpDestructive) {
+    destructive.add(mcpToolKey(action.mcpServerSlug ?? "srv", action.mcpToolName ?? "mcp_tool"));
+  }
+  return { destructive, leasedServers: new Set() };
+}
+
+/** The workspace file every read probe reads, and the platform file a `platformContent` read names. */
+function seedWorkspace(root: string): void {
+  const files = ["work/alpha.txt", `${PLATFORM_ROUTE_PREFIX.slice(1)}skills/guide/SKILL.md`];
+  for (const rel of files) {
+    mkdirSync(dirname(join(root, rel)), { recursive: true });
+    writeFileSync(join(root, rel), "seeded");
+  }
+}
+
+/** An action as the native engine's own built-in call, or an MCP tool call. */
+function toNativeCall(action: ProposedAction): { name: string; args: Record<string, unknown>; serverSlug: string } {
+  switch (action.kind) {
+    case "write":
+      return { name: "write_file", args: { file_path: action.resource, content: action.content ?? "x" }, serverSlug: "" };
+    case "shell":
+      return { name: "execute", args: { command: action.resource }, serverSlug: "" };
+    case "read": {
+      const path = action.platformContent ? `${PLATFORM_ROUTE_PREFIX}${action.resource}` : action.resource;
+      return { name: "read_file", args: { file_path: path }, serverSlug: "" };
+    }
+    case "delete":
+      throw new Error("toNativeCall: the native engine binds no delete tool (deepagents-profiles.ts)");
+    case "mcp":
+      return { name: action.mcpToolName ?? "mcp_tool", args: {}, serverSlug: action.mcpServerSlug ?? "srv" };
+    default: {
+      const exhaustive: never = action.kind;
+      throw new Error(`toNativeCall: unknown action kind ${String(exhaustive)}`);
+    }
+  }
+}
+
+/** Drive one action through the scope middleware (and the gate, unless trust is pre-armed). */
+async function runListsProbe(
+  lists: ContractToolLists,
+  action: ProposedAction,
+  options: ListsDriveOptions,
+): Promise<ListsOutcome> {
+  const root = mkdtempSync(join(tmpdir(), "contract-lists-"));
+  try {
+    seedWorkspace(root);
+    const { name, args, serverSlug } = toNativeCall(action);
+
+    let mcpCount = 0;
+    const mcpTools =
+      action.kind === "mcp"
+        ? [
+            tool(
+              async () => {
+                mcpCount += 1;
+                return "ok";
+              },
+              { name, description: `contract MCP tool ${name}`, schema: z.object({}).passthrough() },
+            ),
+          ]
+        : [];
+
+    let scope = ToolScope.of('Agent "contract"', lists);
+    if (options.subAgent) scope = scope.narrow('Sub-agent "helper"', options.subAgent);
+
+    const middleware: unknown[] = [
+      createToolScopeMiddleware({
+        scope,
+        serverToolMap: new Map(serverSlug ? [[serverSlug, mcpTools]] : []),
+        platformServerSlugs: new Set(),
+        confinedReadRoots: NATIVE_CONFINED_READ_ROOTS,
+      }),
+    ];
+    if (!options.autoApproveAll) {
+      middleware.push(
+        createApprovalGateMiddleware({
+          mcpDefault: mcpDefaultFor(action),
+          toolServerMap: serverSlug ? new Map([[name, serverSlug]]) : new Map<string, string>(),
+          leasedCategories: NO_LEASED_CATEGORIES,
+        }),
+      );
+    }
+
+    const backend = new LocalShellBackend({ rootDir: root, virtualMode: true });
+    await backend.initialize();
+    const agent = await createDeepAgent({
+      model: new ScriptedModel(() => ({ toolCalls: [{ name, args, id: "call_1" }], done: "done" })),
+      checkpointer: new MemorySaver() as never,
+      backend,
+      tools: mcpTools,
+      middleware,
+    } as unknown as Parameters<typeof createDeepAgent>[0]);
+
+    const config = { configurable: { thread_id: `contract-lists-${threadSeq++}` }, recursionLimit: 50 };
+    const result = (await agent.invoke({ messages: [new HumanMessage({ content: "go" })] }, config)) as {
+      messages: BaseMessage[];
+    };
+    const gated = readPendingInterrupts((await agent.getState(config)) as never).length > 0;
+    const answer = result.messages.find(
+      (m): m is ToolMessage => m instanceof ToolMessage && m.tool_call_id === "call_1",
+    );
+    const text = answer === undefined ? "" : typeof answer.content === "string" ? answer.content : JSON.stringify(answer.content);
+    const refused = text.includes("is not available to this agent");
+    const executed = answer !== undefined && !refused && (action.kind !== "mcp" || mcpCount > 0);
+    return { executed, gated, refused };
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
 export function createDeepAgentSubstrate(): GatewaySubstrate {
   return {
     name: "deep-agent",
@@ -157,6 +287,7 @@ export function createDeepAgentSubstrate(): GatewaySubstrate {
       enforcesExactContent: false,
       appliesRunLifetimeLease: true,
       surfacesGatePolicySource: true,
+      enforcesSubAgentLists: true,
     },
 
     async authorize(action: ProposedAction, decision: GatewayDecision): Promise<GatewayOutcome> {
@@ -175,6 +306,14 @@ export function createDeepAgentSubstrate(): GatewaySubstrate {
       const leasedCategories =
         scope?.kind === "category" ? new Set([scope.category]) : NO_LEASED_CATEGORIES;
       return runProbe(probe, "none", leasedCategories);
+    },
+
+    async authorizeUnderLists(
+      lists: ContractToolLists,
+      action: ProposedAction,
+      options: ListsDriveOptions = {},
+    ): Promise<ListsOutcome> {
+      return runListsProbe(lists, action, options);
     },
   };
 }

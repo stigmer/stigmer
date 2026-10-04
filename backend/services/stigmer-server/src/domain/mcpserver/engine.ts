@@ -46,26 +46,26 @@ export interface ConnectWorkflowInput {
  * The connect workflow's result — mirrors the runner's
  * ConnectMcpServerWorkflowOutput (Go connectWorkflowOutput). Every field
  * the runner emits must have a home here: a missing field is silently
- * dropped during JSON deserialization, which is exactly how
- * tool_approvals used to be lost.
+ * dropped during JSON deserialization, so a key renamed on one side only
+ * loses its value without an error.
  */
 export interface ConnectWorkflowOutput {
   readonly tools?: DiscoveredToolResult[];
   readonly resource_templates?: DiscoveredResourceTemplateResult[];
-  /**
-   * Per-tool approval policies produced by the connect-time classifier —
-   * layer 1 of the approval policy chain. The classifier returns only the
-   * gated tools, but each entry still carries requires_approval so a
-   * future runner that emits non-gated entries is handled defensively at
-   * conversion time.
-   */
-  readonly tool_approvals?: ToolApprovalResult[];
 }
 
 export interface DiscoveredToolResult {
   readonly name?: string;
   readonly description?: string;
   readonly input_schema?: Record<string, unknown>;
+  /**
+   * True only when the tool's MCP annotations carry an explicit
+   * `destructiveHint: true`, whatever `readOnlyHint` says. The key is
+   * camelCase on the wire, unlike its siblings, because the runner's
+   * workflow output names it so; persisted to
+   * DiscoveredTool.destructive_hint.
+   */
+  readonly destructiveHint?: boolean;
 }
 
 export interface DiscoveredResourceTemplateResult {
@@ -73,19 +73,6 @@ export interface DiscoveredResourceTemplateResult {
   readonly name?: string;
   readonly description?: string;
   readonly mime_type?: string;
-}
-
-export interface ToolApprovalResult {
-  readonly tool_name?: string;
-  readonly requires_approval?: boolean;
-  readonly message?: string;
-  /**
-   * True when the connect-time tightener force-gated this tool from its
-   * destructiveHint annotation (not the classifier) — persisted to
-   * ToolApprovalPolicy.from_destructive_hint so the runner attributes the
-   * gate to the annotation rather than the classifier default.
-   */
-  readonly from_destructive_hint?: boolean;
 }
 
 /**

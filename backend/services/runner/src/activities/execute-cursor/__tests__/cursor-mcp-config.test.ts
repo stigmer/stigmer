@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { toCursorMcpConfig, validateMcpServerEnv } from "../cursor-mcp-config.js";
 
-// Resolution behavior (enabled_tools threading, overrides scoping, the
-// transport guard) is pinned once on the single shared resolver
+// Resolution behavior (discovery facts, the transport guard) is pinned once
+// on the single shared resolver
 // (shared/__tests__/mcp-resolver.test.ts — oss#387). These tests pin what is
 // genuinely Cursor-specific: the SDK config projection and the env pre-flight.
 
@@ -12,10 +12,9 @@ function server(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
     slug: "github",
     connectionType: "http",
     url: "https://mcp.example.com/mcp",
-    toolApprovals: [],
-    pinnedToolApprovals: [],
     discoveredCapabilitiesEmpty: false,
-    toolApprovalOverrides: [],
+    destructiveTools: [],
+    discoveredToolNames: null,
     declaredEnvKeys: [],
     ...overrides,
   };
@@ -69,8 +68,8 @@ describe("toCursorMcpConfig", () => {
     expect(config).toEqual({});
   });
 
-  it("never narrows the config for enabledTools — the SDK has no allow-list field; enforcement is the hook's disabled arm", () => {
-    const config = toCursorMcpConfig([server({ enabledTools: ["create_pr"] })]);
+  it("never narrows a server's config by tool — a server config has no tool filter; tool lists bind in the hook", () => {
+    const config = toCursorMcpConfig([server({ discoveredToolNames: ["create_pr", "merge_pr"] })]);
 
     expect(config.github).toEqual({
       type: "http",

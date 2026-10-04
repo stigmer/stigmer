@@ -46,10 +46,6 @@ function cursorTargetFor(step: OAuthConnectStep): string | undefined {
   }
 }
 
-function defaultTabFor(step: OAuthConnectStep): "tools" | "policies" {
-  return step.view === "connected-policies" ? "policies" : "tools";
-}
-
 function contentKeyFor(step: OAuthConnectStep): string {
   switch (step.view) {
     case "detail-preconnect":
@@ -58,7 +54,6 @@ function contentKeyFor(step: OAuthConnectStep): string {
     case "github-authorize":
       return "github-authorize";
     case "detail-connected":
-    case "connected-policies":
       return "detail-connected";
   }
 }
@@ -192,10 +187,9 @@ function UserIcon() {
 /**
  * OAuth connect flow playback for the "OAuth for tools" guide.
  *
- * Five-step walkthrough: MCP server detail (pre-connect with "Sign in
+ * Four-step walkthrough: MCP server detail (pre-connect with "Sign in
  * to connect") → cursor clicks sign-in → GitHub authorization page
- * in BrowserView → connected detail with discovered tools →
- * policies tab showing approval classifications.
+ * in BrowserView → connected detail with discovered tools.
  */
 export function OAuthConnectFlow() {
   const narrationManifest = useNarrationManifest("oauth-connect-flow");
@@ -275,7 +269,6 @@ export function OAuthConnectFlow() {
                     <McpServerDetailView
                       org={DEMO_ORG}
                       slug={DEMO_SLUG}
-                      defaultCapabilityTab={defaultTabFor(step)}
                     />
                     <div data-scroll-target="capabilities-bottom" />
                   </div>

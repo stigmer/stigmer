@@ -56,9 +56,9 @@ spec:
 
 ---
 
-## Stdio Server with Default Tool Restrictions
+## Stdio Server for a Database
 
-A database MCP server that restricts which tools are available by default. Dangerous operations are excluded from `default_enabled_tools` and require explicit approval when enabled.
+A database MCP server. The server declares no tool settings: an agent that uses it narrows its tools with the agent's own `tools` and `disallowed_tools` lists (for example `disallowed_tools: [mcp__postgres__drop_table]`), and a tool the server marks destructive asks for approval before it runs.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -76,12 +76,6 @@ spec:
   stdio:
     command: python
     args: ["-m", "mcp_server_postgres"]
-  default_enabled_tools:
-    - execute_query
-    - list_tables
-    - describe_table
-    - list_schemas
-    # execute_ddl and drop_table are intentionally omitted — too destructive for defaults
   env_spec:
     data:
       POSTGRES_URL:
@@ -91,9 +85,9 @@ spec:
 
 ---
 
-## Stdio Server with Approval Policies
+## Stdio Server for GitHub
 
-A GitHub MCP server with approval policies for destructive and sensitive operations.
+A GitHub MCP server. Which of its tools ask for approval is the server's own declaration: a tool annotated `destructiveHint: true` (such as a delete) asks before it runs, and connecting records that on `status.discovered_capabilities.tools[].destructive_hint`.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -113,23 +107,6 @@ spec:
   stdio:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-github"]
-  default_enabled_tools:
-    - search_code
-    - get_file_contents
-    - list_issues
-    - create_issue
-    - create_pull_request
-    - get_pull_request
-    - merge_pull_request
-  default_tool_approvals:
-    - tool_name: merge_pull_request
-      message: "Merge PR #{{args.pull_number}} in {{args.repo}}"
-    - tool_name: delete_repository
-      message: "Delete repository: {{args.repo}}"
-    - tool_name: add_collaborator
-      message: "Add {{args.username}} as {{args.permission}} collaborator to {{args.repo}}"
-    - tool_name: force_push
-      message: "Force push to {{args.branch}} on {{args.repo}}"
   env_spec:
     data:
       GITHUB_TOKEN:
@@ -192,11 +169,6 @@ spec:
     query_params:
       version: "v2"
     timeout_seconds: 30
-  default_tool_approvals:
-    - tool_name: create_article
-      message: "Create knowledge base article: {{args.title}}"
-    - tool_name: delete_article
-      message: "Delete article '{{args.title}}' (id: {{args.article_id}})"
   env_spec:
     data:
       KB_SERVICE_TOKEN:
@@ -243,22 +215,6 @@ spec:
   stdio:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-slack"]
-  default_enabled_tools:
-    - list_channels
-    - post_message
-    - reply_to_thread
-    - get_channel_history
-    - search_messages
-    - add_reaction
-  default_tool_approvals:
-    - tool_name: post_message
-      message: "Post to #{{args.channel_name}}: {{args.text}}"
-    - tool_name: reply_to_thread
-      message: "Reply in #{{args.channel_name}} thread: {{args.text}}"
-    - tool_name: invite_user_to_channel
-      message: "Invite {{args.user_id}} to #{{args.channel_name}}"
-    - tool_name: archive_channel
-      message: "Archive channel #{{args.channel_name}}"
   env_spec:
     data:
       SLACK_BOT_TOKEN:
@@ -288,10 +244,10 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: github        # matches McpServer metadata.slug (auto-generated from name)
-      enabled_tools:
-        - search_code
-        - get_file_contents
-        - create_pull_request
+  tools:
+    - mcp__github__search_code
+    - mcp__github__get_file_contents
+    - mcp__github__create_pull_request
 ```
 
-See [Agent docs: mcp-server-integration.md](../agent/docs/mcp-server-integration.md) for the full agent-side configuration reference.
+See [Agent docs: mcp-server-integration.md](../../agent/docs/mcp-server-integration.md) for the full agent-side configuration reference.

@@ -33,9 +33,13 @@ import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ApprovalPolicySource, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
-import type { MergedToolPolicy } from "./approval-policy.js";
-import { lookupMcpToolPolicy, resolveApprovalMessage, resolveBuiltInApprovalMessage } from "./approval-policy.js";
+import type { McpApprovalDefault } from "./approval-policy.js";
+import { resolveApprovalMessage, resolveBuiltInApprovalMessage } from "./approval-policy.js";
+import { CURSOR_SDK_TOOL_COVERS } from "../../shared/tool-lists.js";
+import { scopeKey } from "./hook-scope.js";
 import {
+  DESTRUCTIVE_MCP_APPROVAL_MESSAGE,
+  mcpToolKey,
   POLICY_ENGINE_VERSION,
   resolveApprovalProvenance,
   unattendedSkipMessage,
@@ -44,7 +48,9 @@ import {
   approvalDenials,
   decodeIdentityToken,
   denialKindOf,
+  DISABLED_DENIAL_KIND,
   grantToken,
+  scopeRefusalToken,
   toolCallArgs,
   toolCallIdentityToken,
   toolIdentity,
@@ -167,7 +173,7 @@ export async function reconcileDeniedToolCalls(
   messages: AgentMessage[],
   transcript: TranscriptBuilder,
   ledger: DeniedLedgerEntry[],
-  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
+  mcpDefault?: McpApprovalDefault,
   workspaceBackend?: WorkspaceBackend,
 ): Promise<ToolCall[]> {
   // Defense-in-depth: only APPROVAL-kind denials may become approval gates.
@@ -215,7 +221,7 @@ export async function reconcileDeniedToolCalls(
     for (const tc of msg.toolCalls) {
       if (isAdjudicatedRow(tc)) continue;
       if (toolCallIdentityToken(tc) !== anchorToken) continue;
-      proposeOnStreamedRow(transcript, tc, anchorInput, mergedPolicies);
+      proposeOnStreamedRow(transcript, tc, anchorInput, mcpDefault);
       matchedCalls.add(tc);
       result.push(tc);
       anchorMatched = true;
@@ -239,7 +245,7 @@ export async function reconcileDeniedToolCalls(
         messages, matchedCalls, wanted, workspaceRoot,
       );
       if (tc) {
-        proposeOnStreamedRow(transcript, tc, anchorInput, mergedPolicies);
+        proposeOnStreamedRow(transcript, tc, anchorInput, mcpDefault);
         matchedCalls.add(tc);
         result.push(tc);
         anchorMatched = true;
@@ -323,7 +329,7 @@ export async function reconcileDeniedToolCalls(
       digest: decoded?.digest ?? "",
       token: anchorToken,
       input: anchorInput ?? anchorEntry.input,
-      mergedPolicies,
+      mcpDefault,
     });
     result.push(tc);
   }
@@ -347,7 +353,7 @@ function proposeOnStreamedRow(
   transcript: TranscriptBuilder,
   tc: ToolCall,
   input: Record<string, unknown> | undefined,
-  mergedPolicies: ReadonlyMap<string, MergedToolPolicy> | undefined,
+  mcpDefault: McpApprovalDefault | undefined,
 ): void {
   const args = proposalArgs(input);
   transcript.apply({
@@ -355,7 +361,7 @@ function proposeOnStreamedRow(
     callId: tc.id,
     name: tc.name,
     mcpServerSlug: tc.mcpServerSlug,
-    message: tc.approvalMessage || resolveDeniedApprovalMessage(tc.name, tc.mcpServerSlug, toolCallArgs(tc), mergedPolicies),
+    message: tc.approvalMessage || resolveDeniedApprovalMessage(tc.name, tc.mcpServerSlug, toolCallArgs(tc), mcpDefault),
     ...(args !== undefined ? { args, contentDigest: contentDigest(args) } : {}),
   });
 }
@@ -383,15 +389,15 @@ function proposeSynthesizedGate(
     digest: string;
     token: string;
     input: Record<string, unknown> | undefined;
-    mergedPolicies: ReadonlyMap<string, MergedToolPolicy> | undefined;
+    mcpDefault: McpApprovalDefault | undefined;
   },
 ): ToolCall {
-  const { displayName, salient, digest, token, input, mergedPolicies } = gate;
+  const { displayName, salient, digest, token, input, mcpDefault } = gate;
   const callId = `approval:${token}`;
   const captured = proposalArgs(input);
   const args = captured ?? (salient ? { path: salient } : undefined);
-  const provenance = mergedPolicies
-    ? resolveApprovalProvenance(displayName, "", mergedPolicies, NO_LEASED_CATEGORIES, false)
+  const provenance = mcpDefault
+    ? resolveApprovalProvenance(displayName, "", mcpDefault, NO_LEASED_CATEGORIES, false)
     : undefined;
   transcript.apply({
     kind: "approval_proposed",
@@ -400,7 +406,7 @@ function proposeSynthesizedGate(
     mcpServerSlug: "",
     message: salient
       ? `Tool requires approval: ${displayName} (${salient})`
-      : resolveDeniedApprovalMessage(displayName, "", {}, mergedPolicies),
+      : resolveDeniedApprovalMessage(displayName, "", {}, mcpDefault),
     ...(args !== undefined ? { args } : {}),
     ...(provenance !== undefined ? { provenance } : {}),
     contentDigest: captured ? contentDigest(captured) : digest,
@@ -871,6 +877,11 @@ export interface UnattributedHookBlock {
  *  3. Normalized-path fallback: the same abs-vs-rel drift the reconcile's
  *     second pass handles — a FILE call matches a ledger entry by (category,
  *     workspace-normalized path) even when the raw tokens differ.
+ *  4. Tool-list refusal: a call whose TOOL the hook refused as out of scope
+ *     ({@link scopeRefusalTokenOf}). A list excludes a tool whole, so the
+ *     tool, not the call, is the identity. {@link stampScopeRefusedToolCalls}
+ *     normally rewrote such rows already; this keeps a refusal recorded
+ *     without its text attributable too.
  *
  * Scoped to THIS turn's messages (from `turnStartMessageIndex`): seeded
  * prior-turn rows were already adjudicated and must never re-trigger.
@@ -904,6 +915,7 @@ export function detectUnattributedHookBlocks(
       if (tc.status !== ToolCallStatus.TOOL_CALL_FAILED) continue;
       if (!isHookBlockError(tc.error)) continue;
       if (ledgerTokens.has(toolCallIdentityToken(tc))) continue;
+      if (ledgerTokens.has(scopeRefusalTokenOf(tc))) continue;
       if (workspaceRoot) {
         const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
         const normalized = normalizedFileSalient(id.key, id.salient, workspaceRoot);
@@ -1111,18 +1123,83 @@ export function stampUnattendedSkippedToolCalls(
 }
 
 /**
+ * The scope token a tool-list refusal of this streamed call was recorded
+ * under: `server/tool` for an MCP call, else the stream name's `scopeKey` in
+ * the SDK's taxonomy (every engine extra shares one). The hook computes the
+ * same key from its own names (`hook-script.ts` `buildScopeEvalScript`).
+ */
+function scopeRefusalTokenOf(tc: ToolCall): string {
+  return scopeRefusalToken(tc.mcpServerSlug ? mcpToolKey(tc.mcpServerSlug, tc.name) : scopeKey(tc.name, CURSOR_SDK_TOOL_COVERS));
+}
+
+/**
+ * Settle the streamed rows of calls the hook refused under the agent's tool
+ * lists (ledger kind `disabled`) into the shape the native harness persists
+ * for the same refusal: TOOL_CALL_FAILED, the error the very text the model
+ * read (`outOfScopeMessage`, carried on the ledger entry), no approval and no
+ * provenance. Cursor stamps such a row with its generic hook-block text, and
+ * the translator stamped the provenance its approval default would have
+ * had at tool start, before anyone knew the call would be refused.
+ *
+ * Which rows: this turn's and its sub-agents', hook-blocked FAILED or still
+ * PENDING/RUNNING (the unattended stamp's shape), whose tool matches a
+ * refusal ({@link scopeRefusalTokenOf}). A row that failed for another
+ * reason carries no hook-block text and is left alone, even for a tool the
+ * lists confine rather than exclude (a `Read` under `.stigmer/`).
+ *
+ * Runs before the #205 attribution pass, which then never sees these rows as
+ * hook blocks. Returns how many rows were stamped.
+ */
+export function stampScopeRefusedToolCalls(
+  messages: readonly AgentMessage[],
+  subAgentExecutions: readonly SubAgentExecution[],
+  ledger: readonly DeniedLedgerEntry[],
+): number {
+  const refusals = new Map<string, string>();
+  for (const entry of ledger) {
+    if (denialKindOf(entry) === DISABLED_DENIAL_KIND && entry.message) refusals.set(entry.token, entry.message);
+  }
+  if (refusals.size === 0) return 0;
+
+  let stamped = 0;
+  const apply = (msgs: readonly AgentMessage[]): void => {
+    for (const msg of msgs) {
+      for (const tc of msg.toolCalls) {
+        const deniedShape =
+          (tc.status === ToolCallStatus.TOOL_CALL_FAILED && isHookBlockError(tc.error)) ||
+          tc.status === ToolCallStatus.TOOL_CALL_PENDING ||
+          tc.status === ToolCallStatus.TOOL_CALL_RUNNING;
+        if (!deniedShape) continue;
+        const message = refusals.get(scopeRefusalTokenOf(tc));
+        if (message === undefined) continue;
+        tc.status = ToolCallStatus.TOOL_CALL_FAILED;
+        tc.error = message;
+        tc.requiresApproval = false;
+        tc.approvalPolicySource = ApprovalPolicySource.UNSPECIFIED;
+        tc.policyEngineVersion = "";
+        tc.isStreaming = false;
+        if (!tc.completedAt) tc.completedAt = utcTimestamp();
+        stamped++;
+      }
+    }
+  };
+  apply(messages);
+  for (const subAgent of subAgentExecutions) apply(subAgent.messages);
+  return stamped;
+}
+
+/**
  * Resolve a human-readable approval message for a denied tool, preferring the
- * MCP policy template, then the built-in template, then a generic fallback.
+ * destructive-MCP template, then the built-in template, then a generic fallback.
  */
 function resolveDeniedApprovalMessage(
   name: string,
   mcpServerSlug: string,
   args: Record<string, unknown>,
-  mergedPolicies?: ReadonlyMap<string, MergedToolPolicy>,
+  mcpDefault?: McpApprovalDefault,
 ): string {
-  if (mergedPolicies && mcpServerSlug) {
-    const policy = lookupMcpToolPolicy(name, mcpServerSlug, mergedPolicies);
-    if (policy) return resolveApprovalMessage(policy.approvalMessage, name, args);
+  if (mcpDefault && mcpServerSlug && mcpDefault.destructive.has(mcpToolKey(mcpServerSlug, name))) {
+    return resolveApprovalMessage(DESTRUCTIVE_MCP_APPROVAL_MESSAGE, name, args);
   }
   if (!mcpServerSlug) {
     const message = resolveBuiltInApprovalMessage(name, args);

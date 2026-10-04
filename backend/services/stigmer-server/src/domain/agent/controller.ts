@@ -103,7 +103,6 @@ import {
   newCreateDefaultInstanceStep,
   newMergeMcpServerEnvSpecsStep,
   newUpdateAgentStatusWithDefaultInstanceStep,
-  newValidateEnabledToolsStep,
 } from "./steps.js";
 import type { AgentInstanceApplierProvider } from "./steps.js";
 
@@ -173,7 +172,6 @@ async function createAgent(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newValidateEnabledToolsStep(deps.store))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newPersistStep(deps.store))
     .addStep(
@@ -225,7 +223,6 @@ async function update(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newValidateEnabledToolsStep(deps.store))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newPersistStep(deps.store))
     .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))

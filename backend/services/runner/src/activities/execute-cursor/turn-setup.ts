@@ -5,10 +5,12 @@
  *
  * Everything harness-agnostic has already happened when these run: the
  * execution, session and blueprint are fetched, the workspace is provisioned
- * and locked, the MCP servers and policies are merged, the skills are mounted,
- * the attachments are resolved. What remains is Cursor's own reading of that
- * record: the cursor mode; the row facts beside the runtime's approval
- * verdicts; the SDK's MCP config; the prompt-shaped view of the attachments;
+ * and locked, the MCP servers, the approval default and the agent's tool
+ * scope are resolved, the skills are mounted, the attachments are resolved.
+ * What remains is Cursor's own reading of that record: the cursor mode; the
+ * tool-list checks this engine can and cannot honour; the row facts beside the
+ * runtime's approval verdicts; the SDK's MCP config and tool restriction; the
+ * prompt-shaped view of the attachments;
  * the HITL gate (hook script, approval state, grants, denial watcher, and
  * the hook sidecar bound as the runtime's CAS observations); the catalog
  * validation of the
@@ -40,8 +42,19 @@ import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint
 import { isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { excludeAppliedFromGrants } from "../../shared/exact-apply.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
-import { enabledToolsBySlug } from "../../shared/mcp-enabled-tools.js";
-import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
+import { realpath } from "node:fs/promises";
+import { join } from "node:path";
+import {
+  CURSOR_SDK_TOOL_COVERS,
+  checkToolListResolution,
+  claudeToolsOf,
+  cursorSdkToolOptions,
+  type TurnToolInventory,
+} from "../../shared/tool-lists.js";
+import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
+import { ensureHitlDir, getPlatformDir } from "../../shared/workspace/platform-dir.js";
+import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
+import { compileHookToolScope } from "./hook-scope.js";
 import { computeAgentFingerprint, takeCachedAgent } from "./agent-session-cache.js";
 import { buildApprovalGrants, buildApprovalState, emitCursorGrantReceipts, reconstructAdjudicatedApprovals, watchDenialLedger, type ApprovalGrant } from "./approval-state.js";
 import { readSidecarSnapshot } from "./cas-observations.js";
@@ -69,7 +82,7 @@ import {
 } from "./session-lifecycle.js";
 import { composeTurnRecoveryDigest } from "./turn-recovery.js";
 import type { TurnStreamState } from "./turn-stream.js";
-import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
+import { buildCursorSubAgentDefinitions, subAgentsInScope } from "./subagent-config.js";
 import { CursorUsagePricer } from "./usage-pricing.js";
 import { installHitlGate, removeHitlGate, type HitlGateHandle } from "./workspace-setup.js";
 
@@ -147,6 +160,86 @@ export interface CursorPrompt {
 export function resolveCursorMode(input: TurnInput, config: CursorAdapterConfig): { cursorMode: CursorMode; agentMode: CursorAgentMode } {
   const cursorMode = determineCursorMode(input.blueprint.sessionSpec.workspaceEntries, config.cloudModeEnabled);
   return { cursorMode, agentMode: isCloudMode(cursorMode) ? "cloud" : "local" };
+}
+
+/**
+ * A turn this engine refuses because of the agent's tool lists, before
+ * anything runs: the fix is the agent author's, so the turn fails with this
+ * sentence on the `actionable` surface (`turn.ts` `classifyThrown`), as a
+ * `ToolListResolutionError` does on both engines.
+ */
+export class CursorToolListRefusal extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CursorToolListRefusal";
+  }
+}
+
+/**
+ * The agent's tool lists, checked against what this engine can enforce, before
+ * anything is installed. Refuses the turn (throws {@link CursorToolListRefusal}
+ * or `ToolListResolutionError`, each settling it `failed` with its own
+ * sentence) when:
+ *  - a sub-agent carries lists of its own: the hook cannot tell which
+ *    sub-agent made a call (`preToolUse` carries no sub-agent id), and the
+ *    SDK's `tools` options restrict only the main loop, so a sub-agent's lists
+ *    would silently not bind. The native engine enforces them per sub-agent;
+ *  - the agent has lists and the session runs a cloud agent, which takes
+ *    neither the SDK's `tools` options nor the workspace hook;
+ *  - a non-empty `tools` names nothing this turn has (`checkToolListResolution`),
+ *    as Claude refuses to launch such an agent.
+ */
+export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentMode }): void {
+  const narrowed = input.blueprint.subAgents.filter((sa) => sa.tools.length > 0 || sa.disallowedTools.length > 0);
+  if (narrowed.length > 0) {
+    const names = narrowed.map((sa) => `"${sa.name}"`).join(", ");
+    throw new CursorToolListRefusal(
+      `Sub-agent ${names} ${narrowed.length === 1 ? "carries its" : "carry their"} own tool lists ` +
+        "(tools / disallowed_tools), which the Cursor engine cannot enforce: it cannot tell a " +
+        "sub-agent's tool call from the main agent's. Run this agent on the native engine, or " +
+        "remove the sub-agent's lists.",
+    );
+  }
+  const scope = input.mcp.toolScope;
+  if (!scope.restricted) return;
+  if (mode.agentMode === "cloud") {
+    throw new CursorToolListRefusal(
+      `${scope.owner} has tool lists, which a cloud Cursor agent cannot enforce. Run the session locally or on the native engine.`,
+    );
+  }
+  checkToolListResolution(scope, cursorToolInventory(input.mcp.servers), (line) =>
+    console.log(`ExecuteCursor tool lists: execution=${input.executionId}: ${line}`),
+  );
+}
+
+/** What a Cursor turn has, for the zero-resolution check: every Claude tool the SDK's table covers, and the resolved servers. */
+function cursorToolInventory(servers: readonly ResolvedMcpServer[]): TurnToolInventory {
+  return {
+    claudeTools: claudeToolsOf(CURSOR_SDK_TOOL_COVERS.keys(), CURSOR_SDK_TOOL_COVERS),
+    anyMcp: servers.length > 0,
+    hasMcp(slug, tool) {
+      const server = servers.find((s) => s.slug === slug);
+      if (!server) return false;
+      // A server never discovered cannot prove a tool absent.
+      return tool === null || server.discoveredToolNames === null || server.discoveredToolNames.includes(tool);
+    },
+  };
+}
+
+/**
+ * The directories an excluded `Read` may still reach: the workspace's
+ * `.stigmer/` route (as given and as the OS resolves the workspace, since the
+ * hook resolves a relative path against the payload's `cwd`) and the
+ * platform dir it links to.
+ */
+async function platformReadRoots(primaryDir: string, sessionId: string): Promise<string[]> {
+  const roots = [join(primaryDir, STIGMER_LOCAL_STATE_DIR), getPlatformDir(sessionId)];
+  try {
+    roots.push(join(await realpath(primaryDir), STIGMER_LOCAL_STATE_DIR));
+  } catch {
+    // The workspace exists by this phase; a failed resolve only loses the alias.
+  }
+  return roots;
 }
 
 /**
@@ -230,7 +323,7 @@ export async function installGate(input: TurnInput, sink: TurnSink, rows: Adjudi
   // first-denial stop never fires and the turn boundary settles the denied
   // calls as SKIPPED instead of pausing a turn nobody can approve.
   const approvalState = buildApprovalState(
-    mcp.policies,
+    mcp.mcpDefault,
     globalBypass,
     mcp.leases.categories,
     approvalGrants,
@@ -238,11 +331,17 @@ export async function installGate(input: TurnInput, sink: TurnSink, rows: Adjudi
     captureIgnored,
     gitWorkspace,
     isUnattendedApprovalMode(input.execution),
-    // The enabled_tools capability manifest (issue #350): restricted
-    // servers' allow-lists, enforced by the hook's "disabled" arm ahead of
-    // every approval bypass. The Cursor SDK config cannot hide a server's
-    // tools, so this deny-at-call is the harness's enforcement.
-    enabledToolsBySlug(mcp.servers),
+    // The agent's tool lists, answered for the hook's scope arm, which refuses
+    // ahead of every approval bypass. The SDK's `tools` options hide what they
+    // can on the main loop (`resolveEngine`); the hook binds every call,
+    // sub-agents' and MCP tools' included.
+    compileHookToolScope({
+      scope: mcp.toolScope,
+      servers: mcp.servers,
+      platformServerSlugs: mcp.platformServerSlugs,
+      readRoots: mcp.toolScope.restricted ? await platformReadRoots(primaryDir, sessionId) : [],
+      subAgentTypes: subAgentsInScope(input.blueprint.subAgents, mcp.toolScope).map((sa) => sa.name),
+    }),
   );
   const hitlGate = await installHitlGate({ workspaceRoot: primaryDir, hitlDir, approvalState, runnerPid: process.pid });
   // Issue #205 diagnosability: the merge preserved the user's own hooks on
@@ -327,7 +426,8 @@ export async function resolveEngine(input: TurnInput, sink: TurnSink, config: Cu
   // Register blueprint sub-agents with the Cursor SDK so the parent can
   // delegate to them by name via the Task tool. Re-supplied on every
   // create/resume (the SDK does not persist agent config across resume).
-  const cursorSubAgents = buildCursorSubAgentDefinitions(blueprint.subAgents);
+  // Only the types the agent's `Agent(type, …)` allows are registered.
+  const cursorSubAgents = buildCursorSubAgentDefinitions(subAgentsInScope(blueprint.subAgents, input.mcp.toolScope));
   if (cursorSubAgents) {
     console.log(
       `ExecuteCursor registering ${Object.keys(cursorSubAgents).length} custom sub-agent(s): ` +
@@ -366,6 +466,9 @@ export async function resolveEngine(input: TurnInput, sink: TurnSink, config: Cu
         workspaceRootDir: config.workspaceRootDir,
         mcpServers: mcpConfig,
         agents: cursorSubAgents,
+        // The main loop's built-ins the lists exclude, hidden by the SDK
+        // (`read` and `mcp` never: the hook confines those).
+        ...cursorSdkToolOptions(input.mcp.toolScope, input.mcp.servers.length > 0),
       };
 
   // Agent.create/Agent.resume have no timeout of their own — a degraded
@@ -509,7 +612,7 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     userMessage: spec.message,
     skills: input.skills.root,
     channelMessaging: input.mcp.channelMessaging,
-    subAgents: blueprint.subAgents,
+    subAgents: subAgentsInScope(blueprint.subAgents, input.mcp.toolScope),
     workspaceDirs: [...workspace.dirs],
     workspaceFileRefs: spec.workspaceFileRefs ?? [],
     attachments: attachments.results,

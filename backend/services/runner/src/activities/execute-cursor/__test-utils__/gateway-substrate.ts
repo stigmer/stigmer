@@ -13,16 +13,27 @@
  * collapse that lets a stream-minted grant match a hook-named call. The grant
  * token binds the exact resource, so this substrate enforces lease isolation
  * (`enforcesExactResource: true`) and implements `authorizeAfterGrant`.
+ *
+ * The lists drive compiles the agent's lists into the state file exactly as
+ * the runner does (`hook-scope.ts`), then asks the same hook. A refusal is
+ * told apart from an approval gate by the out-of-scope message the hook hands
+ * the model. Sub-agent lists are not driven here: the hook cannot tell which
+ * sub-agent calls, so the engine refuses such a turn at setup instead
+ * (`enforcesSubAgentLists: false`, pinned by `__tests__/check-tool-scope.test.ts`).
  */
 
-import { setupCursorHookHarness, hasBash, hookInputFor, streamArgsFor, STREAM_NAME } from "./cursor-hook-harness.js";
+import { join } from "node:path";
+import { setupCursorHookHarness, hasBash, hookInputFor, hookRead, streamArgsFor, STREAM_NAME } from "./cursor-hook-harness.js";
 import { toolIdentity, type ApprovalGrant } from "../approval-state.js";
 import { contentDigest } from "../../../shared/file-tools.js";
 import type { ApprovalCategory } from "../approval-policy.js";
 import type {
+  ContractToolLists,
   GatewayDecision,
   GatewayOutcome,
   GatewaySubstrate,
+  ListsDriveOptions,
+  ListsOutcome,
   ProposedAction,
 } from "../../../__test-utils__/approval-contract/types.js";
 
@@ -50,10 +61,15 @@ function grantFor(action: ProposedAction): ApprovalGrant {
   };
 }
 
+/** The harness's destructive set for an action: its MCP tool, when its server marks it destructive. */
+function destructiveToolsOf(action: ProposedAction): string[] {
+  return action.kind === "mcp" && action.mcpDestructive ? [action.mcpToolName ?? "mcp_tool"] : [];
+}
+
 async function decide(grants: ApprovalGrant[], action: ProposedAction): Promise<GatewayOutcome> {
-  // MCP cases under test are auto-approved: no policy entry, so the hook allows
-  // them. Built-ins are gated by the script's baked-in category set, not state.
-  const harness = setupCursorHookHarness({ grants });
+  // An MCP tool asks only when its server marks it destructive; built-ins are
+  // gated by the script's baked-in category set, not state.
+  const harness = setupCursorHookHarness({ grants, destructiveMcpTools: destructiveToolsOf(action) });
   const { permission } = harness.decide(hookInputFor(action));
   const executed = permission === "allow";
   return { executed, gated: !executed };
@@ -79,6 +95,7 @@ export function createCursorSubstrate(): GatewaySubstrate {
       // the same file re-gates — the sibling-hole fix.
       enforcesExactContent: true,
       appliesRunLifetimeLease: true,
+      enforcesSubAgentLists: false,
       // The Cursor hook's deny decision does not carry approval_policy_source;
       // provenance is projected at translation time (the Cursor translator)
       // and asserted by the corpus + resolveApprovalProvenance suites instead.
@@ -102,6 +119,31 @@ export function createCursorSubstrate(): GatewaySubstrate {
       const { permission } = harness.decide(hookInputFor(probe));
       const executed = permission === "allow";
       return { executed, gated: !executed };
+    },
+
+    async authorizeUnderLists(
+      lists: ContractToolLists,
+      action: ProposedAction,
+      options: ListsDriveOptions = {},
+    ): Promise<ListsOutcome> {
+      if (options.subAgent) {
+        throw new Error("cursor substrate: sub-agent lists are refused at setup, never driven through the hook");
+      }
+      const slug = action.mcpServerSlug ?? "srv";
+      const harness = setupCursorHookHarness({
+        lists,
+        autoApproveAll: options.autoApproveAll ?? false,
+        destructiveMcpTools: destructiveToolsOf(action),
+        mcpServers: [{ slug, discoveredToolNames: null }],
+      });
+      const input =
+        action.kind === "read" && action.platformContent
+          ? hookRead(join(harness.root, ".stigmer", action.resource))
+          : hookInputFor(action);
+      const { permission, raw } = harness.decide(input);
+      const refused = permission === "deny" && raw.includes("is not available to this agent");
+      const executed = permission === "allow";
+      return { executed, gated: !executed && !refused, refused };
     },
   };
 }

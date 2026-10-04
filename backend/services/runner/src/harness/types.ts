@@ -7,7 +7,7 @@
  * Agent SDK and the Codex SDK. Everything about a turn that does NOT touch a
  * vendor SDK — fetching the execution, resolving the blueprint and the
  * environment, provisioning and locking the workspace, mounting skills,
- * resolving MCP servers and approval policies, seeding the transcript, the
+ * resolving MCP servers, the approval default and the tool scope, seeding the transcript, the
  * persist chokepoint, the stall watchdog, the Temporal heartbeat, pause vs
  * shutdown, the cost cap, the terminal mapping — is the RUNTIME's
  * (`run-turn.ts`), written once. What a harness owns is its SDK slice: how

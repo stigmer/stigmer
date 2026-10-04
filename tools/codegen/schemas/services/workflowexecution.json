@@ -2918,7 +2918,7 @@
               "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP"
             ]
           },
-          "description": "Policy layer that gated this tool call, copied from\n ToolCall.approval_policy_source by the server-side projection (exactly as\n tool_kind above is). Lets the approval surface explain WHY the tool requires\n approval (e.g. \"required by agent override\") without a client-side lookup.\n See ApprovalPolicySource.",
+          "description": "Policy layer that gated this tool call, copied from\n ToolCall.approval_policy_source by the server-side projection (exactly as\n tool_kind above is). Lets the approval surface explain WHY the tool requires\n approval (e.g. \"required: marked destructive by the server\") without a\n client-side lookup.\n See ApprovalPolicySource.",
           "required": false
         }
       ]

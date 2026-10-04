@@ -12,6 +12,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { DeepAgentTranslator, normalize, usageOf } from "../translator.js";
+import { TOOL_REFUSED_EVENT } from "../../../middleware/tool-scope.js";
 import {
   resetSeq,
   makeProtocolEvent,
@@ -487,7 +488,7 @@ describe("V3ProtocolNormalizer", () => {
 
     it("attributes root calls only: a sub-agent's tool start carries no server and no provenance even under a gate", () => {
       const t = new DeepAgentTranslator({
-        policies: new Map(),
+        mcpDefault: { destructive: new Set(["search-server/grep"]), leasedServers: new Set() },
         toolServerMap: new Map([["grep", "search-server"]]),
         leasedCategories: new Set(),
         globalBypass: false,
@@ -496,10 +497,54 @@ describe("V3ProtocolNormalizer", () => {
       });
       t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: TASK_NS }));
       const [root] = t.translate(makeToolStarted("root-grep", "grep", {}));
-      expect(root).toMatchObject({ mcpServerSlug: "search-server", provenance: "classifier_default" });
+      expect(root).toMatchObject({ mcpServerSlug: "search-server", provenance: "annotation_destructive_tighten" });
       const [sub] = t.translate(makeToolStarted("sub-grep", "grep", {}, { namespace: CHILD_TOOL_NS }));
       expect(sub).toMatchObject({ subAgentId: "task-1", mcpServerSlug: "" });
       expect(sub).not.toHaveProperty("provenance");
+    });
+  });
+
+  // ── A call the agent's tool lists refused (middleware/tool-scope.ts) ──
+
+  describe("a refused call, from the tool-scope middleware's custom event", () => {
+    const GATE = {
+      mcpDefault: { destructive: new Set(["github/delete_repo"]), leasedServers: new Set<string>() },
+      toolServerMap: new Map([["delete_repo", "github"]]),
+      leasedCategories: new Set<never>(),
+      globalBypass: false,
+      unattended: false,
+      unattendedSkips: new Set<string>(),
+    };
+    const refused = (callId: string, name: string, namespace: string[] = []) =>
+      makeProtocolEvent(
+        "custom",
+        { name: TOOL_REFUSED_EVENT, tool_call_id: callId, tool_name: name, input: { repo: "x" }, message: "Error: refused" },
+        { namespace },
+      );
+
+    it("opens the call's row and fails it with the refusal's message: attributed to its server, no provenance", () => {
+      const events = new DeepAgentTranslator(GATE).translate(refused("c1", "delete_repo"));
+      expect(events).toEqual([
+        { kind: "tool_started", callId: "c1", name: "delete_repo", input: { repo: "x" }, mcpServerSlug: "github" },
+        { kind: "tool_error", callId: "c1", message: "Error: refused" },
+      ]);
+    });
+
+    it("a refused task opens no sub-agent", () => {
+      const events = new DeepAgentTranslator(GATE).translate(refused("t1", "task"));
+      expect(events.map((e) => e.kind)).toEqual(["tool_started", "tool_error"]);
+    });
+
+    it("inside a sub-agent the refusal, under its task's one segment, is scoped to it", () => {
+      const t = new DeepAgentTranslator(GATE);
+      t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: ["tools:pregel-1"] }));
+      const events = t.translate(refused("c2", "execute", ["tools:pregel-1"]));
+      expect(events.every((e) => "subAgentId" in e && e.subAgentId === "task-1")).toBe(true);
+    });
+
+    it("ignores any other custom event", () => {
+      expect(normalize(makeProtocolEvent("custom", { name: "someone.else", tool_call_id: "c" }))).toEqual([]);
+      expect(normalize(makeProtocolEvent("custom", { payload: 1 }))).toEqual([]);
     });
   });
 });

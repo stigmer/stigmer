@@ -2,7 +2,7 @@
  * Resource kind in a dependency tree.
  *
  * - `"agent"` — the root agent (always the tree root)
- * - `"mcp-server"` — an MCP server referenced via `mcpServerUsages` or `mcpAccess`
+ * - `"mcp-server"` — an MCP server referenced via `mcpServerUsages`
  * - `"skill"` — a skill referenced via `skillRefs`
  * - `"sub-agent"` — an inline sub-agent definition with its own dependencies
  */
@@ -99,8 +99,6 @@ export interface UseDependencyGraphOptions {
         readonly org: string;
         readonly slug: string;
       };
-      readonly enabledTools: readonly string[];
-      readonly toolApprovalOverrides: readonly unknown[];
     }[];
     readonly skillRefs: readonly {
       readonly org: string;
@@ -109,10 +107,6 @@ export interface UseDependencyGraphOptions {
     readonly subAgents: readonly {
       readonly name: string;
       readonly description: string;
-      readonly mcpAccess: readonly {
-        readonly mcpServer: string;
-        readonly enabledTools: readonly string[];
-      }[];
       readonly skillRefs: readonly {
         readonly org: string;
         readonly slug: string;

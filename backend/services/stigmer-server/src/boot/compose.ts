@@ -167,7 +167,6 @@ import {
   metricsExportPosture,
 } from "../observability/rpc-metrics.js";
 import { kindEnumName } from "../pipeline/apiresource-meta.js";
-import { quoteJoin } from "../domain/mcpserver/enabledtools/enabledtools.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { KeyedSerializer } from "../pipeline/keyed-serializer.js";
 import {
@@ -468,7 +467,7 @@ export async function composeServer(
     });
     if (unreadable.length > 0) {
       throw new Error(
-        `the composition serves edition '${ServerEdition[extensions.edition]}' under the built-in authorizer but registers no row reader for ${quoteJoin(unreadable.map(kindEnumName))} — register a reader for each kind a unit serves (drivers.resourceRowReaders), or register an Authorizer`,
+        `the composition serves edition '${ServerEdition[extensions.edition]}' under the built-in authorizer but registers no row reader for ${unreadable.map((kind) => `'${kindEnumName(kind)}'`).join(", ")} — register a reader for each kind a unit serves (drivers.resourceRowReaders), or register an Authorizer`,
       );
     }
   }

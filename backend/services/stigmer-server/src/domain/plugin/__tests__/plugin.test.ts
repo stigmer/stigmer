@@ -288,9 +288,8 @@ describe("Plugin push — materialisation", () => {
       `${name}-reviewer`,
     ]);
     expect(agent.spec?.subAgents[0]?.modelOverride).toBe("");
-    expect(agent.spec?.subAgents[0]?.mcpAccess.map((a) => a.mcpServer)).toEqual(
-      [`${name}-github`],
-    );
+    expect(agent.spec?.subAgents[0]?.tools).toEqual([]);
+    expect(agent.spec?.subAgents[0]?.disallowedTools).toEqual([]);
 
     const serverResource = await mcpServerQuery.getByReference(
       createMessage(ApiResourceReferenceSchema, {

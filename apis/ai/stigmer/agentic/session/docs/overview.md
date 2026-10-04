@@ -21,7 +21,6 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: github
-      enabled_tools: [search_code, create_pr]
   skill_refs:
     - kind: skill
       slug: go-best-practices

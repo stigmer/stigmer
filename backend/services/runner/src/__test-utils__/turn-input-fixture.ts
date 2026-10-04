@@ -35,6 +35,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 
 import type { TurnInput } from "../harness/types.js";
 import type { ResolvedBlueprint } from "../shared/blueprint-resolver.js";
+import { ToolScope } from "../shared/tool-lists.js";
 import { mockWorkspaceBackend } from "./mock-workspace.js";
 
 /** The ids a fixture record carries when a test does not name its own. */
@@ -134,7 +135,9 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
       servers: [],
       channelMessaging: [],
       leases: { global: false, categories: new Set(), servers: new Set() },
-      policies: new Map(),
+      mcpDefault: { destructive: new Set(), leasedServers: new Set() },
+      platformServerSlugs: new Set(),
+      toolScope: ToolScope.unrestricted(),
     },
     skills: overrides.skills ?? { root: [], bySubAgent: new Map() },
     attachments: overrides.attachments ?? { results: [], visionImages: [], visionNotViewable: [] },

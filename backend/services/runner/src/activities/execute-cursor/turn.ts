@@ -20,8 +20,10 @@
  * `adapter.ts` imports this module.
  *
  * Never throws out of `runCursorTurn` (an SDK failure is `failed` with the
- * classifier's sentence; an unexpected exception is `failed` on the
- * `internal` surface; a `CancelledFailure` never exists here), never branches
+ * classifier's sentence; a turn the agent's tool lists refused at setup is
+ * `failed` on the `actionable` surface with the refusal's own sentence; an
+ * unexpected exception is `failed` on the `internal` surface; a
+ * `CancelledFailure` never exists here), never branches
  * on why `stopSignal` aborted, never writes a phase or a terminal copy, never
  * imports `@temporalio/*` (`__tests__/adapter-is-temporal-free.test.ts`).
  *
@@ -41,6 +43,7 @@
 
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { describeExecutionError } from "../../shared/model-error.js";
+import { ToolListResolutionError } from "../../shared/tool-lists.js";
 import { cacheSessionAgent } from "./agent-session-cache.js";
 import { formatClassifiedError, synthesizeError } from "./error-classifier.js";
 import { setInterceptorExecutionId } from "./fetch-interceptor.js";
@@ -50,6 +53,8 @@ import { newTurnStreamState } from "./turn-stream.js";
 import { streamAndSettle, usageSnapshotFor } from "./turn-settle.js";
 import {
   buildTurnPrompt,
+  checkToolScope,
+  CursorToolListRefusal,
   installGate,
   readAdjudicatedRows,
   resolveCursorMode,
@@ -82,6 +87,7 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
     // gate so the denial watcher can write into them.
     const streamState = newTurnStreamState();
     const mode = resolveCursorMode(input, config);
+    checkToolScope(input, mode);
     const rows = readAdjudicatedRows(input, sink.status);
     gate = await installGate(input, sink, rows, streamState);
     if (sink.stopSignal.aborted) return (outcome = { kind: "interrupted" });
@@ -214,10 +220,18 @@ function disposeEngine(engine: CursorEngine, sessionId: string, outcome: TurnOut
  * `run.wait()` error path; anything else is described by
  * `describeExecutionError` (a model error arrives MiddlewareError-wrapped
  * with raw provider prose; non-model errors keep the root error's identity).
- * Both are the `internal` surface: the runner or its transport broke.
+ * Both are the `internal` surface: the runner or its transport broke. A turn
+ * the agent's tool lists refused at setup (`ToolListResolutionError`,
+ * `CursorToolListRefusal`) is the exception: `failed` on the `actionable`
+ * surface with the error's own sentence, since the fix is the agent's
+ * author's, exactly as the native engine settles it.
  */
 async function classifyThrown(err: unknown, input: TurnInput, config: CursorAdapterConfig, engine: CursorEngine | undefined): Promise<TurnOutcome> {
   const { executionId } = input;
+  if (err instanceof ToolListResolutionError || err instanceof CursorToolListRefusal) {
+    console.warn(`ExecuteCursor refused the turn: execution=${executionId}, ${err.message}`);
+    return { kind: "failed", surface: "actionable", message: err.message, cause: err };
+  }
   const fallbackContext = engine
     ? { model: engine.validatedModel, mode: engine.agentMode, agentId: engine.resolution.agentId }
     : { model: input.model.requested, mode: "local", agentId: "" };

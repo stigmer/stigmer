@@ -23,8 +23,16 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: github
-      enabled_tools: [search_issues, get_issue]
     # Post to the support channel when escalating
     - mcp_server_ref:
         kind: mcp_server
         slug: slack
+
+  # Only these tools: reading, two GitHub lookups, and Slack. No shell
+  # commands and no file writes.
+  tools:
+    - Read
+    - Grep
+    - mcp__github__search_issues
+    - mcp__github__get_issue
+    - mcp__slack

@@ -3,10 +3,19 @@
  * enumerates its tools and resource templates, and returns a serializable
  * result for the connect workflow.
  *
- * Part of the `stigmer/mcp-server/connect` workflow: runs as step 1 before
- * ClassifyToolApprovals. The activity hydrates the MCP server spec via gRPC,
- * resolves environment variables from a pre-created ExecutionContext, and
- * connects using MultiServerMCPClient for transport management.
+ * The one step of the `stigmer/mcp-server/connect` workflow. The activity
+ * hydrates the MCP server spec via gRPC, resolves environment variables from
+ * a pre-created ExecutionContext, and connects using MultiServerMCPClient
+ * for transport management.
+ *
+ * Each tool carries `destructiveHint`: true only when the server's own MCP
+ * annotation says `destructiveHint: true`. The approval default asks before
+ * such a tool and before no other MCP tool (`shared/approval-policy.ts`).
+ * Annotations are untrusted (the MCP spec says so), so they are read only in
+ * the direction that adds a question: `readOnlyHint` is never read, and a
+ * tool marked both read-only and destructive asks. MCP's own default for an
+ * unannotated tool is "destructive"; Stigmer acts only on an explicit true,
+ * so a server that annotates nothing gates nothing.
  *
  * Security: Temporal input carries only IDs (mcp_server_id,
  * execution_context_id) — no secret values ever appear in workflow history.
@@ -18,7 +27,6 @@
  *   Output: DiscoverMcpServerOutput
  */
 
-import { createHash } from "node:crypto";
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { StigmerClient } from "../client/stigmer-client.js";
@@ -39,7 +47,6 @@ import {
 } from "../shared/platform-server-address.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { withTimeout } from "../shared/with-timeout.js";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { Config } from "../config.js";
 
@@ -58,9 +65,9 @@ import type { Config } from "../config.js";
  * what converts the silent hang into a fast, actionable failure (with room for
  * the 10s OAuth re-probe on the failure path). stdio servers keep the generous
  * bound because their first run may compile or install packages (`go run`,
- * `npx`) — the cold-start case (issue #243). The OSS server's connect-workflow
- * run timeout (connectTimeout, controller/connect.go) is derived from the
- * stdio bound + the classification floor, so both errors stay reachable.
+ * `npx`) — the cold-start case (issue #243). The server's connect-workflow
+ * run timeout sits above the stdio bound, so this file's actionable errors
+ * stay reachable.
  */
 const HTTP_INIT_TIMEOUT_MS = 30_000;
 const STDIO_INIT_TIMEOUT_MS = 270_000;
@@ -97,18 +104,8 @@ export interface DiscoveredToolResult {
   name: string;
   description: string;
   inputSchema?: Record<string, unknown> | null;
-  // MCP server-supplied behaviour hints. UNTRUSTED — the MCP spec is explicit
-  // that clients must never make tool-use decisions on annotations from
-  // untrusted servers. We therefore consume them only to TIGHTEN gating
-  // (destructiveHint → force-gate), never to relax it. Kept in-memory for the
-  // connect workflow's tightener; deliberately excluded from `toolsFingerprint`
-  // / `toolSignature` so incremental-classification reuse stays content-stable.
-  annotations?: DiscoveredToolAnnotations | null;
-}
-
-export interface DiscoveredToolAnnotations {
-  readOnlyHint?: boolean;
-  destructiveHint?: boolean;
+  /** The tool's MCP annotation `destructiveHint === true`, and nothing else (see the file header). */
+  destructiveHint: boolean;
 }
 
 export interface DiscoveredResourceTemplateResult {
@@ -121,20 +118,6 @@ export interface DiscoveredResourceTemplateResult {
 export interface DiscoverMcpServerOutput {
   tools: DiscoveredToolResult[];
   resourceTemplates: DiscoveredResourceTemplateResult[];
-  previousToolsFingerprint: string;
-  previousToolApprovals: ToolApprovalDict[];
-  newToolsFingerprint: string;
-  // Full definitions of the tools discovered on the previous connect, read from
-  // status.discovered_capabilities. The connect workflow diffs these against the
-  // freshly discovered tools to reuse prior approval decisions for unchanged
-  // tools and (re)classify only the new or changed ones. Empty on first connect.
-  previousTools: DiscoveredToolResult[];
-}
-
-export interface ToolApprovalDict {
-  toolName: string;
-  requiresApproval: boolean;
-  message: string;
 }
 
 /**
@@ -156,86 +139,6 @@ export class CredentialResolutionError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "CredentialResolutionError";
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Tools Fingerprint (pure, deterministic, safe in workflow code)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function toolsFingerprint(tools: DiscoveredToolResult[]): string {
-  if (tools.length === 0) return "";
-
-  const canonical = tools
-    .map((t) => ({
-      name: t.name,
-      description: t.description,
-      input_schema: t.inputSchema ?? null,
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  return createHash("sha256")
-    .update(JSON.stringify(canonical))
-    .digest("hex");
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Previous State Extraction
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface PreviousState {
-  fingerprint: string;
-  toolApprovals: ToolApprovalDict[];
-  tools: DiscoveredToolResult[];
-}
-
-export function extractPreviousState(mcpServer: McpServer): PreviousState {
-  const status = mcpServer.status;
-  if (!status) return { fingerprint: "", toolApprovals: [], tools: [] };
-
-  const caps = status.discoveredCapabilities;
-  const prevTools: DiscoveredToolResult[] = [];
-  if (caps) {
-    for (const tool of caps.tools) {
-      let schema: Record<string, unknown> | null = null;
-      if (tool.inputSchema) {
-        schema = structToPlainObject(tool.inputSchema);
-      }
-      prevTools.push({
-        name: tool.name,
-        description: tool.description,
-        inputSchema: schema,
-      });
-    }
-  }
-
-  const toolApprovals: ToolApprovalDict[] = [];
-  for (const approval of status.toolApprovals) {
-    toolApprovals.push({
-      toolName: approval.toolName,
-      requiresApproval: true,
-      message: approval.message,
-    });
-  }
-
-  return {
-    fingerprint: toolsFingerprint(prevTools),
-    toolApprovals,
-    tools: prevTools,
-  };
-}
-
-/**
- * Convert a protobuf Struct to a plain JS object. The @bufbuild/protobuf
- * Struct type uses `fields` as a Record<string, Value>; we need a plain
- * JSON-compatible object for fingerprinting and serialization.
- */
-function structToPlainObject(struct: unknown): Record<string, unknown> | null {
-  if (!struct || typeof struct !== "object") return null;
-  try {
-    return JSON.parse(JSON.stringify(struct));
-  } catch {
-    return null;
   }
 }
 
@@ -280,7 +183,6 @@ export async function discoverMcpServer(
   }
 
   const slug = mcpServer.metadata?.slug || mcpServerId;
-  const previousState = extractPreviousState(mcpServer);
 
   const declaredEnv = mcpServer.spec.env ?? {};
   // A key the platform fills for this transport is not a credential the
@@ -307,7 +209,7 @@ export async function discoverMcpServer(
   // resolves to the anonymous sentinel — without it, a server templating
   // ${STIGMER_CALLER_IDENTITY_VALUE} in its headers would fail discovery
   // with PlaceholderResolutionError and its tools would never be
-  // classified. Servers consuming these keys answer tools/list to
+  // discovered. Servers consuming these keys answer tools/list to
   // anonymous callers by contract.
   const finalEnv = injectAnonymousCallerIdentityForDiscovery(
     declaredEnvKeys,
@@ -331,21 +233,12 @@ export async function discoverMcpServer(
     resolved,
   );
 
-  const newFp = toolsFingerprint(tools);
-
   console.log(
     `[DiscoverMcpServer] Discovery complete for '${slug}': ` +
     `${tools.length} tool(s), ${resourceTemplates.length} resource template(s)`,
   );
 
-  return {
-    tools,
-    resourceTemplates,
-    previousToolsFingerprint: previousState.fingerprint,
-    previousToolApprovals: previousState.toolApprovals,
-    newToolsFingerprint: newFp,
-    previousTools: previousState.tools,
-  };
+  return { tools, resourceTemplates };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -528,14 +421,7 @@ async function connectAndDiscover(
           inputSchema: tool.inputSchema
             ? (tool.inputSchema as Record<string, unknown>)
             : null,
-          // Capture only the two hints the tightener uses. Stored verbatim from
-          // the server (untrusted): used to tighten, never to relax.
-          annotations: tool.annotations
-            ? {
-                readOnlyHint: tool.annotations.readOnlyHint,
-                destructiveHint: tool.annotations.destructiveHint,
-              }
-            : null,
+          destructiveHint: tool.annotations?.destructiveHint === true,
         });
       }
 

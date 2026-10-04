@@ -304,14 +304,13 @@ async function settleConnectAsync(
     }
 
     let persisted: McpServer;
-    let toolApprovalCount: number;
     try {
-      ({ persisted, toolApprovalCount } = await persistConnectResult(
+      persisted = await persistConnectResult(
         deps.store,
         mcpServerId,
         run.workflowId,
         outcome.output,
-      ));
+      );
     } catch (error) {
       if (error instanceof ResourceNotFoundError) {
         deps.logger.info(
@@ -333,7 +332,6 @@ async function settleConnectAsync(
       tools: persisted.status?.discoveredCapabilities?.tools.length ?? 0,
       resource_templates:
         persisted.status?.discoveredCapabilities?.resourceTemplates.length ?? 0,
-      tool_approvals: toolApprovalCount,
     });
   } finally {
     await route.release();

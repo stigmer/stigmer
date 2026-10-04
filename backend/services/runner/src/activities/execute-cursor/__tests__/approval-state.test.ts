@@ -54,6 +54,7 @@ import {
   type ApprovalGrant,
   type DeniedLedgerEntry,
 } from "../approval-state.js";
+import { NO_MCP_DEFAULT } from "../__test-utils__/cursor-hook-harness.js";
 
 /** A built-in (non-MCP) stream tool_call event, as `@cursor/sdk` emits it. */
 function builtInEvent(
@@ -134,7 +135,7 @@ async function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): Pro
   const grants = buildApprovalGrants(pendingApprovals, decisions, contentDigests);
   expect(grants, "an approved tool must yield exactly one grant").toHaveLength(1);
 
-  const state = buildApprovalState(new Map(), false, new Set(), grants);
+  const state = buildApprovalState(NO_MCP_DEFAULT, false, new Set(), grants);
 
   return {
     denialToken,

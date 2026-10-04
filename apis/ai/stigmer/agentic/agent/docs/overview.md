@@ -1,6 +1,7 @@
 An Agent defines what an AI assistant knows and can do. It declares the agent's
 instructions (system prompt), which MCP servers it can use, which Skills it has,
-and optional Sub-Agents for delegation.
+optional Sub-Agents for delegation, and the tools it may and may never use, in
+Claude Code's names (`tools` and `disallowed_tools`, deny applied first).
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -15,8 +16,9 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: github
-      enabled_tools: [search_code, create_pr]
   skill_refs:
     - kind: skill
       slug: code-review-best-practices
+  tools: [Read, Grep, Glob, mcp__github]
+  disallowed_tools: [mcp__github__merge_pull_request]
 ```

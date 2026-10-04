@@ -15,7 +15,6 @@ import {
   McpServerSpecSchema,
   HttpServerConfigSchema,
   McpServerAuthSchema,
-  ToolApprovalPolicySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import {
   McpServerStatusSchema,
@@ -137,20 +136,6 @@ function buildGitHubConnected(): McpServer {
         }),
       ],
     }),
-    toolApprovals: [
-      create(ToolApprovalPolicySchema, {
-        toolName: "create_issue",
-        message: "Create issue: {{args.title}} in {{args.repo}}",
-      }),
-      create(ToolApprovalPolicySchema, {
-        toolName: "create_pull_request",
-        message: "Open PR: {{args.title}} ({{args.head}} → {{args.base}})",
-      }),
-      create(ToolApprovalPolicySchema, {
-        toolName: "push_files",
-        message: "Push files to {{args.repo}} on {{args.branch}}",
-      }),
-    ],
   });
 
   return server;
@@ -195,8 +180,7 @@ export type OAuthConnectStep =
   | { view: "detail-preconnect"; server: McpServer; grant: GetOAuthGrantStatusOutput }
   | { view: "click-sign-in"; server: McpServer; grant: GetOAuthGrantStatusOutput }
   | { view: "github-authorize" }
-  | { view: "detail-connected"; server: McpServer; grant: GetOAuthGrantStatusOutput }
-  | { view: "connected-policies"; server: McpServer; grant: GetOAuthGrantStatusOutput };
+  | { view: "detail-connected"; server: McpServer; grant: GetOAuthGrantStatusOutput };
 
 const baseServer = buildGitHubBase();
 const connectedServer = buildGitHubConnected();
@@ -241,19 +225,9 @@ export const oauthConnectSteps: ScenarioStep<OAuthConnectStep>[] = [
       grant: HEALTHY_GRANT,
     },
     narration:
-      "After authorization, Stigmer exchanges the code for a token, stores it securely, connects to the server, and discovers its tools. Read-only operations pass through automatically.",
+      "After authorization, Stigmer exchanges the code for a token, stores it securely, connects to the server, and discovers its tools. Only a tool the server marks destructive will ask for approval before it runs.",
     interactions: [
       { atPercent: 0.35, type: "scroll_to", target: "capabilities-bottom" },
     ],
-  },
-  {
-    delayMs: 3500,
-    data: {
-      view: "connected-policies",
-      server: connectedServer,
-      grant: HEALTHY_GRANT,
-    },
-    narration:
-      "Operations that modify your repositories — creating issues, opening pull requests, pushing files — are flagged for human approval before execution.",
   },
 ];

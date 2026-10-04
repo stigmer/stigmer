@@ -146,7 +146,7 @@ Complete dependency tree for an agent, rooted at the agent itself.
 Resource kind in a dependency tree.
 
 - `"agent"` — the root agent (always the tree root)
-- `"mcp-server"` — an MCP server referenced via `mcpServerUsages` or `mcpAccess`
+- `"mcp-server"` — an MCP server referenced via `mcpServerUsages`
 - `"skill"` — a skill referenced via `skillRefs`
 - `"sub-agent"` — an inline sub-agent definition with its own dependencies
 
@@ -159,7 +159,7 @@ Options for [`useDependencyGraph`](#usedependencygraph).
   type={{
     agentName: { type: "string", description: "Display name of the agent (used as the root node label).", required: true },
     agentOrg: { type: "string", description: "Id of the agent's organization, as its `metadata.org` stores it (compared with each reference's org for cross-org label detection).", required: true },
-    spec: { type: "{ mcpServerUsages: readonly { enabledTools: readonly string[]; mcpServerRef?: { org: string; slug: string }; toolApprovalOverrides: readonly unknown[] }[]; skillRefs: readonly { org: string; slug: string }[]; subAgents: readonly { description: string; mcpAccess: readonly { enabledTools: readonly string[]; mcpServer: string }[]; modelOverride: string; name: string; skillRefs: readonly { org: string; slug: string }[] }[] } | undefined", description: "The agent's spec containing dependency references. Pass `undefined` while the agent is loading — the hook returns `null` for `tree` and `true` for `isEmpty`.", required: true },
+    spec: { type: "{ mcpServerUsages: readonly { mcpServerRef?: { org: string; slug: string } }[]; skillRefs: readonly { org: string; slug: string }[]; subAgents: readonly { description: string; modelOverride: string; name: string; skillRefs: readonly { org: string; slug: string }[] }[] } | undefined", description: "The agent's spec containing dependency references. Pass `undefined` while the agent is loading — the hook returns `null` for `tree` and `true` for `isEmpty`.", required: true },
   }}
 />
 

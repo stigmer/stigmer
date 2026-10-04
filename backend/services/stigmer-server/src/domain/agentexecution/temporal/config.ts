@@ -12,8 +12,7 @@
  * AgentExecutionTemporalConfig.resolveExecutionTarget.
  *
  * This module was the first resident of the agentexecution domain
- * directory; the tree corresponds to Go's,
- * same precedent as src/domain/mcpserver/enabledtools/.
+ * directory; the tree corresponds to Go's.
  */
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 

@@ -13,6 +13,10 @@
  *   intent titles exactly like the parent's
  * - Fresh tool truncation (same limits as parent)
  * - Periodic execution budget (interval=30, max=4 advisories)
+ * - Tool scope (`middleware/tool-scope.ts`) with THIS sub-agent's scope —
+ *   the parent's narrowed by the sub-agent's own lists, never widened —
+ *   installed whenever that scope carries a list, independent of the gate,
+ *   and ahead of it, exactly as on the parent
  * - Approval gate (so a mutating tool *inside* a sub-agent is gated, not
  *   bypassed) — installed only when the parent itself is gated
  *   (`approvalGate` present; absent under auto-approve-all)
@@ -41,6 +45,7 @@ import type {
   StigmerMiddleware,
   ToolTruncationConfig,
   PathNormalizationConfig,
+  ToolScopeConfig,
 } from "../../middleware/types.js";
 import type { CostAdvisoryMiddleware } from "../../middleware/index.js";
 import { createPathNormalizationMiddleware } from "../../middleware/path-normalization.js";
@@ -53,6 +58,7 @@ import {
   type ApprovalGateConfig,
 } from "../../middleware/approval-gate.js";
 import { createErrorHintsMiddleware } from "../../middleware/error-hints.js";
+import { createToolScopeMiddleware } from "../../middleware/tool-scope.js";
 
 const SUB_AGENT_ADVISORY_INTERVAL = 30;
 const SUB_AGENT_MAX_ADVISORIES = 4;
@@ -82,6 +88,11 @@ export interface SubAgentMiddlewareOptions {
    * carries the repair seam, matching the parent composition.
    */
   readonly pathNormalization?: PathNormalizationConfig;
+  /**
+   * This sub-agent's tool scope: the parent's, narrowed by the sub-agent's
+   * own lists (`compileSubagents`). Installed when it carries a list.
+   */
+  readonly toolScope?: ToolScopeConfig;
 }
 
 /**
@@ -89,8 +100,8 @@ export interface SubAgentMiddlewareOptions {
  *
  * Returns an ordered array mirroring the parent composition:
  * [path normalization] → loop detection → execution budget (periodic) →
- * tool intent → tool truncation → [approval gate] → cost cap view →
- * error hints.
+ * tool intent → tool truncation → [tool scope] → [approval gate] → cost
+ * cap view → error hints.
  * Normalization is outermost so everything downstream observes canonical
  * workspace-absolute paths (matching the parent). The gate sits before the
  * cost-cap view so an approval pause happens before budget accounting, and
@@ -119,6 +130,10 @@ export function buildSubAgentMiddleware(
   stack.push(createToolIntentMiddleware());
 
   stack.push(createToolTruncationMiddleware(options.toolTruncation));
+
+  if (options.toolScope?.scope.restricted) {
+    stack.push(createToolScopeMiddleware(options.toolScope));
+  }
 
   if (options.approvalGate) {
     // captureIgnored: a sub-agent flows gitignored writes — and, since

@@ -76,7 +76,6 @@ describe("discovery against a 4xx-then-silent-SSE endpoint (issue #239)", () => 
             value: { url, headers: {}, queryParams: {}, timeoutSeconds: 0 },
           },
           env: {},
-          pinnedToolApprovals: [],
         },
         status: undefined,
       }),

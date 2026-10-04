@@ -51,7 +51,7 @@
  *     at construction and consumed on match (a declined row is a
  *     closed gate and never matched).
  *   - The PROVENANCE, and never the hold. A row's provenance is the shared
- *     read-side `resolveApprovalProvenance` over the merged policies and the
+ *     read-side `resolveApprovalProvenance` over the approval default and the
  *     run's leases: which layer governs the call. Whether the call was HELD
  *     for a person's decision is not answered here, because at tool start
  *     nobody knows yet: the preToolUse hook decides, with arms this side
@@ -84,7 +84,7 @@ import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ToolStartedEvent, TranscriptEvent } from "../../harness/transcript/events.js";
-import { resolveApprovalProvenance, type MergedToolPolicy, type PolicySource } from "../../shared/approval-policy.js";
+import { resolveApprovalProvenance, type McpApprovalDefault, type PolicySource } from "../../shared/approval-policy.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { isDeclinedRow } from "../../shared/tool-row.js";
 import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
@@ -100,8 +100,8 @@ const TASK_TOOL = "task";
 
 /** The run's approval posture the translator answers `provenance` from. */
 export interface CursorTranslatorOptions {
-  /** The merged four-level MCP policy map (`mergeApprovalPolicies`). */
-  readonly policies: ReadonlyMap<string, MergedToolPolicy>;
+  /** The turn's MCP approval default (`TurnMcp.mcpDefault`): which tools ask, which servers a lease cleared. */
+  readonly mcpDefault: McpApprovalDefault;
   /** The run-lifetime leases: the pre-armed global bypass and the built-in categories approved for the run. */
   readonly leases: { readonly global: boolean; readonly categories: ReadonlySet<ToolApprovalCategory> };
   /** The transcript as seeded at turn start (`status.messages`): the WAITING rows a resumed agent's re-issued call may belong to. */
@@ -361,11 +361,11 @@ export class CursorTranslator {
   }
 
   private toolStarted(callId: string, name: string, mcpServerSlug: string, input: Record<string, unknown>): ToolStartedEvent {
-    const { policies, leases } = this.options;
+    const { mcpDefault, leases } = this.options;
     const provenance: PolicySource | undefined = resolveApprovalProvenance(
       name,
       mcpServerSlug,
-      policies,
+      mcpDefault,
       leases.categories,
       leases.global,
     );

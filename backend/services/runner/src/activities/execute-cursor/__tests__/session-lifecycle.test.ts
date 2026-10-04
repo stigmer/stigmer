@@ -9,7 +9,10 @@
  * volume, so this file is also where the store the runner ships with is
  * proven to open, be reused, and dispose — the hermetic goldens double it.
  * The store's keying and lifetime rules have their own arms in
- * `session-store.test.ts`.
+ * `session-store.test.ts`. The agent's built-in tool restriction (`tools` /
+ * `disallowedTools`) is pinned on create AND on every resume path, because
+ * the SDK does not persist it: a resume without it would silently restore the
+ * whole toolset.
  */
 
 import { describe, it, expect, afterEach, vi } from "vitest";
@@ -30,6 +33,7 @@ import { SqliteLocalAgentStore } from "@cursor/sdk/sqlite";
 import {
   createAgent,
   resumeAgent,
+  resolveAgent,
   resolveAgentWithTransportRecovery,
 } from "../session-lifecycle.js";
 import type { CreateAgentOptions } from "../session-lifecycle.js";
@@ -166,6 +170,53 @@ describe("local options on create/resume", () => {
     // the SDK took whole at 1.0.13, in the same order.
     expect(callOptions?.local?.cwd).toBe("/work/repo-a");
     expect(callOptions?.local?.dirs).toEqual(["/work/repo-b", "/work/repo-c"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The tool restriction on create and every resume
+// ---------------------------------------------------------------------------
+
+describe("the built-in tool restriction rides every create and resume", () => {
+  function options(restriction: Pick<CreateAgentOptions, "tools" | "disallowedTools">): CreateAgentOptions {
+    return {
+      apiKey: "key",
+      model: "gpt-test",
+      sessionId: "ses-tools-test",
+      workspaceDirs: ["/work/repo-a"],
+      workspaceRootDir: freshWorkspaceRoot(),
+      ...restriction,
+    };
+  }
+
+  it("createAgent passes tools and disallowedTools as given", async () => {
+    await createAgent(options({ tools: ["read", "grep", "mcp"] }));
+    expect(lastCreateOptions().tools).toEqual(["read", "grep", "mcp"]);
+    expect(lastCreateOptions()).not.toHaveProperty("disallowedTools");
+
+    await createAgent(options({ disallowedTools: ["shell"] }));
+    expect(lastCreateOptions().disallowedTools).toEqual(["shell"]);
+    expect(lastCreateOptions()).not.toHaveProperty("tools");
+  });
+
+  it("an agent with no lists sends neither field (an empty tools would mean no built-ins at all)", async () => {
+    await createAgent(options({}));
+    expect(lastCreateOptions()).not.toHaveProperty("tools");
+    expect(lastCreateOptions()).not.toHaveProperty("disallowedTools");
+  });
+
+  it("resolveAgent re-passes the restriction on resume", async () => {
+    await resolveAgent("agent-123", options({ tools: ["read"], disallowedTools: ["readLints"] }), "local");
+    const [, callOptions] = lastResumeCall();
+    expect(callOptions?.tools).toEqual(["read"]);
+    expect(callOptions?.disallowedTools).toEqual(["readLints"]);
+  });
+
+  it("resolveAgent passes it to the fresh agent created after a failed resume", async () => {
+    vi.mocked(Agent.resume).mockRejectedValueOnce(new Error("agent unknown"));
+    const resolution = await resolveAgent("agent-gone", options({ tools: ["read", "shell"] }), "local");
+    expect(resolution.reason).toBe("created_after_resume_failure");
+    expect(lastCreateOptions().tools).toEqual(["read", "shell"]);
   });
 });
 

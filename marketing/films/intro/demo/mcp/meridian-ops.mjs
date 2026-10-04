@@ -117,6 +117,9 @@ server.registerTool(
   {
     description:
       "Rebook an existing Meridian Travel booking onto a different flight. Charges or refunds the fare difference and any change fee per the rebooking policy. This modifies the traveler's itinerary.",
+    // Moves money: Stigmer asks a human before any tool its server marks
+    // destructive, which is the approval the film shows.
+    annotations: { destructiveHint: true },
     inputSchema: {
       booking_id: z.string().describe("Booking reference, e.g. MT-4821"),
       flight_number: z.string().describe("Target flight number from search_flights, e.g. MT-102"),

@@ -27,6 +27,7 @@ import { ENGINE_TOOL } from "../engine-tools.js";
 import { createBuiltinSubagents } from "../subagent-transformer.js";
 import { createTodoListMiddleware, TODO_TOOL_DESCRIPTION } from "../todo-list.js";
 import { ScriptedModel, type ScriptSelector } from "../__test-utils__/scripted-model.js";
+import { ToolScope } from "../../../shared/tool-lists.js";
 
 class ScriptedAnthropicModel extends ScriptedModel {
   static override lc_name(): string {
@@ -87,7 +88,7 @@ describe("the engine's built-in tool names", () => {
 
   it("are the only tool names the built-in sub-agents' prompts quote, and those prompts carry no placeholder", () => {
     const known = new Set<string>(Object.values(ENGINE_TOOL));
-    for (const spec of createBuiltinSubagents(true)) {
+    for (const spec of createBuiltinSubagents(true, ToolScope.unrestricted())) {
       expect(spec.systemPrompt, `${spec.name}'s prompt`).not.toMatch(/\{[a-z_]+\}/);
       const quoted = spec.systemPrompt.match(/\b[a-z]+_[a-z]+\b/g) ?? [];
       for (const name of quoted) expect(known, `${spec.name} quotes ${name}`).toContain(name);

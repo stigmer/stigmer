@@ -31,9 +31,8 @@ const userServer: ResolvedMcpServer = {
   slug: "github",
   connectionType: "http",
   url: "https://example.com",
-  toolApprovals: [],
-  pinnedToolApprovals: [],
-  toolApprovalOverrides: [],
+  destructiveTools: [],
+  discoveredToolNames: null,
   declaredEnvKeys: [],
   discoveredCapabilitiesEmpty: false,
 };

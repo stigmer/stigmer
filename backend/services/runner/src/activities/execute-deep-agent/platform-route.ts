@@ -66,6 +66,20 @@ import { STIGMER_LOCAL_STATE_DIR, stigmerSymlinkPointsAt } from "../../shared/wo
 /** The route prefix, with the trailing slash `CompositeBackend` needs to match `/.stigmer/x` but never `/.stigmerx`. */
 export const PLATFORM_ROUTE_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/`;
 
+/**
+ * Where deepagents (1.14) writes a tool result too large to keep in context,
+ * telling the model to `read_file` it back. Not exported by deepagents; the
+ * literal is its filesystem middleware's.
+ */
+export const DEEPAGENTS_OFFLOAD_ROOT = "/large_tool_results/";
+
+/**
+ * What `read_file` may still read when an agent's tool lists exclude `Read`
+ * (`middleware/tool-scope.ts`): the platform's own content and the agent's
+ * own offloaded tool results, never the workspace.
+ */
+export const NATIVE_CONFINED_READ_ROOTS: readonly string[] = [PLATFORM_ROUTE_PREFIX, DEEPAGENTS_OFFLOAD_ROOT];
+
 /** The path as the agent named it: the route hands its backend the path with the prefix stripped. */
 function agentPath(routedPath: string): string {
   return `${PLATFORM_ROUTE_PREFIX.slice(0, -1)}${routedPath}`;

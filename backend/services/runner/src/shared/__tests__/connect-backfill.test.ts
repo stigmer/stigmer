@@ -1,3 +1,9 @@
+/**
+ * Pins the turn-start connect backfill: which servers need discovery (never
+ * discovered), that a connect failure keeps the turn going on the servers it
+ * had, that one success re-resolves every server, and the runtime env a
+ * connect carries. The discovery itself is the connect workflow's.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   needsBackfill,
@@ -16,9 +22,8 @@ function makeServer(overrides: Partial<ResolvedMcpServer> = {}): ResolvedMcpServ
     connectionType: "stdio",
     command: "npx",
     args: ["-y", "@mcp/test-server"],
-    toolApprovals: [],
-    pinnedToolApprovals: [],
-    toolApprovalOverrides: [],
+    destructiveTools: [],
+    discoveredToolNames: [],
     declaredEnvKeys: [],
     discoveredCapabilitiesEmpty: false,
     ...overrides,
@@ -28,8 +33,6 @@ function makeServer(overrides: Partial<ResolvedMcpServer> = {}): ResolvedMcpServ
 function makeUsage(slug: string, org = "test-org") {
   return {
     mcpServerRef: { slug, org, kind: 0 },
-    toolApprovalOverrides: [],
-    declaredEnvKeys: [],
   } as any;
 }
 
@@ -42,7 +45,6 @@ function makeMockClient(overrides: Record<string, unknown> = {}) {
     connectMcpServer: vi.fn().mockResolvedValue({
       status: {
         discoveredCapabilities: { tools: [{ name: "tool1" }], resourceTemplates: [] },
-        toolApprovals: [{ toolName: "tool1", message: "Classified" }],
       },
     }),
     ...overrides,
@@ -329,7 +331,6 @@ describe("backfillMcpServersIfNeeded", () => {
         return Promise.resolve({
           status: {
             discoveredCapabilities: { tools: [], resourceTemplates: [] },
-            toolApprovals: [],
           },
         });
       }),

@@ -5,8 +5,8 @@
  * A turn begins with a dozen reads and provisions that have nothing to do
  * with the engine that will run it: the execution and its session, the
  * agent blueprint, the environment, the workspace and its lock, what the
- * previous turn left waiting for approval, the MCP servers and their
- * approval policies, the attachments, the standing context. Until #1070
+ * previous turn left waiting for approval, the MCP servers with the
+ * approval default and the agent's tool scope, the attachments, the standing context. Until #1070
  * that sequence lived inline in the Cursor orchestrator
  * (`activities/execute-cursor/index.ts` `executeCursorInner`, phases 1 to
  * 9c); the native orchestrator carried a second copy in its `performSetup`.
