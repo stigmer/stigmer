@@ -68,7 +68,10 @@ export function formatClientSignInRole(role: IamRole): string {
   }
 }
 
-const SIGN_IN_ROLE_OPTIONS: readonly { readonly value: IamRole; readonly label: string }[] = [
+const SIGN_IN_ROLE_OPTIONS: readonly {
+  readonly value: IamRole;
+  readonly label: string;
+}[] = [
   { value: IamRole.iam_role_unspecified, label: "None" },
   { value: IamRole.viewer, label: "Viewer" },
   { value: IamRole.member, label: "Member" },
@@ -100,14 +103,17 @@ export function ClientSignInSettingsSection({
   };
 
   return (
-    <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")} disabled={disabled}>
+    <fieldset
+      className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")}
+      disabled={disabled}
+    >
       <hr className="stg:border-border-muted" />
       <legend className="stg:text-xs stg:font-medium stg:text-foreground">
         Sign-in
       </legend>
       <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-        What happens when this client mints a token for one of your users.
-        Every token it mints works in this organization only.
+        What happens when this client mints a token for one of your users. Every
+        token it mints works in this organization only.
       </p>
 
       <div className="stg:space-y-0.5">
@@ -128,7 +134,9 @@ export function ClientSignInSettingsSection({
             <span
               className={cn(
                 "stg:pointer-events-none stg:inline-block stg:h-4 stg:w-4 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
-                value.createAccounts ? "stg:translate-x-4" : "stg:translate-x-0",
+                value.createAccounts
+                  ? "stg:translate-x-4"
+                  : "stg:translate-x-0",
               )}
             />
           </button>
@@ -137,8 +145,8 @@ export function ClientSignInSettingsSection({
           </span>
         </div>
         <p className="stg:pl-11 stg:text-[0.65rem] stg:text-muted-foreground">
-          Create a user&apos;s Stigmer account the first time the client mints
-          a token for them. When off, accounts are created before minting
+          Create a user&apos;s Stigmer account the first time the client mints a
+          token for them. When off, accounts are created before minting
         </p>
       </div>
 
@@ -153,7 +161,10 @@ export function ClientSignInSettingsSection({
           id={`${baseId}-role`}
           value={String(value.signInRole)}
           onChange={(e) =>
-            onChange({ ...value, signInRole: Number(e.target.value) as IamRole })
+            onChange({
+              ...value,
+              signInRole: Number(e.target.value) as IamRole,
+            })
           }
           disabled={disabled || !value.createAccounts}
           aria-describedby={roleHintId}
@@ -169,9 +180,12 @@ export function ClientSignInSettingsSection({
             </option>
           ))}
         </select>
-        <p id={roleHintId} className="stg:text-[0.65rem] stg:text-muted-foreground">
-          Granted on this organization when the client creates an account;
-          None grants nothing. Accounts that already exist keep their roles.
+        <p
+          id={roleHintId}
+          className="stg:text-[0.65rem] stg:text-muted-foreground"
+        >
+          Granted on this organization when the client creates an account; None
+          grants nothing. Accounts that already exist keep their roles.
         </p>
       </div>
     </fieldset>

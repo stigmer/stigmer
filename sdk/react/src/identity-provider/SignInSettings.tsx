@@ -14,7 +14,10 @@
  *
  * An SSO provider must create accounts and grant a role, so turning SSO on
  * locks account creation on and fills an unset role with viewer; the
- * forms refuse to submit an SSO provider without both.
+ * forms refuse to submit an SSO provider without both. An SSO provider
+ * has no tenant claim: the claim names platform-managed organizations,
+ * which only a delegation provider manages, so the field is hidden and
+ * cleared for SSO.
  */
 
 import { useId } from "react";
@@ -50,9 +53,9 @@ export function signInSettingsFromSpec(
 }
 
 /**
- * The settings an SSO provider starts from: account creation on, and
- * viewer when no role is chosen yet. A non-SSO provider's settings are
- * returned unchanged.
+ * The settings an SSO provider starts from: account creation on, viewer
+ * when no role is chosen yet, and no tenant claim. A non-SSO provider's
+ * settings are returned unchanged.
  */
 export function withSsoDefaults(
   settings: SignInSettings,
@@ -62,6 +65,7 @@ export function withSsoDefaults(
   return {
     ...settings,
     createAccounts: true,
+    tenantOrgClaim: "",
     signInRole:
       settings.signInRole === IamRole.iam_role_unspecified
         ? IamRole.viewer
@@ -79,7 +83,8 @@ export function signInSettingsComplete(
 
 /**
  * The input fields for the settings. Unset values are `undefined`, so an
- * update that spreads a mapped input clears what the form cleared.
+ * update that spreads a mapped input clears what the form cleared; an SSO
+ * provider never sends a tenant claim.
  */
 export function toSignInInput(
   settings: SignInSettings,
@@ -95,7 +100,7 @@ export function toSignInInput(
       settings.signInRole !== IamRole.iam_role_unspecified
         ? settings.signInRole
         : undefined,
-    tenantOrgClaim: claim || undefined,
+    tenantOrgClaim: !isSso && claim ? claim : undefined,
   };
 }
 
@@ -115,7 +120,10 @@ export function formatSignInRole(role: IamRole): string {
   }
 }
 
-const SIGN_IN_ROLE_OPTIONS: readonly { readonly value: IamRole; readonly label: string }[] = [
+const SIGN_IN_ROLE_OPTIONS: readonly {
+  readonly value: IamRole;
+  readonly label: string;
+}[] = [
   { value: IamRole.iam_role_unspecified, label: "None" },
   { value: IamRole.viewer, label: "Viewer" },
   { value: IamRole.member, label: "Member" },
@@ -142,7 +150,10 @@ export function SignInSettingsSection({
   const claimHintId = `${baseId}-claim-hint`;
 
   return (
-    <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")} disabled={disabled}>
+    <fieldset
+      className={cn(UNSTYLED_FIELDSET, "stg:space-y-2.5")}
+      disabled={disabled}
+    >
       <hr className="stg:border-border-muted" />
       <legend className="stg:text-xs stg:font-medium stg:text-foreground">
         Sign-in
@@ -158,7 +169,9 @@ export function SignInSettingsSection({
             role="switch"
             aria-checked={isSso || value.createAccounts}
             aria-label="Create accounts on sign-in"
-            onClick={() => onChange({ ...value, createAccounts: !value.createAccounts })}
+            onClick={() =>
+              onChange({ ...value, createAccounts: !value.createAccounts })
+            }
             disabled={disabled || isSso}
             className={cn(
               "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:cursor-pointer stg:rounded-full stg:border-2 stg:border-transparent stg:transition-colors",
@@ -169,7 +182,9 @@ export function SignInSettingsSection({
             <span
               className={cn(
                 "stg:pointer-events-none stg:inline-block stg:h-4 stg:w-4 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
-                isSso || value.createAccounts ? "stg:translate-x-4" : "stg:translate-x-0",
+                isSso || value.createAccounts
+                  ? "stg:translate-x-4"
+                  : "stg:translate-x-0",
               )}
             />
           </button>
@@ -195,7 +210,10 @@ export function SignInSettingsSection({
           id={`${baseId}-role`}
           value={String(value.signInRole)}
           onChange={(e) =>
-            onChange({ ...value, signInRole: Number(e.target.value) as IamRole })
+            onChange({
+              ...value,
+              signInRole: Number(e.target.value) as IamRole,
+            })
           }
           disabled={disabled}
           aria-describedby={roleHintId}
@@ -215,42 +233,53 @@ export function SignInSettingsSection({
             </option>
           ))}
         </select>
-        <p id={roleHintId} className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p
+          id={roleHintId}
+          className="stg:text-[0.65rem] stg:text-muted-foreground"
+        >
           {isSso
             ? "Granted the first time someone signs in to the organization; an SSO provider must grant one. A role an admin removes later is not granted again."
             : "Granted the first time someone signs in to the organization; None grants nothing. A role an admin removes later is not granted again."}
         </p>
       </div>
 
-      <div className="stg:space-y-1">
-        <label
-          htmlFor={`${baseId}-tenant-claim`}
-          className="stg:text-xs stg:font-medium stg:text-foreground"
-        >
-          Tenant org claim
-        </label>
-        <input
-          id={`${baseId}-tenant-claim`}
-          type="text"
-          value={value.tenantOrgClaim}
-          onChange={(e) => onChange({ ...value, tenantOrgClaim: e.target.value })}
-          placeholder="e.g., org_id"
-          disabled={disabled}
-          maxLength={256}
-          aria-describedby={claimHintId}
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-            "stg:placeholder:text-muted-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        />
-        <p id={claimHintId} className="stg:text-[0.65rem] stg:text-muted-foreground">
-          Optional. The token claim that names a platform-managed organization:
-          each token is bound to the claimed organization and works there only.
-          When empty, tokens are bound to this provider&apos;s organization.
-        </p>
-      </div>
+      {!isSso && (
+        <div className="stg:space-y-1">
+          <label
+            htmlFor={`${baseId}-tenant-claim`}
+            className="stg:text-xs stg:font-medium stg:text-foreground"
+          >
+            Tenant org claim
+          </label>
+          <input
+            id={`${baseId}-tenant-claim`}
+            type="text"
+            value={value.tenantOrgClaim}
+            onChange={(e) =>
+              onChange({ ...value, tenantOrgClaim: e.target.value })
+            }
+            placeholder="e.g., org_id"
+            disabled={disabled}
+            maxLength={256}
+            aria-describedby={claimHintId}
+            className={cn(
+              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+              "stg:placeholder:text-muted-foreground",
+              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+            )}
+          />
+          <p
+            id={claimHintId}
+            className="stg:text-[0.65rem] stg:text-muted-foreground"
+          >
+            Optional. The token claim that names a platform-managed
+            organization: each token is bound to the claimed organization and
+            works there only. When empty, tokens are bound to this
+            provider&apos;s organization.
+          </p>
+        </div>
+      )}
     </fieldset>
   );
 }

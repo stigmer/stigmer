@@ -15,6 +15,10 @@ import {
   type Organization,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import {
+  IdentityProviderSchema,
+  type IdentityProvider,
+} from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import type { OrganizationInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -34,6 +38,8 @@ import { OrgProfileSection } from "../../settings/OrgProfileSection";
  * that serve identity providers: the list holds only the providers the
  * caller may view, so a caller the server refuses `can_create_idp` is told
  * the organization's admins manage them, and is not invited to set one up.
+ * Each listed provider carries its badge: SSO, or JIT for a delegation
+ * provider that creates accounts on sign-in.
  */
 
 // The id differs from the slug, as for every organization made today; an
@@ -132,13 +138,16 @@ describe("OrgProfilePanel save payload", () => {
 });
 
 describe("OrgProfilePanel identity-provider summary", () => {
-  function renderCloudPanel(isAuthorized: boolean) {
+  function renderCloudPanel(
+    isAuthorized: boolean,
+    providers: IdentityProvider[] = [],
+  ) {
     const checkMyPermission = vi.fn(async (_input: CheckMyPermissionInput) => ({
       isAuthorized,
     }));
     const client = {
       organization: { get: vi.fn(async () => ORG), update: vi.fn(async () => ORG) },
-      identityProvider: { listByOrg: vi.fn(async () => ({ entries: [] })) },
+      identityProvider: { listByOrg: vi.fn(async () => ({ entries: providers })) },
       iamPolicy: { checkMyPermission },
       platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
     };
@@ -164,6 +173,25 @@ describe("OrgProfilePanel identity-provider summary", () => {
       input.relation,
     ]);
     expect(asked).toContainEqual(["organization", ACME_ID, "can_create_idp"]);
+  });
+
+  it("badges an SSO provider SSO and a provider that creates accounts JIT", async () => {
+    const idp = (id: string, displayName: string, spec: object) =>
+      create(IdentityProviderSchema, {
+        metadata: { id, name: displayName, org: ACME_ID },
+        spec: { displayName, ...spec },
+      });
+    renderCloudPanel(true, [
+      idp("idp-1", "Okta", { isSsoProvider: true, createAccountsOnSignIn: true }),
+      idp("idp-2", "Platform", { createAccountsOnSignIn: true }),
+      idp("idp-3", "Manual", {}),
+    ]);
+
+    const row = async (name: string) =>
+      (await screen.findByText(name)).parentElement?.textContent;
+    expect(await row("Okta")).toBe("OktaSSO");
+    expect(await row("Platform")).toBe("PlatformJIT");
+    expect(await row("Manual")).toBe("Manual");
   });
 
   it("invites setting one up when the caller may create identity providers", async () => {

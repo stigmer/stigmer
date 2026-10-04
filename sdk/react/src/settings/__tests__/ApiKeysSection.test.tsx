@@ -9,7 +9,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { ApiKeySchema, type ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import {
+  ApiKeySchema,
+  type ApiKey,
+} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { StigmerContext } from "../../context";
 
