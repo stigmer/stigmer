@@ -452,6 +452,7 @@ describe("toApiKeyUpdateInput", () => {
         fingerprint: "fp-1234",
         expiresAt: timestampFromDate(new Date("2027-01-01T00:00:00Z")),
         neverExpires: true,
+        boundOrg: "org_01acmeorganization00000000",
       },
     });
 
