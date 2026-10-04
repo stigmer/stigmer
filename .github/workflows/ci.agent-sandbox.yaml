@@ -1,0 +1,103 @@
+# =============================================================================
+# agent-sandbox — the Kubernetes sandbox driver against its upstream
+# =============================================================================
+# The agent-sandbox sandbox driver (backend/services/stigmer-server/src/
+# sandbox/agent-sandbox) hands every sandbox to Kubernetes SIG Apps'
+# agent-sandbox, whose API is v1beta1 and ships weekly. Unit tests pin what
+# the driver sends; only a real controller shows what it does with it. This
+# lane runs the driver's live test (`make test-agent-sandbox`,
+# scripts/agent-sandbox-live.mjs): a kind cluster of its own with
+# agent-sandbox's core manifest, a Temporal dev server, and one session's
+# life through the driver: its runner polls its queue, a file survives a
+# suspend and a wake, and deprovision leaves nothing behind.
+#
+# Runs:
+# - from ci.gate.yaml (workflow_call, no input) when scripts/ci-lanes.mjs
+#   finds the change needs it, against the release the driver is tested
+#   against (AGENT_SANDBOX_VERSION in scripts/agent-sandbox-live.mjs);
+# - from ci.agent-sandbox-upstream.yaml (workflow_call, `latest`) weekly,
+#   against upstream's newest release;
+# - by hand (workflow_dispatch), against the version given, or the pinned one.
+#
+# The runner image is the published ghcr.io/stigmer/runner:latest, which
+# moves with main, unlike the tools below. That is the trade: the lane proves
+# the driver and the controller, and needs only a runner that boots and polls
+# its queue, which every main build is (ci.runner and ci.compose-stack gate
+# the runner's own build); building the image here would add minutes to every
+# run, and pinning a main tag would need a bump nobody owns. A red that only
+# follows a new runner image names the image in the step's log.
+#
+# Red: a gate run blocks its change; the weekly run's failure files an issue
+# from ci.agent-sandbox-upstream.yaml, which holds the issue permission this
+# workflow must not ask for (a called workflow may ask no more than its
+# caller grants, and the gate grants read only).
+# =============================================================================
+
+name: ci.agent-sandbox
+
+on:
+  workflow_call:
+    inputs:
+      agent_sandbox_version:
+        description: "agent-sandbox release to test against (vX.Y.Z, latest, or empty for the pinned one)"
+        required: false
+        type: string
+        default: ""
+  workflow_dispatch:
+    inputs:
+      agent_sandbox_version:
+        description: "agent-sandbox release to test against (vX.Y.Z, latest, or empty for the pinned one)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  # Pinned tool versions: a floating tool is a flaky gate.
+  KIND_VERSION: v0.24.0
+  # Inside the gate a missing test dependency fails instead of skipping; a
+  # caller's env does not reach a called workflow, so each lane sets it.
+  STIGMER_TEST_GATE: "1"
+
+jobs:
+  live:
+    name: agent-sandbox live test (kind)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Install Temporal CLI
+        uses: ./.github/actions/temporal-cli
+
+      - name: Install kind (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          sudo install -m 0755 /tmp/kind /usr/local/bin/kind
+          kind version && kubectl version --client
+
+      # Empty tests the pinned release. The input reaches the script through
+      # the environment alone, never a command line make or the shell expands
+      # (script-injection hardening); the script refuses anything but vX.Y.Z
+      # or latest.
+      - name: Run the live test on kind
+        env:
+          AGENT_SANDBOX_VERSION: ${{ inputs.agent_sandbox_version }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: make test-agent-sandbox
+

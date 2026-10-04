@@ -78,6 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
+      agent-sandbox: ${{ steps.select.outputs.agent-sandbox }}
       all-in-one: ${{ steps.select.outputs.all-in-one }}
       authorization-model: ${{ steps.select.outputs.authorization-model }}
       cli-up: ${{ steps.select.outputs.cli-up }}
@@ -117,6 +118,11 @@ jobs:
       - name: Select the lanes
         id: select
         run: node scripts/ci-lanes.mjs
+
+  agent-sandbox:
+    needs: lanes
+    if: needs.lanes.outputs.agent-sandbox == 'true'
+    uses: ./.github/workflows/ci.agent-sandbox.yaml
 
   all-in-one:
     needs: lanes
@@ -275,7 +281,7 @@ jobs:
 
   gate:
     name: Gate
-    needs: [lanes, all-in-one, authorization-model, cli-up, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace, upgrade-rehearsal, workflows, coverage]
+    needs: [lanes, agent-sandbox, all-in-one, authorization-model, cli-up, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace, upgrade-rehearsal, workflows, coverage]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10

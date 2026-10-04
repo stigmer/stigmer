@@ -48,6 +48,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:load": "vitest run -c vitest.load.config.ts",
+    "test:live": "vitest run -c vitest.live.config.ts",
     "clean": "rm -rf dist dist-slim"
   },
   "repository": {

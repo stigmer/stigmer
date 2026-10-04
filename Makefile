@@ -678,6 +678,11 @@ lint-workflows: ## Audit .github with zizmor, as the workflows lane does (needs 
 test-helm: node_modules ## Run the chart's render, compose-parity and schema tests (needs helm)
 	node --test $(HELM_CHART_DIR)/__tests__/*.test.mjs
 
+.PHONY: test-agent-sandbox
+test-agent-sandbox: build-ts-stubs $(SERVER_DIR)/node_modules ## Run the agent-sandbox driver's live test on a kind cluster of its own with agent-sandbox installed (needs Docker, kind, kubectl, temporal; AGENT_SANDBOX_VERSION=latest tests upstream's newest release, RUNNER_IMAGE a local image; both reach the script through the environment, which checks them)
+	@for tool in docker kind kubectl temporal; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the agent-sandbox live test needs it"; exit 1; }; done
+	node scripts/agent-sandbox-live.mjs
+
 .PHONY: smoke-helm
 smoke-helm: build-server build-web stage-compose-runner-cli ## Build both images from source, install the chart on kind and run the gate smoke (needs Docker, kind, helm, kubectl)
 	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done
