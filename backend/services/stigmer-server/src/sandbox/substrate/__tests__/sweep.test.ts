@@ -8,6 +8,9 @@
  *   - a turn that arrives while the pause is in flight resumes the
  *     sandbox at once;
  *   - each action is re-decided from fresh reads inside the actor's queue;
+ *   - the pass decides from the reader's cheap read and every act from
+ *     its full read, so a cheap read that lags a recovered run costs a
+ *     refused act, and the next pass decides from the healed read;
  *   - a sandbox this process never ensured is named by a scan of every
  *     session; one no later scan names is an orphan, suspended and never
  *     deleted; one created since the last scan (leaning by the clock-skew
@@ -81,13 +84,28 @@ const MIN = 60_000;
 
 class FakeSessions implements SessionActivityReader {
   readonly activities = new Map<string, SessionActivity>();
+  /** What the cheap read answers while it lags; a full read of the session clears it, as the reader's does. */
+  readonly lagging = new Map<string, SessionActivity>();
   readonly ids: string[] = [];
+  /** Which read each call was, in order. */
+  readonly kinds: Array<"recent" | "full"> = [];
   scans = 0;
   /** Called on every activity read; may change what later reads return. */
   onRead: (sessionId: string, read: number) => void = () => {};
   private reads = 0;
 
   async activity(sessionId: string): Promise<SessionActivity> {
+    this.kinds.push("full");
+    this.lagging.delete(sessionId);
+    return this.read(sessionId);
+  }
+
+  async recentActivity(sessionId: string): Promise<SessionActivity> {
+    this.kinds.push("recent");
+    return this.lagging.get(sessionId) ?? this.read(sessionId);
+  }
+
+  private read(sessionId: string): SessionActivity {
     this.reads += 1;
     this.onRead(sessionId, this.reads);
     return (
@@ -241,6 +259,33 @@ describe("the ladder", () => {
     };
     await h.pass();
     expect(h.substrate.calls).not.toContain(`pauseActor ${name}`);
+  });
+
+  it("decides from the cheap read and acts only on full reads", async () => {
+    const h = harness();
+    const name = known(h, "ses_a", ActorState.RUNNING, 6 * MIN);
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe(ActorState.PAUSED);
+    // The pass's decision, the re-decision in the queue, the check after
+    // the pause.
+    expect(h.sessions.kinds).toEqual(["recent", "full", "full"]);
+  });
+
+  it("a cheap read that lags a recovered run costs one refused act; the next pass reads the healed answer", async () => {
+    const h = harness();
+    const name = known(h, "ses_a", ActorState.RUNNING, 60 * MIN, true);
+    h.sessions.lagging.set("ses_a", {
+      busy: false,
+      lastActiveAt: new Date(h.t() - 60 * MIN),
+    });
+    await h.pass();
+    expect(h.substrate.calls).not.toContain(`pauseActor ${name}`);
+    expect(h.sessions.kinds).toEqual(["recent", "full"]);
+
+    h.sessions.kinds.length = 0;
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe(ActorState.RUNNING);
+    expect(h.sessions.kinds).toEqual(["recent"]);
   });
 
   it("an ensure in this process restarts the idle clock", async () => {

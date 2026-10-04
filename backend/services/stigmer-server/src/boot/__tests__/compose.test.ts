@@ -351,6 +351,10 @@ describe("a sandbox driver's background work", () => {
         busy: false,
         lastActiveAt: undefined,
       });
+      expect(await context?.sessions.recentActivity("ses_none")).toEqual({
+        busy: false,
+        lastActiveAt: undefined,
+      });
       const ids: string[] = [];
       for await (const id of context!.sessions.sessionIds()) ids.push(id);
       expect(ids).toEqual([]);

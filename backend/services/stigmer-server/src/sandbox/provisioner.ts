@@ -153,7 +153,19 @@ export interface SessionActivity {
  * to map its sandbox names back.
  */
 export interface SessionActivityReader {
+  /** The session's activity from every one of its executions: exact as of the read. */
   activity(sessionId: string): Promise<SessionActivity>;
+  /**
+   * The same answer from only what changed since this reader last read
+   * the session, for a driver that asks every awake session on every
+   * pass. It may lag: it can miss a recovered execution, or one that
+   * became visible long after it was stamped, so it may report the
+   * session idle, or last active earlier, when it is not. It never
+   * reports a session busier or later than `activity` would. A driver
+   * may decide from it, but acts only on a fresh `activity`, which also
+   * clears any lag (stigmer#1803).
+   */
+  recentActivity(sessionId: string): Promise<SessionActivity>;
   sessionIds(): AsyncIterable<string>;
 }
 
