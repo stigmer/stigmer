@@ -30,7 +30,8 @@
  * else, whoever started the run and with whatever credential. Without it a
  * credential bound to one organization could start a run there, exchange
  * itself for the run's credential, and act as the person in every other
- * organization they belong to.
+ * organization they belong to. A row that names no organization admits
+ * nobody (an empty binding would read as no binding at all).
  *
  * A token with no `exp` is a RUN credential and may bind only a run
  * (`bindsARun`): no mint produces a clockless connect token, so one that
@@ -135,6 +136,11 @@ export function newRunnerSubjectIdentityVerifier(
       }
       if (!execution.live) {
         throw notLive();
+      }
+      // A row that names no organization cannot bind the credential, and an
+      // empty binding would read as none (boundOrgOf): fail closed.
+      if (execution.org === "") {
+        throw invalidCredential();
       }
       const account = await accountForStamp(deps.accounts, execution.createdBy);
       if (account === undefined) {

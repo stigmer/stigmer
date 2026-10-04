@@ -779,7 +779,9 @@ whatever roles its person holds elsewhere.
 - **Reach**: its Organization's resources; the person's own account, and their
   API keys limited to the same Organization; and reading and running Agents,
   Skills, Workflows, MCP Servers and Plugins shared at Platform visibility. It
-  cannot create an Organization or accept an invitation to another one.
+  cannot create an Organization or accept an invitation to another one. One
+  exception: a platform operator's acts (credits, plans, pricing, licenses)
+  follow the person's platform role, so their limited key still performs them.
 - **Context rule**: Use in authentication guides and reference. On the sales
   site, say "a key that works in one Organization." In quickstart, avoid unless
   the tutorial covers API keys, federation or PlatformClient.

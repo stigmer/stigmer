@@ -118,7 +118,15 @@ const NOBODYS_RUN = create(AgentExecutionSchema, {
   },
 });
 
+/** A run whose row names no organization: no credential may be bound to nothing. */
+const ORGLESS_RUN = create(AgentExecutionSchema, {
+  metadata: { id: "aex_orgless_run", name: "aex_orgless_run", org: "" },
+  spec: { sessionId: "ses_orgless" },
+  status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS, ...stampedBy(HUMAN) },
+});
+
 const ROWS: Record<string, unknown> = {
+  aex_orgless_run: ORGLESS_RUN,
   aex_agent_run: AGENT_RUN,
   wex_carols_flow: WORKFLOW_RUN,
   aex_nobodys_run: NOBODYS_RUN,
@@ -408,6 +416,17 @@ describe("the runner-subject verifier binds the run's organization", () => {
     expect(identity?.identityId).toBe(HUMAN);
     expect(identity?.callerClass).toBe("runner");
     expect(identity?.boundOrg).toBe("acme");
+  });
+
+  it("a run whose row names no organization admits nobody — an empty binding would read as none", async () => {
+    const failure = await verifier
+      .verify(service.mintRunCredential("aex_orgless_run"))
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.Unauthenticated);
   });
 
   it("a connect token admits the person bound to the connect's organization", async () => {
