@@ -82,7 +82,7 @@ const TRUST_VARIABLES = [
   "CURL_CA_BUNDLE",
   "REQUESTS_CA_BUNDLE",
 ];
-/** The kubernetes driver's limits: 2 CPU, 2 GiB. */
+/** The container drivers' limits (agent-sandbox/manifest.ts): 2 CPU, 2 GiB. */
 const LIMITS = [
   { name: "cpu", quantity: "2" },
   { name: "memory", quantity: "2Gi" },

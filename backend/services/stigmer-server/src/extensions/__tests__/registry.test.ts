@@ -646,7 +646,12 @@ describe("resolveExtensions — loud-fail throws", () => {
   });
 
   it("throws on a sandbox-provisioner name shadowing a built-in driver", () => {
-    for (const name of ["local-process", "docker", "kubernetes"]) {
+    for (const name of [
+      "local-process",
+      "docker",
+      "agent-sandbox",
+      "substrate",
+    ]) {
       expect(() =>
         resolveExtensions([
           {

@@ -1,8 +1,7 @@
 /**
  * The substrate driver's gateway: the ONLY surface that touches Agent
- * Substrate's Control API (the kubernetes driver's KubernetesSandboxGateway
- * shape), so the driver's logic stays pure above it and a test drives it
- * with a fake.
+ * Substrate's Control API, so the driver's logic stays pure above it and a
+ * test drives it with a fake.
  *
  * The client speaks native gRPC over HTTP/2 and TLS 1.3, because that is
  * all the Control API serves (a plain gRPC server, no Connect or gRPC-Web

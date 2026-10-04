@@ -55,7 +55,7 @@ test("an unknown top-level values key is refused rather than ignored", () => {
 
 test("a sandbox key is refused: the driver has no artifact path in open source (stigmer#1099)", () => {
   const result = helmTemplate("bundled", {
-    sets: ["sandbox.provisioner=kubernetes"],
+    sets: ["sandbox.provisioner=agent-sandbox"],
   });
   assert.equal(result.ok, false);
 });
