@@ -6,7 +6,8 @@
  * each kind — no org refused, a same-organization target must exist, the
  * floor applies to the kinds the run reads as the person and to no other,
  * a relative reference's floor is capped at org and its target must still
- * exist in the resource's organization, a cross-organization target is admitted only at platform visibility with
+ * exist in the resource's organization, a version named on a reference to
+ * a kind whose references may not name one (agents) is malformed input, a cross-organization target is admitted only at platform visibility with
  * ONE sentence whether it is missing or merely not shared; the MCP-server
  * copy that predates the rule is byte-identical and its siblings take its
  * shape; the walk reads a reference's kind from its field, not from the
@@ -59,7 +60,9 @@ import {
   noOrgReferenceMessage,
   notAvailableReferenceMessage,
   notViewableReferenceMessage,
+  referenceRefusal,
   referenceTargetKind,
+  versionNamedMessage,
 } from "../references.js";
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { newPermissiveSingleTeamAuthorizer } from "../authorize.js";
@@ -269,6 +272,37 @@ describe("checkReference", () => {
     expect(
       checkReference(targets, ACME_ORG, ref(K.skill, "", "org-skill")),
     ).toEqual({ kind: "no-org" });
+  });
+
+  it("a reference naming a version is refused for a kind whose references may not name one (agents), and only for it", () => {
+    const versioned = (kind: ApiResourceKind, slug: string): SpecReference => ({
+      kind,
+      org: "acme",
+      slug,
+      version: "stable",
+    });
+    expect(
+      checkReference(targets, ACME_ORG, versioned(K.agent, "anything")),
+    ).toEqual({ kind: "version-named" });
+    expect(
+      checkReference(targets, ACME_ORG, versioned(K.skill, "org-skill")),
+    ).toEqual({ kind: "ok" });
+    expect(
+      checkReference(targets, ACME_ORG, versioned(K.mcp_server, "github")),
+    ).toEqual({ kind: "ok" });
+    expect(
+      REFERENCE_TARGET_KINDS.filter((e) => !e.mayNameVersion).map((e) => e.kind),
+    ).toEqual([K.agent]);
+    const refusal = referenceRefusal(ACME_ORG, [
+      { ref: versioned(K.agent, "reviewer"), verdict: { kind: "version-named" } },
+    ]);
+    expect(refusal?.code).toBe(Code.InvalidArgument);
+    expect(refusal?.rawMessage).toBe(
+      versionNamedMessage(
+        referenceTargetKind(K.agent)!,
+        versioned(K.agent, "reviewer"),
+      ),
+    );
   });
 
   it("(ii) a same-organization target must exist, for every kind", () => {
@@ -513,14 +547,15 @@ describe("the step over a store", () => {
       spec: {
         instructions: "help",
         // The message says mcp_server; the field is skill_refs.
-        skillRefs: [{ kind: K.mcp_server, org: "acme", slug: "s" }],
+        skillRefs: [{ kind: K.mcp_server, org: "acme", slug: "s", version: "v1" }],
         mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "m" } }],
       },
     });
-    // Field declaration order: mcp_server_usages precedes skill_refs.
+    // Field declaration order: mcp_server_usages precedes skill_refs. The
+    // version a reference names is carried as written.
     expect(collectSpecReferences(AgentSchema, agent)).toEqual([
-      { kind: K.mcp_server, org: "acme", slug: "m" },
-      { kind: K.skill, org: "acme", slug: "s" },
+      { kind: K.mcp_server, org: "acme", slug: "m", version: "" },
+      { kind: K.skill, org: "acme", slug: "s", version: "v1" },
     ]);
   });
 

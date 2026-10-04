@@ -104,6 +104,17 @@
  * that door — a dependency that has since left or stopped being shared was
  * judged when the row was written and is the run's to refuse.
  *
+ * A reference that names a VERSION of a kind whose row says the version
+ * may not be named (`mayNameVersion`) is refused as malformed input, before
+ * any other clause. Agents are versioned, and every field that references
+ * one (an agent channel's, a share's, a schedule's invocation) is a surface
+ * that runs the agent's current version and has no way to honour another:
+ * accepting the version and running the current one would be a promise the
+ * reference contract makes and the surface breaks. A surface that honours a
+ * pinned version lifts its kind's refusal. Every other kind keeps the
+ * contract's word for a version on a reference: a skill's is honoured, and
+ * an unversioned kind's is ignored.
+ *
  * REFERENCE_TARGET_KINDS is the one explicit table of kinds a spec may
  * reference, with each kind's schema and its `readByRun` flag: the
  * composition-root idiom (query/search/registry.ts) — an explicit list a
@@ -178,6 +189,12 @@ export interface ReferenceTargetKind {
    * existence and the floor alone.
    */
   readonly writerMust: IamPermission | undefined;
+  /**
+   * Whether a stored reference to this kind may name a version (the module
+   * header): false where every field referencing the kind runs its current
+   * version and cannot honour another.
+   */
+  readonly mayNameVersion: boolean;
 }
 
 export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
@@ -188,6 +205,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "skill(s)",
     listHint: "stigmer list skills",
     writerMust: undefined,
+    mayNameVersion: true,
   },
   {
     kind: ApiResourceKind.mcp_server,
@@ -196,6 +214,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "MCP server(s)",
     listHint: "stigmer get mcp-servers",
     writerMust: undefined,
+    mayNameVersion: true,
   },
   {
     kind: ApiResourceKind.agent,
@@ -204,6 +223,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "agent(s)",
     listHint: "stigmer list agents",
     writerMust: undefined,
+    mayNameVersion: false,
   },
   {
     kind: ApiResourceKind.environment,
@@ -212,6 +232,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "environment(s)",
     listHint: "stigmer list environments",
     writerMust: IamPermission.can_view,
+    mayNameVersion: true,
   },
   {
     kind: ApiResourceKind.channel_app,
@@ -220,6 +241,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "channel app(s)",
     listHint: "stigmer list channel-app",
     writerMust: undefined,
+    mayNameVersion: true,
   },
   {
     kind: ApiResourceKind.oauth_app,
@@ -228,6 +250,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "OAuth app(s)",
     listHint: undefined,
     writerMust: undefined,
+    mayNameVersion: true,
   },
 ];
 
@@ -253,6 +276,8 @@ export interface SpecReference {
    * never sets it; only the `agent_call` collector does.
    */
   readonly resolvesIn?: "running-organization";
+  /** The version the reference names; empty or absent names none. */
+  readonly version?: string;
 }
 
 /** The resource the references belong to, as the rule needs it. */
@@ -266,6 +291,8 @@ export type ReferenceVerdict =
   | { readonly kind: "ok" }
   /** Clause (i): the reference names no organization. */
   | { readonly kind: "no-org" }
+  /** The reference names a version its kind's references may not name. */
+  | { readonly kind: "version-named" }
   /** Clause (ii): the same-organization target does not exist. */
   | { readonly kind: "missing" }
   /** Clause (ii): the target exists and is less visible than the resource. */
@@ -353,6 +380,12 @@ export function checkReference(
 ): ReferenceVerdict {
   if (ref.org === "") {
     return { kind: "no-org" };
+  }
+  if (
+    (ref.version ?? "") !== "" &&
+    referenceTargetKind(ref.kind)?.mayNameVersion === false
+  ) {
+    return { kind: "version-named" };
   }
   const target = targets.visibilityOf(ref);
   if (ref.org !== parent.org) {
@@ -488,6 +521,14 @@ export function noOrgReferenceMessage(
   return `referenced ${entry.label} '${slug}' names no organization; a reference is 'org/slug', or 'slug' for a resource of this organization.`;
 }
 
+/** The sentence for a reference naming a version its kind's references may not name. */
+export function versionNamedMessage(
+  entry: ReferenceTargetKind,
+  ref: SpecReference,
+): string {
+  return `referenced ${singular(entry)} '${ref.slug}' names version '${ref.version ?? ""}', but this runs the ${singular(entry)}'s current version and cannot run another; omit the version.`;
+}
+
 /**
  * Clause (ii)'s sentence for the targets not found, one per kind. The MCP
  * server form is the wire contract that predates the rule; the others are
@@ -563,7 +604,8 @@ function plural(entry: ReferenceTargetKind): string {
  * Missing same-organization targets are grouped per kind into one sentence
  * (the contract's shape); every other refusal is its own sentence; the
  * sentences are joined in the order the references were read. A no-org
- * reference is malformed input (INVALID_ARGUMENT); a target the writer may
+ * reference, and one naming a version its kind's references may not name,
+ * is malformed input (INVALID_ARGUMENT); a target the writer may
  * not attach is PERMISSION_DENIED (the writer clause); everything else is
  * a precondition the store does not meet (FAILED_PRECONDITION), the code
  * the MCP-server contract already answers. The first that applies, in
@@ -604,6 +646,10 @@ export function referenceRefusal(
       case "no-org":
         malformed = true;
         sentences.push(noOrgReferenceMessage(entry, ref.slug));
+        break;
+      case "version-named":
+        malformed = true;
+        sentences.push(versionNamedMessage(entry, ref));
         break;
       case "missing":
         if (!groupedKindsSaid.has(ref.kind)) {
@@ -876,6 +922,7 @@ export function collectSpecReferences(
       kind: declaredKind(field, ref),
       slug: stringField(ref, "slug"),
       org: stringField(ref, "org"),
+      version: stringField(ref, "version"),
     });
   });
   return refs;

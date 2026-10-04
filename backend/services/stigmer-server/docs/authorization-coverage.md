@@ -109,8 +109,11 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | AgentCommandController.update | config: can_edit on agent (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentCommandController.updateVisibility | config: can_manage_audience on agent (field resource_id), error_msg yes | chain-with-Authorize |
 | AgentCommandController.delete | config: can_delete on agent (field value), error_msg yes | chain-with-Authorize |
+| AgentCommandController.tagVersion | config: can_edit on agent (field agent_id), error_msg yes | chain-with-Authorize (guard: GuardPluginManaged — a plugin-managed agent's tags are its plugin's) |
 | AgentQueryController.get | config: can_view on agent (field value), error_msg yes | chain-with-Authorize |
-| AgentQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
+| AgentQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; the ladder is LoadAgentByReference, the shared version ladder, and an archived version shares the head's id) |
+| AgentQueryController.listVersions | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedAgent — can_view on the resolved id, the workflow lane's check) |
+| AgentQueryController.getVersion | config: can_view on agent (field agent_id), error_msg yes | direct: authorizeDirect, then live-then-audit version read. The runner's read of the version a turn recorded goes out under the run's own credential, so it asks what `get` asks |
 
 ## 7. AgentInstance (`src/domain/agentinstance/controller.ts`)
 

@@ -16,6 +16,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
+import type { AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -91,6 +92,8 @@ export const AUTO_CREATED_SESSION_SUBJECT = "Auto-created session";
 
 export interface AgentLoader {
   get(agentId: string): Promise<Agent>;
+  /** One version of the agent, with its full spec (AgentQueryController.getVersion). */
+  getVersion(agentId: string, versionHash: string): Promise<AgentVersionEntry>;
 }
 export type AgentLoaderProvider = () => AgentLoader;
 

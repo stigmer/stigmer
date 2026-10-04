@@ -7,6 +7,13 @@
  * (oss#611) and same-org shares before the agent row. There is no default
  * agent to serve: a session with no agent runs the built-in assistant.
  *
+ * Agents are versioned (versions.ts): every create and update hashes the
+ * stored spec, records a version when the spec is new to the agent, points
+ * back at an earlier one when it reproduces it, and archives nothing when
+ * it is unchanged; delete drops the version rows with the agent.
+ * getByReference resolves a tag or hash through the shared ladder;
+ * listVersions, getVersion and tagVersion serve the history.
+ *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by agent.conformance.test.ts (CONFORMANCE_TARGET=local),
  * __tests__/agent.test.ts and __tests__/store-faults.test.ts.
@@ -14,7 +21,9 @@
  * Every chain opens with Authorize; create, delete and updateVisibility run
  * the shared tuple-lifecycle steps against the composed lifecycle;
  * getByReference loads, then authorizes the loaded agent exactly as `get`
- * would (AuthorizeResolvedTarget). The kind has no list RPC. Per-RPC
+ * would (AuthorizeResolvedTarget); listVersions authorizes the resolved
+ * agent as `get` would; getVersion evaluates its annotation through
+ * authorizeDirect. The kind has no list RPC. Per-RPC
  * posture: docs/authorization-coverage.md §6.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
@@ -25,6 +34,13 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentId } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import type {
+  AgentVersionEntry,
+  GetAgentVersionInput,
+  ListAgentVersionsInput,
+  ListAgentVersionsResponse,
+  TagAgentVersionInput,
+} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
+import type {
   ApiResourceReference,
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -34,12 +50,20 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
-import { internalError, notFoundError } from "../../pipeline/errors.js";
+import {
+  internalError,
+  invalidArgumentError,
+  notFoundError,
+} from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  authorizeDirect,
+  newAuthorizeStep,
+} from "../../pipeline/steps/authorize.js";
 import {
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
@@ -70,7 +94,6 @@ import {
   newLoadForApplyStep,
   withResolvedApplyId,
 } from "../../pipeline/steps/load-for-apply.js";
-import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
@@ -91,6 +114,11 @@ import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import {
+  LIST_VERSIONS_RESPONSE_KEY,
+  getVersionEntry,
+  versionHistoryTarget,
+} from "../../pipeline/steps/version-history.js";
+import {
   newValidateVisibilityStep,
   newValidateVisibilityUpdateStep,
 } from "../../pipeline/steps/validate-visibility.js";
@@ -106,6 +134,20 @@ import {
   newValidateEnabledToolsStep,
 } from "./steps.js";
 import type { AgentInstanceApplierProvider } from "./steps.js";
+import {
+  TAG_VERSION_AGENT_KEY,
+  TAG_VERSION_RESULT_KEY,
+  agentVersionBinding,
+  newComputeAgentVersionHashStep,
+  newDeleteAgentVersionsStep,
+  newLoadAgentByReferenceStep,
+  newLoadAgentForTagVersionStep,
+  newLoadAndMapAgentVersionsStep,
+  newPopulateAgentVersionStep,
+  newResolveAgentBySlugStep,
+  newSaveAgentVersionStep,
+  newTagAgentVersionStep,
+} from "./versions.js";
 
 export interface AgentControllerDeps {
   readonly store: Store;
@@ -134,10 +176,13 @@ export function registerAgentServices(
     update: (agent, ctx) => update(deps, agent, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (id, ctx) => deleteAgent(deps, id, ctx),
+    tagVersion: (input, ctx) => tagVersion(deps, input, ctx),
   });
   router.service(AgentQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
+    listVersions: (input, ctx) => listVersions(deps, input, ctx),
+    getVersion: (input, ctx) => getVersion(deps, input, callerIdentityOf(ctx)),
   });
 }
 
@@ -148,7 +193,11 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 /**
  * Create — chain per Go buildCreatePipeline: the default instance is
  * applied AFTER Persist (children need the parent's id), then the agent's
- * status.default_instance_id is written in an explicit second persist.
+ * status.default_instance_id is written in an explicit second persist. The
+ * first version is hashed before Persist and archived after that second
+ * persist, so its snapshot carries the default instance id the
+ * agent_call task reads; the archive re-persists a revert because no
+ * write follows it.
  */
 async function createAgent(
   deps: AgentControllerDeps,
@@ -175,6 +224,8 @@ async function createAgent(
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newValidateEnabledToolsStep(deps.store))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
+    .addStep(newComputeAgentVersionHashStep())
+    .addStep(newPopulateAgentVersionStep())
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -192,13 +243,19 @@ async function createAgent(
         deps.authorizationLifecycle,
       ),
     )
+    .addStep(newSaveAgentVersionStep(deps.store, deps.logger, true))
     .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
 }
 
-/** Update — chain per Go buildUpdatePipeline. */
+/**
+ * Update — chain per Go buildUpdatePipeline. The stored spec is hashed
+ * after the MCP env merge; a new spec records a version, a reproduced one
+ * points back at it, an unchanged one records none and still moves a newly
+ * named tag. Persist follows the archive and flushes any revert.
+ */
 async function update(
   deps: AgentControllerDeps,
   agent: Agent,
@@ -227,6 +284,9 @@ async function update(
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newValidateEnabledToolsStep(deps.store))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
+    .addStep(newComputeAgentVersionHashStep())
+    .addStep(newPopulateAgentVersionStep())
+    .addStep(newSaveAgentVersionStep(deps.store, deps.logger, false))
     .addStep(newPersistStep(deps.store))
     .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
     .build()
@@ -276,8 +336,9 @@ async function apply(
 /**
  * Delete — cascades children before the parent (delete_cascade.go):
  * ALL instances, then same-org shares, each child's access cleaned with
- * its row, then the agent row, its access and its index entry. Returns
- * the deleted agent (the audit-trail convention).
+ * its row, then the agent's version rows (best-effort), the agent row, its
+ * access and its index entry. Returns the deleted agent (the audit-trail
+ * convention).
  */
 async function deleteAgent(
   deps: AgentControllerDeps,
@@ -315,6 +376,7 @@ async function deleteAgent(
         deps.logger,
       ),
     )
+    .addStep(newDeleteAgentVersionsStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
@@ -527,7 +589,12 @@ async function get(
   return reqCtx.get(TARGET_RESOURCE_KEY) as Agent;
 }
 
-/** GetByReference — slug+org lookup. */
+/**
+ * GetByReference — slug+org lookup with the version ladder (empty or
+ * "latest" is the head, a 64-hex hash or a tag an archived version), then
+ * the loaded row authorized exactly as `get` is; an archived snapshot
+ * shares the head's id.
+ */
 async function getByReference(
   deps: AgentControllerDeps,
   ref: ApiResourceReference,
@@ -550,7 +617,7 @@ async function getByReference(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newLoadByReferenceStep(deps.store, AgentSchema))
+    .addStep(newLoadAgentByReferenceStep(deps.store))
     .addStep(
       newAuthorizeResolvedTargetStep(
         deps.authorizer,
@@ -560,4 +627,117 @@ async function getByReference(
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as Agent;
+}
+
+// ---------------------------------------------------------------------------
+// Versions — the history, one version by hash, and the tag move, on the
+// shared version machinery (versions.ts).
+// ---------------------------------------------------------------------------
+
+type ListVersionsDesc = typeof AgentQueryController.method.listVersions.input;
+
+/**
+ * listVersions — the version history, newest first, offset-paginated.
+ * is_current marks the version whose hash is the live head's. The input
+ * names org+slug, so the annotation skips and the resolved agent is
+ * authorized mid-chain as `get` would be; an unknown slug is NotFound
+ * first.
+ */
+async function listVersions(
+  deps: AgentControllerDeps,
+  input: ListAgentVersionsInput,
+  ctx: HandlerContext,
+): Promise<ListAgentVersionsResponse> {
+  const reqCtx = new RequestContext(
+    AgentQueryController.method.listVersions.input,
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<ListVersionsDesc>("agent-list-versions", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        AgentQueryController.method.listVersions,
+        deps.authorizer,
+      ),
+    )
+    .addStep(newValidateProtoStep())
+    .addStep(newResolveAgentBySlugStep(deps.store))
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        versionHistoryTarget(
+          ApiResourceKind.agent,
+          "unauthorized to view agent version history",
+        ),
+        "AuthorizeResolvedAgent",
+      ),
+    )
+    .addStep(newLoadAndMapAgentVersionsStep(deps.store))
+    .build()
+    .execute(reqCtx);
+  return reqCtx.get(LIST_VERSIONS_RESPONSE_KEY) as ListAgentVersionsResponse;
+}
+
+/**
+ * getVersion — one version by hash, with its full spec: what a turn
+ * recorded on that version runs. The annotation's can_view on agent_id is
+ * evaluated here (the lane has no pipeline).
+ */
+async function getVersion(
+  deps: AgentControllerDeps,
+  req: GetAgentVersionInput,
+  identity: CallerIdentity,
+): Promise<AgentVersionEntry> {
+  if (req.agentId === "") {
+    throw invalidArgumentError("agent_id is required");
+  }
+  if (req.versionHash === "") {
+    throw invalidArgumentError("version_hash is required");
+  }
+  await authorizeDirect(
+    AgentQueryController.method.getVersion,
+    deps.authorizer,
+    identity,
+    req,
+  );
+  return getVersionEntry(deps.store, agentVersionBinding, {
+    resourceId: req.agentId,
+    versionHash: req.versionHash,
+  });
+}
+
+type TagVersionDesc = typeof AgentCommandController.method.tagVersion.input;
+
+/**
+ * tagVersion — moves a tag single-holder onto a version the agent has, then
+ * reconciles the head's live tag with its version's. A plugin-managed
+ * agent's tags are its plugin's, so a client is refused naming it.
+ */
+async function tagVersion(
+  deps: AgentControllerDeps,
+  input: TagAgentVersionInput,
+  ctx: HandlerContext,
+): Promise<Agent> {
+  const reqCtx = new RequestContext(
+    AgentCommandController.method.tagVersion.input,
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<TagVersionDesc>("agent-tag-version", deps.logger)
+    .addStep(
+      newAuthorizeStep(AgentCommandController.method.tagVersion, deps.authorizer),
+    )
+    .addStep(newValidateProtoStep())
+    .addStep(newLoadAgentForTagVersionStep(deps.store))
+    .addStep(
+      newGuardPluginManagedStep(deps.store, {
+        existingKey: TAG_VERSION_AGENT_KEY,
+      }),
+    )
+    .addStep(newTagAgentVersionStep(deps.store))
+    .build()
+    .execute(reqCtx);
+  return reqCtx.get(TAG_VERSION_RESULT_KEY) as Agent;
 }

@@ -5,16 +5,27 @@
  * (newCreateExecutionContextStep) and the recover pipeline
  * (lifecycle.ts's recreate step): recovery must rebuild the EC because
  * the failed run's workflow cleanup deleted it, and re-resolving from the
- * CURRENT agent/instance/environment configuration is the desired
- * semantics ("fix the API key, then recover").
+ * CURRENT instance and environment configuration is the desired semantics
+ * ("fix the API key, then recover"). The agent is not re-resolved: it is
+ * the agent and version the turn recorded at create (status.agent_id,
+ * agent_version_hash, stamped by ResolveRunAgent), read through
+ * getVersion, so recovery after an author's edit, or after the session was
+ * repointed, rebuilds from the agent the turn ran.
  *
  * Resolution chain:
- *   - Path A (preResolvedInstanceId): agentInstanceLoader → agentLoader
+ *   - Path A (preResolvedInstanceId): agentInstanceLoader → the agent
  *   - Path B (session_id): sessionLoader → session.agent_instance_id →
- *     agentInstanceLoader → agentLoader; an EMPTY agent_instance_id is the
+ *     agentInstanceLoader → the agent; an EMPTY agent_instance_id is the
  *     built-in assistant (session/v1/spec.proto): no instance, no agent,
  *     no instance layers, and the session's own MCP servers are the whole
  *     tool set.
+ *   - The agent: the stamped version's spec (agentLoader.getVersion); a
+ *     turn with no stamped version (created before agents were versioned,
+ *     or on an agent with no recorded version) reads the stamped agent, or
+ *     the instance's when nothing is stamped, as it is now. A stamped
+ *     version that no longer resolves refuses, naming it: running the
+ *     agent's current version would run and record something nobody
+ *     asked for.
  *
  * Merge priority (lowest to highest): the minting PlatformClient's
  * environment_refs, for an execution a PlatformClient-minted user created
@@ -44,8 +55,10 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type {
+  AgentSpec,
+  McpServerUsage,
+} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -105,6 +118,7 @@ import type { PlatformClientStore } from "../platformclient/store.js";
 import { unmarshalTaskConfig } from "../workflow/converter/unmarshal.js";
 
 import { DEFAULT_INSTANCE_ID_KEY } from "./create-steps.js";
+import type { AgentLoader } from "./create-steps.js";
 import { runPersonOf, SCHEDULE_ID_LABEL_KEY } from "./run-person.js";
 
 export { SCHEDULE_ID_LABEL_KEY };
@@ -150,7 +164,7 @@ export interface ExecutionContextCreator {
 export interface ExecutionContextBuilderDeps {
   readonly store: Store;
   readonly logger: Logger;
-  readonly agentLoader: () => { get(agentId: string): Promise<Agent> };
+  readonly agentLoader: () => AgentLoader;
   readonly agentInstanceLoader: () => AgentInstanceLoader;
   readonly sessionLoader: () => SessionLoader;
   readonly environmentReader: () => EnvironmentReader;
@@ -246,11 +260,12 @@ export async function buildAndPersistExecutionContext(
   let session = target.session;
 
   // 2.–3. Load the instance (environment_refs + agent_id), then the
-  // agent (env declarations) — in-process, full chain traversal. Load
-  // failures keep the inner status code with Go's wrap prefix. Neither
-  // exists for the built-in assistant.
+  // agent's spec (env declarations, MCP usages) — in-process, full chain
+  // traversal, at the version the turn recorded. Load failures keep the
+  // inner status code with Go's wrap prefix. Neither exists for the
+  // built-in assistant.
   let instance: AgentInstance | undefined;
-  let agentResource: Agent | undefined;
+  let agentSpec: AgentSpec | undefined;
   let agentId = "";
   if (agentInstanceId !== "") {
     try {
@@ -264,15 +279,12 @@ export async function buildAndPersistExecutionContext(
       }
       chainError(`load agent instance ${agentInstanceId}`, error);
     }
-    agentId = instance.spec?.agentId ?? "";
-    try {
-      agentResource = await deps.agentLoader().get(agentId);
-    } catch (error) {
-      if (error instanceof ConnectError) {
-        throw goWrappedStatusError(`load agent ${agentId}`, error);
-      }
-      chainError(`load agent ${agentId}`, error);
-    }
+    agentId = execution.status?.agentId || (instance.spec?.agentId ?? "");
+    agentSpec = await loadRunAgentSpec(
+      deps,
+      agentId,
+      execution.status?.agentVersionHash ?? "",
+    );
   }
 
   // 3.5 The session, when Path A did not load it: its workspace entries
@@ -358,7 +370,7 @@ export async function buildAndPersistExecutionContext(
   // env united with the session servers' env (the module header's rule).
   // Empty declarations pass everything through.
   const declarations = unionDeclarations(
-    agentResource?.spec?.env ?? {},
+    agentSpec?.env ?? {},
     sessionMcpServers,
   );
   const filterResult = filterByDeclaredKeys(merged, declarations);
@@ -405,7 +417,7 @@ export async function buildAndPersistExecutionContext(
   // (FailedPrecondition): an expired token must prevent execution rather
   // than fail opaquely mid-run with a 401.
   const mergedMcpUsages = mergeAgentAndSessionMcpUsages(
-    agentResource,
+    agentSpec,
     session,
   );
   try {
@@ -546,6 +558,39 @@ async function resolveTarget(
     );
   }
   return { agentInstanceId: session.spec?.agentInstanceId ?? "", session };
+}
+
+/**
+ * The spec of the agent a turn runs: the recorded version's snapshot when
+ * the turn recorded one, else the agent as it is now. Failures keep the
+ * inner status code with Go's wrap prefix, naming the version when one was
+ * recorded.
+ */
+async function loadRunAgentSpec(
+  deps: ExecutionContextBuilderDeps,
+  agentId: string,
+  versionHash: string,
+): Promise<AgentSpec | undefined> {
+  if (versionHash === "") {
+    try {
+      return (await deps.agentLoader().get(agentId)).spec;
+    } catch (error) {
+      if (error instanceof ConnectError) {
+        throw goWrappedStatusError(`load agent ${agentId}`, error);
+      }
+      chainError(`load agent ${agentId}`, error);
+    }
+  }
+  try {
+    return (await deps.agentLoader().getVersion(agentId, versionHash))
+      .specSnapshot;
+  } catch (error) {
+    const what = `load agent ${agentId} at the version this turn recorded (${versionHash})`;
+    if (error instanceof ConnectError) {
+      throw goWrappedStatusError(what, error);
+    }
+    chainError(what, error);
+  }
 }
 
 /**
@@ -1147,7 +1192,7 @@ async function injectFromPersonalEnvironment(
  * injection too (Go mergeAgentAndSessionMcpUsages).
  */
 export function mergeAgentAndSessionMcpUsages(
-  agentResource: Agent | undefined,
+  agentSpec: AgentSpec | undefined,
   session: Session | undefined,
 ): McpServerUsage[] {
   const merged = new Map<string, McpServerUsage>();
@@ -1159,7 +1204,7 @@ export function mergeAgentAndSessionMcpUsages(
     }
   }
   // Agent usages override (higher priority).
-  for (const usage of agentResource?.spec?.mcpServerUsages ?? []) {
+  for (const usage of agentSpec?.mcpServerUsages ?? []) {
     const slug = usage.mcpServerRef?.slug ?? "";
     if (slug !== "") {
       merged.set(slug, usage);

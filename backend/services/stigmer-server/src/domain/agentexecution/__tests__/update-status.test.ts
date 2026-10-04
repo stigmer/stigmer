@@ -11,6 +11,9 @@
  * last across the runner's late writes, whatever order they land in; and a
  * paused execution's phase moves only on the platform's own write
  * (stigmer#1370), so the runner's straggler streaming cannot un-pause it.
+ * And the agent a turn ran (status.agent_id, agent_version_hash) is the
+ * create pipeline's stamp alone: no status write, the runner's or the
+ * platform's, changes it.
  * These exercise applyUpdateStatusMerge directly on a clone — mirroring
  * the freshly-loaded resource the merge mutates in place inside the
  * updateResource write lock.
@@ -638,5 +641,32 @@ describe("a paused execution stays paused until Resume (stigmer#1370)", () => {
       messages: [{ content: "m1" }],
     });
     expect(merged.status?.phase).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+  });
+});
+
+describe("the agent a turn ran is the server's stamp alone", () => {
+  it("a status write carrying agent_id and agent_version_hash changes neither, on any writer", () => {
+    const stamped = create(AgentExecutionSchema, {
+      metadata: { id: "exec-stamp", name: "exec-stamp" },
+      spec: {},
+      status: {
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        agentId: "agt_ran",
+        agentVersionHash: "a".repeat(64),
+      },
+    });
+    for (const writer of ["wire", "platform"] as const) {
+      const merged = runBuildStep(
+        stamped,
+        {
+          phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+          agentId: "agt_other",
+          agentVersionHash: "b".repeat(64),
+        },
+        writer,
+      );
+      expect(merged.status?.agentId, writer).toBe("agt_ran");
+      expect(merged.status?.agentVersionHash, writer).toBe("a".repeat(64));
+    }
   });
 });

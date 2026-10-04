@@ -410,7 +410,12 @@ function stubBuilderDeps(overrides?: {
   return {
     store,
     logger: silentLogger,
-    agentLoader: () => ({ get: async () => agent }),
+    agentLoader: () => ({
+      get: async () => agent,
+      getVersion: async () => {
+        throw new Error("this turn records no agent version");
+      },
+    }),
     agentInstanceLoader: () => ({
       get: async (instanceId) =>
         create(AgentInstanceSchema, {

@@ -217,6 +217,50 @@ describe("workflow version machinery (the #341 audit-row semantics)", () => {
     expect(current[0]!.versionHash).toBe(v1.status?.versionHash);
   });
 
+  it("an unchanged re-apply keeps the version metadata and moves a newly named tag; head and history agree", async () => {
+    const name = `Retag ${++counter}`;
+    const v1 = await command.apply(workflowInput({ name, variables: { a: "1" } }));
+    const id = v1.metadata!.id;
+    const v1Hash = v1.status!.versionHash;
+
+    // Unchanged content naming a tag: no new row, the stored chain kept,
+    // the tag assigned to the head's version in the audit column.
+    const retagged = await command.apply(
+      workflowInput({ name, variables: { a: "1" }, tag: "stable" }),
+    );
+    expect(await auditCount(id)).toBe(1);
+    expect(retagged.status?.versionHash).toBe(v1Hash);
+    expect(retagged.metadata?.version?.id).toBe(v1Hash);
+    expect(retagged.metadata?.version?.previousVersionId).toBe("");
+    expect(retagged.metadata?.version?.tag).toBe("stable");
+    const history = await query.listVersions({ org: ORG, slug: v1.metadata!.slug });
+    expect(history.versions.map((entry) => entry.tag)).toEqual(["stable"]);
+
+    // An unchanged re-apply naming no tag keeps the stored one.
+    const kept = await command.apply(workflowInput({ name, variables: { a: "1" } }));
+    expect(kept.metadata?.version?.tag).toBe("stable");
+    expect(kept.metadata?.version?.id).toBe(v1Hash);
+  });
+
+  it("a fetched archived version reports the tag it holds now, not the one it was applied with", async () => {
+    const name = `Moved ${++counter}`;
+    const v1 = await command.apply(
+      workflowInput({ name, variables: { a: "1" }, tag: "stable" }),
+    );
+    const slug = v1.metadata!.slug;
+    const v1Hash = v1.status!.versionHash;
+    const v2 = await command.apply(
+      workflowInput({ name, variables: { a: "2" }, tag: "stable" }),
+    );
+    expect(v2.metadata?.version?.tag).toBe("stable");
+
+    const archived = await query.getByReference({ org: ORG, slug, version: v1Hash });
+    expect(archived.status?.versionHash).toBe(v1Hash);
+    expect(archived.metadata?.version?.tag).toBe("");
+    const byTag = await query.getByReference({ org: ORG, slug, version: "stable" });
+    expect(byTag.status?.versionHash).toBe(v2.status?.versionHash);
+  });
+
   it("permuted task-config key order is version-identical end-to-end", async () => {
     const name = `Permute ${++counter}`;
     const first = await command.apply(
