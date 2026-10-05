@@ -140,6 +140,16 @@ starts, Stigmer fills them in this order:
 Before you start a run, the console's run form says where each declared key will
 come from: what you type, your personal Environment, or nowhere yet.
 
+<Callout type="warn">
+  The keys a Workflow declares reach its steps, and those follow what the
+  Workflow's author wrote: an `http_call` step can send a value anywhere. When
+  you run a Workflow a teammate in your Organization wrote, the keys it declares
+  that only your personal Environment holds go to that run. A Workflow from
+  another Organization never receives them. The console's run form names each
+  key before you start; the CLI, the MCP server and the SDKs fill the same keys
+  without asking.
+</Callout>
+
 A key the whole team uses, such as a shared webhook URL, cannot yet be bound
 once for everyone: each person who runs the Workflow saves it in their own
 personal Environment or passes it with the run. An `agent_call` step can still

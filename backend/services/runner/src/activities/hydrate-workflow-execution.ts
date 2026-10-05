@@ -92,6 +92,22 @@ function isNotFound(err: unknown): boolean {
   return code === 5 || code === "not_found" || code === "NOT_FOUND";
 }
 
+/**
+ * A refusal or a malformed request (gRPC INVALID_ARGUMENT, PERMISSION_DENIED
+ * or FAILED_PRECONDITION): a retry gets the same answer, so the run fails at
+ * once naming what it pinned.
+ */
+function isPermanent(err: unknown): boolean {
+  const code = (err as { code?: number | string })?.code;
+  return (
+    code === 3 || code === 7 || code === 9 ||
+    code === "invalid_argument" || code === "permission_denied" ||
+    code === "failed_precondition" ||
+    code === "INVALID_ARGUMENT" || code === "PERMISSION_DENIED" ||
+    code === "FAILED_PRECONDITION"
+  );
+}
+
 /** A version hash shortened for messages and logs: the first 12 hex characters. */
 function truncateHash(hash: string): string {
   return hash.length > 12 ? hash.slice(0, 12) + "..." : hash;
@@ -118,10 +134,12 @@ async function fetchWorkflowExecution(
  * Fetches the CNCF YAML a run executes: the version it pinned at create.
  *
  * Only a run that pins no version (its workflow was saved before versioning)
- * reads the live workflow. A pinned run never does: a version the server
- * answers NOT_FOUND fails the run non-retryably, naming the version, and any
- * other error is rethrown for the activity's retry policy. Answering either
- * with the head would run steps the run did not start on.
+ * reads the live workflow. A pinned run never does: a NOT_FOUND (the
+ * workflow or its pinned version is gone; the server's answer does not say
+ * which in a code), a refusal and a malformed request fail the run
+ * non-retryably, naming the workflow and the version; any other error is
+ * rethrown for the activity's retry policy. Answering any of them with the
+ * head would run steps the run did not start on.
  */
 async function fetchWorkflowYaml(
   client: StigmerClient,
@@ -138,9 +156,17 @@ async function fetchWorkflowYaml(
   } catch (err: unknown) {
     if (isNotFound(err)) {
       throw ApplicationFailure.nonRetryable(
-        `Workflow '${workflowId}' version ${truncateHash(versionHash)} not found — ` +
-        `the run is pinned to it and does not run another version`,
+        `Workflow '${workflowId}' at version ${truncateHash(versionHash)} is gone ` +
+        `(the workflow or that version was deleted) — the run is pinned to it ` +
+        `and does not run another version`,
         "WORKFLOW_VERSION_NOT_FOUND",
+      );
+    }
+    if (isPermanent(err)) {
+      throw ApplicationFailure.nonRetryable(
+        `Workflow '${workflowId}' version ${truncateHash(versionHash)} could not be read: ` +
+        `${err instanceof Error ? err.message : String(err)}`,
+        "WORKFLOW_VERSION_UNREADABLE",
       );
     }
     throw err;

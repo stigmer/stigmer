@@ -1,7 +1,7 @@
 /**
  * The `agent_call` steps of a workflow, wherever they sit: the top-level
- * list, a for-each body, a fork branch, a try or catch block, a switch's
- * nested tasks, and every task's `compensate` list, at every depth. One
+ * list, a for-each body, a fork branch, a try or catch block, and every
+ * task's `compensate` list, at every depth. One
  * walk serves two readers that must agree on what a step is:
  *
  *   - the save-time rule that an `agent_call` step's name is unique across
@@ -82,7 +82,9 @@ export function agentCallSteps(
 /**
  * Refuses two `agent_call` steps of one name anywhere in the workflow,
  * naming both places. Other task kinds may repeat a name across nested
- * lists; only an agent turn is looked up by its step's name.
+ * lists; only an agent turn is looked up by its step's name. Two top-level
+ * steps of one name are left to the top-level rule
+ * (crossref.ts `validateUniqueTaskNames`), so one fault is one error.
  */
 export function validateUniqueAgentCallNames(
   spec: WorkflowSpec | undefined,
@@ -95,9 +97,11 @@ export function validateUniqueAgentCallNames(
     }
     const seen = first.get(step.name);
     if (seen !== undefined) {
-      errors.push(
-        `duplicate agent_call step name "${step.name}" at "${step.path}": already used at "${seen}" (an agent_call step's name must be unique across the whole workflow)`,
-      );
+      if (!(isTopLevel(seen) && isTopLevel(step.path))) {
+        errors.push(
+          `duplicate agent_call step name "${step.name}" at "${step.path}": already used at "${seen}" (an agent_call step's name must be unique across the whole workflow)`,
+        );
+      }
       continue;
     }
     first.set(step.name, step.path);
@@ -116,4 +120,9 @@ export function findAgentCallStep(
 ): { readonly step: AgentCallStep | undefined; readonly matches: number } {
   const matching = agentCallSteps(spec).filter((step) => step.name === name);
   return { step: matching[0], matches: matching.length };
+}
+
+/** Whether a step's path names a top-level task (no nesting separator). */
+function isTopLevel(path: string): boolean {
+  return !path.includes(" > ");
 }

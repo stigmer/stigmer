@@ -1834,5 +1834,31 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       });
       expect(executionVisibilityEvents.map((event) => event.shapes)).toEqual([["org-viewer"]]);
     });
+
+    it("a driver failure at create leaves the first version archived, so a run pinned to it resolves", async () => {
+      failExecutionVisibility = true;
+      let refused: ConnectError | undefined;
+      try {
+        await workflows().create(
+          workflowInput("seeded-failed-audience", WorkflowExecutionVisibility.organization),
+        );
+      } catch (error) {
+        refused = ConnectError.from(error);
+      } finally {
+        failExecutionVisibility = false;
+      }
+      expect(refused?.code).toBe(Code.Internal);
+      const stored = await workflowQuery().getByReference({
+        org: "seededorg",
+        slug: "seeded-failed-audience",
+      });
+      const hash = stored.status?.versionHash ?? "";
+      expect(hash).not.toBe("");
+      const version = await workflowQuery().getVersion({
+        workflowId: stored.metadata?.id ?? "",
+        versionHash: hash,
+      });
+      expect(version.versionHash).toBe(hash);
+    });
   });
 });

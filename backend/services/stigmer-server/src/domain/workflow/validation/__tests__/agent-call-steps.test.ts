@@ -125,6 +125,11 @@ describe("validateUniqueAgentCallNames", () => {
     ]);
   });
 
+  it("leaves two top-level steps of one name to the top-level rule, so one fault is one error", () => {
+    const spec = specOf([agentCall("review"), agentCall("review")]);
+    expect(validateUniqueAgentCallNames(spec)).toEqual([]);
+  });
+
   it("refuses a repeat inside a compensate list", () => {
     const spec = specOf([
       { ...agentCall("notify"), compensate: [agentCall("notify")] },

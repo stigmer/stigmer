@@ -54,11 +54,10 @@ test.describe("Workflow run visibility", () => {
     await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
     await assertNoErrorBoundary(page);
 
-    // The Run dialog starts a run of the workflow itself: there is nothing
-    // to pick, and while the runs are private it says nothing about them.
+    // The Run dialog starts a run of the workflow itself, and while the
+    // runs are private it says nothing about who sees them.
     await openRunDialog(page);
     const runDialog = page.getByRole("dialog");
-    await expect(runDialog.getByLabel("Instance")).toHaveCount(0);
     await expect(runDialog.getByText(ORG_RUNS_NOTE)).toHaveCount(0);
     await submitRunAndWaitForExecution(page);
     await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
@@ -67,7 +66,9 @@ test.describe("Workflow run visibility", () => {
     expect(runId, `the execution page URL names the run: ${page.url()}`).toBeDefined();
     const run = await stigmerClient.workflowExecution.get(runId!);
     expect(run.spec?.workflowId, "the run names its workflow").toBe(testWorkflow.id);
-    expect(run.status?.workflowVersionHash, "the run pinned the workflow's version").not.toBe("");
+    const pinned = (await stigmerClient.workflow.get(testWorkflow.id)).status?.versionHash;
+    expect(pinned, "the workflow has a version").toMatch(/^[0-9a-f]{64}$/);
+    expect(run.status?.workflowVersionHash, "the run pinned the workflow's version").toBe(pinned);
 
     // The owner opens the runs to the organization on the workflow page.
     await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);

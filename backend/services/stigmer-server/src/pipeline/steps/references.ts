@@ -28,8 +28,8 @@
  *        member and be readable by one. Environments, OAuth apps and
  *        channel apps are resolved by the server on the run's behalf, so
  *        their level is not a leak the floor closes, and an org-visible
- *        instance may hold its owner's private environment: attaching it
- *        is the owner's choice to let that instance's runs use it. A
+ *        channel or workflow may hold its owner's private environment:
+ *        attaching it is the owner's choice to let its runs use it. A
  *        RELATIVE reference (below) is compared against the resource's
  *        level capped at org.
  *

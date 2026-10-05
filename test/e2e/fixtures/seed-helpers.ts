@@ -2,8 +2,7 @@ import { Buffer } from "node:buffer";
 import { crc32 } from "node:zlib";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { type WorkflowExecutionVisibility, WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { UpdateWorkflowExecutionVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
+import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 
 const DEFAULT_ORG = "default";
 
@@ -167,22 +166,6 @@ export async function createTestWorkflow(
       await client.workflow.delete(id).catch(() => {});
     },
   };
-}
-
-/**
- * Sets who can see a workflow's runs through the workflow's one door for the
- * setting (`updateExecutionVisibility`); a plain apply keeps the stored level.
- * A workflow starts PRIVATE, so a spec that widens it needs no cleanup beyond
- * deleting the workflow.
- */
-export async function setTestWorkflowRunVisibility(
-  client: Stigmer,
-  workflowId: string,
-  executionVisibility: WorkflowExecutionVisibility,
-): Promise<void> {
-  await client.workflow.updateExecutionVisibility(
-    create(UpdateWorkflowExecutionVisibilityInputSchema, { resourceId: workflowId, executionVisibility }),
-  );
 }
 
 export interface TestWorkflowExecutionResult {

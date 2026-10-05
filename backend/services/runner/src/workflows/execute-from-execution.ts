@@ -68,7 +68,6 @@ export interface ExecuteFromExecutionInput {
   workflow_instance_id?: string;
   workflow_id: string;
   org_id: string;
-  callback_token?: Uint8Array | null;
   invoker_identity_account_id?: string;
   recovery_mode?: boolean;
   /**

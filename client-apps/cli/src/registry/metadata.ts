@@ -132,7 +132,7 @@ export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
   ],
   [
     "WorkflowInstance",
-    "is no longer a Stigmer resource. A run starts on the workflow itself: run `stigmer run workflow <org>/<workflow>`, pass the keys its steps read with `--env` or keep them in your personal environment, and delete this file. Who can see a workflow's runs is set on the workflow.",
+    "is no longer a Stigmer resource. A run starts on the workflow itself: run `stigmer run workflow <org>/<workflow>`, pass the keys its steps read with `--env` (`--secret` for a secret) or keep them in your personal environment, and delete this file. Who can see a workflow's runs is set on the workflow.",
   ],
   [
     "Project",

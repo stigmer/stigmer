@@ -27,8 +27,9 @@
 // A workflow's agent_call step names environments of its own
 // (environment_refs). The turn the step starts reads them from the version
 // the step's run pinned, never the workflow's head, so an author's save
-// mid-run never changes what a running step receives (stigmer#1906), and
-// the step is found at any depth by its name.
+// mid-run never changes what a running step receives (stigmer#1906), the
+// step is found at any depth by its name, and its environments merge in the
+// order the step lists them, the later winning a key both hold.
 //
 // Observation strategy (why this is deterministic without polling):
 // The ExecutionContext is created SYNCHRONOUSLY inside the create pipeline,
@@ -167,6 +168,34 @@ async function startRun(
 async function contextData(using: ConformanceClients, executionId: string) {
   const context = await using.executionContextQuery.getByExecutionId({ executionId });
   return context.spec?.data ?? {};
+}
+
+/** Whether the run's ExecutionContext is still readable. */
+async function contextState(executionId: string): Promise<"present" | "gone"> {
+  try {
+    await clients.executionContextQuery.getByExecutionId({ executionId });
+    return "present";
+  } catch (error) {
+    if (ConnectError.from(error).code === Code.NotFound) {
+      return "gone";
+    }
+    throw error;
+  }
+}
+
+/**
+ * Waits until the run's ExecutionContext is gone: the orchestrator deletes it
+ * in an activity after the terminal phase lands, so a step that acts on the
+ * terminal run waits for the delete first.
+ */
+async function awaitContextGone(executionId: string, after: string): Promise<void> {
+  await pollUntil(
+    () => contextState(executionId),
+    (state) => state === "gone",
+    (_, timeoutMs) =>
+      `workflow execution ${executionId}'s ExecutionContext was still readable ${timeoutMs}ms after the run reached ${after}`,
+    { timeoutMs: 30_000 },
+  );
 }
 
 // Drives the WORKFLOW env-merge path end to end: the run's person's personal
@@ -326,24 +355,7 @@ describe("envmerge conformance — Workflow precedence", () => {
     const taskOutput = taskByName(final, "setVars")?.output as Record<string, unknown> | undefined;
     expect(taskOutput?.seen, "the runner read the run's context").toBe("end-value");
 
-    const readContext = async (): Promise<"present" | "gone"> => {
-      try {
-        await clients.executionContextQuery.getByExecutionId({ executionId });
-        return "present";
-      } catch (error) {
-        if (ConnectError.from(error).code === Code.NotFound) {
-          return "gone";
-        }
-        throw error;
-      }
-    };
-    await pollUntil(
-      readContext,
-      (state) => state === "gone",
-      (_, timeoutMs) =>
-        `workflow execution ${executionId}'s ExecutionContext was still readable ${timeoutMs}ms after the run reached ${ExecutionPhase[final.status!.phase]}`,
-      { timeoutMs: 30_000 },
-    );
+    await awaitContextGone(executionId, ExecutionPhase[final.status!.phase]);
   });
 
   it("a workflow of another organization than the run gets none of the person's keys; what the run passes still reaches it", async () => {
@@ -413,6 +425,9 @@ describe("envmerge conformance — Workflow precedence", () => {
     expect(built.RUN_KEY?.value, "create filled the run's key").toBe("run-value");
 
     await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
+    // The failed run's own context delete runs after the phase lands; recover
+    // only once it has, so it can never remove the rebuilt context.
+    await awaitContextGone(executionId, "EXECUTION_FAILED");
     const v2 = await clients.workflowCommand.apply(gated({ LATER_KEY: {} }));
     expect(v2.status?.versionHash).not.toBe(v1.status?.versionHash);
 
@@ -525,6 +540,27 @@ describe("envmerge conformance — the environments a workflow step names", () =
     expect(data.STEP_KEY?.value, "the running step receives the pinned version's environments, not the head's").toBe(
       "from-pinned",
     );
+  });
+
+  it("a step's environment_refs merge in declaration order: the later environment wins a key both hold", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentSlug, refs } = await seedStep(org, ["from-first", "from-second"]);
+
+    const workflow = await clients.workflowCommand.create(
+      makeAgentCallStepWorkflow({
+        org,
+        name: uniqueName("wf-step-order"),
+        agentSlug,
+        environmentRefs: refs,
+      }),
+    );
+    fixtures.defer(() => clients.workflowCommand.delete({ value: workflow.metadata!.id }));
+    mock.enqueue(anthropicText("Working..."), { delayMs: HOLD_MS });
+    const run = await startRun(clients, org, workflow.metadata!.id);
+
+    const turn = await stepTurnOf(org, run.metadata!.id);
+    const data = await contextData(clients, turn.metadata!.id);
+    expect(data.STEP_KEY?.value, "the later environment in the step's list wins").toBe("from-second");
   });
 
   it("a nested agent_call step's environments reach the turn it starts", async () => {

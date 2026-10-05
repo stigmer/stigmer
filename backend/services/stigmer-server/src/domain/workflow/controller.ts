@@ -230,8 +230,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * Create — chain per Go buildCreatePipeline: v1 archives after the
  * persist and the tuple steps (the audit step re-persists either of its
  * reverts, a stripped hash or a cleared tag, because no Persist follows it
- * here). A run audience the request names reaches the driver beside the
- * resource's own tuples.
+ * here). A run audience the request names reaches the driver after the
+ * archive, so its fault never leaves the first version unarchived.
  */
 async function createWorkflow(
   deps: WorkflowControllerDeps,
@@ -273,10 +273,12 @@ async function createWorkflow(
         deps.logger,
       ),
     )
+    .addStep(newSaveVersionAuditStep(deps.store, deps.logger, true))
+    // After the archive: a driver fault here fails the request with v1
+    // already archived, so a run pinned to the head's hash always resolves.
     .addStep(
       newCreateExecutionVisibilityTuplesStep(deps.authorizationLifecycle),
     )
-    .addStep(newSaveVersionAuditStep(deps.store, deps.logger, true))
     .addStep(
       newIndexSearchStep(deps.store, workflowSearchExtractor, deps.logger),
     )

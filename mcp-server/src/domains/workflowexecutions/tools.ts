@@ -50,8 +50,10 @@ export function registerWorkflowExecutionTools(server: McpServer, target: Backen
           .record(z.string())
           .optional()
           .describe(
-            "Non-secret runtime environment values (name → value) injected into the run. " +
-              "Secrets must come from Environments referenced by the workflow, never through this tool.",
+            "Non-secret runtime environment values (name → value) injected into the run; only keys the workflow " +
+              "declares reach it. Every declared key not passed here is read from the personal Environment of the " +
+              "caller (the person the run belongs to), when the workflow is in the run's organization; a secret " +
+              "belongs there, never in this tool.",
           ),
       },
     },

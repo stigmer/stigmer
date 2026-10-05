@@ -362,6 +362,23 @@ describe("hydrateWorkflowExecution", () => {
       expect(client.getWorkflow).not.toHaveBeenCalled();
     });
 
+    it("fails non-retryably, naming the version, on a refusal or a malformed request a retry cannot change", async () => {
+      for (const code of [3, 7, 9]) {
+        const client = makeMockClient({
+          workflowExecution: PINNED_EXECUTION,
+          workflowVersionError: Object.assign(new Error("refused"), { code }),
+        });
+
+        const err = await hydrateWorkflowExecution(makeInput(), client).catch((e: unknown) => e);
+
+        expect(err, `code ${code}`).toBeInstanceOf(ApplicationFailure);
+        expect((err as ApplicationFailure).nonRetryable).toBe(true);
+        expect((err as ApplicationFailure).type).toBe("WORKFLOW_VERSION_UNREADABLE");
+        expect((err as ApplicationFailure).message).toContain(PINNED_HASH.slice(0, 12));
+        expect(client.getWorkflow).not.toHaveBeenCalled();
+      }
+    });
+
     it("fails non-retryably when the pinned version carries no YAML", async () => {
       const client = makeMockClient({
         workflowExecution: PINNED_EXECUTION,
