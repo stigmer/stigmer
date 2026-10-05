@@ -540,7 +540,8 @@ export async function compileSubagents(
       // carries the repair seam — matching the parent's composition.
       //
       // Each invocation gets an id of its own, which the agent's hooks see as
-      // `agent_id` beside the sub-agent's name as `agent_type`.
+      // `agent_id` beside the sub-agent's name as `agent_type`
+      // (`subAgentInvocationId`).
       const buildGraph = (invocationId: string) => createDeepAgent({
         model,
         systemPrompt: spec.systemPrompt,
@@ -567,7 +568,7 @@ export async function compileSubagents(
       buildGraph(randomUUID());
 
       const gatedRunnable = gate.wrapRunnable<Record<string, unknown>, Record<string, unknown>>(
-        { invoke: (input, config) => buildGraph(randomUUID()).invoke(input, config) },
+        { invoke: (input, config) => buildGraph(subAgentInvocationId(config)).invoke(input, config) },
         spec.name,
       );
 
@@ -749,4 +750,16 @@ export async function transformAndCompileSubagents(
     `[subagent-transformer] Successfully compiled ${compiled.length} sub-agent(s)`,
   );
   return compiled;
+}
+
+/**
+ * The id a sub-agent invocation's hooks see as `agent_id`: the parent's
+ * `task` call id, which deepagents passes down in the config. A resume after
+ * an approval re-invokes the sub-agent for the same call, so its hooks keep
+ * one id across the approval; a call with none gets a fresh id.
+ */
+export function subAgentInvocationId(config: unknown): string {
+  const toolCall = typeof config === "object" && config !== null ? (config as { toolCall?: { id?: unknown } }).toolCall : undefined;
+  const id = toolCall?.id;
+  return typeof id === "string" && id !== "" ? id : randomUUID();
 }

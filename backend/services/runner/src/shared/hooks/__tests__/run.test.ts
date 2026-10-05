@@ -10,7 +10,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ACTIVITY_PULSE_MS, activityPulseFor, OUTPUT_CAP_BYTES, runHookProcess, type HookProcessSpec } from "../run.js";
+import { ACTIVITY_PULSE_MS, activityPulseFor, hookTimeoutMs, OUTPUT_CAP_BYTES, runHookProcess, type HookProcessSpec } from "../run.js";
 
 let dir: string;
 beforeEach(() => {
@@ -107,6 +107,11 @@ describe("runHookProcess", () => {
     vi.advanceTimersByTime(350);
     await running;
     expect(onPulse).toHaveBeenCalledTimes(3);
+  });
+
+  it("waits a timeout past the timer's limit as long as a timer can, never firing at once", () => {
+    expect(hookTimeoutMs(600)).toBe(600_000);
+    expect(hookTimeoutMs(4_294_967_295)).toBe(2 ** 31 - 1);
   });
 
   it("derives the pulse from the stall timeout: a third of it, at most the default", () => {

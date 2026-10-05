@@ -40,6 +40,19 @@ export function activityPulseFor(stallTimeoutMs: number): number {
   return Math.max(1, Math.min(ACTIVITY_PULSE_MS, Math.floor(stallTimeoutMs / 3)));
 }
 
+/** The longest delay a timer keeps; a longer one fires at once. */
+const MAX_TIMER_MS = 2 ** 31 - 1;
+
+/**
+ * A handler's timeout as a timer delay. The contract bounds it only from
+ * below, and a delay past the timer's limit would fire at once and kill
+ * every run, so a longer one waits as long as a timer can (about 24 days);
+ * the turn's stop still ends it.
+ */
+export function hookTimeoutMs(timeoutSeconds: number): number {
+  return Math.min(timeoutSeconds * 1000, MAX_TIMER_MS);
+}
+
 /** The shell a shell-form handler runs in. */
 export const HOOK_SHELL = "bash";
 
@@ -99,7 +112,7 @@ export const runHookProcess: HookProcessRunner = (spec, options) =>
     const timer = setTimeout(() => {
       timedOut = true;
       killGroup();
-    }, spec.timeoutSeconds * 1000);
+    }, hookTimeoutMs(spec.timeoutSeconds));
     const pulse = options.onPulse ? setInterval(options.onPulse, options.pulseMs ?? ACTIVITY_PULSE_MS) : undefined;
     const onAbort = (): void => killGroup();
     options.signal?.addEventListener("abort", onAbort, { once: true });

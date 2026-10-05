@@ -822,15 +822,6 @@ function rowArgs(args: Record<string, unknown>): JsonObject {
 }
 
 /**
- * The row's `args_preview`, on EVERY row with args (since #1097):
- * `message.proto` promises it sanitized, redacted, at creation, for inline
- * visibility, and the one builder that keeps it small and always valid JSON
- * is `buildElidedArgsPreview` over the platform's salient fields. Until then
- * native stamped a whole-string-truncating preview on gated rows only and
- * Cursor stamped `JSON.stringify(args)` unredacted. An empty preview (a
- * cycle in the args) leaves the field unset rather than failing the row.
- */
-/**
  * A row's authorization provenance: the source, the engine version that
  * decided it, and the deciding hook when a hook's answer is what the source
  * records (empty otherwise, so a later stamp never leaves a stale hook).
@@ -841,6 +832,15 @@ function stampProvenance(tc: ToolCall, source: PolicySource, policyHook: string 
   tc.approvalPolicyHook = policyHook ?? "";
 }
 
+/**
+ * The row's `args_preview`, on EVERY row with args (since #1097):
+ * `message.proto` promises it sanitized, redacted, at creation, for inline
+ * visibility, and the one builder that keeps it small and always valid JSON
+ * is `buildElidedArgsPreview` over the platform's salient fields. Until then
+ * native stamped a whole-string-truncating preview on gated rows only and
+ * Cursor stamped `JSON.stringify(args)` unredacted. An empty preview (a
+ * cycle in the args) leaves the field unset rather than failing the row.
+ */
 function stampArgsPreview(tc: ToolCall, args: Record<string, unknown>): void {
   const preview = buildElidedArgsPreview(args, SALIENT_ARG_FIELDS);
   if (preview) tc.argsPreview = preview;

@@ -1,7 +1,7 @@
 /**
  * Plugin mount — a referenced plugin's archive as a directory tree its hooks
- * run from (`${CLAUDE_PLUGIN_ROOT}`), kept equal to the verified archive for
- * as long as the turn runs.
+ * run from (`${CLAUDE_PLUGIN_ROOT}`), held to the verified archive before
+ * each hook run.
  *
  * Where it lands, under the session's platform dir:
  *
@@ -25,8 +25,11 @@
  * runs before each hook run: it `lstat`s the tree, re-hashes only the files
  * whose size, mode, inode or change time moved since the last check, and
  * rebuilds the whole tree from the archive in memory on any difference (an
- * edited, added, removed or replaced file). What it cannot stop is an
- * interpreter on `PATH` replaced by the shell; that wall is the sandbox's.
+ * edited, added, removed or replaced file). It is a check before the spawn,
+ * not a lock: a shell call running in the same model step can still write
+ * the tree between the check and the hook reading it. Neither can it stop
+ * an interpreter on `PATH` replaced by the shell. Both walls are the
+ * sandbox's.
  *
  * Turns of one workspace are serialised (`harness/turn-context.ts`
  * `acquireWorkspaceTurnLock`), so no two turns mount one tree at once; within
