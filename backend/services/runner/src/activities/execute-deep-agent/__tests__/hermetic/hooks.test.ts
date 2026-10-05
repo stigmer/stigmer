@@ -1,6 +1,7 @@
 /**
  * Hermetic golden: a plugin's tool hook denies, allows and asks on the
- * native engine — the real activity, two invocations, a real command hook.
+ * native engine — the real activity, two invocations on the durable (sqlite)
+ * checkpointer, a real command hook.
  *
  * The agent references the `safety` plugin through `AgentSpec.hooks`. The
  * runtime reads it by reference, fetches its archive (the unary lane; the
@@ -11,11 +12,13 @@
  * Code's hooks do: exit 2 with a reason refuses `rm -rf`, JSON allows `ls`,
  * and JSON asks before publishing.
  *
- * Turn 1: the model proposes all three at once. The delete is refused (its
- * row fails with the hook's reason and names the hook), `ls` runs without a
- * card (the shell default would have asked; the gate's `tool_policy` event
- * stamps the hook on the row), and the publish waits for a person on a card
- * naming the hook: WAITING_FOR_APPROVAL.
+ * Turn 1: the model proposes them one round at a time, so the transcript's
+ * order is the script's (calls proposed together run their hooks at once,
+ * and their rows open in whichever order the hooks answer). The delete is
+ * refused (its row fails with the hook's reason and names the hook), `ls`
+ * runs without a card (the shell default would have asked; the gate's
+ * `tool_policy` event stamps the hook on the row), and the publish waits for
+ * a person on a card naming the hook: WAITING_FOR_APPROVAL.
  *
  * Between turns: the person approves the publish.
  *
@@ -130,6 +133,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
       env,
       clock,
       record,
+      checkpointer: "sqlite",
       clientOverrides: {
         getPluginByReference: vi.fn(async () => SAFETY),
         getPluginArtifactDownloadUrl: vi.fn(async () => {
@@ -139,7 +143,9 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
       },
       script: () => ({
         turns: [
-          { text: "Cleaning, listing and publishing.", toolCalls: [DELETE, LIST, PUBLISH], usage: { inputTokens: 1_400, outputTokens: 80 } },
+          { text: "Cleaning the build.", toolCalls: [DELETE], usage: { inputTokens: 1_400, outputTokens: 40 } },
+          { text: "Listing the files.", toolCalls: [LIST], usage: { inputTokens: 1_500, outputTokens: 40 } },
+          { text: "Publishing.", toolCalls: [PUBLISH], usage: { inputTokens: 1_600, outputTokens: 40 } },
           CLOSING_TURN,
         ],
       }),

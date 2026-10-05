@@ -34,6 +34,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { lstat, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -212,10 +213,11 @@ export class PluginTree {
   }
 
   private async check(): Promise<void> {
-    if (!(await this.matches())) {
+    if (await this.matches()) return;
+    if (existsSync(this.root)) {
       console.warn(`[plugin-mount] ${this.root} differs from its verified archive; rebuilding it`);
-      await this.rebuild();
     }
+    await this.rebuild();
   }
 
   /** Whether the tree on disk is exactly the archive; records each file's signature as it goes. */

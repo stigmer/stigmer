@@ -40,6 +40,7 @@ import type { JsonObject } from "@bufbuild/protobuf";
 
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { cancelInProgressSubAgentProtos } from "../../shared/subagent-rows.js";
+import { redactSensitiveArgs } from "../../shared/args-preview.js";
 import { captureApprovalArtifacts } from "./approval-file-change.js";
 import { autoPublishWrittenFiles } from "./auto-publish.js";
 import { detectPendingInterrupts, reconcileUnattendedSkips, type GraphStateSnapshot } from "./hitl.js";
@@ -141,7 +142,11 @@ async function seedPendingInterrupts(deps: DeepAgentSettleDeps): Promise<boolean
   console.log(`[turn-settle] Detected ${pending.length} pending interrupt(s) for execution ${input.executionId} — awaiting approval`);
 
   for (const intr of pending) {
-    const { args } = captureApprovalArtifacts({ toolCallId: intr.toolCallId, messages: aiMessages });
+    // A hook's rewrite is what an approval lets run, so the card shows it;
+    // otherwise the model's own arguments, read from graph state.
+    const { args } = intr.args !== undefined
+      ? { args: redactSensitiveArgs(intr.args) }
+      : captureApprovalArtifacts({ toolCallId: intr.toolCallId, messages: aiMessages });
     sink.transcript.apply({
       kind: "approval_proposed",
       callId: intr.toolCallId,

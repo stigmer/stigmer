@@ -19,7 +19,7 @@
           "argsPreview": "{\"file_path\":\"/report.md\",\"content\":\"# Report\\n\\nAll fixtures nominal.\\n\"}",
           "toolKind": "TOOL_KIND_FILE_WRITE",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "default-1",
+          "policyEngineVersion": "hooks-1",
           "fileChangeSetId": "aex_hermetic_0001:0"
         }
       ]
@@ -43,7 +43,7 @@
           "argsPreview": "{\"command\":\"echo hermetic-a\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "default-1"
+          "policyEngineVersion": "hooks-1"
         }
       ]
     }

@@ -235,6 +235,8 @@ export interface PendingInterrupt {
   readonly policySource: PolicySource | undefined;
   /** The plugin whose hook asked (`""` for the agent's own hooks block); undefined when no hook asked. */
   readonly policyHook: string | undefined;
+  /** The arguments a hook rewrote the call into, unredacted; undefined when the model's own arguments stand. */
+  readonly args: Record<string, unknown> | undefined;
 }
 
 /**
@@ -258,7 +260,12 @@ export function detectPendingInterrupts(graphState: GraphStateSnapshot): Pending
           message: (val?.message as string) ?? "",
           policySource: (val?.policy_source as PolicySource) || undefined,
           policyHook: typeof val?.policy_hook === "string" ? val.policy_hook : undefined,
+          args: isArgsObject(val?.args) ? val.args : undefined,
         };
       }),
   );
+}
+
+function isArgsObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

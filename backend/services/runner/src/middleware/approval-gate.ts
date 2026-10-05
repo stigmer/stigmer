@@ -382,6 +382,7 @@ export function createApprovalGateMiddleware(
           message: pre.reason || hookAskMessage(pre.hook, hooks?.viewOf({ ...call.toolCall, serverSlug })?.toolName ?? call.toolCall.name),
           policy_source: "hook",
           policy_hook: pre.hook,
+          ...(pre.updatedArgs !== undefined ? { args: call.toolCall.args } : {}),
         });
         return decision === "approve" ? "hook" : decision;
       }
@@ -404,6 +405,12 @@ interface ApprovalRequestPayload {
   readonly policy_source: PolicySource | undefined;
   /** The plugin whose hook asked; present only when one did. */
   readonly policy_hook?: string;
+  /**
+   * The arguments the call will run with, present only when a hook rewrote
+   * them: they exist nowhere else (the model's message holds the original),
+   * and the card must show what an approval lets run.
+   */
+  readonly args?: Record<string, unknown>;
 }
 
 /**

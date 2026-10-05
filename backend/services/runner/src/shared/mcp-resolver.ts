@@ -101,7 +101,7 @@ export const PLUGIN_MEMBER_LABEL = "stigmer.ai/plugin";
 
 /** A server's plugin origin, from its member label and its own name. */
 export function pluginOriginOf(server: McpServer): McpPluginOrigin | null {
-  const pluginId = server.metadata?.labels[PLUGIN_MEMBER_LABEL] ?? "";
+  const pluginId = server.metadata?.labels?.[PLUGIN_MEMBER_LABEL] ?? "";
   const name = server.metadata?.name ?? "";
   return pluginId !== "" && name !== "" ? { pluginId, server: name } : null;
 }

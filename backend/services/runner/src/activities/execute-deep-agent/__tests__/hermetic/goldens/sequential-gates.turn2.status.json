@@ -23,7 +23,7 @@
           "argsPreview": "{\"command\":\"echo hermetic-a\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "default-1"
+          "policyEngineVersion": "hooks-1"
         }
       ]
     },
@@ -46,7 +46,7 @@
           "argsPreview": "{\"command\":\"echo hermetic-b\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "default-1"
+          "policyEngineVersion": "hooks-1"
         }
       ]
     }

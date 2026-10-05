@@ -25,7 +25,7 @@
           "argsPreview": "{\"command\":\"npm run build\",\"cwd\":\"/x\",\"timeout\":30000}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "default-1"
+          "policyEngineVersion": "hooks-1"
         }
       ]
     },

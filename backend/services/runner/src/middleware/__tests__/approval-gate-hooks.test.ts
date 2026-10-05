@@ -124,6 +124,20 @@ describe("the gate's hooks", () => {
     expect(skipped).not.toHaveBeenCalled();
   });
 
+  it("an ask that rewrites the call carries the rewrite to the card, and runs it once approved", async () => {
+    mockedInterrupt.mockReturnValue({ action: "approve" });
+    const handler = vi.fn(async (req: ToolCallRequest) => new ToolMessage({ content: String(req.toolCall.args["command"]), tool_call_id: "call_1", name: "execute" }));
+    const result = (await gate(hooksAnswering(decide("ask", { updatedInput: { command: "git push --dry-run" } }))).wrapToolCall!(
+      call("execute", SHELL_ARGS).request,
+      handler,
+    )) as ToolMessage;
+    expect(mockedInterrupt).toHaveBeenCalledWith(expect.objectContaining({ args: { command: "git push --dry-run" } }));
+    expect(result.content).toBe("git push --dry-run");
+
+    await gate(hooksAnswering(decide("ask"))).wrapToolCall!(call("execute", SHELL_ARGS).request, handler);
+    expect(mockedInterrupt).toHaveBeenLastCalledWith(expect.not.objectContaining({ args: expect.anything() }));
+  });
+
   it("under trust this whole run, an ask is satisfied and recorded as the bypass", async () => {
     const { request, writer } = call("execute", SHELL_ARGS);
     const handler = vi.fn(async () => new ToolMessage({ content: "ok", tool_call_id: "call_1", name: "execute" }));
