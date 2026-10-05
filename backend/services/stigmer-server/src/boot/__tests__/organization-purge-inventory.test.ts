@@ -22,6 +22,7 @@ import type {
   OrganizationPurgeStage,
   ResolvedOrganizationPurge,
 } from "../../extensions/organization-purge.js";
+import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import { newResourcePlatformClientStore } from "../../domain/platformclient/resource-store.js";
 import { SecretService } from "../../encryption/encryption.js";
 import { tempStore } from "../../store/sqlite/__tests__/support.js";
@@ -68,6 +69,8 @@ describe("the core's kind purges", () => {
       scheduleClock: () => undefined,
       channelRuntime: undefined,
       platformClients: newResourcePlatformClientStore(fx.store),
+      accounts: newResourceIdentityAccountStore(fx.store),
+      accountLifecycle: undefined,
     });
     const kinds = [purges.quiesce.kind, ...purges.content.map((p) => p.kind)];
     expect(new Set(kinds).size, "no kind is purged twice").toBe(kinds.length);

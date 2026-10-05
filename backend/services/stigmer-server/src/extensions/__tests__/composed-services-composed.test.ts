@@ -42,6 +42,7 @@ import type { ListReadScope } from "../list-read-scope.js";
 import type { ServerExtension } from "../registry.js";
 import type { ResourceAuthorizationLifecycle } from "../resource-authorization.js";
 import type { ResourceRowReader } from "../resource-row-reader.js";
+import { widerEditionPurge } from "./composed-support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -71,6 +72,7 @@ function enterpriseUnit(extra: Partial<ServerExtension> = {}): ServerExtension {
   return {
     name: "enterprise-fixture",
     edition: ServerEdition.enterprise,
+    orgPurge: widerEditionPurge,
     requireAuthentication: true,
     identityVerifiers: [verifier],
     drivers: {
@@ -146,6 +148,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
       {
         name: "cloud-shaped",
         edition: ServerEdition.cloud,
+        orgPurge: widerEditionPurge,
         requireAuthentication: true,
         identityVerifiers: [verifier],
         authorizer,

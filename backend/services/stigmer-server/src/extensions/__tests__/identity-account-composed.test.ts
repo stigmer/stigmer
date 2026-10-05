@@ -104,7 +104,7 @@ import {
 // Shared fakes (the composition-shaped ones live in composed-support.ts)
 // ---------------------------------------------------------------------------
 
-/** The port's eight methods, delegating to the real adapter and recording each call by name. */
+/** The port's nine methods, delegating to the real adapter and recording each call by name. */
 function recordingStore(
   inner: IdentityAccountStore,
   calls: string[],
@@ -141,6 +141,10 @@ function recordingStore(
     findByIds: (ids) => {
       calls.push("findByIds");
       return inner.findByIds(ids);
+    },
+    findByOrg: (org) => {
+      calls.push("findByOrg");
+      return inner.findByOrg(org);
     },
   };
 }

@@ -54,5 +54,10 @@ export function fakeIdentityAccountStore(): FakeIdentityAccountStore {
         return row === undefined ? [] : [row];
       });
     },
+    async findByOrg(org) {
+      return [...rows.values()].filter(
+        (row) => org !== "" && row.metadata?.org === org,
+      );
+    },
   };
 }

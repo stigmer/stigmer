@@ -33,6 +33,8 @@ import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/serve
 
 import type { ArtifactStorage } from "../artifactstorage/artifact-storage.js";
 import { newAgentPurge } from "../domain/agent/purge.js";
+import { newIdentityAccountPurge } from "../domain/identityaccount/purge.js";
+import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import { newAgentChannelPurge } from "../domain/agentchannel/purge.js";
 import { newAgentExecutionPurge } from "../domain/agentexecution/purge.js";
@@ -83,6 +85,10 @@ export interface CoreKindPurgeDeps extends KindPurgeDeps {
   readonly channelRuntime: ChannelRuntime | undefined;
   /** The PlatformClient port the composition bound. */
   readonly platformClients: PlatformClientStore;
+  /** The identity-account port the composition bound. */
+  readonly accounts: IdentityAccountStore;
+  /** The identity-account controller's lifecycle (the composed driver, or open source's role lifecycle). */
+  readonly accountLifecycle: ResourceAuthorizationLifecycle | undefined;
 }
 
 /** The core's kind purges, by stage. */
@@ -124,6 +130,9 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newPlatformClientPurge(deps),
       newExecutionContextPurge(deps),
       newApiKeyPurge(deps),
+      // The accounts that belong to the organization (a platform client's
+      // end users), once nothing it owned names them.
+      newIdentityAccountPurge(deps),
     ],
   };
 }
@@ -157,6 +166,7 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.platform_client,
   ApiResourceKind.execution_context,
   ApiResourceKind.api_key,
+  ApiResourceKind.identity_account,
   ApiResourceKind.iam_policy,
 ]);
 

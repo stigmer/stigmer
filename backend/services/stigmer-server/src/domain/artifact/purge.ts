@@ -6,8 +6,8 @@
  * Why not the delete chain's steps. An artifact's delete is a soft delete
  * (controller.ts `deleteArtifact`: the row stays, `status.storage_state`
  * becomes deleted, the blob stays for the GC job), which a purge cannot
- * leave behind. So the purge deletes the row and its access, then the
- * blob.
+ * leave behind. So the purge deletes the blob, then the row and its
+ * access: the row is how a retry finds a blob a fault left.
  *
  * Why the blob check. Blobs are content-addressed: the key is the
  * content's SHA-256 (`status.content_hash`), so two artifacts with the
@@ -56,14 +56,19 @@ export function newArtifactPurge(deps: ArtifactPurgeDeps): KindPurge {
     input: ArtifactCommandController.method.delete.input,
     listIndex: artifactListIndex,
     steps: [
+      newDeleteUnsharedBlobStep(deps.store, deps.artifactStorage),
       newDeleteResourceStep(deps.store),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
-      newDeleteUnsharedBlobStep(deps.store, deps.artifactStorage),
     ],
   });
 }
 
-/** DeleteUnsharedBlob — after the row: the blob, when no other artifact row names its hash. */
+/**
+ * DeleteUnsharedBlob — before the row: the blob, when no other artifact row
+ * names its hash (the row being purged is left out of the count). A fault
+ * leaves the row, so the retry finds it and asks again; a missing blob is
+ * no fault.
+ */
 function newDeleteUnsharedBlobStep(
   store: Pick<Store, "queryResources">,
   storage: Pick<ArtifactStorage, "delete">,

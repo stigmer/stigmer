@@ -422,13 +422,7 @@ export async function composeServer(
       units: extensions.unitNames.join(", "),
     });
   }
-  // Every kind an organization can own is removed by a purge or kept on
-  // purpose, or the composition does not boot (boot/organization-purge.ts).
-  assertOrganizationPurgeCoverage({
-    edition: extensions.edition,
-    coreKinds: CORE_PURGED_KINDS,
-    units: extensions.orgPurge,
-  });
+
   // Stage: storage — the driver selection seam: DATABASE_URL
   // present → Postgres (async connect + advisory-locked migrations), else
   // sqlite on DB_PATH (its whole chain, incl. adopting a Go-created
@@ -527,6 +521,14 @@ export async function composeServer(
         : `the composition serves edition '${ServerEdition[extensions.edition]}' but registers no row reader for ${quoteJoin(unreadable.map(kindEnumName))} — the credential binding reads every served kind's organization from its row: register a reader for each kind a unit serves (drivers.resourceRowReaders)`,
     );
   }
+  // Every kind an organization can own is removed by a purge or kept on
+  // purpose, or the composition does not boot (boot/organization-purge.ts);
+  // checked with the other boot refusals, before the first write.
+  assertOrganizationPurgeCoverage({
+    edition: extensions.edition,
+    coreKinds: CORE_PURGED_KINDS,
+    units: extensions.orgPurge,
+  });
 
   // Stage: identity accounts — the first domain whose
   // persistence is a PORT rather than the generic Store. The composed
@@ -1500,6 +1502,8 @@ export async function composeServer(
     scheduleClock: () => scheduleSyncer,
     channelRuntime: extensions.drivers.channelRuntime,
     platformClients,
+    accounts: identityAccounts,
+    accountLifecycle: roleLifecycle,
   });
   const organizationPurge = new OrganizationPurgeRunner({
     store,

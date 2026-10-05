@@ -16,10 +16,15 @@
  * `RESOURCE_ID_KEY` and `EXISTING_RESOURCE_KEY` set, the purge's caller
  * stamped.
  *
- * After the steps, every policy row naming the row is revoked through the
+ * Before the steps, every policy row naming the row is revoked through the
  * grant path, failing the batch on a fault. A delete chain's
  * CleanupIamPolicies is best-effort (it logs and lets the delete answer);
- * a purge must leave nothing, and it is retried, so it fails instead.
+ * a purge must leave nothing, and it is retried, so it fails instead. The
+ * revocation comes first because the row is how a retry finds what is
+ * left, and how the grant path resolves the row's organization: a fault
+ * after the row's delete would leave policy rows nothing could reach. The
+ * same rule orders each kind's own removals (blobs before the row that
+ * names them).
  *
  * Rows are found where the store keeps them: through the kind's list index
  * when it has one (one organization's rows, a bounded page), otherwise by
@@ -181,15 +186,15 @@ export function newKindPurge<
     );
     ctx.set(RESOURCE_ID_KEY, id);
     ctx.set(EXISTING_RESOURCE_KEY, row);
+    await deps.grantPath.cleanupResource(
+      create(ApiResourceRefSchema, { kind: kindEnumName(spec.kind), id }),
+      caller,
+    );
     const builder = newPipeline<Input>(pipelineName, deps.logger);
     for (const step of spec.steps) {
       builder.addStep(step);
     }
     await builder.build().execute(ctx);
-    await deps.grantPath.cleanupResource(
-      create(ApiResourceRefSchema, { kind: kindEnumName(spec.kind), id }),
-      caller,
-    );
   }
 
   return {

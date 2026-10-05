@@ -55,6 +55,7 @@ const CONTRACT_CASE_NAMES = [
   "two concurrent saves of one subject end in fulfilments and DuplicateAccountErrors only, and the winner is readable by subject",
   "no subject lookup answers a federated account: its subject is its identity provider's",
   "findDirectByIdpId and findDirectByEmail never answer a platform-client account, while findByIdpId (any mode) does",
+  "findByOrg answers the accounts whose row names the organization, and never a person's own",
   "findByIds answers one row per distinct id, in first-occurrence order; an empty request answers an empty list",
   "update of an unknown id is a no-op: no row appears",
   "deleteById of an unknown id resolves",

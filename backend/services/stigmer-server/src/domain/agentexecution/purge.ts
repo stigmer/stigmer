@@ -8,11 +8,10 @@
  * attachments, by their `storage_key`. An attachment is uploaded under a
  * key minted per upload (`attachments/<ulid>/<file>`, artifacts.ts), so no
  * other execution names it; deleting an execution through its RPC leaves
- * the blob behind, and a purge must not. Removed after the row, the row
- * being the source of truth: a fault fails the batch, and the retry finds
- * no row and leaves a blob nothing names (the row's delete is the one
- * write the purge cannot redo). Core quiesce has already terminated the
- * run.
+ * the blob behind, and a purge must not. Removed before the row, which is
+ * how a retry finds them: a fault fails the batch with the row in place,
+ * and the retry deletes what is left (a missing blob is no fault). Core
+ * quiesce has already terminated the run.
  */
 import type { MessageShape } from "@bufbuild/protobuf";
 
@@ -52,10 +51,10 @@ export function newAgentExecutionPurge(
     input: AgentExecutionCommandController.method.delete.input,
     listIndex: agentExecutionListIndex,
     steps: [
+      newDeleteAttachmentBlobsStep(deps.artifactStorage),
       newDeleteResourceStep(deps.store),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
       newDeleteSearchIndexStep(deps.store, deps.logger),
-      newDeleteAttachmentBlobsStep(deps.artifactStorage),
     ],
   });
 }
