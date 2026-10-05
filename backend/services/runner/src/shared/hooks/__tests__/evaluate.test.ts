@@ -146,7 +146,7 @@ describe("how answers combine", () => {
     expect(await hooks.preToolUse(SHELL, {})).toMatchObject({ decision: "allow", hook: "" });
   });
 
-  it("takes a rewrite from the winning side, in the engine's shape, and never on a deny", async () => {
+  it("takes a rewrite from the winning side, in the engine's shape, never on a deny, and none that changes nothing", async () => {
     const { run } = scripted({ w: decide("allow", { updatedInput: { file_path: "/ws/src/b.ts" } }) });
     const hooks = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "Read", { command: "w" })] }], run);
     expect((await hooks.preToolUse(READ, {})).updatedArgs).toEqual({ file_path: "/src/b.ts" });
@@ -154,6 +154,11 @@ describe("how answers combine", () => {
     const denied = scripted({ w: decide("deny", { updatedInput: { file_path: "/ws/x" } }) });
     const deny = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "Read", { command: "w" })] }], denied.run);
     expect((await deny.preToolUse(READ, {})).updatedArgs).toBeUndefined();
+
+    const echoed = scripted({ w: decide("ask", { updatedInput: { file_path: "/ws/src/a.ts" } }) });
+    const echo = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "Read", { command: "w" })] }], echoed.run);
+    const asked = await echo.preToolUse(READ, {});
+    expect([asked.decision, asked.updatedArgs], "a rewrite that hands the call back as it was is none").toEqual(["ask", undefined]);
   });
 
   it("drops an allow, and its rewrite, from a handler whose `if` only might match; keeps its deny and a sure allow", async () => {

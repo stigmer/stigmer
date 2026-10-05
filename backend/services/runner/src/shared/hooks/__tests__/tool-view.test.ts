@@ -184,6 +184,9 @@ describe("Cursor's view of a native call", () => {
       views.argsFrom({ name, args: CALLS[name]!, serverSlug: "" }, "cursor", rewrite);
     expect(partial("edit_file", { file_path: `${ROOT}/src/b.ts` }), "a Cursor rewrite names only what it changes").toEqual({ ...CALLS["edit_file"], file_path: "/src/b.ts" });
     expect(partial("execute", { command: "ls" })).toEqual({ ...CALLS["execute"], command: "ls" });
+    const issue = { title: "a", body: "b" };
+    expect(views.argsFrom({ name: "create_issue", args: issue, serverSlug: "github" }, "cursor", { title: "c" }), "an MCP call's too").toEqual({ title: "c", body: "b" });
+    expect(views.argsFrom({ name: "create_issue", args: issue, serverSlug: "github" }, "claude-code", { title: "c" })).toEqual({ title: "c" });
     expect(views.argsFrom({ name: "edit_file", args: CALLS["edit_file"]!, serverSlug: "" }, "claude-code", { file_path: `${ROOT}/src/b.ts` }), "Claude Code's replaces the input").toEqual({ file_path: "/src/b.ts" });
     expect(back("execute", { command: "ls", cwd: "/elsewhere" }, "cursor")).toMatch(/another directory/);
     expect(back("glob", { pattern: "x", glob: "*.md", file_path: ROOT }, "cursor")).toMatch(/search pattern/);

@@ -68,6 +68,7 @@
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
           "policyEngineVersion": "hooks-1",
+          "approvalContentDigest": "args:833019951efa23a75abd5c7a203ba84931c4ba7c0fef1e96ed7b22ed85b986ae",
           "approvalPolicyHook": "safety"
         }
       ]

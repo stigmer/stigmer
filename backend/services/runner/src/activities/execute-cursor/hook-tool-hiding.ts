@@ -58,12 +58,19 @@ export function toolsHiddenByHooks(set: HookSet): readonly string[] {
   ).map((tool) => tool.sdkName);
 }
 
-/** The SDK's tool options with the hidden tools taken out: off an allow-list, onto the deny-list. */
+/**
+ * The SDK's tool options with the hidden tools taken out: onto the
+ * deny-list always, and off an allow-list too. The deny-list is what hides
+ * a tool from the sub-agents as well (live, fact 11 of
+ * `cursor-hook-protocol.live.test.ts`); the SDK documents both lists as the
+ * main loop's, and combines them deny-wins.
+ */
 export function withToolsHidden<T extends string>(
   options: { readonly tools?: T[]; readonly disallowedTools?: T[] },
   hidden: readonly T[],
 ): { readonly tools?: T[]; readonly disallowedTools?: T[] } {
   if (hidden.length === 0) return options;
-  if (options.tools !== undefined) return { tools: options.tools.filter((name) => !hidden.includes(name)) };
-  return { disallowedTools: [...new Set([...(options.disallowedTools ?? []), ...hidden])] };
+  const disallowedTools = [...new Set([...(options.disallowedTools ?? []), ...hidden])];
+  if (options.tools !== undefined) return { tools: options.tools.filter((name) => !hidden.includes(name)), disallowedTools };
+  return { disallowedTools };
 }

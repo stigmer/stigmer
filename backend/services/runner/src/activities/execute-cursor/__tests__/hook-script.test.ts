@@ -28,7 +28,7 @@ import { HookSet } from "../../../shared/hooks/hook-set.js";
 import { buildShellEnv } from "../../../shared/shell-env.js";
 import { startHookServer } from "../hook-server.js";
 import { CursorEngineToolViews } from "../hook-views.js";
-import { buildApprovalState, grantToken, primaryToken, scopeRefusalToken, toolIdentity } from "../approval-state.js";
+import { buildApprovalState, grantToken, hookAskDigest, primaryToken, scopeRefusalToken, toolIdentity } from "../approval-state.js";
 import { AGENT_SCOPE_KEY, READ_SCOPE_KEY, compileHookToolScope, scopeKey } from "../hook-scope.js";
 import { CURSOR_SDK_TOOL_COVERS, ToolScope } from "../../../shared/tool-lists.js";
 import { mcpToolKey } from "../../../shared/approval-policy.js";
@@ -1241,6 +1241,19 @@ d("generated approval hook: a hook's answer under capture and the secret block",
     await withHook(askAndMove, { autoApproveAll: true }, async (h) => {
       const res = await h.decideAsync({ ...hookWrite(file, "x"), hook_event_name: "preToolUse" });
       expect(JSON.parse(res.raw.trim())).toEqual({ permission: "allow", updated_input: { file_path: join(root, "b.txt"), content: "x" } });
+    });
+  });
+
+  it("lets an approved MCP call a hook asked on through, and no other call to the same tool", async () => {
+    // The grant the runner leaves for the approval of merging PR 1 (`boundary-rows.ts` approvalDigest).
+    const grant = (digest: string) => ({ toolName: "merge", mcpServerSlug: "srv", key: "srv/merge", salient: "", contentDigest: digest, sourceToolCallId: "consent-1" });
+    await withHook(ask, { grants: [grant(hookAskDigest({ pr: 1 }))] }, async (h) => {
+      expect((await h.decideAsync(hookMcp("merge", { pr: 1 }))).permission).toBe("allow");
+      expect((await h.decideAsync(hookMcp("merge", { pr: 2 }))).permission, "merging PR 2 needs its own approval").toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["approval"]);
+    });
+    await withHook(ask, { grants: [grant("")] }, async (h) => {
+      expect((await h.decideAsync(hookMcp("merge", { pr: 1 }))).permission, "a grant for the tool alone answers no hook's ask").toBe("deny");
     });
   });
 

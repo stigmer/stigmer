@@ -29,6 +29,7 @@
  * and in its environment is its format's (`formats/*.ts`).
  */
 
+import { isDeepStrictEqual } from "node:util";
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type { HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { hookLeaseKey } from "../approval-policy.js";
@@ -312,7 +313,10 @@ export class HookEvaluator {
           reason: `A hook rewrote this call in a way it cannot run as rewritten (${args}), so the call was refused.`,
         };
       }
-      return { ...base, decision: decider.decision === "defer" ? "ask" : decider.decision, reason: decider.reason ?? "", updatedArgs: args };
+      // A rewrite that hands the call back as it was is no rewrite.
+      if (!isDeepStrictEqual(args, call.args)) {
+        return { ...base, decision: decider.decision === "defer" ? "ask" : decider.decision, reason: decider.reason ?? "", updatedArgs: args };
+      }
     }
     return { ...base, decision: decider.decision === "defer" ? "ask" : decider.decision, reason: decider.reason ?? "" };
   }

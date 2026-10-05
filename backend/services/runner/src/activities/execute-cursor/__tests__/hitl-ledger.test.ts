@@ -60,7 +60,10 @@ import {
   watchDenialLedger,
   approvalDenials,
   denialKindOf,
+  hookAskDigest,
+  primaryToken,
 } from "../approval-state.js";
+import { contentDigest } from "../../../shared/file-tools.js";
 import {
   reconcileDeniedToolCalls,
   clearProvisionalPostDenialNarration,
@@ -284,6 +287,35 @@ describe("reconcileDeniedToolCalls", () => {
 
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(tc.approvalMessage).toBe("Execute apply_x");
+  });
+
+  it("grants a hook-asked MCP call under its whole input, while the row keeps the identity its retry resumes onto", async () => {
+    const tc = toolCall({ id: "c1", name: "merge", mcpServerSlug: "srv", status: ToolCallStatus.TOOL_CALL_COMPLETED, args: { pr: 1 } });
+    const messages = [aiMessageWith([tc])];
+
+    await reconcileDeniedToolCalls(messages, builderOver(messages), [
+      { toolName: "merge", token: grantToken("srv/merge", ""), kind: "approval", input: { pr: 1 }, hook: "safety", message: "merging needs a person" },
+    ]);
+
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(tc.approvalContentDigest).toBe(hookAskDigest({ pr: 1 }));
+    expect(toolCallIdentityToken(tc), "the retry streams under the tool's identity").toBe(grantToken("srv/merge", ""));
+    tc.approvalAction = ApprovalAction.APPROVE;
+    const adjudicated = reconstructAdjudicatedApprovals(messages);
+    const [grant] = buildApprovalGrants(adjudicated.pendingApprovals, adjudicated.decisions, adjudicated.contentDigests);
+    expect(primaryToken(grant!.key, grant!.salient, grant!.contentDigest), "the gate's script computes this from the payload").toBe(
+      Buffer.from(`srv/merge\n\n${hookAskDigest({ pr: 1 })}`, "utf-8").toString("base64"),
+    );
+  });
+
+  it("keeps a hook-asked write's grant on its content", async () => {
+    const tc = toolCall({ id: "c1", name: "edit", status: ToolCallStatus.TOOL_CALL_COMPLETED, args: { path: "gated.txt" } });
+    const messages = [aiMessageWith([tc])];
+    const input = { file_path: "gated.txt", content: "x" };
+    await reconcileDeniedToolCalls(messages, builderOver(messages), [
+      { toolName: "Write", token: grantToken("write", "gated.txt"), kind: "approval", input, hook: "safety" },
+    ]);
+    expect(tc.approvalContentDigest).toBe(contentDigest(input));
   });
 
   it("leaves non-denied tool calls untouched while overlaying the denied one", async () => {

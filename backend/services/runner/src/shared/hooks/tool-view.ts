@@ -290,9 +290,9 @@ export class NativeToolViews implements HookToolViews {
   }
 
   argsFrom(call: ViewedCall, format: HookFormatName, rewrite: Args): Args | string {
-    if (this.ctx.toolServerMap.has(call.name)) return { ...rewrite };
     // Cursor lays a rewrite over the call's own arguments, so a Cursor-format
     // hook names only what it changes; Claude Code's replaces the input whole.
+    if (this.ctx.toolServerMap.has(call.name)) return format === "cursor" ? { ...call.args, ...rewrite } : { ...rewrite };
     const input = format === "cursor" ? { ...this.cursorViewOf(call)?.cursor.toolInput, ...rewrite } : rewrite;
     if (format === "cursor" && call.name === "execute") {
       const cwd = input["cwd"];

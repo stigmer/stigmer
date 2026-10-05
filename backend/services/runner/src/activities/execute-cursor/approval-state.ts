@@ -79,6 +79,7 @@
  * token approved this turn becomes a grant token next turn.
  */
 
+import { createHash } from "node:crypto";
 import { watch } from "node:fs";
 import { writeFile, readFile, mkdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -339,8 +340,27 @@ export function primaryToken(key: string, salient: string, contentDigest: string
  */
 export function toolCallIdentityToken(tc: ToolCall): string {
   const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
-  const digest = tc.approvalContentDigest || contentDigest(toolCallArgs(tc));
+  // A hook ask's digest binds the grant, not the row's identity: the model's
+  // retry streams with the coarse identity and resumes onto this row.
+  const persisted = tc.approvalContentDigest.startsWith(HOOK_ASK_DIGEST_PREFIX) ? "" : tc.approvalContentDigest;
+  const digest = persisted || contentDigest(toolCallArgs(tc));
   return primaryToken(id.key, id.salient, digest);
+}
+
+/** Marks a {@link hookAskDigest}, apart from a file edit's content digest. */
+export const HOOK_ASK_DIGEST_PREFIX = "args:";
+
+/**
+ * What a hook's ask is approved under when the call carries no file content
+ * (an MCP tool, a shell command, a read or a search): the whole input as the
+ * hook saw it. The native engine asks for every call a hook asks on; here an
+ * approval leaves a grant, and keyed to the tool alone it would let through
+ * the same tool with any arguments. The gate's script computes the same
+ * digest from the payload (`hook-script.ts`, the hook arm's grant check), so
+ * the two must stay byte-identical: SHA-256 of the input's JSON, prefixed.
+ */
+export function hookAskDigest(input: Record<string, unknown>): string {
+  return HOOK_ASK_DIGEST_PREFIX + createHash("sha256").update(JSON.stringify(input), "utf8").digest("hex");
 }
 
 /**

@@ -30,7 +30,15 @@ import {
   removeHitlGate,
   buildMergedConfig,
 } from "../workspace-setup.js";
-import { claudeSettingsWithHooks, CursorWorkspaceHooksRefusal, refuseOwnFolderHooks, workspaceFolders } from "../workspace-hook-files.js";
+import {
+  claudeSettingsWithHooks,
+  CursorWorkspaceHooksRefusal,
+  refuseOwnFolderHooks,
+  restoreAbandonedWorkspaceFiles,
+  rewriteWorkspaceFiles,
+  workspaceFolders,
+} from "../workspace-hook-files.js";
+import { spawnSync } from "node:child_process";
 import { buildApprovalState } from "../approval-state.js";
 import { NO_MCP_DEFAULT } from "../__test-utils__/cursor-hook-harness.js";
 import { getHitlGateDir } from "../../../shared/workspace/platform-dir.js";
@@ -614,5 +622,30 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     const next = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
     await removeHitlGate(next);
     expect(readFileSync(settings, "utf-8")).toBe(original);
+  });
+
+  it("restores at boot what a stopped runner set aside, and leaves a running one's alone", async () => {
+    const gatesRoot = mkdtempSync(join(tmpdir(), "gates-"));
+    tempDirs.push(gatesRoot);
+    // The pid of a process that has exited: a runner that crashed.
+    const stopped = spawnSync(process.execPath, ["-e", ""]).pid!;
+    const setAside = async (name: string, writer: number) => {
+      const { settings, original } = workspace();
+      const gateDir = join(gatesRoot, name);
+      await rewriteWorkspaceFiles(gateDir, [{ path: settings, kind: "claude-settings", original, written: '{"model":"x"}\n' }]);
+      const snapshotPath = join(gateDir, "workspace-files.json");
+      writeFileSync(snapshotPath, JSON.stringify({ ...JSON.parse(readFileSync(snapshotPath, "utf-8")), writer }), "utf-8");
+      return { settings, original, snapshotPath };
+    };
+    const crashed = await setAside("crashed", stopped);
+    const running = await setAside("running", process.ppid);
+    mkdirSync(join(gatesRoot, "empty"));
+
+    await restoreAbandonedWorkspaceFiles(gatesRoot, () => false);
+    expect(readFileSync(crashed.settings, "utf-8")).toBe(crashed.original);
+    expect(existsSync(crashed.snapshotPath)).toBe(false);
+    expect(readFileSync(running.settings, "utf-8"), "a running runner's turn keeps its set-aside").toBe('{"model":"x"}\n');
+    expect(existsSync(running.snapshotPath)).toBe(true);
+    await restoreAbandonedWorkspaceFiles(join(gatesRoot, "missing"), () => false);
   });
 });

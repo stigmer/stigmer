@@ -51,6 +51,7 @@ import {
   DISABLED_DENIAL_KIND,
   grantToken,
   HOOK_DENIAL_KIND,
+  hookAskDigest,
   toolCallArgs,
   toolCallIdentityToken,
   toolIdentity,
@@ -360,6 +361,7 @@ function proposeOnStreamedRow(
   asked: HookAsk | undefined,
 ): void {
   const args = proposalArgs(input);
+  const digest = approvalDigest(tc.mcpServerSlug, args ? contentDigest(args) : "", input, asked);
   transcript.apply({
     kind: "approval_proposed",
     callId: tc.id,
@@ -367,8 +369,25 @@ function proposeOnStreamedRow(
     mcpServerSlug: tc.mcpServerSlug,
     message: asked?.message || tc.approvalMessage || resolveDeniedApprovalMessage(tc.name, tc.mcpServerSlug, toolCallArgs(tc), mcpDefault),
     ...(asked !== undefined ? { provenance: "hook" as const, policyHook: asked.hook } : {}),
-    ...(args !== undefined ? { args, contentDigest: contentDigest(args) } : {}),
+    ...(args !== undefined ? { args } : {}),
+    ...(digest ? { contentDigest: digest } : {}),
   });
+}
+
+/**
+ * The digest an approval is granted under: a built-in's file content when it
+ * has some; for a call a hook asked on and that has none, or any MCP call a
+ * hook asked on, the hook's whole input ({@link hookAskDigest}), so the grant
+ * lets through that call and no other, as the native engine asks for each.
+ */
+function approvalDigest(
+  mcpServerSlug: string,
+  content: string,
+  input: Record<string, unknown> | undefined,
+  asked: HookAsk | undefined,
+): string {
+  if (asked === undefined || input === undefined) return content;
+  return content && !mcpServerSlug ? content : hookAskDigest(input);
 }
 
 /** A hook's ask, as the card shows it. */
@@ -430,7 +449,7 @@ function proposeSynthesizedGate(
     ...(args !== undefined ? { args } : {}),
     ...(provenance !== undefined ? { provenance } : {}),
     ...(asked !== undefined ? { policyHook: asked.hook } : {}),
-    contentDigest: captured ? contentDigest(captured) : digest,
+    contentDigest: approvalDigest("", captured ? contentDigest(captured) : digest, input, asked),
   });
   const row = findToolCallById(messages, callId);
   if (!row) throw new Error(`reconcileDeniedToolCalls: the builder did not create the proposed row ${callId}`);

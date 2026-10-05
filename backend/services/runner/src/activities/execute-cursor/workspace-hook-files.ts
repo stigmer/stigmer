@@ -33,12 +33,17 @@
  * edit with the gate's own change undone (the set-aside hook entries
  * returned, any the agent added kept beside them, and the gate's removed),
  * with a log line; the turn's file review then sees what the agent changed.
- * A snapshot a crashed turn left behind is restored at the next install,
- * before anything else. The snapshot is the owner's alone (mode 0600): a
- * settings file can carry tokens in its `env`.
+ * A snapshot a crashed runner left behind is restored when the next runner
+ * boots ({@link restoreAbandonedWorkspaceFiles}), before any turn pins the
+ * tree its file review compares against; restored later, the files would
+ * read as the agent's change. A snapshot names the runner that wrote it, so
+ * a booting runner leaves alone one whose writer still runs (another runner
+ * on the same machine, mid-turn). The next install restores any snapshot
+ * still left, before anything else. The snapshot is the owner's alone (mode
+ * 0600): a settings file can carry tokens in its `env`.
  */
 
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { ProvisionResult } from "../../shared/workspace/types.js";
 
@@ -135,7 +140,8 @@ export async function rewriteWorkspaceFiles(gateDir: string, rewrites: readonly 
   const snapshotPath = join(gateDir, SNAPSHOT_FILE);
   await mkdir(gateDir, { recursive: true });
   const tmp = `${snapshotPath}.${process.pid}.tmp`;
-  await writeFile(tmp, JSON.stringify(rewrites), { encoding: "utf-8", mode: 0o600 });
+  const snapshot: Snapshot = { writer: process.pid, rewrites: [...rewrites] };
+  await writeFile(tmp, JSON.stringify(snapshot), { encoding: "utf-8", mode: 0o600 });
   await rename(tmp, snapshotPath);
   for (const rewrite of rewrites) await writeFile(rewrite.path, rewrite.written, "utf-8");
 }
@@ -148,7 +154,7 @@ export async function rewriteWorkspaceFiles(gateDir: string, rewrites: readonly 
  */
 export async function restoreWorkspaceFiles(gateDir: string, isGateEntry: (entry: unknown) => boolean): Promise<void> {
   const snapshotPath = join(gateDir, SNAPSHOT_FILE);
-  const rewrites = await readSnapshot(snapshotPath);
+  const { rewrites } = await readSnapshot(snapshotPath);
   for (const rewrite of rewrites) {
     try {
       await restoreOne(rewrite, isGateEntry);
@@ -157,6 +163,44 @@ export async function restoreWorkspaceFiles(gateDir: string, isGateEntry: (entry
     }
   }
   await rm(snapshotPath, { force: true });
+}
+
+/**
+ * At a runner's boot: restore every gate directory's snapshot whose writer no
+ * longer runs (see the header). Never throws: a gate directory that cannot be
+ * read is logged and the rest still are.
+ */
+export async function restoreAbandonedWorkspaceFiles(gatesRoot: string, isGateEntry: (entry: unknown) => boolean): Promise<void> {
+  let dirs: string[];
+  try {
+    dirs = await readdir(gatesRoot);
+  } catch {
+    return;
+  }
+  for (const dir of dirs) {
+    const gateDir = join(gatesRoot, dir);
+    const { writer, rewrites } = await readSnapshot(join(gateDir, SNAPSHOT_FILE));
+    if (rewrites.length === 0 || (writer !== process.pid && isRunning(writer))) continue;
+    console.log(`[workspace hooks] restoring the workspace files a stopped runner set aside (${gateDir})`);
+    await restoreWorkspaceFiles(gateDir, isGateEntry);
+  }
+}
+
+/** Whether a process runs; one this user may not signal still does. */
+function isRunning(pid: number | undefined): boolean {
+  if (pid === undefined) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    return (err as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+/** The snapshot file: the rewrites, and the runner process that wrote them. */
+interface Snapshot {
+  readonly writer?: number;
+  readonly rewrites: readonly WorkspaceFileRewrite[];
 }
 
 async function restoreOne(rewrite: WorkspaceFileRewrite, isGateEntry: (entry: unknown) => boolean): Promise<void> {
@@ -217,15 +261,11 @@ function mergedEntries(
   return hooks;
 }
 
-async function readSnapshot(path: string): Promise<WorkspaceFileRewrite[]> {
-  const raw = await readOrNull(path);
-  if (raw === null) return [];
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed.filter(isRewrite) as WorkspaceFileRewrite[]) : [];
-  } catch {
-    return [];
-  }
+async function readSnapshot(path: string): Promise<Snapshot> {
+  const parsed = parseObject(await readOrNull(path));
+  const rewrites = parsed !== undefined && Array.isArray(parsed["rewrites"]) ? (parsed["rewrites"].filter(isRewrite) as WorkspaceFileRewrite[]) : [];
+  const writer = parsed?.["writer"];
+  return typeof writer === "number" ? { writer, rewrites } : { rewrites };
 }
 
 function isRewrite(value: unknown): boolean {

@@ -139,8 +139,11 @@ describe("the tools a turn hides for its hooks", () => {
     expect(toolsHiddenByHooks(set("cursor", "preToolUse", ".*"))).toEqual(["webFetch", "webSearch"]);
   });
 
-  it("takes hidden tools off an allow-list, or onto a deny-list", () => {
-    expect(withToolsHidden({ tools: ["read", "webFetch", "shell"] }, ["webFetch"])).toEqual({ tools: ["read", "shell"] });
+  it("puts hidden tools on the deny-list, and takes them off an allow-list too", () => {
+    expect(withToolsHidden({ tools: ["read", "webFetch", "shell"] }, ["webFetch"]), "the deny-list is what reaches sub-agents").toEqual({
+      tools: ["read", "shell"],
+      disallowedTools: ["webFetch"],
+    });
     expect(withToolsHidden({ disallowedTools: ["shell"] }, ["webFetch"])).toEqual({ disallowedTools: ["shell", "webFetch"] });
     expect(withToolsHidden({}, ["webSearch"])).toEqual({ disallowedTools: ["webSearch"] });
     expect(withToolsHidden({ tools: ["read"] }, [])).toEqual({ tools: ["read"] });

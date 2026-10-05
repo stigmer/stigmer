@@ -153,6 +153,7 @@ import {
   WRITE_CONTENT_FIELDS,
 } from "../../shared/file-tools.js";
 import { buildObservationStagingScript, buildSecretClassifyScript, CAS_OBSERVATIONS_DIRNAME } from "./cas-observations.js";
+import { HOOK_ASK_DIGEST_PREFIX } from "./approval-state.js";
 
 // Shown to the model when the gate denies a tool call. It must NOT teach the
 // model to ask for permission in prose or to "stop and wait" — that framing
@@ -462,8 +463,14 @@ function buildNodeIdentityScript(): string {
     // sentinel.
     // A call's key is its approval category, else the hook's name for the
     // tool (a hook may ask on any tool); an MCP call's is `server/tool`.
+    // Line 13 is the token an approval of a hook's ask is granted under when
+    // the call has no file content: its identity and the digest of its whole
+    // input (mirror of approval-state.ts hookAskDigest).
     `const key=cat||name;`,
-    `process.stdout.write(name+"\\n"+cat+"\\n"+b(key+"\\n"+s)+"\\n"+b(srv+"/"+name+"\\n")+"\\n"+ev+"\\n"+b(JSON.stringify(a))+"\\n"+(dig?b(key+"\\n"+s+"\\n"+dig):"")+"\\n"+b(s)+"\\n"+srv+"\\n"+sv+"\\n"+stk+"\\n"+smsg);`,
+    `const hk=ev==="beforeMCPExecution"?srv+"/"+name:key;`,
+    `const hs=ev==="beforeMCPExecution"?"":s;`,
+    `const hd="${HOOK_ASK_DIGEST_PREFIX}"+require("crypto").createHash("sha256").update(JSON.stringify(a),"utf8").digest("hex");`,
+    `process.stdout.write(name+"\\n"+cat+"\\n"+b(key+"\\n"+s)+"\\n"+b(srv+"/"+name+"\\n")+"\\n"+ev+"\\n"+b(JSON.stringify(a))+"\\n"+(dig?b(key+"\\n"+s+"\\n"+dig):"")+"\\n"+b(s)+"\\n"+srv+"\\n"+sv+"\\n"+stk+"\\n"+smsg+"\\n"+b(hk+"\\n"+hs+"\\n"+hd));`,
   ].join("");
 }
 
@@ -661,6 +668,7 @@ if [ -n "$IDENTITY" ]; then
   SCOPE_VERDICT=$(printf '%s\\n' "$IDENTITY" | sed -n 10p)
   SCOPE_TOKEN=$(printf '%s\\n' "$IDENTITY" | sed -n 11p)
   SCOPE_MESSAGE=$(printf '%s\\n' "$IDENTITY" | sed -n 12p)
+  HOOK_ARGS_TOKEN=$(printf '%s\\n' "$IDENTITY" | sed -n 13p)
 else
   # Fallback when the Node binary cannot run: grep/cut extraction. Best-effort
   # only — '"field":"[^"]*"' truncates at the first JSON-escaped quote, so the
@@ -695,6 +703,7 @@ ${categoryCaseArms}
   SCOPE_VERDICT="E"
   SCOPE_TOKEN=""
   SCOPE_MESSAGE=""
+  HOOK_ARGS_TOKEN=""
 fi
 # The single identity a deny is recorded under: content-exact when the input
 # carried edit content, else coarse — the same PRIMARY-token choice the runner
@@ -767,6 +776,17 @@ GRANTS=$(echo "$STATE" | grep -o '"approvedGrantTokens":\\[[^]]*\\]' | head -1 |
 # Whether an approved grant covers this call: the content-exact token (a file
 # edit approved with this exact content) or the coarse one for a built-in;
 # the server/tool token for an MCP tool.
+# The approval of a hook's ask: a built-in's file content when it has some,
+# else the call's whole input (HOOK_ARGS_TOKEN), never the tool alone, so an
+# approved call lets through that call and no other.
+__stigmer_hook_granted() {
+  if [ "$HOOK_EVENT" != "beforeMCPExecution" ] && [ -n "$CONTENT_TOKEN" ]; then
+    echo "$GRANTS" | grep -qF "\\"$CONTENT_TOKEN\\""
+    return
+  fi
+  [ -n "$HOOK_ARGS_TOKEN" ] && echo "$GRANTS" | grep -qF "\\"$HOOK_ARGS_TOKEN\\""
+}
+
 __stigmer_granted() {
   if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
     echo "$GRANTS" | grep -qF "\\"$MCP_TOKEN\\""
@@ -894,7 +914,7 @@ if [ -n "$HOOK_SOCKET" ] && { [ "$HOOK_EVENT" = "beforeMCPExecution" ] || { [ "$
       exit 0
       ;;
     ask)
-      if echo "$STATE" | grep -q '"autoApproveAll":true' || __stigmer_granted; then
+      if echo "$STATE" | grep -q '"autoApproveAll":true' || __stigmer_hook_granted; then
         # Satisfied: an allow, so the capture arms below still review it.
         HOOK_ALLOW=true
         HOOK_ALLOW_RESPONSE=$(printf '%s\\n' "$HOOK_REPLY" | sed -n 3p | base64 -d)
