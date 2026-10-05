@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import * as path from "node:path";
 import sharp from "sharp";
-import { brandSvg } from "./assets.mjs";
+import { brandLockupSvg, brandSvg } from "./assets.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 async function write(relative: string, data: string | Buffer): Promise<void> {
@@ -39,7 +39,17 @@ async function main(): Promise<void> {
       `brand/logo${suffix}.png`,
       await sharp(Buffer.from(svg)).png().toBuffer(),
     );
+    const lockup = await brandLockupSvg({ color });
+    await write(`brand/logo-lockup${suffix}.svg`, lockup);
+    await write(
+      `brand/logo-lockup${suffix}.png`,
+      await sharp(Buffer.from(lockup)).png().toBuffer(),
+    );
   }
+  await write(
+    "site/public/logo-lockup-white.svg",
+    await brandLockupSvg({ color: "#fefefe" }),
+  );
   await write(
     "brand/avatar.png",
     await sharp(
