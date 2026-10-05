@@ -444,8 +444,8 @@ export const RecordLlmCallUsageInputSchema: GenMessage<RecordLlmCallUsageInput> 
 /**
  * The execution-side facts LLM metering denormalizes onto every usage
  * record, carried from the proxy that authorized the call to the billing
- * handler that records it. Deliberately narrower than the execution's
- * ExecutionConfig: only what metering reconciles or prices against.
+ * handler that records it. Deliberately narrower than the settings the
+ * execution resolved: only what metering reconciles or prices against.
  *
  * @generated from message ai.stigmer.billing.v1.MeteredExecution
  */
@@ -459,16 +459,18 @@ export type MeteredExecution = Message<"ai.stigmer.billing.v1.MeteredExecution">
   sessionId: string;
 
   /**
-   * The execution's configured model (spec.execution_config.model_name) —
-   * the authoritative statement of what was asked for, and the pricing
-   * fallback when the wire's requested_model came up empty.
+   * The model the execution resolved (status.run_config.model_name, whichever
+   * layer chose it: the message, the agent's defaults or the lane's profile)
+   * — the authoritative statement of what was asked for, and the pricing
+   * fallback when the wire's requested_model came up empty. Empty when no
+   * layer named a model and the engine chose.
    *
    * @generated from field: string pinned_model = 2;
    */
   pinnedModel: string;
 
   /**
-   * The service tier the execution requested (spec.execution_config.
+   * The service tier the execution resolved (status.run_config.
    * service_tier); UNSPECIFIED resolves to standard. Reconciled against
    * served_service_tier by the service_tier.mismatch counter.
    *
@@ -477,7 +479,7 @@ export type MeteredExecution = Message<"ai.stigmer.billing.v1.MeteredExecution">
   requestedServiceTier: ServiceTier;
 
   /**
-   * The thinking mode the execution requested (spec.execution_config.
+   * The thinking mode the execution resolved (status.run_config.
    * thinking_mode). Reconciled against the served variant by the
    * thinking.mismatch counter.
    *

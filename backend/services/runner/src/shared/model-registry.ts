@@ -238,7 +238,7 @@ export async function getEconomyModel(primaryModel: string): Promise<string> {
 /**
  * Resolve the default agent execution model from the registry.
  *
- * Used when the user hasn't selected a model (no executionConfig.modelName).
+ * Used when no settings layer named a model (an empty status.runConfig.modelName).
  * Returns the provider's API model identifier (e.g., "claude-sonnet-4-6"),
  * not the Stigmer registry ID (e.g., "claude-sonnet-4.6").
  *
@@ -309,7 +309,7 @@ export async function resolveToApiModelId(registryId: string): Promise<string> {
  * degrades to today's behavior instead of blocking images.
  *
  * Matches by registry `id` OR `apiModelId`: getDefaultModel() hands the
- * deep-agent harness the provider API id, while executionConfig.modelName
+ * deep-agent harness the provider API id, while status.runConfig.modelName
  * carries the registry id, so both forms arrive here.
  */
 export async function getModelVisionCapability(
@@ -326,7 +326,7 @@ export async function getModelVisionCapability(
 
 /**
  * The native-harness row's request facts for a model, matched by registry
- * `id` or `apiModelId` (the execution config carries the former, the
+ * `id` or `apiModelId` (the turn's resolved settings carry the former, the
  * registry default the latter) and filtered to `harness: native`: ids such
  * as `claude-sonnet-5` exist on both harnesses, and only the native row
  * describes the native request. `undefined` when the registry is

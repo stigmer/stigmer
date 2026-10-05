@@ -129,8 +129,7 @@ private static final long serialVersionUID = 0L;
    * Token threshold that triggers summarization.
    *
    * When current_token_count exceeds this value, summarization is triggered
-   * to reduce context size. This is either the model default from Model
-   * Registry or a custom override from ContextManagementConfig.
+   * to reduce context size, taken from the model's Model Registry entry.
    *
    * Typically set to ~90% of context_window_limit.
    * </pre>
@@ -149,9 +148,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Target token count after summarization.
    *
-   * Summarization aims to reduce context to approximately this size.
-   * This is either the model default from Model Registry or a custom
-   * override from ContextManagementConfig.
+   * Summarization aims to reduce context to approximately this size,
+   * taken from the model's Model Registry entry.
    *
    * Typically set to ~80% of context_window_limit.
    * </pre>
@@ -169,9 +167,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether summarization is enabled for this execution.
-   *
-   * false if ContextManagementConfig.disable_summarization was true.
-   * true otherwise (default).
    *
    * When false, no summarization events will occur regardless of
    * token count. The execution may fail if context exceeds limits.
@@ -953,8 +948,7 @@ private static final long serialVersionUID = 0L;
      * Token threshold that triggers summarization.
      *
      * When current_token_count exceeds this value, summarization is triggered
-     * to reduce context size. This is either the model default from Model
-     * Registry or a custom override from ContextManagementConfig.
+     * to reduce context size, taken from the model's Model Registry entry.
      *
      * Typically set to ~90% of context_window_limit.
      * </pre>
@@ -971,8 +965,7 @@ private static final long serialVersionUID = 0L;
      * Token threshold that triggers summarization.
      *
      * When current_token_count exceeds this value, summarization is triggered
-     * to reduce context size. This is either the model default from Model
-     * Registry or a custom override from ContextManagementConfig.
+     * to reduce context size, taken from the model's Model Registry entry.
      *
      * Typically set to ~90% of context_window_limit.
      * </pre>
@@ -993,8 +986,7 @@ private static final long serialVersionUID = 0L;
      * Token threshold that triggers summarization.
      *
      * When current_token_count exceeds this value, summarization is triggered
-     * to reduce context size. This is either the model default from Model
-     * Registry or a custom override from ContextManagementConfig.
+     * to reduce context size, taken from the model's Model Registry entry.
      *
      * Typically set to ~90% of context_window_limit.
      * </pre>
@@ -1014,9 +1006,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Target token count after summarization.
      *
-     * Summarization aims to reduce context to approximately this size.
-     * This is either the model default from Model Registry or a custom
-     * override from ContextManagementConfig.
+     * Summarization aims to reduce context to approximately this size,
+     * taken from the model's Model Registry entry.
      *
      * Typically set to ~80% of context_window_limit.
      * </pre>
@@ -1032,9 +1023,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Target token count after summarization.
      *
-     * Summarization aims to reduce context to approximately this size.
-     * This is either the model default from Model Registry or a custom
-     * override from ContextManagementConfig.
+     * Summarization aims to reduce context to approximately this size,
+     * taken from the model's Model Registry entry.
      *
      * Typically set to ~80% of context_window_limit.
      * </pre>
@@ -1054,9 +1044,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Target token count after summarization.
      *
-     * Summarization aims to reduce context to approximately this size.
-     * This is either the model default from Model Registry or a custom
-     * override from ContextManagementConfig.
+     * Summarization aims to reduce context to approximately this size,
+     * taken from the model's Model Registry entry.
      *
      * Typically set to ~80% of context_window_limit.
      * </pre>
@@ -1076,9 +1065,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Whether summarization is enabled for this execution.
      *
-     * false if ContextManagementConfig.disable_summarization was true.
-     * true otherwise (default).
-     *
      * When false, no summarization events will occur regardless of
      * token count. The execution may fail if context exceeds limits.
      * </pre>
@@ -1093,9 +1079,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether summarization is enabled for this execution.
-     *
-     * false if ContextManagementConfig.disable_summarization was true.
-     * true otherwise (default).
      *
      * When false, no summarization events will occur regardless of
      * token count. The execution may fail if context exceeds limits.
@@ -1115,9 +1098,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether summarization is enabled for this execution.
-     *
-     * false if ContextManagementConfig.disable_summarization was true.
-     * true otherwise (default).
      *
      * When false, no summarization events will occur regardless of
      * token count. The execution may fail if context exceeds limits.

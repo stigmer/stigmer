@@ -14,8 +14,6 @@
  * errors suggest identically. The message strings are pinned identical to
  * the cloud Java ModelValidationHelper — keep them in lockstep.
  */
-import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { WorkflowSpec } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import type { AgentCallTaskConfig } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
@@ -23,16 +21,16 @@ import type { EvalTaskConfig } from "@stigmer/protos/ai/stigmer/agentic/workflow
 import type { LlmCallTaskConfig } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/llm_call_pb";
 
 import { tryUnmarshalTaskConfig } from "../converter/unmarshal.js";
-import {
-  FAST_VARIANT_KEY,
-  THINKING_CAPABILITY_KEY,
-} from "../registry/model-registry-store.js";
 import type { ModelCatalogProvider } from "../registry/model-catalog-provider.js";
 import {
   HARNESS_NAME_NATIVE,
   harnessName,
   suggestSimilarModels,
 } from "../registry/pin-validation.js";
+import {
+  savedServiceTierRefusal,
+  savedThinkingModeRefusal,
+} from "../registry/run-config-checks.js";
 
 /**
  * Checks that model IDs specified in workflow tasks are valid entries in
@@ -75,13 +73,17 @@ export function validateModelReferences(
         harness = harnessName(cfg.harness);
         // Variant-attribute validation is independent of the model check
         // below: FAST/ENABLED with no model_name must fail even though
-        // the model loop skips (#357/#772, same fail-closed rule as
-        // execution create).
-        const tierErr = validateAgentCallServiceTier(models, task.name, harness, cfg.runConfig);
+        // the model loop skips (#357/#772; saved settings name their own
+        // model, registry/run-config-checks.ts).
+        const site = {
+          prefix: `task '${task.name}' (agent_call): `,
+          fieldPath: "run_config",
+        };
+        const tierErr = savedServiceTierRefusal(models, site, harness, cfg.runConfig);
         if (tierErr !== "") {
           errors.push(tierErr);
         }
-        const thinkingErr = validateAgentCallThinkingMode(models, task.name, harness, cfg.runConfig);
+        const thinkingErr = savedThinkingModeRefusal(models, site, harness, cfg.runConfig);
         if (thinkingErr !== "") {
           errors.push(thinkingErr);
         }
@@ -129,117 +131,6 @@ export function validateModelReferences(
   }
 
   return errors;
-}
-
-/**
- * Applies the same fail-closed service-tier rules as execution create to an
- * agent_call's run_config, with one extra dimension execution create cannot
- * have: the task config names its harness, so the fast variant must be
- * priced FOR THAT HARNESS — a fast price under another harness would
- * validate a tier the execution path can never apply (a silent no-op, the
- * exact class #357 exists to kill).
- *
- * STANDARD/unset is always valid; unknown tier strings never reach this
- * function (strict unmarshaling refuses non-canonical enum values).
- */
-function validateAgentCallServiceTier(
-  models: ModelCatalogProvider,
-  taskName: string,
-  harness: string,
-  rc: RunConfig | undefined,
-): string {
-  if (rc?.serviceTier !== ServiceTier.FAST) {
-    return "";
-  }
-  const modelName = (rc.modelName ?? "").trim();
-  if (modelName === "") {
-    return (
-      `task '${taskName}' (agent_call): run_config.service_tier 'fast' requires ` +
-      `run_config.model_name — the fast tier is a per-model price`
-    );
-  }
-  if (!models.hasPricingVariantForHarness(harness, modelName, FAST_VARIANT_KEY)) {
-    return (
-      `task '${taskName}' (agent_call): run_config.service_tier 'fast' is not available ` +
-      `for model '${modelName}' on harness '${harness}': the model registry prices no fast ` +
-      `variant for it${fastCapableSuffix(models, harness)}`
-    );
-  }
-  return "";
-}
-
-/**
- * Applies the same fail-closed thinking-mode rules as execution create to
- * an agent_call's run_config (oss#772), harness-scoped like the tier check
- * above. Capability-gated, not pricing-gated: thinking bills at base
- * per-token rates, so the registry fact that makes ENABLED selectable is
- * capabilities.thinking under the task's harness — which in v1 only the
- * cursor harness can honor.
- *
- * DISABLED/unset is always valid; unknown mode strings never reach this
- * function (strict unmarshaling refuses non-canonical enum values).
- */
-function validateAgentCallThinkingMode(
-  models: ModelCatalogProvider,
-  taskName: string,
-  harness: string,
-  rc: RunConfig | undefined,
-): string {
-  if (rc?.thinkingMode !== ThinkingMode.ENABLED) {
-    return "";
-  }
-  const modelName = (rc.modelName ?? "").trim();
-  if (modelName === "") {
-    return (
-      `task '${taskName}' (agent_call): run_config.thinking_mode 'enabled' requires ` +
-      `run_config.model_name — thinking is a per-model capability`
-    );
-  }
-  if (!models.hasCapabilityForHarness(harness, modelName, THINKING_CAPABILITY_KEY)) {
-    return (
-      `task '${taskName}' (agent_call): run_config.thinking_mode 'enabled' is not available ` +
-      `for model '${modelName}' on harness '${harness}': the model registry declares no thinking ` +
-      `capability for it${thinkingCapableSuffix(models, harness)}`
-    );
-  }
-  return "";
-}
-
-/**
- * Renders "; models with a thinking mode on '<harness>': a, b, c" —
- * actionable refusal detail, sorted (the store keeps the list sorted),
- * empty when the registry declares none for that harness.
- */
-function thinkingCapableSuffix(
-  models: ModelCatalogProvider,
-  harness: string,
-): string {
-  const capable = models.canonicalModelsWithCapabilityForHarness(
-    harness,
-    THINKING_CAPABILITY_KEY,
-  );
-  if (capable.length === 0) {
-    return "";
-  }
-  return `; models with a thinking mode on '${harness}': ${capable.join(", ")}`;
-}
-
-/**
- * Renders "; models with a fast tier on '<harness>': a, b, c" — sorted,
- * empty when the registry prices none for that harness.
- */
-function fastCapableSuffix(
-  models: ModelCatalogProvider,
-  harness: string,
-): string {
-  const capable = models.canonicalModelsWithVariantForHarness(
-    harness,
-    FAST_VARIANT_KEY,
-  );
-  if (capable.length === 0) {
-    return "";
-  }
-  return `; models with a fast tier on '${harness}': ${capable.join(", ")}`;
 }
 
 function buildModelError(

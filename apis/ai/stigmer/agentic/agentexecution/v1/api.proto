@@ -7,6 +7,7 @@ import "ai/stigmer/agentic/agentexecution/v1/artifact.proto";
 import "ai/stigmer/agentic/agentexecution/v1/context.proto";
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/agentexecution/v1/filereview.proto";
+import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
 import "ai/stigmer/agentic/agentexecution/v1/message.proto";
 import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
 import "ai/stigmer/agentic/agentexecution/v1/subagent.proto";
@@ -33,7 +34,7 @@ message AgentExecution {
 
   // User-provided inputs for this execution.
   // Contains: the conversation (session_id or a new session_spec), message,
-  // execution_config, and runtime_env. Environment values reach a turn from
+  // run_config, the per-message intents, and runtime_env. Environment values reach a turn from
   // the environments the server resolves for its run and from the
   // per-execution runtime_env; see the runtime_env field docs in
   // spec.proto.
@@ -285,7 +286,7 @@ message AgentExecutionStatus {
 
   // Structured output extracted from the agent's final response.
   //
-  // Populated when ExecutionConfig.structured_output_schema was set and the
+  // Populated when spec.structured_output_schema was set and the
   // runner successfully extracted schema-conforming data. Only meaningful
   // when phase is EXECUTION_COMPLETED.
   //
@@ -442,9 +443,9 @@ message AgentExecutionStatus {
   // where callers are persons (the require-authentication posture, every
   // edition; stigmer#1397); the single-operator posture (trusted-local)
   // composes org_context only. Composition is best-effort; a preference
-  // load failure never fails the create. Outside ExecutionConfig:
-  // preference content must not vanish with the execution-profile
-  // kill-switch (the conversation_catchup rationale).
+  // load failure never fails the create. Outside run_config: preference
+  // content is not a setting, and must not vanish with the
+  // execution-profile kill-switch (the conversation_catchup rationale).
   DeclaredPreferences declared_preferences = 29;
 
   // The caller's confirmed memories, snapshotted into this execution at
@@ -463,6 +464,35 @@ message AgentExecutionStatus {
   // the whole set. The enabled bit doubles as the runner's signal to offer
   // the remember tool. Composed by the create pipeline's compose steps.
   RecalledMemories recalled_memories = 30;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // The Settings This Turn Ran With
+  //
+  // The settings and approval mode this turn runs with, resolved once by the
+  // server when the execution is created and read by every later reader:
+  // the runner, history, billing and recovery all read one answer.
+  //
+  // Server-only: a client-sent value is discarded at create, and status
+  // writes never change either field.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // The settings this turn runs with: spec.run_config (or the saved settings
+  // of the surface it came through), the defaults of the agent version the
+  // turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+  //
+  // An empty model_name means no layer named one and the engine chose (the
+  // native engine's registry default; Cursor's Auto).
+  RunConfig run_config = 31;
+
+  // How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
+  // UNSPECIFIED.
+  //
+  // A fact of the lane the turn came through, never of the request: a
+  // schedule's turn and the hosted edition's shared-agent guest and channel
+  // turns are UNATTENDED (nobody is present to approve); every other turn is
+  // INTERACTIVE, a workflow step's included (its workflow takes the approval
+  // request).
+  ApprovalMode approval_mode = 32;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.

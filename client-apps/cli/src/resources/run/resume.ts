@@ -113,7 +113,7 @@ async function replaySession(
 // execution's InteractionMode; else default (agent).
 function resolveResumeMode(explicit: RunMode, latest: AgentExecution): RunMode {
   if (explicit !== "") return explicit;
-  if (latest.spec?.executionConfig?.interactionMode === InteractionMode.PLAN) return "plan";
+  if (latest.spec?.interactionMode === InteractionMode.PLAN) return "plan";
   return "";
 }
 

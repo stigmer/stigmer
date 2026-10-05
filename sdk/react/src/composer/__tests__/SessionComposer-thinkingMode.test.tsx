@@ -190,7 +190,9 @@ describe("SessionComposer — thinking mode submit contract", () => {
     expect(context?.thinkingMode).toBeUndefined();
   });
 
-  it("leaves thinkingMode undefined after toggling on and back off", async () => {
+  it("sends an explicit disabled mode after toggling on and back off", async () => {
+    // Off is a choice too: it turns off thinking a less specific layer
+    // (the agent's defaults) would otherwise apply.
     const { onSubmit } = renderComposer();
 
     await toggleThinking();
@@ -199,7 +201,7 @@ describe("SessionComposer — thinking mode submit contract", () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     const context = onSubmit.mock.calls[0][2];
-    expect(context?.thinkingMode).toBeUndefined();
+    expect(context?.thinkingMode).toBe("disabled");
   });
 });
 

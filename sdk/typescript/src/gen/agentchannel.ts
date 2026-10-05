@@ -214,6 +214,7 @@ export interface RunConfigInput {
   maxToolRounds?: number;
   serviceTier?: ServiceTier;
   thinkingMode?: ThinkingMode;
+  maxToolResultChars?: number;
 }
 
 function buildSlackChannelConfigProto(input: SlackChannelConfigInput) {
@@ -234,6 +235,7 @@ function buildRunConfigProto(input: RunConfigInput) {
     maxToolRounds: input.maxToolRounds,
     serviceTier: input.serviceTier,
     thinkingMode: input.thinkingMode,
+    maxToolResultChars: input.maxToolResultChars,
   }));
 }
 
@@ -288,6 +290,7 @@ function toRunConfigInput(msg: RunConfig): RunConfigInput {
     maxToolRounds: msg.maxToolRounds || undefined,
     serviceTier: msg.serviceTier || undefined,
     thinkingMode: msg.thinkingMode || undefined,
+    maxToolResultChars: msg.maxToolResultChars || undefined,
   };
 }
 

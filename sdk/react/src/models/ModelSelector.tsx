@@ -24,6 +24,14 @@ const SPEED_TIER_LABEL: Record<SpeedTier, string> = {
   slow: "Powerful",
 };
 
+/** A model a run inherits from a less specific layer, and the layer's name. */
+export interface InheritedModel {
+  /** The inherited model's id, as the registry lists it on the active harness. */
+  readonly modelId: string;
+  /** Who chose it, as the trigger names it (for example `"Agent default"`). */
+  readonly source: string;
+}
+
 /** Props for {@link ModelSelector}. */
 export interface ModelSelectorProps {
   /** Currently selected model ID. */
@@ -73,6 +81,24 @@ export interface ModelSelectorProps {
    * the placeholder shows, since no engine is pinned either.
    */
   readonly placeholderLabel?: string;
+  /**
+   * The model a run gets while `value` is empty because another layer
+   * chooses it (an agent's run defaults): the trigger reads
+   * `"<source>: <model>"`, the list marks that model, and the fast-tier
+   * and thinking switches gate on it. Picking a model replaces it. Wins
+   * over {@link placeholderLabel}; the trigger and switches ignore it
+   * while `value` is set.
+   */
+  readonly inheritedModel?: InheritedModel;
+  /**
+   * Called when the person chooses {@link inheritedModel} back. Providing
+   * it lists the inherited model as the first entry of the list
+   * (`"<source>: <model>"`), checked while nothing is picked, so a person
+   * who picked a model can return to what the other layer chooses. The
+   * consumer clears `value` (and any tier or thinking it holds as the
+   * person's choice).
+   */
+  readonly onInheritedModelSelect?: () => void;
 
   /**
    * Current service tier for the selected model (stigmer/stigmer#357).
@@ -186,6 +212,8 @@ export function ModelSelector({
   className,
   disabled,
   placeholderLabel,
+  inheritedModel,
+  onInheritedModelSelect,
   serviceTier = "standard",
   onServiceTierChange,
   thinkingMode = "disabled",
@@ -220,10 +248,28 @@ export function ModelSelector({
 
   const resolvedHarnesses = availableHarnesses ?? HARNESS_OPTIONS;
 
-  const selectedModel = (value ? getModel(value) : undefined) ?? defaultModel ?? undefined;
+  // An inherited model is what the run gets, so it is the selection the
+  // switches and the list read; one the registry no longer lists stays
+  // unresolved rather than borrowing the registry default's capabilities.
+  const inheriting = !value && inheritedModel !== undefined;
+  const selectedModel = inheriting
+    ? getModel(inheritedModel.modelId)
+    : ((value ? getModel(value) : undefined) ?? defaultModel ?? undefined);
 
   const isSearching = searchQuery.length > 0;
   const lowerQuery = searchQuery.toLowerCase();
+
+  // The way back to the inherited model, listed while browsing (a search
+  // looks for a model by name). While it is the selection, it carries the
+  // check, not the model row it names.
+  const showInheritedEntry =
+    inheritedModel !== undefined && onInheritedModelSelect !== undefined && !isSearching;
+  const inheritedDisplayName =
+    inheritedModel !== undefined
+      ? (getModel(inheritedModel.modelId)?.displayName ?? inheritedModel.modelId)
+      : "";
+  const rowSelected = (model: ModelInfo): boolean =>
+    !(inheriting && showInheritedEntry) && model.modelId === selectedModel?.modelId;
 
   const curatedSet = useMemo(() => {
     if (curatedModels) return new Set(curatedModels);
@@ -394,10 +440,12 @@ export function ModelSelector({
     || (thinkingMode === "enabled"
       && (selectedModel !== undefined && thinkingSelectable(selectedModel)));
 
-  const usingPlaceholder = !value && placeholderLabel !== undefined;
-  const triggerLabel = usingPlaceholder
-    ? placeholderLabel
-    : (selectedModel?.displayName ?? "Select model");
+  const usingPlaceholder = !value && !inheriting && placeholderLabel !== undefined;
+  const triggerLabel = inheriting
+    ? `${inheritedModel.source}: ${inheritedDisplayName}`
+    : usingPlaceholder
+      ? placeholderLabel
+      : (selectedModel?.displayName ?? "Select model");
   const triggerHarness =
     !isHarnessLocked && !usingPlaceholder
       ? HARNESS_META[activeHarness].label
@@ -622,6 +670,27 @@ export function ModelSelector({
                 </div>
               )}
 
+              {showInheritedEntry && (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={inheriting}
+                  className={cn(
+                    "stg:flex stg:w-full stg:cursor-pointer stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-xs stg:outline-none",
+                    "stg:transition-colors stg:hover:bg-accent-hover",
+                  )}
+                  onClick={() => {
+                    onInheritedModelSelect();
+                    setOpen(false);
+                  }}
+                >
+                  <span className="stg:flex-1 stg:truncate stg:text-left stg:font-medium">
+                    {`${inheritedModel.source}: ${inheritedDisplayName}`}
+                  </span>
+                  {inheriting && <CheckIcon className="stg:shrink-0 stg:text-primary" />}
+                </button>
+              )}
+
               {/* Grouped rendering */}
               {groupedModels ? (
                 Array.from(groupedModels.entries()).map(([group, groupModels]) => (
@@ -633,7 +702,7 @@ export function ModelSelector({
                       <ModelRow
                         key={model.modelId}
                         model={model}
-                        isSelected={model.modelId === selectedModel?.modelId}
+                        isSelected={rowSelected(model)}
                         showDescription={false}
                         showSpeedBadge={showSpeedBadge}
                         onClick={() => selectModel(model)}
@@ -646,7 +715,7 @@ export function ModelSelector({
                   <ModelRow
                     key={model.modelId}
                     model={model}
-                    isSelected={model.modelId === selectedModel?.modelId}
+                    isSelected={rowSelected(model)}
                     isHighlighted={idx === highlightIdx}
                     showDescription={showDescriptions && !compact && !isSearching && !showAll}
                     showSpeedBadge={showSpeedBadge}

@@ -7,7 +7,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   AgentExecutionSpecSchema,
-  ExecutionConfigSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -52,15 +51,11 @@ function makeExecution(opts: {
 
   const spec = create(AgentExecutionSpecSchema);
   spec.message = opts.specMessage ?? "test message";
-  if (opts.interactionMode !== undefined || opts.buildFromPlan !== undefined) {
-    const config = create(ExecutionConfigSchema);
-    if (opts.interactionMode !== undefined) {
-      config.interactionMode = opts.interactionMode;
-    }
-    if (opts.buildFromPlan !== undefined) {
-      config.buildFromPlan = opts.buildFromPlan;
-    }
-    spec.executionConfig = config;
+  if (opts.interactionMode !== undefined) {
+    spec.interactionMode = opts.interactionMode;
+  }
+  if (opts.buildFromPlan !== undefined) {
+    spec.buildFromPlan = opts.buildFromPlan;
   }
   exec.spec = spec;
 

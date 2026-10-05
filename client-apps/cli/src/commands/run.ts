@@ -204,6 +204,7 @@ async function runResolvedAgent(
       accountPreferencesAvailable: await client.isResourceAvailable(
         ApiResourceKind.identity_account,
       ),
+      agentSpec: agent?.spec,
     },
   );
   await executeResolvedAgent({

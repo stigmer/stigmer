@@ -86,9 +86,7 @@ function unwrapStreamingPlanFence(content: string): string {
 export function findStreamingPlan(
   execution: AgentExecution | null | undefined,
 ): StreamingPlan | undefined {
-  if (
-    execution?.spec?.executionConfig?.interactionMode !== InteractionMode.PLAN
-  ) {
+  if (execution?.spec?.interactionMode !== InteractionMode.PLAN) {
     return undefined;
   }
   const phase = execution.status?.phase;

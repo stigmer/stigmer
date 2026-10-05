@@ -525,7 +525,7 @@ function hasVisiblyRunningActivity(execution: AgentExecution): boolean {
 function isCompletedPlanExecution(execution: AgentExecution): boolean {
   return (
     execution.status?.phase === ExecutionPhase.EXECUTION_COMPLETED &&
-    execution.spec?.executionConfig?.interactionMode === InteractionMode.PLAN
+    execution.spec?.interactionMode === InteractionMode.PLAN
   );
 }
 
@@ -854,7 +854,7 @@ export function buildThreadItems(
         isEditable: isActiveStreamExec && editableActiveTurn,
         // The turn's mode marks the prompt bubble (a "Plan" pill on Plan
         // turns) so the transcript reads unambiguously after mode switches.
-        interactionMode: exec.spec?.executionConfig?.interactionMode,
+        interactionMode: exec.spec?.interactionMode,
         attachments:
           specAttachments && specAttachments.length > 0
             ? specAttachments
@@ -1111,8 +1111,7 @@ export function buildThreadItems(
       // ordinary message would drop the buildFromPlan flag (no runner
       // directive, no plan attachment). The plan card above the error is the
       // fully-wired retry — its Build button re-runs the whole pipeline.
-      const isBuildTurn =
-        lastExec?.spec?.executionConfig?.buildFromPlan === true;
+      const isBuildTurn = lastExec?.spec?.buildFromPlan === true;
       items.push({
         kind: "execution-error",
         error: reason,

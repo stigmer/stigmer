@@ -6,7 +6,7 @@ import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { ApprovalAction, ExecutionPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import {
@@ -56,7 +56,13 @@ const REDISCOVERY_POLL_INTERVAL_MS = 5_000;
  * values are scoped to the single execution and deleted on completion.
  */
 export interface SendFollowUpOptions {
-  /** LLM model name to use for this execution. Overrides the session default. */
+  /**
+   * The model this message asks for. Omit it to run the model a less
+   * specific layer chooses (the agent's run defaults, the operator
+   * profile, the engine's default).
+   *
+   * @see {@link SharedAgentExecutionFields.modelName}
+   */
   readonly modelName?: string;
   /**
    * Move the conversation to another agent for this and all future
@@ -103,21 +109,17 @@ export interface SendFollowUpOptions {
    */
   readonly interactionMode?: "agent" | "plan";
   /**
-   * Service tier for this execution's model calls (stigmer/stigmer#357).
-   *
-   * Only set when the user actively selected `"fast"`; `undefined` preserves
-   * the unspecified-vs-explicit distinction (unset resolves to standard on
-   * the platform side — never the provider account default).
+   * Service tier this message asks for (stigmer/stigmer#357): set only
+   * when the person chose one, `"standard"` as explicitly as `"fast"`;
+   * `undefined` keeps the tier of the layer that chose the model.
    *
    * @see {@link SharedAgentExecutionFields.serviceTier}
    */
   readonly serviceTier?: ServiceTierOption;
   /**
-   * Thinking mode for this execution's model calls (stigmer/stigmer#772).
-   *
-   * Only set when the user actively selected `"enabled"`; `undefined`
-   * preserves the unspecified-vs-explicit distinction (unset resolves to
-   * disabled on the platform side — never the provider account default).
+   * Thinking mode this message asks for (stigmer/stigmer#772): set only
+   * when the person chose one, `"disabled"` as explicitly as `"enabled"`;
+   * `undefined` keeps the mode of the layer that chose the model.
    *
    * @see {@link SharedAgentExecutionFields.thinkingMode}
    */

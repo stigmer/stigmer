@@ -17,7 +17,7 @@ from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
-from ._agentchannel import RunConfigInput
+from ._agent import RunConfigInput
 
 
 class AgentShareClient:

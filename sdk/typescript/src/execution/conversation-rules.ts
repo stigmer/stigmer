@@ -76,7 +76,7 @@ export function supersededExecutionIds(
  * is the visible cause.
  */
 export function isBuildFromPlanTurn(exec: AgentExecution): boolean {
-  return exec.spec?.executionConfig?.buildFromPlan === true;
+  return exec.spec?.buildFromPlan === true;
 }
 
 /**

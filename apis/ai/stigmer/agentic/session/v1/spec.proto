@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.session.v1;
 
-import "ai/stigmer/agentic/agent/v1/spec.proto";
+import "ai/stigmer/agentic/mcpserver/v1/usage.proto";
 import "ai/stigmer/agentic/session/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/workspace.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
@@ -119,7 +119,7 @@ message SessionSpec {
   // Merge semantics: session-level usages are union'd with agent-level usages,
   // one entry per MCP server slug. The agent runner merges these with the
   // agent's mcp_server_usages when constructing the execution graph.
-  repeated ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [(buf.validate.field).repeated.items.cel = {
+  repeated ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [(buf.validate.field).repeated.items.cel = {
     id: "session_mcp_server_usages.kind"
     message: "mcp_server_usages must reference resources with kind=mcp_server"
     expression: "this.mcp_server_ref.kind == 44"

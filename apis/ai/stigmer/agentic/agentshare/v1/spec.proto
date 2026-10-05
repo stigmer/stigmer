@@ -160,22 +160,21 @@ message AgentShareSpec {
   ];
 
   // Per-turn model choice and run bounds for guest conversations on this
-  // share, overriding the platform's guest execution profile.
+  // share.
   //
-  // Unset fields inherit the platform default. model_name replaces the
-  // platform model outright, while max_cost_usd and max_tool_rounds can
-  // only lower the platform caps — a share owner can reduce what one
-  // guest turn may spend, never raise it past the platform profile.
-  // Valid on public-audience shares only.
+  // These settings are the turn's own layer: unset fields fall to the
+  // agent's defaults, then to the platform's guest execution profile
+  // (RunConfig has the rule). A choice set here wins over the agent's;
+  // max_cost_usd and max_tool_rounds can only lower the agent's and the
+  // platform's caps — a share owner can reduce what one guest turn may
+  // spend, never raise it. Valid on public-audience shares only.
   //
   // @internal
   // The shared run shape's second embedder (stigmer/stigmer#360). This is the
-  // OWNER's stored config, not the guest's: the guest scope step still
-  // discards caller-supplied execution_config unconditionally, then
-  // merges this field — loaded server-side from the share — over the
-  // platform guest profile (GuestAgentExecutionCreateScopeStep, the
-  // promise recorded on GuestExecutionProfileProperties). The trust
-  // posture is unchanged. Org-audience shares reject the field via the
+  // OWNER's stored config, not the guest's: a guest's own request settings
+  // are never read; the edition's run-lane driver loads this field
+  // server-side from the share and hands it to the server's one
+  // resolution. The trust posture is unchanged. Org-audience shares reject the field via the
   // message-level CEL rule for the same reason as environment_refs:
   // member sessions carry no share linkage, so it would be stored but
   // silently never applied. Enforcement is cloud-only — guest runtime

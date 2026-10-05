@@ -37,7 +37,7 @@ type AgentExecution struct {
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-provided inputs for this execution.
 	// Contains: the conversation (session_id or a new session_spec), message,
-	// execution_config, and runtime_env. Environment values reach a turn from
+	// run_config, the per-message intents, and runtime_env. Environment values reach a turn from
 	// the environments the server resolves for its run and from the
 	// per-execution runtime_env; see the runtime_env field docs in
 	// spec.proto.
@@ -205,7 +205,7 @@ type AgentExecutionStatus struct {
 	StreamingUsage *StreamingUsageSummary `protobuf:"bytes,20,opt,name=streaming_usage,json=streamingUsage,proto3" json:"streaming_usage,omitempty"`
 	// Structured output extracted from the agent's final response.
 	//
-	// Populated when ExecutionConfig.structured_output_schema was set and the
+	// Populated when spec.structured_output_schema was set and the
 	// runner successfully extracted schema-conforming data. Only meaningful
 	// when phase is EXECUTION_COMPLETED.
 	//
@@ -251,8 +251,24 @@ type AgentExecutionStatus struct {
 	// The caller's confirmed memories, snapshotted into this execution at
 	// create time: the candidate set the prompt was built from.
 	RecalledMemories *RecalledMemories `protobuf:"bytes,30,opt,name=recalled_memories,json=recalledMemories,proto3" json:"recalled_memories,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The settings this turn runs with: spec.run_config (or the saved settings
+	// of the surface it came through), the defaults of the agent version the
+	// turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+	//
+	// An empty model_name means no layer named one and the engine chose (the
+	// native engine's registry default; Cursor's Auto).
+	RunConfig *RunConfig `protobuf:"bytes,31,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
+	// How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
+	// UNSPECIFIED.
+	//
+	// A fact of the lane the turn came through, never of the request: a
+	// schedule's turn and the hosted edition's shared-agent guest and channel
+	// turns are UNATTENDED (nobody is present to approve); every other turn is
+	// INTERACTIVE, a workflow step's included (its workflow takes the approval
+	// request).
+	ApprovalMode  ApprovalMode `protobuf:"varint,32,opt,name=approval_mode,json=approvalMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalMode" json:"approval_mode,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentExecutionStatus) Reset() {
@@ -460,6 +476,20 @@ func (x *AgentExecutionStatus) GetRecalledMemories() *RecalledMemories {
 	return nil
 }
 
+func (x *AgentExecutionStatus) GetRunConfig() *RunConfig {
+	if x != nil {
+		return x.RunConfig
+	}
+	return nil
+}
+
+func (x *AgentExecutionStatus) GetApprovalMode() ApprovalMode {
+	if x != nil {
+		return x.ApprovalMode
+	}
+	return ApprovalMode_APPROVAL_MODE_UNSPECIFIED
+}
+
 // Setup progress reported during the EXECUTION_PENDING phase.
 type SetupProgress struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -581,7 +611,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_api_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/agentexecution/v1/api.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a3ai/stigmer/agentic/agentexecution/v1/approval.proto\x1a3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x1a2ai/stigmer/agentic/agentexecution/v1/context.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a5ai/stigmer/agentic/agentexecution/v1/filereview.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x1a/ai/stigmer/agentic/agentexecution/v1/todo.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a4ai/stigmer/agentic/agentexecution/v1/writeback.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xf5\x02\n" +
+	".ai/stigmer/agentic/agentexecution/v1/api.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a3ai/stigmer/agentic/agentexecution/v1/approval.proto\x1a3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x1a2ai/stigmer/agentic/agentexecution/v1/context.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a5ai/stigmer/agentic/agentexecution/v1/filereview.proto\x1a5ai/stigmer/agentic/agentexecution/v1/invocation.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x1a/ai/stigmer/agentic/agentexecution/v1/todo.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a4ai/stigmer/agentic/agentexecution/v1/writeback.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xf5\x02\n" +
 	"\x0eAgentExecution\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
@@ -590,7 +620,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\x98\x11\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xc1\x12\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -618,7 +648,10 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\bagent_id\x18\x1b \x01(\tR\aagentId\x12,\n" +
 	"\x12agent_version_hash\x18\x1c \x01(\tR\x10agentVersionHash\x12l\n" +
 	"\x14declared_preferences\x18\x1d \x01(\v29.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesR\x13declaredPreferences\x12c\n" +
-	"\x11recalled_memories\x18\x1e \x01(\v26.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesR\x10recalledMemories\x1ah\n" +
+	"\x11recalled_memories\x18\x1e \x01(\v26.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesR\x10recalledMemories\x12N\n" +
+	"\n" +
+	"run_config\x18\x1f \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\x12W\n" +
+	"\rapproval_mode\x18  \x01(\x0e22.ai.stigmer.agentic.agentexecution.v1.ApprovalModeR\fapprovalMode\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
@@ -668,7 +701,9 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*FileChangeProgress)(nil),              // 20: ai.stigmer.agentic.agentexecution.v1.FileChangeProgress
 	(*DeclaredPreferences)(nil),             // 21: ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences
 	(*RecalledMemories)(nil),                // 22: ai.stigmer.agentic.agentexecution.v1.RecalledMemories
-	(*TodoItem)(nil),                        // 23: ai.stigmer.agentic.agentexecution.v1.TodoItem
+	(*RunConfig)(nil),                       // 23: ai.stigmer.agentic.agentexecution.v1.RunConfig
+	(ApprovalMode)(0),                       // 24: ai.stigmer.agentic.agentexecution.v1.ApprovalMode
+	(*TodoItem)(nil),                        // 25: ai.stigmer.agentic.agentexecution.v1.TodoItem
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	5,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -693,12 +728,14 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	3,  // 19: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.recalled_memories_report:type_name -> ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport
 	21, // 20: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.declared_preferences:type_name -> ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences
 	22, // 21: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.recalled_memories:type_name -> ai.stigmer.agentic.agentexecution.v1.RecalledMemories
-	23, // 22: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	23, // [23:23] is the sub-list for method output_type
-	23, // [23:23] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	23, // 22: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.run_config:type_name -> ai.stigmer.agentic.agentexecution.v1.RunConfig
+	24, // 23: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.approval_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalMode
+	25, // 24: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	25, // [25:25] is the sub-list for method output_type
+	25, // [25:25] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }
@@ -711,6 +748,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() {
 	file_ai_stigmer_agentic_agentexecution_v1_context_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_init()
+	file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_message_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_init()

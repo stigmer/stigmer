@@ -29,14 +29,9 @@
  * Pinned by `__tests__/PersonalKeyDisclosure.test.tsx`.
  */
 
-import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/theme";
-import { GetAgentVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { isNotFound, type ResourceRef } from "@stigmer/sdk";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
-import { useAgent } from "../agent/useAgent.js";
+import type { ResourceRef } from "@stigmer/sdk";
+import { useRunAgentSpec } from "../agent/useRunAgentSpec.js";
 import { usePersonalKeys } from "../agent/usePersonalKeys.js";
 
 /** Props for {@link PersonalKeyDisclosure}. */
@@ -59,12 +54,6 @@ export interface PersonalKeyDisclosureProps {
   readonly className?: string;
 }
 
-/** The pinned version's spec: absent when the agent holds no such version. */
-type PinnedSpec =
-  | { readonly kind: "spec"; readonly spec: AgentSpec | undefined }
-  | { readonly kind: "absent" }
-  | { readonly kind: "unknown" };
-
 /**
  * Names the keys a run of `agentRef` reads from the person's personal
  * environment, in the order a reader scans them (sorted).
@@ -81,33 +70,7 @@ export function PersonalKeyDisclosure({
   versionHash = "",
   className,
 }: PersonalKeyDisclosureProps) {
-  const stigmer = useStigmer();
-  const { agent } = useAgent(agentRef.org || null, agentRef.slug || null);
-  const agentId = agent?.metadata?.id ?? "";
-  const pinned = versionHash !== "";
-  const { data: pinnedSpec } = useFetch<PinnedSpec>(
-    pinned && agentId !== ""
-      ? async () => {
-          try {
-            const entry = await stigmer.agent.getVersion(
-              create(GetAgentVersionInputSchema, { agentId, versionHash }),
-            );
-            return { kind: "spec", spec: entry.specSnapshot };
-          } catch (err) {
-            return isNotFound(err) ? { kind: "absent" } : { kind: "unknown" };
-          }
-        }
-      : null,
-    [pinned, agentId, versionHash, stigmer],
-    { kind: "unknown" },
-  );
-  const spec = !pinned
-    ? agent?.spec
-    : pinnedSpec.kind === "spec"
-      ? pinnedSpec.spec
-      : pinnedSpec.kind === "absent"
-        ? agent?.spec
-        : undefined;
+  const { agent, spec } = useRunAgentSpec(agentRef, versionHash);
   const { keys } = usePersonalKeys(agent ?? null, spec, runOrg);
 
   if (keys.length === 0) return null;

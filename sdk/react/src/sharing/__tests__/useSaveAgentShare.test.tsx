@@ -4,6 +4,10 @@ import type { ReactNode } from "react";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import type { AgentShareInput } from "@stigmer/sdk";
+import {
+  ServiceTier,
+  ThinkingMode,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import {
   draftFromShare,
@@ -181,6 +185,36 @@ describe("useSaveAgentShare", () => {
       maxToolRounds: 8,
       serviceTier: undefined,
     });
+  });
+
+  it("a save built from draftFromShare carries every run_config field (stigmer#1905)", async () => {
+    const apply = vi.fn().mockResolvedValue({});
+    const client = createMockStigmer({ apply });
+    // Every RunConfig field set: a draft that dropped any one of them
+    // would silently clear the owner's setting on the next pause/resume.
+    const runConfig = {
+      modelName: "claude-sonnet-4.6",
+      maxCostUsd: 0.5,
+      maxToolRounds: 12,
+      serviceTier: ServiceTier.FAST,
+      thinkingMode: ThinkingMode.ENABLED,
+      maxToolResultChars: 20000,
+    };
+    const share = {
+      metadata: { id: "ash_3", org: "acme", slug: "support-agent", name: "Support Agent" },
+      spec: { enabled: true, allowedOrigins: [], environmentRefs: [], runConfig },
+    } as unknown as AgentShare;
+
+    const { result } = renderHook(() => useSaveAgentShare(AGENT), {
+      wrapper: wrapper(client),
+    });
+
+    await act(() =>
+      result.current.save({ ...draftFromShare(share), enabled: false }, share),
+    );
+
+    const input = apply.mock.calls[0][0] as AgentShareInput;
+    expect(input.runConfig).toStrictEqual(runConfig);
   });
 
   it("draftFromShare leaves run_config undefined when the share carries none", () => {

@@ -10,7 +10,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   AgentExecutionSpecSchema,
-  ExecutionConfigSchema,
   RecalledMemoriesSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -126,9 +125,7 @@ function makeExecution(opts: {
   const spec = create(AgentExecutionSpecSchema);
   spec.message = opts.specMessage ?? "Hello";
   if (opts.interactionMode !== undefined) {
-    const config = create(ExecutionConfigSchema);
-    config.interactionMode = opts.interactionMode;
-    spec.executionConfig = config;
+    spec.interactionMode = opts.interactionMode;
   }
   exec.spec = spec;
 

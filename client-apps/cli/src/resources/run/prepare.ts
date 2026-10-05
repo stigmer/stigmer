@@ -7,7 +7,9 @@
 // upload. STIGMER_ORG is injected into the runtime env when absent so agents
 // can address the caller's org without the user wiring it manually.
 
+import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { Stigmer } from "@stigmer/sdk";
@@ -82,9 +84,11 @@ export interface PreparedRun {
   readonly serviceTier: ServiceTierFlag;
   readonly thinking: ThinkingFlag;
   /**
-   * The RESOLVED harness for the new session: the explicit flag, else the
-   * account preference (when the caller opted in), else "" — which stays off
-   * the wire so the server default (native) applies. Also drives the header's
+   * The RESOLVED harness for the new session: the explicit flag; else ""
+   * when `--model` names a model alone (the server reads it on native);
+   * else the engine the agent names, else the account preference (when the
+   * caller opted in), else "" — which stays off the wire so the server
+   * default (native) applies. Also drives the header's
    * visibility row: a cursor session is never entered silently.
    */
   readonly harness: HarnessFlag;
@@ -104,6 +108,15 @@ export interface PrepareAgentExecOptions {
    * resolving to the platform defaults.
    */
   readonly accountPreferencesAvailable?: boolean;
+  /**
+   * The spec of the agent the run starts (its current version, which a new
+   * conversation pins); omitted for the built-in assistant. Its run
+   * defaults come before the account's: an omitted `--harness` resolves to
+   * the engine the agent names, and an omitted `--model` stays unset where
+   * the agent names a model for the resolved engine, so the server applies
+   * the agent's choice instead of the account's.
+   */
+  readonly agentSpec?: AgentSpec;
 }
 
 /**
@@ -123,16 +136,29 @@ export async function prepareAgentExec(
   validateThinking(flags.thinking);
   validateHarness(flags.harness);
 
-  // Layered seeds (oss#293): explicit flag > account preference
-  // (where the server serves identity accounts) > platform default. Harness resolves first because the model
+  // Layered seeds (oss#293): explicit flag > the agent's run defaults >
+  // account preference (where the server serves identity accounts) >
+  // platform default. Harness resolves first because the model
   // fill is harness-aware: a cursor session fills from default_cursor_model,
   // everything else from default_native_model. `run` always creates a NEW
   // session (threading lives in `resume`, which does not pass through
   // here), so neither fill can ever contradict an existing session's
   // immutable harness. One whoAmI round trip serves both fills, and it is
   // skipped entirely when explicit flags leave nothing to fill.
-  const wantsHarnessFill = flags.harness === "";
-  const wantsModelFill = flags.model === "";
+  const agentHarness = harnessFlagOf(options?.agentSpec?.harness);
+  // The agent's model applies on the engine it names, and only when the run
+  // takes that engine (an explicit --harness may leave it).
+  const agentModelApplies =
+    agentHarness !== "" &&
+    (flags.harness === "" || flags.harness === agentHarness) &&
+    (options?.agentSpec?.runConfig?.modelName ?? "") !== "";
+  // A --model with no --harness names no engine: the server starts the
+  // conversation on native, the engine a model named alone is read on, so
+  // neither the agent's engine nor the account's is filled in under it.
+  const modelNamesEngine = flags.model !== "" && flags.harness === "";
+  const wantsHarnessFill =
+    flags.harness === "" && agentHarness === "" && !modelNamesEngine;
+  const wantsModelFill = flags.model === "" && !agentModelApplies;
   const accountDefaults =
     options?.accountPreferencesAvailable === true &&
     (wantsHarnessFill || wantsModelFill)
@@ -141,9 +167,11 @@ export async function prepareAgentExec(
   const harness =
     flags.harness !== ""
       ? flags.harness
-      : wantsHarnessFill
-        ? accountDefaults.harness
-        : "";
+      : modelNamesEngine
+        ? ""
+        : agentHarness !== ""
+          ? agentHarness
+          : accountDefaults.harness;
   const model = wantsModelFill
     ? harness === "cursor"
       ? accountDefaults.cursorModel
@@ -189,6 +217,18 @@ export async function prepareAgentExec(
     thinking: flags.thinking,
     harness,
   };
+}
+
+/** The engine an agent names as a flag value, "" when it names none. */
+function harnessFlagOf(harness: Harness | undefined): HarnessFlag {
+  switch (harness) {
+    case Harness.NATIVE:
+      return "native";
+    case Harness.CURSOR:
+      return "cursor";
+    default:
+      return "";
+  }
 }
 
 /** The account's execution defaults, "" for anything undeclared. */

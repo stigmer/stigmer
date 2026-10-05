@@ -46,7 +46,9 @@ type AgentInvocation struct {
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Prompt the run starts from.
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	// Execution engine for the run's session. Unspecified inherits the
+	// Execution engine for the run's session. Unspecified: native when
+	// run_config names a model (the engine the model was checked against at
+	// save), else the agent's own engine (AgentSpec.harness), else the
 	// embedding surface's platform default.
 	Harness v1.Harness `protobuf:"varint,3,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// Workspace the run's session operates on. Empty means no workspace.
@@ -59,8 +61,9 @@ type AgentInvocation struct {
 	// example an MCP server's shared secret), and the runs receive its
 	// values at runtime. The agent itself stays untouched.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
-	// Per-invocation model choice and run bounds. Unset fields inherit
-	// the embedding surface's platform execution profile.
+	// Per-invocation model choice and run bounds. Unset fields fall to the
+	// agent's defaults, then to the lane's operator profile (RunConfig has the
+	// rule).
 	RunConfig     *RunConfig `protobuf:"bytes,6,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -138,32 +141,83 @@ func (x *AgentInvocation) GetRunConfig() *RunConfig {
 	return nil
 }
 
-// RunConfig is the owner-settable model choice and run bounds.
+// RunConfig is the settings message for every run: a model, a speed tier,
+// thinking, and run bounds.
 //
-// Each field mirrors its ExecutionConfig namesake; zero/empty means
-// "inherit the surface's platform default". Embeddable on its own:
-// surfaces that derive agent and message elsewhere (a channel's
-// conversations, for example) carry just this message.
+// The same message is a message's request (AgentExecutionSpec.run_config),
+// a surface's saved settings (a schedule's invocation, a channel, a share, a
+// workflow agent_call step), an agent author's defaults (AgentSpec.run_config,
+// versioned with the agent), and the settings a turn ran with
+// (AgentExecutionStatus.run_config). Zero or empty means "not set at this
+// layer".
+//
+// The server resolves a turn's settings once, at create, from three layers,
+// most specific first: the message (or the surface it came through), the
+// agent's defaults, and the lane's operator profile.
+//
+//   - Choices. model_name comes from the first layer that names one. When no
+//     layer names one, the model is left to the engine (the native engine's
+//     registry default; Cursor's Auto). service_tier and thinking_mode each
+//     come from the first layer, at or above the model's layer, that sets
+//     them: a less specific layer's tier or thinking was chosen for another
+//     model, so it never lands on this one. Without a model, tier and thinking
+//     come only from the message.
+//   - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take
+//     the smallest positive value any layer sets. An operator profile is a
+//     ceiling the message, the surface and the agent can lower but never
+//     raise.
+//   - The agent's choices apply only on the engine its defaults name
+//     (AgentSpec.harness). On a conversation running the other engine the
+//     agent layer gives its bounds alone.
+//
+// Saved settings are self-contained: a surface or an agent that sets
+// service_tier FAST or thinking_mode ENABLED names the model it is for. Only a
+// message may set them alone, to adjust the model it is given.
 type RunConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The model each run uses. Example: "claude-sonnet-4-6".
 	ModelName string `protobuf:"bytes,1,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
-	// Maximum estimated cost in USD per run. The surface's platform
-	// execution profile caps this value; the lower bound wins.
+	// Maximum estimated cost in USD per run.
+	//
+	// When the run's estimated spend reaches this limit, the run stops with a
+	// "send another message to continue" prompt and ends TERMINATED; the work
+	// done so far is kept. The limit is checked each time the engine reports
+	// its spend, so a run can end somewhat above it. The native harness
+	// reports after every model call, counts a sub-agent's spend toward the
+	// limit, and advises the agent to wrap up at about 80% of the budget; the
+	// Cursor harness gives no warning.
+	//
+	// 0 = not set at this layer. The budget is per message: a follow-up
+	// message, or a run resuming after an approval, starts a fresh count. The
+	// spend is the runner's estimate, reported on
+	// AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed
+	// amount.
 	MaxCostUsd float64 `protobuf:"fixed64,2,opt,name=max_cost_usd,json=maxCostUsd,proto3" json:"max_cost_usd,omitempty"`
-	// Maximum model-to-tools reasoning cycles per run. The surface's
-	// platform execution profile caps this value; the lower bound wins.
+	// Maximum model-to-tools reasoning cycles per message.
+	//
+	// A round is one model response that proposes one or more tool calls,
+	// followed by their execution; parallel tool calls in one response are one
+	// round. When the limit is reached the run stops with a "send another
+	// message to continue" prompt, and the work done so far is kept. The agent
+	// is advised to wrap up at about 80% of the budget.
+	//
+	// 0 = not set at this layer; with no layer setting it the agent runs until
+	// the task completes or loop detection stops a repetitive pattern. When
+	// set, the valid range is 10–1000; values outside it are clamped to the
+	// nearest bound. The budget is per message: a follow-up message, or a run
+	// resuming after an approval, starts a fresh count. Sub-agent rounds are
+	// not counted, and the Cursor harness does not enforce this field.
 	MaxToolRounds int32 `protobuf:"varint,3,opt,name=max_tool_rounds,json=maxToolRounds,proto3" json:"max_tool_rounds,omitempty"`
 	// Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
 	//
 	// In workflow YAML the shorthand spellings "standard"/"fast" are
 	// accepted alongside the canonical enum names.
 	//
-	// Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
-	// surface's platform default, which itself resolves to STANDARD —
-	// never the provider account default. FAST requires model_name
-	// (here or from the platform profile) to name a model with a
-	// registry fast pricing variant; validated fail-closed at create.
+	// UNSPECIFIED is not set at this layer; with no layer setting it the run
+	// uses STANDARD, never the provider account default. FAST is valid only
+	// for a model whose registry entry declares a fast pricing variant on the
+	// engine that runs it; validated fail-closed on the resolved settings at
+	// create.
 	ServiceTier ServiceTier `protobuf:"varint,4,opt,name=service_tier,json=serviceTier,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ServiceTier" json:"service_tier,omitempty"`
 	// Thinking mode for each run's model calls: disabled (the default) or
 	// enabled, where enabled selects the model's extended-reasoning variant
@@ -172,15 +226,23 @@ type RunConfig struct {
 	// In workflow YAML the shorthand spellings "disabled"/"enabled" are
 	// accepted alongside the canonical enum names.
 	//
-	// Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
-	// surface's platform default, which itself resolves to DISABLED —
-	// never the provider account default. ENABLED requires model_name
-	// (here or from the platform profile) to name a model whose registry
-	// entry declares the thinking capability; validated fail-closed at
+	// UNSPECIFIED is not set at this layer; with no layer setting it the run
+	// uses DISABLED, never the provider account default. ENABLED is valid only
+	// for a model whose registry entry declares the thinking capability on the
+	// engine that runs it; validated fail-closed on the resolved settings at
 	// create. Combines freely with service_tier.
-	ThinkingMode  ThinkingMode `protobuf:"varint,5,opt,name=thinking_mode,json=thinkingMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ThinkingMode" json:"thinking_mode,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ThinkingMode ThinkingMode `protobuf:"varint,5,opt,name=thinking_mode,json=thinkingMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ThinkingMode" json:"thinking_mode,omitempty"`
+	// Maximum number of characters for a single tool result before truncation.
+	// When a tool result exceeds this limit, it is truncated and a marker is
+	// appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+	//
+	// 0 = not set at this layer; with no layer setting it the platform default
+	// applies (30,000 chars, about 7,500 tokens). Applies to all tool results
+	// (shell, read, write, MCP tools), except built-in tools that already
+	// manage their output size.
+	MaxToolResultChars int32 `protobuf:"varint,6,opt,name=max_tool_result_chars,json=maxToolResultChars,proto3" json:"max_tool_result_chars,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *RunConfig) Reset() {
@@ -248,6 +310,13 @@ func (x *RunConfig) GetThinkingMode() ThinkingMode {
 	return ThinkingMode_THINKING_MODE_UNSPECIFIED
 }
 
+func (x *RunConfig) GetMaxToolResultChars() int32 {
+	if x != nil {
+		return x.MaxToolResultChars
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_invocation_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_rawDesc = "" +
@@ -263,7 +332,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_rawDesc = "" +
 	"\x10environment_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
 	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12N\n" +
 	"\n" +
-	"run_config\x18\x06 \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\"\xd0\x02\n" +
+	"run_config\x18\x06 \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\"\x8c\x03\n" +
 	"\tRunConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x120\n" +
@@ -271,7 +340,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_rawDesc = "" +
 	"maxCostUsd\x12/\n" +
 	"\x0fmax_tool_rounds\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\rmaxToolRounds\x12^\n" +
 	"\fservice_tier\x18\x04 \x01(\x0e21.ai.stigmer.agentic.agentexecution.v1.ServiceTierB\b\xbaH\x05\x82\x01\x02\x10\x01R\vserviceTier\x12a\n" +
-	"\rthinking_mode\x18\x05 \x01(\x0e22.ai.stigmer.agentic.agentexecution.v1.ThinkingModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\fthinkingModeB\xd0\x02\n" +
+	"\rthinking_mode\x18\x05 \x01(\x0e22.ai.stigmer.agentic.agentexecution.v1.ThinkingModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\fthinkingMode\x12:\n" +
+	"\x15max_tool_result_chars\x18\x06 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12maxToolResultCharsB\xd0\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\x0fInvocationProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (

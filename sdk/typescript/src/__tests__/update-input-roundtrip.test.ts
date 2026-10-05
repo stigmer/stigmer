@@ -19,8 +19,8 @@ import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import {
   InteractionMode,
-  ApprovalMode,
   ServiceTier,
+  ThinkingMode,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import {
@@ -210,6 +210,8 @@ const RUN_CONFIG = {
   maxCostUsd: 4,
   maxToolRounds: 30,
   serviceTier: ServiceTier.FAST,
+  thinkingMode: ThinkingMode.ENABLED,
+  maxToolResultChars: 20000,
 };
 
 // ---------------------------------------------------------------------------
@@ -244,6 +246,8 @@ describe("toAgentUpdateInput", () => {
         env: { API_KEY: { isSecret: true, description: "Vendor key", optional: true } },
         tools: ["Read", "Grep", "Agent(researcher)", "mcp__github-mcp"],
         disallowedTools: ["mcp__github-mcp__delete_repo"],
+        runConfig: RUN_CONFIG,
+        harness: Harness.NATIVE,
         hooks: [
           { source: { case: "plugin", value: { org: "acme", slug: "safety", kind: ApiResourceKind.plugin } } },
           {
@@ -336,22 +340,10 @@ describe("toAgentExecutionUpdateInput", () => {
           },
         },
         message: "Please fix it.",
-        executionConfig: {
-          modelName: "claude-sonnet-4.6",
-          contextManagement: {
-            disableSummarization: true,
-            customTriggerThreshold: 90,
-            customTargetTokens: 50000,
-          },
-          maxToolRounds: 40,
-          maxToolResultChars: 20000,
-          maxCostUsd: 8,
-          interactionMode: InteractionMode.PLAN,
-          structuredOutputSchema: { type: "object" },
-          buildFromPlan: true,
-          approvalMode: ApprovalMode.UNATTENDED,
-          serviceTier: ServiceTier.FAST,
-        },
+        runConfig: RUN_CONFIG,
+        interactionMode: InteractionMode.PLAN,
+        buildFromPlan: true,
+        structuredOutputSchema: { type: "object" },
         runtimeEnv: { TOKEN: { value: "shh", isSecret: true } },
         autoApproveAll: true,
         attachments: [

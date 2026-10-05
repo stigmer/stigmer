@@ -20,7 +20,7 @@ from ai.stigmer.agentic.session.v1 import workspace_pb2 as session_workspace_pb2
 
 from ._errors import wrap_error
 from ._types import EnvVarInput, ResourceRef
-from ._agent import McpServerUsageInput
+from ._agent import McpServerUsageInput, RunConfigInput
 
 
 class AgentExecutionClient:
@@ -183,7 +183,10 @@ class AgentExecutionInput:
     session_id: str = ""
     session_spec: SessionSpecInput | None = None
     message: str = ""
-    execution_config: ExecutionConfigInput | None = None
+    run_config: RunConfigInput | None = None
+    interaction_mode: int = 0
+    build_from_plan: bool = False
+    structured_output_schema: dict[str, Any] = field(default_factory=dict)
     runtime_env: dict[str, EnvVarInput] = field(default_factory=dict)
     auto_approve_all: bool = False
     attachments: list[AttachmentInput] = field(default_factory=list)
@@ -195,11 +198,15 @@ class AgentExecutionInput:
     def _to_proto(self) -> api_pb2.AgentExecution:
         spec = spec_pb2.AgentExecutionSpec(
             message=self.message,
+            interaction_mode=self.interaction_mode,
+            build_from_plan=self.build_from_plan,
             auto_approve_all=self.auto_approve_all,
             supersedes_execution_id=self.supersedes_execution_id,
         )
-        if self.execution_config is not None:
-            spec.execution_config.CopyFrom(self.execution_config._to_proto())
+        if self.run_config is not None:
+            spec.run_config.CopyFrom(self.run_config._to_proto())
+        if self.structured_output_schema:
+            spec.structured_output_schema.update(self.structured_output_schema)
         for k, v in self.runtime_env.items():
             spec.runtime_env[k].CopyFrom(executioncontext_spec_pb2.ExecutionValue(
                 value=v.value, is_secret=v.is_secret,
@@ -342,58 +349,6 @@ class LocalPathSourceInput:
     def _to_proto(self) -> session_workspace_pb2.LocalPathSource:
         msg = session_workspace_pb2.LocalPathSource(
             path=self.path,
-        )
-        return msg
-
-
-@dataclass
-class ExecutionConfigInput:
-    """SDK input type for ExecutionConfig."""
-
-    model_name: str = ""
-    context_management: ContextManagementConfigInput | None = None
-    max_tool_rounds: int = 0
-    max_tool_result_chars: int = 0
-    max_cost_usd: float = 0.0
-    interaction_mode: int = 0
-    structured_output_schema: dict[str, Any] = field(default_factory=dict)
-    build_from_plan: bool = False
-    approval_mode: int = 0
-    service_tier: int = 0
-    thinking_mode: int = 0
-
-    def _to_proto(self) -> spec_pb2.ExecutionConfig:
-        msg = spec_pb2.ExecutionConfig(
-            model_name=self.model_name,
-            max_tool_rounds=self.max_tool_rounds,
-            max_tool_result_chars=self.max_tool_result_chars,
-            max_cost_usd=self.max_cost_usd,
-            interaction_mode=self.interaction_mode,
-            build_from_plan=self.build_from_plan,
-            approval_mode=self.approval_mode,
-            service_tier=self.service_tier,
-            thinking_mode=self.thinking_mode,
-        )
-        if self.context_management is not None:
-            msg.context_management.CopyFrom(self.context_management._to_proto())
-        if self.structured_output_schema:
-            msg.structured_output_schema.update(self.structured_output_schema)
-        return msg
-
-
-@dataclass
-class ContextManagementConfigInput:
-    """SDK input type for ContextManagementConfig."""
-
-    disable_summarization: bool = False
-    custom_trigger_threshold: int = 0
-    custom_target_tokens: int = 0
-
-    def _to_proto(self) -> spec_pb2.ContextManagementConfig:
-        msg = spec_pb2.ContextManagementConfig(
-            disable_summarization=self.disable_summarization,
-            custom_trigger_threshold=self.custom_trigger_threshold,
-            custom_target_tokens=self.custom_target_tokens,
         )
         return msg
 

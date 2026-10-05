@@ -4,8 +4,10 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApprovalMode, InteractionMode, ServiceTier, ThinkingMode } from "./enum_pb.js";
+import type { InteractionMode } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
+import type { RunConfig } from "./invocation_pb.js";
+import { file_ai_stigmer_agentic_agentexecution_v1_invocation } from "./invocation_pb.js";
 import type { ExecutionValue } from "../../executioncontext/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_executioncontext_v1_spec } from "../../executioncontext/v1/spec_pb.js";
 import type { SessionSpec } from "../../session/v1/spec_pb.js";
@@ -19,7 +21,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3BlYy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIugIChJBZ2VudEV4ZWN1dGlvblNwZWMSFAoKc2Vzc2lvbl9pZBgBIAEoCUgAEkIKDHNlc3Npb25fc3BlYxgNIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjSAASGAoHbWVzc2FnZRgDIAEoCUIHukgEcgIQARJPChBleGVjdXRpb25fY29uZmlnGAQgASgLMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvbkNvbmZpZxJdCgtydW50aW1lX2VudhgFIAMoCzJILmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BZ2VudEV4ZWN1dGlvblNwZWMuUnVudGltZUVudkVudHJ5EhgKEGF1dG9fYXBwcm92ZV9hbGwYByABKAgSRQoLYXR0YWNobWVudHMYCSADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXR0YWNobWVudBIbChN3b3Jrc3BhY2VfZmlsZV9yZWZzGAogAygJEh8KF3N1cGVyc2VkZXNfZXhlY3V0aW9uX2lkGAwgASgJElcKFGNvbnZlcnNhdGlvbl9jYXRjaHVwGA4gASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnZlcnNhdGlvbkNhdGNodXASRAoGcGFyZW50GBEgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLldvcmtmbG93UGFyZW50GmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAE66gG6SOYBGuMBCiphZ2VudF9leGVjdXRpb24uc2Vzc2lvbl9zcGVjX2hhcm5lc3Nfc3RhdGUScHNlc3Npb25fc3BlYy5oYXJuZXNzX3N0YXRlX2lkIG11c3QgYmUgZW1wdHkg4oCUIGhhcm5lc3Mgc3RhdGUgaXMgY3JlYXRlZCBieSB0aGUgcnVubmVyIGFmdGVyIHRoZSBmaXJzdCBleGVjdXRpb24aQyFoYXModGhpcy5zZXNzaW9uX3NwZWMpIHx8IHRoaXMuc2Vzc2lvbl9zcGVjLmhhcm5lc3Nfc3RhdGVfaWQgPT0gJydCCAoGdGFyZ2V0SgQIAhADSgQIBhAHSgQICBAJSgQICxAMSgQIDxAQSgQIEBARUghhZ2VudF9pZFIOY2FsbGJhY2tfdG9rZW5SEnBhcmVudF93b3JrZmxvd19pZFITYWN0aXZpdHlfdGFza19xdWV1ZVIUZGVjbGFyZWRfcHJlZmVyZW5jZXNSEXJlY2FsbGVkX21lbW9yaWVzImwKDldvcmtmbG93UGFyZW50EiYKFXdvcmtmbG93X2V4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIaChJzaWduYWxfd29ya2Zsb3dfaWQYAiABKAkSFgoOY2FsbGJhY2tfdG9rZW4YAyABKAwi+gQKD0V4ZWN1dGlvbkNvbmZpZxISCgptb2RlbF9uYW1lGAEgASgJElkKEmNvbnRleHRfbWFuYWdlbWVudBgCIAEoCzI9LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db250ZXh0TWFuYWdlbWVudENvbmZpZxIXCg9tYXhfdG9vbF9yb3VuZHMYAyABKAUSHQoVbWF4X3Rvb2xfcmVzdWx0X2NoYXJzGAQgASgFEhQKDG1heF9jb3N0X3VzZBgFIAEoARJZChBpbnRlcmFjdGlvbl9tb2RlGAYgASgOMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkludGVyYWN0aW9uTW9kZUIIukgFggECEAESOQoYc3RydWN0dXJlZF9vdXRwdXRfc2NoZW1hGAcgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIXCg9idWlsZF9mcm9tX3BsYW4YCCABKAgSUwoNYXBwcm92YWxfbW9kZRgJIAEoDjIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbE1vZGVCCLpIBYIBAhABElEKDHNlcnZpY2VfdGllchgKIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TZXJ2aWNlVGllckIIukgFggECEAESUwoNdGhpbmtpbmdfbW9kZRgLIAEoDjIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5UaGlua2luZ01vZGVCCLpIBYIBAhABIooBChdDb250ZXh0TWFuYWdlbWVudENvbmZpZxIdChVkaXNhYmxlX3N1bW1hcml6YXRpb24YASABKAgSKQoYY3VzdG9tX3RyaWdnZXJfdGhyZXNob2xkGAIgASgFQge6SAQaAigAEiUKFGN1c3RvbV90YXJnZXRfdG9rZW5zGAMgASgFQge6SAQaAigAItQCCgpBdHRhY2htZW50EtgBCghmaWxlbmFtZRgBIAEoCULFAbpIwQG6AbkBChthdHRhY2htZW50LmZpbGVuYW1lLm5vX3BhdGgSTmZpbGVuYW1lIG11c3QgYmUgYSBiYXJlIGZpbGVuYW1lIHdpdGhvdXQgcGF0aCBzZXBhcmF0b3JzIG9yIHRyYXZlcnNhbCBzZWdtZW50cxpKIXRoaXMuY29udGFpbnMoJy8nKSAmJiAhdGhpcy5jb250YWlucygnXFwnKSAmJiB0aGlzICE9ICcuJyAmJiB0aGlzICE9ICcuLidyAhABEhwKC3N0b3JhZ2Vfa2V5GAIgASgJQge6SARyAhABEhIKCm1vdW50X3BhdGgYAyABKAkSFAoMY29udGVudF90eXBlGAQgASgJEg8KB2V4dHJhY3QYBSABKAgSEgoKbG9jYWxfcGF0aBgGIAEoCSJVChNDb252ZXJzYXRpb25DYXRjaHVwEg4KBmRpZ2VzdBgBIAEoCRIuCgp3aW5kb3dfZW5kGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJAChNEZWNsYXJlZFByZWZlcmVuY2VzEhMKC29yZ19jb250ZXh0GAEgASgJEhQKDHVzZXJfY29udGV4dBgCIAEoCSJsChBSZWNhbGxlZE1lbW9yaWVzEg8KB2VuYWJsZWQYASABKAgSRwoFZmFjdHMYAiADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUmVjYWxsZWRNZW1vcnlGYWN0IjgKElJlY2FsbGVkTWVtb3J5RmFjdBIRCgltZW1vcnlfaWQYASABKAkSDwoHY29udGVudBgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_session_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3BlYy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIqMKChJBZ2VudEV4ZWN1dGlvblNwZWMSFAoKc2Vzc2lvbl9pZBgBIAEoCUgAEkIKDHNlc3Npb25fc3BlYxgNIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjSAASGAoHbWVzc2FnZRgDIAEoCUIHukgEcgIQARJDCgpydW5fY29uZmlnGBIgASgLMi8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlJ1bkNvbmZpZxJZChBpbnRlcmFjdGlvbl9tb2RlGBMgASgOMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkludGVyYWN0aW9uTW9kZUIIukgFggECEAESFwoPYnVpbGRfZnJvbV9wbGFuGBQgASgIEjkKGHN0cnVjdHVyZWRfb3V0cHV0X3NjaGVtYRgVIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSXQoLcnVudGltZV9lbnYYBSADKAsySC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TcGVjLlJ1bnRpbWVFbnZFbnRyeRIYChBhdXRvX2FwcHJvdmVfYWxsGAcgASgIEkUKC2F0dGFjaG1lbnRzGAkgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkF0dGFjaG1lbnQSGwoTd29ya3NwYWNlX2ZpbGVfcmVmcxgKIAMoCRIfChdzdXBlcnNlZGVzX2V4ZWN1dGlvbl9pZBgMIAEoCRJXChRjb252ZXJzYXRpb25fY2F0Y2h1cBgOIAEoCzI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db252ZXJzYXRpb25DYXRjaHVwEkQKBnBhcmVudBgRIAEoCzI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Xb3JrZmxvd1BhcmVudBppCg9SdW50aW1lRW52RW50cnkSCwoDa2V5GAEgASgJEkUKBXZhbHVlGAIgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uVmFsdWU6AjgBOuoBukjmARrjAQoqYWdlbnRfZXhlY3V0aW9uLnNlc3Npb25fc3BlY19oYXJuZXNzX3N0YXRlEnBzZXNzaW9uX3NwZWMuaGFybmVzc19zdGF0ZV9pZCBtdXN0IGJlIGVtcHR5IOKAlCBoYXJuZXNzIHN0YXRlIGlzIGNyZWF0ZWQgYnkgdGhlIHJ1bm5lciBhZnRlciB0aGUgZmlyc3QgZXhlY3V0aW9uGkMhaGFzKHRoaXMuc2Vzc2lvbl9zcGVjKSB8fCB0aGlzLnNlc3Npb25fc3BlYy5oYXJuZXNzX3N0YXRlX2lkID09ICcnQggKBnRhcmdldEoECAIQA0oECAYQB0oECAgQCUoECAsQDEoECA8QEEoECBAQEUoECAQQBVIIYWdlbnRfaWRSDmNhbGxiYWNrX3Rva2VuUhJwYXJlbnRfd29ya2Zsb3dfaWRSE2FjdGl2aXR5X3Rhc2tfcXVldWVSFGRlY2xhcmVkX3ByZWZlcmVuY2VzUhFyZWNhbGxlZF9tZW1vcmllc1IQZXhlY3V0aW9uX2NvbmZpZyJsCg5Xb3JrZmxvd1BhcmVudBImChV3b3JrZmxvd19leGVjdXRpb25faWQYASABKAlCB7pIBHICEAESGgoSc2lnbmFsX3dvcmtmbG93X2lkGAIgASgJEhYKDmNhbGxiYWNrX3Rva2VuGAMgASgMItQCCgpBdHRhY2htZW50EtgBCghmaWxlbmFtZRgBIAEoCULFAbpIwQG6AbkBChthdHRhY2htZW50LmZpbGVuYW1lLm5vX3BhdGgSTmZpbGVuYW1lIG11c3QgYmUgYSBiYXJlIGZpbGVuYW1lIHdpdGhvdXQgcGF0aCBzZXBhcmF0b3JzIG9yIHRyYXZlcnNhbCBzZWdtZW50cxpKIXRoaXMuY29udGFpbnMoJy8nKSAmJiAhdGhpcy5jb250YWlucygnXFwnKSAmJiB0aGlzICE9ICcuJyAmJiB0aGlzICE9ICcuLidyAhABEhwKC3N0b3JhZ2Vfa2V5GAIgASgJQge6SARyAhABEhIKCm1vdW50X3BhdGgYAyABKAkSFAoMY29udGVudF90eXBlGAQgASgJEg8KB2V4dHJhY3QYBSABKAgSEgoKbG9jYWxfcGF0aBgGIAEoCSJVChNDb252ZXJzYXRpb25DYXRjaHVwEg4KBmRpZ2VzdBgBIAEoCRIuCgp3aW5kb3dfZW5kGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJAChNEZWNsYXJlZFByZWZlcmVuY2VzEhMKC29yZ19jb250ZXh0GAEgASgJEhQKDHVzZXJfY29udGV4dBgCIAEoCSJsChBSZWNhbGxlZE1lbW9yaWVzEg8KB2VuYWJsZWQYASABKAgSRwoFZmFjdHMYAiADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUmVjYWxsZWRNZW1vcnlGYWN0IjgKElJlY2FsbGVkTWVtb3J5RmFjdBIRCgltZW1vcnlfaWQYASABKAkSDwoHY29udGVudBgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_invocation, file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_session_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * AgentExecutionSpec contains only user-provided inputs for triggering an execution.
@@ -90,12 +92,84 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
   message: string;
 
   /**
-   * Optional execution-time configuration overrides.
-   * Example: Specify the model to use for this execution.
+   * The settings this message asks for (optional): a model, a speed tier,
+   * thinking, and run bounds. Zero or empty fields are not set here.
    *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4;
+   * The server resolves the settings the turn runs with once, at create,
+   * and records them on AgentExecutionStatus.run_config. A choice (model,
+   * tier, thinking) comes from the most specific layer that makes one: this
+   * field, then the defaults of the agent the turn runs, then the lane's
+   * operator profile. A bound (cost, tool rounds, result size) is the
+   * tightest one any layer sets, so a message can lower an agent's cap but
+   * never raise it. RunConfig's own comment has the full rule.
+   *
+   * Unlike a saved surface's settings, a message may set service_tier or
+   * thinking_mode without a model: it then adjusts the model a less
+   * specific layer chose (for example, thinking off for one message on an
+   * agent whose default turns it on).
+   *
+   * A lane that composes the turn for a surface (a schedule, a workflow
+   * step) writes that surface's saved settings here. On a lane where the
+   * caller is a visitor (the hosted edition's shared-agent guests and
+   * channel senders), the surface's saved settings replace this field; the
+   * per-message intents below are the edition's to allow or clear for a
+   * visitor, not replaced with this field.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18;
    */
-  executionConfig?: ExecutionConfig;
+  runConfig?: RunConfig;
+
+  /**
+   * Interaction mode for this message.
+   *
+   * AGENT (default): full tool access — read, write, create, delete, shell.
+   * PLAN: read-only analysis — read, search, list only. No file mutations.
+   *
+   * When UNSPECIFIED, defaults to AGENT.
+   *
+   * The mode is set per message and does not carry over between messages
+   * in the same session. Users toggle mode in the session composer before
+   * sending each message.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 19;
+   */
+  interactionMode: InteractionMode;
+
+  /**
+   * Marks this message as a "Build from plan" turn: the user approved a plan
+   * produced by a prior Plan-mode execution and asked the agent to implement it.
+   *
+   * When set, the runner injects the implement-plan directive into the agent's
+   * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+   * document travels as an attachment (the normal case), the directive points
+   * the agent at the attached plan file and treats it as authoritative; when no
+   * plan attachment is present (e.g. the client's upload failed), the directive
+   * tells the agent to follow the plan from the conversation instead.
+   *
+   * Clients set this flag INSTEAD of embedding implement instructions in
+   * `message`, so `message` stays a short human-readable label (e.g.
+   * "Build from plan") that UIs can render as a compact chip.
+   *
+   * Like interaction_mode, this is per message and never carries over
+   * between messages in the same session.
+   *
+   * @generated from field: bool build_from_plan = 20;
+   */
+  buildFromPlan: boolean;
+
+  /**
+   * JSON Schema that the agent's output must conform to (optional).
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   *
+   * @generated from field: google.protobuf.Struct structured_output_schema = 21;
+   */
+  structuredOutputSchema?: JsonObject;
 
   /**
    * Runtime environment variables and secrets (execution-scoped).
@@ -278,299 +352,6 @@ export const WorkflowParentSchema: GenMessage<WorkflowParent> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 1);
 
 /**
- * Configuration that can be applied at execution time.
- *
- * @generated from message ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
- */
-export type ExecutionConfig = Message<"ai.stigmer.agentic.agentexecution.v1.ExecutionConfig"> & {
-  /**
-   * The model to use for this execution.
-   * Example: "claude-sonnet-4-6"
-   *
-   * @generated from field: string model_name = 1;
-   */
-  modelName: string;
-
-  /**
-   * Context management configuration for this execution.
-   * Controls automatic summarization behavior for long-running conversations.
-   * When not specified, defaults are derived from the Model Registry.
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig context_management = 2;
-   */
-  contextManagement?: ContextManagementConfig;
-
-  /**
-   * Maximum number of model-to-tools reasoning cycles per message.
-   *
-   * A round is one model response that proposes one or more tool calls,
-   * followed by their execution; parallel tool calls in one response are one
-   * round. When the limit is reached the run stops with a "send another
-   * message to continue" prompt, and the work done so far is kept. The agent
-   * is advised to wrap up at about 80% of the budget.
-   *
-   * 0 = unlimited, the default and the recommendation: the agent runs until
-   * the task completes or loop detection stops a repetitive pattern (7
-   * consecutive / 20 total duplicate patterns). When set, the valid range is
-   * 10–1000; values outside it are clamped to the nearest bound. The budget
-   * is per message: a follow-up message, or a run resuming after an approval,
-   * starts a fresh count. Sub-agent rounds are not counted, and the Cursor
-   * harness does not enforce this field.
-   *
-   * @generated from field: int32 max_tool_rounds = 3;
-   */
-  maxToolRounds: number;
-
-  /**
-   * Maximum number of characters for a single tool result before truncation.
-   * When a tool result exceeds this limit, it is truncated and a marker is
-   * appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
-   *
-   * 0 = use platform default (recommended: 30,000 chars ~ 7,500 tokens).
-   * Set higher for agents that work with large files/outputs.
-   *
-   * Applies to all tool results (shell, read, write, MCP tools).
-   * Does not apply to built-in tools that already manage their output size.
-   *
-   * @generated from field: int32 max_tool_result_chars = 4;
-   */
-  maxToolResultChars: number;
-
-  /**
-   * Maximum estimated cost in USD for this execution.
-   *
-   * When the execution's estimated spend reaches this limit, the run stops
-   * with a "send another message to continue" prompt and the execution ends
-   * TERMINATED; the work done so far is kept. The limit is checked each time
-   * the engine reports its spend, so a run can end somewhat above it. The
-   * native harness reports after every model call, counts a sub-agent's spend
-   * toward the limit, and advises the agent to wrap up at about 80% of the
-   * budget; the Cursor harness gives no warning.
-   *
-   * 0.0 = no cost cap (default, unlimited).
-   * Recommended: 1.00-5.00 for interactive sessions, 10.00+ for batch workflows.
-   *
-   * The budget is per message: a follow-up message, or a run resuming after
-   * an approval, starts a fresh count. The spend is the runner's estimate,
-   * reported on AgentExecutionStatus.streaming_usage.estimated_cost_usd, not
-   * the billed amount.
-   *
-   * @generated from field: double max_cost_usd = 5;
-   */
-  maxCostUsd: number;
-
-  /**
-   * Interaction mode for this execution.
-   *
-   * AGENT (default): full tool access — read, write, create, delete, shell.
-   * PLAN: read-only analysis — read, search, list only. No file mutations.
-   *
-   * When UNSPECIFIED, defaults to AGENT for backward compatibility.
-   *
-   * The mode is set per-execution and does not carry over between executions
-   * in the same session. Users toggle mode in the session composer before
-   * sending each message.
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 6;
-   */
-  interactionMode: InteractionMode;
-
-  /**
-   * JSON Schema that the agent's output must conform to.
-   *
-   * When set, the runner enforces structured output:
-   * - Native harness: uses deepagents responseFormat/ToolStrategy
-   * - Cursor harness: prompt instruction + extraction fallback
-   *
-   * The validated structured data is returned in the activity result
-   * and passed back to the parent workflow as `structured`.
-   *
-   * @generated from field: google.protobuf.Struct structured_output_schema = 7;
-   */
-  structuredOutputSchema?: JsonObject;
-
-  /**
-   * Marks this execution as a "Build from plan" turn: the user approved a plan
-   * produced by a prior Plan-mode execution and asked the agent to implement it.
-   *
-   * When set, the runner injects the implement-plan directive into the agent's
-   * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
-   * document travels as an attachment (the normal case), the directive points
-   * the agent at the attached plan file and treats it as authoritative; when no
-   * plan attachment is present (e.g. the client's upload failed), the directive
-   * tells the agent to follow the plan from the conversation instead.
-   *
-   * Clients set this flag INSTEAD of embedding implement instructions in
-   * `message`, so `message` stays a short human-readable label (e.g.
-   * "Build from plan") that UIs can render as a compact chip.
-   *
-   * Like interaction_mode, this is per-execution and never carries over
-   * between executions in the same session.
-   *
-   * @generated from field: bool build_from_plan = 8;
-   */
-  buildFromPlan: boolean;
-
-  /**
-   * How approval gates resolve for this execution. See ApprovalMode.
-   *
-   * UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
-   * decides (today's behavior). UNATTENDED: gated tools auto-skip and the
-   * model adapts — set by surfaces with no approver (channel session broker,
-   * guest execution scope step), never by external callers (the guest scope
-   * step replaces the whole execution_config, so a guest-supplied mode is
-   * discarded with the rest of the config).
-   *
-   * Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
-   * unattended mode resolves gates so tools SKIP. When both are set the
-   * bypass wins by layer order (the gate never fires).
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 9;
-   */
-  approvalMode: ApprovalMode;
-
-  /**
-   * Service tier for this execution's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
-   *
-   * UNSPECIFIED/STANDARD: the model's base-priced configuration, requested
-   * explicitly — never the provider account default. FAST: the model's fast
-   * variant at the registry's fast rates; valid only for models whose
-   * registry entry declares a fast pricing variant, and requires model_name
-   * to be set (validated fail-closed at create time).
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 10;
-   */
-  serviceTier: ServiceTier;
-
-  /**
-   * Thinking mode for this execution's model calls: disabled (the default)
-   * or enabled, where enabled selects the model's extended-reasoning variant.
-   *
-   * UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
-   * never the provider account default. ENABLED: the model's thinking
-   * variant, billed at base per-token rates (reasoning tokens bill as
-   * output); valid only for models whose registry entry declares the
-   * thinking capability, and requires model_name to be set (validated
-   * fail-closed at create time). Combines freely with service_tier.
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 11;
-   */
-  thinkingMode: ThinkingMode;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.
- * Use `create(ExecutionConfigSchema)` to create a new message.
- */
-export const ExecutionConfigSchema: GenMessage<ExecutionConfig> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 2);
-
-/**
- * ContextManagementConfig controls automatic context summarization behavior.
- *
- * Context summarization monitors token usage and automatically summarizes
- * older conversation history when approaching the model's context window limit.
- * This enables long-running agent conversations without hitting context limits.
- *
- * ## Default Behavior
- *
- * When not specified, defaults are derived from the Model Registry:
- * - Each model has a configured context_window, trigger_threshold, and target_tokens
- * - Summarization is enabled by default for all models
- * - Economy-tier models (claude-haiku-4, gpt-4o-mini) are used for summarization
- *
- * ## Configuration Options
- *
- * - **disable_summarization**: Opt out of automatic summarization entirely
- * - **custom_trigger_threshold**: Override when summarization triggers
- * - **custom_target_tokens**: Override the target size after summarization
- *
- * ## Example YAML
- *
- * Default behavior (use model registry defaults):
- *   execution_config:
- *     model_name: "claude-sonnet-4.5"
- *     # context_management not specified = use defaults
- *
- * Disable summarization:
- *   execution_config:
- *     model_name: "claude-sonnet-4.5"
- *     context_management:
- *       disable_summarization: true
- *
- * Custom thresholds (tokens):
- *   execution_config:
- *     model_name: "claude-sonnet-4.5"
- *     context_management:
- *       custom_trigger_threshold: 100000
- *       custom_target_tokens: 80000
- *
- * @generated from message ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
- */
-export type ContextManagementConfig = Message<"ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig"> & {
-  /**
-   * Disable automatic context summarization for this execution.
-   *
-   * When true, the agent will never trigger automatic summarization,
-   * even if the context window approaches the model's limit.
-   *
-   * Use cases:
-   * - Short-lived executions that won't approach context limits
-   * - Debugging context-related issues
-   * - Workflows that manage their own context externally
-   *
-   * Warning: Disabling summarization may cause execution failure
-   * if context exceeds model limits.
-   *
-   * Default: false (summarization enabled based on model defaults)
-   *
-   * @generated from field: bool disable_summarization = 1;
-   */
-  disableSummarization: boolean;
-
-  /**
-   * Custom token threshold to trigger summarization.
-   *
-   * When the context token count exceeds this threshold, summarization
-   * is triggered to reduce context size. Set to 0 to use model default.
-   *
-   * The default trigger threshold from Model Registry is typically 90%
-   * of the model's context window (e.g., 180K for 200K context models).
-   *
-   * Must be greater than custom_target_tokens if both are specified.
-   *
-   * Default: 0 (use model default from Model Registry)
-   *
-   * @generated from field: int32 custom_trigger_threshold = 2;
-   */
-  customTriggerThreshold: number;
-
-  /**
-   * Custom target token count after summarization.
-   *
-   * Summarization aims to reduce context to approximately this size.
-   * Set to 0 to use model default.
-   *
-   * The default target from Model Registry is typically 80% of the
-   * model's context window (e.g., 160K for 200K context models).
-   *
-   * Must be less than custom_trigger_threshold if both are specified.
-   *
-   * Default: 0 (use model default from Model Registry)
-   *
-   * @generated from field: int32 custom_target_tokens = 3;
-   */
-  customTargetTokens: number;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig.
- * Use `create(ContextManagementConfigSchema)` to create a new message.
- */
-export const ContextManagementConfigSchema: GenMessage<ContextManagementConfig> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 3);
-
-/**
  * Attachment represents a file attached to an agent execution.
  *
  * All files must be pre-uploaded via the uploadAttachment RPC and referenced
@@ -668,7 +449,7 @@ export type Attachment = Message<"ai.stigmer.agentic.agentexecution.v1.Attachmen
  * Use `create(AttachmentSchema)` to create a new message.
  */
 export const AttachmentSchema: GenMessage<Attachment> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 4);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 2);
 
 /**
  * ConversationCatchup carries the channel-conversation events an agent
@@ -698,7 +479,7 @@ export type ConversationCatchup = Message<"ai.stigmer.agentic.agentexecution.v1.
  * Use `create(ConversationCatchupSchema)` to create a new message.
  */
 export const ConversationCatchupSchema: GenMessage<ConversationCatchup> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 5);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 3);
 
 /**
  * DeclaredPreferences carries the standing preference texts injected into
@@ -727,7 +508,7 @@ export type DeclaredPreferences = Message<"ai.stigmer.agentic.agentexecution.v1.
  * Use `create(DeclaredPreferencesSchema)` to create a new message.
  */
 export const DeclaredPreferencesSchema: GenMessage<DeclaredPreferences> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 6);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 4);
 
 /**
  * RecalledMemories is the server-composed snapshot of the caller's
@@ -758,7 +539,7 @@ export type RecalledMemories = Message<"ai.stigmer.agentic.agentexecution.v1.Rec
  * Use `create(RecalledMemoriesSchema)` to create a new message.
  */
 export const RecalledMemoriesSchema: GenMessage<RecalledMemories> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 7);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 5);
 
 /**
  * RecalledMemoryFact is one confirmed memory as injected into an
@@ -787,5 +568,5 @@ export type RecalledMemoryFact = Message<"ai.stigmer.agentic.agentexecution.v1.R
  * Use `create(RecalledMemoryFactSchema)` to create a new message.
  */
 export const RecalledMemoryFactSchema: GenMessage<RecalledMemoryFact> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 8);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 6);
 

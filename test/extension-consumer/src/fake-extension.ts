@@ -27,6 +27,8 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
 
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import {
   ChannelConversationListSchema,
   ChannelConversationSchema,
@@ -124,6 +126,7 @@ import {
   boundOrgOf,
 } from "@stigmer/server";
 import type { BindingVerdict, CredentialBinding } from "@stigmer/server";
+import type { RunLane, RunLanes } from "@stigmer/server";
 import type {
   AgentExecutionResponseDecorator,
   AgentExecutionTemporalConfig,
@@ -1125,6 +1128,29 @@ const consumerScheduleFireCaller: ScheduleFireCallerMint = {
 };
 
 /**
+ * A consumer-shaped run-lanes driver (registered below as
+ * `drivers.runLanes`): a visitor's turn runs on its surface's saved
+ * settings, in place of what the request carries, under the lane's
+ * operator profile and unattended. Keyed on the verified caller, never on
+ * the request; any other caller is the core's to place.
+ */
+const consumerRunLanes: RunLanes = {
+  laneOf: (caller, execution) => {
+    void execution;
+    if (caller.callerClass !== "guest") {
+      return Promise.resolve(undefined);
+    }
+    const lane: RunLane = {
+      settings: create(RunConfigSchema, { modelName: "consumer-model" }),
+      settingsName: "the share's run_config",
+      profile: create(RunConfigSchema, { maxCostUsd: 0.5, maxToolRounds: 10 }),
+      approvalMode: ApprovalMode.UNATTENDED,
+    };
+    return Promise.resolve(lane);
+  },
+};
+
+/**
  * The secret-convergence sweep's exact shape: page
  * raw documents through the blessed maintenance verbs, reseal through the
  * facade's one upgrade door, and persist only when nothing interleaved —
@@ -1508,6 +1534,9 @@ export const fakeExtension: ServerExtension = {
     secretCodecs: new Map([["v2", consumerVaultCodec]]),
     // The schedule-fire caller seam: who a schedule fire acts as.
     scheduleFireCaller: consumerScheduleFireCaller,
+    // The run-lanes seam: which lane a visitor's turn comes through, and
+    // that lane's settings, operator profile and approval mode.
+    runLanes: consumerRunLanes,
     // The identity-account seams: the identity-account domain served over the
     // consumer's own store, and the federated arms only it can serve.
     identityAccountStore: consumerIdentityAccountStore,

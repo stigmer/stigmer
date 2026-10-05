@@ -2,7 +2,7 @@
  * The Build-from-plan prompt directive, shared by both harnesses.
  *
  * When the user approves a plan and clicks "Build from plan", the client
- * submits an execution with `spec.execution_config.build_from_plan` set and a
+ * submits an execution with `spec.build_from_plan` set and a
  * short human-readable message ("Build from plan") — it does NOT embed
  * implement instructions in the message text. The runner owns the agent-facing
  * instruction, injected from this module, so the chat thread can render the

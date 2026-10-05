@@ -170,8 +170,9 @@ describe("SessionComposer — effective run selection (#663)", () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     expect(onSubmit.mock.calls[0][1]).toBe("gpt-5.3-codex");
-    // The armed tier is unsendable, not just unstyled (#357 fail-closed rule).
-    expect(onSubmit.mock.calls[0][2]?.serviceTier).toBeUndefined();
+    // The armed tier is unsendable, not just unstyled (#357 fail-closed
+    // rule): the person's touched switch rides as what is in effect.
+    expect(onSubmit.mock.calls[0][2]?.serviceTier).toBe("standard");
   });
 
   it("never adopts a default while the model selector is hidden (the hider owns the model)", async () => {

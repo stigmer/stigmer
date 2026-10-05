@@ -1727,8 +1727,8 @@ type StreamingUsageSummary struct {
 	ObservedAt string `protobuf:"bytes,9,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
 	// Service tier the runner requested for this execution's model calls.
 	//
-	// Always explicit once the runner has translated the execution config
-	// (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+	// Always explicit once the runner has translated the turn's settings
+	// (STANDARD when AgentExecutionStatus.run_config.service_tier was unset) — the audit
 	// record that the account default was never left in control.
 	RequestedServiceTier ServiceTier `protobuf:"varint,10,opt,name=requested_service_tier,json=requestedServiceTier,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ServiceTier" json:"requested_service_tier,omitempty"`
 	// JSON-encoded provider variant parameters the runner sent with the model
@@ -1737,8 +1737,8 @@ type StreamingUsageSummary struct {
 	RequestedModelParams string `protobuf:"bytes,11,opt,name=requested_model_params,json=requestedModelParams,proto3" json:"requested_model_params,omitempty"`
 	// Thinking mode the runner requested for this execution's model calls.
 	//
-	// Always explicit once the runner has translated the execution config
-	// (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+	// Always explicit once the runner has translated the turn's settings
+	// (DISABLED when AgentExecutionStatus.run_config.thinking_mode was unset) — the audit
 	// record that the account default was never left in control
 	// (stigmer/stigmer#772; several catalog defaults are thinking=true).
 	RequestedThinkingMode ThinkingMode `protobuf:"varint,12,opt,name=requested_thinking_mode,json=requestedThinkingMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ThinkingMode" json:"requested_thinking_mode,omitempty"`

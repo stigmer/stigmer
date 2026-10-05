@@ -372,6 +372,40 @@ const agent = await create({
 ```
 
 
+### useRunAgentSpec
+
+Reads the spec of the version of `agentRef` a conversation's next
+message runs. `null` reads nothing (no agent, or a surface that may not
+read it).
+
+**Signature**
+
+```tsx
+function useRunAgentSpec(agentRef: ResourceRef | null, versionHash: string): UseRunAgentSpecReturn
+```
+
+<TypeTable
+  type={{
+    agentRef: { type: "ResourceRef | null", description: "", required: true },
+    versionHash: { type: "string", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseRunAgentSpecReturn`
+
+<TypeTable
+  type={{
+    agent: { type: "Agent | null", description: "The agent as it is now; `null` with no agent, while loading, or when it cannot be read." },
+    isLoading: { type: "boolean", description: "`true` while the agent itself is being read." },
+    spec: { type: "AgentSpec | undefined", description: "The spec of the version the next message runs; `undefined` until it is known." },
+  }}
+/>
+
+```tsx
+const { spec } = useRunAgentSpec(agentRef, session.status?.agentVersionHash);
+```
+
+
 ### useUpdateAgent
 
 Mutation hook that updates an existing Agent resource.
@@ -643,6 +677,16 @@ Options reported by the form alongside the collected values.
 Describes a single environment variable that the form should collect.
 
 
+### agentHarnessOf
+
+The engine the agent names, or `undefined` when it names none: a new
+conversation on the agent starts on it unless the person picks another.
+
+```tsx
+function agentHarnessOf(spec: AgentSpec | undefined): HarnessOption | undefined
+```
+
+
 ### AgentResolution
 
 Describes how the agent was resolved, determining how the caller
@@ -657,6 +701,35 @@ Every mode starts the conversation on the agent itself (the session's
   `runtimeEnv` to `createExecution` for this run only.
 - `"direct"` — Nothing is needed from the user: the agent declares no
   keys, or the session's variables cover the ones it does.
+
+
+### AgentRunDefaults
+
+The choices an agent's run defaults make for a conversation on its engine.
+
+<TypeTable
+  type={{
+    modelName: { type: "string", description: "The model the author chose, as the registry lists it on the agent's engine.", required: true },
+    serviceTier: { type: "ServiceTierOption", description: "The speed tier the author chose, when they chose one." },
+    thinkingMode: { type: "ThinkingModeOption", description: "The thinking mode the author chose, when they chose one." },
+  }}
+/>
+
+
+### agentRunDefaultsFor
+
+The agent's model choices that apply to a conversation running
+`harness`, or `undefined` when none do: the agent names no model, or
+names an engine other than the one the conversation runs.
+
+```tsx
+function agentRunDefaultsFor(spec: AgentSpec | undefined, harness: HarnessOption): AgentRunDefaults | undefined
+```
+
+```tsx
+const defaults = agentRunDefaultsFor(agent.spec, "native");
+// { modelName: "claude-sonnet-4.6", thinkingMode: "enabled" }
+```
 
 
 ### AgentSetupPhase

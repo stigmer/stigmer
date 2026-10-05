@@ -26,9 +26,12 @@ vi.mock("../useSessionConversation", () => ({
   useSessionConversation: () => mockConv,
 }));
 
-vi.mock("../../hooks", () => ({
-  useStigmer: () => ({ agent: { getByReference: vi.fn() } }),
-}));
+// One client for every render, as the provider gives: a fresh object per
+// call would change the agent reads' inputs on each render.
+vi.mock("../../hooks", () => {
+  const stigmer = { agent: { getByReference: vi.fn().mockResolvedValue(null) } };
+  return { useStigmer: () => stigmer };
+});
 
 
 const mockWorkspace = {

@@ -65,6 +65,7 @@ import { CancelledFailure } from "@temporalio/activity";
 import { clone } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema, type AgentExecution, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionSpec } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { ApprovalAction, FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
@@ -1005,8 +1006,9 @@ function errorText(err: unknown): string {
  * status offload. The vision budget rides along so image attachments are
  * selected for inline delivery while their bytes are already in hand
  * (`shared/attachment-vision.ts` owns all policy); it carries the vision
- * capability of the model the turn will run on: the one the execution named,
- * or the registry's default when it named none — the model the native
+ * capability of the model the turn will run on: the one the turn's resolved
+ * settings name (`status.run_config`, which the control plane resolved once
+ * at create), or the registry's default when they name none — the model the native
  * harness builds in that case, so the budget asks about the model that will
  * actually see the image. Full model validation is not needed for this. The
  * Cursor harness with no model named builds its own catalog default instead
@@ -1020,13 +1022,15 @@ export async function resolveTurnAttachments(
   deps: ResolutionDeps,
   args: {
     readonly spec: AgentExecutionSpec;
+    /** The settings the turn runs with (`execution.status.run_config`); never the request's. */
+    readonly runConfig: RunConfig | undefined;
     readonly sessionId: string;
     readonly primaryDir: string;
     readonly visionProfile: VisionProfile;
   },
 ): Promise<TurnAttachments> {
   deps.enterPhase("resolve_attachments");
-  const modelName = args.spec.executionConfig?.modelName || (await getDefaultModel());
+  const modelName = args.runConfig?.modelName || (await getDefaultModel());
   const visionBudget = new VisionBudget(args.visionProfile, {
     modelVision: await getModelVisionCapability(modelName),
   });
@@ -1131,24 +1135,28 @@ export async function applyApprovedWrites(
 }
 
 /**
- * Phase 6, the harness-agnostic half: the
- * requested model name as the execution states it, and the effective service
- * tier and thinking mode. UNSPECIFIED → STANDARD (#357) and UNSPECIFIED →
- * DISABLED (#772) resolve here and nowhere else; every upstream layer
- * preserves the caller's raw enum values. Validating the NAME against a
- * catalog is the harness's (Cursor's `resolveModelId`), so it is not here.
+ * Phase 6, the harness-agnostic half: the model name the turn runs with, and
+ * the effective service tier and thinking mode. All three come from
+ * `execution.status.run_config`, the settings the control plane resolved
+ * once at create from the message, the agent's defaults and the lane's
+ * operator profile; the request's own `spec.run_config` is one input to that
+ * resolution and is never read here, so a request can never bypass a cap or
+ * a default the resolution applied. UNSPECIFIED → STANDARD (#357) and
+ * UNSPECIFIED → DISABLED (#772) resolve here and nowhere else: the resolved
+ * settings keep "no layer set it" as UNSPECIFIED. Validating the NAME against
+ * a catalog is the harness's (Cursor's `resolveModelId`), so it is not here.
  */
-export function resolveModelPreferences(spec: AgentExecutionSpec): TurnModelPreferences {
+export function resolveModelPreferences(runConfig: RunConfig | undefined): TurnModelPreferences {
   return {
-    requested: spec.executionConfig?.modelName || "default",
-    serviceTier: resolveEffectiveServiceTier(spec.executionConfig?.serviceTier),
-    thinkingMode: resolveEffectiveThinkingMode(spec.executionConfig?.thinkingMode),
+    requested: runConfig?.modelName || "default",
+    serviceTier: resolveEffectiveServiceTier(runConfig?.serviceTier),
+    thinkingMode: resolveEffectiveThinkingMode(runConfig?.thinkingMode),
   };
 }
 
-/** Phase 9b: the structured-output schema the execution asks for, if any. */
+/** Phase 9b: the structured-output schema this message asks for, if any (a per-message intent on the spec). */
 export function structuredOutputSchemaOf(spec: AgentExecutionSpec): Record<string, unknown> | undefined {
-  return spec.executionConfig?.structuredOutputSchema as Record<string, unknown> | undefined;
+  return spec.structuredOutputSchema;
 }
 
 /**
@@ -1274,6 +1282,7 @@ export async function resolveTurnContext(
   if (hookResolution.kind === "settled") return hookResolution;
   const attachments = await resolveTurnAttachments(deps, {
     spec,
+    runConfig: execution.status?.runConfig,
     sessionId,
     primaryDir: workspace.primaryDir,
     visionProfile: capabilities.visionProfile,
@@ -1308,7 +1317,7 @@ export async function resolveTurnContext(
       hooks: hookResolution.hooks,
       attachments,
       appliedToolCallIds,
-      model: resolveModelPreferences(spec),
+      model: resolveModelPreferences(execution.status?.runConfig),
       structuredOutputSchema: structuredOutputSchemaOf(spec),
       standing: resolveStandingContext(deps, { execution, spec, blueprint }),
       artifactStorage: deps.artifactStorage,

@@ -1,6 +1,7 @@
 import datetime
 
 from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as _invocation_pb2
 from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.agentic.session.v1 import spec_pb2 as _spec_pb2_1
 from buf.validate import validate_pb2 as _validate_pb2
@@ -15,7 +16,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentExecutionSpec(_message.Message):
-    __slots__ = ("session_id", "session_spec", "message", "execution_config", "runtime_env", "auto_approve_all", "attachments", "workspace_file_refs", "supersedes_execution_id", "conversation_catchup", "parent")
+    __slots__ = ("session_id", "session_spec", "message", "run_config", "interaction_mode", "build_from_plan", "structured_output_schema", "runtime_env", "auto_approve_all", "attachments", "workspace_file_refs", "supersedes_execution_id", "conversation_catchup", "parent")
     class RuntimeEnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -26,7 +27,10 @@ class AgentExecutionSpec(_message.Message):
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_SPEC_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
-    EXECUTION_CONFIG_FIELD_NUMBER: _ClassVar[int]
+    RUN_CONFIG_FIELD_NUMBER: _ClassVar[int]
+    INTERACTION_MODE_FIELD_NUMBER: _ClassVar[int]
+    BUILD_FROM_PLAN_FIELD_NUMBER: _ClassVar[int]
+    STRUCTURED_OUTPUT_SCHEMA_FIELD_NUMBER: _ClassVar[int]
     RUNTIME_ENV_FIELD_NUMBER: _ClassVar[int]
     AUTO_APPROVE_ALL_FIELD_NUMBER: _ClassVar[int]
     ATTACHMENTS_FIELD_NUMBER: _ClassVar[int]
@@ -37,7 +41,10 @@ class AgentExecutionSpec(_message.Message):
     session_id: str
     session_spec: _spec_pb2_1.SessionSpec
     message: str
-    execution_config: ExecutionConfig
+    run_config: _invocation_pb2.RunConfig
+    interaction_mode: _enum_pb2.InteractionMode
+    build_from_plan: bool
+    structured_output_schema: _struct_pb2.Struct
     runtime_env: _containers.MessageMap[str, _spec_pb2.ExecutionValue]
     auto_approve_all: bool
     attachments: _containers.RepeatedCompositeFieldContainer[Attachment]
@@ -45,7 +52,7 @@ class AgentExecutionSpec(_message.Message):
     supersedes_execution_id: str
     conversation_catchup: ConversationCatchup
     parent: WorkflowParent
-    def __init__(self, session_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2_1.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., auto_approve_all: bool = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., supersedes_execution_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ..., parent: _Optional[_Union[WorkflowParent, _Mapping]] = ...) -> None: ...
+    def __init__(self, session_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2_1.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., interaction_mode: _Optional[_Union[_enum_pb2.InteractionMode, str]] = ..., build_from_plan: bool = ..., structured_output_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., auto_approve_all: bool = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., supersedes_execution_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ..., parent: _Optional[_Union[WorkflowParent, _Mapping]] = ...) -> None: ...
 
 class WorkflowParent(_message.Message):
     __slots__ = ("workflow_execution_id", "signal_workflow_id", "callback_token")
@@ -56,42 +63,6 @@ class WorkflowParent(_message.Message):
     signal_workflow_id: str
     callback_token: bytes
     def __init__(self, workflow_execution_id: _Optional[str] = ..., signal_workflow_id: _Optional[str] = ..., callback_token: _Optional[bytes] = ...) -> None: ...
-
-class ExecutionConfig(_message.Message):
-    __slots__ = ("model_name", "context_management", "max_tool_rounds", "max_tool_result_chars", "max_cost_usd", "interaction_mode", "structured_output_schema", "build_from_plan", "approval_mode", "service_tier", "thinking_mode")
-    MODEL_NAME_FIELD_NUMBER: _ClassVar[int]
-    CONTEXT_MANAGEMENT_FIELD_NUMBER: _ClassVar[int]
-    MAX_TOOL_ROUNDS_FIELD_NUMBER: _ClassVar[int]
-    MAX_TOOL_RESULT_CHARS_FIELD_NUMBER: _ClassVar[int]
-    MAX_COST_USD_FIELD_NUMBER: _ClassVar[int]
-    INTERACTION_MODE_FIELD_NUMBER: _ClassVar[int]
-    STRUCTURED_OUTPUT_SCHEMA_FIELD_NUMBER: _ClassVar[int]
-    BUILD_FROM_PLAN_FIELD_NUMBER: _ClassVar[int]
-    APPROVAL_MODE_FIELD_NUMBER: _ClassVar[int]
-    SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
-    THINKING_MODE_FIELD_NUMBER: _ClassVar[int]
-    model_name: str
-    context_management: ContextManagementConfig
-    max_tool_rounds: int
-    max_tool_result_chars: int
-    max_cost_usd: float
-    interaction_mode: _enum_pb2.InteractionMode
-    structured_output_schema: _struct_pb2.Struct
-    build_from_plan: bool
-    approval_mode: _enum_pb2.ApprovalMode
-    service_tier: _enum_pb2.ServiceTier
-    thinking_mode: _enum_pb2.ThinkingMode
-    def __init__(self, model_name: _Optional[str] = ..., context_management: _Optional[_Union[ContextManagementConfig, _Mapping]] = ..., max_tool_rounds: _Optional[int] = ..., max_tool_result_chars: _Optional[int] = ..., max_cost_usd: _Optional[float] = ..., interaction_mode: _Optional[_Union[_enum_pb2.InteractionMode, str]] = ..., structured_output_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., build_from_plan: bool = ..., approval_mode: _Optional[_Union[_enum_pb2.ApprovalMode, str]] = ..., service_tier: _Optional[_Union[_enum_pb2.ServiceTier, str]] = ..., thinking_mode: _Optional[_Union[_enum_pb2.ThinkingMode, str]] = ...) -> None: ...
-
-class ContextManagementConfig(_message.Message):
-    __slots__ = ("disable_summarization", "custom_trigger_threshold", "custom_target_tokens")
-    DISABLE_SUMMARIZATION_FIELD_NUMBER: _ClassVar[int]
-    CUSTOM_TRIGGER_THRESHOLD_FIELD_NUMBER: _ClassVar[int]
-    CUSTOM_TARGET_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    disable_summarization: bool
-    custom_trigger_threshold: int
-    custom_target_tokens: int
-    def __init__(self, disable_summarization: bool = ..., custom_trigger_threshold: _Optional[int] = ..., custom_target_tokens: _Optional[int] = ...) -> None: ...
 
 class Attachment(_message.Message):
     __slots__ = ("filename", "storage_key", "mount_path", "content_type", "extract", "local_path")

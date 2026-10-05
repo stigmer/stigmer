@@ -5,7 +5,9 @@ continues a session (`session_id`) or starts one (`session_spec`, whose
 `agent_ref` names the agent; neither starts a conversation with the built-in
 assistant), runs the agent version its session records, and is refused unless
 the caller may still run that agent; `status.agent_id` and
-`status.agent_version_hash` record what ran.
+`status.agent_version_hash` record what ran. `run_config` asks for this
+message's model and limits; unset fields fall to the agent's defaults, and
+`status.run_config` records the settings the turn ran with.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -20,6 +22,6 @@ spec:
       org: acme
       slug: deploy-assistant
   message: "What is the status of my latest deployment?"
-  execution_config:
-    model_name: "claude-sonnet-4-6"
+  run_config:
+    model_name: "claude-sonnet-4.6"
 ```

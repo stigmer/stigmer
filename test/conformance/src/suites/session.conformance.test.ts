@@ -791,6 +791,37 @@ describe("Session conformance — the agent pin", () => {
   });
 });
 
+describe("Session conformance — a new conversation's engine", () => {
+  // An agent's run defaults name the engine they were chosen for
+  // (AgentSpec.harness); a new conversation that names no engine starts on
+  // it, and one that names an engine keeps its own.
+  async function cursorAgent(org: string): Promise<Agent> {
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("cursor-agent"), harness: Harness.CURSOR }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    return agent;
+  }
+
+  it("[rpc:SessionCommandController.create] a session naming no engine starts on the agent's engine", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await cursorAgent(org);
+
+    const created = await createSession(org, uniqueName("session"), agentRefOf(agent));
+
+    expect(created.spec?.harness).toBe(Harness.CURSOR);
+  });
+
+  it("[rpc:SessionCommandController.create] a session naming an engine keeps it", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await cursorAgent(org);
+
+    const created = await createSession(org, uniqueName("session"), agentRefOf(agent), { harness: Harness.NATIVE });
+
+    expect(created.spec?.harness).toBe(Harness.NATIVE);
+  });
+});
+
 describe("Session conformance — references across organizations and on update", () => {
   const notAvailable = (kind: string, slug: string) =>
     `referenced ${kind} '${slug}' of another organization is not available to this organization; ` +

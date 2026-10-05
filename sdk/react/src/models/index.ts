@@ -6,7 +6,7 @@ export type { UseModelRegistryReturn, UseModelRegistryOptions } from "./useModel
 export { ModelRegistryContext, useModelRegistryContext } from "./ModelRegistryContext.js";
 export type { ModelRegistryState } from "./ModelRegistryContext.js";
 export { ModelSelector } from "./ModelSelector.js";
-export type { ModelSelectorProps } from "./ModelSelector.js";
+export type { InheritedModel, ModelSelectorProps } from "./ModelSelector.js";
 export { HarnessSelector } from "./HarnessSelector.js";
 export type { HarnessSelectorProps } from "./HarnessSelector.js";
 export { DEFAULT_HARNESS, HARNESS_LABELS, HARNESS_META, HARNESS_OPTIONS, isHarnessOption, toProtoHarness, fromProtoHarness } from "./harness.js";

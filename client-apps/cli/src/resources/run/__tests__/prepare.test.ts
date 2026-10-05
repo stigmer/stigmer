@@ -1,8 +1,12 @@
-// Unit tests for the prelude orchestrator: flag validation helpers and the
-// STIGMER_ORG injection rule. Attachment uploading is covered in
+// Unit tests for the prelude orchestrator: flag validation helpers, the
+// STIGMER_ORG injection rule, and the layered engine/model seeds (flag, the
+// agent's run defaults, the account preference). Attachment uploading is covered in
 // attachments.test.ts, so these tests use no attachments.
 
+import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
+import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { type AgentExecFlags, parseApprovalAction, prepareAgentExec, validateHarness, validateMode, validateServiceTier, validateThinking } from "../prepare.js";
@@ -329,6 +333,93 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
       SERVED_RUN_OPTIONS,
     );
     expect(prepared.harness).toBe("");
+  });
+});
+
+describe("prepareAgentExec — the agent's run defaults come before the account's", () => {
+  const AGENT_ON_CURSOR = create(AgentSpecSchema, {
+    harness: Harness.CURSOR,
+    runConfig: { modelName: "composer-2.5" },
+  });
+  const ACCOUNT = { defaultHarness: "native", defaultNativeModel: "claude-sonnet-4-6", defaultCursorModel: "gpt-5" };
+
+  it("resolves an omitted --harness to the agent's engine and leaves the model to the agent", async () => {
+    const prepared = await prepareAgentExec(
+      BASE_FLAGS,
+      clientWithPreferences(ACCOUNT),
+      "acme",
+      undefined,
+      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
+    );
+    expect(prepared.harness).toBe("cursor");
+    expect(prepared.model).toBe("");
+  });
+
+  it("an explicit --harness off the agent's engine takes the account model for that engine", async () => {
+    const prepared = await prepareAgentExec(
+      { ...BASE_FLAGS, harness: "native" },
+      clientWithPreferences(ACCOUNT),
+      "acme",
+      undefined,
+      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
+    );
+    expect(prepared.harness).toBe("native");
+    expect(prepared.model).toBe("claude-sonnet-4-6");
+  });
+
+  it("an agent naming an engine but no model keeps the account model fill", async () => {
+    const prepared = await prepareAgentExec(
+      BASE_FLAGS,
+      clientWithPreferences(ACCOUNT),
+      "acme",
+      undefined,
+      { ...SERVED_RUN_OPTIONS, agentSpec: create(AgentSpecSchema, { harness: Harness.CURSOR }) },
+    );
+    expect(prepared.harness).toBe("cursor");
+    expect(prepared.model).toBe("gpt-5");
+  });
+
+  it("an explicit --model always wins, and alone it names no engine, neither the agent's nor the account's", async () => {
+    const prepared = await prepareAgentExec(
+      { ...BASE_FLAGS, model: "default" },
+      clientWithPreferences({ ...ACCOUNT, defaultHarness: "cursor" }),
+      "acme",
+      undefined,
+      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
+    );
+    expect(prepared.model).toBe("default");
+    // The server reads a model named alone on native.
+    expect(prepared.harness).toBe("");
+  });
+
+  it("--model with --harness keeps the engine named", async () => {
+    const prepared = await prepareAgentExec(
+      { ...BASE_FLAGS, model: "composer-2.5", harness: "cursor" },
+      clientWithPreferences(ACCOUNT),
+      "acme",
+      undefined,
+      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
+    );
+    expect(prepared.harness).toBe("cursor");
+    expect(prepared.model).toBe("composer-2.5");
+  });
+
+  it("an agent naming the native engine outranks an account that prefers cursor", async () => {
+    const prepared = await prepareAgentExec(
+      BASE_FLAGS,
+      clientWithPreferences({ ...ACCOUNT, defaultHarness: "cursor" }),
+      "acme",
+      undefined,
+      {
+        ...SERVED_RUN_OPTIONS,
+        agentSpec: create(AgentSpecSchema, {
+          harness: Harness.NATIVE,
+          runConfig: { modelName: "claude-opus-4-1" },
+        }),
+      },
+    );
+    expect(prepared.harness).toBe("native");
+    expect(prepared.model).toBe("");
   });
 });
 

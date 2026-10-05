@@ -156,8 +156,8 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
-   * Per-call model choice and run bounds. Unset fields inherit the
-   * platform defaults.
+   * Per-call model choice and run bounds. Unset fields fall to the agent's
+   * defaults (RunConfig has the rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -166,8 +166,8 @@ java.lang.String defaultValue);
   boolean hasRunConfig();
   /**
    * <pre>
-   * Per-call model choice and run bounds. Unset fields inherit the
-   * platform defaults.
+   * Per-call model choice and run bounds. Unset fields fall to the agent's
+   * defaults (RunConfig has the rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -176,8 +176,8 @@ java.lang.String defaultValue);
   ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig();
   /**
    * <pre>
-   * Per-call model choice and run bounds. Unset fields inherit the
-   * platform defaults.
+   * Per-call model choice and run bounds. Unset fields fall to the agent's
+   * defaults (RunConfig has the rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -244,8 +244,9 @@ java.lang.String defaultValue);
    * the AgentExecution. The harness is a session-level concern — it determines
    * tool availability, state management, model access, and billing tier.
    *
-   * When unspecified, defaults to HARNESS_NATIVE (the workflow
-   * surface's platform default).
+   * When unspecified: native when run_config names a model (the engine the
+   * model was checked against at save), else the agent's own engine
+   * (AgentSpec.harness), else native.
    *
    * YAML Example:
    * - code_review:
@@ -272,8 +273,9 @@ java.lang.String defaultValue);
    * the AgentExecution. The harness is a session-level concern — it determines
    * tool availability, state management, model access, and billing tier.
    *
-   * When unspecified, defaults to HARNESS_NATIVE (the workflow
-   * surface's platform default).
+   * When unspecified: native when run_config names a model (the engine the
+   * model was checked against at save), else the agent's own engine
+   * (AgentSpec.harness), else native.
    *
    * YAML Example:
    * - code_review:

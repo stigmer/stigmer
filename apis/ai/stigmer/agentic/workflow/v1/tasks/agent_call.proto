@@ -153,20 +153,18 @@ message AgentCallTaskConfig {
   // Optional.
   map<string, string> env = 3;
 
-  // Per-call model choice and run bounds. Unset fields inherit the
-  // platform defaults.
+  // Per-call model choice and run bounds. Unset fields fall to the agent's
+  // defaults (RunConfig has the rule).
   //
   // @internal
-  // The shared RunConfig — the same message schedules
-  // embed, so the run-bound vocabulary cannot drift between
-  // triggering surfaces. Semantics at the workflow surface:
-  // model_name replaces the agent's default outright; max_cost_usd
-  // maps to ExecutionConfig.max_cost_usd and is enforced by the
-  // runner's harness-generic cost guards; max_tool_rounds maps to
-  // ExecutionConfig.max_tool_rounds (native harness only — inert on
-  // cursor, whose sole bound is cost). No platform clamp profile is
-  // applied at this surface yet: per the RunConfig contract, an unset
-  // platform cap means the owner value stands.
+  // The shared RunConfig — the same message schedules embed, so the
+  // run-bound vocabulary cannot drift between triggering surfaces. The
+  // runner writes it as the child turn's spec.run_config, and the server's
+  // one resolution combines it with the agent's defaults: a choice here
+  // wins over the agent's, and a bound here can lower the agent's cap but
+  // never raise it. max_tool_rounds is enforced by the native harness only
+  // (inert on cursor, whose sole bound is cost). The workflow lane has no
+  // operator profile.
   ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4;
 
   // Structured output contract for this agent call.
@@ -189,8 +187,9 @@ message AgentCallTaskConfig {
   // the AgentExecution. The harness is a session-level concern — it determines
   // tool availability, state management, model access, and billing tier.
   //
-  // When unspecified, defaults to HARNESS_NATIVE (the workflow
-  // surface's platform default).
+  // When unspecified: native when run_config names a model (the engine the
+  // model was checked against at save), else the agent's own engine
+  // (AgentSpec.harness), else native.
   //
   // YAML Example:
   //   - code_review:

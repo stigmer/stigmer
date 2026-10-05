@@ -122,7 +122,8 @@ AI agents.
 
 ### RunConfig
 
-RunConfig is the owner-settable model choice and run bounds.
+RunConfig is the settings message for every run: a model, a speed tier,
+thinking, and run bounds.
 
 <TypeTable
   type={{
@@ -133,7 +134,7 @@ RunConfig is the owner-settable model choice and run bounds.
     },
     max_tool_rounds: {
       type: "number",
-      description: "Maximum model-to-tools reasoning cycles per run.",
+      description: "Maximum model-to-tools reasoning cycles per message.",
     },
     service_tier: {
       type: "ServiceTier",
@@ -146,6 +147,11 @@ RunConfig is the owner-settable model choice and run bounds.
       description:
         "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).",
       typeDescriptionLink: "#thinkingmode",
+    },
+    max_tool_result_chars: {
+      type: "number",
+      description:
+        "Maximum number of characters for a single tool result before truncation.",
     },
   }}
 />

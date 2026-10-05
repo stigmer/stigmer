@@ -29,7 +29,7 @@ import type { McpTransportPosture } from "./mcp-transport-guard.js";
 import type { PlatformEndpoints } from "./platform-server-address.js";
 import { withTimeout } from "./with-timeout.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
-import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 
 const CONNECT_TIMEOUT_MS = 60_000;
 

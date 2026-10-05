@@ -41,6 +41,20 @@
  * cleared it on create, and BuildUpdateState carried the stored status
  * over it on update.
  *
+ * An update that names no engine keeps the conversation's stored one, so a
+ * caller re-applying a session it created (a workflow step's retry) never
+ * resets the engine its agent's defaults chose; the same holds when the
+ * write keeps the stored pin. A new conversation that names no engine starts on the engine its agent's
+ * pinned version names (AgentSpec.harness), the engine the agent's run
+ * defaults were chosen for: the request's engine first, then the agent's,
+ * then the platform default (native, the core's reading of unset). A turn
+ * that starts a conversation naming a model but no engine has already named
+ * native here (agentexecution's ResolveRunConfig), since its model was
+ * checked against native. Only on
+ * create: a stored conversation keeps the engine it started on
+ * (session/steps.ts refuses a change once a turn has run), so a re-pin to a
+ * version naming another engine changes new conversations only.
+ *
  * Proven by __tests__/resolve-session-agent.test.ts and the session
  * conformance suite's pin arms.
  */
@@ -52,6 +66,7 @@ import type {
   Session,
   SessionSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -79,6 +94,7 @@ import {
   truncateHash,
 } from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError, type Store } from "../../store/interface.js";
+import { readRunAgentSpec } from "../agent/run-defaults.js";
 import { agentVersionBinding } from "../agent/versions.js";
 import {
   agentGoneMessage,
@@ -98,6 +114,10 @@ export function newResolveSessionAgentStep(
     async execute(ctx) {
       const session = ctx.newState;
       const status = (session.status ??= create(SessionStatusSchema));
+      keepStoredEngine(
+        session,
+        ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined,
+      );
       const ref = session.spec?.agentRef;
       if (ref === undefined || ref.slug === "") {
         const stored = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
@@ -157,12 +177,31 @@ export function newResolveSessionAgentStep(
       }
       status.agentId = pin.agentId;
       status.agentVersionHash = pin.versionHash;
+      if (
+        stored === undefined &&
+        session.spec !== undefined &&
+        session.spec.harness === Harness.UNSPECIFIED
+      ) {
+        const agentSpec = await readRunAgentSpec(store, pin.agentId, pin.versionHash);
+        session.spec.harness = agentSpec?.harness ?? Harness.UNSPECIFIED;
+      }
       logger.debug("Pinned the agent version this session runs", {
         agentId: pin.agentId,
         versionHash: truncateHash(pin.versionHash),
       });
     },
   };
+}
+
+/** An update naming no engine keeps the stored conversation's (the module header). */
+function keepStoredEngine(session: Session, stored: Session | undefined): void {
+  if (
+    stored !== undefined &&
+    session.spec !== undefined &&
+    session.spec.harness === Harness.UNSPECIFIED
+  ) {
+    session.spec.harness = stored.spec?.harness ?? Harness.UNSPECIFIED;
+  }
 }
 
 /** The reference grammar's name for an agent's current version. */

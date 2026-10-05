@@ -169,7 +169,9 @@ private static final long serialVersionUID = 0L;
   private int harness_ = 0;
   /**
    * <pre>
-   * Execution engine for the run's session. Unspecified inherits the
+   * Execution engine for the run's session. Unspecified: native when
+   * run_config names a model (the engine the model was checked against at
+   * save), else the agent's own engine (AgentSpec.harness), else the
    * embedding surface's platform default.
    * </pre>
    *
@@ -181,7 +183,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution engine for the run's session. Unspecified inherits the
+   * Execution engine for the run's session. Unspecified: native when
+   * run_config names a model (the engine the model was checked against at
+   * save), else the agent's own engine (AgentSpec.harness), else the
    * embedding surface's platform default.
    * </pre>
    *
@@ -349,8 +353,9 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
   /**
    * <pre>
-   * Per-invocation model choice and run bounds. Unset fields inherit
-   * the embedding surface's platform execution profile.
+   * Per-invocation model choice and run bounds. Unset fields fall to the
+   * agent's defaults, then to the lane's operator profile (RunConfig has the
+   * rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -362,8 +367,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Per-invocation model choice and run bounds. Unset fields inherit
-   * the embedding surface's platform execution profile.
+   * Per-invocation model choice and run bounds. Unset fields fall to the
+   * agent's defaults, then to the lane's operator profile (RunConfig has the
+   * rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -375,8 +381,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Per-invocation model choice and run bounds. Unset fields inherit
-   * the embedding surface's platform execution profile.
+   * Per-invocation model choice and run bounds. Unset fields fall to the
+   * agent's defaults, then to the lane's operator profile (RunConfig has the
+   * rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -1240,7 +1247,9 @@ private static final long serialVersionUID = 0L;
     private int harness_ = 0;
     /**
      * <pre>
-     * Execution engine for the run's session. Unspecified inherits the
+     * Execution engine for the run's session. Unspecified: native when
+     * run_config names a model (the engine the model was checked against at
+     * save), else the agent's own engine (AgentSpec.harness), else the
      * embedding surface's platform default.
      * </pre>
      *
@@ -1252,7 +1261,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution engine for the run's session. Unspecified inherits the
+     * Execution engine for the run's session. Unspecified: native when
+     * run_config names a model (the engine the model was checked against at
+     * save), else the agent's own engine (AgentSpec.harness), else the
      * embedding surface's platform default.
      * </pre>
      *
@@ -1269,7 +1280,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution engine for the run's session. Unspecified inherits the
+     * Execution engine for the run's session. Unspecified: native when
+     * run_config names a model (the engine the model was checked against at
+     * save), else the agent's own engine (AgentSpec.harness), else the
      * embedding surface's platform default.
      * </pre>
      *
@@ -1283,7 +1296,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution engine for the run's session. Unspecified inherits the
+     * Execution engine for the run's session. Unspecified: native when
+     * run_config names a model (the engine the model was checked against at
+     * save), else the agent's own engine (AgentSpec.harness), else the
      * embedding surface's platform default.
      * </pre>
      *
@@ -1300,7 +1315,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution engine for the run's session. Unspecified inherits the
+     * Execution engine for the run's session. Unspecified: native when
+     * run_config names a model (the engine the model was checked against at
+     * save), else the agent's own engine (AgentSpec.harness), else the
      * embedding surface's platform default.
      * </pre>
      *
@@ -2051,8 +2068,9 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> runConfigBuilder_;
     /**
      * <pre>
-     * Per-invocation model choice and run bounds. Unset fields inherit
-     * the embedding surface's platform execution profile.
+     * Per-invocation model choice and run bounds. Unset fields fall to the
+     * agent's defaults, then to the lane's operator profile (RunConfig has the
+     * rule).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -2063,8 +2081,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-invocation model choice and run bounds. Unset fields inherit
-     * the embedding surface's platform execution profile.
+     * Per-invocation model choice and run bounds. Unset fields fall to the
+     * agent's defaults, then to the lane's operator profile (RunConfig has the
+     * rule).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -2079,8 +2098,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-invocation model choice and run bounds. Unset fields inherit
-     * the embedding surface's platform execution profile.
+     * Per-invocation model choice and run bounds. Unset fields fall to the
+     * agent's defaults, then to the lane's operator profile (RunConfig has the
+     * rule).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -2100,8 +2120,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-invocation model choice and run bounds. Unset fields inherit
-     * the embedding surface's platform execution profile.
+     * Per-invocation model choice and run bounds. Unset fields fall to the
+     * agent's defaults, then to the lane's operator profile (RunConfig has the
+     * rule).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -2119,8 +2140,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-invocation model choice and run bounds. Unset fields inherit
-     * the embedding surface's platform execution profile.
+     * Per-invocation model choice and run bounds. Unset fields fall to the
+     * agent's defaults, then to the lane's operator profile (RunConfig has the
+     * rule).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -2145,8 +2167,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-invocation model choice and run bounds. Unset fields inherit
-     * the embedding surface's platform execution profile.
+     * Per-invocation model choice and run bounds. Unset fields fall to the
+     * agent's defaults, then to the lane's operator profile (RunConfig has the
+     * rule).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -2163,8 +2186,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-invocation model choice and run bounds. Unset fields inherit
-     * the embedding surface's platform execution profile.
+     * Per-invocation model choice and run bounds. Unset fields fall to the
+     * agent's defaults, then to the lane's operator profile (RunConfig has the
+     * rule).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -2176,8 +2200,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-invocation model choice and run bounds. Unset fields inherit
-     * the embedding surface's platform execution profile.
+     * Per-invocation model choice and run bounds. Unset fields fall to the
+     * agent's defaults, then to the lane's operator profile (RunConfig has the
+     * rule).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -2192,8 +2217,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-invocation model choice and run bounds. Unset fields inherit
-     * the embedding surface's platform execution profile.
+     * Per-invocation model choice and run bounds. Unset fields fall to the
+     * agent's defaults, then to the lane's operator profile (RunConfig has the
+     * rule).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>

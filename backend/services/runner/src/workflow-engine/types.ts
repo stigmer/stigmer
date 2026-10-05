@@ -763,14 +763,17 @@ export interface AgentCallWorkspaceEntry {
 
 /**
  * Mirrors the shared `ai.stigmer.agentic.agentexecution.v1.RunConfig`
- * (issue #358) — the same run-bound vocabulary schedules embed. Every
- * field maps onto its `ExecutionConfig` namesake and is enforced by the
- * runner's generic cost/tool-round guards; nothing here is decorative.
+ * (issue #358) — the same settings vocabulary schedules embed. The step's
+ * settings become the child turn's `spec.run_config` field for field; the
+ * control plane resolves the settings the turn runs with from them and the
+ * agent's defaults (`status.run_config`), which is what the runner's
+ * guards enforce.
  */
 export interface AgentCallRunConfig {
   readonly model_name?: string;
   readonly max_cost_usd?: number;
   readonly max_tool_rounds?: number;
+  readonly max_tool_result_chars?: number;
   /**
    * Canonical ServiceTier enum name ("SERVICE_TIER_STANDARD" /
    * "SERVICE_TIER_FAST"); the loader maps the YAML shorthands

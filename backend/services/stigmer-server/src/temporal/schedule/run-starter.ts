@@ -22,24 +22,19 @@
  * the trigger RPC's direct-run step (origin=manual).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import {
-  AgentExecutionSpecSchema,
-  ExecutionConfigSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import {
-  ServiceTier,
-  ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import type { AgentInvocation } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import {
+  RunConfigSchema,
+  type AgentInvocation,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -439,12 +434,13 @@ export class RunStarter {
 
   /**
    * Shapes the run: fresh session per fire with the pinned subject, the
-   * fire-context message, and the unattended execution profile.
-   * approval_mode=UNATTENDED is a correctness requirement, not a
-   * preference: a gated tool with no approver would park the execution
-   * forever (the agent workflow deliberately has no run timeout), which
-   * under tracking becomes a silently-burned budget every fire (Go
-   * buildExecutionRequest).
+   * fire-context message, and the schedule's own saved settings as the
+   * turn's run_config. The schedule label places the turn on the schedule
+   * lane, where the server's one resolution caps it by the schedule
+   * profile and runs it UNATTENDED: a gated tool with no approver would
+   * park the execution forever, which under tracking becomes a
+   * silently-burned budget every fire (domain/agentexecution/
+   * resolve-run-config.ts).
    */
   private buildExecutionRequest(
     schedule: Schedule,
@@ -455,51 +451,12 @@ export class RunStarter {
     const invocation = invocationOf(schedule);
     const runConfig = invocation?.runConfig;
 
-    const executionConfig = create(ExecutionConfigSchema, {
-      approvalMode: ApprovalMode.UNATTENDED,
-      // The platform profile, then the schedule's own run_config CLAMPED
-      // by it: per field, min(owner, platform) when the
-      // platform cap is set; the owner value stands when the platform cap
-      // is unset. The owner can lower spend, never raise it past the
-      // platform.
-      maxToolRounds: clampedRunBound(
-        runConfig?.maxToolRounds ?? 0,
-        this.deps.config.executionProfileMaxToolRounds,
-      ),
-      maxCostUsd: clampedRunBound(
-        runConfig?.maxCostUsd ?? 0,
-        this.deps.config.executionProfileMaxCostUsd,
-      ),
-    });
-    const model = (runConfig?.modelName ?? "").trim();
-    if (model !== "") {
-      executionConfig.modelName = model;
-    }
-    // service_tier stamps when the owner set one — there is no platform
-    // tier knob (unset resolves to STANDARD in the runner, never the
-    // provider account default). Tier-model coherence was validated
-    // fail-closed at execution create (#357).
-    if (
-      runConfig !== undefined &&
-      runConfig.serviceTier !== ServiceTier.UNSPECIFIED
-    ) {
-      executionConfig.serviceTier = runConfig.serviceTier;
-    }
-    // thinking_mode under the same contract as service_tier: only when the
-    // owner set one; capability-model coherence was validated fail-closed
-    // at execution create (#772).
-    if (
-      runConfig !== undefined &&
-      runConfig.thinkingMode !== ThinkingMode.UNSPECIFIED
-    ) {
-      executionConfig.thinkingMode = runConfig.thinkingMode;
-    }
-
     // The fresh per-fire session speaks the invocation's session half: it
     // runs the schedule's agent at the version the schedule names (none:
     // the agent's current version when the fire starts), and harness and
     // workspace come from the owner's spec. An unspecified harness stays
-    // unset — the platform default applies (OSS: native). Workspace entries
+    // unset — the agent's engine applies, else the platform default (OSS:
+    // native). Workspace entries
     // are git-only by write-time validation; credentials, when a repo is
     // private, ride an org-shared environment holding GITHUB_TOKEN.
     const sessionSpec = create(SessionSpecSchema, {
@@ -536,7 +493,8 @@ export class RunStarter {
       spec: create(AgentExecutionSpecSchema, {
         target: { case: "sessionSpec", value: sessionSpec },
         message: composeMessage(schedule, nominalFireTime),
-        executionConfig,
+        runConfig:
+          runConfig === undefined ? undefined : clone(RunConfigSchema, runConfig),
       }),
     });
   }
@@ -571,21 +529,4 @@ export class RunStarter {
       );
     }
   }
-}
-
-/**
- * Merges one owner-set run bound with its platform cap: zero (or negative)
- * means "unset" on either side, and when both are set the LOWER value wins
- * — the platform profile is a guardrail, never a floor (Go
- * clampedRunBoundInt/Float, one function here because JS numbers carry
- * both).
- */
-export function clampedRunBound(owner: number, platform: number): number {
-  if (owner <= 0) {
-    return Math.max(platform, 0);
-  }
-  if (platform <= 0) {
-    return owner;
-  }
-  return Math.min(owner, platform);
 }
