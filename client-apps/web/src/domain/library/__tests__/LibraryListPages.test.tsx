@@ -3,8 +3,10 @@
  * its id, the way the server names every org; a row's Organization column
  * shows the org the stored resource names by id through OrgSlugText (its
  * slug, never the raw id); and a row's "Copy ID" copies the
- * `<org slug>/<slug>` reference a person types elsewhere. The workbench and
- * OrgSlugText are pinned in @stigmer/react.
+ * `<org slug>/<slug>` reference a person types elsewhere. A row's Delete on
+ * the agents list confirms in the agent detail page's words, the same
+ * confirmation for the same act. The workbench and OrgSlugText are pinned
+ * in @stigmer/react.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -33,6 +35,7 @@ const ROW: Row = { id: "agt_1", org: "org_acme", slug: "kit", name: "Kit" };
 const page = vi.hoisted(() => ({
   workbench: [] as WorkbenchProps[],
   connect: [] as Array<Record<string, unknown>>,
+  confirms: [] as Array<{ title: string; description: string }>,
 }));
 
 vi.mock("@stigmer/react", () => {
@@ -98,7 +101,10 @@ vi.mock("@stigmer/react", () => {
     useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
     useConfirmAction: () => ({
       confirmState: null,
-      confirm: async () => false,
+      confirm: async (options: { title: string; description: string }) => {
+        page.confirms.push(options);
+        return false;
+      },
       handleConfirm: () => undefined,
       handleCancel: () => undefined,
     }),
@@ -121,12 +127,14 @@ import { McpServerListPage } from "../mcp-servers/McpServerListPage";
 import { PluginListPage } from "../plugins/PluginListPage";
 import { ScheduleListPage } from "../schedules/ScheduleListPage";
 import { SkillListPage } from "../skills/SkillListPage";
+import { AGENT_DELETE_DESCRIPTION } from "../agents/agent-delete-confirmation";
 
 let copied: string[] = [];
 
 beforeEach(() => {
   page.workbench.length = 0;
   page.connect.length = 0;
+  page.confirms.length = 0;
   copied = [];
   vi.spyOn(navigator.clipboard, "writeText").mockImplementation(
     async (text: string) => {
@@ -168,6 +176,18 @@ describe.each([
     fireEvent.click(screen.getByRole("button", { name: "Copy ID" }));
 
     expect(copied).toEqual(["acme/kit"]);
+  });
+});
+
+describe("web AgentListPage delete", () => {
+  it("confirms in the detail page's words, naming the agent alone", () => {
+    render(<AgentListPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(page.confirms).toHaveLength(1);
+    expect(page.confirms[0]!.description).toBe(AGENT_DELETE_DESCRIPTION);
+    expect(page.confirms[0]!.description).not.toMatch(/instance/);
   });
 });
 

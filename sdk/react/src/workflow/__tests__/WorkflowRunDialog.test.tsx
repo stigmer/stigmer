@@ -6,6 +6,9 @@
  *   workflow's id alone;
  * - every declared key carries its source: typed here (passed with the
  *   run), held by the person's personal environment, or missing;
+ * - while the personal environment is being read, or when it cannot be
+ *   read, an untyped key says so instead of claiming missing, and the run
+ *   is not blocked on it;
  * - a workflow of another organization than the run's marks no key as
  *   coming from the personal environment, since the server fills none;
  * - when the workflow's runs are visible to its organization, the dialog
@@ -67,9 +70,12 @@ function makeWorkflow(overrides?: {
   } as unknown as Workflow;
 }
 
-function makeClient(personalKeys: readonly string[]) {
+function makeClient(
+  personalKeys: readonly string[],
+  read: "answers" | "hangs" | "fails" = "answers",
+) {
   const create = vi.fn(async () => ({ metadata: { id: "wex_1" } }));
-  const list = vi.fn(async () => ({
+  const answer = {
     items: [
       {
         metadata: { id: "env_personal", org: "org_acme" },
@@ -81,7 +87,14 @@ function makeClient(personalKeys: readonly string[]) {
       },
     ],
     totalCount: 1,
-  }));
+  };
+  const list = vi.fn(() =>
+    read === "hangs"
+      ? new Promise<typeof answer>(() => {})
+      : read === "fails"
+        ? Promise.reject(new Error("environments unavailable"))
+        : Promise.resolve(answer),
+  );
   const client = {
     workflowExecution: { create },
     environment: { list },
@@ -163,6 +176,42 @@ describe("WorkflowRunDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Run Workflow" }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/is required/)).toBeNull();
+  });
+
+  it("says it is checking the personal environment while it is read, and does not block the run on it", async () => {
+    const { client, create, list } = makeClient([], "hangs");
+    const { onSuccess } = renderDialog(makeWorkflow(), client);
+
+    await waitFor(() => expect(list).toHaveBeenCalled());
+    expect(markerOf("SAVED_KEY")).toBe("pending");
+    expect(screen.getAllByText("Checking your personal environment…")).toHaveLength(3);
+    expect(screen.queryByText("Missing")).toBeNull();
+    expect(screen.queryByLabelText("required")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Run Workflow" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith("wex_1"));
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/is required/)).toBeNull();
+  });
+
+  it("says the personal environment could not be read, and leaves its keys to the server", async () => {
+    const { client, create } = makeClient([], "fails");
+    const { onSuccess } = renderDialog(makeWorkflow(), client);
+
+    await waitFor(() => expect(markerOf("SAVED_KEY")).toBe("unknown"));
+    const saved = screen.getByLabelText(/^SAVED_KEY/).parentElement as HTMLElement;
+    expect(within(saved).getByText("Unknown")).toBeTruthy();
+    const hint = saved.textContent ?? "";
+    expect(hint).toContain("Couldn't read your personal environment");
+    expect(hint).toContain("the server will fill it if you saved it");
+    expect(screen.queryByText("Missing")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Run Workflow" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith("wex_1"));
     expect(create).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/is required/)).toBeNull();
   });

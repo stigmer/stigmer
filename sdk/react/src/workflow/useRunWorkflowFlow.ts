@@ -7,7 +7,10 @@
  * no per-run configuration object to pick. Each declared key's source is
  * read through {@link useRunEnvKeySources}, so a required key the person's
  * personal environment already holds is not demanded again, and the form
- * can say where every key will come from before the run starts. When the
+ * can say where every key will come from before the run starts. Only a
+ * required key known to be missing blocks the run: one whose source is
+ * still being read, or could not be read, is left to the server, which
+ * fills it from the personal environment when it holds it. When the
  * workflow's runs are visible to its organization the flow says so, since
  * this run's input and output will be visible too.
  *
@@ -65,12 +68,18 @@ export interface UseRunWorkflowFlowReturn {
 
   /**
    * Where each declared key's value will come from: typed into the form,
-   * the person's personal environment, or missing. A workflow of another
-   * organization than the run's never reads the personal environment.
+   * the person's personal environment, missing, or not yet known (`pending`
+   * while the personal environment is read, `unknown` when that read
+   * failed). A workflow of another organization than the run's never reads
+   * the personal environment.
    */
   readonly envKeySources: Readonly<Record<string, RunEnvKeySource>>;
 
-  /** `true` while the personal environment's key names are being read. */
+  /**
+   * `true` while a declared key's source is not yet known: the personal
+   * environment's key names, or the organizations that tell whether this
+   * run reads them, are still being read. No key blocks the run meanwhile.
+   */
   readonly isLoadingEnvKeySources: boolean;
 
   /**
@@ -104,8 +113,10 @@ export interface UseRunWorkflowFlowReturn {
   readonly error: string | null;
 
   /**
-   * Validate form fields. Returns `true` if valid. A required key is
-   * satisfied when typed or held by the personal environment.
+   * Validate form fields. Returns `true` if valid. A required key fails
+   * only when it is known to be missing: neither typed nor held by the
+   * personal environment. A key still `pending` or `unknown` does not
+   * fail, since the server fills it from the personal environment.
    */
   readonly validate: () => boolean;
   /** Validate, then create the workflow execution. */

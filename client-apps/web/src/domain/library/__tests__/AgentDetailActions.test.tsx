@@ -2,8 +2,8 @@
  * Pins the web agent page's own actions. Start session opens the launcher
  * on the agent itself, through the one URL builder the launcher reads, so
  * no instance is ever bound. Delete warns that conversations on the agent
- * cannot continue, and deletes and returns to the list only once the
- * person confirms. The detail view, the confirm dialog and the delete hook
+ * cannot continue, in the same words as the agents list's row Delete, and
+ * deletes and returns to the list only once the person confirms. The detail view, the confirm dialog and the delete hook
  * are pinned in @stigmer/react; this file pins only the page's wiring.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -86,6 +86,7 @@ vi.mock("@/config/env", () => ({
 }));
 
 import { AgentDetailPageInner } from "../agents/AgentDetailPage";
+import { AGENT_DELETE_DESCRIPTION } from "../agents/agent-delete-confirmation";
 
 function action(id: string): Action {
   const found = page.actions.at(-1)?.find((a) => a.id === id);
@@ -124,6 +125,7 @@ describe("web AgentDetailPage actions", () => {
     expect(page.confirmations[0]!.description).toContain(
       "conversations on it cannot continue",
     );
+    expect(page.confirmations[0]!.description).toBe(AGENT_DELETE_DESCRIPTION);
     expect(page.deletes).toBe(0);
     expect(page.pushed).toEqual([]);
   });

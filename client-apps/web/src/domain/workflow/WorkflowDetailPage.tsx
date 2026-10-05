@@ -22,6 +22,7 @@ import {
 import { useRouteDetailYieldsToOverlay } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
+import { WORKFLOW_DELETE_DESCRIPTION } from "@/domain/workflow/workflow-delete-confirmation";
 
 const elkWorkerFactory = () =>
   new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url));
@@ -117,10 +118,7 @@ export function WorkflowDetailPageInner({
   const handleDelete = useCallback(async () => {
     const confirmed = await confirm({
       title: `Delete ${resourceName}?`,
-      description:
-        "This permanently removes the workflow. " +
-        "Past executions are preserved in the execution history. " +
-        "This action cannot be undone.",
+      description: WORKFLOW_DELETE_DESCRIPTION,
       confirmLabel: "Delete",
       variant: "destructive",
     });

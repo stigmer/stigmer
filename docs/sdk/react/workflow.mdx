@@ -417,7 +417,8 @@ function useRunEnvKeySources(workflow: Workflow, runOrg: string, runtimeEnv: Rea
 
 <TypeTable
   type={{
-    isLoading: { type: "boolean", description: "`true` while the personal environment's key names are being read." },
+    error: { type: "Error | null", description: "The failed read of the personal environment's key names, or `null`. While set, every untyped declared key is `unknown`." },
+    isLoading: { type: "boolean", description: "`true` while the personal environment's key names are being read, or while the organizations needed to tell whether the run reads them are." },
     readsPersonalEnvironment: { type: "boolean", description: "`true` when the workflow belongs to the run's organization, so the person's personal environment can fill its keys; `false` for a workflow another organization shares." },
     sources: { type: "Readonly<Record<string, RunEnvKeySource>>", description: "The source of every key the workflow declares, keyed by key name." },
   }}
@@ -455,10 +456,10 @@ function useRunWorkflowFlow(options: UseRunWorkflowFlowOptions): UseRunWorkflowF
 <TypeTable
   type={{
     envDeclarations: { type: "Record<string, EnvVarDeclaration>", description: "Declared environment variables from the workflow spec." },
-    envKeySources: { type: "Readonly<Record<string, RunEnvKeySource>>", description: "Where each declared key's value will come from: typed into the form, the person's personal environment, or missing. A workflow of another organization than the run's never reads the personal environment." },
+    envKeySources: { type: "Readonly<Record<string, RunEnvKeySource>>", description: "Where each declared key's value will come from: typed into the form, the person's personal environment, missing, or not yet known (`pending` while the personal environment is read, `unknown` when that read failed). A workflow of another organization than the run's never reads the personal environment." },
     error: { type: "string | null", description: "Error from the last failed submission, or `null`." },
     fieldErrors: { type: "RunWorkflowFieldErrors", description: "Field-level validation errors (empty when valid).", typeDescriptionLink: "#runworkflowfielderrors" },
-    isLoadingEnvKeySources: { type: "boolean", description: "`true` while the personal environment's key names are being read." },
+    isLoadingEnvKeySources: { type: "boolean", description: "`true` while a declared key's source is not yet known: the personal environment's key names, or the organizations that tell whether this run reads them, are still being read. No key blocks the run meanwhile." },
     isSubmitting: { type: "boolean", description: "`true` while the create execution RPC is in flight." },
     reset: { type: "() => void", description: "Reset all form state to initial values." },
     runsVisibleToOrganization: { type: "boolean", description: "`true` when every run of this workflow is visible to its organization, so the run's input and output will be too. Say so before the run starts." },
@@ -470,7 +471,7 @@ function useRunWorkflowFlow(options: UseRunWorkflowFlowOptions): UseRunWorkflowF
     submit: { type: "() => Promise<void>", description: "Validate, then create the workflow execution." },
     triggerMessage: { type: "string", description: "Current trigger message value." },
     usesTriggerInput: { type: "boolean", description: "Whether the workflow references `$input` / trigger_message in its tasks. When `false`, the trigger message field is irrelevant for this workflow." },
-    validate: { type: "() => boolean", description: "Validate form fields. Returns `true` if valid. A required key is satisfied when typed or held by the personal environment." },
+    validate: { type: "() => boolean", description: "Validate form fields. Returns `true` if valid. A required key fails only when it is known to be missing: neither typed nor held by the personal environment. A key still `pending` or `unknown` does not fail, since the server fills it from the personal environment." },
   }}
 />
 
@@ -1956,7 +1957,7 @@ dependencies — safe for platform builder embedding.
     className: { type: "string", description: "Additional CSS classes for the root container." },
     disabled: { type: "boolean", description: "When `true`, all fields are disabled (during submission)." },
     envDeclarations: { type: "Record<string, EnvVarDeclaration>", description: "Declared environment variables from the workflow spec.", required: true },
-    envKeySources: { type: "Readonly<Record<string, RunEnvKeySource>>", description: "Where each declared key's value will come from, keyed by key name (useRunWorkflowFlow's `envKeySources`). A key held by the personal environment is shown as an optional override; a key with no entry carries no marker." },
+    envKeySources: { type: "Readonly<Record<string, RunEnvKeySource>>", description: "Where each declared key's value will come from, keyed by key name (useRunWorkflowFlow's `envKeySources`). A key held by the personal environment is shown as an optional override; a key whose source is `pending` or `unknown` is not marked required, since the personal environment may hold it; a key with no entry carries no marker." },
     errors: { type: "RunWorkflowFieldErrors", description: "Field-level validation errors keyed by field name.", required: true, typeDescriptionLink: "#runworkflowfielderrors" },
     onEnvVarChange: { type: "(key: string, value: string) => void", description: "Called when a single env var value changes.", required: true },
     onShowTriggerMessageChange: { type: "(show: boolean) => void", description: "Called when the user toggles trigger message visibility.", required: true },

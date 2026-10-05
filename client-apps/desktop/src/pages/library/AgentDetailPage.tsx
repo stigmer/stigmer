@@ -18,6 +18,7 @@ import {
 } from "@stigmer/react";
 import { buildChatUrl } from "@stigmer/sdk";
 import { CONSOLE_URL } from "../../config";
+import { AGENT_DELETE_DESCRIPTION } from "./agent-delete-confirmation";
 
 /**
  * Share links must be reachable by anyone, so they point at the public
@@ -118,10 +119,7 @@ export default function AgentDetailPage() {
   const handleDelete = useCallback(async () => {
     const confirmed = await confirm({
       title: `Delete ${resourceName}?`,
-      description:
-        "This permanently removes the agent. " +
-        "Past sessions and executions are preserved, but conversations on it cannot continue. " +
-        "This action cannot be undone.",
+      description: AGENT_DELETE_DESCRIPTION,
       confirmLabel: "Delete",
       variant: "destructive",
     });

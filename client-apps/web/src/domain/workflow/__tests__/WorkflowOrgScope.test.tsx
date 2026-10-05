@@ -6,7 +6,9 @@
  * Run action opens the run dialog, and a change saved on the page refreshes
  * the dialog's copy of the workflow;
  * a list row's Organization column shows the stored org id through
- * OrgSlugText; and a row's "Copy reference" copies `<org slug>/<slug>`.
+ * OrgSlugText; a row's "Copy reference" copies `<org slug>/<slug>`; and a
+ * row's Delete confirms in the detail page's words, the same confirmation
+ * for the same act.
  * The views and the workbench are pinned in @stigmer/react.
  */
 import type { ReactNode } from "react";
@@ -178,6 +180,7 @@ import { WorkflowListPage } from "../WorkflowListPage";
 import { WorkflowNewPage } from "../WorkflowNewPage";
 import { WorkflowDetailPageInner } from "../WorkflowDetailPage";
 import { WorkflowExecutionListPage } from "../WorkflowExecutionListPage";
+import { WORKFLOW_DELETE_DESCRIPTION } from "../workflow-delete-confirmation";
 
 let copied: string[] = [];
 
@@ -220,6 +223,16 @@ describe("web WorkflowListPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copy reference" }));
 
     expect(copied).toEqual(["acme/nightly"]);
+  });
+
+  it("confirms a row's delete in the detail page's words, naming the workflow alone", () => {
+    render(<WorkflowListPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(page.confirms).toHaveLength(1);
+    expect(page.confirms[0]!.description).toBe(WORKFLOW_DELETE_DESCRIPTION);
+    expect(page.confirms[0]!.description).not.toMatch(/instance/);
   });
 });
 
@@ -276,6 +289,7 @@ describe("web WorkflowDetailPageInner", () => {
         "Past executions are preserved in the execution history. " +
         "This action cannot be undone.",
     );
+    expect(page.confirms.at(-1)?.description).toBe(WORKFLOW_DELETE_DESCRIPTION);
   });
 });
 

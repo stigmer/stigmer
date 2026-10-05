@@ -2,9 +2,11 @@
  * Pins the run flow: a run is created with `workflowId` alone (a run names
  * its workflow and nothing else), each declared key carries its source
  * (typed, the person's personal environment, or missing) with validation
- * relaxed for a key the personal environment holds, a workflow of another
- * organization than the run's reads no personal key, and the flow says
- * when the workflow's runs are visible to its organization.
+ * relaxed for a key the personal environment holds, a key whose source is
+ * not yet known (still being read, or unreadable) does not block the run,
+ * a workflow of another organization than the run's reads no personal key,
+ * and the flow says when the workflow's runs are visible to its
+ * organization.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
@@ -185,6 +187,7 @@ describe("useRunWorkflowFlow", () => {
       });
       const { result } = renderWithClient(opts);
 
+      await waitFor(() => expect(result.current.isLoadingEnvKeySources).toBe(false));
       await act(async () => {
         await result.current.submit();
       });
@@ -433,6 +436,51 @@ describe("useRunWorkflowFlow", () => {
 
       expect(mockCreate).not.toHaveBeenCalled();
       expect(result.current.fieldErrors).toHaveProperty("DB_URL");
+    });
+
+    it("lets a run start while the personal environment is still being read, marking its key pending", async () => {
+      mockListEnvironments.mockReturnValue(new Promise(() => {}));
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: { env: { DB_URL: { optional: false, isSecret: true } } },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+
+      await waitFor(() => expect(mockListEnvironments).toHaveBeenCalled());
+      expect(result.current.envKeySources).toEqual({ DB_URL: "pending" });
+      expect(result.current.isLoadingEnvKeySources).toBe(true);
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(result.current.fieldErrors).toEqual({});
+      expect(mockCreate).toHaveBeenCalled();
+      expect(mockCreate.mock.calls[0][0].runtimeEnv).toBeUndefined();
+    });
+
+    it("lets a run start when the personal environment cannot be read, marking its key unknown", async () => {
+      mockListEnvironments.mockRejectedValue(new Error("environments unavailable"));
+      const opts = defaultOptions({
+        workflow: makeWorkflow({
+          spec: { env: { DB_URL: { optional: false, isSecret: true } } },
+        }),
+      });
+      const { result } = renderWithClient(opts);
+
+      await waitFor(() => {
+        expect(result.current.envKeySources.DB_URL).toBe("unknown");
+      });
+      expect(result.current.isLoadingEnvKeySources).toBe(false);
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(result.current.fieldErrors).toEqual({});
+      expect(mockCreate).toHaveBeenCalled();
+      expect(mockCreate.mock.calls[0][0].runtimeEnv).toBeUndefined();
     });
 
     it("marks no key personal for a workflow of another organization, as the server fills none", async () => {

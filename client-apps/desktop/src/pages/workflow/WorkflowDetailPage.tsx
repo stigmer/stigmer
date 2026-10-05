@@ -16,6 +16,7 @@ import {
   type DetailAction,
   type AdditionalTab,
 } from "@stigmer/react";
+import { WORKFLOW_DELETE_DESCRIPTION } from "./workflow-delete-confirmation";
 
 const elkWorkerFactory = () =>
   new Worker(new URL("elkjs/lib/elk-worker.min.js", import.meta.url));
@@ -102,10 +103,7 @@ export default function WorkflowDetailPage() {
   const handleDelete = useCallback(async () => {
     const confirmed = await confirm({
       title: `Delete ${resourceName}?`,
-      description:
-        "This permanently removes the workflow. " +
-        "Past executions are preserved in the execution history. " +
-        "This action cannot be undone.",
+      description: WORKFLOW_DELETE_DESCRIPTION,
       confirmLabel: "Delete",
       variant: "destructive",
     });

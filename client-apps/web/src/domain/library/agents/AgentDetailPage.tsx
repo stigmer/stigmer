@@ -23,6 +23,7 @@ import {
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { getAgentSessionUrl } from "@/domain/session/session-url";
 import { shareUrlFor } from "@/domain/sharing/share-url";
+import { AGENT_DELETE_DESCRIPTION } from "@/domain/library/agents/agent-delete-confirmation";
 
 /**
  * Read the `?tab=` deep-link target once, at mount.
@@ -106,10 +107,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const handleDelete = useCallback(async () => {
     const confirmed = await confirm({
       title: `Delete ${resourceName}?`,
-      description:
-        "This permanently removes the agent. " +
-        "Past sessions and executions are preserved, but conversations on it cannot continue. " +
-        "This action cannot be undone.",
+      description: AGENT_DELETE_DESCRIPTION,
       confirmLabel: "Delete",
       variant: "destructive",
     });

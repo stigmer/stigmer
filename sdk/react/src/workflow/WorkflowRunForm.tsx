@@ -3,9 +3,10 @@
 /**
  * The fields of the run dialog: one input per key the workflow declares,
  * each marked with where its value will come from (typed here and passed
- * with the run, the person's personal environment, or missing), a notice
- * when the workflow's runs are visible to its organization, and the
- * trigger input.
+ * with the run, the person's personal environment, or missing) or that it
+ * is not yet known (the personal environment still being checked, or
+ * unreadable), a notice when the workflow's runs are visible to its
+ * organization, and the trigger input.
  *
  * Presentational only; {@link useRunWorkflowFlow} supplies the state.
  * Pinned through the dialog by `__tests__/WorkflowRunDialog.test.tsx`.
@@ -34,8 +35,10 @@ export interface WorkflowRunFormProps {
   /**
    * Where each declared key's value will come from, keyed by key name
    * ({@link useRunWorkflowFlow}'s `envKeySources`). A key held by the
-   * personal environment is shown as an optional override; a key with no
-   * entry carries no marker.
+   * personal environment is shown as an optional override; a key whose
+   * source is `pending` or `unknown` is not marked required, since the
+   * personal environment may hold it; a key with no entry carries no
+   * marker.
    */
   readonly envKeySources?: Readonly<Record<string, RunEnvKeySource>>;
 
@@ -147,7 +150,10 @@ export function WorkflowRunForm({
             const fieldError = errors[key];
             const source = envKeySources?.[key];
             const fromPersonal = source === "personal";
-            const isRequired = !decl.optional && !fromPersonal;
+            const mayBePersonal = source === "pending" || source === "unknown";
+            const isRequired = !decl.optional && !fromPersonal && !mayBePersonal;
+            const unreadable = source === "unknown";
+            const hasHint = fromPersonal || unreadable || !!decl.description;
             return (
               <FieldGroup key={key}>
                 <div className="stg:flex stg:items-center">
@@ -174,7 +180,9 @@ export function WorkflowRunForm({
                   placeholder={
                     fromPersonal
                       ? "From your personal environment"
-                      : decl.optional
+                      : mayBePersonal
+                        ? "Leave empty to use your personal environment"
+                        : decl.optional
                         ? "Optional"
                         : "Required"
                   }
@@ -183,7 +191,7 @@ export function WorkflowRunForm({
                   aria-describedby={
                     fieldError
                       ? `${fieldId}-error`
-                      : decl.description || fromPersonal
+                      : hasHint
                         ? `${fieldId}-desc`
                         : undefined
                   }
@@ -201,7 +209,14 @@ export function WorkflowRunForm({
                     Enter a value to use a different one for this run.
                   </FieldHint>
                 )}
-                {!fromPersonal && decl.description && !fieldError && (
+                {unreadable && !fieldError && (
+                  <FieldHint id={`${fieldId}-desc`}>
+                    Couldn&apos;t read your personal environment — the server
+                    will fill it if you saved it.{" "}
+                    {decl.description ?? ""}
+                  </FieldHint>
+                )}
+                {!fromPersonal && !unreadable && decl.description && !fieldError && (
                   <FieldHint id={`${fieldId}-desc`}>
                     {decl.description}
                   </FieldHint>
@@ -268,10 +283,15 @@ export function WorkflowRunForm({
 const SOURCE_LABEL: Record<RunEnvKeySource, string> = {
   typed: "Passed with this run",
   personal: "From your personal environment",
+  pending: "Checking your personal environment…",
+  unknown: "Unknown",
   missing: "Missing",
 };
 
-/** A missing key reads as a problem only when the workflow requires it. */
+/**
+ * A missing key reads as a problem only when the workflow requires it; a
+ * key not yet known never does.
+ */
 function SourceMarker({
   source,
   optional,

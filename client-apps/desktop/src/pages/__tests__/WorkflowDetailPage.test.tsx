@@ -3,7 +3,8 @@
  * edited in its dedicated Editor tab (one YAML surface per workflow), so
  * "Edit YAML" switches to that tab, and only once the workflow's YAML has
  * loaded; the clipboard actions copy the id and the qualified slug; the
- * delete confirmation names the workflow alone and keeps its past runs;
+ * delete confirmation names the workflow alone and keeps its past runs, in
+ * the same words as the workflows list's row Delete;
  * the Run action opens the run dialog, which names the workflow alone, and
  * a change saved on the page refreshes the dialog's copy of the workflow.
  * The detail view and the editor are pinned in @stigmer/react.
@@ -77,6 +78,7 @@ vi.mock("@stigmer/react", () => ({
 }));
 
 import WorkflowDetailPage from "../workflow/WorkflowDetailPage";
+import { WORKFLOW_DELETE_DESCRIPTION } from "../workflow/workflow-delete-confirmation";
 
 function renderWorkflow() {
   return render(
@@ -158,6 +160,7 @@ describe("desktop WorkflowDetailPage — header actions", () => {
         "Past executions are preserved in the execution history. " +
         "This action cannot be undone.",
     );
+    expect(page.confirms.at(-1)?.description).toBe(WORKFLOW_DELETE_DESCRIPTION);
   });
 
   it("runs the workflow in its organization, naming the workflow alone", () => {
