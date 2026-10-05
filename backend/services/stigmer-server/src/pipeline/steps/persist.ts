@@ -2,7 +2,10 @@
  * Persist — ports steps/persist.go: saves newState through the store
  * (metadata.id must be set by an earlier step). A credential bound to one
  * organization saves no row filed in another (refuse-bound-elsewhere.ts):
- * the backstop under every lane's own check.
+ * the backstop under every lane's own check. Only a kind whose rows belong
+ * to an organization is judged by `metadata.org`; an API key, owner-only,
+ * is judged by the organization it is limited to, which the binding reads
+ * itself (authorization/credential-binding.ts).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -10,6 +13,7 @@ import type { Store } from "../../store/interface.js";
 import { internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
+import { belongsToAnOrganization } from "../../authorization/credential-binding.js";
 import { refuseBoundElsewhere } from "./refuse-bound-elsewhere.js";
 import { metadataOf } from "./shapes.js";
 
@@ -29,7 +33,9 @@ export function newPersistStep<Desc extends DescMessage>(
           "persist",
         );
       }
-      refuseBoundElsewhere(ctx.callerIdentity, metadata.org);
+      if (belongsToAnOrganization(ctx.apiResourceKind)) {
+        refuseBoundElsewhere(ctx.callerIdentity, metadata.org);
+      }
       try {
         await store.saveResource(
           ctx.apiResourceKind,

@@ -451,7 +451,7 @@ function targetOf(check: AuthzCheck): BindingTarget {
 }
 
 /** Whether rows of `kind` belong to one organization: organization-scoped, scoped to a parent that is, or an execution context (its run's). */
-function belongsToAnOrganization(kind: ApiResourceKind): boolean {
+export function belongsToAnOrganization(kind: ApiResourceKind): boolean {
   if (kind === ApiResourceKind.execution_context) {
     return true;
   }

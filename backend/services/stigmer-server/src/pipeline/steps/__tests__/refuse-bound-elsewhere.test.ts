@@ -11,6 +11,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../../authorization/credential-binding.js";
@@ -98,5 +99,27 @@ describe("the step and the persist backstop", () => {
     expect(saved).toEqual([]);
     await persist.execute(runIn("org_globex", person));
     expect(saved).toEqual(["aex_1"]);
+  });
+
+  it("persist leaves an API key to the binding's own rule: its metadata.org is not the organization it is limited to", async () => {
+    const saved: string[] = [];
+    const store = {
+      saveResource: async (_kind: ApiResourceKind, id: string) => {
+        saved.push(id);
+      },
+    } as unknown as Store;
+    const persist = newPersistStep<typeof ApiKeySchema>(store);
+    await persist.execute(
+      new RequestContext(
+        ApiKeySchema,
+        create(ApiKeySchema, {
+          metadata: { id: "key_1", name: "ci", org: "org_globex" },
+          spec: { boundOrg: "org_acme" },
+        }),
+        boundToAcme,
+        ApiResourceKind.api_key,
+      ),
+    );
+    expect(saved).toEqual(["key_1"]);
   });
 });

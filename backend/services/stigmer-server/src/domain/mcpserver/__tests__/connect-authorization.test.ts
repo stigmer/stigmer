@@ -13,7 +13,12 @@
  *     id, and the single-use state is burned before the denial lands (the
  *     Java discipline — asserted via the consumed-state refusal on retry);
  *   - disconnectOAuth/getOAuthGrantStatus authorize before any grant
- *     lookup (the grant store is untouchable under denial).
+ *     lookup (the grant store is untouchable under denial);
+ *   - a credential bound to one organization, though authorized on the
+ *     server, is refused with the binding's sentence on every lane that
+ *     names another organization, before any engine, environment, grant or
+ *     context is touched (prepareConnect included, which connect's own
+ *     check would otherwise hide).
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -37,7 +42,8 @@ import type { Authorizer, AuthzCheck } from "../../../extensions/authorizer.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 
-import { connect } from "../connect.js";
+import { BOUND_ELSEWHERE_DENY_REASON } from "../../../authorization/credential-binding.js";
+import { connect, prepareConnect } from "../connect.js";
 import type { McpServerConnectDeps } from "../connect.js";
 import { completeOAuthConnect } from "../complete-oauth-connect.js";
 import { disconnectOAuth } from "../disconnect-oauth.js";
@@ -260,6 +266,76 @@ describe("connect-lane authorization", () => {
           caller,
         ),
       "unauthorized to view oauth status for mcp server",
+    );
+  });
+});
+
+describe("connect lanes under a credential bound to another organization", () => {
+  const allowing: Authorizer = {
+    authorize: () => Promise.resolve({ kind: "allow" }),
+  };
+  const boundToA = { ...caller, boundOrg: "org_a" };
+
+  it("connect, startConnect and prepareConnect refuse before the engine or any environment is touched", async () => {
+    await seedServer("mcps_shared");
+    const input = create(ConnectInputSchema, {
+      mcpServerId: "mcps_shared",
+      org: "org_b",
+    });
+    await expectDenied(
+      () => connect(deps(allowing), input, boundToA),
+      BOUND_ELSEWHERE_DENY_REASON,
+    );
+    await expectDenied(
+      () => startConnect(deps(allowing), input, boundToA),
+      BOUND_ELSEWHERE_DENY_REASON,
+    );
+    const server = create(McpServerSchema, {
+      metadata: { id: "mcps_shared", name: "mcps_shared", org: "test-org" },
+    });
+    await expectDenied(
+      () => prepareConnect(deps(allowing), server, input, boundToA),
+      BOUND_ELSEWHERE_DENY_REASON,
+    );
+  });
+
+  it("initiateOAuthConnect, disconnectOAuth and getOAuthGrantStatus refuse before any grant is read or written", async () => {
+    await seedServer("mcps_shared");
+    await expectDenied(
+      () =>
+        initiateOAuthConnect(
+          deps(allowing),
+          create(InitiateOAuthConnectInputSchema, {
+            mcpServerId: "mcps_shared",
+            org: "org_b",
+          }),
+          boundToA,
+        ),
+      BOUND_ELSEWHERE_DENY_REASON,
+    );
+    await expectDenied(
+      () =>
+        disconnectOAuth(
+          deps(allowing),
+          create(DisconnectOAuthInputSchema, {
+            resourceId: "mcps_shared",
+            org: "org_b",
+          }),
+          boundToA,
+        ),
+      BOUND_ELSEWHERE_DENY_REASON,
+    );
+    await expectDenied(
+      () =>
+        getOAuthGrantStatus(
+          deps(allowing),
+          create(GetOAuthGrantStatusInputSchema, {
+            resourceId: "mcps_shared",
+            org: "org_b",
+          }),
+          boundToA,
+        ),
+      BOUND_ELSEWHERE_DENY_REASON,
     );
   });
 });
