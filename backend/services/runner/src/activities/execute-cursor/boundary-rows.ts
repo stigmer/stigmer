@@ -721,8 +721,8 @@ function proposalArgs(input: Record<string, unknown> | undefined): Record<string
   return input;
 }
 
-/** The identity keys whose salient is a path: the file categories, and the read and search a hook may ask on. */
-const PATH_KEYS: ReadonlySet<string> = new Set(["write", "delete", "Read", "Grep"]);
+/** The identity keys whose salient is a path: the file categories, and the read, search, listing and lint read a hook may ask on. */
+const PATH_KEYS: ReadonlySet<string> = new Set(["write", "delete", "Read", "Grep", "List", "ReadLints"]);
 
 /**
  * The workspace-normalized identity of a FILE approval category's salient, or
