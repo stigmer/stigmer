@@ -6,7 +6,8 @@
 // names A — a user token a PlatformClient of A mints, or an API key limited
 // to A — is refused in B even though the person holds a role there, works in
 // A, and names A alone when asked which organizations it may see. A key
-// limited to A cannot found an organization, cannot mint a key that speaks
+// limited to A cannot found an organization other than a child of A, which
+// it then manages (settings and members, never the child's rows), cannot mint a key that speaks
 // for the person everywhere (an empty organization becomes A), and cannot
 // mint a key limited to B. A key may be limited only to an organization its
 // owner can view.
@@ -61,7 +62,7 @@ import {
 // (domain/organization/steps.ts, domain/apikey/steps.ts), so an unrelated
 // PERMISSION_DENIED cannot stand in for the binding's.
 const BOUND_CREDENTIAL_CREATES_NO_ORGANIZATION_MESSAGE =
-  "this credential is limited to one organization and cannot create another; sign in as yourself to create an organization";
+  "this credential is limited to one organization and cannot create another, except a child of that organization; sign in as yourself to create an organization";
 const BOUND_ELSEWHERE_MESSAGE =
   "this credential is bound to another organization";
 const API_KEY_BOUND_ELSEWHERE_MESSAGE =
@@ -95,6 +96,37 @@ async function tenancy(on: EnforcingLane): Promise<TenancyContext> {
   const context = await on.provisionTenancy();
   fixtures.defer(() => on.cleanupTenancy(context));
   return context;
+}
+
+// A child organization of `parent`, which the founder creates and manages;
+// deleted before its parent by the fixtures' reverse order.
+async function childTenancy(
+  on: EnforcingLane,
+  parent: TenancyContext,
+): Promise<TenancyContext> {
+  const created = await on.clients.organizationCommand.create({
+    apiVersion: "tenancy.stigmer.ai/v1",
+    kind: "Organization",
+    metadata: { name: uniqueName("binding-child") },
+    spec: { parentOrg: parent.org },
+  });
+  const org = created.metadata?.id ?? "";
+  fixtures.defer(() => on.clients.organizationCommand.delete({ value: org }));
+  return { org };
+}
+
+// A fresh person holding exactly `role` in `tenancy`, granted by the
+// founder: the membership rules give nobody a role in a child.
+async function personIn(
+  on: EnforcingLane,
+  tenancy: TenancyContext,
+  role: string,
+): Promise<ConformanceClients> {
+  const person = await on.provisionIdentity();
+  await on.clients.iamPolicyCommand.create(
+    organizationRole(await on.accountIdOf(person), role, tenancy.org),
+  );
+  return person;
 }
 
 // An Environment the founder creates in `org`, visible to the whole
@@ -368,6 +400,54 @@ describe("credential binding — a credential that names an organization works t
     );
   });
 
+  it("[rpc:OrganizationCommandController.create] a key limited to A creates and manages a child of A, and reads none of the child's rows", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    const a = await tenancy(on);
+    const key = await keyOf(on, on.clients, a.org);
+    const child = await key.clients.organizationCommand.create({
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: { name: uniqueName("bound-child") },
+      spec: { parentOrg: a.org, externalId: uniqueName("cust") },
+    });
+    const childOrg = child.metadata?.id ?? "";
+    fixtures.defer(() =>
+      on.clients.organizationCommand.delete({ value: childOrg }),
+    );
+    const listed = await key.clients.organizationQuery.listChildOrgs({
+      org: a.org,
+    });
+    expect(listed.entries.map((org) => org.metadata?.id)).toEqual([childOrg]);
+    const customer = await on.provisionIdentity();
+    const customerId = await on.accountIdOf(customer);
+    await key.clients.iamPolicyCommand.create(
+      organizationRole(customerId, "admin", childOrg),
+    );
+    // The child's own admin writes an org-visible row there: the founder,
+    // who manages the child, holds no role in it.
+    const environment = makeEnvironment({
+      org: childOrg,
+      name: uniqueName("binding-env"),
+    });
+    const created = await customer.environmentCommand.create({
+      ...environment,
+      metadata: {
+        ...environment.metadata,
+        visibility: ApiResourceVisibility.visibility_org,
+      },
+    });
+    const inChild = created.metadata?.id ?? "";
+    fixtures.defer(() =>
+      customer.environmentCommand.delete({ resourceId: inChild }),
+    );
+    await expectGrpcCode(
+      () => key.clients.environmentQuery.get({ value: inChild }),
+      Code.PermissionDenied,
+      "read a child's row through a key limited to its parent",
+    );
+  });
+
   it("[rpc:ApiKeyCommandController.create] a key limited to A mints only keys limited to A", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
@@ -504,12 +584,12 @@ describe("credential binding — a credential that names an organization works t
     expect(connect.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
   });
 
-  it("[rpc:McpServerCommandController.connect] a key limited to A connects, in A, to an MCP server B shares at platform visibility exactly as its person does", async (ctx) => {
+  it("[rpc:McpServerCommandController.connect] a key limited to A connects, in A, to an MCP server A's parent B shares with its children exactly as its person does", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
-    const a = await tenancy(on);
     const b = await tenancy(on);
-    const person = await on.provisionMember(a);
+    const a = await childTenancy(on, b);
+    const person = await personIn(on, a, "member");
     const key = await keyOf(on, person, a.org);
     const serverInput = makeMcpServer({
       org: b.org,
@@ -519,7 +599,7 @@ describe("credential binding — a credential that names an organization works t
       ...serverInput,
       metadata: {
         ...serverInput.metadata,
-        visibility: ApiResourceVisibility.visibility_platform,
+        visibility: ApiResourceVisibility.visibility_child_orgs,
       },
     });
     fixtures.defer(() =>

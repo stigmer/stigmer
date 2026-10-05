@@ -9,9 +9,10 @@
 // NormalizeReferences), plus the FailedPrecondition rejection of a reference
 // to a non-existent McpServer. Then the rule's three clauses at the wire, in
 // both editions: a same-organization target must exist (a skill too, not
-// only an MCP server); another organization's target is admitted only at
-// platform visibility, and the refusal is ONE sentence whether the target is
-// missing or merely not shared, so a create is never an existence probe over
+// only an MCP server); another organization's target is admitted only when
+// it is the writer's parent's, shared with its child organizations, and the
+// refusal is ONE sentence whether the target is missing, merely not shared
+// or another parent's, so a create is never an existence probe over
 // another organization's rows; and the FLOOR — an agent may not be more
 // visible than an MCP server it runs with, at create and when its level is
 // raised — because what a person can run they must also be able to read.
@@ -38,7 +39,7 @@ import { makeAgent, makeAgentSpec } from "../support/agents";
 import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
-import { organizationSlug } from "../support/organizations";
+import { createChildOrganization, organizationSlug } from "../support/organizations";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -169,11 +170,15 @@ describe("Agent conformance — the reference rule at write", () => {
     );
   });
 
-  it("[rpc:AgentCommandController.create] another organization's MCP server is admitted at platform visibility and refused otherwise with one sentence, whether it exists or not", async () => {
-    const { org } = await target.provisionTenancy();
+  it("[rpc:AgentCommandController.create] the parent organization's MCP server is admitted when it shares it with its children, and every other organization's is refused with one sentence, whether it exists or not", async () => {
+    // The writer's organization is a child of otherOrg; strangerOrg is another parent.
     const { org: otherOrg } = await target.provisionTenancy();
-    const shared = await createMcpServer(otherOrg, ApiResourceVisibility.visibility_platform);
+    const { org: strangerOrg } = await target.provisionTenancy();
+    const { id: org } = await createChildOrganization(clients.organizationCommand, otherOrg, "the writer's organization");
+    fixtures.defer(() => clients.organizationCommand.delete({ value: org }));
+    const shared = await createMcpServer(otherOrg, ApiResourceVisibility.visibility_child_orgs);
     const internal = await createMcpServer(otherOrg);
+    const stranger = await createMcpServer(strangerOrg, ApiResourceVisibility.visibility_child_orgs);
 
     const admitted = await clients.agentCommand.create(
       agentReferencing(org, otherOrg, shared.metadata!.slug),
@@ -183,7 +188,7 @@ describe("Agent conformance — the reference rule at write", () => {
 
     const sentenceFor = (slug: string) =>
       `referenced MCP server '${slug}' of another organization is not available to this organization; ` +
-      "another organization's resource can be referenced only when that organization shares it at platform visibility.";
+      "another organization's resource can be referenced only when it is this organization's parent and shares it with its child organizations.";
 
     const notShared = await expectGrpcCode(
       () => clients.agentCommand.create(agentReferencing(org, otherOrg, internal.metadata!.slug)),
@@ -198,6 +203,13 @@ describe("Agent conformance — the reference rule at write", () => {
       "create agent referencing another organization's missing MCP server",
     );
     expect(missing.rawMessage).toBe(sentenceFor("no-such-server"));
+
+    const anotherParents = await expectGrpcCode(
+      () => clients.agentCommand.create(agentReferencing(org, strangerOrg, stranger.metadata!.slug)),
+      Code.FailedPrecondition,
+      "create agent referencing an MCP server another parent shares with its children",
+    );
+    expect(anotherParents.rawMessage).toBe(sentenceFor(stranger.metadata!.slug));
 
     // A name no organization holds reads exactly as a held one: the refusal
     // never tells the writer which names exist.

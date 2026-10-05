@@ -965,7 +965,7 @@ describe("[rpc:SkillCommandController.updateVisibility] Skill conformance — up
     );
     expect(err.message, "both editions emit the same rejection text").toContain(
       "skill resources cannot be set to visibility_public. " +
-        "Supported visibility levels: visibility_private, visibility_org, visibility_platform.",
+        "Supported visibility levels: visibility_private, visibility_org, visibility_child_orgs.",
     );
 
     const stored = await clients.skillQuery.get({ value: pushed.metadata!.id });
