@@ -840,7 +840,7 @@ function generateTSBuildProto(
           }
         } else if (childType === "ApiResourceReference") {
           imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
-          buf.push(`    spec.${oneofTSName} = { case: ${goQuote(fieldName)}, value: create(ApiResourceReferenceSchema, input.${fieldName}) };\n`);
+          buf.push(`    spec.${oneofTSName} = { case: ${goQuote(fieldName)}, value: create(ApiResourceReferenceSchema, ${tsRefWithKind(`input.${fieldName}`, field)}) };\n`);
         } else {
           buf.push(`    spec.${oneofTSName} = { case: ${goQuote(fieldName)}, value: input.${fieldName} };\n`);
         }
@@ -1057,7 +1057,7 @@ function emitTSNestedBuilders(
         buf.push(`    msg.${oneofName} = { case: ${goQuote(fieldName)}, value: build${childType}Proto(input.${fieldName}) };\n`);
       } else if (isSpecialType(childType) && childType === "ApiResourceReference") {
         imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
-        buf.push(`    msg.${oneofName} = { case: ${goQuote(fieldName)}, value: create(ApiResourceReferenceSchema, input.${fieldName}) };\n`);
+        buf.push(`    msg.${oneofName} = { case: ${goQuote(fieldName)}, value: create(ApiResourceReferenceSchema, ${tsRefWithKind(`input.${fieldName}`, field)}) };\n`);
       } else {
         buf.push(`    msg.${oneofName} = { case: ${goQuote(fieldName)}, value: input.${fieldName} };\n`);
       }
@@ -1067,6 +1067,13 @@ function emitTSNestedBuilders(
 
   buf.push("  return msg;\n");
   buf.push("}\n\n");
+}
+
+// The init expression for a reference: its kind filled from reference_kind,
+// as every reference field's is, so a caller names only org and slug.
+function tsRefWithKind(expr: string, f: FieldSchema): string {
+  const refKind = f.referenceKind ?? 0;
+  return refKind !== 0 ? `{ ...${expr}, kind: ${refKind} }` : expr;
 }
 
 function emitTSNestedFieldAssign(buf: string[], f: FieldSchema, typeMap: Map<string, TypeSchema>, imports: TsImportSet): void {
