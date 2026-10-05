@@ -66,9 +66,10 @@ Stigmer's own. A few things differ:
 - A Cursor-format hook that asks gets an approval on both engines, where Cursor
   itself lets the call run.
 - On the Cursor engine, a hook is not told which sub-agent made a call. Web
-  fetch and web search reach no hook there, so an Agent whose hooks would match
-  them runs without those tools on that engine; the sub-agent tool is left out
-  too when a hook's matcher names it. A sub-agent's own calls still reach every
+  fetch and web search reach no hook there, so an Agent whose hooks that run
+  before a call would match them runs without those tools on that engine (a hook
+  that runs after them does not run there); the sub-agent tool is left out too
+  when a hook's matcher names it. A sub-agent's own calls still reach every
   hook. On Stigmer's own engine, a Cursor-format hook sees web fetch as
   `WebFetch`, so its policy holds there too.
 - On the Cursor engine, a hook that rewrites a call takes effect only where

@@ -353,6 +353,12 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
       `(execution=${executionId})`,
     );
   }
+  if (deniedLedger.some((e) => denialKindOf(e) === "hook-unavailable")) {
+    console.warn(
+      `ExecuteCursor turn boundary: the agent's hook server did not answer during this turn, ` +
+      `so the calls it was asked about were refused (execution=${executionId})`,
+    );
+  }
 
   return {
     waiting,

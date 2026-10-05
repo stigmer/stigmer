@@ -128,6 +128,8 @@ export interface AdjudicatedRows {
   readonly adjudicatedApprovals: PendingApproval[];
   /** The content digest that authorizes an approved edit by its exact bytes (a sibling edit to the same file re-gates). */
   readonly adjudicatedContentDigests: Map<string, string>;
+  /** The approvals a hook asked for, by tool-call id. */
+  readonly adjudicatedHookAsks: ReadonlySet<string>;
 }
 
 /** The HITL gate as installed for this turn, and what the stream and the boundary read from it. */
@@ -380,6 +382,7 @@ export function readAdjudicatedRows(input: TurnInput, status: AgentExecutionStat
     isReinvocation: reinvoked,
     adjudicatedApprovals: adjudicated?.pendingApprovals ?? [],
     adjudicatedContentDigests: adjudicated?.contentDigests ?? new Map(),
+    adjudicatedHookAsks: adjudicated?.hookAsked ?? new Set(),
   };
 }
 
@@ -483,7 +486,7 @@ export async function installGate(
         captureMode: workspace.captureMode,
         globalBypass,
         refusals: approvalDecisions.size > 0
-          ? buildPersonRefusals(rows.adjudicatedApprovals, approvalDecisions, rows.adjudicatedContentDigests)
+          ? buildPersonRefusals(rows.adjudicatedApprovals, approvalDecisions, rows.adjudicatedContentDigests, rows.adjudicatedHookAsks)
           : new Map(),
       });
   let hitlGate: HitlGateHandle;

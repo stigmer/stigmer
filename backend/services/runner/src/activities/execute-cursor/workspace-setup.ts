@@ -164,7 +164,7 @@ export async function installHitlGate(params: {
 
   // A crashed turn's set-aside workspace files come back first, so this
   // turn's snapshot is taken of the files as their owners left them.
-  await restoreWorkspaceFiles(await ensureHitlGateDir(workspaceRoot), isStigmerHookEntry);
+  await restoreWorkspaceFiles(await ensureHitlGateDir(workspaceRoot));
 
   // Heal any pre-#173 in-workspace gate leftovers before installing. Without
   // this, a stale `.cursor/hooks/stigmer-approval.sh` (from a runner build that
@@ -214,7 +214,7 @@ export async function installHitlGate(params: {
     rule = await installWorkspaceRule(workspaceRoot);
   } catch (err) {
     // Whatever was set aside comes back here: no handle reaches the caller to restore it.
-    await restoreWorkspaceFiles(gateDir, isStigmerHookEntry);
+    await restoreWorkspaceFiles(gateDir);
     throw err;
   }
 
@@ -228,7 +228,7 @@ export async function installHitlGate(params: {
  * and a leftover hooks.json is inert anyway (see the module doc).
  */
 export async function removeHitlGate(handle: HitlGateHandle): Promise<void> {
-  await restoreWorkspaceFiles(handle.gateDir, isStigmerHookEntry);
+  await restoreWorkspaceFiles(handle.gateDir);
   // Drop the active-turn pointer so the gate is INERT between turns: a hook that
   // fires while no turn is active (a cached hooks.json, the user's own IDE on the
   // same repo) reads no pointer and allows immediately. The stable hook script

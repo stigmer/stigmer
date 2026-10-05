@@ -75,7 +75,7 @@ describe("installGate", () => {
     const before = new Set(readdirSync(tmpdir()).filter((name) => name.startsWith("stigmer-hooks-")));
     const sink = { ...s, setupTiming: { mark: vi.fn() }, bindCasObservations: vi.fn() } as unknown as TurnSink;
     await expect(
-      installGate(input, sink, { isReinvocation: false, adjudicatedApprovals: [], adjudicatedContentDigests: new Map() }, newTurnStreamState(), hooks),
+      installGate(input, sink, { isReinvocation: false, adjudicatedApprovals: [], adjudicatedContentDigests: new Map(), adjudicatedHookAsks: new Set() }, newTurnStreamState(), hooks),
     ).rejects.toThrow();
     const after = readdirSync(tmpdir()).filter((name) => name.startsWith("stigmer-hooks-") && !before.has(name));
     expect(after, "no hook server's directory is left behind").toEqual([]);

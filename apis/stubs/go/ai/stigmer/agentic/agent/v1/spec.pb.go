@@ -71,8 +71,9 @@ type AgentSpec struct {
 	// agent itself. A hook can refuse a call, ask a person first, or let it run
 	// without the approval it would otherwise need. Both engines run hooks in
 	// Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
-	// web search reach no hook, so an agent whose hooks would match them runs
-	// there without those tools.
+	// web search reach no hook, so an agent whose PreToolUse hooks would match
+	// them runs there without those tools; a PostToolUse hook on them does not
+	// run there.
 	Hooks []*HookSource `protobuf:"bytes,12,rep,name=hooks,proto3" json:"hooks,omitempty"`
 	// The author's run defaults: the model, speed tier, thinking and run
 	// bounds a turn on this agent uses unless the message or the surface it

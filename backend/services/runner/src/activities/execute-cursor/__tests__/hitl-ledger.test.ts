@@ -301,7 +301,10 @@ describe("reconcileDeniedToolCalls", () => {
     expect(tc.approvalContentDigest).toBe(hookAskDigest({ pr: 1 }));
     expect(toolCallIdentityToken(tc), "the retry streams under the tool's identity").toBe(grantToken("srv/merge", ""));
     tc.approvalAction = ApprovalAction.APPROVE;
+    // As the persisted row carries it once the boundary has stamped it (the hermetic hooks golden).
+    tc.approvalPolicySource = ApprovalPolicySource.HOOK;
     const adjudicated = reconstructAdjudicatedApprovals(messages);
+    expect([...adjudicated.hookAsked], "the approval a hook asked for").toEqual(["c1"]);
     const [grant] = buildApprovalGrants(adjudicated.pendingApprovals, adjudicated.decisions, adjudicated.contentDigests);
     expect(primaryToken(grant!.key, grant!.salient, grant!.contentDigest), "the gate's script computes this from the payload").toBe(
       Buffer.from(`srv/merge\n\n${hookAskDigest({ pr: 1 })}`, "utf-8").toString("base64"),

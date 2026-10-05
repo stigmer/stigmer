@@ -581,7 +581,7 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     expect(await claudeSettingsWithHooks(workspaceRoot)).toEqual([]);
   });
 
-  it("keeps an agent's edit of a set-aside file, with the gate's own change undone", async () => {
+  it("keeps an agent's edit of a .claude settings file, hooks put back; returns .cursor/hooks.json as it was, which no review shows", async () => {
     const { workspaceRoot, hitlDir, settings } = workspace();
     const cursorHooks = join(workspaceRoot, ".cursor", "hooks.json");
     mkdirSync(join(workspaceRoot, ".cursor"), { recursive: true });
@@ -605,9 +605,8 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
         PostToolUse: [{ matcher: "", hooks: [{ type: "command", command: "added" }] }],
       },
     });
-    expect(JSON.parse(readFileSync(cursorHooks, "utf-8")).hooks.preToolUse.map((e: any) => e.command)).toEqual([
+    expect(JSON.parse(readFileSync(cursorHooks, "utf-8")).hooks.preToolUse.map((e: any) => e.command), "a hook the agent added does not outlive the turn").toEqual([
       "./mine.sh",
-      "./added-by-agent.sh",
     ]);
   });
 
@@ -622,7 +621,7 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     });
   });
 
-  it("keeps an agent's deletion of a set-aside file, and an edit that no longer parses", async () => {
+  it("keeps an agent's deletion of a .claude settings file, and returns .cursor/hooks.json as it was over an edit that no longer parses", async () => {
     const { workspaceRoot, hitlDir, settings } = workspace();
     const folders = workspaceFolders([workspaceRoot], []);
     const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
@@ -630,7 +629,7 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     writeFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "{ half written", "utf-8");
     await removeHitlGate(handle);
     expect(existsSync(settings), "the deletion is the agent's, for the review to show").toBe(false);
-    expect(readFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "utf-8")).toBe("{ half written");
+    expect(existsSync(join(workspaceRoot, ".cursor", "hooks.json")), "the repository had none").toBe(false);
   });
 
   it("puts the set-aside files back when setting one aside fails partway", async () => {
@@ -735,21 +734,21 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     const reused = await setAside("reused", process.ppid, 1);
     mkdirSync(join(gatesRoot, "empty"));
 
-    await restoreAbandonedWorkspaceFiles(gatesRoot, () => false);
+    await restoreAbandonedWorkspaceFiles(gatesRoot);
     expect(readFileSync(crashed.settings, "utf-8")).toBe(crashed.original);
     expect(existsSync(crashed.snapshotPath)).toBe(false);
     expect(readFileSync(unnamed.settings, "utf-8"), "a snapshot naming no writer is restored").toBe(unnamed.original);
     expect(readFileSync(reused.settings, "utf-8"), "a process id taken again is not the runner").toBe(reused.original);
     expect(readFileSync(running.settings, "utf-8"), "a running runner's turn keeps its set-aside").toBe('{"model":"x"}\n');
     expect(existsSync(running.snapshotPath)).toBe(true);
-    await restoreAbandonedWorkspaceFiles(join(gatesRoot, "missing"), () => false);
+    await restoreAbandonedWorkspaceFiles(join(gatesRoot, "missing"));
 
     // Where `ps` cannot say when a running process started, it is taken for the runner.
     const unknown = await setAside("unknown-start", process.ppid, 1);
     const realPath = process.env["PATH"];
     process.env["PATH"] = gatesRoot;
     try {
-      await restoreAbandonedWorkspaceFiles(gatesRoot, () => false);
+      await restoreAbandonedWorkspaceFiles(gatesRoot);
     } finally {
       process.env["PATH"] = realPath;
     }

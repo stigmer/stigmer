@@ -1141,12 +1141,12 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
 d("generated approval hook: the agent's hooks", () => {
   const unreachable = { socketPath: join(tmpdir(), "stigmer-no-such-hooks.sock"), token: "t" };
 
-  it("refuses a call, recorded fail-closed, when the hook server does not answer", () => {
+  it("refuses a call, recorded hook-unavailable, when the hook server does not answer", () => {
     const h = setup({ hookServer: unreachable });
     const res = h.decide({ ...hookShell("ls"), hook_event_name: "preToolUse" });
     expect(res.permission).toBe("deny");
     expect(res.raw).toContain("could not run this agent hooks");
-    expect(h.ledger().map((e) => e.kind)).toEqual(["fail-closed"]);
+    expect(h.ledger().map((e) => e.kind), "the gate worked; the hooks could not be asked").toEqual(["hook-unavailable"]);
   });
 
   it("lets an MCP call's preToolUse firing pass to the event that names its server", () => {

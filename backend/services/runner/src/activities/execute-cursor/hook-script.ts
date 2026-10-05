@@ -942,7 +942,7 @@ if [ -n "$HOOK_SOCKET" ] && { [ "$HOOK_EVENT" = "beforeMCPExecution" ] || { [ "$
     none)
       ;;
     *)
-      record_denial "$HOOK_ID" "fail-closed"
+      record_denial "$HOOK_ID" "hook-unavailable"
       echo '{"permission":"deny","agent_message":"${HOOKS_UNAVAILABLE_AGENT_MESSAGE}","user_message":"Refused: the agent hooks could not be run"}'
       exit 0
       ;;

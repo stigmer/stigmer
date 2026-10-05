@@ -179,6 +179,15 @@ describe("buildPersonRefusals", () => {
     );
     expect(refusals.get(primaryToken("srv/merge", "", digest))).toEqual({ action: "reject", toolName: "merge" });
     expect(refusals.has(grantToken("srv/merge", "")), "merging another PR is not refused").toBe(false);
+
+    const write = buildPersonRefusals(
+      [pending({ toolCallId: "c2", toolName: "edit", argsPreview: JSON.stringify({ path: "/x/a" }) })],
+      new Map([["c2", ApprovalAction.REJECT]]),
+      new Map([["c2", "d1g3st"]]),
+      new Set(["c2"]),
+    );
+    expect(write.get(primaryToken("write", "/x/a", "d1g3st"))).toEqual({ action: "reject", toolName: "edit" });
+    expect(write.has(grantToken("write", "/x/a")), "another write to the file is the hook's to ask on").toBe(false);
   });
 });
 

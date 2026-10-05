@@ -122,9 +122,8 @@ export function createCursorAdapter(): HarnessAdapter {
       // Workspace files a stopped runner set aside for its turn come back
       // before any turn of this one pins its review baseline.
       const { restoreAbandonedWorkspaceFiles } = await import("./workspace-hook-files.js");
-      const { isStigmerHookEntry } = await import("./workspace-setup.js");
       const { getHitlGatesRoot } = await import("../../shared/workspace/platform-dir.js");
-      await restoreAbandonedWorkspaceFiles(getHitlGatesRoot(), isStigmerHookEntry);
+      await restoreAbandonedWorkspaceFiles(getHitlGatesRoot());
       booted = { config: resolveCursorConfig(bootConfig), runCursorTurn };
     },
 

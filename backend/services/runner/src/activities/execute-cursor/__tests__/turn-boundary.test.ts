@@ -24,7 +24,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   AgentMessageSchema,
@@ -165,6 +165,22 @@ describe("runTurnBoundary", () => {
     // The row itself is untouched — no gate was manufactured for a block no
     // approval can lift; the caller fails the execution instead.
     expect(blocked.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+  });
+
+  it("still reports a foreign block on a turn whose hook server did not answer, and says so", async () => {
+    const status = newStatus();
+    const ours = hookBlockedCall("tc-ours", "shell", { command: "make build" });
+    const foreign = hookBlockedCall("tc-foreign", "edit", { path: "notes.md" });
+    status.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [ours, foreign] }));
+    await appendLedgerEntry({ toolName: "Shell", token: toolCallIdentityToken(ours), kind: "hook-unavailable" });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const result = await runTurnBoundary(boundaryOpts(status));
+      expect(result.unattributedHookBlocks.map((b) => b.toolCallId), "unlike a broken gate, the check still runs").toEqual(["tc-foreign"]);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("hook server did not answer"));
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("attributes a secret hard-block (kind:'secret'): no pause, no false foreign-hook report", async () => {

@@ -84,7 +84,7 @@ import { watch } from "node:fs";
 import { writeFile, readFile, mkdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -523,6 +523,7 @@ export function buildPersonRefusals(
   pendingApprovals: PendingApproval[],
   decisions: ReadonlyMap<string, ApprovalAction>,
   contentDigests?: Map<string, string>,
+  hookAsked: ReadonlySet<string> = new Set(),
 ): Map<string, PersonRefusal> {
   const refusals = new Map<string, PersonRefusal>();
   for (const pa of pendingApprovals) {
@@ -533,7 +534,7 @@ export function buildPersonRefusals(
     const digest = contentDigests?.get(pa.toolCallId) ?? "";
     refusals.set(primaryToken(id.key, id.salient, digest), refusal);
     // A hook's ask was refused for that exact call, as it is granted for one.
-    if (!digest.startsWith(HOOK_ASK_DIGEST_PREFIX)) refusals.set(grantToken(id.key, id.salient), refusal);
+    if (!hookAsked.has(pa.toolCallId) && !digest.startsWith(HOOK_ASK_DIGEST_PREFIX)) refusals.set(grantToken(id.key, id.salient), refusal);
   }
   return refusals;
 }
@@ -673,6 +674,12 @@ const DENIAL_LEDGER_FILE = "denials.jsonl";
  *                     `disabled`: the model read the refusal (`message`),
  *                     which the turn boundary writes onto the refused row.
  *
+ * - `hook-unavailable` — refused because the runner's hook server did not
+ *                     answer (or its client failed), so the agent's hooks
+ *                     could not be asked. Non-pausing; unlike `fail-closed`
+ *                     the gate itself worked, so the turn's other blocks are
+ *                     still checked for a foreign hook.
+ *
  * An `approval` entry a hook asked for carries `hook` too, and the hook's
  * reason as its `message`, so the card names the hook and says why.
  *
@@ -680,7 +687,7 @@ const DENIAL_LEDGER_FILE = "denials.jsonl";
  * unknown deny must never manufacture an approval) but still attributes the
  * blocked call to our own hook.
  */
-export type DenialKind = "approval" | "unattended" | "secret" | "capture-error" | "fail-closed" | "disabled" | "hook";
+export type DenialKind = "approval" | "unattended" | "secret" | "capture-error" | "fail-closed" | "disabled" | "hook" | "hook-unavailable";
 
 /** The one kind that pauses the run for user approval. */
 export const APPROVAL_DENIAL_KIND: DenialKind = "approval";
@@ -999,6 +1006,8 @@ export interface AdjudicatedApprovals {
    * to the coarse token.
    */
   contentDigests: Map<string, string>;
+  /** The approvals a hook asked for, by tool-call id: a refusal of one binds that exact call ({@link buildPersonRefusals}). */
+  hookAsked: Set<string>;
 }
 
 export function reconstructAdjudicatedApprovals(
@@ -1007,6 +1016,7 @@ export function reconstructAdjudicatedApprovals(
   const pendingApprovals: PendingApproval[] = [];
   const decisions = new Map<string, ApprovalAction>();
   const contentDigests = new Map<string, string>();
+  const hookAsked = new Set<string>();
 
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
@@ -1014,6 +1024,7 @@ export function reconstructAdjudicatedApprovals(
       if (tc.approvalAction === ApprovalAction.UNSPECIFIED) continue;
 
       decisions.set(tc.id, tc.approvalAction);
+      if (tc.approvalPolicySource === ApprovalPolicySource.HOOK) hookAsked.add(tc.id);
       // Prefer the persisted digest (set at the gate from the authoritative
       // captured input, and never elided); recompute from args only for an
       // execution that predates the field.
@@ -1035,5 +1046,5 @@ export function reconstructAdjudicatedApprovals(
     }
   }
 
-  return { pendingApprovals, decisions, contentDigests };
+  return { pendingApprovals, decisions, contentDigests, hookAsked };
 }
