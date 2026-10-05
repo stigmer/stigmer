@@ -32,7 +32,9 @@
  * credentials stripped), plus `CLAUDE_PROJECT_DIR`, and for a plugin's hook
  * `CLAUDE_PLUGIN_ROOT`, `CLAUDE_PLUGIN_DATA`, the open format's
  * `PLUGIN_ROOT`, and `CLAUDE_PLUGIN_OPTION_<KEY>` for each value its hooks
- * reference. The three path variables are also substituted in `command`
+ * reference in exec form; a key no exec-form handler references is not
+ * exported, unlike Claude Code, which exports every declared option
+ * (stigmer#1912). The three path variables are also substituted in `command`
  * and `args`, and `${user_config.KEY}` in an exec-form handler's; a
  * shell-form command that reaches for `${user_config.KEY}` does not run, as
  * in Claude Code, because the shell would re-parse the value.
@@ -298,7 +300,7 @@ export class HookEvaluator {
   ): { readonly command: string; readonly args: readonly string[] | null } | string {
     const execForm = handler.args.length > 0;
     if (!execForm && handler.command.includes("${user_config.")) {
-      return "a shell-form command cannot reference ${user_config.*}; use args (exec form) or $CLAUDE_PLUGIN_OPTION_<KEY>";
+      return "a shell-form command cannot reference ${user_config.*}; pass the value in args (exec form)";
     }
     const substitute = (value: string): string => {
       let out = value.replaceAll("${CLAUDE_PROJECT_DIR}", this.deps.workspaceRoot);

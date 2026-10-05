@@ -143,6 +143,7 @@ What holds:
 - Apply checks an inline block: events must be `PreToolUse` or `PostToolUse`, and every matcher and condition must have the shape Claude Code accepts. It fills an omitted format with Claude Code's, so a block never names one. Apply also refuses two plugin references with the same slug and more than one inline block.
 - Installing a plugin whose hooks are in Claude Code's format adds the plugin's own reference to the agent the install composes, and declares in its `env` every variable those hooks read.
 - A plugin reference with no `version` follows the plugin's installed version. A hook that reads a variable the run does not have refuses the turn, naming the variable.
+- A hook reads a plugin setting by passing `${user_config.KEY}` in its `args`. Only a setting passed that way is also exported to the plugin's hooks as `CLAUDE_PLUGIN_OPTION_<KEY>`; a hook whose script reads `CLAUDE_PLUGIN_OPTION_<KEY>` for any other setting finds it unset, where Claude Code would set it.
 
 ## Environment Specification
 
