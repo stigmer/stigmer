@@ -91,7 +91,7 @@ function VisibilityControl({
   return (
     <VisibilitySelector
       visibility={ApiResourceVisibility.visibility_org}
-      options={blueprintVisibilityLevels({ hasIdentityProvider: false })}
+      options={blueprintVisibilityLevels({ offersChildOrgs: false })}
       onVisibilityChange={onVisibilityChange}
     />
   );

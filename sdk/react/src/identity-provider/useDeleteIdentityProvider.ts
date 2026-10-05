@@ -26,9 +26,6 @@ export interface UseDeleteIdentityProviderReturn {
  * {@link IdentityProvider} on success so callers can confirm which
  * provider was removed.
  *
- * Deletion is blocked by the backend if any platform-managed
- * organizations still reference this identity provider.
- *
  * @example
  * ```tsx
  * const { deleteProvider, isDeleting, error } = useDeleteIdentityProvider();

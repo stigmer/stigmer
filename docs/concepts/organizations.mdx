@@ -2,8 +2,8 @@
 title: Organizations
 description:
   Organizations are tenant boundaries that group resources and control access.
-  Learn the two management modes, how multi-tenant platforms use
-  platform-managed Organizations, and how resources are scoped.
+  Learn how a parent organization manages child organizations for its customers,
+  and how resources are scoped.
 ---
 
 Every resource in Stigmer — Agents, Skills, MCP Servers, Sessions, Environments
@@ -38,16 +38,16 @@ metadata:
   slug: acme
 spec:
   description: Acme Corp agent platform
-  management_mode: self_managed
 ```
 
 Key properties:
 
-| Field             | Purpose                                                                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`              | The permanent id Stigmer gives the Organization when it is made (`org_…`). Everything the Organization owns is filed under it                    |
-| `slug`            | The name you type in URLs, manifests and `--org`, unique across the platform. An owner can change it                                             |
-| `management_mode` | `self_managed` (you operate the org directly) or `platform_managed` (an external platform creates and operates the org via an Identity Provider) |
+| Field         | Purpose                                                                                                                                              |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | The permanent id Stigmer gives the Organization when it is made (`org_…`). Everything the Organization owns is filed under it                        |
+| `slug`        | The name you type in URLs, manifests and `--org`, unique across the platform. An owner can change it                                                 |
+| `parent_org`  | Set only on a [child organization](#parent-and-child-organizations): the Organization that manages it. Fixed at create                               |
+| `external_id` | Set only on a child organization: the parent's own identifier for it, such as a customer id. Unique among the parent's children, and fixed at create |
 
 ### Ids and slugs
 
@@ -108,40 +108,13 @@ A resource you author on its own (`stigmer apply -f agent.yaml`) belongs to the
 Organization directly and is managed one at a time. See
 [Install a plugin](/docs/guides/plugins/install-a-plugin).
 
-## Management modes
+## Parent and child organizations
 
-Every Organization has a `management_mode` that determines who operates it. The
-mode is set at creation and cannot change afterward.
-
-### Self-managed
-
-You create a self-managed Organization when you sign up for Stigmer directly.
-You own the Organization and manage its resources, users, and settings through
-the Stigmer UI, CLI, or API. Authentication uses Stigmer's own login, or you can
-configure an SSO Identity Provider so your team signs in with existing
-credentials.
-
-```yaml
-apiVersion: tenancy.stigmer.ai/v1
-kind: Organization
-metadata:
-  name: Acme Corp
-  slug: acme
-spec:
-  management_mode: self_managed
-```
-
-Self-managed is the default. If you are a team using Stigmer to build and run
-Agents, this is the mode you use.
-
-### Platform-managed
-
-A platform-managed Organization is created programmatically by an **external
-platform** that builds on Stigmer. The platform registers an Identity Provider,
-then creates Organizations on behalf of its own customers. Each Organization is
-linked to the platform's Identity Provider via `identity_provider_ref`, and the
-platform can store its own tenant identifier in `external_org_id` for reverse
-lookup.
+An Organization may have a **parent**: another Organization that created it and
+manages it. A platform that builds on Stigmer (Acme Cloud, say) creates one
+**child organization** for each of its own customers under its own Organization,
+the **parent organization**. A child names its parent in `parent_org`, and may
+carry the parent's own identifier for the customer in `external_id`:
 
 ```yaml
 apiVersion: tenancy.stigmer.ai/v1
@@ -150,46 +123,31 @@ metadata:
   name: Tenant Alpha
   slug: tenant-alpha
 spec:
-  management_mode: platform_managed
-  identity_provider_ref:
-    kind: identity_provider
-    slug: acme-cloud
-    org: acme
-  external_org_id: "acme-tenant-alpha-id"
+  parent_org: acme-cloud
+  external_id: cust-4411
 ```
 
-Platform-managed Organizations are operated by the platform, not by their end
-users. The platform's backend provisions users, grants access, and manages
-resources through the Stigmer API. End users authenticate with tokens from the
-platform's Identity Provider — they never interact with Stigmer's own login.
-
-## Multi-tenant platforms
-
-When a platform serves multiple customers and each customer needs isolated
-Agents, Skills, Sessions, and access controls, the platform creates one
-platform-managed Organization per customer. The Organization boundary gives each
-tenant full resource isolation — an Agent in one Organization cannot see or
-access resources in another.
+Both are fixed when the child is created, and children are one level deep: a
+child has no children of its own. An Organization you create for yourself has no
+parent; that is the usual case.
 
 {/* prettier-ignore */}
 <Mermaid
   chart={`
 graph TD
-  Platform["Platform backend<br/>(Acme Cloud)"]
-  IdP["IdentityProvider<br/>(acme-cloud)"]
-  OrgA["Organization<br/>(tenant-alpha)"]
-  OrgB["Organization<br/>(tenant-beta)"]
-  OrgC["Organization<br/>(tenant-gamma)"]
+  Parent["Parent organization<br/>(acme-cloud)"]
+  OrgA["Child organization<br/>(tenant-alpha)"]
+  OrgB["Child organization<br/>(tenant-beta)"]
+  OrgC["Child organization<br/>(tenant-gamma)"]
   A1["Agent: support-bot"]
   A2["Skill: kb-alpha"]
   B1["Agent: support-bot"]
   B2["Skill: kb-beta"]
   C1["Agent: ops-assistant"]
   C2["Skill: runbook"]
-  Platform --> IdP
-  Platform --> OrgA
-  Platform --> OrgB
-  Platform --> OrgC
+  Parent --> OrgA
+  Parent --> OrgB
+  Parent --> OrgC
   OrgA --> A1
   OrgA --> A2
   OrgB --> B1
@@ -199,26 +157,28 @@ graph TD
 `}
 />
 
-The pattern works like this:
+A child organization is a full tenant boundary. Its own people work in it as in
+any Organization, and nothing it holds is visible to another child.
 
-1. The platform registers a single Identity Provider in its own Organization.
-2. For each new customer, the platform creates a platform-managed Organization
-   linked to that Identity Provider.
-3. When a customer's user signs up, the platform provisions a federated Identity
-   Account in the customer's Organization and grants it an appropriate role.
-4. The user authenticates with a JWT from the platform's auth system. Stigmer
-   validates the token, resolves the user's federated account, and checks IAM
-   Policies scoped to the tenant's Organization.
+The parent's admins **manage** every child and read **nothing** a child holds.
+They can change a child's settings, rename or delete it, manage its members,
+roles and invitations, and see its billing; they cannot see its Agents,
+Sessions, Environments or files, its usage reports, or run anything in it. A
+parent admin who needs to look inside adds themselves as a member of the child,
+through its ordinary members screen; the child's member list and access history
+show it, and the child's own admins can remove them. Nobody owns a child when it
+is created: the parent's admins grant its first members and owner.
 
-Because every resource — Agents, Skills, MCP Servers, Sessions, IAM Policies —
-is scoped to an Organization, tenants cannot see or affect each other's
-resources. The Identity Provider is shared (it authenticates all tenants), but
-the Organization boundary keeps each tenant's data and access separate.
+A child's people sign in through the parent's Identity Provider, whose
+`external_id_claim` names each token's child by its `external_id`, or with
+tokens a PlatformClient of the parent mints for that child. On Stigmer Cloud a
+child runs on its parent's plan. An Organization that still has children cannot
+be deleted.
 
 <Callout type="info">
-  For step-by-step instructions on setting up a multi-tenant platform, see the
-  [Multi-tenant platform
-  setup](/docs/guides/authentication/federation/multi-tenant-setup) guide.
+  For step-by-step instructions, see the [Child
+  organizations](/docs/guides/authentication/federation/child-organizations)
+  guide.
 </Callout>
 
 ## Cloud vs. local
@@ -237,16 +197,16 @@ API contracts work identically in both modes.
 Every resource has a visibility setting that says who inside the platform can
 read it:
 
-| Visibility            | Meaning                                                                                                                                                  |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `visibility_private`  | The person who created it, and anyone granted access to it directly                                                                                      |
-| `visibility_org`      | Every member of the owning Organization (the default for Agents, Skills, MCP Servers, Workflows and Plugins)                                             |
-| `visibility_platform` | Every member of every Organization the owning Organization manages through its Identity Provider (see [Multi-tenant platforms](#multi-tenant-platforms)) |
+| Visibility              | Meaning                                                                                                                                 |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `visibility_private`    | The person who created it, and anyone granted access to it directly                                                                     |
+| `visibility_org`        | Everyone in the owning Organization (the default for Agents, Skills, MCP Servers, Workflows and Plugins)                                |
+| `visibility_child_orgs` | Everyone in every child organization of the owning Organization (see [Parent and child organizations](#parent-and-child-organizations)) |
 
-Nothing an Organization owns is visible outside it unless that Organization is a
-platform sharing it with the Organizations it manages. To use another
-Organization's Agent, Skill or MCP Server, install the Plugin that carries it:
-the copy is yours, in your Organization, and upgrades with the Plugin.
+Nothing an Organization owns is visible outside it unless it is a parent sharing
+it with its child organizations. To use another Organization's Agent, Skill or
+MCP Server, install the Plugin that carries it: the copy is yours, in your
+Organization, and upgrades with the Plugin.
 
 ## Resource references
 
@@ -259,11 +219,11 @@ skill_refs:
     slug: return-policy
 ```
 
-An `org` field is accepted only when that Organization is a platform that shares
-the resource with yours at `visibility_platform`:
+An `org` field is accepted only when that Organization is your parent and shares
+the resource with its children at `visibility_child_orgs`:
 
 ```yaml validate-as="Agent.spec"
-# A Skill the platform Organization shares with every Organization it manages
+# A Skill the parent organization shares with every child organization
 skill_refs:
   - kind: skill
     slug: return-policy
@@ -292,8 +252,8 @@ reference keeps pointing at its Organization across a rename.
   org-scoped --- the same user across multiple PlatformClients in your
   Organization shares one Identity Account.
 - Need tenant isolation for multiple customers? The
-  [Multi-tenant platform setup](/docs/guides/authentication/federation/multi-tenant-setup)
-  guide covers creating platform-managed Organizations and provisioning users
-  per tenant.
+  [Child organizations](/docs/guides/authentication/federation/child-organizations)
+  guide covers creating a child organization per customer, managing it, and
+  routing your customers' sign-ins.
 - For API details, see the
   [Organization SDK reference](/docs/sdk/resources/organization).

@@ -88,18 +88,26 @@ describe("parseVisibility", () => {
   it("maps the three short forms", () => {
     expect(parseVisibility("private")).toBe(ApiResourceVisibility.visibility_private);
     expect(parseVisibility("org")).toBe(ApiResourceVisibility.visibility_org);
-    expect(parseVisibility("platform")).toBe(ApiResourceVisibility.visibility_platform);
+    expect(parseVisibility("child-orgs")).toBe(ApiResourceVisibility.visibility_child_orgs);
   });
 
   it("accepts canonical enum names and is case/whitespace insensitive", () => {
-    expect(parseVisibility(" Visibility_Platform ")).toBe(ApiResourceVisibility.visibility_platform);
+    expect(parseVisibility(" Visibility_Child_Orgs ")).toBe(ApiResourceVisibility.visibility_child_orgs);
     expect(parseVisibility("ORG")).toBe(ApiResourceVisibility.visibility_org);
+  });
+
+  it("refuses the removed platform level as an unknown value", () => {
+    for (const spelling of ["platform", "visibility_platform"]) {
+      expect(() => parseVisibility(spelling, "--visibility")).toThrow(
+        /invalid 'visibility' value '.*' in --visibility\n\nValid values: private, org, child-orgs\./,
+      );
+    }
   });
 
   it("refuses the retired public level by name, with the remedy and the valid values", () => {
     for (const spelling of ["public", "visibility_public", " PUBLIC "]) {
       expect(() => parseVisibility(spelling, "--visibility")).toThrow(
-        /invalid 'visibility' value '.*' in --visibility: the public level is retired[\s\S]*plugins[\s\S]*Valid values: private, org, platform\./,
+        /invalid 'visibility' value '.*' in --visibility: the public level is retired[\s\S]*plugins[\s\S]*Valid values: private, org, child-orgs\./,
       );
     }
   });

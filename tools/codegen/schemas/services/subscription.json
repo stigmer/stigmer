@@ -45,7 +45,7 @@
           "inputFullType": "ai.stigmer.billing.subscription.v1.GetEntitlementsInput",
           "outputType": "GetEntitlementsOutput",
           "outputFullType": "ai.stigmer.billing.subscription.v1.GetEntitlementsOutput",
-          "description": "Resolve what the organization is permitted right now.\n\n The answer is derived, never stored: the entitlements of the plan the\n organization's active subscription names, else the Free plan's with an\n empty plan_id. A platform-managed organization has no subscription of\n its own; its entitlements resolve through its identity provider to the\n integrator organization, whose plan counts the managed organization\n against the managed organizations it includes."
+          "description": "Resolve what the organization is permitted right now.\n\n The answer is derived, never stored: the entitlements of the plan the\n organization's active subscription names, else the Free plan's with an\n empty plan_id. A child organization has no subscription of its own; its\n entitlements resolve through its parent organization, whose plan counts\n the child against the child organizations it includes."
         },
         {
           "name": "GetPeriodEstimate",
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput",
           "outputType": "PeriodEstimate",
           "outputFullType": "ai.stigmer.billing.subscription.v1.PeriodEstimate",
-          "description": "Estimate what the organization's current period will be invoiced.\n\n The estimate is the invoice the period would close with if no further\n usage occurred before its end: the plan's cost over the whole period\n (its minimum is not prorated to the time elapsed), less the commission\n already collected on the period's usage, plus the managed organizations\n beyond those the plan includes. It is rated by the same rule the\n monthly close invoices by, over the same usage, so an estimate read at\n a period's end equals that period's invoice. Every other read derives\n it the same way; nothing is stored.\n\n NOT_FOUND when the organization has no live subscription: it is on\n Free, or it is platform-managed and on its integrator's plan, and\n neither is invoiced a plan of its own."
+          "description": "Estimate what the organization's current period will be invoiced.\n\n The estimate is the invoice the period would close with if no further\n usage occurred before its end: the plan's cost over the whole period\n (its minimum is not prorated to the time elapsed), less the commission\n already collected on the period's usage, plus the child organizations\n beyond those the plan includes. It is rated by the same rule the\n monthly close invoices by, over the same usage, so an estimate read at\n a period's end equals that period's invoice. Every other read derives\n it the same way; nothing is stored.\n\n NOT_FOUND when the organization has no live subscription: it is on\n Free, or it is a child organization on its parent's plan, and\n neither is invoiced a plan of its own."
         }
       ]
     }

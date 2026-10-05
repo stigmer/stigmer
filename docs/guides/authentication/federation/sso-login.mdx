@@ -1,19 +1,18 @@
 ---
 title: Set up SSO
 description:
-  Enable SSO login for a self-managed Organization so team members sign in to
-  the Stigmer web console through your Identity Provider.
+  Enable SSO login for your Organization so team members sign in to the Stigmer
+  web console through your Identity Provider.
 ---
 
-Single sign-on (SSO) lets team members in a self-managed Organization sign in to
-the Stigmer web console using your Organization's Identity Provider. When a team
+Single sign-on (SSO) lets your Organization's team members sign in to the
+Stigmer web console using your Organization's Identity Provider. When a team
 member signs in for the first time, Stigmer creates their account automatically.
 
 This is different from
-[platform-managed federation](/docs/guides/authentication/federation/overview),
-where your backend provisions accounts and your users call the Stigmer API
-directly. With SSO, users interact with the Stigmer web console --- not your
-app.
+[platform federation](/docs/guides/authentication/federation/overview), where
+your backend provisions accounts and your users call the Stigmer API directly.
+With SSO, users interact with the Stigmer web console --- not your app.
 
 <ScenarEmbed id="sso-login-playback" title="SSO login walkthrough" />
 
@@ -59,7 +58,7 @@ in the Stigmer console.
 
 ## Prerequisites
 
-- A **self-managed Organization** in Stigmer (not platform-managed)
+- A **Stigmer Organization** whose own team signs in to the console
 - An **OIDC-compatible Identity Provider** (Auth0, Okta, Entra ID, AWS Cognito,
   or any provider that supports the authorization code flow)
 - The Identity Provider must be configured with a **client application** for
@@ -204,9 +203,10 @@ You can also enable SSO on an existing Identity Provider by editing it in the
 Stigmer web console under **Settings > Identity Providers**.
 
 <Callout type="warn">
-  Do not enable SSO on platform-managed Organizations. SSO bypasses explicit
-  account creation, which conflicts with the platform-managed model where your
-  backend controls who gets access.
+  Do not enable SSO on an Identity Provider your platform integration uses. SSO
+  bypasses explicit account creation, which conflicts with a platform
+  integration where your backend controls who gets access, and an SSO Identity
+  Provider cannot route sign-ins to child organizations.
 </Callout>
 
 ## Share the SSO login URL

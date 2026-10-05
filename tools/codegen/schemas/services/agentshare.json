@@ -130,7 +130,7 @@
     },
     {
       "name": "ApiResourceReference",
-      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be platform-visible to be referenced at all. A blueprint may not be\n more visible than the skills, MCP servers and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, MCP servers and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
       "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
       "fields": [

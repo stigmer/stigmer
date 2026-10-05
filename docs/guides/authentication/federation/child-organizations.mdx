@@ -1,48 +1,48 @@
 ---
-title: Multi-tenant platform setup
+title: Child organizations
 description:
-  Create platform-managed Organizations to give each of your customers isolated
-  Agents, Skills, and Sessions on Stigmer.
+  Give each of your customers an isolated Organization under yours, manage it
+  from your Organization, and route your customers' sign-ins to it.
 ---
 
-If your platform serves multiple customers and each customer needs their own
-isolated set of Agents, Skills, Sessions, and access controls, you create one
-**platform-managed Organization** per customer. Each Organization is a full
-tenant boundary — resources inside one Organization are invisible to users in
-another.
+If your platform serves several customers, and each customer needs its own
+isolated set of Agents, Skills, Sessions and access controls, you create one
+**child organization** per customer under your own **parent organization**. A
+child organization is a full tenant boundary: what one child holds is invisible
+to the people of another child.
 
 <ScenarEmbed
   id="multi-tenant-setup-playback"
-  title="Multi-tenant platform setup walkthrough"
+  title="Child organizations walkthrough"
 />
 
 ## When you need this
 
 You already have a working
-[Identity Provider](/docs/guides/authentication/federation/register-identity-provider)
-and understand
-[federated accounts](/docs/guides/authentication/federation/provision-federated-accounts).
-Now you need to extend that setup for multiple tenants:
+[Identity Provider](/docs/guides/authentication/federation/register-identity-provider),
+or a [PlatformClient](/docs/guides/authentication/platform-client/overview), and
+you want to:
 
-- Your platform has multiple customers (tenants)
-- Each customer needs their own Agents, Skills, MCP Servers, and Sessions
-- You want tenant boundaries on Stigmer to mirror your own platform's tenant
-  structure
-- You want to provision users and manage resources per tenant through your
-  platform's backend
+- give each of your customers its own Agents, Skills, MCP Servers and Sessions
+- mirror your platform's customers in Stigmer, one Organization each, and find
+  each by your own customer id
+- manage those Organizations from your own: their settings, members, access and
+  billing
+- share a catalog of Agents, Skills, Workflows, MCP Servers and Plugins with
+  every customer, including customers you add later
 
 ## Prerequisites
 
-Before starting, you need:
-
-- A **Stigmer Organization** that owns your Identity Provider (for example,
-  `acme`)
-- A **registered Identity Provider** in that Organization (see
+- A **Stigmer Organization** of your own, the parent (for example, `acme`)
+- An **API key** of an admin of that Organization. A key
+  [limited to the Organization](/docs/guides/authentication/overview) works too:
+  a key limited to the parent creates and manages its children, and reads none
+  of what they hold.
+- For sign-in through your own auth provider, a **registered Identity Provider**
+  in the parent (see
   [Register an Identity Provider](/docs/guides/authentication/federation/register-identity-provider))
-- An **API key** with admin access to the Organization that owns the Identity
-  Provider
 
-## Architecture
+## How it fits together
 
 {/* vale off */}
 
@@ -52,264 +52,269 @@ Before starting, you need:
 flowchart TD
   subgraph platform ["Your platform (Acme Cloud)"]
     Backend["Platform backend"]
-    IdP["Auth provider<br/>(Auth0, Okta, etc.)"]
+    Auth["Auth provider<br/>(Auth0, Okta, etc.)"]
   end
   subgraph stigmer ["Stigmer"]
-    subgraph acmeOrg ["Organization: acme"]
+    subgraph acmeOrg ["Parent organization: acme"]
       SIdP["IdentityProvider<br/>(acme-cloud-auth)"]
-      Accts["Federated accounts<br/>(one per user)"]
+      Catalog["Shared catalog<br/>(visibility_child_orgs)"]
     end
-    subgraph tenantA ["Organization: tenant-alpha"]
+    subgraph childA ["Child organization: tenant-alpha<br/>externalId: cust-4411"]
       ResA["Agents, Skills, Sessions"]
     end
-    subgraph tenantB ["Organization: tenant-beta"]
+    subgraph childB ["Child organization: tenant-beta<br/>externalId: cust-4412"]
       ResB["Agents, Skills, Sessions"]
     end
   end
-  Backend -->|"Register once"| SIdP
-  Backend -->|"Create per tenant"| tenantA
-  Backend -->|"Create per tenant"| tenantB
-  SIdP -.->|"Authenticates"| Accts
-  Accts -->|"Role per tenant"| tenantA
-  Accts -->|"Role per tenant"| tenantB
+  Backend -->|"Create per customer"| childA
+  Backend -->|"Create per customer"| childB
+  Auth -.->|"Token with external id claim"| SIdP
+  SIdP -->|"Routes the token"| childA
+  Catalog -.->|"Readable in every child"| childA
+  Catalog -.->|"Readable in every child"| childB
 `}
 />
 
 {/* vale on */}
 
-The Identity Provider is registered once in your platform's Organization. For
-each new customer, your backend creates a platform-managed Organization linked
-to that Identity Provider. Each user has one federated account, which belongs to
-the Identity Provider; a role on a tenant Organization is what lets that user
-into the tenant. Each token your auth provider issues names one tenant in a
-claim, and Stigmer lets that token work in that tenant only. Tenants share the
-same authentication system but have completely separate resources and access
-controls.
+A child organization records two facts, both fixed when it is created:
 
-## Create a platform-managed Organization
+| Field        | Purpose                                                                                                                      |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `parentOrg`  | The parent organization, by id or slug. Creating a child needs admin rights in the parent.                                   |
+| `externalId` | Your own identifier for this customer (`cust-4411`). Optional, and unique among the parent's children. Requires `parentOrg`. |
 
-When a new customer signs up on your platform, create a platform-managed
-Organization for them. Three fields are specific to this pattern:
+Child organizations are one level deep: a child cannot have children of its own,
+and a child is never moved to another parent.
 
-| Field                 | Purpose                                                                      |
-| --------------------- | ---------------------------------------------------------------------------- |
-| `managementMode`      | Set to `platform_managed` to indicate an external platform operates this org |
-| `identityProviderRef` | Reference to your Identity Provider — links this org to your auth system     |
-| `externalOrgId`       | Your platform's own identifier for this tenant, used for reverse lookup      |
+## Create a child organization
+
+When a new customer signs up on your platform, create its Organization under
+yours:
 
 <SDKTabs>
 <Tab value="TypeScript">
 
 ```typescript
-const tenantOrg = await stigmer.organization.create({
+const child = await stigmer.organization.create({
   name: "Tenant Alpha",
   slug: "tenant-alpha",
   description: "Acme Cloud customer: Tenant Alpha",
-  managementMode: "platform_managed",
-  identityProviderRef: {
-    org: "acme",
-    kind: "identity_provider",
-    slug: "acme-cloud-auth",
-  },
-  externalOrgId: "acme-tenant-alpha-id",
+  parentOrg: "acme",
+  externalId: "cust-4411",
 });
 
-console.log(`Created tenant org: ${tenantOrg.metadata.id}`);
+console.log(`Created child organization: ${child.metadata.id}`);
 ```
 
 </Tab>
 <Tab value="Go">
 
 ```go
-tenantOrg, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
-  Name:           "Tenant Alpha",
-  Slug:           "tenant-alpha",
-  Description:    "Acme Cloud customer: Tenant Alpha",
-  ManagementMode: "platform_managed",
-  IdentityProviderRef: &stigmer.ResourceRef{
-    Org:  "acme",
-    Kind: "identity_provider",
-    Slug: "acme-cloud-auth",
-  },
-  ExternalOrgId: "acme-tenant-alpha-id",
+child, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
+  Name:        "Tenant Alpha",
+  Slug:        "tenant-alpha",
+  Description: "Acme Cloud customer: Tenant Alpha",
+  ParentOrg:   "acme",
+  ExternalId:  "cust-4411",
 })
 if err != nil {
-  return fmt.Errorf("create tenant org: %w", err)
+  return fmt.Errorf("create child organization: %w", err)
 }
-fmt.Printf("Created tenant org: %s\n", tenantOrg.Metadata.Id)
+fmt.Printf("Created child organization: %s\n", child.Metadata.Id)
 ```
 
 </Tab>
 <Tab value="Python">
 
 ```python
-tenant_org = client.organizations.create(OrganizationInput(
+child = client.organizations.create(OrganizationInput(
     name="Tenant Alpha",
     slug="tenant-alpha",
     description="Acme Cloud customer: Tenant Alpha",
-    management_mode="platform_managed",
-    identity_provider_ref=ResourceRef(
-        org="acme",
-        kind="identity_provider",
-        slug="acme-cloud-auth",
-    ),
-    external_org_id="acme-tenant-alpha-id",
+    parent_org="acme",
+    external_id="cust-4411",
 ))
 
-print(f"Created tenant org: {tenant_org.metadata.id}")
+print(f"Created child organization: {child.metadata.id}")
 ```
 
 </Tab>
 <Tab value="Java">
 
 ```java
-Organization tenantOrg = client.organizations().create(OrganizationInput.builder()
+Organization child = client.organizations().create(OrganizationInput.builder()
     .name("Tenant Alpha")
     .slug("tenant-alpha")
     .description("Acme Cloud customer: Tenant Alpha")
-    .managementMode("platform_managed")
-    .identityProviderRef(ResourceRef.builder()
-        .org("acme")
-        .kind("identity_provider")
-        .slug("acme-cloud-auth")
-        .build())
-    .externalOrgId("acme-tenant-alpha-id")
+    .parentOrg("acme")
+    .externalId("cust-4411")
     .build());
 
-System.out.println("Created tenant org: " + tenantOrg.getMetadata().getId());
+System.out.println("Created child organization: " + child.getMetadata().getId());
 ```
 
 </Tab>
 </SDKTabs>
 
+`stigmer apply` creates one the same way, from a manifest:
+
+```yaml
+apiVersion: tenancy.stigmer.ai/v1
+kind: Organization
+metadata:
+  name: Tenant Alpha
+  slug: tenant-alpha
+spec:
+  description: "Acme Cloud customer: Tenant Alpha"
+  parent_org: acme
+  external_id: cust-4411
+```
+
+Nobody owns a new child organization. Your Organization's admins manage it, and
+grant its people their roles, as the next sections show.
+
+| Error                         | When                                                                                    |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| `PERMISSION_DENIED` (`403`)   | You are not an admin of the parent, or no Organization has that id or slug              |
+| `ALREADY_EXISTS` (`409`)      | Another child of the same parent already holds that `externalId`                        |
+| `FAILED_PRECONDITION` (`400`) | The parent is itself a child (`ORGANIZATION_PARENT_IS_CHILD`)                           |
+| `FAILED_PRECONDITION` (`400`) | On Stigmer Cloud, the parent's plan does not include child organizations (`child_orgs`) |
+
 <Callout type="warn">
-  `managementMode` and `identityProviderRef` are immutable after creation. You
-  cannot convert a self-managed Organization to platform-managed or change which
-  Identity Provider it uses.
+  `parentOrg` and `externalId` cannot change after creation. An update or apply
+  keeps the stored values whatever the request carries.
 </Callout>
 
-## Look up an Organization by external ID
+## What your Organization's admins can do in a child
 
-Your platform stores its own tenant identifiers. When you need to find the
-corresponding Stigmer Organization, use `getByExternalOrgId` with your Identity
-Provider reference and the external ID you assigned at creation. The caller must
-be able to view that Identity Provider, as your Organization's admins can, and
-the external ID is looked up under that Identity Provider only.
+Your Organization's admins **manage** every child, and read **nothing** a child
+holds:
+
+| They can                                                  | They cannot                                          |
+| --------------------------------------------------------- | ---------------------------------------------------- |
+| See the child's name, slug and settings, and change them  | See the child's Agents, Sessions, Environments, etc. |
+| Rename the child, or delete it                            | Read the child's usage reports or lists              |
+| See and manage the child's members, roles and invitations | Run anything in the child                            |
+| See the child's billing                                   |                                                      |
+
+A member of your Organization who is not an admin has none of these rights over
+a child.
+
+To look inside a child, for support for example, an admin of your Organization
+**adds themselves as a member** of the child, through the child's ordinary
+members screen or an IAM Policy. The child's member list and access history show
+who joined and when, every act inside is attributed to that person, and the
+child's own admins can remove them. This is how GitHub Enterprise owners reach
+an organization's repositories: by joining it, visibly.
+
+## Find a child by your customer id
+
+Your platform knows its own customer ids. To find the Organization for one, look
+it up under your Organization with `getByExternalId`. Only your Organization's
+admins may ask, and the answer is `NOT_FOUND` when you have no child with that
+id.
 
 <SDKTabs>
 <Tab value="TypeScript">
 
 ```typescript
-const tenantOrg = await stigmer.organization.getByExternalOrgId({
-  identityProviderRef: {
-    org: "acme",
-    kind: "identity_provider",
-    slug: "acme-cloud-auth",
-  },
-  externalOrgId: "acme-tenant-alpha-id",
+const child = await stigmer.organization.getByExternalId({
+  parentOrg: "acme",
+  externalId: "cust-4411",
 });
 
-console.log(`Found org: ${tenantOrg.metadata.slug} (${tenantOrg.metadata.id})`);
+console.log(`Found: ${child.metadata.slug} (${child.metadata.id})`);
 ```
 
 </Tab>
 <Tab value="Go">
 
 ```go
-tenantOrg, err := client.Organization.GetByExternalOrgId(ctx, &stigmer.OrganizationExternalLookup{
-  IdentityProviderRef: &stigmer.ResourceRef{
-    Org:  "acme",
-    Kind: "identity_provider",
-    Slug: "acme-cloud-auth",
-  },
-  ExternalOrgId: "acme-tenant-alpha-id",
+child, err := client.Organization.GetByExternalId(ctx, &organizationv1.OrganizationExternalLookup{
+  ParentOrg:  "acme",
+  ExternalId: "cust-4411",
 })
 if err != nil {
-  return fmt.Errorf("lookup tenant org: %w", err)
+  return fmt.Errorf("find child organization: %w", err)
 }
-fmt.Printf("Found org: %s (%s)\n", tenantOrg.Metadata.Slug, tenantOrg.Metadata.Id)
+fmt.Printf("Found: %s (%s)\n", child.Metadata.Slug, child.Metadata.Id)
 ```
 
 </Tab>
 <Tab value="Python">
 
 ```python
-tenant_org = client.organizations.get_by_external_org_id(OrganizationExternalLookup(
-    identity_provider_ref=ResourceRef(
-        org="acme",
-        kind="identity_provider",
-        slug="acme-cloud-auth",
-    ),
-    external_org_id="acme-tenant-alpha-id",
+child = client.organizations.get_by_external_id(OrganizationExternalLookup(
+    parent_org="acme",
+    external_id="cust-4411",
 ))
 
-print(f"Found org: {tenant_org.metadata.slug} ({tenant_org.metadata.id})")
+print(f"Found: {child.metadata.slug} ({child.metadata.id})")
 ```
 
 </Tab>
 <Tab value="Java">
 
 ```java
-Organization tenantOrg = client.organizations().getByExternalOrgId(OrganizationExternalLookup.builder()
-    .identityProviderRef(ResourceRef.builder()
-        .org("acme")
-        .kind("identity_provider")
-        .slug("acme-cloud-auth")
-        .build())
-    .externalOrgId("acme-tenant-alpha-id")
+Organization child = client.organizations().getByExternalId(OrganizationExternalLookup.newBuilder()
+    .setParentOrg("acme")
+    .setExternalId("cust-4411")
     .build());
 
-System.out.println("Found org: " + tenantOrg.getMetadata().getSlug() + " (" + tenantOrg.getMetadata().getId() + ")");
+System.out.println("Found: " + child.getMetadata().getSlug() + " (" + child.getMetadata().getId() + ")");
 ```
 
 </Tab>
 </SDKTabs>
 
-This is useful when a user in your platform performs an action that requires
-looking up their Stigmer Organization. Your platform knows its own tenant ID;
-`getByExternalOrgId` maps it to the Stigmer Organization without requiring you
-to store Stigmer IDs in a separate mapping.
+`listChildOrgs` pages through all of your Organization's children, newest first
+(`pageSize` up to 100; pass the response's `nextPageToken` as `pageToken` to
+continue). The console shows the same list, read-only, on your Organization's
+profile page.
 
-## Bind each token to its tenant
+## Route your customers' sign-ins
 
 Every token an Identity Provider vouches for works in one Organization only.
-Without `tenantOrgClaim`, that Organization is the Identity Provider's own
-(`acme` here), so your users' tokens would never reach a tenant. Set
-`tenantOrgClaim` to the name of the JWT claim that carries your tenant ID, and
-put that claim in every token your auth provider issues for Stigmer:
+Without `externalIdClaim`, that Organization is the Identity Provider's own
+(`acme` here), so your customers' tokens would never reach their child
+organizations. Set `externalIdClaim` to the name of the JWT claim that carries
+your customer id, and put that claim in every token your auth provider issues
+for Stigmer:
 
 ```json
 {
   "iss": "https://acme.us.auth0.com/",
   "sub": "auth0|507f1f77bcf86cd799439011",
   "aud": "https://api.acme.com/stigmer",
-  "org_id": "acme-tenant-alpha-id"
+  "org_id": "cust-4411"
 }
 ```
 
 On every request, Stigmer:
 
 1. Reads the claim value from the token (here, claim `org_id` yields
-   `acme-tenant-alpha-id`)
-2. Looks up the platform-managed Organization whose `identityProviderRef` is
-   this Identity Provider and whose `externalOrgId` matches the value
-3. Binds the token to that Organization: the token works there and nowhere else,
-   whatever roles the user holds in other tenants
+   `cust-4411`)
+2. Finds the child of the Identity Provider's Organization whose `externalId` is
+   that value
+3. Binds the token to that child: the token works there and nowhere else,
+   whatever roles the user holds in other child organizations
 
 Stigmer reads the claim on every token, from a user's first sign-in to their
-latest. A user who belongs to several tenants signs in to each one with a token
-that names it.
+latest. A user who belongs to several of your customers signs in to each one
+with a token that names it.
 
 <Callout type="info">
   **Example.** Alice is a user at two of your customers, Alpha and Beta, and
-  holds a role in both tenant Organizations. Her token that claims Alpha is
+  holds a role in both child organizations. Her token that claims Alpha is
   refused in Beta, even though she holds a role there. To work in Beta, she
   signs in with a token that claims Beta. If your Identity Provider sets a
   `signInRole`, the first time she signs in to Beta with a Beta token she
   receives that role in Beta, once.
 </Callout>
 
-Set `tenantOrgClaim` when you register the Identity Provider:
+Set `externalIdClaim` when you register the Identity Provider in your
+Organization:
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -323,7 +328,7 @@ const idp = await stigmer.identityProvider.create({
   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
   allowedIssuers: ["https://acme.us.auth0.com/"],
   expectedAudience: "https://api.acme.com/stigmer",
-  tenantOrgClaim: "org_id",
+  externalIdClaim: "org_id",
 });
 ```
 
@@ -339,7 +344,7 @@ idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
   JwksUri:          "https://acme.us.auth0.com/.well-known/jwks.json",
   AllowedIssuers:   []string{"https://acme.us.auth0.com/"},
   ExpectedAudience: "https://api.acme.com/stigmer",
-  TenantOrgClaim:   "org_id",
+  ExternalIdClaim:  "org_id",
 })
 ```
 
@@ -355,7 +360,7 @@ idp = client.identity_providers.create(IdentityProviderInput(
     jwks_uri="https://acme.us.auth0.com/.well-known/jwks.json",
     allowed_issuers=["https://acme.us.auth0.com/"],
     expected_audience="https://api.acme.com/stigmer",
-    tenant_org_claim="org_id",
+    external_id_claim="org_id",
 ))
 ```
 
@@ -371,54 +376,85 @@ IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.b
     .jwksUri("https://acme.us.auth0.com/.well-known/jwks.json")
     .allowedIssuers(List.of("https://acme.us.auth0.com/"))
     .expectedAudience("https://api.acme.com/stigmer")
-    .tenantOrgClaim("org_id")
+    .externalIdClaim("org_id")
     .build());
 ```
 
 </Tab>
 </SDKTabs>
 
-`tenantOrgClaim` works on its own: Stigmer binds each token to its tenant and
-grants nothing. That suits a platform that creates accounts and grants roles
-from its backend, as the next two sections show. To have Stigmer create accounts
-and grant a role as well, see
+`externalIdClaim` works on its own: Stigmer binds each token to its child
+organization and grants nothing. That suits a platform that creates accounts and
+grants roles from its backend, as the next sections show. To have Stigmer create
+accounts and grant a role as well, see
 [Create accounts and grant a role at sign-in](#create-accounts-and-grant-a-role-at-sign-in).
+
+An SSO Identity Provider cannot set `externalIdClaim` (SSO signs people in to
+the provider's own Organization), and neither can an Identity Provider in a
+child organization, which has no children to route to.
 
 ### What a bound token can reach
 
-A token bound to a tenant can still reach:
+A token bound to a child organization can reach:
 
-- The tenant Organization's resources, as the user's role there allows
+- The child organization's resources, as the user's role there allows
 - What belongs to no Organization: the user's own Identity Account and API keys
-- Agents, Skills, Workflows, MCP Servers and Plugins shared at Platform
-  visibility, to read and to run
+- The Agents, Skills, Workflows, MCP Servers and Plugins your Organization
+  [shares with its children](#share-a-catalog-with-every-child), to read and to
+  run
 
-It cannot create an Organization or accept an invitation to another
-Organization.
+It cannot reach anything another parent shares with its children, create an
+Organization, or accept an invitation to another Organization.
 
 ### Errors
 
-| Error                       | When                                                                                            | What to do                                                                                     |
-| --------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `UNAUTHENTICATED` (`401`)   | The token lacks the `tenantOrgClaim` claim, or its value is not a string                        | Put the claim, as a string, in every token your auth provider issues for Stigmer               |
-| `UNAUTHENTICATED` (`401`)   | The claim names no platform-managed Organization's `externalOrgId` under this Identity Provider | Create the tenant Organization with that `externalOrgId`, or fix the value your provider sends |
-| `PERMISSION_DENIED` (`403`) | The token names one tenant and the request targets another                                      | Sign in with a token that names the tenant the request targets                                 |
-| `PERMISSION_DENIED` (`403`) | The token names the right tenant, but the user's role there doesn't allow the request           | Grant a role on the tenant Organization                                                        |
+| Error                       | When                                                                                     | What to do                                                                                 |
+| --------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `UNAUTHENTICATED` (`401`)   | The token lacks the `externalIdClaim` claim, or its value is not a string                | Put the claim, as a string, in every token your auth provider issues for Stigmer           |
+| `UNAUTHENTICATED` (`401`)   | The claim names no child of the Identity Provider's Organization                         | Create the child organization with that `externalId`, or fix the value your provider sends |
+| `PERMISSION_DENIED` (`403`) | The token names one child organization and the request targets another                   | Sign in with a token that names the child organization the request targets                 |
+| `PERMISSION_DENIED` (`403`) | The token names the right child organization, but the user's role there doesn't allow it | Grant a role on the child organization                                                     |
 
 Stigmer refuses a missing or unknown claim on every sign-in, returning users
-included, and the refusal does not name the tenant. A first sign-in refused this
-way leaves no account behind. This is a fail-closed design: a token that names
-no known tenant reaches nothing.
+included, and the refusal does not name the value. A first sign-in refused this
+way leaves no account behind.
 
-## Provision users and place them in tenants
+### Without an Identity Provider: PlatformClient tokens
+
+A platform that mints tokens from its backend with a
+[PlatformClient](/docs/guides/authentication/platform-client/overview) of its
+own Organization routes its customers the same way: name the child organization
+as `org` when you mint.
+
+```typescript
+const auth = createPlatformClientAuth({
+  baseUrl: "https://api.stigmer.ai",
+  clientId: process.env.STIGMER_CLIENT_ID!,
+  clientSecret: process.env.STIGMER_CLIENT_SECRET!,
+});
+
+const { accessToken } = await auth.mintUserToken({
+  userId: user.id,
+  userEmail: user.email,
+  org: "tenant-alpha",
+});
+```
+
+`org` may name the PlatformClient's own Organization or one of its children;
+anything else is refused with `INVALID_ARGUMENT`. The token works in that child
+only. Accounts are per child: the same `userId` minted into two children is two
+accounts, each created at its first mint into that child, where it receives the
+client's `sign_in_role`.
+
+## Provision users and place them in children
 
 When a user signs up on your platform, provision their federated Identity
 Account once, under the Organization that owns your Identity Provider: the `org`
 field must be the Identity Provider reference's own `org`, and Stigmer refuses
 any other value with `INVALID_ARGUMENT`. The account belongs to your Identity
-Provider, not to a tenant. What places the user in a tenant is the role you
-grant on that tenant's Organization in the next step, and what lets their token
-reach the tenant is the claim that [binds it](#bind-each-token-to-its-tenant).
+Provider, not to a child. What places the user in a child is the role you grant
+on that child organization in the next step, and what lets their token reach it
+is the claim that [routes it](#route-your-customers-sign-ins).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -436,8 +472,6 @@ const account = await stigmer.identityAccount.createFederatedAccount({
   firstName: user.firstName,
   lastName: user.lastName,
 });
-
-console.log(`Provisioned federated account: ${account.metadata.id}`);
 ```
 
 </Tab>
@@ -459,7 +493,6 @@ account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.Crea
 if err != nil {
   return fmt.Errorf("provision user: %w", err)
 }
-fmt.Printf("Provisioned federated account: %s\n", account.Metadata.Id)
 ```
 
 </Tab>
@@ -478,8 +511,6 @@ account = client.identity_accounts.create_federated_account(CreateFederatedAccou
     first_name=user.first_name,
     last_name=user.last_name,
 ))
-
-print(f"Provisioned federated account: {account.metadata.id}")
 ```
 
 </Tab>
@@ -498,8 +529,6 @@ IdentityAccount account = client.identityAccounts().createFederatedAccount(Creat
     .firstName(user.getFirstName())
     .lastName(user.getLastName())
     .build());
-
-System.out.println("Provisioned federated account: " + account.getMetadata().getId());
 ```
 
 </Tab>
@@ -507,19 +536,20 @@ System.out.println("Provisioned federated account: " + account.getMetadata().get
 
 <Callout type="info">
   A federated account is unique per **Identity Provider + external subject**:
-  each user of your platform has one account, whichever tenants they belong to.
-  A user who joins a second tenant keeps their account; check for it with
+  each user of your platform has one account, whichever customers they belong
+  to. A user who joins a second customer keeps their account; check for it with
   `getByExternalSub` (see [Provision federated
   accounts](/docs/guides/authentication/federation/provision-federated-accounts#check-for-an-existing-account))
-  and grant the new tenant's role to it.
+  and grant the new child organization's role to it.
 </Callout>
 
-## Grant access within tenant Organizations
+## Grant roles in a child organization
 
-After provisioning, grant the user a role on their tenant's Organization. This
-follows the same pattern as
-[granting access](/docs/guides/authentication/federation/grant-access) in a
-single-org setup, but scoped to the tenant's Organization ID.
+After provisioning, grant the user a role on their child organization. Your
+Organization's admins may grant any role in a child, `owner` included, so this
+is the same call as
+[granting access](/docs/guides/authentication/federation/grant-access) in your
+own Organization, scoped to the child's id:
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -527,7 +557,7 @@ single-org setup, but scoped to the tenant's Organization ID.
 ```typescript
 await stigmer.iamPolicy.create({
   principal: { kind: "identity_account", id: account.metadata.id },
-  resource: { kind: "organization", id: tenantOrg.metadata.id },
+  resource: { kind: "organization", id: child.metadata.id },
   relation: "viewer",
 });
 ```
@@ -538,7 +568,7 @@ await stigmer.iamPolicy.create({
 ```go
 _, err = client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
   Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: account.Metadata.Id},
-  Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: tenantOrg.Metadata.Id},
+  Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: child.Metadata.Id},
   Relation:  "viewer",
 })
 ```
@@ -549,7 +579,7 @@ _, err = client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
 ```python
 client.iam_policies.create(IamPolicySpec(
     principal=ApiResourceRefInput(kind="identity_account", id=account.metadata.id),
-    resource=ApiResourceRefInput(kind="organization", id=tenant_org.metadata.id),
+    resource=ApiResourceRefInput(kind="organization", id=child.metadata.id),
     relation="viewer",
 ))
 ```
@@ -560,7 +590,7 @@ client.iam_policies.create(IamPolicySpec(
 ```java
 client.iamPolicies().create(IamPolicySpec.builder()
     .principal(ApiResourceRefInput.builder().kind("identity_account").id(account.getMetadata().getId()).build())
-    .resource(ApiResourceRefInput.builder().kind("organization").id(tenantOrg.getMetadata().getId()).build())
+    .resource(ApiResourceRefInput.builder().kind("organization").id(child.getMetadata().getId()).build())
     .relation("viewer")
     .build());
 ```
@@ -568,27 +598,20 @@ client.iamPolicies().create(IamPolicySpec.builder()
 </Tab>
 </SDKTabs>
 
-Because IAM Policies are scoped to a specific Organization, a user with `viewer`
-on `tenant-alpha` cannot see resources in `tenant-beta`. The token is bound too:
-a token that names `tenant-alpha` works in `tenant-alpha` only. The Organization
-boundary enforces tenant isolation at the authorization layer.
+A user with `viewer` on `tenant-alpha` cannot see what `tenant-beta` holds, and
+a token that names `tenant-alpha` works in `tenant-alpha` only.
 
 ## Create accounts and grant a role at sign-in
 
-With `createAccountsOnSignIn` and `signInRole` beside `tenantOrgClaim`, you can
-drop per-user provisioning code. You still create tenant Organizations, but
+With `createAccountsOnSignIn` and `signInRole` beside `externalIdClaim`, you can
+drop per-user provisioning code. You still create the child organizations, but
 Stigmer creates each user's account the first time they sign in and grants the
-sign-in role the first time they sign in to each tenant.
+sign-in role the first time they sign in to each child.
 
 <ScenarEmbed
   id="multi-tenant-jit-playback"
-  title="Multi-tenant JIT provisioning walkthrough"
+  title="Child organization sign-in walkthrough"
 />
-
-Register the Identity Provider with all three settings:
-
-<SDKTabs>
-<Tab value="TypeScript">
 
 ```typescript
 const idp = await stigmer.identityProvider.create({
@@ -601,107 +624,61 @@ const idp = await stigmer.identityProvider.create({
   expectedAudience: "https://api.acme.com/stigmer",
   createAccountsOnSignIn: true,
   signInRole: "member",
-  tenantOrgClaim: "org_id",
+  externalIdClaim: "org_id",
 });
 ```
 
-</Tab>
-<Tab value="Go">
-
-```go
-idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
-  Name:                   "Acme Cloud Auth",
-  Org:                    "acme",
-  Slug:                   "acme-cloud-auth",
-  DisplayName:            "Acme Cloud Auth",
-  JwksUri:                "https://acme.us.auth0.com/.well-known/jwks.json",
-  AllowedIssuers:         []string{"https://acme.us.auth0.com/"},
-  ExpectedAudience:       "https://api.acme.com/stigmer",
-  CreateAccountsOnSignIn: true,
-  SignInRole:             "member",
-  TenantOrgClaim:         "org_id",
-})
-```
-
-</Tab>
-<Tab value="Python">
-
-```python
-idp = client.identity_providers.create(IdentityProviderInput(
-    name="Acme Cloud Auth",
-    org="acme",
-    slug="acme-cloud-auth",
-    display_name="Acme Cloud Auth",
-    jwks_uri="https://acme.us.auth0.com/.well-known/jwks.json",
-    allowed_issuers=["https://acme.us.auth0.com/"],
-    expected_audience="https://api.acme.com/stigmer",
-    create_accounts_on_sign_in=True,
-    sign_in_role="member",
-    tenant_org_claim="org_id",
-))
-```
-
-</Tab>
-<Tab value="Java">
-
-```java
-IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.builder()
-    .name("Acme Cloud Auth")
-    .org("acme")
-    .slug("acme-cloud-auth")
-    .displayName("Acme Cloud Auth")
-    .jwksUri("https://acme.us.auth0.com/.well-known/jwks.json")
-    .allowedIssuers(List.of("https://acme.us.auth0.com/"))
-    .expectedAudience("https://api.acme.com/stigmer")
-    .createAccountsOnSignIn(true)
-    .signInRole("member")
-    .tenantOrgClaim("org_id")
-    .build());
-```
-
-</Tab>
-</SDKTabs>
-
 With this configuration, your platform only needs to:
 
-1. Create tenant Organizations with `externalOrgId` set (same as manual setup)
-2. Put the tenant identifier in a claim in every JWT (for example,
-   `"org_id": "acme-tenant-alpha-id"`)
+1. Create each child organization with its `externalId`
+2. Put the customer id in a claim in every JWT (for example,
+   `"org_id": "cust-4411"`)
 
-The first time a user signs in to a tenant, Stigmer reads the `org_id` claim,
-finds the Organization with that `externalOrgId`, creates the user's account if
-they have none, and grants `member` on that Organization. When the same user
-first signs in to a second tenant, with a token that names it, Stigmer grants
-`member` there too. No per-user provisioning code needed.
+The first time a user signs in to a child organization, Stigmer reads the
+`org_id` claim, finds your child with that `externalId`, creates the user's
+account if they have none, and grants `member` there. When the same user first
+signs in to a second child, with a token that names it, Stigmer grants `member`
+there too.
 
 <Callout type="info">
-  Stigmer grants the sign-in role once per account and tenant. If an
+  Stigmer grants the sign-in role once per account and child organization. If an
   administrator later removes it, it stays removed, and changing `signInRole`
-  does not reach users who already signed in to that tenant. To give one user a
-  different role, grant it from your backend with an IAM Policy. The `owner`
-  role cannot be the sign-in role.
+  does not reach users who already signed in. To give one user a different role,
+  grant it from your backend with an IAM Policy. The `owner` role cannot be the
+  sign-in role.
 </Callout>
 
-### Automatic vs. manual for multi-tenant
+## Share a catalog with every child
 
-|                                | `createAccountsOnSignIn` and `signInRole`                          | Manual per-tenant provisioning                                   |
-| ------------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| **Tenant org creation**        | You create them (same for both)                                    | You create them (same for both)                                  |
-| **Per-user provisioning code** | None — Stigmer handles it                                          | Your backend calls `createFederatedAccount` + `iamPolicy.create` |
-| **Tenant claim in every JWT**  | Required (same for both)                                           | Required (same for both)                                         |
-| **Role control**               | One role for every user, granted at their first sign-in per tenant | Different roles per user possible                                |
+Set an Agent, Skill, Workflow, MCP Server or Plugin in your Organization to
+`visibility_child_orgs` (the console's **Child organizations** level, or
+`visibility: child-orgs` in a skill's frontmatter) and everyone in every child
+organization can read and run it, including children you create later. Nobody
+outside your children can, and your own Organization keeps seeing it as an
+Organization-visible resource. Instances, Sessions, executions and Environments
+are never shared this way: each child runs the shared blueprint inside its own
+boundary.
 
-Choose automatic account creation when every user in a tenant should start with
-the same role. Choose manual provisioning when you need per-user role
-differences, or when you want to decide who gets an account before they sign in.
+A child organization can reference your shared blueprint by `org/slug` (an
+Agent's skill or MCP server, a Workflow's agent call); any other organization's
+blueprint is refused at write. A child organization cannot share with children
+of its own.
 
-## Complete tenant onboarding flow (manual)
+## Billing
 
-Here's the full pattern that runs when a new customer signs up on your platform.
-`onboardTenantUser` reuses `provisionUser`, the check-then-create handler from
-[Provision federated accounts](/docs/guides/authentication/federation/provision-federated-accounts#full-provisioning-handler),
-so a user who joins a second tenant keeps their one account and gains a role in
-the new tenant:
+On Stigmer Cloud, a child organization runs on its parent's plan and has no plan
+or invoice of its own; its console billing page reads "Billed to" its parent.
+Its usage, and each child organization beyond those your plan includes, appear
+on your Organization's invoice.
+
+## Delete a child, or the parent
+
+Your Organization's admins may delete a child organization. An Organization that
+still has children cannot be deleted (`FAILED_PRECONDITION`,
+`ORGANIZATION_HAS_CHILDREN`): delete its children first. A deleted child's
+`externalId` is free for a new child.
+
+## Complete onboarding flow
 
 {/* vale off */}
 
@@ -709,213 +686,59 @@ the new tenant:
 <Mermaid
   chart={`
 flowchart TD
-  A["New customer signs up"] --> B["Create platform-managed Organization"]
-  B --> C["Store Stigmer org ID alongside tenant ID"]
-  C --> D["Customer's first user signs up"]
-  D --> E["Look up tenant org by external ID"]
-  E --> F["Find or create the user's federated account"]
-  F --> G["Grant org role via IAM Policy"]
-  G --> H["User calls Stigmer API with a JWT naming the tenant"]
+  A["New customer signs up"] --> B["Create child organization with your customer id"]
+  B --> C["Customer's first user signs up"]
+  C --> D["Find the child by your customer id"]
+  D --> E["Find or create the user's federated account"]
+  E --> F["Grant a role in the child"]
+  F --> G["User calls Stigmer with a JWT that carries the customer id"]
 `}
 />
 
 {/* vale on */}
 
-<SDKTabs>
-<Tab value="TypeScript">
-
 ```typescript
-async function onboardTenant(tenant: PlatformTenant): Promise<string> {
-  const idpRef = {
-    org: "acme",
-    kind: "identity_provider",
-    slug: "acme-cloud-auth",
-  };
-
-  const tenantOrg = await stigmer.organization.create({
-    name: tenant.name,
-    slug: tenant.slug,
-    description: `Acme Cloud customer: ${tenant.name}`,
-    managementMode: "platform_managed",
-    identityProviderRef: idpRef,
-    externalOrgId: tenant.id,
+async function onboardCustomer(customer: PlatformCustomer): Promise<string> {
+  const child = await stigmer.organization.create({
+    name: customer.name,
+    slug: customer.slug,
+    description: `Acme Cloud customer: ${customer.name}`,
+    parentOrg: "acme",
+    externalId: customer.id,
   });
-
-  return tenantOrg.metadata.id;
+  return child.metadata.id;
 }
 
-async function onboardTenantUser(
-  tenantExternalId: string,
+async function onboardCustomerUser(
+  customerId: string,
   user: PlatformUser,
 ): Promise<void> {
-  const idpRef = {
-    org: "acme",
-    kind: "identity_provider",
-    slug: "acme-cloud-auth",
-  };
-
-  const tenantOrg = await stigmer.organization.getByExternalOrgId({
-    identityProviderRef: idpRef,
-    externalOrgId: tenantExternalId,
+  const child = await stigmer.organization.getByExternalId({
+    parentOrg: "acme",
+    externalId: customerId,
   });
 
-  // One account per user, whichever tenants they join.
+  // One account per user, whichever customers they join.
   const accountId = await provisionUser(user);
 
   await stigmer.iamPolicy.create({
     principal: { kind: "identity_account", id: accountId },
-    resource: { kind: "organization", id: tenantOrg.metadata.id },
+    resource: { kind: "organization", id: child.metadata.id },
     relation: "viewer",
   });
 }
 ```
 
-</Tab>
-<Tab value="Go">
-
-```go
-func onboardTenant(ctx context.Context, client *stigmer.Client, tenant PlatformTenant) (string, error) {
-  idpRef := &stigmer.ResourceRef{
-    Org:  "acme",
-    Kind: "identity_provider",
-    Slug: "acme-cloud-auth",
-  }
-
-  tenantOrg, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
-    Name:                tenant.Name,
-    Slug:                tenant.Slug,
-    Description:         fmt.Sprintf("Acme Cloud customer: %s", tenant.Name),
-    ManagementMode:      "platform_managed",
-    IdentityProviderRef: idpRef,
-    ExternalOrgId:       tenant.ID,
-  })
-  if err != nil {
-    return "", fmt.Errorf("create tenant org: %w", err)
-  }
-
-  return tenantOrg.Metadata.Id, nil
-}
-
-func onboardTenantUser(ctx context.Context, client *stigmer.Client, tenantExternalID string, user PlatformUser) error {
-  idpRef := &stigmer.ResourceRef{
-    Org:  "acme",
-    Kind: "identity_provider",
-    Slug: "acme-cloud-auth",
-  }
-
-  tenantOrg, err := client.Organization.GetByExternalOrgId(ctx, &stigmer.OrganizationExternalLookup{
-    IdentityProviderRef: idpRef,
-    ExternalOrgId:       tenantExternalID,
-  })
-  if err != nil {
-    return fmt.Errorf("lookup tenant org: %w", err)
-  }
-
-  // One account per user, whichever tenants they join.
-  accountID, err := provisionUser(ctx, client, user)
-  if err != nil {
-    return fmt.Errorf("provision user: %w", err)
-  }
-
-  _, err = client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
-    Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: accountID},
-    Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: tenantOrg.Metadata.Id},
-    Relation:  "viewer",
-  })
-  return err
-}
-```
-
-</Tab>
-<Tab value="Python">
-
-```python
-def onboard_tenant(client, tenant: PlatformTenant) -> str:
-    idp_ref = ResourceRef(org="acme", kind="identity_provider", slug="acme-cloud-auth")
-
-    tenant_org = client.organizations.create(OrganizationInput(
-        name=tenant.name,
-        slug=tenant.slug,
-        description=f"Acme Cloud customer: {tenant.name}",
-        management_mode="platform_managed",
-        identity_provider_ref=idp_ref,
-        external_org_id=tenant.id,
-    ))
-
-    return tenant_org.metadata.id
-
-
-def onboard_tenant_user(client, tenant_external_id: str, user: PlatformUser) -> None:
-    idp_ref = ResourceRef(org="acme", kind="identity_provider", slug="acme-cloud-auth")
-
-    tenant_org = client.organizations.get_by_external_org_id(OrganizationExternalLookup(
-        identity_provider_ref=idp_ref,
-        external_org_id=tenant_external_id,
-    ))
-
-    # One account per user, whichever tenants they join.
-    account_id = provision_user(client, user)
-
-    client.iam_policies.create(IamPolicySpec(
-        principal=ApiResourceRefInput(kind="identity_account", id=account_id),
-        resource=ApiResourceRefInput(kind="organization", id=tenant_org.metadata.id),
-        relation="viewer",
-    ))
-```
-
-</Tab>
-<Tab value="Java">
-
-```java
-public String onboardTenant(StigmerClient client, PlatformTenant tenant) {
-    ResourceRef idpRef = ResourceRef.builder()
-        .org("acme").kind("identity_provider").slug("acme-cloud-auth").build();
-
-    Organization tenantOrg = client.organizations().create(OrganizationInput.builder()
-        .name(tenant.getName())
-        .slug(tenant.getSlug())
-        .description("Acme Cloud customer: " + tenant.getName())
-        .managementMode("platform_managed")
-        .identityProviderRef(idpRef)
-        .externalOrgId(tenant.getId())
-        .build());
-
-    return tenantOrg.getMetadata().getId();
-}
-
-public void onboardTenantUser(StigmerClient client, String tenantExternalId, PlatformUser user) {
-    ResourceRef idpRef = ResourceRef.builder()
-        .org("acme").kind("identity_provider").slug("acme-cloud-auth").build();
-
-    Organization tenantOrg = client.organizations().getByExternalOrgId(OrganizationExternalLookup.builder()
-        .identityProviderRef(idpRef)
-        .externalOrgId(tenantExternalId)
-        .build());
-
-    // One account per user, whichever tenants they join.
-    String accountId = provisionUser(client, user);
-
-    client.iamPolicies().create(IamPolicySpec.builder()
-        .principal(ApiResourceRefInput.builder().kind("identity_account").id(accountId).build())
-        .resource(ApiResourceRefInput.builder().kind("organization").id(tenantOrg.getMetadata().getId()).build())
-        .relation("viewer")
-        .build());
-}
-```
-
-</Tab>
-</SDKTabs>
+`provisionUser` is the check-then-create handler from
+[Provision federated accounts](/docs/guides/authentication/federation/provision-federated-accounts#full-provisioning-handler).
 
 ## What's next
 
-Your multi-tenant setup is complete. Each tenant has their own Organization with
-isolated resources and access controls.
-
-- **Authentication flow** --- To understand what happens at runtime when tenant
-  users call the Stigmer API, see
+- **Authentication flow** --- To understand what happens at runtime when your
+  customers' users call the Stigmer API, see
   [How federated authentication works](/docs/guides/authentication/federation/authentication-flow).
-- **Organizations** --- For conceptual background on how Organizations serve as
-  tenant boundaries, see [Organizations](/docs/concepts/organizations).
+- **Organizations** --- For the concepts behind parent and child organizations,
+  see [Organizations](/docs/concepts/organizations).
 - **API reference** --- For API details, see the
   [Organization SDK reference](/docs/sdk/resources/organization) and
   [IdentityProvider SDK reference](/docs/sdk/resources/identity-provider).

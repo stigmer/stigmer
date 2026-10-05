@@ -370,8 +370,8 @@ return pricing.entries.map(entry => (
 Data hook that resolves what an organization's plan permits right now.
 
 The answer is derived by the server on every read: the live
-subscription's plan, else Free's. A platform-managed organization
-resolves through its integrator's plan. Every member may read it
+subscription's plan, else Free's. A child organization resolves
+through its parent's plan. Every member may read it
 (`can_view_billing` is granted to viewers).
 
 Cloud-only. Self-hosted editions answer from their license, not a plan,
@@ -416,12 +416,12 @@ period will be invoiced.
 The estimate is the invoice the period would close with if no further
 usage occurred: the plan's minimum for the whole period (or its share of
 the period's provider cost, whichever is greater), less the commission
-already collected on tokens, plus managed organizations beyond those
+already collected on tokens, plus child organizations beyond those
 included. The server rates it by the same rule the monthly close
 invoices by, so it agrees with the invoice to the cent.
 
 The server answers NOT_FOUND when nothing is live to invoice (Free, or a
-managed organization), so enable it only while a subscription is live.
+child organization), so enable it only while a subscription is live.
 
 Cloud-only; the caller needs `can_view_billing` on the organization.
 
@@ -521,8 +521,8 @@ Data hook that lists an organization's own LLM provider keys.
 
 No answer carries a key: each row names the provider, the key's last
 four characters, who saved it and when, when it last served a call, and
-whether the organization's plan still lets it be used. A managed
-organization's list includes its integrator's keys for the providers it
+whether the organization's plan still lets it be used. A child
+organization's list includes its parent's keys for the providers it
 holds none of (`inheritedFromOrg`). Every member may read it
 (`can_view_billing`).
 
@@ -547,7 +547,7 @@ function useProviderKeys(org: string | null, options?: UseProviderKeysOptions): 
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
-    keys: { type: "readonly ProviderKey[] | null", description: "The keys that serve the organization, its own and any it inherits from its integrator, without their secrets; `null` before the first successful fetch." },
+    keys: { type: "readonly ProviderKey[] | null", description: "The keys that serve the organization, its own and any it inherits from its parent organization, without their secrets; `null` before the first successful fetch." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
   }}
 />
@@ -873,10 +873,10 @@ estimated invoice line by line, the way the invoice will read it.
 
 <TypeTable
   type={{
+    billedToParent: { type: "string", description: "Set for a child organization, which is on its parent's plan and has no plan, period or invoice of its own: the parent's name, or \"\" when it cannot be shown. Unset for an organization with no parent." },
     className: { type: "string", description: "Additional CSS class names." },
     estimate: { type: "PeriodEstimate | null", description: "The current period's estimated invoice, when a plan is live." },
     estimateError: { type: "Error | null", description: "Why the estimate could not be read, shown in its place." },
-    managed: { type: "boolean", description: "The organization is platform-managed: it is on its integrator's plan and has no plan, period or invoice of its own." },
     planName: { type: "string", description: "The plan's display name (\"Free\" when there is none).", required: true },
     standing: { type: "PlanStanding", description: "Where the organization stands on it.", required: true, typeDescriptionLink: "#planstanding" },
   }}
@@ -920,9 +920,9 @@ an edition that serves no subscriptions.
 
 <TypeTable
   type={{
+    billedToParent: { type: "string", description: "Set for a child organization, which runs on its parent's plan: the parent's name, or \"\" when the person cannot read it. The section says so instead of offering plans. Unset for an organization with no parent." },
     className: { type: "string", description: "Additional CSS class names." },
     hasPaymentMethod: { type: "boolean", description: "Whether the organization's billing account holds a saved card.", required: true },
-    managed: { type: "boolean", description: "The organization is platform-managed: it runs on its integrator's plan, and the section says so instead of offering plans." },
     now: { type: "Date", description: "The clock the standing reads. Defaults to each render's time." },
     onRefreshAccount: { type: "() => void", description: "Re-read the billing account, so a card saved on Stripe's page shows." },
     onResumeHandled: { type: "() => void", description: "Called once the resumed choice has been taken up, so the host can clear its query." },
@@ -946,8 +946,8 @@ above), an admin saves an Anthropic or OpenAI key, and the organization's
 agents and workflows then run on it: the provider bills the organization
 directly, and those tokens carry no Stigmer commission and do not count
 toward the plan's usage share. A saved key is never shown again, only its
-last four characters. A managed organization is served by its
-integrator's key for a provider it holds none of, shown read-only.
+last four characters. A child organization is served by its parent's
+key for a provider it holds none of, shown read-only.
 
 A key the plan no longer allows is kept and listed as not in use, and
 can be removed; the organization's calls run on Stigmer's keys again,

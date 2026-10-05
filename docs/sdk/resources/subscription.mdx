@@ -43,7 +43,7 @@ status:
 
 Resolve what the organization is permitted right now.
 
-The answer is derived, never stored: the entitlements of the plan the organization's active subscription names, else the Free plan's with an empty plan_id. A platform-managed organization has no subscription of its own; its entitlements resolve through its identity provider to the integrator organization, whose plan counts the managed organization against the managed organizations it includes.
+The answer is derived, never stored: the entitlements of the plan the organization's active subscription names, else the Free plan's with an empty plan_id. A child organization has no subscription of its own; its entitlements resolve through its parent organization, whose plan counts the child against the child organizations it includes.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -125,9 +125,9 @@ Subscription subscription = client.subscriptions().getForOrg(GetSubscriptionForO
 
 Estimate what the organization's current period will be invoiced.
 
-The estimate is the invoice the period would close with if no further usage occurred before its end: the plan's cost over the whole period (its minimum is not prorated to the time elapsed), less the commission already collected on the period's usage, plus the managed organizations beyond those the plan includes. It is rated by the same rule the monthly close invoices by, over the same usage, so an estimate read at a period's end equals that period's invoice. Every other read derives it the same way; nothing is stored.
+The estimate is the invoice the period would close with if no further usage occurred before its end: the plan's cost over the whole period (its minimum is not prorated to the time elapsed), less the commission already collected on the period's usage, plus the child organizations beyond those the plan includes. It is rated by the same rule the monthly close invoices by, over the same usage, so an estimate read at a period's end equals that period's invoice. Every other read derives it the same way; nothing is stored.
 
-NOT_FOUND when the organization has no live subscription: it is on Free, or it is platform-managed and on its integrator's plan, and neither is invoiced a plan of its own.
+NOT_FOUND when the organization has no live subscription: it is on Free, or it is a child organization on its parent's plan, and neither is invoiced a plan of its own.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -341,9 +341,9 @@ PeriodEstimate is what an organization's current subscription period would be in
     planId: { type: "string", description: "The id of the Plan the period is on." },
     periodStart: { type: "string", description: "When the period began." },
     periodEnd: { type: "string", description: "When the period ends and is invoiced." },
-    providerCostMicros: { type: "number", description: "What the period's usage has cost in provider charges so far, across the organization and the managed organizations it pays for." },
+    providerCostMicros: { type: "number", description: "What the period's usage has cost in provider charges so far, across the organization and the child organizations it pays for." },
     commissionCollectedMicros: { type: "number", description: "The commission the wallet has already collected on that usage." },
-    managedOrganizationCount: { type: "number", description: "The managed organizations counted against the plan this period." },
+    childOrgCount: { type: "number", description: "The child organizations counted against the plan this period." },
     lines: { type: "PeriodEstimateLineInput[]", description: "The invoice's lines in the order they print, zero lines omitted." },
     totalMicros: { type: "number", description: "The estimated invoice total: the sum of the lines." },
   }}
@@ -399,7 +399,7 @@ A capability an entitlement can unlock.
 | `channels` | Delivering agents over messaging channels (Slack, WhatsApp) through a channel runtime. |
 | `sharing` | Sharing an agent through hosted share links, with the sharing organization's members or with anyone who has the link. |
 | `teams` | Creating teams and adding members to them. |
-| `managed_organizations` | Creating platform-managed organizations under the tenant's identity provider, the organizations an integrator runs for its own customers. |
+| `child_orgs` | Creating child organizations (spec.parent_org), the organizations an integrator runs for its own customers. |
 
 ### PeriodEstimateLineKind
 
@@ -409,5 +409,5 @@ PeriodEstimateLineKind names what an estimated invoice line is for.
 |-------|-------------|
 | `plan` | The plan's cost: the greater of its monthly minimum and its usage share of the period's provider cost. |
 | `commission_credit` | The commission already collected on the period's usage, credited against the plan's cost and never more than it. |
-| `managed_organizations` | The managed organizations beyond those the plan includes, at the plan's fee for each. |
+| `child_orgs` | The child organizations beyond those the plan includes, at the plan's fee for each. |
 

@@ -27,3 +27,10 @@ export { OrgPreferencesPanel } from "./OrgPreferencesPanel.js";
 export type { OrgPreferencesPanelProps } from "./OrgPreferencesPanel.js";
 export { OrgSwitcher } from "./OrgSwitcher.js";
 export type { OrgSwitcherProps } from "./OrgSwitcher.js";
+export { useChildOrganizations } from "./useChildOrganizations.js";
+export type {
+  UseChildOrganizationsOptions,
+  UseChildOrganizationsReturn,
+} from "./useChildOrganizations.js";
+export { ChildOrganizationsList } from "./ChildOrganizationsList.js";
+export type { ChildOrganizationsListProps } from "./ChildOrganizationsList.js";

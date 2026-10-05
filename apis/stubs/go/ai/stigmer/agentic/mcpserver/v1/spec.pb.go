@@ -397,7 +397,7 @@ type McpServerAuth struct {
 	// perform the OAuth authorization code flow with the vendor on behalf of
 	// the user. The OAuthApp must belong to the same organization as the
 	// McpServer: an OAuth app holds vendor credentials and is never
-	// platform-visible, so no cross-organization reference to one is
+	// shared with child organizations, so no cross-organization reference to one is
 	// accepted.
 	OauthAppRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=oauth_app_ref,json=oauthAppRef,proto3" json:"oauth_app_ref,omitempty"`
 	// The env var where the acquired access token is stored.

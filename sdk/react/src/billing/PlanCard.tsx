@@ -23,10 +23,11 @@ export interface PlanCardProps {
   /** Why the estimate could not be read, shown in its place. */
   readonly estimateError?: Error | null;
   /**
-   * The organization is platform-managed: it is on its integrator's plan
-   * and has no plan, period or invoice of its own.
+   * Set for a child organization, which is on its parent's plan and has no
+   * plan, period or invoice of its own: the parent's name, or "" when it
+   * cannot be shown. Unset for an organization with no parent.
    */
-  readonly managed?: boolean;
+  readonly billedToParent?: string;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -36,7 +37,8 @@ export interface PlanCardProps {
  * failed, or ending on a date), the period it is in, and the period's
  * estimated invoice line by line, the way the invoice will read it.
  */
-export function PlanCard({ planName, standing, estimate, estimateError, managed, className }: PlanCardProps) {
+export function PlanCard({ planName, standing, estimate, estimateError, billedToParent, className }: PlanCardProps) {
+  const child = billedToParent !== undefined;
   return (
     <div
       className={cn(
@@ -46,23 +48,23 @@ export function PlanCard({ planName, standing, estimate, estimateError, managed,
     >
       <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
         <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Plan</h3>
-        {!managed && <StandingBadge standing={standing} />}
+        {!child && <StandingBadge standing={standing} />}
       </div>
       <p className="stg:mt-2 stg:text-sm stg:font-medium stg:text-foreground">
-        {managed ? "Your integrator's plan" : planName}
+        {child ? `Billed to ${billedToParent === "" ? "its parent organization" : billedToParent}` : planName}
       </p>
 
-      {managed ? (
+      {child ? (
         <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
-          This organization is managed by its integrator and runs on the integrator&apos;s plan. It has no plan or
-          invoice of its own.
+          This is a child organization: it runs on its parent organization&apos;s plan, and has no plan or invoice
+          of its own.
         </p>
       ) : (
         <StandingDetail standing={standing} />
       )}
 
-      {!managed && estimate && <EstimateLines planName={planName} estimate={estimate} />}
-      {!managed && !estimate && estimateError && (
+      {!child && estimate && <EstimateLines planName={planName} estimate={estimate} />}
+      {!child && !estimate && estimateError && (
         <p className="stg:mt-3 stg:text-xs stg:text-destructive" role="alert">
           {getUserMessage(estimateError)}
         </p>
@@ -158,8 +160,8 @@ function lineLabel(line: PeriodEstimateLine, planName: string, estimate: PeriodE
       return `${planName} plan`;
     case PeriodEstimateLineKind.commission_credit:
       return "Commission already paid on tokens";
-    case PeriodEstimateLineKind.managed_organizations:
-      return `Managed organizations beyond those included (${estimate.managedOrganizationCount} this period)`;
+    case PeriodEstimateLineKind.child_orgs:
+      return `Child organizations beyond those included (${estimate.childOrgCount} this period)`;
     case PeriodEstimateLineKind.period_estimate_line_kind_unspecified:
       return "Other";
     default: {

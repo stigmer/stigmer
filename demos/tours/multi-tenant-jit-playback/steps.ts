@@ -1,13 +1,13 @@
 /**
- * Multi-tenant JIT playback — walkthrough of JIT provisioning with
- * tenantOrgClaim for multi-tenant platforms.
+ * Child organization JIT playback — walkthrough of JIT provisioning with
+ * externalIdClaim for a platform with child organizations.
  *
- * Shows the setup-once pattern: register an IdP with JIT + tenantOrgClaim,
- * create tenant orgs, and let Stigmer handle per-user provisioning
- * automatically from a JWT claim.
+ * Shows the setup-once pattern: register an IdP with JIT + externalIdClaim,
+ * create one child organization per customer, and let Stigmer handle
+ * per-user provisioning automatically from a JWT claim.
  *
  * Covers the "Create accounts and grant a role at sign-in" section of the
- * multi-tenant setup guide. Ported from the in-repo inline demo; the timeline
+ * child organizations guide. Ported from the in-repo inline demo; the timeline
  * (steps, narration, interactions) is preserved 1:1.
  */
 
@@ -31,7 +31,7 @@ export type MultiTenantJitStep =
 // ---------------------------------------------------------------------------
 
 export const REGISTER_IDP_JIT_CODE = [
-  "// register-idp.ts — IdP with JIT + tenantOrgClaim",
+  "// register-idp.ts — IdP with JIT + externalIdClaim",
   "const idp = await stigmer.identityProvider.create({",
   '  name: "Acme Cloud Auth",',
   '  org: "acme",',
@@ -41,23 +41,18 @@ export const REGISTER_IDP_JIT_CODE = [
   '  expectedAudience: "https://api.stigmer.ai/",',
   "  createAccountsOnSignIn: true,",
   '  signInRole: "member",',
-  '  tenantOrgClaim: "org_id",',
+  '  externalIdClaim: "org_id",',
   "});",
 ];
 
 export const CREATE_TENANT_ORG_CODE = [
-  "// onboard-tenant.ts — Create platform-managed Organization",
+  "// onboard-tenant.ts — Create a child organization",
   "const tenantOrg = await stigmer.organization.create({",
   '  name: "Tenant Alpha",',
   '  slug: "tenant-alpha",',
   '  description: "Acme Cloud customer: Tenant Alpha",',
-  '  managementMode: "platform_managed",',
-  "  identityProviderRef: {",
-  '    org: "acme",',
-  '    kind: "identity_provider",',
-  '    slug: "acme-cloud-auth",',
-  "  },",
-  '  externalOrgId: "acme-tenant-alpha-id",',
+  '  parentOrg: "acme",',
+  '  externalId: "cust-4411",',
   "});",
 ];
 
@@ -68,13 +63,12 @@ export const CREATE_TENANT_ORG_CODE = [
 export const ORG_CREATED_OUTPUT: readonly TerminalLine[] = [
   { type: "prompt", text: "npx tsx onboard-tenant.ts --tenant tenant-alpha" },
   { type: "blank", text: "" },
-  { type: "output", text: "Creating platform-managed Organization..." },
-  { type: "output", text: "  Management mode: platform_managed" },
-  { type: "output", text: "  Identity Provider: acme-cloud-auth" },
-  { type: "output", text: "  External ID:       acme-tenant-alpha-id" },
+  { type: "output", text: "Creating child organization..." },
+  { type: "output", text: "  Parent:      acme" },
+  { type: "output", text: "  External ID: cust-4411" },
   { type: "blank", text: "" },
   { type: "success", text: "Created org: tenant-alpha (org_01xyz789)" },
-  { type: "output", text: "  External ID mapped → acme-tenant-alpha-id" },
+  { type: "output", text: "  Child of acme, external ID cust-4411" },
   { type: "blank", text: "" },
   { type: "output", text: "No per-user provisioning code needed — JIT handles it." },
 ];
@@ -84,15 +78,15 @@ export const ORG_CREATED_OUTPUT: readonly TerminalLine[] = [
 // ---------------------------------------------------------------------------
 
 export const TENANT_RESOLVE_CHECKS: readonly CheckItem[] = [
-  { label: "Read JWT claim", detail: 'org_id → "acme-tenant-alpha-id"', status: "pass" },
-  { label: "Tenant org resolved", detail: "tenant-alpha (org_01xyz789)", status: "pass" },
+  { label: "Read JWT claim", detail: 'org_id → "cust-4411"', status: "pass" },
+  { label: "Child organization found", detail: "tenant-alpha (org_01xyz789)", status: "pass" },
   { label: "Account auto-provisioned", detail: "ida_02def456 (JIT)", status: "pass" },
   { label: "Role granted", detail: "member on tenant-alpha (first sign-in)", status: "pass" },
 ];
 
 export const SUCCESS_CHECKS: readonly CheckItem[] = [
   { label: "Token validated", detail: "signature + claims OK", status: "pass" },
-  { label: "Tenant: tenant-alpha", detail: "token bound via org_id claim", status: "pass" },
+  { label: "Bound to tenant-alpha", detail: "token bound via org_id claim", status: "pass" },
   { label: "Access authorized", detail: "member on org_01xyz789", status: "pass" },
 ];
 
@@ -106,32 +100,32 @@ export const multiTenantJitSteps: ScenarioStep<MultiTenantJitStep>[] = [
     delayMs: 0,
     data: { view: "code-register-idp" },
     narration:
-      "Register your Identity Provider with JIT provisioning and tenant org claim. The three fields — create accounts on sign-in, sign-in role, and tenant org claim — eliminate all per-user provisioning code.",
+      "Register your Identity Provider with JIT provisioning and an external ID claim. The three fields — create accounts on sign-in, sign-in role, and external ID claim — eliminate all per-user provisioning code.",
   },
   {
     delayMs: 3500,
     data: { view: "code-create-org" },
     narration:
-      "Create a platform-managed Organization for each tenant. The external org ID is the value Stigmer matches against the JWT claim.",
+      "Create a child organization for each customer under your own. Its external ID is the value Stigmer matches against the JWT claim.",
   },
   {
     delayMs: 4000,
     data: { view: "terminal-org-created" },
     narration:
-      "The tenant Organization is created with the external ID mapping. This is the only per-tenant setup step — no per-user code follows.",
+      "The child organization is created with your customer ID. This is the only per-customer setup step — no per-user code follows.",
   },
   // ── Runtime (automatic) ───────────────────────────────────────────────
   {
     delayMs: 3500,
     data: { view: "jwt-auth" },
     narration:
-      "Jane signs in on Tenant Alpha's portal. Her JWT includes an org_id claim with the tenant's external ID. Stigmer reads this claim on every sign-in to bind her token to the right Organization.",
+      "Jane signs in on Tenant Alpha's portal. Her JWT includes an org_id claim with the customer's external ID. Stigmer reads this claim on every sign-in to bind her token to the right child organization.",
   },
   {
     delayMs: 3500,
     data: { view: "tenant-resolved" },
     narration:
-      "Stigmer reads the org_id claim, finds the matching tenant Organization, creates Jane's account, and grants the member role because this is her first sign-in there — all automatically. No backend code needed.",
+      "Stigmer reads the org_id claim, finds the matching child organization, creates Jane's account, and grants the member role because this is her first sign-in there — all automatically. No backend code needed.",
     interactions: [
       { atPercent: 0.1, type: "set_cursor", target: "check-0" },
       { atPercent: 0.3, type: "set_cursor", target: "check-1" },

@@ -247,7 +247,8 @@ export const RenameInputSchema: GenMessage<RenameInput> = /*@__PURE__*/
  *
  * Every reference in a resource's spec is checked when the resource is
  * written: the target must exist, and a target in another organization
- * must be platform-visible to be referenced at all. A blueprint may not be
+ * must be one the writing organization's parent shares with its child
+ * organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be
  * more visible than the skills, MCP servers and agents it references, so
  * what a person can run they can also read. A reference that fails the
  * check is refused at write, never at run.

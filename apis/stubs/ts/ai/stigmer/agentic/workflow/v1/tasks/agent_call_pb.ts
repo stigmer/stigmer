@@ -36,7 +36,8 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    * - "slug": an agent of the organization the workflow runs in; checked when the
    *   workflow is saved, against the workflow's own organization
    * - "org/slug": that organization's agent; checked when the workflow is saved,
-   *   and another organization's agent must be shared at platform visibility.
+   *   and another organization's agent must be the workflow organization's
+   *   parent's, shared with its child organizations (visibility_child_orgs).
    *   The organization may be named by slug or id; the workflow stores its id,
    *   so renaming the organization never changes which agent the task calls
    * - a value holding "${ ... }", "${.env_vars.KEY}" or "${.secrets.KEY}": resolved

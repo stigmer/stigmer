@@ -97,8 +97,8 @@ func TestPlanCreate_SendsTheLimitsTheCallerSet(t *testing.T) {
 	if limits.MaxUsers != nil {
 		t.Errorf("max_users = %d, want absent (the caller never set it)", limits.GetMaxUsers())
 	}
-	if limits.IncludedManagedOrganizations != nil {
-		t.Errorf("included_managed_organizations = %d, want absent", limits.GetIncludedManagedOrganizations())
+	if limits.IncludedChildOrgs != nil {
+		t.Errorf("included_child_orgs = %d, want absent", limits.GetIncludedChildOrgs())
 	}
 	if limits.MaxActiveWorkflowSandboxes != nil {
 		t.Errorf("max_active_workflow_sandboxes = %d, want absent", limits.GetMaxActiveWorkflowSandboxes())

@@ -2,10 +2,10 @@
  * Pins the sign-in settings the create form sends:
  *
  *   - a delegation provider sends what the admin set: account creation,
- *     the sign-in role and the tenant claim;
- *   - turning SSO on creates accounts with viewer and drops a tenant claim
- *     typed before it, because only a delegation provider names
- *     platform-managed organizations; the form will not create an SSO
+ *     the sign-in role and the customer id claim;
+ *   - turning SSO on creates accounts with viewer and drops a customer id claim
+ *     typed before it, because only a delegation provider routes sign-ins
+ *     to child organizations; the form will not create an SSO
  *     provider whose sign-in role is None.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -60,7 +60,7 @@ function submitButton(): HTMLButtonElement {
 afterEach(cleanup);
 
 describe("CreateIdentityProviderForm sign-in settings", () => {
-  it("sends a delegation provider's account creation, role and tenant claim", async () => {
+  it("sends a delegation provider's account creation, role and customer id claim", async () => {
     const createIdp = vi.fn(async (_input: IdentityProviderInput) => CREATED);
     renderForm(createIdp);
 
@@ -70,7 +70,7 @@ describe("CreateIdentityProviderForm sign-in settings", () => {
     fireEvent.change(screen.getByLabelText("Sign-in role"), {
       target: { value: String(IamRole.member) },
     });
-    fireEvent.change(screen.getByLabelText("Tenant org claim"), {
+    fireEvent.change(screen.getByLabelText("Customer id claim"), {
       target: { value: "org_id" },
     });
     fireEvent.click(submitButton());
@@ -80,7 +80,7 @@ describe("CreateIdentityProviderForm sign-in settings", () => {
     expect(input.isSsoProvider).toBeUndefined();
     expect(input.createAccountsOnSignIn).toBe(true);
     expect(input.signInRole).toBe(IamRole.member);
-    expect(input.tenantOrgClaim).toBe("org_id");
+    expect(input.externalIdClaim).toBe("org_id");
   });
 
   it("sends none of the SSO defaults once SSO is switched back off", async () => {
@@ -99,11 +99,11 @@ describe("CreateIdentityProviderForm sign-in settings", () => {
     expect(input.signInRole).toBeUndefined();
   });
 
-  it("creates an SSO provider with viewer, no tenant claim, and never with None", async () => {
+  it("creates an SSO provider with viewer, no customer id claim, and never with None", async () => {
     const createIdp = vi.fn(async (_input: IdentityProviderInput) => CREATED);
     renderForm(createIdp);
 
-    fireEvent.change(screen.getByLabelText("Tenant org claim"), {
+    fireEvent.change(screen.getByLabelText("Customer id claim"), {
       target: { value: "org_id" },
     });
     // The SSO switch is the form's first.
@@ -112,7 +112,7 @@ describe("CreateIdentityProviderForm sign-in settings", () => {
       target: { value: "client-1" },
     });
 
-    expect(screen.queryByLabelText("Tenant org claim")).toBeNull();
+    expect(screen.queryByLabelText("Customer id claim")).toBeNull();
     const role = screen.getByLabelText("Sign-in role") as HTMLSelectElement;
     expect(role.value).toBe(String(IamRole.viewer));
 
@@ -131,6 +131,6 @@ describe("CreateIdentityProviderForm sign-in settings", () => {
     expect(input.oidcClientId).toBe("client-1");
     expect(input.createAccountsOnSignIn).toBe(true);
     expect(input.signInRole).toBe(IamRole.viewer);
-    expect(input.tenantOrgClaim).toBeUndefined();
+    expect(input.externalIdClaim).toBeUndefined();
   });
 });

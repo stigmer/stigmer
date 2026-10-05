@@ -28,10 +28,11 @@ export interface PlanSectionProps {
   /** The organization whose plan is shown. */
   readonly org: string;
   /**
-   * The organization is platform-managed: it runs on its integrator's
-   * plan, and the section says so instead of offering plans.
+   * Set for a child organization, which runs on its parent's plan: the
+   * parent's name, or "" when the person cannot read it. The section says
+   * so instead of offering plans. Unset for an organization with no parent.
    */
-  readonly managed?: boolean;
+  readonly billedToParent?: string;
   /** Whether the organization's billing account holds a saved card. */
   readonly hasPaymentMethod: boolean;
   /** Re-read the billing account, so a card saved on Stripe's page shows. */
@@ -68,7 +69,7 @@ export interface PlanSectionProps {
  */
 export function PlanSection({
   org: orgId,
-  managed = false,
+  billedToParent,
   hasPaymentMethod,
   onRefreshAccount,
   redirect,
@@ -83,9 +84,10 @@ export function PlanSection({
   const current = useSubscription(available ? orgId : null);
   const standing = planStanding(current.subscription, renderNow);
   const livePlanId = standingPlanId(standing);
-  const estimate = usePeriodEstimate(orgId, { enabled: available && !managed && livePlanId !== "" });
+  const child = billedToParent !== undefined;
+  const estimate = usePeriodEstimate(orgId, { enabled: available && !child && livePlanId !== "" });
   const manage = useCheckPermission(available && orgId ? { kind: "organization", id: orgId } : null, "can_manage_billing");
-  const canManage = !managed && !manage.isLoading && manage.allowed;
+  const canManage = !child && !manage.isLoading && manage.allowed;
 
   const changer = useChangePlan();
   const canceler = useCancelSubscription();
@@ -206,9 +208,9 @@ export function PlanSection({
         standing={standing}
         estimate={estimate.estimate}
         estimateError={estimate.error}
-        managed={managed}
+        billedToParent={billedToParent}
       />
-      {!managed && (
+      {!child && (
         <PlanPicker
           plans={buyable}
           standing={standing}

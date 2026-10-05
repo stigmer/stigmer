@@ -17,7 +17,7 @@ export const DEFAULT_BILLING_HREF = "/settings/billing";
 /** The wire names the refusal's `feature` metadata carries. */
 const FEATURE_BY_WIRE_NAME: Readonly<Record<string, Feature>> = {
   teams: Feature.teams,
-  managed_organizations: Feature.managed_organizations,
+  child_orgs: Feature.child_orgs,
   byo_provider_keys: Feature.byo_provider_keys,
 };
 

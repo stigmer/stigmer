@@ -140,7 +140,7 @@ function TenantJwtCard() {
               <span style={{ ...jwtKey, fontWeight: 600 }}>&quot;org_id&quot;</span>
               {": "}
               <span style={{ color: "var(--scenar-foreground)" }}>
-                &quot;acme-tenant-alpha-id&quot;
+                &quot;cust-4411&quot;
               </span>
             </div>
           </div>
@@ -156,7 +156,7 @@ function TenantJwtCard() {
         >
           <KeyRound size={12} style={{ color: ACCENT }} aria-hidden />
           <p style={{ fontSize: "0.75rem", fontWeight: 500, margin: 0, color: ACCENT }}>
-            Tenant claim routes to correct org
+            External ID claim routes to the child organization
           </p>
         </div>
       </div>

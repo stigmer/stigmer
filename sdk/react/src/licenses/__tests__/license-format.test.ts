@@ -19,7 +19,7 @@ describe("GRANTABLE_FEATURES", () => {
     expect(GRANTABLE_FEATURES).not.toContain(Feature.channels);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.sharing);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.teams);
-    expect(GRANTABLE_FEATURES).not.toContain(Feature.managed_organizations);
+    expect(GRANTABLE_FEATURES).not.toContain(Feature.child_orgs);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.platform_client);
   });
 });

@@ -213,17 +213,17 @@ System.out.println("Created IdP: " + idp.getMetadata().getId());
 | `allowedIssuers`         | Yes      | List of `iss` values Stigmer accepts, at most 10. Tokens with a different issuer are rejected. Each must publish an OpenID Connect discovery document                                                              |
 | `expectedAudience`       | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected. With the issuer, it identifies this Identity Provider across the platform                                                              |
 | `displayName`            | No       | Display name in the console, and on the sign-in button of an SSO provider. The console's provider list and detail show `name` when it is empty                                                                     |
-| `isSsoProvider`          | No       | Set to `true` only when configuring SSO for a self-managed Organization. Defaults to `false`                                                                                                                       |
+| `isSsoProvider`          | No       | Set to `true` only when configuring console SSO for your own team. Defaults to `false`                                                                                                                             |
 | `oidcClientId`           | No       | OIDC client ID for browser-based SSO. Only required when `isSsoProvider` is `true`                                                                                                                                 |
 | `createAccountsOnSignIn` | No       | When `true`, Stigmer creates a federated account the first time a valid token arrives for a subject it has no account for. Defaults to `false`. Required for an SSO provider                                       |
 | `signInRole`             | No       | The role an account receives the first time it signs in to an Organization through this provider. Options: `viewer`, `member`, `admin`. Unset grants nothing. Owner is not permitted. Required for an SSO provider |
-| `tenantOrgClaim`         | No       | JWT claim name that names the tenant Organization each token works in. Read on every token. See [Multi-tenant setup](/docs/guides/authentication/federation/multi-tenant-setup)                                    |
+| `externalIdClaim`        | No       | JWT claim name that names, by its external id, the child organization each token works in. Read on every token. See [Child organizations](/docs/guides/authentication/federation/child-organizations)              |
 
 <Callout type="warn">
-  Do not set `isSsoProvider` to `true` for platform-managed Organizations. SSO
-  is designed for self-managed Organizations where users sign in directly via
-  the Stigmer web app. For platform-managed integrations, your users
-  authenticate on your platform and call the Stigmer API with their JWT.
+  Do not set `isSsoProvider` to `true` for a platform integration. SSO is
+  designed for your own team signing in directly via the Stigmer web app. For a
+  platform integration, your users authenticate on your platform and call the
+  Stigmer API with their JWT.
 </Callout>
 
 ## Which Organization a token works in
@@ -231,17 +231,18 @@ System.out.println("Created IdP: " + idp.getMetadata().getId());
 Every token an Identity Provider vouches for is bound to one Organization and
 works there only, whatever roles the user holds elsewhere:
 
-- Without `tenantOrgClaim`, the token is bound to the Identity Provider's own
+- Without `externalIdClaim`, the token is bound to the Identity Provider's own
   Organization (`acme` in the examples on this page).
-- With `tenantOrgClaim`, it is bound to the platform-managed Organization that
-  the claim names. Stigmer reads the claim on every token and refuses a token
-  that lacks it or names an unknown Organization. See
-  [Multi-tenant platform setup](/docs/guides/authentication/federation/multi-tenant-setup#bind-each-token-to-its-tenant).
+- With `externalIdClaim`, it is bound to the child organization of `acme` whose
+  external id the claim carries. Stigmer reads the claim on every token and
+  refuses a token that lacks it or names no child. See
+  [Child organizations](/docs/guides/authentication/federation/child-organizations#route-your-customers-sign-ins).
 
 A bound token can still reach what belongs to no Organization, such as the
-user's own Identity Account and API keys, and can read and run Agents, Skills,
-Workflows, MCP Servers and Plugins shared at Platform visibility. It cannot
-create an Organization or accept an invitation to another one.
+user's own Identity Account and API keys, and, in a child organization, can read
+and run the Agents, Skills, Workflows, MCP Servers and Plugins its parent shares
+with its child organizations. It cannot create an Organization, except a child
+of its own Organization, or accept an invitation to another one.
 
 ## Enable JIT provisioning
 
@@ -372,16 +373,16 @@ Stigmer creates the account but grants no Organization access. The user is
 authenticated (Stigmer knows who they are) but not authorized (they can't access
 anything). Your backend must still create IAM Policies to grant access.
 
-This suits a platform that decides each user's role itself. A multi-tenant
-platform can also set `tenantOrgClaim` without either field: Stigmer then binds
-each token to its tenant and grants nothing. See
-[Multi-tenant platform setup](/docs/guides/authentication/federation/multi-tenant-setup).
+This suits a platform that decides each user's role itself. A platform with
+child organizations can also set `externalIdClaim` without either field: Stigmer
+then binds each token to its child organization and grants nothing. See
+[Child organizations](/docs/guides/authentication/federation/child-organizations).
 
 <Callout type="warn">
   An SSO provider must set `createAccountsOnSignIn` to `true` and a
-  `signInRole`; the console fills in `viewer` for you. SSO is for self-managed
-  Organizations, so tenant routing with `tenantOrgClaim` belongs on a non-SSO
-  Identity Provider. See [Set up
+  `signInRole`; the console fills in `viewer` for you. SSO signs your own team
+  in to your Organization, so routing to child organizations with
+  `externalIdClaim` belongs on a non-SSO Identity Provider. See [Set up
   SSO](/docs/guides/authentication/federation/sso-login) for the SSO path.
 </Callout>
 

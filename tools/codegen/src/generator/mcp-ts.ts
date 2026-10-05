@@ -257,7 +257,7 @@ function identityZodFields(w: string[]): void {
   // Visibility rides the same enum-name convention as every other enum input
   // (`enumFromString`, "Allowed values: ..."); the three levels named are the
   // ones the server accepts — the retired public level is not offered.
-  w.push(`  visibility: z.string().optional().describe(${goQuote("Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_platform.")}),\n`);
+  w.push(`  visibility: z.string().optional().describe(${goQuote("Resource visibility, by enum name. Applied at create; on updates a changed value is landed through the guarded UpdateVisibility RPC. Omit to leave unchanged. Allowed values: visibility_private, visibility_org, visibility_child_orgs.")}),\n`);
   w.push(`  labels: z.record(z.string()).optional().describe(${goQuote("Key-value labels for organization and filtering.")}),\n`);
   w.push(`  tags: z.array(z.string()).optional().describe(${goQuote("Tags for categorization and discovery.")}),\n`);
 }

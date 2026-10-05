@@ -273,7 +273,7 @@ The numeric limits an entitlement carries.
   type={{
     maxOrgs: { type: "number", description: "The most organizations the customer may hold at once." },
     maxUsers: { type: "number", description: "The most identity accounts the customer may hold at once." },
-    includedManagedOrganizations: { type: "number", description: "The platform-managed organizations a subscription includes before the per-organization fee applies." },
+    includedChildOrgs: { type: "number", description: "The child organizations a subscription includes before the per-organization fee applies." },
     maxActiveSessionSandboxes: { type: "number", description: "The most session sandboxes an organization may hold provisioning or running at once." },
     maxActiveWorkflowSandboxes: { type: "number", description: "The most workflow-execution sandboxes an organization may hold provisioning or running at once." },
     archivedWorkspaceRetentionDays: { type: "number", description: "How many days an archived session workspace is kept before it is deleted, its files and snapshot included." },
@@ -348,5 +348,5 @@ A capability an entitlement can unlock.
 | `channels` | Delivering agents over messaging channels (Slack, WhatsApp) through a channel runtime. |
 | `sharing` | Sharing an agent through hosted share links, with the sharing organization's members or with anyone who has the link. |
 | `teams` | Creating teams and adding members to them. |
-| `managed_organizations` | Creating platform-managed organizations under the tenant's identity provider, the organizations an integrator runs for its own customers. |
+| `child_orgs` | Creating child organizations (spec.parent_org), the organizations an integrator runs for its own customers. |
 

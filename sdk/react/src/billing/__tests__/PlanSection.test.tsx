@@ -4,7 +4,7 @@
 // the plan to come back to), a subscribe, an active plan's estimate and
 // its switch and cancel copy, the plans cheapest first and what a switch
 // down gives up, the reopened choice after a card was saved,
-// a managed organization, and nothing at all where subscriptions are not
+// a child organization, and nothing at all where subscriptions are not
 // served.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -66,7 +66,7 @@ describe("PlanSection", () => {
     renderSection(mockClient());
     const plans = await screen.findByRole("list", { name: "Plans" });
     const business = await planOption("Business");
-    expect(within(business).getByText("5 managed organizations included, then $25.00/month each")).toBeTruthy();
+    expect(within(business).getByText("5 child organizations included, then $25.00/month each")).toBeTruthy();
     expect(within(business).getByText("Bring your own provider keys")).toBeTruthy();
     expect(within(plans).queryByText("Team 2026")).toBeNull();
     expect(within(plans).getByRole("link", { name: "Talk to us" }).getAttribute("href")).toBe(
@@ -136,7 +136,7 @@ describe("PlanSection", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Switch to Team" }));
     const down = await screen.findByRole("dialog");
-    expect(within(down).getByText(/Team does not include Bring your own provider keys and Managed organizations\./)).toBeTruthy();
+    expect(within(down).getByText(/Team does not include Bring your own provider keys and Child organizations\./)).toBeTruthy();
     expect(
       within(down).getByText(/Your own provider keys are kept but stop being used: your agents run on Stigmer's keys, billed as usage\./),
     ).toBeTruthy();
@@ -171,12 +171,19 @@ describe("PlanSection", () => {
     expect(within(second).getByRole("heading", { name: "Subscribe to Team" })).toBeTruthy();
   });
 
-  it("tells a managed organization it is on its integrator's plan, and estimates nothing", async () => {
+  it("tells a child organization it is billed to its parent, and estimates nothing", async () => {
     const client = mockClient();
-    renderSection(client, { managed: true });
-    expect(await screen.findByText(/managed by its integrator/)).toBeTruthy();
+    renderSection(client, { billedToParent: "planton" });
+    expect(await screen.findByText("Billed to planton")).toBeTruthy();
+    expect(screen.getByText(/runs on its parent organization's plan/)).toBeTruthy();
     expect(screen.queryByRole("list", { name: "Plans" })).toBeNull();
     expect(client.subscription.getPeriodEstimate).not.toHaveBeenCalled();
+  });
+
+  it("names no raw id when the parent cannot be shown", async () => {
+    const client = mockClient();
+    renderSection(client, { billedToParent: "" });
+    expect(await screen.findByText("Billed to its parent organization")).toBeTruthy();
   });
 
   it("renders nothing where subscriptions are not served", () => {

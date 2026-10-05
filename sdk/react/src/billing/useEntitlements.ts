@@ -41,8 +41,8 @@ export interface UseEntitlementsReturn {
  * Data hook that resolves what an organization's plan permits right now.
  *
  * The answer is derived by the server on every read: the live
- * subscription's plan, else Free's. A platform-managed organization
- * resolves through its integrator's plan. Every member may read it
+ * subscription's plan, else Free's. A child organization resolves
+ * through its parent's plan. Every member may read it
  * (`can_view_billing` is granted to viewers).
  *
  * Cloud-only. Self-hosted editions answer from their license, not a plan,

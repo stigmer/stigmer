@@ -130,21 +130,21 @@ export function sharePercent(terms: PlanTerms | undefined): string {
   return `${basisPoints % 100 === 0 ? `${basisPoints / 100}` : (basisPoints / 100).toFixed(2)}%`;
 }
 
-/** The managed organizations a plan includes and what each beyond costs, or empty. */
-export function formatManagedOrganizations(
+/** The child organizations a plan includes and what each beyond costs, or empty. */
+export function formatChildOrgs(
   entitlements: Entitlements | undefined,
   terms: PlanTerms | undefined,
 ): string {
-  if (!(entitlements?.features ?? []).includes(Feature.managed_organizations)) {
+  if (!(entitlements?.features ?? []).includes(Feature.child_orgs)) {
     return "";
   }
-  const included = entitlements?.limits?.includedManagedOrganizations;
+  const included = entitlements?.limits?.includedChildOrgs;
   const fee = terms?.perExtraOrgMicros ?? ZERO;
   if (included === undefined) {
-    return "Unlimited managed organizations";
+    return "Unlimited child organizations";
   }
   const beyond = fee > ZERO ? `, then ${formatCreditBalance(fee)}/month each` : "";
-  return `${included} managed organization${included === 1 ? "" : "s"} included${beyond}`;
+  return `${included} child organization${included === 1 ? "" : "s"} included${beyond}`;
 }
 
 const DAY = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
