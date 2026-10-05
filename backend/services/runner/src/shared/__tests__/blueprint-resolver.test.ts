@@ -10,11 +10,10 @@
  *     resolves fails the turn naming it and never falls back to the head;
  *   - a turn that recorded an agent without a version reads that agent as
  *     it is now, not the session's;
- *   - a turn that recorded nothing (created before turns recorded their
- *     agent) walks session -> instance -> agent;
- *   - the built-in assistant (nothing recorded, no instance): no instance
- *     or agent read, empty instructions, no sub-agents, and the session's
- *     own usages and refs as the whole tool set.
+ *   - a turn whose stamp names no agent is the built-in assistant, even in
+ *     a session that names and pins one (the stamp is the only route to
+ *     the agent): no agent read, empty instructions, no sub-agents, and
+ *     the session's own usages and refs as the whole tool set.
  *
  * `mergeSkillRefs` carried from `skill-writer.test.ts` in #1096, when the
  * native orchestrator's byte-twin of this function was deleted with its
@@ -26,8 +25,8 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { mergeSkillRefs, resolveBlueprint } from "../blueprint-resolver.js";
@@ -47,11 +46,11 @@ describe("resolveBlueprint", () => {
         }),
       ),
       getAgent: vi.fn().mockRejectedValue(new Error("the head must not be read")),
-      getAgentInstance: vi.fn().mockRejectedValue(new Error("the session's chain must not be walked")),
     });
     const session = create(SessionSchema, {
       metadata: { id: "ses_3", org: "acme" },
-      spec: { agentInstanceId: "agi_repointed" },
+      spec: { agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "repointed" } },
+      status: { agentId: "agt_repointed", agentVersionHash: "b".repeat(64) },
     });
 
     const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH });
@@ -61,7 +60,6 @@ describe("resolveBlueprint", () => {
     expect(blueprint.mergedSkillRefs.map((r) => r.slug)).toEqual(["review"]);
     expect(client.getAgentVersion).toHaveBeenCalledWith("agt_1", HASH);
     expect(client.getAgent).not.toHaveBeenCalled();
-    expect(client.getAgentInstance).not.toHaveBeenCalled();
   });
 
   it("fails the turn naming a recorded version that no longer resolves, keeping its status code", async () => {
@@ -71,7 +69,7 @@ describe("resolveBlueprint", () => {
         .mockRejectedValue(new ConnectError("agent version not found", Code.NotFound)),
       getAgent: vi.fn().mockRejectedValue(new Error("the head must not be read")),
     });
-    const session = create(SessionSchema, { metadata: { id: "ses_4" }, spec: { agentInstanceId: "agi_1" } });
+    const session = create(SessionSchema, { metadata: { id: "ses_4" }, spec: { agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "builder" } } });
 
     const failure = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }).catch(
       (e: unknown) => e,
@@ -87,7 +85,7 @@ describe("resolveBlueprint", () => {
     const client = mockStigmerClient({
       getAgentVersion: vi.fn().mockRejectedValue(new Error("socket hang up")),
     });
-    const session = create(SessionSchema, { metadata: { id: "ses_6" }, spec: { agentInstanceId: "agi_1" } });
+    const session = create(SessionSchema, { metadata: { id: "ses_6" }, spec: { agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "builder" } } });
 
     const failure = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }).catch(
       (e: unknown) => e,
@@ -104,27 +102,27 @@ describe("resolveBlueprint", () => {
       getAgent: vi.fn().mockResolvedValue(
         create(AgentSchema, { metadata: { id: "agt_1" }, spec: { instructions: "Unversioned." } }),
       ),
-      getAgentInstance: vi.fn().mockRejectedValue(new Error("the session's chain must not be walked")),
     });
-    const session = create(SessionSchema, { metadata: { id: "ses_5" }, spec: { agentInstanceId: "agi_other" } });
+    const session = create(SessionSchema, {
+      metadata: { id: "ses_5" },
+      spec: { agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "other" } },
+      status: { agentId: "agt_other" },
+    });
 
     const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: "" });
 
     expect(blueprint.agent).toMatchObject({ id: "agt_1", versionHash: "" });
     expect(blueprint.instructions).toBe("Unversioned.");
     expect(client.getAgent).toHaveBeenCalledWith("agt_1");
-    expect(client.getAgentInstance).not.toHaveBeenCalled();
+    expect(client.getAgent).toHaveBeenCalledTimes(1);
   });
 
-  it("walks session -> instance -> agent for a turn that recorded nothing, and merges with the session's tools", async () => {
+  it("merges the stamped version's tools with the session's own, the session's usage winning by slug", async () => {
     const client = mockStigmerClient({
-      getAgentInstance: vi.fn().mockResolvedValue(
-        create(AgentInstanceSchema, { metadata: { id: "agi_1" }, spec: { agentId: "agt_1" } }),
-      ),
-      getAgent: vi.fn().mockResolvedValue(
-        create(AgentSchema, {
-          metadata: { id: "agt_1", name: "builder" },
-          spec: {
+      getAgentVersion: vi.fn().mockResolvedValue(
+        create(AgentVersionEntrySchema, {
+          versionHash: HASH,
+          specSnapshot: {
             instructions: "You build things.",
             mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }],
             skillRefs: [{ org: "acme", slug: "release" }],
@@ -135,45 +133,50 @@ describe("resolveBlueprint", () => {
     const session = create(SessionSchema, {
       metadata: { id: "ses_1", org: "acme" },
       spec: {
-        agentInstanceId: "agi_1",
+        agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "builder" },
         mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "notes" } }],
       },
     });
 
-    const blueprint = await resolveBlueprint(client, session, undefined);
+    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH });
 
     expect(blueprint.agent?.id).toBe("agt_1");
     expect(blueprint.instructions).toBe("You build things.");
     expect(blueprint.mergedMcpServerUsages.map((u) => u.mcpServerRef?.slug).sort()).toEqual(["github", "notes"]);
     expect(blueprint.mergedSkillRefs.map((r) => r.slug)).toEqual(["release"]);
-    expect(client.getAgentInstance).toHaveBeenCalledWith("agi_1");
-    expect(client.getAgent).toHaveBeenCalledWith("agt_1");
   });
 
-  it("answers the built-in assistant for a session with no instance: no agent read, the session's tools alone", async () => {
-    const client = mockStigmerClient({
-      getAgentInstance: vi.fn().mockRejectedValue(new Error("must not be reached")),
-      getAgent: vi.fn().mockRejectedValue(new Error("must not be reached")),
-    });
-    const session = create(SessionSchema, {
-      metadata: { id: "ses_2", org: "acme" },
-      spec: {
-        agentInstanceId: "",
-        mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "notes" } }],
-        skillRefs: [{ org: "acme", slug: "writing" }],
-      },
-    });
+  it.each([
+    ["an empty stamp", { agentId: "", agentVersionHash: "" }],
+    ["no stamp", undefined],
+  ] as const)(
+    "answers the built-in assistant for %s, even in a session that pins an agent: no agent read, the session's tools alone",
+    async (_label, recorded) => {
+      const client = mockStigmerClient({
+        getAgent: vi.fn().mockRejectedValue(new Error("must not be reached")),
+        getAgentVersion: vi.fn().mockRejectedValue(new Error("must not be reached")),
+      });
+      const session = create(SessionSchema, {
+        metadata: { id: "ses_2", org: "acme" },
+        spec: {
+          agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "builder" },
+          mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "notes" } }],
+          skillRefs: [{ org: "acme", slug: "writing" }],
+        },
+        status: { agentId: "agt_pinned", agentVersionHash: HASH },
+      });
 
-    const blueprint = await resolveBlueprint(client, session, { agentId: "", agentVersionHash: "" });
+      const blueprint = await resolveBlueprint(client, session, recorded);
 
-    expect(blueprint.agent).toBeUndefined();
-    expect(blueprint.instructions).toBe("");
-    expect(blueprint.subAgents).toEqual([]);
-    expect(blueprint.mergedMcpServerUsages.map((u) => u.mcpServerRef?.slug)).toEqual(["notes"]);
-    expect(blueprint.mergedSkillRefs.map((r) => r.slug)).toEqual(["writing"]);
-    expect(client.getAgentInstance).not.toHaveBeenCalled();
-    expect(client.getAgent).not.toHaveBeenCalled();
-  });
+      expect(blueprint.agent).toBeUndefined();
+      expect(blueprint.instructions).toBe("");
+      expect(blueprint.subAgents).toEqual([]);
+      expect(blueprint.mergedMcpServerUsages.map((u) => u.mcpServerRef?.slug)).toEqual(["notes"]);
+      expect(blueprint.mergedSkillRefs.map((r) => r.slug)).toEqual(["writing"]);
+      expect(client.getAgent).not.toHaveBeenCalled();
+      expect(client.getAgentVersion).not.toHaveBeenCalled();
+    },
+  );
 });
 
 function makeRef(slug: string, org = "test-org"): ApiResourceReference {

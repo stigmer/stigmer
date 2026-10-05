@@ -124,14 +124,22 @@ function resolveKeyReader(
       return (resource) =>
         (resource as ResourceShape).metadata?.labels?.[source.label] ?? "";
     case "field": {
-      const localNames = resolveFieldPath(declaration, name, source.path);
+      const steps = resolveFieldPath(declaration, name, source.path);
       return (resource) => {
         let value: unknown = resource;
-        for (const localName of localNames) {
+        for (const step of steps) {
           if (value === null || typeof value !== "object") {
             return "";
           }
-          value = (value as Record<string, unknown>)[localName];
+          value = (value as Record<string, unknown>)[step.localName];
+          if (step.oneofCase !== undefined) {
+            // A oneof member lives under its oneof as { case, value }: it
+            // reads as unset unless the oneof holds this member.
+            const held = value as
+              | { case?: unknown; value?: unknown }
+              | undefined;
+            value = held?.case === step.oneofCase ? held.value : undefined;
+          }
         }
         return typeof value === "string" ? value : "";
       };
@@ -143,14 +151,24 @@ function resolveKeyReader(
   }
 }
 
+/**
+ * One segment of a key's field path as the reader walks it: the property
+ * to read, and for a oneof member the case it must hold (the member is
+ * stored under its oneof's property, not its own).
+ */
+interface FieldStep {
+  readonly localName: string;
+  readonly oneofCase?: string;
+}
+
 function resolveFieldPath(
   declaration: ListIndexDeclaration,
   name: string,
   path: string,
-): ReadonlyArray<string> {
+): ReadonlyArray<FieldStep> {
   const where = `list index for ${apiResourceKindName(declaration.kind)}, key '${name}'`;
   const segments = path.split(".");
-  const localNames: string[] = [];
+  const localNames: FieldStep[] = [];
   let message: DescMessage | undefined = declaration.schema;
   segments.forEach((segment, index) => {
     const found: DescField | undefined = message?.fields.find(
@@ -159,7 +177,11 @@ function resolveFieldPath(
     if (found === undefined) {
       throw new Error(`${where}: '${path}' has no field '${segment}'`);
     }
-    localNames.push(found.localName);
+    localNames.push(
+      found.oneof === undefined
+        ? { localName: found.localName }
+        : { localName: found.oneof.localName, oneofCase: found.localName },
+    );
     const last = index === segments.length - 1;
     if (last) {
       if (found.fieldKind !== "scalar" || found.scalar !== ScalarType.STRING) {

@@ -2,7 +2,8 @@
  * Pins the usage aggregation helpers against Go's usage_aggregation_test.go
  * case-for-case: the OSS zero-value posture (no llm_call_usage_record
  * collection here — every aggregate is structurally valid and zero), the
- * date/org/agent filters, grouping, distinct sets, daily entries, and the
+ * date/org/agent filters (the agent being the one each execution recorded,
+ * status.agent_id), grouping, distinct sets, daily entries, and the
  * top-agents cap.
  */
 import { create } from "@bufbuild/protobuf";
@@ -18,10 +19,14 @@ import {
   buildDailyCostEntries,
   buildExecutionSummary,
   buildSessionSummary,
+  distinctAgentIds,
+  distinctSessionIds,
   earliestStartedAt,
   extractDate,
+  filterByAgentId,
   filterByDateRange,
   filterByOrg,
+  groupByAgentId,
   groupByDate,
   groupBySessionId,
   latestStartedAt,
@@ -39,8 +44,9 @@ function makeExecution(
 ): AgentExecution {
   return create(AgentExecutionSchema, {
     metadata: { id, name: `exec-${id}`, org },
-    spec: { sessionId, agentId },
+    spec: { target: { case: "sessionId", value: sessionId } },
     status: {
+      agentId,
       startedAt,
       completedAt: startedAt,
       phase: ExecutionPhase.EXECUTION_COMPLETED,
@@ -88,7 +94,7 @@ describe("usage aggregation (OSS zero-value posture)", () => {
     expect(filterByDateRange(executions, "", "")).toHaveLength(4);
   });
 
-  it("groupBySessionId groups by spec.session_id", () => {
+  it("groupBySessionId groups by the session each execution belongs to", () => {
     const groups = groupBySessionId([
       makeExecution("e1", "s1", "a1", "org", ""),
       makeExecution("e2", "s1", "a1", "org", ""),
@@ -97,6 +103,22 @@ describe("usage aggregation (OSS zero-value posture)", () => {
     expect(groups.size).toBe(2);
     expect(groups.get("s1")).toHaveLength(2);
     expect(groups.get("s2")).toHaveLength(1);
+  });
+
+  it("the agent filters and groups key on the agent each execution recorded (status.agent_id)", () => {
+    const executions = [
+      makeExecution("e1", "s1", "a1", "org", ""),
+      makeExecution("e2", "s1", "a2", "org", ""),
+      makeExecution("e3", "s2", "a1", "org", ""),
+      makeExecution("e4", "s3", "", "org", ""),
+    ];
+    expect(filterByAgentId(executions, "a1").map((e) => e.metadata?.id)).toEqual(["e1", "e3"]);
+    const groups = groupByAgentId(executions);
+    expect(groups.get("a1")).toHaveLength(2);
+    expect(groups.get("a2")).toHaveLength(1);
+    expect(groups.get("")).toHaveLength(1);
+    expect(distinctAgentIds(executions).sort()).toEqual(["a1", "a2"]);
+    expect(distinctSessionIds(executions).sort()).toEqual(["s1", "s2", "s3"]);
   });
 
   it("groupByDate groups by the YYYY-MM-DD prefix", () => {

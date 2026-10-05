@@ -183,9 +183,8 @@ export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.Platf
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
    * API secret), and minted-user executions receive its values at
-   * runtime, at the lowest priority, so the agent instance's environments
-   * and the request's runtime values win on a key conflict. The agent and
-   * its default instance stay untouched.
+   * runtime, at the lowest priority, so the request's runtime values win on
+   * a key conflict. The agent stays untouched.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10;
    */

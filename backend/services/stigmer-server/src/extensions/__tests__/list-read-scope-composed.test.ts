@@ -166,7 +166,7 @@ describe("list read scope (composed server, fake scope)", () => {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "Session",
           metadata: { id, name: id, org },
-          spec: { agentInstanceId: "ain_01x", subject: id },
+          spec: { subject: id },
           status: {
             audit: {
               specAudit: { createdAt: { seconds: 1_700_000_000n } },
@@ -187,7 +187,7 @@ describe("list read scope (composed server, fake scope)", () => {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "AgentExecution",
           metadata: { id, name: id, org: acmeId },
-          spec: { sessionId: "ses_mine" },
+          spec: { target: { case: "sessionId", value: "ses_mine" } },
           status: {
             audit: {
               specAudit: { createdAt: { seconds: 1_700_000_000n } },

@@ -79,7 +79,9 @@ function args(options: { readonly agentLists?: { tools: string[]; disallowedTool
   const execution = create(AgentExecutionSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: EXECUTION_ID }),
     spec: create(AgentExecutionSpecSchema, {
-      sessionId: "ses_1",
+      target: { case: "sessionId", value: "ses_1" },
+    }),
+    status: create(AgentExecutionStatusSchema, {
       recalledMemories: options.attachments ? create(RecalledMemoriesSchema, { enabled: true }) : undefined,
     }),
   });

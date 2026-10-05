@@ -21,8 +21,6 @@ import {
   ApprovalMode,
   ServiceTier,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { AgentInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/spec_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import {
   AgentShareSpecSchema,
@@ -80,7 +78,6 @@ import {
 import { buildAgentProto, toAgentUpdateInput } from "../gen/agent";
 import { buildAgentChannelProto, toAgentChannelUpdateInput } from "../gen/agentchannel";
 import { buildAgentExecutionProto, toAgentExecutionUpdateInput } from "../gen/agentexecution";
-import { buildAgentInstanceProto, toAgentInstanceUpdateInput } from "../gen/agentinstance";
 import { buildAgentShareProto, toAgentShareUpdateInput } from "../gen/agentshare";
 import { buildApiKeyProto, toApiKeyUpdateInput } from "../gen/apikey";
 import { buildChannelAppProto, toChannelAppUpdateInput } from "../gen/channelapp";
@@ -300,22 +297,23 @@ describe("toAgentExecutionUpdateInput", () => {
     create(AgentExecutionSchema, {
       metadata: META,
       spec: {
-        sessionId: "sess-1",
-        agentId: "agent-1",
-        sessionSpec: {
-          agentInstanceId: "inst-1",
-          subject: "Fix the flaky test",
-          harnessStateId: "hs-1",
-          harnessStateIdHistory: ["hs-0"],
-          metadata: { "stigmer.ai/context": "embedded" },
-          workspaceEntries: WORKSPACE_ENTRIES,
-          mcpServerUsages: [MCP_USAGE],
-          skillRefs: [
-            { org: "acme", slug: "triage", version: "v2", kind: ApiResourceKind.skill },
-          ],
-          harness: Harness.CURSOR,
-          cursorMode: CursorMode.CLOUD,
-          executionTarget: ExecutionTarget.CLOUD,
+        target: {
+          case: "sessionSpec",
+          value: {
+            agentRef: { org: "acme", slug: "fixer", kind: ApiResourceKind.agent },
+            subject: "Fix the flaky test",
+            harnessStateId: "hs-1",
+            harnessStateIdHistory: ["hs-0"],
+            metadata: { "stigmer.ai/context": "embedded" },
+            workspaceEntries: WORKSPACE_ENTRIES,
+            mcpServerUsages: [MCP_USAGE],
+            skillRefs: [
+              { org: "acme", slug: "triage", version: "v2", kind: ApiResourceKind.skill },
+            ],
+            harness: Harness.CURSOR,
+            cursorMode: CursorMode.CLOUD,
+            executionTarget: ExecutionTarget.CLOUD,
+          },
         },
         message: "Please fix it.",
         executionConfig: {
@@ -335,9 +333,7 @@ describe("toAgentExecutionUpdateInput", () => {
           serviceTier: ServiceTier.FAST,
         },
         runtimeEnv: { TOKEN: { value: "shh", isSecret: true } },
-        callbackToken: new Uint8Array([1, 2, 3]),
         autoApproveAll: true,
-        parentWorkflowId: "wf-1",
         attachments: [
           {
             filename: "spec.pdf",
@@ -349,19 +345,15 @@ describe("toAgentExecutionUpdateInput", () => {
           },
         ],
         workspaceFileRefs: ["src/app.ts"],
-        activityTaskQueue: "runner-q",
         supersedesExecutionId: "exec-0",
         conversationCatchup: {
           digest: "Prior turns summarized.",
           windowEnd: timestampFromDate(new Date("2026-08-15T10:00:00Z")),
         },
-        declaredPreferences: {
-          orgContext: "We deploy to us-east-1.",
-          userContext: "Keep answers terse.",
-        },
-        recalledMemories: {
-          enabled: true,
-          facts: [{ memoryId: "mem-1", content: "Prefers tabs." }],
+        parent: {
+          workflowExecutionId: "wfx-1",
+          signalWorkflowId: "wf-1",
+          callbackToken: new Uint8Array([1, 2, 3]),
         },
       },
     });
@@ -378,31 +370,16 @@ describe("toAgentExecutionUpdateInput", () => {
       buildAgentExecutionProto(toAgentExecutionUpdateInput(original)),
     );
   });
-});
 
-describe("toAgentInstanceUpdateInput", () => {
-  const fixture = () =>
-    create(AgentInstanceSchema, {
+  it("round-trips the existing-session arm of the target oneof", () => {
+    const original = create(AgentExecutionSchema, {
       metadata: META,
-      spec: {
-        agentId: "agent-1",
-        description: "Prod instance.",
-        environmentRefs: [
-          { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
-        ],
-      },
+      spec: { target: { case: "sessionId", value: "ses-1" }, message: "Again." },
     });
-
-  it("fixture covers every AgentInstanceSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(AgentInstanceSpecSchema, fixture().spec!);
-  });
-
-  it("round-trips the full spec and metadata through the builder", () => {
-    const original = fixture();
     assertSpecRoundTrip(
-      AgentInstanceSpecSchema,
+      AgentExecutionSpecSchema,
       original,
-      buildAgentInstanceProto(toAgentInstanceUpdateInput(original)),
+      buildAgentExecutionProto(toAgentExecutionUpdateInput(original)),
     );
   });
 });
@@ -831,7 +808,7 @@ describe("toSessionUpdateInput", () => {
     create(SessionSchema, {
       metadata: META,
       spec: {
-        agentInstanceId: "inst-1",
+        agentRef: { org: "acme", slug: "fixer", kind: ApiResourceKind.agent },
         subject: "Fix the flaky test",
         harnessStateId: "hs-1",
         harnessStateIdHistory: ["hs-0"],

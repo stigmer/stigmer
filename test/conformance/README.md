@@ -41,8 +41,8 @@ Covered against the `local` target:
   stays as defence in depth, pinned by the runner's unit tests.
 - **Agent** and **McpServer** — flat (non-versioned) agentic blueprints (CRUD &
   identity, apply create/update branching, slug semantics, `getByReference`
-  resolution, default-instance provisioning for Agent, and Layer-1 protovalidate
-  negatives). The Agent suite also proves the cross-aggregate
+  resolution, and Layer-1 protovalidate negatives). An agent is run directly:
+  creating one provisions nothing beside it. The Agent suite also proves the cross-aggregate
   **Agent -> McpServer reference invariant** (`ValidateReferencesStep`): an
   agent referencing an existing McpServer is accepted with its reference org
   normalized, and one referencing a missing McpServer is rejected with
@@ -86,15 +86,25 @@ Covered against the `local` target:
   *envmerge precedence* that populates `spec.data` at execution start is out of
   scope here (it needs a live execution) and is covered by the execution-lifecycle
   slice.
-- **Session** — the runtime conversation thread that runs against an AgentInstance.
-  Coverage: CRUD & identity (`ses_` id, slug derivation, apply create/update
-  branching, update field preservation, cross-org slug reuse); the configuration
+- **Session** — the runtime conversation thread, on the agent it names by
+  reference (`spec.agent_ref`) or on the built-in assistant. Coverage: CRUD &
+  identity (`ses_` id, slug derivation, apply create/update branching, update
+  field preservation, cross-org slug reuse); the agent pin (the server writes
+  the agent and exact version the reference resolves to on
+  `status.agent_id`/`status.agent_version_hash`: a tag or a hash pins what it
+  names, `latest` on update re-pins to the current version and stores no
+  version, an update echoing the stored reference keeps the pin, a
+  client-sent status never survives); the reference rule on create and
+  update (another organization's agent or skill only at platform
+  visibility, an update judged on what it introduces); the configuration
   fields (an omitted `harness` is stored as `UNSPECIFIED` — the "defaults to NATIVE"
   semantic is applied at execution dispatch, not at create — while an explicit
   `harness`/`execution_target` round-trips); the field-level **`updateSubject`**
   contract (only `spec.subject` changes, every other field is preserved); the
-  queries `list` and **`listByAgentInstance`** (filters `spec.agent_instance_id`
-  by the request's `agent_instance_id`); and spec-first negatives. Session has **no
+  queries `list` and **`listByAgent`** (the sessions whose `status.agent_id`
+  is the request's `agent_id`, whichever version each runs); and spec-first
+  negatives. Who may name or change a session's agent, and add a turn to it,
+  is the run-gate suite's. Session has **no
   Temporal involvement**, so the lifecycle-bound behaviors it only gates — the
   `harness_state_id` sentinel and the `harness`/`execution_target` immutability it
   enables once an execution has run, plus the runtime merge of session-level
@@ -635,9 +645,12 @@ IN_PROGRESS, the lever for the cancel/terminate/pause/resume happy paths (the
 agent analogue of the `wait` timer). It asserts the engine-present contract and
 encodes AgentExecution's divergences from WorkflowExecution — **no `AlreadyExists`
 on create** (repeated identical creates yield distinct `aex_` ids), the query
-analogue is **`listBySession`**, and a create with **neither `session_id` nor
-`agent_id`** is the **built-in assistant**: the server creates a session with no
-agent and the run completes on the runner's one built-in prompt. The two
+analogue is **`listBySession`**, and a create with **no `target`** (neither a
+`session_id` nor a `session_spec`) is the **built-in assistant**: the server
+creates a session with no agent and the run completes on the runner's one
+built-in prompt. A turn on an agent starts its conversation with
+`session_spec.agent_ref`; the server records the agent and version the turn
+runs on its status. The two
 execution domains share one enum-agnostic poll core (`support/execution-poll.ts`).
 
 `agentexecution-approval.conformance.test.ts` adds the **HITL tool-approval**

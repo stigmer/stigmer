@@ -1,3 +1,11 @@
+/**
+ * The call:agent task builder (`tasks/call-agent.ts`): config expression
+ * evaluation, the hand-off to `ctx.callAgent` (the task's name only; the
+ * ids that link the child to the run are the engine's own, never workflow
+ * data), output-contract validation and retries, and the event bracketing
+ * around each call.
+ */
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { CallAgentTaskBuilder } from "../../tasks/call-agent.js";
 import { createState } from "../../state.js";
@@ -49,7 +57,6 @@ describe("CallAgentTaskBuilder", () => {
     const builder = new CallAgentTaskBuilder("reviewCode", taskDef);
     const executor = builder.build();
     const state = createState();
-    state.data["__stigmer_execution_id"] = "wex-456";
 
     const output = await executor({}, state, makeCtx());
 
@@ -57,9 +64,27 @@ describe("CallAgentTaskBuilder", () => {
     const [config, _env, metadata] = mockCallAgent.mock.calls[0];
     expect(config.agent).toBe("code-reviewer");
     expect(config.message).toBe("Review this code");
-    expect(metadata.taskName).toBe("reviewCode");
-    expect(metadata.workflowExecutionId).toBe("wex-456");
+    expect(metadata).toEqual({ taskName: "reviewCode" });
     expect(output).toEqual(result);
+  });
+
+  it("hands over no link ids, whatever the workflow data carries", async () => {
+    mockCallAgent.mockResolvedValue({ final_text: "done" });
+
+    const taskDef: CallAgentTaskDef = {
+      kind: "call:agent",
+      call: "agent",
+      with: { agent: "code-reviewer", message: "Review this code" },
+    };
+
+    const state = createState();
+    state.data["__stigmer_execution_id"] = "wex_forged";
+    state.data["__stigmer_parent_workflow_id"] = "wf_forged";
+
+    await new CallAgentTaskBuilder("reviewCode", taskDef).build()({}, state, makeCtx());
+
+    const [, , metadata] = mockCallAgent.mock.calls[0];
+    expect(metadata).toEqual({ taskName: "reviewCode" });
   });
 
   it("evaluates jq expressions in message", async () => {

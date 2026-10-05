@@ -7,48 +7,6 @@ description: Hooks for session lifecycle, message history, conversation state, a
 
 ## Hooks
 
-### useAgentRefFromSession
-
-Derives an `ResourceRef` for the agent used by a session,
-given the session's `agentInstanceId`.
-
-Chains two lookups:
-1. `agentInstance.get(instanceId)` → `spec.agentId`
-2. `agent.get(agentId)` → `metadata.org` + `metadata.slug`
-
-Pass `null` or empty string to skip (stable no-op). The hook
-re-derives when `instanceId` changes and discards stale in-flight
-requests via cancellation.
-
-**Signature**
-
-```tsx
-function useAgentRefFromSession(instanceId: string | null | undefined): UseAgentRefFromSessionReturn
-```
-
-<TypeTable
-  type={{
-    instanceId: { type: "string | null | undefined", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UseAgentRefFromSessionReturn`
-
-<TypeTable
-  type={{
-    agentRef: { type: "ResourceRef | null", description: "Resolved agent reference, or `null` while loading or on error." },
-    error: { type: "Error | null", description: "Error from the last failed lookup, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the chained lookups are in flight." },
-  }}
-/>
-
-```tsx
-const { agentRef, isLoading } = useAgentRefFromSession(
-  session?.spec?.agentInstanceId ?? null,
-);
-```
-
-
 ### useCreateSession
 
 Behavior hook that wraps `session.create()` with loading/error state.
@@ -56,13 +14,8 @@ Behavior hook that wraps `session.create()` with loading/error state.
 Creates a Session — the conversation context that holds workspace
 entries, thread state, and sandbox references.
 
-Exactly one agent resolution strategy must be provided:
-
-1. **`agentInstanceId`** — Use a pre-provisioned instance directly.
-   Typical for platform builders who manage instances programmatically.
-2. **`agentRef`** — Resolve the agent's default instance via
-   `agent.getByReference()`. Useful when you know the agent slug
-   but not the instance ID.
+The session names its agent directly (`spec.agentRef`); the server
+resolves it and pins the version on `status`.
 
 This hook maps 1:1 to the Session aggregate. To start the first
 execution within the session, compose with [`useCreateAgentExecution`](/docs/sdk/react/execution#usecreateagentexecution).
@@ -85,13 +38,6 @@ function useCreateSession(): UseCreateSessionReturn
 />
 
 ```tsx
-// Platform builder: pre-provisioned instance
-const { create } = useCreateSession();
-await create({ org: "acme", agentInstanceId: "inst-abc123" });
-```
-
-```tsx
-// Agent reference: resolves to the agent's default instance
 const { create } = useCreateSession();
 await create({
   org: "acme",
@@ -184,7 +130,7 @@ function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlow
     isSubmitting: { type: "boolean", description: "`true` while the create session + execution flow is in flight." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "Active MCP server configurations." },
     modelId: { type: "string | undefined", description: "The model an untouched send will run: the explicit device pick when one exists (persisted per-harness to localStorage), else the account default for the active harness. `undefined` resolves to the harness default downstream." },
-    resolution: { type: "AgentResolution | null", description: "Current agent resolution state (saved instance vs direct reference)." },
+    resolution: { type: "AgentResolution | null", description: "How the selected agent's declared keys are supplied, or `null` with no agent." },
     sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables (per-execution secrets) manager.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
     setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the selected agent reference." },
     setAutoApproveAll: { type: "(value: boolean) => void", description: "Set the user's explicit auto-approve choice for the created session." },
@@ -349,6 +295,51 @@ const { session } = useSession(sessionId ?? null);
 ```
 
 
+### useSessionAgentVersion
+
+Reads the agent version `session` pins against its agent's current
+version. See the module header for the rules.
+
+**Signature**
+
+```tsx
+function useSessionAgentVersion(session: Session | null, options: UseSessionAgentVersionOptions): UseSessionAgentVersionReturn
+```
+
+<TypeTable
+  type={{
+    session: { type: "Session | null", description: "", required: true },
+    options: { type: "UseSessionAgentVersionOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseSessionAgentVersionReturn`
+
+<TypeTable
+  type={{
+    agentName: { type: "string", description: "The agent's display name (its name, else its slug); `\"\"` until it loads." },
+    currentHash: { type: "string", description: "The agent's current version; `\"\"` until the agent loads, or when it cannot be read." },
+    currentPersonalKeys: { type: "readonly string[]", description: "The keys the agent's current version reads from the person's personal environment (usePersonalKeys: its declared keys, minus its servers' OAuth variables, and none for an agent of another organization than the session's), sorted: what an update hands the agent. Empty while the conversation is current (no update to name them for), and until the agent and its servers load." },
+    isOutdated: { type: "boolean", description: "`true` when the pin and the agent's current version are both known and differ: the conversation runs an older version than the agent's author last saved." },
+    isUpdating: { type: "boolean", description: "`true` while update is in flight." },
+    labelOf: { type: "(versionHash: string) => string", description: "How a version hash reads: its tag when it has one, else a short hash." },
+    pinnedHash: { type: "string", description: "The version the session pins; `\"\"` when it names no agent or has not loaded." },
+    update: { type: "() => Promise<void>", description: "Move the conversation to the agent's current version. Never rejects; failures land in updateError." },
+    updateError: { type: "Error | null", description: "Error from the last update, or `null`." },
+  }}
+/>
+
+```tsx
+const version = useSessionAgentVersion(conv.session, {
+  enabled: true,
+  moveToCurrentVersion: conv.moveToCurrentAgentVersion,
+});
+if (version.isOutdated) {
+  return <button onClick={version.update}>Update</button>;
+}
+```
+
+
 ### useSessionArtifacts
 
 Pure derivation hook that aggregates artifacts across all executions
@@ -466,6 +457,7 @@ function useSessionConversation(sessionId: string | null, org: string): UseSessi
     isStreaming: { type: "boolean", description: "True while the active execution's stream is delivering updates." },
     loadError: { type: "Error | null", description: "Error from session or execution list loading, or `null` when healthy." },
     mcpServerUsages: { type: "readonly McpServerUsage[]", description: "Current MCP server usages from the session spec. Empty array when session is not loaded." },
+    moveToCurrentAgentVersion: { type: "() => Promise<void>", description: "Move the conversation to its agent's current version: the session's agent reference is written back with `version: \"latest\"`, which the server resolves to the version the agent's author last saved and pins there, then the session is read again. The one way a conversation's agent version changes; nothing else this hook does moves it. Rejects with the update's error, and does nothing for a session that names no agent." },
     org: { type: "string", description: "The organization this conversation's turns are filed under: the session's own (`session.metadata.org`) once it has loaded, the `org` argument until then. A turn in a session belongs to that session's organization, and the server refuses any other (stigmer/stigmer#1580), so every org-scoped control of a session surface reads this value rather than the caller's active organization." },
     pendingApprovals: { type: "readonly PendingApproval[]", description: "Pending approval requests from the active execution, empty when none." },
     pendingAttachments: { type: "readonly AttachmentInput[] | null", description: "The attachments submitted with pendingUserMessage, so the optimistic bubble shows the turn's files, not just its text (stigmer/stigmer#372). Set and cleared in lockstep with the message — including retention on a failed send, where the chips are the evidence of what Retry will re-send. Wire to `MessageThread.pendingAttachments`." },
@@ -473,7 +465,7 @@ function useSessionConversation(sessionId: string | null, org: string): UseSessi
     reconnectStream: { type: "() => void", description: "Reset the stream error and re-establish the execution stream subscription." },
     retryLastSend: { type: "() => void", description: "Re-send the most recent `sendFollowUp` (same message and options). No-op when nothing has been sent yet. Use as the \"Retry\" affordance on a failed turn; clears sendError for the new attempt." },
     sendError: { type: "Error | null", description: "Error from the last `sendFollowUp` attempt, or `null`.  Covers **both** failing paths — the optional `session.update()` and the `create()` RPC — so a follow-up never fails silently. When set, the user's message is preserved (see pendingUserMessage) and can be re-sent via retryLastSend." },
-    sendFollowUp: { type: "(message: string, options?: SendFollowUpOptions) => Promise<void>", description: "Submit a follow-up message. Internally creates an execution and starts streaming it.  When session-level fields (`agentInstanceId`, `workspaceEntries`, `mcpServerUsages`, `skillRefs`) are provided in options, the session is updated via `session.update()` before creating the execution." },
+    sendFollowUp: { type: "(message: string, options?: SendFollowUpOptions) => Promise<void>", description: "Submit a follow-up message. Internally creates an execution and starts streaming it.  When session-level fields (`agentRef`, `workspaceEntries`, `mcpServerUsages`, `skillRefs`) are provided in options, the session is updated via `session.update()` before creating the execution." },
     session: { type: "Session | null", description: "The session object, or null while loading." },
     skillRefs: { type: "readonly ApiResourceReference[]", description: "Current skill references from the session spec. Empty array when session is not loaded." },
     stop: { type: "(reason?: string) => Promise<void>", description: "Stop the active execution, with progressive escalation: the first call gracefully cancels; a repeat call (because the run is still winding down) forcefully terminates. No-op when nothing is isStoppable." },
@@ -711,9 +703,10 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
 <TypeTable
   type={{
     agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference (derived from session, or overridden by user); `null` is the built-in assistant." },
+    agentVersion: { type: "UseSessionAgentVersionReturn", description: "The agent version this conversation runs against the version its agent is at now, with the explicit act that moves the conversation to the current one. Nothing else in this flow changes the version: a follow-up that rewrites the session keeps its pin. Inert for guests.", typeDescriptionLink: "#usesessionagentversionreturn" },
     allExecutions: { type: "readonly AgentExecution[]", description: "All executions for widget display (completed + active stream)." },
     autoApproveAll: { type: "boolean", description: "Session-scoped \"auto-approve tool calls\" state (stigmer/stigmer#816).  `false` by default. `true` when any of its sources arms it — the user's explicit choice always winning:  1. the user's Config facet switch (setAutoApproveAll); 2. \"Approve & don't ask again\" at an approval gate (see    submitApproval); 3. the account's `default_auto_approve` preference    (`UseSessionPageFlowOptions.accountDefaults`, guests excluded); 4. the host's app-wide `StigmerProvider` `approvalDefaults` (#302,    guests excluded); 5. the active in-flight execution having been created with    `spec.auto_approve_all` (e.g. armed on the new-session surface), so    the state survives the launcher → session-page handoff.  While `true`, follow-ups carry `auto_approve_all` (handleSubmit) and gates appearing in the in-flight run are auto-released (never for guest/observer/channel-origin surfaces). The explicit per-session flip is held in memory only — reset on reload back to the seeds; the account preference is the one persisted default, declared by the user in Account Preferences." },
-    clearAgent: { type: "() => void", description: "Drop the session's agent: the next follow-up rebinds the session to the built-in assistant (an empty `agentInstanceId` on the wire), so the conversation continues without an agent rather than only looking as if it had. Picking an agent again undoes it." },
+    clearAgent: { type: "() => void", description: "Drop the session's agent: the next follow-up rebinds the session to the built-in assistant (no `agentRef` on the wire), so the conversation continues without an agent rather than only looking as if it had. Picking an agent again undoes it." },
     conv: { type: "UseSessionConversationReturn", description: "Full conversation state from `useSessionConversation`.", typeDescriptionLink: "#usesessionconversationreturn" },
     displayExecution: { type: "AgentExecution | null", description: "The most relevant execution for sidebar display — the active streaming execution, or the last completed one." },
     executionTarget: { type: "ExecutionTargetOption | undefined", description: "Where session activities execute (read-only, derived from session spec).  `\"local\"` when the client's embedded runner handles activities, `\"cloud\"` when the server provisions a sandbox, or `undefined` when the server decides (UNSPECIFIED)." },
@@ -1072,6 +1065,24 @@ const surfaceEntries = useWorkspaceReadRefs(flow.allExecutions, flow.workspace.e
 
 ## Components
 
+### AgentVersionNotice
+
+"This conversation runs an older version of \<agent>." with an Update
+control.
+
+**Props** — `AgentVersionNoticeProps`
+
+<TypeTable
+  type={{
+    agentName: { type: "string", description: "The agent's display name, as the notice names it.", required: true },
+    error: { type: "Error | null", description: "The last update's failure, shown beside the control." },
+    isUpdating: { type: "boolean", description: "`true` while the update is in flight; the control is disabled." },
+    onUpdate: { type: "() => void", description: "Moves the conversation to the agent's current version.", required: true },
+    personalKeys: { type: "readonly string[]", description: "The keys the current version reads from the person's personal environment; named beside the control when there are any." },
+  }}
+/>
+
+
 ### NewSessionViewer
 
 Full-featured new-session launcher organism — the pre-session analog
@@ -1093,7 +1104,7 @@ apps inject platform-specific values via props.
 <TypeTable
   type={{
     accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults, typically from `useAccountExecutionDefaults()`. Seeds the harness and model pickers under the layered precedence documented on UseNewSessionFlowOptions.accountDefaults; explicit device picks always win. Ignored for the `\"guest\"` audience.", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
-    audience: { type: "SessionAudience", description: "Presentation audience for the launcher. `\"endUser\"` locks the pinned agent (when `initialAgentRef` is set) and hides the MCP server, skill, and session-variable pickers — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, harness selector, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/harness/mode pickers, attachments, the workspace picker, and the session panel, binds the session to `initialAgentRef` + `initialInstanceId` without any picker machinery, and skips the org-level reads a guest principal cannot make. Requires both `initialAgentRef` and `initialInstanceId` — a guest launcher never falls back to the org default agent.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
+    audience: { type: "SessionAudience", description: "Presentation audience for the launcher. `\"endUser\"` locks the pinned agent (when `initialAgentRef` is set) and hides the MCP server, skill, and session-variable pickers — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, harness selector, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/harness/mode pickers, attachments, the workspace picker, and the session panel, binds the session to `initialAgentRef` (version included) without any picker machinery, and skips the org-level reads a guest principal cannot make. Requires `initialAgentRef` — a guest launcher never falls back to the built-in assistant.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     autoFocus: { type: "boolean", description: "Auto-focus the textarea on mount." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultHarness: { type: "HarnessOption", description: "Harness pre-selected for new sessions when the user has not made an explicit choice yet. The user can still switch before starting the session, and their explicit choice wins on subsequent visits.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
@@ -1104,9 +1115,8 @@ apps inject platform-specific values via props.
     getRuntimeEnv: { type: "RuntimeEnvProvider", description: "Supplies host-app environment variables for the session's first execution (e.g. short-lived credentials for MCP tools, minted as the signed-in user). Evaluated at submit time, before the session is created; host values win over composer-collected env on key collisions. If the provider throws, the submission fails with an error surfaced via `onError` — see RuntimeEnvProvider.", typeDescriptionLink: "#runtimeenvprovider" },
     gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state for the workspace repo picker. Platform-specific — web passes `useGitHubConnection(org)`, desktop omits it.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
     heading: { type: "string", description: "Heading text above the composer." },
-    initialAgentRef: { type: "ResourceRef", description: "Agent to auto-select on mount (used for draft flows)." },
+    initialAgentRef: { type: "ResourceRef", description: "Agent to auto-select on mount (used for draft flows and the agent detail page's \"Start session\"). The conversation starts on this reference; a version it names is the version the session pins." },
     initialAttachments: { type: "File[]", description: "Files to auto-attach on mount (used for edit flows)." },
-    initialInstanceId: { type: "string", description: "Pre-bind the new session to a specific `AgentInstance` on mount.  Requires `initialAgentRef`. When both are set, the session is created against this exact configured deployment (the env-collection flow is skipped because the instance already binds its environment). Powers the \"Start session\" action on the Agent detail page's Instances tab." },
     initialRows: { type: "number", description: "Initial number of visible textarea rows." },
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments. Desktop supplies this via Tauri's dialog plugin." },
     onError: { type: "(message: string) => void", description: "Called on error (for toast notifications or other UI feedback)." },
@@ -1245,7 +1255,7 @@ apps inject platform-specific values via props.
   type={{
     accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton` with its own permission gating). Rendered inside the panel's Config facet rather than the header — access is session configuration, not a moment-to-moment action (slot injection)." },
     accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults, typically from `useAccountExecutionDefaults()` — same seam as `NewSessionViewer.accountDefaults`. On the session page only the `autoApprove` default applies: it seeds the session-scoped auto-approve state so a declared `default_auto_approve` preference covers follow-ups on existing sessions too. An explicit flip of the Config facet's switch wins for this session. Ignored for the `\"guest\"` audience.", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
-    audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the MCP server, skill, and session-variable configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/mode pickers, attachments, the workspace picker, and the session panel, and skips the org-level reads a guest principal cannot make — follow-ups simply continue on the session's bound agent instance.  `\"observer\"` is a read-only transcript: no composer, no approval/edit/retry/build affordances, no access management. The viewer also self-selects observer for channel-originated sessions (the `stigmer.ai/channel-id` label) regardless of this prop, since channel viewers hold `can_view` only.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
+    audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the MCP server, skill, and session-variable configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/mode pickers, attachments, the workspace picker, and the session panel, and skips the org-level reads a guest principal cannot make — follow-ups simply continue on the agent and version the session pinned.  `\"observer\"` is a read-only transcript: no composer, no approval/edit/retry/build affordances, no access management. The viewer also self-selects observer for channel-originated sessions (the `stigmer.ai/channel-id` label) regardless of this prop, since channel viewers hold `can_view` only.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultPanelOpen: { type: "boolean", description: "Initial open state of the session panel in uncontrolled mode — a docking host that wants the workspace visible from the first paint passes `true`. Ignored when SessionViewerProps.panelOpen is provided." },
     enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace features in the composer." },
@@ -1395,6 +1405,16 @@ offering it to every audience adds convenience, not exposure.
 
 ## Types
 
+### agentRefOfSession
+
+The agent `session` names, or `null` when it names none (the built-in
+assistant) or has not loaded.
+
+```tsx
+function agentRefOfSession(session: Pick<Session, "spec"> | null | undefined): ResourceRef | null
+```
+
+
 ### artifactKey
 
 The stable identity of an artifact within a session. Uses `sandbox_path`
@@ -1439,17 +1459,30 @@ function channelSessionExternalUserKey(session: Session | null | undefined): str
 
 ### CreateSessionInput
 
-Input for creating a session. At most one agent resolution strategy is
-provided:
+Input for creating a session: the agent the conversation runs, or none.
 
-- **`agentInstanceId`** — Use a pre-provisioned AgentInstance directly.
-- **`agentRef`** — Resolve the agent's default instance via
-  `agent.getByReference()`.
-- **neither** — The session runs the built-in assistant: no agent is
+- **`agentRef`** — The conversation runs this agent. The server pins the
+  version the reference names: the agent's current version when it
+  names none, so later saves by the agent's author never change the
+  conversation until someone moves it on.
+- **omitted** — The session runs the built-in assistant: no agent is
   bound, and the runner answers with the one built-in prompt and the
   MCP servers and skills the session itself carries.
 
-Providing both is a type error.
+<TypeTable
+  type={{
+    agentRef: { type: "ResourceRef", description: "The agent the conversation runs; omit for the built-in assistant." },
+    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities are executed.  - `\"local\"` — Client's embedded runner (desktop app or CLI) polls   the session's task queue. - `\"cloud\"` — Server provisions a cloud sandbox with a runner. - `undefined` — Server decides based on deployment context   (LOCAL for OSS, CLOUD for managed).  Immutable after the first execution runs.", typeDescriptionLink: "#executiontargetoption" },
+    harness: { type: "HarnessOption", description: "Execution harness for this session.  Determines which execution engine processes agent activities. Immutable after the first execution runs. Defaults to `\"native\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
+    metadata: { type: "Record<string, string>", description: "Custom key-value pairs stored on `SessionSpec.metadata`.  A passthrough for embedder-owned keys (correlation IDs, tenant tags) and for platform-reserved `stigmer.ai/*` keys set explicitly. For the common case — standing user context injected into the agent's prompt — prefer the typed sessionContext field, which maps onto the reserved `stigmer.ai/session-context` key and wins over a raw entry under that key when both are provided." },
+    org: { type: "string", description: "Organization id for the new session (a slug is also accepted).", required: true },
+    sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in `runtimeEnv` or Environment resources. Large values bloat every prompt." },
+    skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for executions in this session." },
+    subject: { type: "string", description: "Initial conversation subject (defaults to `PENDING_SUBJECT`)." },
+    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace source entries to attach to the session." },
+  }}
+/>
 
 
 ### CreateSessionResult
@@ -1547,6 +1580,15 @@ read-only without host wiring.
 
 ```tsx
 function isChannelOriginSession(session: Session | null | undefined): boolean
+```
+
+
+### isSameAgent
+
+Whether two references name the same agent (organization and slug).
+
+```tsx
+function isSameAgent(a: ResourceRef | null | undefined, b: ResourceRef | null | undefined): boolean
 ```
 
 
@@ -1673,14 +1715,14 @@ values are scoped to the single execution and deleted on completion.
 
 <TypeTable
   type={{
-    agentInstanceId: { type: "string", description: "Override the session's agent instance for this and all future executions. When provided, the session is updated before the execution is created." },
+    agentRef: { type: "ResourceRef | null", description: "Move the conversation to another agent for this and all future executions: a reference rebinds the session to that agent (the server pins the version the reference names, the agent's current one when it names none), `null` returns it to the built-in assistant, and `undefined` leaves the session's agent alone. When provided, the session is updated before the execution is created." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments for this execution.  Each entry must include a `storageKey` from `agentExecution.uploadAttachment()`. Forwarded directly to execution creation." },
     autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this execution (bypass the HITL gate)." },
     buildFromPlan: { type: "boolean", description: "Marks this execution as a Build-from-plan turn." },
     interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this execution.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     modelName: { type: "string", description: "LLM model name to use for this execution. Overrides the session default." },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They take the highest merge priority, overriding Environment values bound via the instance. Keys must be declared in the agent's env declarations (a whitelist, not a value source) or they are dropped." },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They take the highest merge priority, overriding every environment layer. Keys must be declared in the agent's env declarations (a whitelist, not a value source) or they are dropped." },
     serviceTier: { type: "ServiceTierOption", description: "Service tier for this execution's model calls (stigmer/stigmer#357).  Only set when the user actively selected `\"fast\"`; `undefined` preserves the unspecified-vs-explicit distinction (unset resolves to standard on the platform side — never the provider account default)." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for this execution." },
     supersedesExecutionId: { type: "string", description: "ID of the execution this follow-up supersedes (edit-and-resubmit).  The conversation read model hides the superseded execution so the edited message replaces the original in place." },
@@ -1979,6 +2021,18 @@ Options for [`usePersistedModel`](#usepersistedmodel).
 Return value of [`usePersistedModel`](#usepersistedmodel).
 
 
+### UseSessionAgentVersionOptions
+
+Options for [`useSessionAgentVersion`](#usesessionagentversion).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "Whether to read the agent at all. `false` (the guest audience, whose token cannot read the agent) reports an agent-less, never-outdated state and makes no request.", required: true },
+    moveToCurrentVersion: { type: "() => Promise<void>", description: "Moves the session to its agent's current version and reads it again; `useSessionConversation`'s `moveToCurrentAgentVersion`.", required: true },
+  }}
+/>
+
+
 ### UseSessionListOptions
 
 Options for [`useSessionList`](#usesessionlist).
@@ -1999,7 +2053,7 @@ Options for [`useSessionPageFlow`](#usesessionpageflow).
 <TypeTable
   type={{
     accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults, typically from `useAccountExecutionDefaults()`. On the session page only `autoApprove` applies — it seeds the session-scoped auto-approve state so a user whose `default_auto_approve` preference is ON gets armed follow-ups on every session, not just newly created ones. An explicit in-session flip always wins for this session; the seed may arrive after mount (whoAmI resolves async) and still applies, being part of the derivation rather than an initializer. Ignored for the `\"guest\"` audience (guests inherit no identity-derived preference).", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
-    audience: { type: "SessionAudience", description: "Who this flow serves. `\"guest\"` adapts the orchestration to the guest principal's permission model: the session→agent derivation (`agentInstance.get` → `agent.get`), a read a guest token cannot make, is skipped. Follow-ups then carry no agent override and simply continue on the session's bound instance, which is exactly right for a shared-agent page. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
+    audience: { type: "SessionAudience", description: "Who this flow serves. `\"guest\"` adapts the orchestration to the guest principal's permission model: the agent reads behind the version state (a read a guest token cannot make) are skipped, and follow-ups carry no agent override, so they simply continue on the agent and version the session pinned, which is exactly right for a shared-agent page. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     getRuntimeEnv: { type: "RuntimeEnvProvider", description: "Supplies host-app environment variables for every follow-up execution. Evaluated once per follow-up, at send time, so short-lived credentials stay fresh.  Host values win over composer-collected env on key collisions. If the provider throws, the follow-up is aborted before any optimistic UI or session mutation and the error surfaces via UseSessionPageFlowReturn.submitError. See RuntimeEnvProvider.", typeDescriptionLink: "#runtimeenvprovider" },
     org: { type: "string", description: "Organization id (a slug is also accepted).", required: true },
     runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for every follow-up on this surface (stigmer/stigmer#664). Stamped at submit — after the composer, so it wins over composer state, the persisted Console preference, and the last execution's model — and therefore also covers retries, which re-enter the same submit path. Ignored for the `\"guest\"` audience (the server-side share policy owns guest execution config). See SessionRunConfig.", typeDescriptionLink: "#sessionrunconfig" },

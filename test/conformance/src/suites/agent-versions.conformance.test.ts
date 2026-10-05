@@ -19,8 +19,12 @@
 // - tagVersion moves a tag and clears its prior holder (behind the
 //   versionTagging capability, the workflow arms' posture);
 // - a deleted agent's history is gone with it;
-// - a schedule whose agent reference names a version is refused: a schedule
-//   runs the agent's current version;
+// - every surface that starts a conversation honours the version its agent
+//   reference names: a schedule and a channel store it, and a share hands
+//   it to the hosted page on its profile; a session started on that
+//   reference (what a channel or a share does for each conversation) pins
+//   the version it names, not the current one. A schedule's fire on it is
+//   the execution suite's (schedule-firing);
 // - a version whose tag moved reports the tag it holds now, for an agent, a
 //   workflow and a skill alike; an unchanged re-apply naming a new tag moves
 //   it to the head, and a repoint naming no tag shows the tag the version
@@ -30,9 +34,12 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { AGENT_API_VERSION, AGENT_KIND, makeAgent, makeAgentSpec } from "../support/agents";
+import { AGENT_API_VERSION, AGENT_KIND, agentRefOf, makeAgent, makeAgentSpec } from "../support/agents";
+import { makeSlackAgentChannel } from "../support/agentchannels";
+import { makeAgentShare } from "../support/agentshares";
 import { uniqueName } from "../support/naming";
 import { makeSchedule } from "../support/schedules";
+import { makeSession } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
 import { makeWorkflow } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
@@ -240,14 +247,75 @@ describe("Agent versions — tags", () => {
 });
 
 describe("Agent versions — run surfaces", () => {
-  it("[rpc:ScheduleCommandController.create] a schedule whose agent reference names a version is refused: a schedule runs the current version", async () => {
-    const { org } = await target.provisionTenancy();
-    const agent = await applyAgent(org, uniqueName("agent"), "v1");
-    const schedule = makeSchedule(org, uniqueName("schedule"), agent.metadata!.slug);
-    const invocation = schedule.spec!.target!.value as { agentRef: { version?: string } };
-    invocation.agentRef.version = agent.status!.versionHash;
+  // Each arm saves v1 under the tag `stable`, then v2 as the current
+  // version, so a surface that ignored the version would land on v2.
+  async function taggedAgent(org: string) {
+    const name = uniqueName("agent");
+    const v1 = await applyAgent(org, name, "v1", { tag: "stable" });
+    const v2 = await applyAgent(org, name, "v2");
+    expect(v2.status?.versionHash, "the author's save is a new version").not.toBe(v1.status?.versionHash);
+    return { v1, v2 };
+  }
 
-    await expectGrpcCode(() => clients.scheduleCommand.create(schedule), Code.InvalidArgument, "a versioned agent reference");
+  async function pinOfSessionOn(org: string, agentRef: { org: string; slug: string; version: string }) {
+    const session = await clients.sessionCommand.create(makeSession({ org, name: uniqueName("session"), agentRef }));
+    fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }).catch(() => undefined));
+    return session.status?.agentVersionHash;
+  }
+
+  it("[rpc:ScheduleCommandController.create] a schedule whose agent reference names a version is accepted and keeps it", async () => {
+    const { org } = await target.provisionTenancy();
+    const { v1 } = await taggedAgent(org);
+    const schedule = makeSchedule(org, uniqueName("schedule"), v1.metadata!.slug);
+    const invocation = schedule.spec!.target!.value as { agentRef: { version?: string } };
+    invocation.agentRef.version = v1.status!.versionHash;
+
+    const created = await clients.scheduleCommand.create(schedule);
+    fixtures.defer(() => clients.scheduleCommand.delete({ value: created.metadata!.id }));
+
+    const invoked = created.spec?.target;
+    expect(invoked?.case).toBe("agent");
+    expect(invoked?.case === "agent" ? invoked.value.agentRef?.version : undefined).toBe(v1.status?.versionHash);
+  });
+
+  it("[rpc:AgentChannelCommandController.create] a channel whose agent reference names a version keeps it, and a conversation started on it pins that version", async () => {
+    const { org } = await target.provisionTenancy();
+    const { v1 } = await taggedAgent(org);
+
+    const channel = await clients.agentChannelCommand.create(
+      makeSlackAgentChannel(org, uniqueName("channel"), v1.metadata!.slug, { agentRefVersion: "stable" }),
+    );
+    fixtures.defer(() => clients.agentChannelCommand.delete({ value: channel.metadata!.id }));
+    const stored = channel.spec?.agentRef;
+    expect(stored?.version).toBe("stable");
+
+    expect(await pinOfSessionOn(org, { org: stored!.org, slug: stored!.slug, version: stored!.version })).toBe(
+      v1.status?.versionHash,
+    );
+  });
+
+  it("[rpc:AgentShareCommandController.create] [rpc:AgentShareQueryController.getSharedProfile] a share whose agent reference names a version hands it to the hosted page, and a conversation started on it pins that version", async () => {
+    const { org } = await target.provisionTenancy();
+    const { v1 } = await taggedAgent(org);
+
+    const share = await clients.agentShareCommand.create(
+      makeAgentShare(org, v1.metadata!.slug, { agentRefVersion: "stable" }),
+    );
+    fixtures.defer(() => clients.agentShareCommand.delete({ value: share.metadata!.id }));
+    const profile = await clients.agentShareQuery.getSharedProfile({ shareId: share.metadata!.id });
+    const ref = profile.agentRef;
+    expect(ref?.version, "the profile carries the share's version").toBe("stable");
+
+    expect(await pinOfSessionOn(org, { org: ref!.org, slug: ref!.slug, version: ref!.version })).toBe(
+      v1.status?.versionHash,
+    );
+  });
+
+  it("[rpc:SessionCommandController.create] a reference with no version pins the current version (the default every surface starts on)", async () => {
+    const { org } = await target.provisionTenancy();
+    const { v1, v2 } = await taggedAgent(org);
+
+    expect(await pinOfSessionOn(org, { ...agentRefOf(v1), version: "" })).toBe(v2.status?.versionHash);
   });
 });
 

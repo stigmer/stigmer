@@ -33,15 +33,10 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private AgentExecutionSpec() {
-    sessionId_ = "";
-    agentId_ = "";
     message_ = "";
-    callbackToken_ = com.google.protobuf.ByteString.EMPTY;
-    parentWorkflowId_ = "";
     attachments_ = java.util.Collections.emptyList();
     workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-    activityTaskQueue_ = "";
     supersedesExecutionId_ = "";
   }
 
@@ -76,154 +71,123 @@ private static final long serialVersionUID = 0L;
   }
 
   private int bitField0_;
-  public static final int SESSION_ID_FIELD_NUMBER = 1;
+  private int targetCase_ = 0;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object sessionId_ = "";
+  private java.lang.Object target_;
+  public enum TargetCase
+      implements com.google.protobuf.Internal.EnumLite,
+          com.google.protobuf.AbstractMessage.InternalOneOfEnum {
+    SESSION_ID(1),
+    SESSION_SPEC(13),
+    TARGET_NOT_SET(0);
+    private final int value;
+    private TargetCase(int value) {
+      this.value = value;
+    }
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static TargetCase valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static TargetCase forNumber(int value) {
+      switch (value) {
+        case 1: return SESSION_ID;
+        case 13: return SESSION_SPEC;
+        case 0: return TARGET_NOT_SET;
+        default: return null;
+      }
+    }
+    public int getNumber() {
+      return this.value;
+    }
+  };
+
+  public TargetCase
+  getTargetCase() {
+    return TargetCase.forNumber(
+        targetCase_);
+  }
+
+  public static final int SESSION_ID_FIELD_NUMBER = 1;
   /**
    * <pre>
-   * Session ID this execution belongs to (optional).
-   *
-   * Resolution priority (enforced in handler pipeline):
-   * 1. session_id provided     -&gt; use existing session
-   * 2. session_spec provided   -&gt; auto-create session from the embedded spec
-   * 3. agent_id provided       -&gt; auto-create session using agent's default instance
-   * 4. none provided           -&gt; auto-create a session with no agent; the
-   * built-in assistant answers
-   *
-   * session_id and agent_id may both be set — when both are present, session_id
-   * is used for session resolution and agent_id is preserved as metadata for
-   * downstream consumers (e.g., session subject generation). session_id and
-   * session_spec are mutually exclusive.
+   * ID of the existing session this turn continues.
    *
    * An execution in an existing session belongs to that session's
    * organization: metadata.org, when set, must be the session's
-   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
-   * session. An execution stays in the session it was created in: update
-   * refuses a different session_id (FAILED_PRECONDITION), and an empty one
-   * keeps the stored session.
+   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+   * the session. An execution stays in the session it was created in:
+   * update refuses a different session_id (FAILED_PRECONDITION), and an
+   * empty one keeps the stored session.
+   * </pre>
+   *
+   * <code>string session_id = 1 [json_name = "sessionId"];</code>
+   * @return Whether the sessionId field is set.
+   */
+  public boolean hasSessionId() {
+    return targetCase_ == 1;
+  }
+  /**
+   * <pre>
+   * ID of the existing session this turn continues.
+   *
+   * An execution in an existing session belongs to that session's
+   * organization: metadata.org, when set, must be the session's
+   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+   * the session. An execution stays in the session it was created in:
+   * update refuses a different session_id (FAILED_PRECONDITION), and an
+   * empty one keeps the stored session.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
    * @return The sessionId.
    */
-  @java.lang.Override
   public java.lang.String getSessionId() {
-    java.lang.Object ref = sessionId_;
+    if (targetCase_ != 1) {
+      return "";
+    }
+    java.lang.Object ref = target_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      sessionId_ = s;
+      target_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * Session ID this execution belongs to (optional).
-   *
-   * Resolution priority (enforced in handler pipeline):
-   * 1. session_id provided     -&gt; use existing session
-   * 2. session_spec provided   -&gt; auto-create session from the embedded spec
-   * 3. agent_id provided       -&gt; auto-create session using agent's default instance
-   * 4. none provided           -&gt; auto-create a session with no agent; the
-   * built-in assistant answers
-   *
-   * session_id and agent_id may both be set — when both are present, session_id
-   * is used for session resolution and agent_id is preserved as metadata for
-   * downstream consumers (e.g., session subject generation). session_id and
-   * session_spec are mutually exclusive.
+   * ID of the existing session this turn continues.
    *
    * An execution in an existing session belongs to that session's
    * organization: metadata.org, when set, must be the session's
-   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
-   * session. An execution stays in the session it was created in: update
-   * refuses a different session_id (FAILED_PRECONDITION), and an empty one
-   * keeps the stored session.
+   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+   * the session. An execution stays in the session it was created in:
+   * update refuses a different session_id (FAILED_PRECONDITION), and an
+   * empty one keeps the stored session.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
    * @return The bytes for sessionId.
    */
-  @java.lang.Override
   public com.google.protobuf.ByteString
       getSessionIdBytes() {
-    java.lang.Object ref = sessionId_;
+    if (targetCase_ != 1) {
+      return com.google.protobuf.ByteString.copyFromUtf8("");
+    }
+    java.lang.Object ref = target_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      sessionId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int AGENT_ID_FIELD_NUMBER = 2;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object agentId_ = "";
-  /**
-   * <pre>
-   * Agent ID (optional).
-   *
-   * When absent along with session_id and session_spec, the execution runs
-   * the built-in assistant in a new session with no agent: a person starts a
-   * conversation without choosing an agent.
-   *
-   * Both may be set — agent_id is preserved on the execution record even when
-   * session_id is present, so downstream consumers can access the agent
-   * without resolving through the session chain.
-   *
-   * When provided without session_id, a new session is auto-created using
-   * the agent's default instance ID.
-   * </pre>
-   *
-   * <code>string agent_id = 2 [json_name = "agentId"];</code>
-   * @return The agentId.
-   */
-  @java.lang.Override
-  public java.lang.String getAgentId() {
-    java.lang.Object ref = agentId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      agentId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Agent ID (optional).
-   *
-   * When absent along with session_id and session_spec, the execution runs
-   * the built-in assistant in a new session with no agent: a person starts a
-   * conversation without choosing an agent.
-   *
-   * Both may be set — agent_id is preserved on the execution record even when
-   * session_id is present, so downstream consumers can access the agent
-   * without resolving through the session chain.
-   *
-   * When provided without session_id, a new session is auto-created using
-   * the agent's default instance ID.
-   * </pre>
-   *
-   * <code>string agent_id = 2 [json_name = "agentId"];</code>
-   * @return The bytes for agentId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getAgentIdBytes() {
-    java.lang.Object ref = agentId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      agentId_ = b;
+      target_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -231,29 +195,24 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int SESSION_SPEC_FIELD_NUMBER = 13;
-  private ai.stigmer.agentic.session.v1.SessionSpec sessionSpec_;
   /**
    * <pre>
-   * Spec for the session to auto-create when session_id is empty (optional).
+   * Spec for a new session this turn starts.
    *
-   * This is the one-call session bootstrap: a single create carries the full
-   * session shape (workspace_entries, harness, execution_target, MCP servers,
-   * skills) together with the first message, so embedders do not need to
-   * orchestrate session.create followed by agentExecution.create. The created
-   * session's ID is returned on the persisted execution's session_id.
+   * This is the one-call session bootstrap: a single create carries the
+   * full session shape (the agent, workspace_entries, harness,
+   * execution_target, MCP servers, skills) together with the first
+   * message, so embedders do not need to orchestrate session.create
+   * followed by agentExecution.create. The created session's ID is
+   * returned on the persisted execution's session_id.
    *
-   * Fields that must be set at session-creation time and are immutable once
-   * an execution has run — harness and execution_target — can only reach an
-   * auto-created session through this field.
-   *
-   * When session_spec.agent_instance_id is set, the session runs against that
-   * instance and agent_id must not also be resolved from it. When empty, the
-   * normal resolution applies: agent_id's default instance, or no agent (the
-   * built-in assistant) when agent_id is also empty.
-   *
-   * Mutually exclusive with session_id. session_spec.harness_state_id must be
-   * empty — it is server-owned harness continuity state, created by the runner
-   * after the first execution.
+   * session_spec.agent_ref names the agent the conversation runs (empty:
+   * the built-in assistant). Fields that must be set at session-creation
+   * time and are immutable once an execution has run — harness and
+   * execution_target — can only reach an auto-created session through
+   * this field. session_spec.harness_state_id must be empty — it is
+   * server-owned harness continuity state, created by the runner after
+   * the first execution.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -261,30 +220,26 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasSessionSpec() {
-    return ((bitField0_ & 0x00000001) != 0);
+    return targetCase_ == 13;
   }
   /**
    * <pre>
-   * Spec for the session to auto-create when session_id is empty (optional).
+   * Spec for a new session this turn starts.
    *
-   * This is the one-call session bootstrap: a single create carries the full
-   * session shape (workspace_entries, harness, execution_target, MCP servers,
-   * skills) together with the first message, so embedders do not need to
-   * orchestrate session.create followed by agentExecution.create. The created
-   * session's ID is returned on the persisted execution's session_id.
+   * This is the one-call session bootstrap: a single create carries the
+   * full session shape (the agent, workspace_entries, harness,
+   * execution_target, MCP servers, skills) together with the first
+   * message, so embedders do not need to orchestrate session.create
+   * followed by agentExecution.create. The created session's ID is
+   * returned on the persisted execution's session_id.
    *
-   * Fields that must be set at session-creation time and are immutable once
-   * an execution has run — harness and execution_target — can only reach an
-   * auto-created session through this field.
-   *
-   * When session_spec.agent_instance_id is set, the session runs against that
-   * instance and agent_id must not also be resolved from it. When empty, the
-   * normal resolution applies: agent_id's default instance, or no agent (the
-   * built-in assistant) when agent_id is also empty.
-   *
-   * Mutually exclusive with session_id. session_spec.harness_state_id must be
-   * empty — it is server-owned harness continuity state, created by the runner
-   * after the first execution.
+   * session_spec.agent_ref names the agent the conversation runs (empty:
+   * the built-in assistant). Fields that must be set at session-creation
+   * time and are immutable once an execution has run — harness and
+   * execution_target — can only reach an auto-created session through
+   * this field. session_spec.harness_state_id must be empty — it is
+   * server-owned harness continuity state, created by the runner after
+   * the first execution.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -292,37 +247,39 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public ai.stigmer.agentic.session.v1.SessionSpec getSessionSpec() {
-    return sessionSpec_ == null ? ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance() : sessionSpec_;
+    if (targetCase_ == 13) {
+       return (ai.stigmer.agentic.session.v1.SessionSpec) target_;
+    }
+    return ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance();
   }
   /**
    * <pre>
-   * Spec for the session to auto-create when session_id is empty (optional).
+   * Spec for a new session this turn starts.
    *
-   * This is the one-call session bootstrap: a single create carries the full
-   * session shape (workspace_entries, harness, execution_target, MCP servers,
-   * skills) together with the first message, so embedders do not need to
-   * orchestrate session.create followed by agentExecution.create. The created
-   * session's ID is returned on the persisted execution's session_id.
+   * This is the one-call session bootstrap: a single create carries the
+   * full session shape (the agent, workspace_entries, harness,
+   * execution_target, MCP servers, skills) together with the first
+   * message, so embedders do not need to orchestrate session.create
+   * followed by agentExecution.create. The created session's ID is
+   * returned on the persisted execution's session_id.
    *
-   * Fields that must be set at session-creation time and are immutable once
-   * an execution has run — harness and execution_target — can only reach an
-   * auto-created session through this field.
-   *
-   * When session_spec.agent_instance_id is set, the session runs against that
-   * instance and agent_id must not also be resolved from it. When empty, the
-   * normal resolution applies: agent_id's default instance, or no agent (the
-   * built-in assistant) when agent_id is also empty.
-   *
-   * Mutually exclusive with session_id. session_spec.harness_state_id must be
-   * empty — it is server-owned harness continuity state, created by the runner
-   * after the first execution.
+   * session_spec.agent_ref names the agent the conversation runs (empty:
+   * the built-in assistant). Fields that must be set at session-creation
+   * time and are immutable once an execution has run — harness and
+   * execution_target — can only reach an auto-created session through
+   * this field. session_spec.harness_state_id must be empty — it is
+   * server-owned harness continuity state, created by the runner after
+   * the first execution.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
    */
   @java.lang.Override
   public ai.stigmer.agentic.session.v1.SessionSpecOrBuilder getSessionSpecOrBuilder() {
-    return sessionSpec_ == null ? ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance() : sessionSpec_;
+    if (targetCase_ == 13) {
+       return (ai.stigmer.agentic.session.v1.SessionSpec) target_;
+    }
+    return ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance();
   }
 
   public static final int MESSAGE_FIELD_NUMBER = 3;
@@ -387,7 +344,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasExecutionConfig() {
-    return ((bitField0_ & 0x00000002) != 0);
+    return ((bitField0_ & 0x00000001) != 0);
   }
   /**
    * <pre>
@@ -542,25 +499,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     return map.get(key);
   }
 
-  public static final int CALLBACK_TOKEN_FIELD_NUMBER = 6;
-  private com.google.protobuf.ByteString callbackToken_ = com.google.protobuf.ByteString.EMPTY;
-  /**
-   * <pre>
-   * Callback token for async activity completion (optional).
-   *
-   * When a workflow invokes an agent, this token enables the workflow to
-   * wait for the agent to finish without blocking. When empty, the
-   * execution runs independently (CLI, API calls, non-workflow triggers).
-   * </pre>
-   *
-   * <code>bytes callback_token = 6 [json_name = "callbackToken"];</code>
-   * @return The callbackToken.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString getCallbackToken() {
-    return callbackToken_;
-  }
-
   public static final int AUTO_APPROVE_ALL_FIELD_NUMBER = 7;
   private boolean autoApproveAll_ = false;
   /**
@@ -590,61 +528,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   @java.lang.Override
   public boolean getAutoApproveAll() {
     return autoApproveAll_;
-  }
-
-  public static final int PARENT_WORKFLOW_ID_FIELD_NUMBER = 8;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object parentWorkflowId_ = "";
-  /**
-   * <pre>
-   * Parent workflow ID when this execution was triggered by a workflow (optional).
-   *
-   * When set, the platform notifies the parent workflow about approval
-   * requests instead of requiring polling. When empty, approvals are
-   * submitted directly via the SubmitApproval RPC.
-   * </pre>
-   *
-   * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
-   * @return The parentWorkflowId.
-   */
-  @java.lang.Override
-  public java.lang.String getParentWorkflowId() {
-    java.lang.Object ref = parentWorkflowId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      parentWorkflowId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Parent workflow ID when this execution was triggered by a workflow (optional).
-   *
-   * When set, the platform notifies the parent workflow about approval
-   * requests instead of requiring polling. When empty, approvals are
-   * submitted directly via the SubmitApproval RPC.
-   * </pre>
-   *
-   * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
-   * @return The bytes for parentWorkflowId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getParentWorkflowIdBytes() {
-    java.lang.Object ref = parentWorkflowId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      parentWorkflowId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
   }
 
   public static final int ATTACHMENTS_FIELD_NUMBER = 9;
@@ -900,53 +783,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     return workspaceFileRefs_.getByteString(index);
   }
 
-  public static final int ACTIVITY_TASK_QUEUE_FIELD_NUMBER = 11;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object activityTaskQueue_ = "";
-  /**
-   * <pre>
-   * Explicit Temporal task queue override for activity routing.
-   * </pre>
-   *
-   * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
-   * @return The activityTaskQueue.
-   */
-  @java.lang.Override
-  public java.lang.String getActivityTaskQueue() {
-    java.lang.Object ref = activityTaskQueue_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      activityTaskQueue_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Explicit Temporal task queue override for activity routing.
-   * </pre>
-   *
-   * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
-   * @return The bytes for activityTaskQueue.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getActivityTaskQueueBytes() {
-    java.lang.Object ref = activityTaskQueue_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      activityTaskQueue_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   public static final int SUPERSEDES_EXECUTION_ID_FIELD_NUMBER = 12;
   @SuppressWarnings("serial")
   private volatile java.lang.Object supersedesExecutionId_ = "";
@@ -1028,7 +864,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    */
   @java.lang.Override
   public boolean hasConversationCatchup() {
-    return ((bitField0_ & 0x00000004) != 0);
+    return ((bitField0_ & 0x00000002) != 0);
   }
   /**
    * <pre>
@@ -1066,86 +902,72 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     return conversationCatchup_ == null ? ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.getDefaultInstance() : conversationCatchup_;
   }
 
-  public static final int DECLARED_PREFERENCES_FIELD_NUMBER = 15;
-  private ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declaredPreferences_;
+  public static final int PARENT_FIELD_NUMBER = 17;
+  private ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent_;
   /**
    * <pre>
-   * Standing preferences declared by the organization and the calling user,
-   * snapshotted into this execution at create time (optional).
+   * The workflow run this turn was started by (optional): set only by a
+   * workflow's agent_call step, which waits for the turn to finish.
+   *
+   * The server honours it only from the workflow run it names: a request
+   * the server composes itself, a runner whose credential is bound to that
+   * workflow run, or a caller holding the platform's
+   * can_write_reserved_labels. Any other caller that sets it is refused with
+   * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+   * runs where the workflow run's own activities run (its sandbox, when the
+   * deployment gives each run one), the parent is told about approval
+   * requests, and the waiting step is completed when the turn finishes.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
-   * @return Whether the declaredPreferences field is set.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
+   * @return Whether the parent field is set.
    */
   @java.lang.Override
-  public boolean hasDeclaredPreferences() {
-    return ((bitField0_ & 0x00000008) != 0);
+  public boolean hasParent() {
+    return ((bitField0_ & 0x00000004) != 0);
   }
   /**
    * <pre>
-   * Standing preferences declared by the organization and the calling user,
-   * snapshotted into this execution at create time (optional).
+   * The workflow run this turn was started by (optional): set only by a
+   * workflow's agent_call step, which waits for the turn to finish.
+   *
+   * The server honours it only from the workflow run it names: a request
+   * the server composes itself, a runner whose credential is bound to that
+   * workflow run, or a caller holding the platform's
+   * can_write_reserved_labels. Any other caller that sets it is refused with
+   * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+   * runs where the workflow run's own activities run (its sandbox, when the
+   * deployment gives each run one), the parent is told about approval
+   * requests, and the waiting step is completed when the turn finishes.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
-   * @return The declaredPreferences.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
+   * @return The parent.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences getDeclaredPreferences() {
-    return declaredPreferences_ == null ? ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.getDefaultInstance() : declaredPreferences_;
+  public ai.stigmer.agentic.agentexecution.v1.WorkflowParent getParent() {
+    return parent_ == null ? ai.stigmer.agentic.agentexecution.v1.WorkflowParent.getDefaultInstance() : parent_;
   }
   /**
    * <pre>
-   * Standing preferences declared by the organization and the calling user,
-   * snapshotted into this execution at create time (optional).
+   * The workflow run this turn was started by (optional): set only by a
+   * workflow's agent_call step, which waits for the turn to finish.
+   *
+   * The server honours it only from the workflow run it names: a request
+   * the server composes itself, a runner whose credential is bound to that
+   * workflow run, or a caller holding the platform's
+   * can_write_reserved_labels. Any other caller that sets it is refused with
+   * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+   * runs where the workflow run's own activities run (its sandbox, when the
+   * deployment gives each run one), the parent is told about approval
+   * requests, and the waiting step is completed when the turn finishes.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder getDeclaredPreferencesOrBuilder() {
-    return declaredPreferences_ == null ? ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.getDefaultInstance() : declaredPreferences_;
-  }
-
-  public static final int RECALLED_MEMORIES_FIELD_NUMBER = 16;
-  private ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalledMemories_;
-  /**
-   * <pre>
-   * The caller's confirmed memories, snapshotted into this execution at
-   * create time (optional).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-   * @return Whether the recalledMemories field is set.
-   */
-  @java.lang.Override
-  public boolean hasRecalledMemories() {
-    return ((bitField0_ & 0x00000010) != 0);
-  }
-  /**
-   * <pre>
-   * The caller's confirmed memories, snapshotted into this execution at
-   * create time (optional).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-   * @return The recalledMemories.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.RecalledMemories getRecalledMemories() {
-    return recalledMemories_ == null ? ai.stigmer.agentic.agentexecution.v1.RecalledMemories.getDefaultInstance() : recalledMemories_;
-  }
-  /**
-   * <pre>
-   * The caller's confirmed memories, snapshotted into this execution at
-   * create time (optional).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder getRecalledMemoriesOrBuilder() {
-    return recalledMemories_ == null ? ai.stigmer.agentic.agentexecution.v1.RecalledMemories.getDefaultInstance() : recalledMemories_;
+  public ai.stigmer.agentic.agentexecution.v1.WorkflowParentOrBuilder getParentOrBuilder() {
+    return parent_ == null ? ai.stigmer.agentic.agentexecution.v1.WorkflowParent.getDefaultInstance() : parent_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -1162,16 +984,13 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, sessionId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, agentId_);
+    if (targetCase_ == 1) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, target_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, message_);
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
+    if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(4, getExecutionConfig());
     }
     com.google.protobuf.GeneratedMessage
@@ -1180,14 +999,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         internalGetRuntimeEnv(),
         RuntimeEnvDefaultEntryHolder.defaultEntry,
         5);
-    if (!callbackToken_.isEmpty()) {
-      output.writeBytes(6, callbackToken_);
-    }
     if (autoApproveAll_ != false) {
       output.writeBool(7, autoApproveAll_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(parentWorkflowId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 8, parentWorkflowId_);
     }
     for (int i = 0; i < attachments_.size(); i++) {
       output.writeMessage(9, attachments_.get(i));
@@ -1195,23 +1008,17 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     for (int i = 0; i < workspaceFileRefs_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 10, workspaceFileRefs_.getRaw(i));
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(activityTaskQueue_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 11, activityTaskQueue_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(supersedesExecutionId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 12, supersedesExecutionId_);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(13, getSessionSpec());
+    if (targetCase_ == 13) {
+      output.writeMessage(13, (ai.stigmer.agentic.session.v1.SessionSpec) target_);
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(14, getConversationCatchup());
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
-      output.writeMessage(15, getDeclaredPreferences());
-    }
-    if (((bitField0_ & 0x00000010) != 0)) {
-      output.writeMessage(16, getRecalledMemories());
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(17, getParent());
     }
     getUnknownFields().writeTo(output);
   }
@@ -1222,16 +1029,13 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, sessionId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, agentId_);
+    if (targetCase_ == 1) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, target_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, message_);
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
+    if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(4, getExecutionConfig());
     }
@@ -1245,16 +1049,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(5, runtimeEnv__);
     }
-    if (!callbackToken_.isEmpty()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBytesSize(6, callbackToken_);
-    }
     if (autoApproveAll_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(7, autoApproveAll_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(parentWorkflowId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, parentWorkflowId_);
     }
 
         {
@@ -1273,27 +1070,20 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       size += dataSize;
       size += 1 * getWorkspaceFileRefsList().size();
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(activityTaskQueue_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(11, activityTaskQueue_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(supersedesExecutionId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(12, supersedesExecutionId_);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
+    if (targetCase_ == 13) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(13, getSessionSpec());
+        .computeMessageSize(13, (ai.stigmer.agentic.session.v1.SessionSpec) target_);
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(14, getConversationCatchup());
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(15, getDeclaredPreferences());
-    }
-    if (((bitField0_ & 0x00000010) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(16, getRecalledMemories());
+        .computeMessageSize(17, getParent());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -1310,15 +1100,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec other = (ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec) obj;
 
-    if (!getSessionId()
-        .equals(other.getSessionId())) return false;
-    if (!getAgentId()
-        .equals(other.getAgentId())) return false;
-    if (hasSessionSpec() != other.hasSessionSpec()) return false;
-    if (hasSessionSpec()) {
-      if (!getSessionSpec()
-          .equals(other.getSessionSpec())) return false;
-    }
     if (!getMessage()
         .equals(other.getMessage())) return false;
     if (hasExecutionConfig() != other.hasExecutionConfig()) return false;
@@ -1328,18 +1109,12 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     if (!internalGetRuntimeEnv().equals(
         other.internalGetRuntimeEnv())) return false;
-    if (!getCallbackToken()
-        .equals(other.getCallbackToken())) return false;
     if (getAutoApproveAll()
         != other.getAutoApproveAll()) return false;
-    if (!getParentWorkflowId()
-        .equals(other.getParentWorkflowId())) return false;
     if (!getAttachmentsList()
         .equals(other.getAttachmentsList())) return false;
     if (!getWorkspaceFileRefsList()
         .equals(other.getWorkspaceFileRefsList())) return false;
-    if (!getActivityTaskQueue()
-        .equals(other.getActivityTaskQueue())) return false;
     if (!getSupersedesExecutionId()
         .equals(other.getSupersedesExecutionId())) return false;
     if (hasConversationCatchup() != other.hasConversationCatchup()) return false;
@@ -1347,15 +1122,23 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!getConversationCatchup()
           .equals(other.getConversationCatchup())) return false;
     }
-    if (hasDeclaredPreferences() != other.hasDeclaredPreferences()) return false;
-    if (hasDeclaredPreferences()) {
-      if (!getDeclaredPreferences()
-          .equals(other.getDeclaredPreferences())) return false;
+    if (hasParent() != other.hasParent()) return false;
+    if (hasParent()) {
+      if (!getParent()
+          .equals(other.getParent())) return false;
     }
-    if (hasRecalledMemories() != other.hasRecalledMemories()) return false;
-    if (hasRecalledMemories()) {
-      if (!getRecalledMemories()
-          .equals(other.getRecalledMemories())) return false;
+    if (!getTargetCase().equals(other.getTargetCase())) return false;
+    switch (targetCase_) {
+      case 1:
+        if (!getSessionId()
+            .equals(other.getSessionId())) return false;
+        break;
+      case 13:
+        if (!getSessionSpec()
+            .equals(other.getSessionSpec())) return false;
+        break;
+      case 0:
+      default:
     }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
@@ -1368,14 +1151,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + SESSION_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getSessionId().hashCode();
-    hash = (37 * hash) + AGENT_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getAgentId().hashCode();
-    if (hasSessionSpec()) {
-      hash = (37 * hash) + SESSION_SPEC_FIELD_NUMBER;
-      hash = (53 * hash) + getSessionSpec().hashCode();
-    }
     hash = (37 * hash) + MESSAGE_FIELD_NUMBER;
     hash = (53 * hash) + getMessage().hashCode();
     if (hasExecutionConfig()) {
@@ -1386,13 +1161,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       hash = (37 * hash) + RUNTIME_ENV_FIELD_NUMBER;
       hash = (53 * hash) + internalGetRuntimeEnv().hashCode();
     }
-    hash = (37 * hash) + CALLBACK_TOKEN_FIELD_NUMBER;
-    hash = (53 * hash) + getCallbackToken().hashCode();
     hash = (37 * hash) + AUTO_APPROVE_ALL_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getAutoApproveAll());
-    hash = (37 * hash) + PARENT_WORKFLOW_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getParentWorkflowId().hashCode();
     if (getAttachmentsCount() > 0) {
       hash = (37 * hash) + ATTACHMENTS_FIELD_NUMBER;
       hash = (53 * hash) + getAttachmentsList().hashCode();
@@ -1401,21 +1172,27 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       hash = (37 * hash) + WORKSPACE_FILE_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getWorkspaceFileRefsList().hashCode();
     }
-    hash = (37 * hash) + ACTIVITY_TASK_QUEUE_FIELD_NUMBER;
-    hash = (53 * hash) + getActivityTaskQueue().hashCode();
     hash = (37 * hash) + SUPERSEDES_EXECUTION_ID_FIELD_NUMBER;
     hash = (53 * hash) + getSupersedesExecutionId().hashCode();
     if (hasConversationCatchup()) {
       hash = (37 * hash) + CONVERSATION_CATCHUP_FIELD_NUMBER;
       hash = (53 * hash) + getConversationCatchup().hashCode();
     }
-    if (hasDeclaredPreferences()) {
-      hash = (37 * hash) + DECLARED_PREFERENCES_FIELD_NUMBER;
-      hash = (53 * hash) + getDeclaredPreferences().hashCode();
+    if (hasParent()) {
+      hash = (37 * hash) + PARENT_FIELD_NUMBER;
+      hash = (53 * hash) + getParent().hashCode();
     }
-    if (hasRecalledMemories()) {
-      hash = (37 * hash) + RECALLED_MEMORIES_FIELD_NUMBER;
-      hash = (53 * hash) + getRecalledMemories().hashCode();
+    switch (targetCase_) {
+      case 1:
+        hash = (37 * hash) + SESSION_ID_FIELD_NUMBER;
+        hash = (53 * hash) + getSessionId().hashCode();
+        break;
+      case 13:
+        hash = (37 * hash) + SESSION_SPEC_FIELD_NUMBER;
+        hash = (53 * hash) + getSessionSpec().hashCode();
+        break;
+      case 0:
+      default:
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1574,24 +1351,18 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private void maybeForceBuilderInitialization() {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
-        internalGetSessionSpecFieldBuilder();
         internalGetExecutionConfigFieldBuilder();
         internalGetAttachmentsFieldBuilder();
         internalGetConversationCatchupFieldBuilder();
-        internalGetDeclaredPreferencesFieldBuilder();
-        internalGetRecalledMemoriesFieldBuilder();
+        internalGetParentFieldBuilder();
       }
     }
     @java.lang.Override
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      sessionId_ = "";
-      agentId_ = "";
-      sessionSpec_ = null;
       if (sessionSpecBuilder_ != null) {
-        sessionSpecBuilder_.dispose();
-        sessionSpecBuilder_ = null;
+        sessionSpecBuilder_.clear();
       }
       message_ = "";
       executionConfig_ = null;
@@ -1600,35 +1371,29 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         executionConfigBuilder_ = null;
       }
       internalGetMutableRuntimeEnv().clear();
-      callbackToken_ = com.google.protobuf.ByteString.EMPTY;
       autoApproveAll_ = false;
-      parentWorkflowId_ = "";
       if (attachmentsBuilder_ == null) {
         attachments_ = java.util.Collections.emptyList();
       } else {
         attachments_ = null;
         attachmentsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000040);
       workspaceFileRefs_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
-      activityTaskQueue_ = "";
       supersedesExecutionId_ = "";
       conversationCatchup_ = null;
       if (conversationCatchupBuilder_ != null) {
         conversationCatchupBuilder_.dispose();
         conversationCatchupBuilder_ = null;
       }
-      declaredPreferences_ = null;
-      if (declaredPreferencesBuilder_ != null) {
-        declaredPreferencesBuilder_.dispose();
-        declaredPreferencesBuilder_ = null;
+      parent_ = null;
+      if (parentBuilder_ != null) {
+        parentBuilder_.dispose();
+        parentBuilder_ = null;
       }
-      recalledMemories_ = null;
-      if (recalledMemoriesBuilder_ != null) {
-        recalledMemoriesBuilder_.dispose();
-        recalledMemoriesBuilder_ = null;
-      }
+      targetCase_ = 0;
+      target_ = null;
       return this;
     }
 
@@ -1657,15 +1422,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec result = new ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec(this);
       buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
+      buildPartialOneofs(result);
       onBuilt();
       return result;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec result) {
       if (attachmentsBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0)) {
+        if (((bitField0_ & 0x00000040) != 0)) {
           attachments_ = java.util.Collections.unmodifiableList(attachments_);
-          bitField0_ = (bitField0_ & ~0x00000200);
+          bitField0_ = (bitField0_ & ~0x00000040);
         }
         result.attachments_ = attachments_;
       } else {
@@ -1675,69 +1441,51 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
 
     private void buildPartial0(ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec result) {
       int from_bitField0_ = bitField0_;
-      if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.sessionId_ = sessionId_;
-      }
-      if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.agentId_ = agentId_;
-      }
-      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.sessionSpec_ = sessionSpecBuilder_ == null
-            ? sessionSpec_
-            : sessionSpecBuilder_.build();
-        to_bitField0_ |= 0x00000001;
-      }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.message_ = message_;
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.executionConfig_ = executionConfigBuilder_ == null
             ? executionConfig_
             : executionConfigBuilder_.build();
-        to_bitField0_ |= 0x00000002;
+        to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.runtimeEnv_ = internalGetRuntimeEnv().build(RuntimeEnvDefaultEntryHolder.defaultEntry);
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.callbackToken_ = callbackToken_;
-      }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.autoApproveAll_ = autoApproveAll_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
-        result.parentWorkflowId_ = parentWorkflowId_;
-      }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         workspaceFileRefs_.makeImmutable();
         result.workspaceFileRefs_ = workspaceFileRefs_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
-        result.activityTaskQueue_ = activityTaskQueue_;
-      }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.supersedesExecutionId_ = supersedesExecutionId_;
       }
-      if (((from_bitField0_ & 0x00002000) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.conversationCatchup_ = conversationCatchupBuilder_ == null
             ? conversationCatchup_
             : conversationCatchupBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.parent_ = parentBuilder_ == null
+            ? parent_
+            : parentBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00004000) != 0)) {
-        result.declaredPreferences_ = declaredPreferencesBuilder_ == null
-            ? declaredPreferences_
-            : declaredPreferencesBuilder_.build();
-        to_bitField0_ |= 0x00000008;
-      }
-      if (((from_bitField0_ & 0x00008000) != 0)) {
-        result.recalledMemories_ = recalledMemoriesBuilder_ == null
-            ? recalledMemories_
-            : recalledMemoriesBuilder_.build();
-        to_bitField0_ |= 0x00000010;
-      }
       result.bitField0_ |= to_bitField0_;
+    }
+
+    private void buildPartialOneofs(ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec result) {
+      result.targetCase_ = targetCase_;
+      result.target_ = this.target_;
+      if (targetCase_ == 13 &&
+          sessionSpecBuilder_ != null) {
+        result.target_ = sessionSpecBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -1752,22 +1500,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
 
     public Builder mergeFrom(ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec other) {
       if (other == ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.getDefaultInstance()) return this;
-      if (!other.getSessionId().isEmpty()) {
-        sessionId_ = other.sessionId_;
-        bitField0_ |= 0x00000001;
-        onChanged();
-      }
-      if (!other.getAgentId().isEmpty()) {
-        agentId_ = other.agentId_;
-        bitField0_ |= 0x00000002;
-        onChanged();
-      }
-      if (other.hasSessionSpec()) {
-        mergeSessionSpec(other.getSessionSpec());
-      }
       if (!other.getMessage().isEmpty()) {
         message_ = other.message_;
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
       if (other.hasExecutionConfig()) {
@@ -1775,23 +1510,15 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       internalGetMutableRuntimeEnv().mergeFrom(
           other.internalGetRuntimeEnv());
-      bitField0_ |= 0x00000020;
-      if (!other.getCallbackToken().isEmpty()) {
-        setCallbackToken(other.getCallbackToken());
-      }
+      bitField0_ |= 0x00000010;
       if (other.getAutoApproveAll() != false) {
         setAutoApproveAll(other.getAutoApproveAll());
-      }
-      if (!other.getParentWorkflowId().isEmpty()) {
-        parentWorkflowId_ = other.parentWorkflowId_;
-        bitField0_ |= 0x00000100;
-        onChanged();
       }
       if (attachmentsBuilder_ == null) {
         if (!other.attachments_.isEmpty()) {
           if (attachments_.isEmpty()) {
             attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000040);
           } else {
             ensureAttachmentsIsMutable();
             attachments_.addAll(other.attachments_);
@@ -1804,7 +1531,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
             attachmentsBuilder_.dispose();
             attachmentsBuilder_ = null;
             attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000040);
             attachmentsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetAttachmentsFieldBuilder() : null;
@@ -1816,31 +1543,38 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!other.workspaceFileRefs_.isEmpty()) {
         if (workspaceFileRefs_.isEmpty()) {
           workspaceFileRefs_ = other.workspaceFileRefs_;
-          bitField0_ |= 0x00000400;
+          bitField0_ |= 0x00000080;
         } else {
           ensureWorkspaceFileRefsIsMutable();
           workspaceFileRefs_.addAll(other.workspaceFileRefs_);
         }
         onChanged();
       }
-      if (!other.getActivityTaskQueue().isEmpty()) {
-        activityTaskQueue_ = other.activityTaskQueue_;
-        bitField0_ |= 0x00000800;
-        onChanged();
-      }
       if (!other.getSupersedesExecutionId().isEmpty()) {
         supersedesExecutionId_ = other.supersedesExecutionId_;
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       if (other.hasConversationCatchup()) {
         mergeConversationCatchup(other.getConversationCatchup());
       }
-      if (other.hasDeclaredPreferences()) {
-        mergeDeclaredPreferences(other.getDeclaredPreferences());
+      if (other.hasParent()) {
+        mergeParent(other.getParent());
       }
-      if (other.hasRecalledMemories()) {
-        mergeRecalledMemories(other.getRecalledMemories());
+      switch (other.getTargetCase()) {
+        case SESSION_ID: {
+          targetCase_ = 1;
+          target_ = other.target_;
+          onChanged();
+          break;
+        }
+        case SESSION_SPEC: {
+          mergeSessionSpec(other.getSessionSpec());
+          break;
+        }
+        case TARGET_NOT_SET: {
+          break;
+        }
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1869,25 +1603,20 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               done = true;
               break;
             case 10: {
-              sessionId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000001;
+              targetCase_ = 1;
+              target_ = input.readStringRequireUtf8();
               break;
             } // case 10
-            case 18: {
-              agentId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000002;
-              break;
-            } // case 18
             case 26: {
               message_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000004;
               break;
             } // case 26
             case 34: {
               input.readMessage(
                   internalGetExecutionConfigFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 34
             case 42: {
@@ -1896,24 +1625,14 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
                   RuntimeEnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableRuntimeEnv().ensureBuilderMap().put(
                   runtimeEnv__.getKey(), runtimeEnv__.getValue());
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 42
-            case 50: {
-              callbackToken_ = input.readBytes();
-              bitField0_ |= 0x00000040;
-              break;
-            } // case 50
             case 56: {
               autoApproveAll_ = input.readBool();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000020;
               break;
             } // case 56
-            case 66: {
-              parentWorkflowId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000100;
-              break;
-            } // case 66
             case 74: {
               ai.stigmer.agentic.agentexecution.v1.Attachment m =
                   input.readMessage(
@@ -1932,44 +1651,32 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               workspaceFileRefs_.add(input.readStringRequireUtf8());
               break;
             } // case 82
-            case 90: {
-              activityTaskQueue_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000800;
-              break;
-            } // case 90
             case 98: {
               supersedesExecutionId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00001000;
+              bitField0_ |= 0x00000100;
               break;
             } // case 98
             case 106: {
               input.readMessage(
                   internalGetSessionSpecFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000004;
+              targetCase_ = 13;
               break;
             } // case 106
             case 114: {
               input.readMessage(
                   internalGetConversationCatchupFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00002000;
+              bitField0_ |= 0x00000200;
               break;
             } // case 114
-            case 122: {
+            case 138: {
               input.readMessage(
-                  internalGetDeclaredPreferencesFieldBuilder().getBuilder(),
+                  internalGetParentFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00004000;
+              bitField0_ |= 0x00000400;
               break;
-            } // case 122
-            case 130: {
-              input.readMessage(
-                  internalGetRecalledMemoriesFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00008000;
-              break;
-            } // case 130
+            } // case 138
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1985,43 +1692,68 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } // finally
       return this;
     }
+    private int targetCase_ = 0;
+    private java.lang.Object target_;
+    public TargetCase
+        getTargetCase() {
+      return TargetCase.forNumber(
+          targetCase_);
+    }
+
+    public Builder clearTarget() {
+      targetCase_ = 0;
+      target_ = null;
+      onChanged();
+      return this;
+    }
+
     private int bitField0_;
 
-    private java.lang.Object sessionId_ = "";
     /**
      * <pre>
-     * Session ID this execution belongs to (optional).
-     *
-     * Resolution priority (enforced in handler pipeline):
-     * 1. session_id provided     -&gt; use existing session
-     * 2. session_spec provided   -&gt; auto-create session from the embedded spec
-     * 3. agent_id provided       -&gt; auto-create session using agent's default instance
-     * 4. none provided           -&gt; auto-create a session with no agent; the
-     * built-in assistant answers
-     *
-     * session_id and agent_id may both be set — when both are present, session_id
-     * is used for session resolution and agent_id is preserved as metadata for
-     * downstream consumers (e.g., session subject generation). session_id and
-     * session_spec are mutually exclusive.
+     * ID of the existing session this turn continues.
      *
      * An execution in an existing session belongs to that session's
      * organization: metadata.org, when set, must be the session's
-     * (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
-     * session. An execution stays in the session it was created in: update
-     * refuses a different session_id (FAILED_PRECONDITION), and an empty one
-     * keeps the stored session.
+     * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+     * the session. An execution stays in the session it was created in:
+     * update refuses a different session_id (FAILED_PRECONDITION), and an
+     * empty one keeps the stored session.
+     * </pre>
+     *
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return Whether the sessionId field is set.
+     */
+    @java.lang.Override
+    public boolean hasSessionId() {
+      return targetCase_ == 1;
+    }
+    /**
+     * <pre>
+     * ID of the existing session this turn continues.
+     *
+     * An execution in an existing session belongs to that session's
+     * organization: metadata.org, when set, must be the session's
+     * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+     * the session. An execution stays in the session it was created in:
+     * update refuses a different session_id (FAILED_PRECONDITION), and an
+     * empty one keeps the stored session.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
      * @return The sessionId.
      */
+    @java.lang.Override
     public java.lang.String getSessionId() {
-      java.lang.Object ref = sessionId_;
+      if (targetCase_ != 1) {
+        return "";
+      }
+      java.lang.Object ref = target_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        sessionId_ = s;
+          target_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -2029,39 +1761,31 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Session ID this execution belongs to (optional).
-     *
-     * Resolution priority (enforced in handler pipeline):
-     * 1. session_id provided     -&gt; use existing session
-     * 2. session_spec provided   -&gt; auto-create session from the embedded spec
-     * 3. agent_id provided       -&gt; auto-create session using agent's default instance
-     * 4. none provided           -&gt; auto-create a session with no agent; the
-     * built-in assistant answers
-     *
-     * session_id and agent_id may both be set — when both are present, session_id
-     * is used for session resolution and agent_id is preserved as metadata for
-     * downstream consumers (e.g., session subject generation). session_id and
-     * session_spec are mutually exclusive.
+     * ID of the existing session this turn continues.
      *
      * An execution in an existing session belongs to that session's
      * organization: metadata.org, when set, must be the session's
-     * (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
-     * session. An execution stays in the session it was created in: update
-     * refuses a different session_id (FAILED_PRECONDITION), and an empty one
-     * keeps the stored session.
+     * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+     * the session. An execution stays in the session it was created in:
+     * update refuses a different session_id (FAILED_PRECONDITION), and an
+     * empty one keeps the stored session.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
      * @return The bytes for sessionId.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getSessionIdBytes() {
-      java.lang.Object ref = sessionId_;
+      if (targetCase_ != 1) {
+        return com.google.protobuf.ByteString.copyFromUtf8(        "");
+      }
+      java.lang.Object ref = target_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        sessionId_ = b;
+        target_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -2069,26 +1793,14 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Session ID this execution belongs to (optional).
-     *
-     * Resolution priority (enforced in handler pipeline):
-     * 1. session_id provided     -&gt; use existing session
-     * 2. session_spec provided   -&gt; auto-create session from the embedded spec
-     * 3. agent_id provided       -&gt; auto-create session using agent's default instance
-     * 4. none provided           -&gt; auto-create a session with no agent; the
-     * built-in assistant answers
-     *
-     * session_id and agent_id may both be set — when both are present, session_id
-     * is used for session resolution and agent_id is preserved as metadata for
-     * downstream consumers (e.g., session subject generation). session_id and
-     * session_spec are mutually exclusive.
+     * ID of the existing session this turn continues.
      *
      * An execution in an existing session belongs to that session's
      * organization: metadata.org, when set, must be the session's
-     * (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
-     * session. An execution stays in the session it was created in: update
-     * refuses a different session_id (FAILED_PRECONDITION), and an empty one
-     * keeps the stored session.
+     * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+     * the session. An execution stays in the session it was created in:
+     * update refuses a different session_id (FAILED_PRECONDITION), and an
+     * empty one keeps the stored session.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -2098,66 +1810,44 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder setSessionId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      sessionId_ = value;
-      bitField0_ |= 0x00000001;
+      targetCase_ = 1;
+      target_ = value;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Session ID this execution belongs to (optional).
-     *
-     * Resolution priority (enforced in handler pipeline):
-     * 1. session_id provided     -&gt; use existing session
-     * 2. session_spec provided   -&gt; auto-create session from the embedded spec
-     * 3. agent_id provided       -&gt; auto-create session using agent's default instance
-     * 4. none provided           -&gt; auto-create a session with no agent; the
-     * built-in assistant answers
-     *
-     * session_id and agent_id may both be set — when both are present, session_id
-     * is used for session resolution and agent_id is preserved as metadata for
-     * downstream consumers (e.g., session subject generation). session_id and
-     * session_spec are mutually exclusive.
+     * ID of the existing session this turn continues.
      *
      * An execution in an existing session belongs to that session's
      * organization: metadata.org, when set, must be the session's
-     * (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
-     * session. An execution stays in the session it was created in: update
-     * refuses a different session_id (FAILED_PRECONDITION), and an empty one
-     * keeps the stored session.
+     * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+     * the session. An execution stays in the session it was created in:
+     * update refuses a different session_id (FAILED_PRECONDITION), and an
+     * empty one keeps the stored session.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
      * @return This builder for chaining.
      */
     public Builder clearSessionId() {
-      sessionId_ = getDefaultInstance().getSessionId();
-      bitField0_ = (bitField0_ & ~0x00000001);
-      onChanged();
+      if (targetCase_ == 1) {
+        targetCase_ = 0;
+        target_ = null;
+        onChanged();
+      }
       return this;
     }
     /**
      * <pre>
-     * Session ID this execution belongs to (optional).
-     *
-     * Resolution priority (enforced in handler pipeline):
-     * 1. session_id provided     -&gt; use existing session
-     * 2. session_spec provided   -&gt; auto-create session from the embedded spec
-     * 3. agent_id provided       -&gt; auto-create session using agent's default instance
-     * 4. none provided           -&gt; auto-create a session with no agent; the
-     * built-in assistant answers
-     *
-     * session_id and agent_id may both be set — when both are present, session_id
-     * is used for session resolution and agent_id is preserved as metadata for
-     * downstream consumers (e.g., session subject generation). session_id and
-     * session_spec are mutually exclusive.
+     * ID of the existing session this turn continues.
      *
      * An execution in an existing session belongs to that session's
      * organization: metadata.org, when set, must be the session's
-     * (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
-     * session. An execution stays in the session it was created in: update
-     * refuses a different session_id (FAILED_PRECONDITION), and an empty one
-     * keeps the stored session.
+     * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+     * the session. An execution stays in the session it was created in:
+     * update refuses a different session_id (FAILED_PRECONDITION), and an
+     * empty one keeps the stored session.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -2168,248 +1858,96 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      sessionId_ = value;
-      bitField0_ |= 0x00000001;
+      targetCase_ = 1;
+      target_ = value;
       onChanged();
       return this;
     }
 
-    private java.lang.Object agentId_ = "";
-    /**
-     * <pre>
-     * Agent ID (optional).
-     *
-     * When absent along with session_id and session_spec, the execution runs
-     * the built-in assistant in a new session with no agent: a person starts a
-     * conversation without choosing an agent.
-     *
-     * Both may be set — agent_id is preserved on the execution record even when
-     * session_id is present, so downstream consumers can access the agent
-     * without resolving through the session chain.
-     *
-     * When provided without session_id, a new session is auto-created using
-     * the agent's default instance ID.
-     * </pre>
-     *
-     * <code>string agent_id = 2 [json_name = "agentId"];</code>
-     * @return The agentId.
-     */
-    public java.lang.String getAgentId() {
-      java.lang.Object ref = agentId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        agentId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Agent ID (optional).
-     *
-     * When absent along with session_id and session_spec, the execution runs
-     * the built-in assistant in a new session with no agent: a person starts a
-     * conversation without choosing an agent.
-     *
-     * Both may be set — agent_id is preserved on the execution record even when
-     * session_id is present, so downstream consumers can access the agent
-     * without resolving through the session chain.
-     *
-     * When provided without session_id, a new session is auto-created using
-     * the agent's default instance ID.
-     * </pre>
-     *
-     * <code>string agent_id = 2 [json_name = "agentId"];</code>
-     * @return The bytes for agentId.
-     */
-    public com.google.protobuf.ByteString
-        getAgentIdBytes() {
-      java.lang.Object ref = agentId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        agentId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Agent ID (optional).
-     *
-     * When absent along with session_id and session_spec, the execution runs
-     * the built-in assistant in a new session with no agent: a person starts a
-     * conversation without choosing an agent.
-     *
-     * Both may be set — agent_id is preserved on the execution record even when
-     * session_id is present, so downstream consumers can access the agent
-     * without resolving through the session chain.
-     *
-     * When provided without session_id, a new session is auto-created using
-     * the agent's default instance ID.
-     * </pre>
-     *
-     * <code>string agent_id = 2 [json_name = "agentId"];</code>
-     * @param value The agentId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setAgentId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      agentId_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Agent ID (optional).
-     *
-     * When absent along with session_id and session_spec, the execution runs
-     * the built-in assistant in a new session with no agent: a person starts a
-     * conversation without choosing an agent.
-     *
-     * Both may be set — agent_id is preserved on the execution record even when
-     * session_id is present, so downstream consumers can access the agent
-     * without resolving through the session chain.
-     *
-     * When provided without session_id, a new session is auto-created using
-     * the agent's default instance ID.
-     * </pre>
-     *
-     * <code>string agent_id = 2 [json_name = "agentId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearAgentId() {
-      agentId_ = getDefaultInstance().getAgentId();
-      bitField0_ = (bitField0_ & ~0x00000002);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Agent ID (optional).
-     *
-     * When absent along with session_id and session_spec, the execution runs
-     * the built-in assistant in a new session with no agent: a person starts a
-     * conversation without choosing an agent.
-     *
-     * Both may be set — agent_id is preserved on the execution record even when
-     * session_id is present, so downstream consumers can access the agent
-     * without resolving through the session chain.
-     *
-     * When provided without session_id, a new session is auto-created using
-     * the agent's default instance ID.
-     * </pre>
-     *
-     * <code>string agent_id = 2 [json_name = "agentId"];</code>
-     * @param value The bytes for agentId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setAgentIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      agentId_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-
-    private ai.stigmer.agentic.session.v1.SessionSpec sessionSpec_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.session.v1.SessionSpec, ai.stigmer.agentic.session.v1.SessionSpec.Builder, ai.stigmer.agentic.session.v1.SessionSpecOrBuilder> sessionSpecBuilder_;
     /**
      * <pre>
-     * Spec for the session to auto-create when session_id is empty (optional).
+     * Spec for a new session this turn starts.
      *
-     * This is the one-call session bootstrap: a single create carries the full
-     * session shape (workspace_entries, harness, execution_target, MCP servers,
-     * skills) together with the first message, so embedders do not need to
-     * orchestrate session.create followed by agentExecution.create. The created
-     * session's ID is returned on the persisted execution's session_id.
+     * This is the one-call session bootstrap: a single create carries the
+     * full session shape (the agent, workspace_entries, harness,
+     * execution_target, MCP servers, skills) together with the first
+     * message, so embedders do not need to orchestrate session.create
+     * followed by agentExecution.create. The created session's ID is
+     * returned on the persisted execution's session_id.
      *
-     * Fields that must be set at session-creation time and are immutable once
-     * an execution has run — harness and execution_target — can only reach an
-     * auto-created session through this field.
-     *
-     * When session_spec.agent_instance_id is set, the session runs against that
-     * instance and agent_id must not also be resolved from it. When empty, the
-     * normal resolution applies: agent_id's default instance, or no agent (the
-     * built-in assistant) when agent_id is also empty.
-     *
-     * Mutually exclusive with session_id. session_spec.harness_state_id must be
-     * empty — it is server-owned harness continuity state, created by the runner
-     * after the first execution.
+     * session_spec.agent_ref names the agent the conversation runs (empty:
+     * the built-in assistant). Fields that must be set at session-creation
+     * time and are immutable once an execution has run — harness and
+     * execution_target — can only reach an auto-created session through
+     * this field. session_spec.harness_state_id must be empty — it is
+     * server-owned harness continuity state, created by the runner after
+     * the first execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
      * @return Whether the sessionSpec field is set.
      */
+    @java.lang.Override
     public boolean hasSessionSpec() {
-      return ((bitField0_ & 0x00000004) != 0);
+      return targetCase_ == 13;
     }
     /**
      * <pre>
-     * Spec for the session to auto-create when session_id is empty (optional).
+     * Spec for a new session this turn starts.
      *
-     * This is the one-call session bootstrap: a single create carries the full
-     * session shape (workspace_entries, harness, execution_target, MCP servers,
-     * skills) together with the first message, so embedders do not need to
-     * orchestrate session.create followed by agentExecution.create. The created
-     * session's ID is returned on the persisted execution's session_id.
+     * This is the one-call session bootstrap: a single create carries the
+     * full session shape (the agent, workspace_entries, harness,
+     * execution_target, MCP servers, skills) together with the first
+     * message, so embedders do not need to orchestrate session.create
+     * followed by agentExecution.create. The created session's ID is
+     * returned on the persisted execution's session_id.
      *
-     * Fields that must be set at session-creation time and are immutable once
-     * an execution has run — harness and execution_target — can only reach an
-     * auto-created session through this field.
-     *
-     * When session_spec.agent_instance_id is set, the session runs against that
-     * instance and agent_id must not also be resolved from it. When empty, the
-     * normal resolution applies: agent_id's default instance, or no agent (the
-     * built-in assistant) when agent_id is also empty.
-     *
-     * Mutually exclusive with session_id. session_spec.harness_state_id must be
-     * empty — it is server-owned harness continuity state, created by the runner
-     * after the first execution.
+     * session_spec.agent_ref names the agent the conversation runs (empty:
+     * the built-in assistant). Fields that must be set at session-creation
+     * time and are immutable once an execution has run — harness and
+     * execution_target — can only reach an auto-created session through
+     * this field. session_spec.harness_state_id must be empty — it is
+     * server-owned harness continuity state, created by the runner after
+     * the first execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
      * @return The sessionSpec.
      */
+    @java.lang.Override
     public ai.stigmer.agentic.session.v1.SessionSpec getSessionSpec() {
       if (sessionSpecBuilder_ == null) {
-        return sessionSpec_ == null ? ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance() : sessionSpec_;
+        if (targetCase_ == 13) {
+          return (ai.stigmer.agentic.session.v1.SessionSpec) target_;
+        }
+        return ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance();
       } else {
-        return sessionSpecBuilder_.getMessage();
+        if (targetCase_ == 13) {
+          return sessionSpecBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance();
       }
     }
     /**
      * <pre>
-     * Spec for the session to auto-create when session_id is empty (optional).
+     * Spec for a new session this turn starts.
      *
-     * This is the one-call session bootstrap: a single create carries the full
-     * session shape (workspace_entries, harness, execution_target, MCP servers,
-     * skills) together with the first message, so embedders do not need to
-     * orchestrate session.create followed by agentExecution.create. The created
-     * session's ID is returned on the persisted execution's session_id.
+     * This is the one-call session bootstrap: a single create carries the
+     * full session shape (the agent, workspace_entries, harness,
+     * execution_target, MCP servers, skills) together with the first
+     * message, so embedders do not need to orchestrate session.create
+     * followed by agentExecution.create. The created session's ID is
+     * returned on the persisted execution's session_id.
      *
-     * Fields that must be set at session-creation time and are immutable once
-     * an execution has run — harness and execution_target — can only reach an
-     * auto-created session through this field.
-     *
-     * When session_spec.agent_instance_id is set, the session runs against that
-     * instance and agent_id must not also be resolved from it. When empty, the
-     * normal resolution applies: agent_id's default instance, or no agent (the
-     * built-in assistant) when agent_id is also empty.
-     *
-     * Mutually exclusive with session_id. session_spec.harness_state_id must be
-     * empty — it is server-owned harness continuity state, created by the runner
-     * after the first execution.
+     * session_spec.agent_ref names the agent the conversation runs (empty:
+     * the built-in assistant). Fields that must be set at session-creation
+     * time and are immutable once an execution has run — harness and
+     * execution_target — can only reach an auto-created session through
+     * this field. session_spec.harness_state_id must be empty — it is
+     * server-owned harness continuity state, created by the runner after
+     * the first execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2419,36 +1957,32 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         if (value == null) {
           throw new NullPointerException();
         }
-        sessionSpec_ = value;
+        target_ = value;
+        onChanged();
       } else {
         sessionSpecBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000004;
-      onChanged();
+      targetCase_ = 13;
       return this;
     }
     /**
      * <pre>
-     * Spec for the session to auto-create when session_id is empty (optional).
+     * Spec for a new session this turn starts.
      *
-     * This is the one-call session bootstrap: a single create carries the full
-     * session shape (workspace_entries, harness, execution_target, MCP servers,
-     * skills) together with the first message, so embedders do not need to
-     * orchestrate session.create followed by agentExecution.create. The created
-     * session's ID is returned on the persisted execution's session_id.
+     * This is the one-call session bootstrap: a single create carries the
+     * full session shape (the agent, workspace_entries, harness,
+     * execution_target, MCP servers, skills) together with the first
+     * message, so embedders do not need to orchestrate session.create
+     * followed by agentExecution.create. The created session's ID is
+     * returned on the persisted execution's session_id.
      *
-     * Fields that must be set at session-creation time and are immutable once
-     * an execution has run — harness and execution_target — can only reach an
-     * auto-created session through this field.
-     *
-     * When session_spec.agent_instance_id is set, the session runs against that
-     * instance and agent_id must not also be resolved from it. When empty, the
-     * normal resolution applies: agent_id's default instance, or no agent (the
-     * built-in assistant) when agent_id is also empty.
-     *
-     * Mutually exclusive with session_id. session_spec.harness_state_id must be
-     * empty — it is server-owned harness continuity state, created by the runner
-     * after the first execution.
+     * session_spec.agent_ref names the agent the conversation runs (empty:
+     * the built-in assistant). Fields that must be set at session-creation
+     * time and are immutable once an execution has run — harness and
+     * execution_target — can only reach an auto-created session through
+     * this field. session_spec.harness_state_id must be empty — it is
+     * server-owned harness continuity state, created by the runner after
+     * the first execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2456,181 +1990,170 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder setSessionSpec(
         ai.stigmer.agentic.session.v1.SessionSpec.Builder builderForValue) {
       if (sessionSpecBuilder_ == null) {
-        sessionSpec_ = builderForValue.build();
+        target_ = builderForValue.build();
+        onChanged();
       } else {
         sessionSpecBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000004;
-      onChanged();
+      targetCase_ = 13;
       return this;
     }
     /**
      * <pre>
-     * Spec for the session to auto-create when session_id is empty (optional).
+     * Spec for a new session this turn starts.
      *
-     * This is the one-call session bootstrap: a single create carries the full
-     * session shape (workspace_entries, harness, execution_target, MCP servers,
-     * skills) together with the first message, so embedders do not need to
-     * orchestrate session.create followed by agentExecution.create. The created
-     * session's ID is returned on the persisted execution's session_id.
+     * This is the one-call session bootstrap: a single create carries the
+     * full session shape (the agent, workspace_entries, harness,
+     * execution_target, MCP servers, skills) together with the first
+     * message, so embedders do not need to orchestrate session.create
+     * followed by agentExecution.create. The created session's ID is
+     * returned on the persisted execution's session_id.
      *
-     * Fields that must be set at session-creation time and are immutable once
-     * an execution has run — harness and execution_target — can only reach an
-     * auto-created session through this field.
-     *
-     * When session_spec.agent_instance_id is set, the session runs against that
-     * instance and agent_id must not also be resolved from it. When empty, the
-     * normal resolution applies: agent_id's default instance, or no agent (the
-     * built-in assistant) when agent_id is also empty.
-     *
-     * Mutually exclusive with session_id. session_spec.harness_state_id must be
-     * empty — it is server-owned harness continuity state, created by the runner
-     * after the first execution.
+     * session_spec.agent_ref names the agent the conversation runs (empty:
+     * the built-in assistant). Fields that must be set at session-creation
+     * time and are immutable once an execution has run — harness and
+     * execution_target — can only reach an auto-created session through
+     * this field. session_spec.harness_state_id must be empty — it is
+     * server-owned harness continuity state, created by the runner after
+     * the first execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
      */
     public Builder mergeSessionSpec(ai.stigmer.agentic.session.v1.SessionSpec value) {
       if (sessionSpecBuilder_ == null) {
-        if (((bitField0_ & 0x00000004) != 0) &&
-          sessionSpec_ != null &&
-          sessionSpec_ != ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance()) {
-          getSessionSpecBuilder().mergeFrom(value);
+        if (targetCase_ == 13 &&
+            target_ != ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance()) {
+          target_ = ai.stigmer.agentic.session.v1.SessionSpec.newBuilder((ai.stigmer.agentic.session.v1.SessionSpec) target_)
+              .mergeFrom(value).buildPartial();
         } else {
-          sessionSpec_ = value;
+          target_ = value;
         }
-      } else {
-        sessionSpecBuilder_.mergeFrom(value);
-      }
-      if (sessionSpec_ != null) {
-        bitField0_ |= 0x00000004;
         onChanged();
+      } else {
+        if (targetCase_ == 13) {
+          sessionSpecBuilder_.mergeFrom(value);
+        } else {
+          sessionSpecBuilder_.setMessage(value);
+        }
       }
+      targetCase_ = 13;
       return this;
     }
     /**
      * <pre>
-     * Spec for the session to auto-create when session_id is empty (optional).
+     * Spec for a new session this turn starts.
      *
-     * This is the one-call session bootstrap: a single create carries the full
-     * session shape (workspace_entries, harness, execution_target, MCP servers,
-     * skills) together with the first message, so embedders do not need to
-     * orchestrate session.create followed by agentExecution.create. The created
-     * session's ID is returned on the persisted execution's session_id.
+     * This is the one-call session bootstrap: a single create carries the
+     * full session shape (the agent, workspace_entries, harness,
+     * execution_target, MCP servers, skills) together with the first
+     * message, so embedders do not need to orchestrate session.create
+     * followed by agentExecution.create. The created session's ID is
+     * returned on the persisted execution's session_id.
      *
-     * Fields that must be set at session-creation time and are immutable once
-     * an execution has run — harness and execution_target — can only reach an
-     * auto-created session through this field.
-     *
-     * When session_spec.agent_instance_id is set, the session runs against that
-     * instance and agent_id must not also be resolved from it. When empty, the
-     * normal resolution applies: agent_id's default instance, or no agent (the
-     * built-in assistant) when agent_id is also empty.
-     *
-     * Mutually exclusive with session_id. session_spec.harness_state_id must be
-     * empty — it is server-owned harness continuity state, created by the runner
-     * after the first execution.
+     * session_spec.agent_ref names the agent the conversation runs (empty:
+     * the built-in assistant). Fields that must be set at session-creation
+     * time and are immutable once an execution has run — harness and
+     * execution_target — can only reach an auto-created session through
+     * this field. session_spec.harness_state_id must be empty — it is
+     * server-owned harness continuity state, created by the runner after
+     * the first execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
      */
     public Builder clearSessionSpec() {
-      bitField0_ = (bitField0_ & ~0x00000004);
-      sessionSpec_ = null;
-      if (sessionSpecBuilder_ != null) {
-        sessionSpecBuilder_.dispose();
-        sessionSpecBuilder_ = null;
+      if (sessionSpecBuilder_ == null) {
+        if (targetCase_ == 13) {
+          targetCase_ = 0;
+          target_ = null;
+          onChanged();
+        }
+      } else {
+        if (targetCase_ == 13) {
+          targetCase_ = 0;
+          target_ = null;
+        }
+        sessionSpecBuilder_.clear();
       }
-      onChanged();
       return this;
     }
     /**
      * <pre>
-     * Spec for the session to auto-create when session_id is empty (optional).
+     * Spec for a new session this turn starts.
      *
-     * This is the one-call session bootstrap: a single create carries the full
-     * session shape (workspace_entries, harness, execution_target, MCP servers,
-     * skills) together with the first message, so embedders do not need to
-     * orchestrate session.create followed by agentExecution.create. The created
-     * session's ID is returned on the persisted execution's session_id.
+     * This is the one-call session bootstrap: a single create carries the
+     * full session shape (the agent, workspace_entries, harness,
+     * execution_target, MCP servers, skills) together with the first
+     * message, so embedders do not need to orchestrate session.create
+     * followed by agentExecution.create. The created session's ID is
+     * returned on the persisted execution's session_id.
      *
-     * Fields that must be set at session-creation time and are immutable once
-     * an execution has run — harness and execution_target — can only reach an
-     * auto-created session through this field.
-     *
-     * When session_spec.agent_instance_id is set, the session runs against that
-     * instance and agent_id must not also be resolved from it. When empty, the
-     * normal resolution applies: agent_id's default instance, or no agent (the
-     * built-in assistant) when agent_id is also empty.
-     *
-     * Mutually exclusive with session_id. session_spec.harness_state_id must be
-     * empty — it is server-owned harness continuity state, created by the runner
-     * after the first execution.
+     * session_spec.agent_ref names the agent the conversation runs (empty:
+     * the built-in assistant). Fields that must be set at session-creation
+     * time and are immutable once an execution has run — harness and
+     * execution_target — can only reach an auto-created session through
+     * this field. session_spec.harness_state_id must be empty — it is
+     * server-owned harness continuity state, created by the runner after
+     * the first execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
      */
     public ai.stigmer.agentic.session.v1.SessionSpec.Builder getSessionSpecBuilder() {
-      bitField0_ |= 0x00000004;
-      onChanged();
       return internalGetSessionSpecFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * Spec for the session to auto-create when session_id is empty (optional).
+     * Spec for a new session this turn starts.
      *
-     * This is the one-call session bootstrap: a single create carries the full
-     * session shape (workspace_entries, harness, execution_target, MCP servers,
-     * skills) together with the first message, so embedders do not need to
-     * orchestrate session.create followed by agentExecution.create. The created
-     * session's ID is returned on the persisted execution's session_id.
+     * This is the one-call session bootstrap: a single create carries the
+     * full session shape (the agent, workspace_entries, harness,
+     * execution_target, MCP servers, skills) together with the first
+     * message, so embedders do not need to orchestrate session.create
+     * followed by agentExecution.create. The created session's ID is
+     * returned on the persisted execution's session_id.
      *
-     * Fields that must be set at session-creation time and are immutable once
-     * an execution has run — harness and execution_target — can only reach an
-     * auto-created session through this field.
-     *
-     * When session_spec.agent_instance_id is set, the session runs against that
-     * instance and agent_id must not also be resolved from it. When empty, the
-     * normal resolution applies: agent_id's default instance, or no agent (the
-     * built-in assistant) when agent_id is also empty.
-     *
-     * Mutually exclusive with session_id. session_spec.harness_state_id must be
-     * empty — it is server-owned harness continuity state, created by the runner
-     * after the first execution.
+     * session_spec.agent_ref names the agent the conversation runs (empty:
+     * the built-in assistant). Fields that must be set at session-creation
+     * time and are immutable once an execution has run — harness and
+     * execution_target — can only reach an auto-created session through
+     * this field. session_spec.harness_state_id must be empty — it is
+     * server-owned harness continuity state, created by the runner after
+     * the first execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
      */
+    @java.lang.Override
     public ai.stigmer.agentic.session.v1.SessionSpecOrBuilder getSessionSpecOrBuilder() {
-      if (sessionSpecBuilder_ != null) {
+      if ((targetCase_ == 13) && (sessionSpecBuilder_ != null)) {
         return sessionSpecBuilder_.getMessageOrBuilder();
       } else {
-        return sessionSpec_ == null ?
-            ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance() : sessionSpec_;
+        if (targetCase_ == 13) {
+          return (ai.stigmer.agentic.session.v1.SessionSpec) target_;
+        }
+        return ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance();
       }
     }
     /**
      * <pre>
-     * Spec for the session to auto-create when session_id is empty (optional).
+     * Spec for a new session this turn starts.
      *
-     * This is the one-call session bootstrap: a single create carries the full
-     * session shape (workspace_entries, harness, execution_target, MCP servers,
-     * skills) together with the first message, so embedders do not need to
-     * orchestrate session.create followed by agentExecution.create. The created
-     * session's ID is returned on the persisted execution's session_id.
+     * This is the one-call session bootstrap: a single create carries the
+     * full session shape (the agent, workspace_entries, harness,
+     * execution_target, MCP servers, skills) together with the first
+     * message, so embedders do not need to orchestrate session.create
+     * followed by agentExecution.create. The created session's ID is
+     * returned on the persisted execution's session_id.
      *
-     * Fields that must be set at session-creation time and are immutable once
-     * an execution has run — harness and execution_target — can only reach an
-     * auto-created session through this field.
-     *
-     * When session_spec.agent_instance_id is set, the session runs against that
-     * instance and agent_id must not also be resolved from it. When empty, the
-     * normal resolution applies: agent_id's default instance, or no agent (the
-     * built-in assistant) when agent_id is also empty.
-     *
-     * Mutually exclusive with session_id. session_spec.harness_state_id must be
-     * empty — it is server-owned harness continuity state, created by the runner
-     * after the first execution.
+     * session_spec.agent_ref names the agent the conversation runs (empty:
+     * the built-in assistant). Fields that must be set at session-creation
+     * time and are immutable once an execution has run — harness and
+     * execution_target — can only reach an auto-created session through
+     * this field. session_spec.harness_state_id must be empty — it is
+     * server-owned harness continuity state, created by the runner after
+     * the first execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2639,13 +2162,18 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         ai.stigmer.agentic.session.v1.SessionSpec, ai.stigmer.agentic.session.v1.SessionSpec.Builder, ai.stigmer.agentic.session.v1.SessionSpecOrBuilder> 
         internalGetSessionSpecFieldBuilder() {
       if (sessionSpecBuilder_ == null) {
+        if (!(targetCase_ == 13)) {
+          target_ = ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance();
+        }
         sessionSpecBuilder_ = new com.google.protobuf.SingleFieldBuilder<
             ai.stigmer.agentic.session.v1.SessionSpec, ai.stigmer.agentic.session.v1.SessionSpec.Builder, ai.stigmer.agentic.session.v1.SessionSpecOrBuilder>(
-                getSessionSpec(),
+                (ai.stigmer.agentic.session.v1.SessionSpec) target_,
                 getParentForChildren(),
                 isClean());
-        sessionSpec_ = null;
+        target_ = null;
       }
+      targetCase_ = 13;
+      onChanged();
       return sessionSpecBuilder_;
     }
 
@@ -2707,7 +2235,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       message_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -2722,7 +2250,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder clearMessage() {
       message_ = getDefaultInstance().getMessage();
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
@@ -2741,7 +2269,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       message_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -2759,7 +2287,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return Whether the executionConfig field is set.
      */
     public boolean hasExecutionConfig() {
-      return ((bitField0_ & 0x00000010) != 0);
+      return ((bitField0_ & 0x00000008) != 0);
     }
     /**
      * <pre>
@@ -2794,7 +2322,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         executionConfigBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -2813,7 +2341,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         executionConfigBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -2827,7 +2355,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder mergeExecutionConfig(ai.stigmer.agentic.agentexecution.v1.ExecutionConfig value) {
       if (executionConfigBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0) &&
+        if (((bitField0_ & 0x00000008) != 0) &&
           executionConfig_ != null &&
           executionConfig_ != ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.getDefaultInstance()) {
           getExecutionConfigBuilder().mergeFrom(value);
@@ -2838,7 +2366,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         executionConfigBuilder_.mergeFrom(value);
       }
       if (executionConfig_ != null) {
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       return this;
@@ -2852,7 +2380,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
      */
     public Builder clearExecutionConfig() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       executionConfig_ = null;
       if (executionConfigBuilder_ != null) {
         executionConfigBuilder_.dispose();
@@ -2870,7 +2398,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.Builder getExecutionConfigBuilder() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return internalGetExecutionConfigFieldBuilder().getBuilder();
     }
@@ -2940,7 +2468,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (runtimeEnv_ == null) {
         runtimeEnv_ = new com.google.protobuf.MapFieldBuilder<>(runtimeEnvConverter);
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return runtimeEnv_;
     }
@@ -3046,7 +2574,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return runtimeEnvConverter.build(map.get(key));
     }
     public Builder clearRuntimeEnv() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       internalGetMutableRuntimeEnv().clear();
       return this;
     }
@@ -3078,7 +2606,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
         getMutableRuntimeEnv() {
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       return internalGetMutableRuntimeEnv().ensureMessageMap();
     }
     /**
@@ -3103,7 +2631,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableRuntimeEnv().ensureBuilderMap()
           .put(key, value);
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       return this;
     }
     /**
@@ -3130,7 +2658,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       internalGetMutableRuntimeEnv().ensureBuilderMap()
           .putAll(values);
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       return this;
     }
     /**
@@ -3161,62 +2689,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         builderMap.put(key, entry);
       }
       return (ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder) entry;
-    }
-
-    private com.google.protobuf.ByteString callbackToken_ = com.google.protobuf.ByteString.EMPTY;
-    /**
-     * <pre>
-     * Callback token for async activity completion (optional).
-     *
-     * When a workflow invokes an agent, this token enables the workflow to
-     * wait for the agent to finish without blocking. When empty, the
-     * execution runs independently (CLI, API calls, non-workflow triggers).
-     * </pre>
-     *
-     * <code>bytes callback_token = 6 [json_name = "callbackToken"];</code>
-     * @return The callbackToken.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString getCallbackToken() {
-      return callbackToken_;
-    }
-    /**
-     * <pre>
-     * Callback token for async activity completion (optional).
-     *
-     * When a workflow invokes an agent, this token enables the workflow to
-     * wait for the agent to finish without blocking. When empty, the
-     * execution runs independently (CLI, API calls, non-workflow triggers).
-     * </pre>
-     *
-     * <code>bytes callback_token = 6 [json_name = "callbackToken"];</code>
-     * @param value The callbackToken to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCallbackToken(com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      callbackToken_ = value;
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Callback token for async activity completion (optional).
-     *
-     * When a workflow invokes an agent, this token enables the workflow to
-     * wait for the agent to finish without blocking. When empty, the
-     * execution runs independently (CLI, API calls, non-workflow triggers).
-     * </pre>
-     *
-     * <code>bytes callback_token = 6 [json_name = "callbackToken"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCallbackToken() {
-      bitField0_ = (bitField0_ & ~0x00000040);
-      callbackToken_ = getDefaultInstance().getCallbackToken();
-      onChanged();
-      return this;
     }
 
     private boolean autoApproveAll_ ;
@@ -3276,7 +2748,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder setAutoApproveAll(boolean value) {
 
       autoApproveAll_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -3305,120 +2777,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearAutoApproveAll() {
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000020);
       autoApproveAll_ = false;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object parentWorkflowId_ = "";
-    /**
-     * <pre>
-     * Parent workflow ID when this execution was triggered by a workflow (optional).
-     *
-     * When set, the platform notifies the parent workflow about approval
-     * requests instead of requiring polling. When empty, approvals are
-     * submitted directly via the SubmitApproval RPC.
-     * </pre>
-     *
-     * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
-     * @return The parentWorkflowId.
-     */
-    public java.lang.String getParentWorkflowId() {
-      java.lang.Object ref = parentWorkflowId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        parentWorkflowId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Parent workflow ID when this execution was triggered by a workflow (optional).
-     *
-     * When set, the platform notifies the parent workflow about approval
-     * requests instead of requiring polling. When empty, approvals are
-     * submitted directly via the SubmitApproval RPC.
-     * </pre>
-     *
-     * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
-     * @return The bytes for parentWorkflowId.
-     */
-    public com.google.protobuf.ByteString
-        getParentWorkflowIdBytes() {
-      java.lang.Object ref = parentWorkflowId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        parentWorkflowId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Parent workflow ID when this execution was triggered by a workflow (optional).
-     *
-     * When set, the platform notifies the parent workflow about approval
-     * requests instead of requiring polling. When empty, approvals are
-     * submitted directly via the SubmitApproval RPC.
-     * </pre>
-     *
-     * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
-     * @param value The parentWorkflowId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setParentWorkflowId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      parentWorkflowId_ = value;
-      bitField0_ |= 0x00000100;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Parent workflow ID when this execution was triggered by a workflow (optional).
-     *
-     * When set, the platform notifies the parent workflow about approval
-     * requests instead of requiring polling. When empty, approvals are
-     * submitted directly via the SubmitApproval RPC.
-     * </pre>
-     *
-     * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearParentWorkflowId() {
-      parentWorkflowId_ = getDefaultInstance().getParentWorkflowId();
-      bitField0_ = (bitField0_ & ~0x00000100);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Parent workflow ID when this execution was triggered by a workflow (optional).
-     *
-     * When set, the platform notifies the parent workflow about approval
-     * requests instead of requiring polling. When empty, approvals are
-     * submitted directly via the SubmitApproval RPC.
-     * </pre>
-     *
-     * <code>string parent_workflow_id = 8 [json_name = "parentWorkflowId"];</code>
-     * @param value The bytes for parentWorkflowId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setParentWorkflowIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      parentWorkflowId_ = value;
-      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -3426,9 +2786,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private java.util.List<ai.stigmer.agentic.agentexecution.v1.Attachment> attachments_ =
       java.util.Collections.emptyList();
     private void ensureAttachmentsIsMutable() {
-      if (!((bitField0_ & 0x00000200) != 0)) {
+      if (!((bitField0_ & 0x00000040) != 0)) {
         attachments_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.Attachment>(attachments_);
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000040;
        }
     }
 
@@ -3743,7 +3103,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder clearAttachments() {
       if (attachmentsBuilder_ == null) {
         attachments_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000200);
+        bitField0_ = (bitField0_ & ~0x00000040);
         onChanged();
       } else {
         attachmentsBuilder_.clear();
@@ -3925,7 +3285,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         attachmentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentexecution.v1.Attachment, ai.stigmer.agentic.agentexecution.v1.Attachment.Builder, ai.stigmer.agentic.agentexecution.v1.AttachmentOrBuilder>(
                 attachments_,
-                ((bitField0_ & 0x00000200) != 0),
+                ((bitField0_ & 0x00000040) != 0),
                 getParentForChildren(),
                 isClean());
         attachments_ = null;
@@ -3939,7 +3299,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!workspaceFileRefs_.isModifiable()) {
         workspaceFileRefs_ = new com.google.protobuf.LazyStringArrayList(workspaceFileRefs_);
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000080;
     }
     /**
      * <pre>
@@ -4110,7 +3470,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.set(index, value);
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -4149,7 +3509,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -4188,7 +3548,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       ensureWorkspaceFileRefsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, workspaceFileRefs_);
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -4224,7 +3584,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder clearWorkspaceFileRefs() {
       workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000400);;
+      bitField0_ = (bitField0_ & ~0x00000080);;
       onChanged();
       return this;
     }
@@ -4264,99 +3624,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       checkByteStringIsUtf8(value);
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00000400;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object activityTaskQueue_ = "";
-    /**
-     * <pre>
-     * Explicit Temporal task queue override for activity routing.
-     * </pre>
-     *
-     * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
-     * @return The activityTaskQueue.
-     */
-    public java.lang.String getActivityTaskQueue() {
-      java.lang.Object ref = activityTaskQueue_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        activityTaskQueue_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Explicit Temporal task queue override for activity routing.
-     * </pre>
-     *
-     * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
-     * @return The bytes for activityTaskQueue.
-     */
-    public com.google.protobuf.ByteString
-        getActivityTaskQueueBytes() {
-      java.lang.Object ref = activityTaskQueue_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        activityTaskQueue_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Explicit Temporal task queue override for activity routing.
-     * </pre>
-     *
-     * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
-     * @param value The activityTaskQueue to set.
-     * @return This builder for chaining.
-     */
-    public Builder setActivityTaskQueue(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      activityTaskQueue_ = value;
-      bitField0_ |= 0x00000800;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Explicit Temporal task queue override for activity routing.
-     * </pre>
-     *
-     * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearActivityTaskQueue() {
-      activityTaskQueue_ = getDefaultInstance().getActivityTaskQueue();
-      bitField0_ = (bitField0_ & ~0x00000800);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Explicit Temporal task queue override for activity routing.
-     * </pre>
-     *
-     * <code>string activity_task_queue = 11 [json_name = "activityTaskQueue"];</code>
-     * @param value The bytes for activityTaskQueue to set.
-     * @return This builder for chaining.
-     */
-    public Builder setActivityTaskQueueBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      activityTaskQueue_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -4440,7 +3708,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       supersedesExecutionId_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -4462,7 +3730,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder clearSupersedesExecutionId() {
       supersedesExecutionId_ = getDefaultInstance().getSupersedesExecutionId();
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000100);
       onChanged();
       return this;
     }
@@ -4488,7 +3756,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       supersedesExecutionId_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -4511,7 +3779,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return Whether the conversationCatchup field is set.
      */
     public boolean hasConversationCatchup() {
-      return ((bitField0_ & 0x00002000) != 0);
+      return ((bitField0_ & 0x00000200) != 0);
     }
     /**
      * <pre>
@@ -4556,7 +3824,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         conversationCatchupBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4580,7 +3848,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         conversationCatchupBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4599,7 +3867,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder mergeConversationCatchup(ai.stigmer.agentic.agentexecution.v1.ConversationCatchup value) {
       if (conversationCatchupBuilder_ == null) {
-        if (((bitField0_ & 0x00002000) != 0) &&
+        if (((bitField0_ & 0x00000200) != 0) &&
           conversationCatchup_ != null &&
           conversationCatchup_ != ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.getDefaultInstance()) {
           getConversationCatchupBuilder().mergeFrom(value);
@@ -4610,7 +3878,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         conversationCatchupBuilder_.mergeFrom(value);
       }
       if (conversationCatchup_ != null) {
-        bitField0_ |= 0x00002000;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       return this;
@@ -4629,7 +3897,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
      */
     public Builder clearConversationCatchup() {
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00000200);
       conversationCatchup_ = null;
       if (conversationCatchupBuilder_ != null) {
         conversationCatchupBuilder_.dispose();
@@ -4652,7 +3920,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.Builder getConversationCatchupBuilder() {
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00000200;
       onChanged();
       return internalGetConversationCatchupFieldBuilder().getBuilder();
     }
@@ -4704,336 +3972,251 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return conversationCatchupBuilder_;
     }
 
-    private ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declaredPreferences_;
+    private ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.Builder, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder> declaredPreferencesBuilder_;
+        ai.stigmer.agentic.agentexecution.v1.WorkflowParent, ai.stigmer.agentic.agentexecution.v1.WorkflowParent.Builder, ai.stigmer.agentic.agentexecution.v1.WorkflowParentOrBuilder> parentBuilder_;
     /**
      * <pre>
-     * Standing preferences declared by the organization and the calling user,
-     * snapshotted into this execution at create time (optional).
+     * The workflow run this turn was started by (optional): set only by a
+     * workflow's agent_call step, which waits for the turn to finish.
+     *
+     * The server honours it only from the workflow run it names: a request
+     * the server composes itself, a runner whose credential is bound to that
+     * workflow run, or a caller holding the platform's
+     * can_write_reserved_labels. Any other caller that sets it is refused with
+     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
+     * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
-     * @return Whether the declaredPreferences field is set.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
+     * @return Whether the parent field is set.
      */
-    public boolean hasDeclaredPreferences() {
-      return ((bitField0_ & 0x00004000) != 0);
+    public boolean hasParent() {
+      return ((bitField0_ & 0x00000400) != 0);
     }
     /**
      * <pre>
-     * Standing preferences declared by the organization and the calling user,
-     * snapshotted into this execution at create time (optional).
+     * The workflow run this turn was started by (optional): set only by a
+     * workflow's agent_call step, which waits for the turn to finish.
+     *
+     * The server honours it only from the workflow run it names: a request
+     * the server composes itself, a runner whose credential is bound to that
+     * workflow run, or a caller holding the platform's
+     * can_write_reserved_labels. Any other caller that sets it is refused with
+     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
+     * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
-     * @return The declaredPreferences.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
+     * @return The parent.
      */
-    public ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences getDeclaredPreferences() {
-      if (declaredPreferencesBuilder_ == null) {
-        return declaredPreferences_ == null ? ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.getDefaultInstance() : declaredPreferences_;
+    public ai.stigmer.agentic.agentexecution.v1.WorkflowParent getParent() {
+      if (parentBuilder_ == null) {
+        return parent_ == null ? ai.stigmer.agentic.agentexecution.v1.WorkflowParent.getDefaultInstance() : parent_;
       } else {
-        return declaredPreferencesBuilder_.getMessage();
+        return parentBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * Standing preferences declared by the organization and the calling user,
-     * snapshotted into this execution at create time (optional).
+     * The workflow run this turn was started by (optional): set only by a
+     * workflow's agent_call step, which waits for the turn to finish.
+     *
+     * The server honours it only from the workflow run it names: a request
+     * the server composes itself, a runner whose credential is bound to that
+     * workflow run, or a caller holding the platform's
+     * can_write_reserved_labels. Any other caller that sets it is refused with
+     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
+     * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
      */
-    public Builder setDeclaredPreferences(ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences value) {
-      if (declaredPreferencesBuilder_ == null) {
+    public Builder setParent(ai.stigmer.agentic.agentexecution.v1.WorkflowParent value) {
+      if (parentBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        declaredPreferences_ = value;
+        parent_ = value;
       } else {
-        declaredPreferencesBuilder_.setMessage(value);
+        parentBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Standing preferences declared by the organization and the calling user,
-     * snapshotted into this execution at create time (optional).
+     * The workflow run this turn was started by (optional): set only by a
+     * workflow's agent_call step, which waits for the turn to finish.
+     *
+     * The server honours it only from the workflow run it names: a request
+     * the server composes itself, a runner whose credential is bound to that
+     * workflow run, or a caller holding the platform's
+     * can_write_reserved_labels. Any other caller that sets it is refused with
+     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
+     * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
      */
-    public Builder setDeclaredPreferences(
-        ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.Builder builderForValue) {
-      if (declaredPreferencesBuilder_ == null) {
-        declaredPreferences_ = builderForValue.build();
+    public Builder setParent(
+        ai.stigmer.agentic.agentexecution.v1.WorkflowParent.Builder builderForValue) {
+      if (parentBuilder_ == null) {
+        parent_ = builderForValue.build();
       } else {
-        declaredPreferencesBuilder_.setMessage(builderForValue.build());
+        parentBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Standing preferences declared by the organization and the calling user,
-     * snapshotted into this execution at create time (optional).
+     * The workflow run this turn was started by (optional): set only by a
+     * workflow's agent_call step, which waits for the turn to finish.
+     *
+     * The server honours it only from the workflow run it names: a request
+     * the server composes itself, a runner whose credential is bound to that
+     * workflow run, or a caller holding the platform's
+     * can_write_reserved_labels. Any other caller that sets it is refused with
+     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
+     * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
      */
-    public Builder mergeDeclaredPreferences(ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences value) {
-      if (declaredPreferencesBuilder_ == null) {
-        if (((bitField0_ & 0x00004000) != 0) &&
-          declaredPreferences_ != null &&
-          declaredPreferences_ != ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.getDefaultInstance()) {
-          getDeclaredPreferencesBuilder().mergeFrom(value);
+    public Builder mergeParent(ai.stigmer.agentic.agentexecution.v1.WorkflowParent value) {
+      if (parentBuilder_ == null) {
+        if (((bitField0_ & 0x00000400) != 0) &&
+          parent_ != null &&
+          parent_ != ai.stigmer.agentic.agentexecution.v1.WorkflowParent.getDefaultInstance()) {
+          getParentBuilder().mergeFrom(value);
         } else {
-          declaredPreferences_ = value;
+          parent_ = value;
         }
       } else {
-        declaredPreferencesBuilder_.mergeFrom(value);
+        parentBuilder_.mergeFrom(value);
       }
-      if (declaredPreferences_ != null) {
-        bitField0_ |= 0x00004000;
+      if (parent_ != null) {
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       return this;
     }
     /**
      * <pre>
-     * Standing preferences declared by the organization and the calling user,
-     * snapshotted into this execution at create time (optional).
+     * The workflow run this turn was started by (optional): set only by a
+     * workflow's agent_call step, which waits for the turn to finish.
+     *
+     * The server honours it only from the workflow run it names: a request
+     * the server composes itself, a runner whose credential is bound to that
+     * workflow run, or a caller holding the platform's
+     * can_write_reserved_labels. Any other caller that sets it is refused with
+     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
+     * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
      */
-    public Builder clearDeclaredPreferences() {
-      bitField0_ = (bitField0_ & ~0x00004000);
-      declaredPreferences_ = null;
-      if (declaredPreferencesBuilder_ != null) {
-        declaredPreferencesBuilder_.dispose();
-        declaredPreferencesBuilder_ = null;
+    public Builder clearParent() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      parent_ = null;
+      if (parentBuilder_ != null) {
+        parentBuilder_.dispose();
+        parentBuilder_ = null;
       }
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Standing preferences declared by the organization and the calling user,
-     * snapshotted into this execution at create time (optional).
+     * The workflow run this turn was started by (optional): set only by a
+     * workflow's agent_call step, which waits for the turn to finish.
+     *
+     * The server honours it only from the workflow run it names: a request
+     * the server composes itself, a runner whose credential is bound to that
+     * workflow run, or a caller holding the platform's
+     * can_write_reserved_labels. Any other caller that sets it is refused with
+     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
+     * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.Builder getDeclaredPreferencesBuilder() {
-      bitField0_ |= 0x00004000;
+    public ai.stigmer.agentic.agentexecution.v1.WorkflowParent.Builder getParentBuilder() {
+      bitField0_ |= 0x00000400;
       onChanged();
-      return internalGetDeclaredPreferencesFieldBuilder().getBuilder();
+      return internalGetParentFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * Standing preferences declared by the organization and the calling user,
-     * snapshotted into this execution at create time (optional).
+     * The workflow run this turn was started by (optional): set only by a
+     * workflow's agent_call step, which waits for the turn to finish.
+     *
+     * The server honours it only from the workflow run it names: a request
+     * the server composes itself, a runner whose credential is bound to that
+     * workflow run, or a caller holding the platform's
+     * can_write_reserved_labels. Any other caller that sets it is refused with
+     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
+     * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder getDeclaredPreferencesOrBuilder() {
-      if (declaredPreferencesBuilder_ != null) {
-        return declaredPreferencesBuilder_.getMessageOrBuilder();
+    public ai.stigmer.agentic.agentexecution.v1.WorkflowParentOrBuilder getParentOrBuilder() {
+      if (parentBuilder_ != null) {
+        return parentBuilder_.getMessageOrBuilder();
       } else {
-        return declaredPreferences_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.getDefaultInstance() : declaredPreferences_;
+        return parent_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.WorkflowParent.getDefaultInstance() : parent_;
       }
     }
     /**
      * <pre>
-     * Standing preferences declared by the organization and the calling user,
-     * snapshotted into this execution at create time (optional).
+     * The workflow run this turn was started by (optional): set only by a
+     * workflow's agent_call step, which waits for the turn to finish.
+     *
+     * The server honours it only from the workflow run it names: a request
+     * the server composes itself, a runner whose credential is bound to that
+     * workflow run, or a caller holding the platform's
+     * can_write_reserved_labels. Any other caller that sets it is refused with
+     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+     * runs where the workflow run's own activities run (its sandbox, when the
+     * deployment gives each run one), the parent is told about approval
+     * requests, and the waiting step is completed when the turn finishes.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences declared_preferences = 15 [json_name = "declaredPreferences"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.Builder, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder> 
-        internalGetDeclaredPreferencesFieldBuilder() {
-      if (declaredPreferencesBuilder_ == null) {
-        declaredPreferencesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences.Builder, ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesOrBuilder>(
-                getDeclaredPreferences(),
+        ai.stigmer.agentic.agentexecution.v1.WorkflowParent, ai.stigmer.agentic.agentexecution.v1.WorkflowParent.Builder, ai.stigmer.agentic.agentexecution.v1.WorkflowParentOrBuilder> 
+        internalGetParentFieldBuilder() {
+      if (parentBuilder_ == null) {
+        parentBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.WorkflowParent, ai.stigmer.agentic.agentexecution.v1.WorkflowParent.Builder, ai.stigmer.agentic.agentexecution.v1.WorkflowParentOrBuilder>(
+                getParent(),
                 getParentForChildren(),
                 isClean());
-        declaredPreferences_ = null;
+        parent_ = null;
       }
-      return declaredPreferencesBuilder_;
-    }
-
-    private ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalledMemories_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.RecalledMemories, ai.stigmer.agentic.agentexecution.v1.RecalledMemories.Builder, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder> recalledMemoriesBuilder_;
-    /**
-     * <pre>
-     * The caller's confirmed memories, snapshotted into this execution at
-     * create time (optional).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-     * @return Whether the recalledMemories field is set.
-     */
-    public boolean hasRecalledMemories() {
-      return ((bitField0_ & 0x00008000) != 0);
-    }
-    /**
-     * <pre>
-     * The caller's confirmed memories, snapshotted into this execution at
-     * create time (optional).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-     * @return The recalledMemories.
-     */
-    public ai.stigmer.agentic.agentexecution.v1.RecalledMemories getRecalledMemories() {
-      if (recalledMemoriesBuilder_ == null) {
-        return recalledMemories_ == null ? ai.stigmer.agentic.agentexecution.v1.RecalledMemories.getDefaultInstance() : recalledMemories_;
-      } else {
-        return recalledMemoriesBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * The caller's confirmed memories, snapshotted into this execution at
-     * create time (optional).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-     */
-    public Builder setRecalledMemories(ai.stigmer.agentic.agentexecution.v1.RecalledMemories value) {
-      if (recalledMemoriesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        recalledMemories_ = value;
-      } else {
-        recalledMemoriesBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00008000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The caller's confirmed memories, snapshotted into this execution at
-     * create time (optional).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-     */
-    public Builder setRecalledMemories(
-        ai.stigmer.agentic.agentexecution.v1.RecalledMemories.Builder builderForValue) {
-      if (recalledMemoriesBuilder_ == null) {
-        recalledMemories_ = builderForValue.build();
-      } else {
-        recalledMemoriesBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00008000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The caller's confirmed memories, snapshotted into this execution at
-     * create time (optional).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-     */
-    public Builder mergeRecalledMemories(ai.stigmer.agentic.agentexecution.v1.RecalledMemories value) {
-      if (recalledMemoriesBuilder_ == null) {
-        if (((bitField0_ & 0x00008000) != 0) &&
-          recalledMemories_ != null &&
-          recalledMemories_ != ai.stigmer.agentic.agentexecution.v1.RecalledMemories.getDefaultInstance()) {
-          getRecalledMemoriesBuilder().mergeFrom(value);
-        } else {
-          recalledMemories_ = value;
-        }
-      } else {
-        recalledMemoriesBuilder_.mergeFrom(value);
-      }
-      if (recalledMemories_ != null) {
-        bitField0_ |= 0x00008000;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * The caller's confirmed memories, snapshotted into this execution at
-     * create time (optional).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-     */
-    public Builder clearRecalledMemories() {
-      bitField0_ = (bitField0_ & ~0x00008000);
-      recalledMemories_ = null;
-      if (recalledMemoriesBuilder_ != null) {
-        recalledMemoriesBuilder_.dispose();
-        recalledMemoriesBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The caller's confirmed memories, snapshotted into this execution at
-     * create time (optional).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.RecalledMemories.Builder getRecalledMemoriesBuilder() {
-      bitField0_ |= 0x00008000;
-      onChanged();
-      return internalGetRecalledMemoriesFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * The caller's confirmed memories, snapshotted into this execution at
-     * create time (optional).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder getRecalledMemoriesOrBuilder() {
-      if (recalledMemoriesBuilder_ != null) {
-        return recalledMemoriesBuilder_.getMessageOrBuilder();
-      } else {
-        return recalledMemories_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.RecalledMemories.getDefaultInstance() : recalledMemories_;
-      }
-    }
-    /**
-     * <pre>
-     * The caller's confirmed memories, snapshotted into this execution at
-     * create time (optional).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 16 [json_name = "recalledMemories"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.RecalledMemories, ai.stigmer.agentic.agentexecution.v1.RecalledMemories.Builder, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder> 
-        internalGetRecalledMemoriesFieldBuilder() {
-      if (recalledMemoriesBuilder_ == null) {
-        recalledMemoriesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.RecalledMemories, ai.stigmer.agentic.agentexecution.v1.RecalledMemories.Builder, ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder>(
-                getRecalledMemories(),
-                getParentForChildren(),
-                isClean());
-        recalledMemories_ = null;
-      }
-      return recalledMemoriesBuilder_;
+      return parentBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec)

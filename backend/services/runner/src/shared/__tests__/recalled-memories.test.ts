@@ -1,7 +1,7 @@
 /**
  * Unit tests for the recalled-memories module (stigmer/stigmer#293). Like
  * declared-preferences there is no string key to mirror-guard —
- * the value rides the typed `AgentExecutionSpec.recalled_memories` proto
+ * the value rides the typed `AgentExecutionStatus.recalled_memories` proto
  * field, so codegen enforces the cross-repo contract. What IS pinned here:
  * the render-only-when-something-to-say read semantics (disabled OR empty
  * renders nothing — the enabled bit with zero facts is the remember tool's

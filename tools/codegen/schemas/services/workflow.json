@@ -125,7 +125,7 @@
   "methodTypes": [
     {
       "name": "UpdateVisibilityInput",
-      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, workflow, skill, mcp_server, plugin):\n     PRIVATE, ORG, or PLATFORM\n - Instances (agent_instance, workflow_instance):\n     PRIVATE or ORG (never PLATFORM — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.\n\n System-managed DEFAULT instances reject visibility updates entirely:\n their access structurally tracks the parent blueprint via the\n default_of FGA relation.",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, workflow, skill, mcp_server, plugin):\n     PRIVATE, ORG, or PLATFORM\n - Instances (workflow_instance):\n     PRIVATE or ORG (never PLATFORM — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.\n\n System-managed DEFAULT instances reject visibility updates entirely:\n their access structurally tracks the parent blueprint via the\n default_of FGA relation.",
       "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
       "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
       "fields": [
@@ -334,7 +334,6 @@
               "session",
               "skill",
               "mcp_server",
-              "agent_instance",
               "agent_share",
               "agent_channel",
               "channel_app",
@@ -775,11 +774,6 @@
           "name": "mcp_server",
           "number": 44,
           "description": "External tool server connected via the Model Context Protocol."
-        },
-        {
-          "name": "agent_instance",
-          "number": 45,
-          "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
           "name": "agent_share",

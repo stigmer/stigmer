@@ -6,7 +6,6 @@
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -38,14 +37,6 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
   [
     ApiResourceKind.agent,
     refGetter(ApiResourceKind.agent, AgentSchema, (c) => c.agent),
-  ],
-  [
-    ApiResourceKind.agent_instance,
-    refGetter(
-      ApiResourceKind.agent_instance,
-      AgentInstanceSchema,
-      (c) => c.agentInstance,
-    ),
   ],
   [
     ApiResourceKind.workflow,

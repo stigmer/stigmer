@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ListSessionsByAgentInstanceRequest, ListSessionsByChannelRequest, ListSessionsRequest, SessionId, SessionList } from "./io_pbjs";
+import { ListSessionsByAgentRequest, ListSessionsByChannelRequest, ListSessionsRequest, SessionId, SessionList } from "./io_pbjs";
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -38,13 +38,15 @@ export const SessionQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * List all sessions for a specific agent instance.
+     * List the conversations on one agent, whichever version each runs.
      *
-     * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByAgentInstance
+     * Results are filtered to the sessions the caller can view.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByAgent
      */
-    listByAgentInstance: {
-      name: "listByAgentInstance",
-      I: ListSessionsByAgentInstanceRequest,
+    listByAgent: {
+      name: "listByAgent",
+      I: ListSessionsByAgentRequest,
       O: SessionList,
       kind: MethodKind.Unary,
     },

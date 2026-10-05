@@ -68,3 +68,23 @@ export function resolveWorkflowTaskQueue(
   });
   return { taskQueue: config.runnerQueue, executionTarget: resolved };
 }
+
+/**
+ * The queue a workflow run's own activities poll, asked by the id of the
+ * run: under execution routing the run's wfexec:{id} queue, the sandbox a
+ * turn its agent_call step starts shares; under global routing "", because
+ * the run shares the global runner pool and has no queue of its own, so its
+ * child turn dispatches as any turn does. The agent-execution create chain
+ * derives a vouched parent link's queue through it (no caller names one).
+ */
+export type WorkflowRunQueue = (workflowExecutionId: string) => string;
+
+export function newWorkflowRunQueue(
+  config: WorkflowExecutionTemporalConfig,
+): WorkflowRunQueue {
+  return (workflowExecutionId) =>
+    config.workflowActivityRouting === WORKFLOW_ROUTING_EXECUTION &&
+    workflowExecutionId !== ""
+      ? formatWfExecTaskQueue(workflowExecutionId)
+      : "";
+}

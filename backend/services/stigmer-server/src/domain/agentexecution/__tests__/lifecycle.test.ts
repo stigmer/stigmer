@@ -12,6 +12,12 @@
  *     and recover's full terminate → EC-recreate → fresh-start chain,
  *     the run's stale context deleted through the server's own delete
  *     edge before the new one is created (stigmer#1647);
+ *   - recover records the session's pin on a turn that recorded no agent,
+ *     persisted before the context is rebuilt and handed to the fresh
+ *     workflow; a turn that recorded its agent keeps it, and a session
+ *     pinning none leaves the turn the built-in assistant's; a caller who
+ *     may no longer run the agent is refused before the previous workflow
+ *     is terminated, the pre-side-effect slot runs, or anything is written;
  *   - recover runs one at a time per execution (stigmer#1672): a second
  *     concurrent recover waits for the first and then takes the idempotent
  *     arm, a recover queued behind a failed one retries in full, and two
@@ -38,7 +44,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
@@ -374,6 +379,7 @@ function gatedExecution(id: string, toolCallId: string): AgentExecution {
 async function seedExecution(init: {
   phase: ExecutionPhase;
   sessionId?: string;
+  agentId?: string;
   error?: string;
 }): Promise<string> {
   counter += 1;
@@ -386,8 +392,18 @@ async function seedExecution(init: {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "AgentExecution",
       metadata: { id, name: id, org: "acme" },
-      spec: { sessionId: init.sessionId ?? "", message: "hi" },
-      status: { phase: init.phase, error: init.error ?? "" },
+      spec: {
+        target:
+          init.sessionId === undefined
+            ? { case: undefined }
+            : { case: "sessionId", value: init.sessionId },
+        message: "hi",
+      },
+      status: {
+        phase: init.phase,
+        error: init.error ?? "",
+        agentId: init.agentId ?? "",
+      },
     }),
   );
   return id;
@@ -402,6 +418,7 @@ async function seedExecution(init: {
 function stubBuilderDeps(overrides?: {
   onEcCreate?: (ec: ExecutionContext) => void;
   onEcDelete?: (contextId: string) => void;
+  onAgentGet?: (agentId: string) => void;
 }): ExecutionContextBuilderDeps {
   const agent: Agent = create(AgentSchema, {
     metadata: { id: "agt_lc", org: "acme", slug: "lc-agent" },
@@ -411,23 +428,19 @@ function stubBuilderDeps(overrides?: {
     store,
     logger: silentLogger,
     agentLoader: () => ({
-      get: async () => agent,
+      get: async (agentId) => {
+        overrides?.onAgentGet?.(agentId);
+        return agent;
+      },
       getVersion: async () => {
         throw new Error("this turn records no agent version");
       },
-    }),
-    agentInstanceLoader: () => ({
-      get: async (instanceId) =>
-        create(AgentInstanceSchema, {
-          metadata: { id: instanceId, org: "acme" },
-          spec: { agentId: "agt_lc" },
-        }),
     }),
     sessionLoader: () => ({
       get: async (sessionId) =>
         create(SessionSchema, {
           metadata: { id: sessionId, org: "acme" },
-          spec: { agentInstanceId: "agi_lc" },
+          status: { agentId: "agt_lc" },
         }),
     }),
     environmentReader: () => ({
@@ -1107,6 +1120,191 @@ describe("lifecycle pipelines", () => {
     expect(engineCalls).toBe(0);
   });
 
+  describe("recover records the agent a turn runs", () => {
+    async function storePinnedSession(
+      sessionId: string,
+      agentId: string,
+    ): Promise<void> {
+      await store.saveResource(
+        ApiResourceKind.session,
+        sessionId,
+        SessionSchema,
+        create(SessionSchema, {
+          metadata: { id: sessionId, org: "acme" },
+          status: { agentId, agentVersionHash: "" },
+        }),
+      );
+    }
+
+    function recordingDeps(record: {
+      agentGets: string[];
+      startedAgentIds: string[];
+    }): LifecycleDeps {
+      return {
+        ...lifecycleDeps(
+          connected(
+            stubConnectedEngine({
+              startInvokeWorkflow: async (params) => {
+                record.startedAgentIds.push(params.agentId);
+              },
+            }),
+          ),
+        ),
+        executionContextBuilder: stubBuilderDeps({
+          onAgentGet: (agentId) => record.agentGets.push(agentId),
+        }),
+      };
+    }
+
+    it("stamps an unstamped turn with its session's pin, persisted before the context is rebuilt", async () => {
+      await storePinnedSession("ses_pinned", "agt_lc");
+      const record = {
+        agentGets: [] as string[],
+        startedAgentIds: [] as string[],
+      };
+      const id = await seedExecution({
+        phase: ExecutionPhase.EXECUTION_FAILED,
+        sessionId: "ses_pinned",
+      });
+
+      const result = await recoverExecution(
+        recordingDeps(record),
+        recoverInput(id),
+        testCallerIdentity(),
+      );
+
+      // The context build read the stamp: it loaded the session's agent.
+      expect(record.agentGets).toEqual(["agt_lc"]);
+      expect(record.startedAgentIds).toEqual(["agt_lc"]);
+      expect(result.status?.agentId).toBe("agt_lc");
+      const persisted = await store.getResource(
+        ApiResourceKind.agent_execution,
+        id,
+        AgentExecutionSchema,
+      );
+      expect(persisted.status?.agentId).toBe("agt_lc");
+    });
+
+    it("refuses a caller who may no longer run the agent before anything is terminated, charged or written", async () => {
+      await storePinnedSession("ses_denied", "agt_lc");
+      const terminations: string[] = [];
+      const starts: string[] = [];
+      const slotRuns: string[] = [];
+      // Every check passes but running the agent the turn would rerun.
+      const permissive = newPermissiveSingleTeamAuthorizer();
+      const deps: LifecycleDeps = {
+        ...lifecycleDeps(
+          connected(
+            stubConnectedEngine({
+              terminateWorkflow: async (executionId) => {
+                terminations.push(executionId);
+              },
+              startInvokeWorkflow: async (params) => {
+                starts.push(params.executionId);
+              },
+            }),
+          ),
+        ),
+        authorizer: {
+          authorize: (caller, check) =>
+            check.resourceKind === ApiResourceKind.agent
+              ? Promise.resolve({ kind: "deny", reason: "" })
+              : permissive.authorize(caller, check),
+        },
+        gateSteps: new Map([
+          [
+            "agent-execution-recover:pre-side-effect-gate",
+            [
+              {
+                name: "RecordingSlotStep",
+                execute: (): void => {
+                  slotRuns.push("slot");
+                },
+              },
+            ],
+          ],
+        ]),
+      };
+      const id = await seedExecution({
+        phase: ExecutionPhase.EXECUTION_FAILED,
+        sessionId: "ses_denied",
+        error: "runner exploded",
+      });
+
+      const err = await expectCode(
+        () => recoverExecution(deps, recoverInput(id), testCallerIdentity()),
+        Code.PermissionDenied,
+      );
+
+      expect(err.rawMessage).toBe("unauthorized to run agent 'agt_lc'");
+      expect(terminations).toEqual([]);
+      expect(slotRuns).toEqual([]);
+      expect(starts).toEqual([]);
+      const persisted = await store.getResource(
+        ApiResourceKind.agent_execution,
+        id,
+        AgentExecutionSchema,
+      );
+      expect(persisted.status?.agentId ?? "").toBe("");
+      expect(persisted.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    });
+
+    it("keeps the agent a turn recorded, whatever its session pins now", async () => {
+      await storePinnedSession("ses_repointed", "agt_now");
+      const record = {
+        agentGets: [] as string[],
+        startedAgentIds: [] as string[],
+      };
+      const id = await seedExecution({
+        phase: ExecutionPhase.EXECUTION_FAILED,
+        sessionId: "ses_repointed",
+        agentId: "agt_recorded",
+      });
+
+      await recoverExecution(
+        recordingDeps(record),
+        recoverInput(id),
+        testCallerIdentity(),
+      );
+
+      expect(record.agentGets).toEqual(["agt_recorded"]);
+      expect(record.startedAgentIds).toEqual(["agt_recorded"]);
+      const persisted = await store.getResource(
+        ApiResourceKind.agent_execution,
+        id,
+        AgentExecutionSchema,
+      );
+      expect(persisted.status?.agentId).toBe("agt_recorded");
+    });
+
+    it("leaves a turn whose session pins no agent the built-in assistant's", async () => {
+      await storePinnedSession("ses_assistant", "");
+      const record = {
+        agentGets: [] as string[],
+        startedAgentIds: [] as string[],
+      };
+      const id = await seedExecution({
+        phase: ExecutionPhase.EXECUTION_FAILED,
+        sessionId: "ses_assistant",
+      });
+
+      await recoverExecution(
+        recordingDeps(record),
+        recoverInput(id),
+        testCallerIdentity(),
+      );
+
+      expect(record.agentGets).toEqual([]);
+      expect(record.startedAgentIds).toEqual([""]);
+      const persisted = await store.getResource(
+        ApiResourceKind.agent_execution,
+        id,
+        AgentExecutionSchema,
+      );
+      expect(persisted.status?.agentId ?? "").toBe("");
+    });
+  });
+
   it("recover surfaces the inner status code when the EC rebuild fails (never Internal)", async () => {
     // Go's recreate step wraps with %w: a NotFound session load (or the
     // FailedPrecondition OAuth refusal) keeps its code on the wire with
@@ -1146,7 +1344,7 @@ describe("lifecycle pipelines", () => {
     );
     expect(err.rawMessage).toBe(
       `recreate execution context for recovered execution ${id}: ` +
-        "resolve agent instance: load session ses_gone: " +
+        "resolve session: load session ses_gone: " +
         "rpc error: code = NotFound desc = session not found: ses_gone",
     );
   });

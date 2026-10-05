@@ -112,7 +112,7 @@ spec:
 
 ## Merged From Multiple Environments
 
-When an `AgentInstance` references multiple Environments, the execution engine merges them (later entries override earlier ones) and creates a single ExecutionContext. This example shows what the merged result looks like — the runner sees one flat map, not multiple environments.
+When the schedule, workflow task or PlatformClient that started a run references multiple Environments, the execution engine merges them (later entries override earlier ones) and creates a single ExecutionContext. This example shows what the merged result looks like — the runner sees one flat map, not multiple environments.
 
 Given:
 - Environment `global-defaults`: `LOG_LEVEL=info`, `AWS_REGION=us-west-2`
@@ -221,7 +221,7 @@ metadata:
     environment: production
     team: platform
   annotations:
-    agent-instance: "agent-inst-abc123"
+    agent: "agt_abc123"
     triggered-by: "workflow-run-wex_xyz"
   tags:
     - production

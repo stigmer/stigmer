@@ -1,28 +1,24 @@
 /**
- * The agent-execution run-target resolver:
- * an execution names its run target in one of three shapes, and the gate
- * dispatches on them in the CHAIN's own precedence so it authorizes the
- * target the chain will actually use (CreateDefaultInstanceIfNeeded and
- * CreateSessionIfNeeded read them in exactly this order):
+ * The agent-execution run-gate resolvers: a turn asks two questions, in an
+ * order that discloses nothing about a conversation to a caller who may not
+ * add to it.
  *
- *   1. spec.session_id — a turn added to an existing conversation: the
- *      session's own permission, session#can_create_execution_in;
- *   2. spec.session_spec.agent_instance_id — a new conversation on an
- *      explicit instance: agent_instance#can_execute;
- *   3. spec.agent_id — a new conversation on the blueprint's default
- *      instance, which the chain resolves (or mints) only AFTER the gate:
- *      agent#can_execute, the blueprint's permission (the model derives
- *      the default instance's viewers from the blueprint's, so the two
- *      questions have one answer; asking the blueprint's is what lets the
- *      gate precede the side effect).
+ *   1. agentExecutionRunTarget (AuthorizeRunTarget, before anything stored
+ *      is read): a turn added to an existing conversation asks the
+ *      session's own permission, session#can_create_execution_in. A new
+ *      conversation asks nothing here: its session create (run as the
+ *      caller by CreateSessionIfNeeded) asks can_create_session on the
+ *      organization and can_execute on the agent it names.
+ *   2. agentExecutionRunAgent (AuthorizeRunAgent, after ResolveRunAgent
+ *      stamped the agent the turn runs): agent#can_execute on
+ *      status.agent_id, the session's pinned agent or the new session's
+ *      resolved one. So a person who lost the agent cannot keep using it
+ *      through a conversation they still own, and nothing a client sends
+ *      reaches the check: BuildNewState cleared status before the stamp.
  *
- * None of the three set is the built-in assistant
- * (agentexecution/v1/spec.proto): a new conversation with no agent, for
- * which there is no blueprint to spend and so no target to check. The
- * Authorize step ahead of the gate admitted it with the organization's
- * can_create_execution_in; CreateSessionIfNeeded then creates the session
- * with no instance, and every later turn arrives in shape 1. Pure over the
- * record being built.
+ * No agent is the built-in assistant (agentexecution/v1/spec.proto): there
+ * is no blueprint to spend, so the second resolver answers no target. Both
+ * are pure over the record being built.
  */
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 
@@ -33,36 +29,33 @@ import {
 import {
   addExecutionToSessionDeniedMessage,
   runAgentDeniedMessage,
-  runAgentInstanceDeniedMessage,
 } from "./constants.js";
+import { sessionIdOf } from "./target.js";
 
 export function agentExecutionRunTarget(
   execution: AgentExecution,
 ): RunTarget | undefined {
-  const spec = execution.spec;
-  const sessionId = spec?.sessionId ?? "";
-  if (sessionId !== "") {
-    return {
-      ...RUN_GATE_CHECKS.session,
-      resourceId: sessionId,
-      deniedMessage: addExecutionToSessionDeniedMessage(sessionId),
-    };
+  const sessionId = sessionIdOf(execution.spec);
+  if (sessionId === "") {
+    return undefined;
   }
-  const agentInstanceId = spec?.sessionSpec?.agentInstanceId ?? "";
-  if (agentInstanceId !== "") {
-    return {
-      ...RUN_GATE_CHECKS.agentInstance,
-      resourceId: agentInstanceId,
-      deniedMessage: runAgentInstanceDeniedMessage(agentInstanceId),
-    };
+  return {
+    ...RUN_GATE_CHECKS.session,
+    resourceId: sessionId,
+    deniedMessage: addExecutionToSessionDeniedMessage(sessionId),
+  };
+}
+
+export function agentExecutionRunAgent(
+  execution: AgentExecution,
+): RunTarget | undefined {
+  const agentId = execution.status?.agentId ?? "";
+  if (agentId === "") {
+    return undefined;
   }
-  const agentId = spec?.agentId ?? "";
-  if (agentId !== "") {
-    return {
-      ...RUN_GATE_CHECKS.agent,
-      resourceId: agentId,
-      deniedMessage: runAgentDeniedMessage(agentId),
-    };
-  }
-  return undefined;
+  return {
+    ...RUN_GATE_CHECKS.agent,
+    resourceId: agentId,
+    deniedMessage: runAgentDeniedMessage(agentId),
+  };
 }

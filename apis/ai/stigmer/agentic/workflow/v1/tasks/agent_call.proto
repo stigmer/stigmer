@@ -219,8 +219,8 @@ message AgentCallTaskConfig {
   //
   // This is how a tool-using agent becomes runnable from a workflow:
   // bind an org-shared environment holding the needed credentials, and
-  // the child runs receive its values at runtime. The agent and its
-  // default instance stay untouched.
+  // the child runs receive its values at runtime. The agent itself stays
+  // untouched.
   //
   // @internal
   // The AgentShare/AgentChannel/Schedule environment_refs lineage.
@@ -228,8 +228,8 @@ message AgentCallTaskConfig {
   // into execution YAML: CreateExecutionContextStep resolves them from
   // the Workflow row, gated on the trusted runner caller identity and
   // keyed by parent_workflow_id + task label — prepended at LOWEST
-  // merge priority (instance refs and runtime_env override on key
-  // conflicts). No write-time existence or visibility check:
+  // merge priority (runtime_env overrides on key conflicts). No
+  // write-time existence or visibility check:
   // enforcement lives solely at runtime resolution, which fails closed.
   // When kind is unset in YAML, the DSL normalizer defaults it to
   // environment. An org named by slug is stored by its id, as `agent`'s

@@ -6,10 +6,10 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SessionSpec } from "./spec_pb.js";
 import { file_ai_stigmer_agentic_session_v1_spec } from "./spec_pb.js";
+import type { SessionStatus } from "./status_pb.js";
+import { file_ai_stigmer_agentic_session_v1_status } from "./status_pb.js";
 import type { ApiResourceMetadata } from "../../../commons/apiresource/metadata_pb.js";
 import { file_ai_stigmer_commons_apiresource_metadata } from "../../../commons/apiresource/metadata_pb.js";
-import type { ApiResourceAuditStatus } from "../../../commons/apiresource/status_pb.js";
-import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9hcGkucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIqsCCgdTZXNzaW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhwKBGtpbmQYAiABKAlCDrpIC3IJCgdTZXNzaW9uEk0KCG1ldGFkYXRhGAMgASgLMjMuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFCBrpIA8gBARI4CgRzcGVjGAQgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblNwZWMSRgoGc3RhdHVzGAUgASgLMjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRTdGF0dXNiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9hcGkucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIqECCgdTZXNzaW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhwKBGtpbmQYAiABKAlCDrpIC3IJCgdTZXNzaW9uEk0KCG1ldGFkYXRhGAMgASgLMjMuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFCBrpIA8gBARI4CgRzcGVjGAQgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblNwZWMSPAoGc3RhdHVzGAUgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblN0YXR1c2IGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_spec, file_ai_stigmer_agentic_session_v1_status, file_ai_stigmer_commons_apiresource_metadata, file_buf_validate_validate]);
 
 /**
  * Session represents a multi-turn conversation thread with an agent.
@@ -55,11 +55,12 @@ export type Session = Message<"ai.stigmer.agentic.session.v1.Session"> & {
   spec?: SessionSpec;
 
   /**
-   * System-managed audit information (created_at, updated_at, created_by, etc.).
+   * System-managed state: the agent version the conversation runs, and the
+   * audit information (created_at, updated_at, created_by, etc.).
    *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+   * @generated from field: ai.stigmer.agentic.session.v1.SessionStatus status = 5;
    */
-  status?: ApiResourceAuditStatus;
+  status?: SessionStatus;
 };
 
 /**

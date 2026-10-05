@@ -1,9 +1,7 @@
 /**
  * Pins the agent domain against Go's pkg/domain/agent tests — through the
  * REAL stack: a composed server on an ephemeral port, a native gRPC
- * client, the full interceptor chain, and the in-process
- * agentinstance edge (agent create applies its default instance through
- * the router transport, traversing the whole chain).
+ * client and the full interceptor chain.
  *
  * The load-bearing pins:
  *   - MCP env-merge semantics: agent-declared entries win, among servers
@@ -13,10 +11,9 @@
  *     well-formed lists are accepted and read back as written, and their
  *     names are never checked against a server's discovered tools, so an
  *     entry naming a tool no connected server exposes still applies;
- *   - cascade delete (oss#611): ALL instances of the agent are swept by
- *     spec.agent_id — including a cross-ORG instance — same-org shares are
- *     deleted, cross-org shares of the same agent SURVIVE, and a
- *     bystander agent's instances are untouched;
+ *   - cascade delete (oss#611): same-org shares are deleted, cross-org
+ *     shares of the same agent SURVIVE, and a bystander agent's share is
+ *     untouched;
  *   - the server assigns a new agent's id (stigmer#1266): an id the
  *     request carries is replaced, on create and on an apply that
  *     creates, and the chosen id addresses nothing.
@@ -33,9 +30,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
-import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -70,8 +64,6 @@ let server: ComposedServer;
 let transport: Transport;
 let command: Client<typeof AgentCommandController>;
 let query: Client<typeof AgentQueryController>;
-let instanceCommand: Client<typeof AgentInstanceCommandController>;
-let instanceQuery: Client<typeof AgentInstanceQueryController>;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "agent-domain-test-"));
@@ -101,8 +93,6 @@ beforeAll(async () => {
   GLOBEX_ID = organizationId(organizationIds, "globex");
   command = createClient(AgentCommandController, transport);
   query = createClient(AgentQueryController, transport);
-  instanceCommand = createClient(AgentInstanceCommandController, transport);
-  instanceQuery = createClient(AgentInstanceQueryController, transport);
 });
 
 afterAll(async () => {
@@ -364,7 +354,7 @@ describe("agent tool lists at apply", () => {
 });
 
 describe("agent cascade delete (oss#611)", () => {
-  it("sweeps ALL instances by spec.agent_id (cross-org included), deletes same-org shares, keeps a stored cross-org share", async () => {
+  it("deletes same-org shares, keeps a stored cross-org share, and leaves a bystander agent's share", async () => {
     const agent = await command.create(
       agentInput({
         name: "Cascade Target",
@@ -373,27 +363,8 @@ describe("agent cascade delete (oss#611)", () => {
     );
     const agentId = agent.metadata!.id;
     const agentSlug = agent.metadata!.slug;
-    // Agent create provisioned the default instance through the
-    // in-process edge and recorded the pointer.
-    const defaultInstanceId = agent.status!.defaultInstanceId;
-    expect(defaultInstanceId).not.toBe("");
 
-    const personal = await instanceCommand.create({
-      apiVersion: API_VERSION,
-      kind: "AgentInstance",
-      metadata: { name: "Cascade Personal", org: ORG },
-      spec: { agentId },
-    });
-    // Cross-org instance of the same agent — allowed by design in OSS
-    // (an agent is a shareable blueprint; no same-org rule on create).
-    const crossOrg = await instanceCommand.create({
-      apiVersion: API_VERSION,
-      kind: "AgentInstance",
-      metadata: { name: "Cascade Cross Org", org: "globex" },
-      spec: { agentId },
-    });
-
-    // A bystander agent whose instance must survive the sweep untouched.
+    // A bystander agent whose share must survive the sweep untouched.
     const bystander = await command.create(agentInput({ name: "Bystander" }));
 
     // Shares are seeded directly into the store; the cascade matches
@@ -431,25 +402,25 @@ describe("agent cascade delete (oss#611)", () => {
       crossOrgShare,
     );
 
-    const before = await instanceQuery.getByAgent({ agentId, org: "" });
-    expect(before.totalCount).toBe(3); // default + personal + cross-org
+    const bystanderShare = create(AgentShareSchema, {
+      metadata: { id: "ash_bystander", name: "bystander-share", org: ORG_ID },
+      spec: {
+        agentRef: {
+          kind: ApiResourceKind.agent,
+          org: ORG_ID,
+          slug: bystander.metadata!.slug,
+        },
+      },
+    });
+    await server.store.saveResource(
+      ApiResourceKind.agent_share,
+      "ash_bystander",
+      AgentShareSchema,
+      bystanderShare,
+    );
 
     const deleted = await command.delete({ value: agentId });
     expect(deleted.metadata?.id).toBe(agentId);
-
-    // Every instance of the agent is gone — the cross-ORG one included.
-    const after = await instanceQuery.getByAgent({ agentId, org: "" });
-    expect(after.totalCount).toBe(0);
-    for (const instanceId of [
-      defaultInstanceId,
-      personal.metadata!.id,
-      crossOrg.metadata!.id,
-    ]) {
-      const error = await grpcError(() =>
-        instanceQuery.get({ value: instanceId }),
-      );
-      expect(error.code).toBe(Code.NotFound);
-    }
 
     // Same-org share deleted; the cross-org share of the SAME agent
     // survives — it is another org's resource and fails closed instead.
@@ -467,12 +438,13 @@ describe("agent cascade delete (oss#611)", () => {
     );
     expect(survivor.metadata?.id).toBe("ash_cross_org");
 
-    // The bystander agent's default instance was not swept.
-    const bystanderInstances = await instanceQuery.getByAgent({
-      agentId: bystander.metadata!.id,
-      org: "",
-    });
-    expect(bystanderInstances.totalCount).toBe(1);
+    // The bystander agent's share was not swept.
+    const untouched = await server.store.getResource(
+      ApiResourceKind.agent_share,
+      "ash_bystander",
+      AgentShareSchema,
+    );
+    expect(untouched.metadata?.id).toBe("ash_bystander");
   });
 });
 
@@ -509,45 +481,5 @@ describe("agent create — the server assigns the id (stigmer#1266)", () => {
     });
     await expectMintedNotChosen(applied);
     await command.delete({ value: applied.metadata?.id ?? "" });
-  });
-});
-
-describe("agent create — CreateDefaultInstance failure wire contract (oss#852)", () => {
-  it("answers the inner code with Go's %w-wrapped transport-formatted message", async () => {
-    // Pre-occupy the deterministic default-instance slug with an instance
-    // bound to a DIFFERENT (nonexistent) agent: the in-process Apply
-    // routes to UPDATE and ValidateInstanceUpdate fires the immutability
-    // guard. Go wraps that FailedPrecondition with fmt.Errorf("%w"), so
-    // the wire message embeds grpc-go's `rpc error: code = X desc = ...`
-    // rendering of the inner error — the leak filed as stigmer/stigmer#852,
-    // mirrored byte-for-byte until the both-editions post-cutover fix.
-    const occupier = create(AgentInstanceSchema, {
-      apiVersion: API_VERSION,
-      kind: "AgentInstance",
-      metadata: {
-        id: "ain_wrap_occupier",
-        name: "wrapped-error-agent-default",
-        slug: "wrapped-error-agent-default",
-        org: ORG_ID,
-      },
-      spec: { agentId: "agt_wrap_nonexistent" },
-    });
-    await server.store.saveResource(
-      ApiResourceKind.agent_instance,
-      "ain_wrap_occupier",
-      AgentInstanceSchema,
-      occupier,
-    );
-
-    const error = await grpcError(() =>
-      command.create(agentInput({ name: "Wrapped Error Agent" })),
-    );
-    expect(error.code).toBe(Code.FailedPrecondition);
-    expect(error.rawMessage).toBe(
-      "failed to apply default instance: rpc error: " +
-        "code = FailedPrecondition desc = spec.agent_id is immutable " +
-        "(instance instantiates agent agt_wrap_nonexistent) — create a new " +
-        "instance for a different agent",
-    );
   });
 });

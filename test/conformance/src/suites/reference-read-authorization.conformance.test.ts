@@ -29,7 +29,6 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeAgentInstance } from "../support/agentinstances";
 import { makeAgentShare } from "../support/agentshares";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeEnvironment } from "../support/environments";
@@ -226,27 +225,6 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
     cleanup: (using, id) =>
       using.executionContextCommand.delete({ resourceId: id }),
     deniedCopy: "unauthorized to get execution context",
-  },
-  {
-    name: "agent_instance",
-    visible: true,
-    memberReads: true,
-    async seed(using, org, visibility) {
-      const agent = await seedAgent(using, org);
-      const input = makeAgentInstance({
-        org,
-        name: uniqueName("ref-inst"),
-        agentId: agent.metadata!.id,
-      });
-      input.metadata = { ...input.metadata, visibility };
-      const created = await using.agentInstanceCommand.create(input);
-      return { id: created.metadata!.id, slug: created.metadata!.slug };
-    },
-    getById: (using, id) => using.agentInstanceQuery.get({ value: id }),
-    getByReference: (using, org, slug) =>
-      using.agentInstanceQuery.getByReference({ org, slug }),
-    cleanup: (using, id) => using.agentInstanceCommand.delete({ value: id }),
-    deniedCopy: "unauthorized to get Agent Instance",
   },
   {
     name: "workflow_instance",

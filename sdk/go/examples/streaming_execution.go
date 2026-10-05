@@ -1,6 +1,8 @@
 // Example: Streaming an agent execution.
 //
-// This shows how to create an execution and subscribe to real-time updates.
+// This shows how to start a conversation on an agent and subscribe to
+// real-time updates. The new conversation names the agent by reference; the
+// server creates its session and pins the agent's current version on it.
 package examples
 
 import (
@@ -22,7 +24,9 @@ func StreamingExecution() {
 	defer client.Close()
 
 	exec, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
-		AgentId: "agent-id",
+		SessionSpec: &stigmer.SessionSpecInput{
+			AgentRef: stigmer.ResourceRef{Org: "my-org", Slug: "code-reviewer"},
+		},
 		Message: "Review the latest changes in the auth module",
 		ExecutionConfig: &stigmer.ExecutionConfigInput{
 			ModelName:     "claude-sonnet-4-6",

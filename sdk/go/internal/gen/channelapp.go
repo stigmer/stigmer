@@ -121,13 +121,6 @@ func (i *ChannelAppInput) toProto() (*channelappv1.ChannelApp, error) {
 		},
 		Spec: &channelappv1.ChannelAppSpec{},
 	}
-	if i.Slack != nil {
-		m := &channelappv1.SlackChannelAppConfig{}
-		m.ClientId = i.Slack.ClientId
-		m.ClientSecret = i.Slack.ClientSecret
-		m.SigningSecret = i.Slack.SigningSecret
-		resource.Spec.ProviderConfig = &channelappv1.ChannelAppSpec_Slack{Slack: m}
-	}
 	if i.Whatsapp != nil {
 		m := &channelappv1.WhatsAppChannelAppConfig{}
 		m.AppId = i.Whatsapp.AppId
@@ -135,6 +128,13 @@ func (i *ChannelAppInput) toProto() (*channelappv1.ChannelApp, error) {
 		m.AccessToken = i.Whatsapp.AccessToken
 		m.VerifyToken = i.Whatsapp.VerifyToken
 		resource.Spec.ProviderConfig = &channelappv1.ChannelAppSpec_Whatsapp{Whatsapp: m}
+	}
+	if i.Slack != nil {
+		m := &channelappv1.SlackChannelAppConfig{}
+		m.ClientId = i.Slack.ClientId
+		m.ClientSecret = i.Slack.ClientSecret
+		m.SigningSecret = i.Slack.SigningSecret
+		resource.Spec.ProviderConfig = &channelappv1.ChannelAppSpec_Slack{Slack: m}
 	}
 	return resource, nil
 }

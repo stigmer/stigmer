@@ -22,8 +22,6 @@ import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agenti
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
-import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
-import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
 import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
@@ -123,8 +121,6 @@ export interface ConformanceClients {
   workflowInstanceQuery: Client<typeof WorkflowInstanceQueryController>;
   agentExecutionCommand: Client<typeof AgentExecutionCommandController>;
   agentExecutionQuery: Client<typeof AgentExecutionQueryController>;
-  agentInstanceCommand: Client<typeof AgentInstanceCommandController>;
-  agentInstanceQuery: Client<typeof AgentInstanceQueryController>;
   agentCommand: Client<typeof AgentCommandController>;
   agentQuery: Client<typeof AgentQueryController>;
   environmentCommand: Client<typeof EnvironmentCommandController>;
@@ -272,11 +268,6 @@ export function makeClients(transport: Transport): ConformanceClients {
       transport,
     ),
     agentExecutionQuery: createClient(AgentExecutionQueryController, transport),
-    agentInstanceCommand: createClient(
-      AgentInstanceCommandController,
-      transport,
-    ),
-    agentInstanceQuery: createClient(AgentInstanceQueryController, transport),
     agentCommand: createClient(AgentCommandController, transport),
     agentQuery: createClient(AgentQueryController, transport),
     environmentCommand: createClient(EnvironmentCommandController, transport),

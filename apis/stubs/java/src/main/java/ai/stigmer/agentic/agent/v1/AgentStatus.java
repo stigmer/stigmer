@@ -32,7 +32,6 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private AgentStatus() {
-    defaultInstanceId_ = "";
     versionHash_ = "";
   }
 
@@ -91,59 +90,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public ai.stigmer.commons.apiresource.ApiResourceAuditOrBuilder getAuditOrBuilder() {
     return audit_ == null ? ai.stigmer.commons.apiresource.ApiResourceAudit.getDefaultInstance() : audit_;
-  }
-
-  public static final int DEFAULT_INSTANCE_ID_FIELD_NUMBER = 1;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object defaultInstanceId_ = "";
-  /**
-   * <pre>
-   * ID of the default agent instance.
-   * Every agent has exactly one default instance that uses all agent defaults
-   * and requires no additional configuration. Created automatically when the
-   * agent is created.
-   * </pre>
-   *
-   * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-   * @return The defaultInstanceId.
-   */
-  @java.lang.Override
-  public java.lang.String getDefaultInstanceId() {
-    java.lang.Object ref = defaultInstanceId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      defaultInstanceId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * ID of the default agent instance.
-   * Every agent has exactly one default instance that uses all agent defaults
-   * and requires no additional configuration. Created automatically when the
-   * agent is created.
-   * </pre>
-   *
-   * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-   * @return The bytes for defaultInstanceId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getDefaultInstanceIdBytes() {
-    java.lang.Object ref = defaultInstanceId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      defaultInstanceId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
   }
 
   public static final int VERSION_HASH_FIELD_NUMBER = 3;
@@ -229,9 +175,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultInstanceId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, defaultInstanceId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(versionHash_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, versionHash_);
     }
@@ -247,9 +190,6 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultInstanceId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, defaultInstanceId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(versionHash_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, versionHash_);
     }
@@ -277,8 +217,6 @@ private static final long serialVersionUID = 0L;
       if (!getAudit()
           .equals(other.getAudit())) return false;
     }
-    if (!getDefaultInstanceId()
-        .equals(other.getDefaultInstanceId())) return false;
     if (!getVersionHash()
         .equals(other.getVersionHash())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -296,8 +234,6 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + AUDIT_FIELD_NUMBER;
       hash = (53 * hash) + getAudit().hashCode();
     }
-    hash = (37 * hash) + DEFAULT_INSTANCE_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getDefaultInstanceId().hashCode();
     hash = (37 * hash) + VERSION_HASH_FIELD_NUMBER;
     hash = (53 * hash) + getVersionHash().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -446,7 +382,6 @@ private static final long serialVersionUID = 0L;
         auditBuilder_.dispose();
         auditBuilder_ = null;
       }
-      defaultInstanceId_ = "";
       versionHash_ = "";
       return this;
     }
@@ -489,9 +424,6 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.defaultInstanceId_ = defaultInstanceId_;
-      }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.versionHash_ = versionHash_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -512,14 +444,9 @@ private static final long serialVersionUID = 0L;
       if (other.hasAudit()) {
         mergeAudit(other.getAudit());
       }
-      if (!other.getDefaultInstanceId().isEmpty()) {
-        defaultInstanceId_ = other.defaultInstanceId_;
-        bitField0_ |= 0x00000002;
-        onChanged();
-      }
       if (!other.getVersionHash().isEmpty()) {
         versionHash_ = other.versionHash_;
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000002;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -548,14 +475,9 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 10: {
-              defaultInstanceId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000002;
-              break;
-            } // case 10
             case 26: {
               versionHash_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 26
             case 794: {
@@ -739,113 +661,6 @@ private static final long serialVersionUID = 0L;
       return auditBuilder_;
     }
 
-    private java.lang.Object defaultInstanceId_ = "";
-    /**
-     * <pre>
-     * ID of the default agent instance.
-     * Every agent has exactly one default instance that uses all agent defaults
-     * and requires no additional configuration. Created automatically when the
-     * agent is created.
-     * </pre>
-     *
-     * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-     * @return The defaultInstanceId.
-     */
-    public java.lang.String getDefaultInstanceId() {
-      java.lang.Object ref = defaultInstanceId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        defaultInstanceId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the default agent instance.
-     * Every agent has exactly one default instance that uses all agent defaults
-     * and requires no additional configuration. Created automatically when the
-     * agent is created.
-     * </pre>
-     *
-     * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-     * @return The bytes for defaultInstanceId.
-     */
-    public com.google.protobuf.ByteString
-        getDefaultInstanceIdBytes() {
-      java.lang.Object ref = defaultInstanceId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        defaultInstanceId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the default agent instance.
-     * Every agent has exactly one default instance that uses all agent defaults
-     * and requires no additional configuration. Created automatically when the
-     * agent is created.
-     * </pre>
-     *
-     * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-     * @param value The defaultInstanceId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDefaultInstanceId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      defaultInstanceId_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the default agent instance.
-     * Every agent has exactly one default instance that uses all agent defaults
-     * and requires no additional configuration. Created automatically when the
-     * agent is created.
-     * </pre>
-     *
-     * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearDefaultInstanceId() {
-      defaultInstanceId_ = getDefaultInstance().getDefaultInstanceId();
-      bitField0_ = (bitField0_ & ~0x00000002);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the default agent instance.
-     * Every agent has exactly one default instance that uses all agent defaults
-     * and requires no additional configuration. Created automatically when the
-     * agent is created.
-     * </pre>
-     *
-     * <code>string default_instance_id = 1 [json_name = "defaultInstanceId"];</code>
-     * @param value The bytes for defaultInstanceId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDefaultInstanceIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      defaultInstanceId_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object versionHash_ = "";
     /**
      * <pre>
@@ -934,7 +749,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       versionHash_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -959,7 +774,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearVersionHash() {
       versionHash_ = getDefaultInstance().getVersionHash();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
@@ -988,7 +803,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       versionHash_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }

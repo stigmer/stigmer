@@ -27,7 +27,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { provisionOrgWithConfirmedFacts } from "../support/memories";
 import { uniqueName } from "../support/naming";
@@ -76,7 +76,7 @@ async function runExecution(org: string): Promise<AgentExecution> {
 
   mock.enqueue(anthropicText("Done."));
   const execution = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ org, name: uniqueName("aex"), agentId: agent.metadata!.id, message: QUERY }),
+    makeAgentExecution({ org, name: uniqueName("aex"), agentRef: agentRefOf(agent), message: QUERY }),
   );
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
 
@@ -94,8 +94,8 @@ describe.skipIf(!canSeedMemories)(
       const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD);
       const settled = await runExecution(org);
 
-      expect(settled.spec?.recalledMemories?.enabled).toBe(true);
-      expect(settled.spec?.recalledMemories?.facts).toHaveLength(RETRIEVAL_ACTIVATION_THRESHOLD);
+      expect(settled.status?.recalledMemories?.enabled).toBe(true);
+      expect(settled.status?.recalledMemories?.facts).toHaveLength(RETRIEVAL_ACTIVATION_THRESHOLD);
       const report = settled.status?.recalledMemoriesReport;
       expect(report, "a recall-enabled execution writes a report").toBeDefined();
       expect(report?.selectionActive, "at or below k, top-k degenerates to wholesale").toBe(false);
@@ -108,8 +108,8 @@ describe.skipIf(!canSeedMemories)(
       const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD + 1);
       const settled = await runExecution(org);
 
-      const snapshot = settled.spec?.recalledMemories?.facts ?? [];
-      expect(snapshot, "the candidate set is intact on the spec — selection never rewrites the audit snapshot").toHaveLength(
+      const snapshot = settled.status?.recalledMemories?.facts ?? [];
+      expect(snapshot, "the candidate set is intact on the status snapshot — selection never rewrites the audit snapshot").toHaveLength(
         RETRIEVAL_ACTIVATION_THRESHOLD + 1,
       );
 

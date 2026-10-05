@@ -6,6 +6,8 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentShare } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agentshare_v1_api } from "./api_pb.js";
+import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
 import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
@@ -15,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentshare/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEiKgoMQWdlbnRTaGFyZUlkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASJ6ChxHZXRBZ2VudFNoYXJlc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxILCgNvcmcYAyABKAkiYgoOQWdlbnRTaGFyZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSOwoFaXRlbXMYAiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlIugBChZMaXN0QWdlbnRTaGFyZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJUCgZsYWJlbHMYAiADKAsyRC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5MaXN0QWdlbnRTaGFyZXNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASIzChRSb3RhdGVTaGFyZUxpbmtJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBIm0KF0dldFNoYXJlZFByb2ZpbGVSZXF1ZXN0Eh0KCHNoYXJlX2lkGAQgASgJQgu6SAjIAQFyAxiAARIcCgpsaW5rX3Rva2VuGAMgASgJQgi6SAVyAxiAAUoECAEQAkoECAIQA1IDb3JnUgRzbHVnIoEBChJTaGFyZWRBZ2VudFByb2ZpbGUSCwoDb3JnGAEgASgJEgwKBHNsdWcYAiABKAkSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghpY29uX3VybBgFIAEoCRIbChNkZWZhdWx0X2luc3RhbmNlX2lkGAYgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEiKgoMQWdlbnRTaGFyZUlkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASJ6ChxHZXRBZ2VudFNoYXJlc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxILCgNvcmcYAyABKAkiYgoOQWdlbnRTaGFyZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSOwoFaXRlbXMYAiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlIugBChZMaXN0QWdlbnRTaGFyZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJUCgZsYWJlbHMYAiADKAsyRC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5MaXN0QWdlbnRTaGFyZXNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASIzChRSb3RhdGVTaGFyZUxpbmtJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBIm0KF0dldFNoYXJlZFByb2ZpbGVSZXF1ZXN0Eh0KCHNoYXJlX2lkGAQgASgJQgu6SAjIAQFyAxiAARIcCgpsaW5rX3Rva2VuGAMgASgJQgi6SAVyAxiAAUoECAEQAkoECAIQA1IDb3JnUgRzbHVnIsgBChJTaGFyZWRBZ2VudFByb2ZpbGUSCwoDb3JnGAEgASgJEgwKBHNsdWcYAiABKAkSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghpY29uX3VybBgFIAEoCRJHCglhZ2VudF9yZWYYByABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VKBAgGEAdSE2RlZmF1bHRfaW5zdGFuY2VfaWRiBnByb3RvMw", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
  * AgentShareId wraps an agent share identifier.
@@ -255,13 +257,15 @@ export type SharedAgentProfile = Message<"ai.stigmer.agentic.agentshare.v1.Share
   iconUrl: string;
 
   /**
-   * ID of the referenced agent's default instance, used by the hosted chat
-   * page to create sessions. This is an identifier, not a capability —
-   * session creation still requires an authorized token.
+   * The share's agent reference (spec.agent_ref): the hosted chat page
+   * starts the visitor's session on exactly this reference, version
+   * included. This is a name, not a capability — session creation still
+   * requires an authorized token, and the edition's guest gate admits a
+   * session only on this reference and the agent the share pins.
    *
-   * @generated from field: string default_instance_id = 6;
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7;
    */
-  defaultInstanceId: string;
+  agentRef?: ApiResourceReference;
 };
 
 /**

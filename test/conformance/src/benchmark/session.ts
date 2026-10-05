@@ -29,7 +29,8 @@ import { FileDecisionAction, ThinkingMode } from "@stigmer/protos/ai/stigmer/age
 import type { ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
-import { makeAgentExecution } from "../support/agentexecutions";
+import { makeAgentExecution, sessionIdOf } from "../support/agentexecutions";
+import type { AgentRefInit } from "../support/agents";
 import { requireReviewSet, submitChangeSetDecision } from "../support/file-review";
 import { uniqueName } from "../support/naming";
 import type { BenchmarkHarness, BenchmarkSample, SampleFailure, SampleOutcome } from "./report";
@@ -54,7 +55,7 @@ export interface SessionStack {
 
 export interface SessionPlan {
   org: string;
-  agentId: string;
+  agentRef: AgentRefInit;
   harness: BenchmarkHarness;
   /** The registry id pinned on every turn, or `null` for the harness's default. */
   modelRequested: string | null;
@@ -103,6 +104,7 @@ interface TurnRequest {
   label: string;
 }
 
+/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
 async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnRequest, io: SessionIo): Promise<MeasuredTurn> {
   const { clients } = stack;
   const executionConfig: MessageInitShape<typeof ExecutionConfigSchema> | undefined =
@@ -120,7 +122,7 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
       makeAgentExecution({
         org: plan.org,
         name: uniqueName("bench-aex"),
-        ...(turn.sessionId === undefined ? { agentId: plan.agentId, sessionSpec: plan.sessionSpec } : { sessionId: turn.sessionId }),
+        ...(turn.sessionId === undefined ? { agentRef: plan.agentRef, sessionSpec: plan.sessionSpec } : { sessionId: turn.sessionId }),
         message: turn.prompt,
         autoApproveAll: true,
         ...(executionConfig !== undefined ? { executionConfig } : {}),
@@ -193,7 +195,7 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
 
   const sample: BenchmarkSample = {
     execution_id: executionId,
-    session_id: facts.session_id || created.spec?.sessionId || "",
+    session_id: facts.session_id || sessionIdOf(created),
     model_requested: plan.modelRequested ?? "default",
     model_reported: facts.model_reported,
     measures: {

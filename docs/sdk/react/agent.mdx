@@ -205,8 +205,9 @@ identifies the missing variables so the caller can render
 
 The hook supports two secret delivery paths via the `saveForFuture`
 option on `submitEnvVars`:
-- **Saved** — secrets are persisted to the personal environment and
-  a personal agent instance is created for reuse.
+- **Saved** — secrets are persisted to the personal environment,
+  where every run of an agent the user starts reads the keys the
+  agent declares.
 - **One-time** — secrets are returned as `runtimeEnv` for a single
   execution, with no data persisted.
 
@@ -214,14 +215,8 @@ State is managed by a `useReducer` state machine with five phases:
 `idle → resolving → needsEnvVars → submitting → ready`.
 
 Composes [`usePersonalEnvironment`](/docs/sdk/react/environment#usepersonalenvironment) for personal environment
-operations and calls the Stigmer client directly for agent and
-agent instance queries.
-
-> **Why not compose `usePersonalAgentInstance`?**
-> `resolveAgent` is an imperative async callback that needs
-> immediate results within a single invocation. Hook state
-> updates require a render cycle. Instance creation is delegated
-> through the shared `buildPersonalInstanceInput` helper instead.
+operations and calls the Stigmer client directly for the agent and
+its MCP servers.
 
 Pass `null` as `org` to disable all operations (stable no-op).
 
@@ -244,11 +239,10 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>): UseAgentSetu
   type={{
     clearError: { type: "() => void", description: "Clear the error without changing the current phase." },
     reset: { type: "() => void", description: "Reset to `idle` state, clearing all phase data and errors." },
-    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read its `env` declarations, checks for an existing personal instance, and diffs env keys against the personal environment. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm." },
-    resolveToInstance: { type: "(ref: ResourceRef, instanceId: string, agentName?: string) => Promise<AgentSetupReadyResult>", description: "Resolve the agent directly to a specific, already-existing AgentInstance — bypassing the env-collection flow.  Used by instance-management surfaces (e.g. \"Start session\" on a specific instance) where the user has explicitly chosen which configured deployment to run against. Because an AgentInstance already binds its own environment(s), there is nothing to collect: the chosen instance *is* the resolved `\"saved\"` resolution.  This transitions the state machine straight to `\"ready\"` with `{ mode: \"saved\", instanceId }`. No agent fetch and no instance lookup are performed — the caller owns the instance identity." },
+    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read its `env` declarations and diffs them against the personal environment and the session's variables. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm." },
     signInCompleted: { type: "(mcpServerId: string) => Promise<void>", description: "Record that one of the pending sign-ins completed (the row's own OAuth flow landed). When it was the last one, the agent is resolved again through resolveAgent, which now finds the grant and lands in `ready` or in `needsEnvVars` for its variables alone.  Must only be called when `state.status === \"needsEnvVars\"`." },
-    state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving environment / creating instance - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
-    submitEnvVars: { type: "(values: Record<string, EnvVarInput>, options?: SubmitEnvVarsOptions) => Promise<AgentSetupReadyResult>", description: "Complete the env var collection flow for the pending agent.  Behavior depends on `options.saveForFuture`: - `true` (default) — Creates or updates the personal environment   with the provided values, then creates a personal agent instance.   Returns `{ resolution: { mode: \"saved\", instanceId } }`. - `false` — Collects values as `runtimeEnv` without any API calls.   Returns `{ resolution: { mode: \"oneTime\", runtimeEnv } }`.  Must only be called when `state.status === \"needsEnvVars\"`." },
+    state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving to the personal environment - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
+    submitEnvVars: { type: "(values: Record<string, EnvVarInput>, options?: SubmitEnvVarsOptions) => Promise<AgentSetupReadyResult>", description: "Complete the env var collection flow for the pending agent.  Behavior depends on `options.saveForFuture`: - `true` (default) — Creates or updates the personal environment   with the provided values.   Returns `{ resolution: { mode: \"saved\" } }`. - `false` — Collects values as `runtimeEnv` without any API calls.   Returns `{ resolution: { mode: \"oneTime\", runtimeEnv } }`.  Must only be called when `state.status === \"needsEnvVars\"`." },
   }}
 />
 
@@ -479,11 +473,6 @@ All visual properties flow through `--stgm-*` design tokens.
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "Default active tab ID when in uncontrolled mode." },
     editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.agent.update()`." },
-    instancesRefreshKey: { type: "number", description: "Increment this value to trigger a refetch of the instance list. Useful after externally creating or deleting an instance." },
-    onCreateInstanceClick: { type: "() => void", description: "Called when the user clicks \"Create Instance\" in the Instances tab. Opens the create instance dialog." },
-    onInstanceClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks an instance row in the Instances tab. Typically opens an instance detail panel." },
-    onInstanceDeleteClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks \"Delete\" on a specific instance." },
-    onInstanceStartSessionClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks \"Start session\" on a specific instance. The session is created pre-bound to the chosen instance's environment." },
     onMcpServerClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when an MCP server reference is clicked. Provides `org` and `slug` of the referenced MCP server so the consumer can wire navigation. When the reference has no explicit org, the agent's own org is used as fallback." },
     onPluginClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when the user selects the plugin named in the \"installed by a plugin\" notice; the host owns the route to the plugin's page. The notice shows when this resource carries a live plugin's label, and `editable` is then narrowed to `false`: the server refuses a client edit of a plugin's resource, so no edit form is offered." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the agent resource has been fetched successfully. Provides the resource display name for use cases like breadcrumbs, document titles, or analytics — without requiring the consumer to also call useAgent.  Not called on error or not-found states." },
@@ -493,7 +482,6 @@ All visual properties flow through `--stgm-*` design tokens.
     org: { type: "string", description: "Id of the organization that owns the agent (a slug is also accepted).", required: true },
     primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area. Typically \"Edit\" for agent detail pages.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
     slug: { type: "string", description: "Agent slug (URL-friendly identifier unique within the org).", required: true },
-    viewerOrg: { type: "string", description: "The viewer's active organization id, feeding the Instances tab: it scopes the instance list to this org's rows, so a member of several orgs sees the current org context only, and an instance of a platform-visible agent is created in the viewer's own org. Shares always live in the agent's organization and take no scope from here. Omit to default to the agent's own org." },
   }}
 />
 
@@ -660,13 +648,15 @@ Describes a single environment variable that the form should collect.
 Describes how the agent was resolved, determining how the caller
 should create the session and its first execution.
 
-- `"saved"` — Secrets were persisted to the user's personal
-  environment and a personal agent instance was created (or already
-  existed). Use `instanceId` with `createSession`.
+Every mode starts the conversation on the agent itself (the session's
+`agentRef`); the mode says where the keys the agent declares come from:
+
+- `"saved"` — The user's personal environment holds every declared
+  key (saved just now or earlier). Each run reads them from there.
 - `"oneTime"` — Secrets were collected but **not** persisted. Pass
   `runtimeEnv` to `createExecution` for this run only.
-- `"direct"` — The agent has no `env` declarations and needs no
-  secrets. Create the session with `agentRef` directly.
+- `"direct"` — Nothing is needed from the user: the agent declares no
+  keys, or the session's variables cover the ones it does.
 
 
 ### AgentSetupPhase
@@ -713,6 +703,23 @@ orthogonal error slot.
 Errors can occur in any async transition (`resolving`, `submitting`)
 and are surfaced alongside the phase so the UI can show inline
 error messages without losing the current phase context.
+
+
+### agentVersionLabel
+
+How a version reads to a person: its tag when it has one, else the
+short hash the Versions tab shows. `versions` is the agent's history as
+[`useAgentVersions`](#useagentversions) returns it; a hash it does not hold (still
+loading, or a history the viewer cannot read) reads as its short hash.
+
+```tsx
+function agentVersionLabel(versions: readonly VersionEntry[], versionHash: string): string
+```
+
+```tsx
+const { versions } = useAgentVersions(org, slug);
+agentVersionLabel(versions, execution.status?.agentVersionHash ?? ""); // "v2" or "3f2a9c1e0b7d"
+```
 
 
 ### AgentWizardData
@@ -762,7 +769,7 @@ Options for `UseAgentSetupReturn.submitEnvVars`.
 
 <TypeTable
   type={{
-    saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved to the user's personal environment and a personal agent instance is created. Subsequent runs of the same agent will reuse these credentials.  When `false`, the values are collected as `runtimeEnv` for this execution only — no data is persisted and no agent instance is created. This path is instant (no network calls)." },
+    saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved to the user's personal environment. Every run of an agent the user starts reads the keys that agent declares from there, so later conversations reuse them without asking again.  When `false`, the values are collected as `runtimeEnv` for this execution only — nothing is persisted. This path is instant (no network calls)." },
   }}
 />
 

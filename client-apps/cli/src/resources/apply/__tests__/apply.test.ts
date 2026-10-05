@@ -122,10 +122,10 @@ describe("applyMessage declared-visibility follow-up", () => {
   });
 
   it("fails loudly when the guarded door rejects, naming the partial state", async () => {
-    // e.g. the default-instance FAILED_PRECONDITION or an unsupported level.
+    // e.g. a level the kind does not support.
     const { handler } = handlerWith({
       applyReturns: agent(ApiResourceVisibility.visibility_org),
-      updateVisibility: () => Promise.reject(new Error("default instances do not have their own visibility")),
+      updateVisibility: () => Promise.reject(new Error("platform visibility is not supported for this kind")),
     });
 
     await expect(

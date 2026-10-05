@@ -288,7 +288,7 @@ func (x *FindApiResourcesRequest) GetPageSize() int32 {
 // declared per kind via VisibilityConfig in kind_meta:
 //   - Blueprints (agent, workflow, skill, mcp_server, plugin):
 //     PRIVATE, ORG, or PLATFORM
-//   - Instances (agent_instance, workflow_instance):
+//   - Instances (workflow_instance):
 //     PRIVATE or ORG (never PLATFORM — tenant isolation)
 //
 // visibility_public is refused for every kind (INVALID_ARGUMENT naming the

@@ -180,14 +180,14 @@ class McpServerInput:
         )
         if self.tags:
             spec.tags.extend(self.tags)
-        if self.stdio is not None:
-            spec.stdio.CopyFrom(self.stdio._to_proto())
-        if self.http is not None:
-            spec.http.CopyFrom(self.http._to_proto())
         for k, v in self.env.items():
             spec.env[k].CopyFrom(v._to_proto())
         if self.auth is not None:
             spec.auth.CopyFrom(self.auth._to_proto())
+        if self.http is not None:
+            spec.http.CopyFrom(self.http._to_proto())
+        if self.stdio is not None:
+            spec.stdio.CopyFrom(self.stdio._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

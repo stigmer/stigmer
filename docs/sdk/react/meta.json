@@ -9,7 +9,6 @@
     "composer",
     "---Agents & Workflows---",
     "agent",
-    "agent-instance",
     "workflow",
     "sharing",
     "channel",

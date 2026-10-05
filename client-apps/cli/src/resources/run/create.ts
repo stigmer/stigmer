@@ -13,6 +13,7 @@ import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agen
 import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import {
+  type AgentExecutionSpec,
   AgentExecutionSpecSchema,
   type ExecutionConfig,
   ExecutionConfigSchema,
@@ -29,6 +30,8 @@ import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/a
 import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/spec_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { RuntimeEnv } from "./env.js";
 import type { HarnessFlag, RunMode, ServiceTierFlag, ThinkingFlag } from "./prepare.js";
 
@@ -39,17 +42,30 @@ const API_VERSION = "agentic.stigmer.ai/v1";
 export type ControllerFn = <Desc extends DescService>(service: Desc) => Client<Desc>;
 
 /**
- * Inputs for creating an agent execution. agentId-only starts a new
- * backend-managed session, sessionId threads a follow-up, both pins the agent
- * within an existing session, and neither starts a new session with no agent:
- * the built-in assistant.
+ * The agent a new conversation starts on, by reference: the server resolves
+ * it, pins the version on the session it creates, and checks every later turn
+ * against that pin. An empty version pins the agent's current version.
+ */
+export interface AgentRefInput {
+  readonly org: string;
+  readonly slug: string;
+  readonly version?: string;
+}
+
+/**
+ * Inputs for creating an agent execution. The turn's target is one of two
+ * things: sessionId continues an existing conversation (whose agent the
+ * session already pins), or a new conversation the backend creates from the
+ * embedded session_spec. agentRef names the new conversation's agent; with
+ * neither, the new conversation runs the built-in assistant.
  *
- * workspaceEntries ride the one-call bootstrap (spec.session_spec,
- * stigmer/stigmer#249) and shape the auto-created session; they are mutually
- * exclusive with sessionId (a session's workspace is fixed at creation).
+ * workspaceEntries and harness ride the one-call bootstrap (spec.session_spec,
+ * stigmer/stigmer#249) and shape the auto-created session. A session's agent,
+ * workspace and harness are fixed at creation, so with sessionId set they are
+ * not sent: the target carries the session id alone.
  */
 export interface CreateAgentExecutionInput {
-  readonly agentId?: string;
+  readonly agentRef?: AgentRefInput;
   readonly sessionId?: string;
   readonly orgId: string;
   readonly message: string;
@@ -80,11 +96,7 @@ export async function createAgentExecution(
       attachments: [...input.attachments],
       workspaceFileRefs: [...input.workspaceFileRefs],
       autoApproveAll: input.autoApproveAll,
-      sessionId: input.sessionId ?? "",
-      agentId: input.agentId ?? "",
-      // Subject is left empty: the server defaults its sentinel and the async
-      // title activity replaces it, same as any auto-created session.
-      sessionSpec: buildSessionSpec(input.workspaceEntries, input.harness),
+      target: buildTarget(input),
       executionConfig: buildExecutionConfig(input.model, input.mode, input.serviceTier, input.thinking),
     }),
   });
@@ -121,21 +133,43 @@ export async function createWorkflowExecution(
   return controller(WorkflowExecutionCommandController).create(execution);
 }
 
+// The turn's target: an existing session by id, or the session_spec of the
+// conversation the backend creates for it. An unset target is a new
+// conversation with the built-in assistant.
+function buildTarget(input: CreateAgentExecutionInput): AgentExecutionSpec["target"] {
+  const sessionId = input.sessionId ?? "";
+  if (sessionId !== "") return { case: "sessionId", value: sessionId };
+  const sessionSpec = buildSessionSpec(input.agentRef, input.workspaceEntries, input.harness);
+  if (sessionSpec === undefined) return { case: undefined };
+  return { case: "sessionSpec", value: sessionSpec };
+}
+
 // Build the embedded session spec for the one-call bootstrap
-// (stigmer/stigmer#249), or undefined when there is nothing to carry — the
-// pre-existing wire shape for a plain run must stay byte-identical. A resolved
-// harness is stamped explicitly, including "native": the value may be a
-// deliberate per-run escape from the account's default_harness preference, so
-// it must survive any future change to the server-side default. Empty means
-// "no opinion" and stays off the wire (server defaults to native). The server
-// clones this spec onto the auto-created session and then clears it from the
-// persisted execution — the Session resource stays the single source of truth.
+// (stigmer/stigmer#249), or undefined when there is nothing to carry: a plain
+// built-in-assistant run sends no session_spec at all. The agent reference
+// names the conversation's agent. A resolved harness is stamped explicitly,
+// including "native": the value may be a deliberate per-run escape from the
+// account's default_harness preference, so it must survive any future change
+// to the server-side default. Empty means "no opinion" and stays off the wire
+// (server defaults to native). Subject is left empty: the server defaults its
+// sentinel and the async title activity replaces it. The server clones this
+// spec onto the auto-created session and then clears it from the persisted
+// execution — the Session resource stays the single source of truth.
 function buildSessionSpec(
+  agentRef: AgentRefInput | undefined,
   workspaceEntries: readonly WorkspaceEntry[],
   harness: HarnessFlag,
 ): SessionSpec | undefined {
-  if (workspaceEntries.length === 0 && harness === "") return undefined;
+  if (agentRef === undefined && workspaceEntries.length === 0 && harness === "") return undefined;
   const spec = create(SessionSpecSchema, { workspaceEntries: [...workspaceEntries] });
+  if (agentRef !== undefined) {
+    spec.agentRef = create(ApiResourceReferenceSchema, {
+      kind: ApiResourceKind.agent,
+      org: agentRef.org,
+      slug: agentRef.slug,
+      version: agentRef.version ?? "",
+    });
+  }
   if (harness === "cursor") spec.harness = Harness.CURSOR;
   else if (harness === "native") spec.harness = Harness.NATIVE;
   return spec;

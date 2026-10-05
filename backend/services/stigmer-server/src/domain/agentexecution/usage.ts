@@ -83,6 +83,7 @@ import type { ListIndexRow } from "../../store/list-index.js";
 
 import { agentExecutionListIndex } from "./list-index.js";
 import { EXECUTION_LIST_KEY, loadAllAgentExecutions } from "./steps.js";
+import { sessionIdOf } from "./target.js";
 
 export interface UsageReportDeps {
   readonly store: Store;
@@ -172,21 +173,21 @@ export function filterByOrg(
   );
 }
 
-/** spec.agent_id equality filter (Go filterByAgentID). */
+/** The recorded agent (status.agent_id) equality filter (Go filterByAgentID). */
 export function filterByAgentId(
   executions: AgentExecution[],
   agentId: string,
 ): AgentExecution[] {
-  return executions.filter((exec) => (exec.spec?.agentId ?? "") === agentId);
+  return executions.filter((exec) => (exec.status?.agentId ?? "") === agentId);
 }
 
-/** Groups by spec.session_id (Go groupBySessionID). */
+/** Groups by the session the execution belongs to (Go groupBySessionID). */
 export function groupBySessionId(
   executions: AgentExecution[],
 ): Map<string, AgentExecution[]> {
   const groups = new Map<string, AgentExecution[]>();
   for (const exec of executions) {
-    const sid = exec.spec?.sessionId ?? "";
+    const sid = sessionIdOf(exec.spec);
     const group = groups.get(sid);
     if (group === undefined) {
       groups.set(sid, [exec]);
@@ -198,7 +199,8 @@ export function groupBySessionId(
 }
 
 /**
- * Groups by spec.agent_id; executions without one group under "" (Go
+ * Groups by the recorded agent (status.agent_id); executions without one
+ * group under "" (Go
  * groupByAgentID).
  */
 export function groupByAgentId(
@@ -206,7 +208,7 @@ export function groupByAgentId(
 ): Map<string, AgentExecution[]> {
   const groups = new Map<string, AgentExecution[]>();
   for (const exec of executions) {
-    const aid = exec.spec?.agentId ?? "";
+    const aid = exec.status?.agentId ?? "";
     const group = groups.get(aid);
     if (group === undefined) {
       groups.set(aid, [exec]);
@@ -338,7 +340,7 @@ export function sortExecutionsByStartedAt(executions: AgentExecution[]): void {
 export function distinctAgentIds(executions: AgentExecution[]): string[] {
   const seen = new Set<string>();
   for (const exec of executions) {
-    const aid = exec.spec?.agentId ?? "";
+    const aid = exec.status?.agentId ?? "";
     if (aid !== "") {
       seen.add(aid);
     }
@@ -350,7 +352,7 @@ export function distinctAgentIds(executions: AgentExecution[]): string[] {
 export function distinctSessionIds(executions: AgentExecution[]): string[] {
   const seen = new Set<string>();
   for (const exec of executions) {
-    const sid = exec.spec?.sessionId ?? "";
+    const sid = sessionIdOf(exec.spec);
     if (sid !== "") {
       seen.add(sid);
     }
@@ -528,7 +530,7 @@ export async function getSessionUsageReport(
       async execute(ctx) {
         const all = await loadAllAgentExecutions(deps.store, deps.logger);
         const executions = all.filter(
-          (exec) => (exec.spec?.sessionId ?? "") === ctx.input.sessionId,
+          (exec) => sessionIdOf(exec.spec) === ctx.input.sessionId,
         );
         deps.logger.debug("Loaded executions for session usage report", {
           sessionId: ctx.input.sessionId,
@@ -863,7 +865,7 @@ export async function getExecutionSummary(
       activeCount++;
     }
 
-    const agentId = exec.spec?.agentId ?? "";
+    const agentId = exec.status?.agentId ?? "";
 
     if (phase === ExecutionPhase.EXECUTION_COMPLETED) {
       const d = completionDurationMs(exec);

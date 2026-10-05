@@ -1,24 +1,33 @@
 // Canonical AgentExecution fixtures + execution polling helpers.
 // Domain: conformance support (execution engine).
 //
-// An AgentExecution is one user message and the agent's response, run through the
-// engine (Temporal orchestrator + TS runner + a mock LLM). It is created with a
-// `message` plus a reference — `agent_id` (auto-creates a session) or `session_id`
-// (existing session); with neither, the server resolves the platform default
-// agent, which the OSS single-tenant target does not seed, so suites always pass a
-// reference. Like WorkflowExecution this is a *running thing*, so this module also
-// exposes phase-await helpers, delegating the timing loop to the shared poll core
+// An AgentExecution is one user message and the agent's response (a turn),
+// run through the engine (Temporal orchestrator + TS runner + a mock LLM). It
+// names its conversation through the spec's `target` oneof: an existing
+// session (`session_id`), or a new one (`session_spec`, the one-call
+// bootstrap) whose agent_ref names the agent it runs; with neither, the turn
+// starts a conversation with the built-in assistant. The builder takes the
+// agent as a reference (`agentRef`, merged into the new session's spec), so
+// a turn on an agent never names an agent id: the server pins the agent and
+// version on the session and stamps them on the turn's status. Like
+// WorkflowExecution this is a *running thing*, so this module also exposes
+// phase-await helpers, delegating the timing loop to the shared poll core
 // so both execution domains share one definition — and the submit-approval
 // seam: the one place the approval read-model contract is
 // asserted (see the seam's own header below).
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import type { InitShape } from "./init-shape";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AttachmentSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import type {
+  AttachmentSchema,
+  ExecutionConfigSchema,
+  WorkflowParentSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
@@ -26,6 +35,7 @@ import type { FixtureTracker } from "../harness/fixtures";
 import { DESTRUCTIVE_ECHO_TOOL_NAME, type FixtureTool, type McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import type { TargetProfile } from "../targets/target";
+import { type AgentRefInit, makeAgentRef } from "./agents";
 import { type ExecutionValueInit, makeExecutionValues } from "./executioncontexts";
 import { type PollCoreOptions, pollUntil } from "./execution-poll";
 import { makeHttpMcpServer } from "./mcpservers";
@@ -36,13 +46,20 @@ export const AGENT_EXECUTION_KIND = "AgentExecution";
 export interface AgentExecutionOptions {
   org: string;
   name: string;
-  // Reference to run against. Provide agent_id (auto-creates a session) and/or
-  // session_id (existing session). At least one is required for a hermetic run.
-  agentId?: string;
+  // The conversation the turn joins (spec.target). `sessionId` continues an
+  // existing session. Otherwise the turn starts a new one: `agentRef` names
+  // its agent (the new session's agent_ref) and `sessionSpec` carries the
+  // rest of its shape (the one-call bootstrap, stigmer/stigmer#249); with
+  // neither, the conversation is the built-in assistant's. `sessionId`
+  // excludes the other two: the oneof holds one arm.
+  agentRef?: AgentRefInit;
   sessionId?: string;
-  // Spec for the auto-created session (spec.session_spec) — the one-call
-  // bootstrap (stigmer/stigmer#249). Mutually exclusive with sessionId.
   sessionSpec?: MessageInitShape<typeof SessionSpecSchema>;
+  // The workflow run that started the turn (spec.parent): honoured only from
+  // that run's runner, the server, or a holder of can_write_reserved_labels.
+  parent?: MessageInitShape<typeof WorkflowParentSchema>;
+  // Metadata labels, passed through verbatim (the lineage-label arms).
+  labels?: Record<string, string>;
   // The user message that triggers the run; must be non-empty (proto min_len=1).
   message?: string;
   // Runtime bypass of all tool-approval gates (spec.auto_approve_all). Omitted =
@@ -64,17 +81,20 @@ export interface AgentExecutionOptions {
 }
 
 // A complete, valid AgentExecution create request. execution_config is left unset
-// unless provided, so the only variable inputs are the reference, the message,
+// unless provided, so the only variable inputs are the target, the message,
 // and the optional overrides.
 export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeof AgentExecutionSchema> {
   return {
     apiVersion: AGENT_EXECUTION_API_VERSION,
     kind: AGENT_EXECUTION_KIND,
-    metadata: { name: opts.name, org: opts.org },
+    metadata: {
+      name: opts.name,
+      org: opts.org,
+      ...(opts.labels !== undefined ? { labels: opts.labels } : {}),
+    },
     spec: {
-      ...(opts.agentId !== undefined ? { agentId: opts.agentId } : {}),
-      ...(opts.sessionId !== undefined ? { sessionId: opts.sessionId } : {}),
-      ...(opts.sessionSpec !== undefined ? { sessionSpec: opts.sessionSpec } : {}),
+      ...executionTarget(opts),
+      ...(opts.parent !== undefined ? { parent: opts.parent } : {}),
       message: opts.message ?? "Say hello.",
       ...(opts.autoApproveAll !== undefined ? { autoApproveAll: opts.autoApproveAll } : {}),
       ...(opts.runtimeEnv !== undefined ? { runtimeEnv: makeExecutionValues(opts.runtimeEnv) } : {}),
@@ -83,6 +103,37 @@ export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeo
       ...(opts.workspaceFileRefs !== undefined ? { workspaceFileRefs: opts.workspaceFileRefs } : {}),
     },
   };
+}
+
+// The spec's target oneof for the options: the existing session, or the new
+// conversation's session spec with its agent reference folded in. A
+// `sessionId` beside `agentRef` or `sessionSpec` is a fixture mistake (the
+// oneof holds one arm), refused here rather than silently dropping one.
+function executionTarget(
+  opts: AgentExecutionOptions,
+): Pick<NonNullable<InitShape<typeof AgentExecutionSchema>["spec"]>, "target"> {
+  if (opts.sessionId !== undefined) {
+    if (opts.agentRef !== undefined || opts.sessionSpec !== undefined) {
+      throw new Error("makeAgentExecution: sessionId excludes agentRef and sessionSpec (spec.target is a oneof)");
+    }
+    return { target: { case: "sessionId", value: opts.sessionId } };
+  }
+  if (opts.agentRef === undefined && opts.sessionSpec === undefined) {
+    return {};
+  }
+  const sessionSpec = create(SessionSpecSchema, opts.sessionSpec ?? {});
+  if (opts.agentRef !== undefined) {
+    sessionSpec.agentRef = create(ApiResourceReferenceSchema, makeAgentRef(opts.agentRef));
+  }
+  return { target: { case: "sessionSpec", value: sessionSpec } };
+}
+
+// The session a persisted turn belongs to: the server replaces a new
+// conversation's session_spec with the id of the session it created, so
+// every stored turn reads through the session_id arm ("" when it has none).
+export function sessionIdOf(execution: AgentExecution | undefined): string {
+  const target = execution?.spec?.target;
+  return target?.case === "sessionId" ? target.value : "";
 }
 
 // Terminal = the engine will never move the phase again. PAUSED is NOT terminal

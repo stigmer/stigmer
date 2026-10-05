@@ -538,8 +538,8 @@ java.lang.String defaultValue) {
    *
    * This is how a tool-using agent becomes runnable from a workflow:
    * bind an org-shared environment holding the needed credentials, and
-   * the child runs receive its values at runtime. The agent and its
-   * default instance stay untouched.
+   * the child runs receive its values at runtime. The agent itself stays
+   * untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -555,8 +555,8 @@ java.lang.String defaultValue) {
    *
    * This is how a tool-using agent becomes runnable from a workflow:
    * bind an org-shared environment holding the needed credentials, and
-   * the child runs receive its values at runtime. The agent and its
-   * default instance stay untouched.
+   * the child runs receive its values at runtime. The agent itself stays
+   * untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -573,8 +573,8 @@ java.lang.String defaultValue) {
    *
    * This is how a tool-using agent becomes runnable from a workflow:
    * bind an org-shared environment holding the needed credentials, and
-   * the child runs receive its values at runtime. The agent and its
-   * default instance stay untouched.
+   * the child runs receive its values at runtime. The agent itself stays
+   * untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -590,8 +590,8 @@ java.lang.String defaultValue) {
    *
    * This is how a tool-using agent becomes runnable from a workflow:
    * bind an org-shared environment holding the needed credentials, and
-   * the child runs receive its values at runtime. The agent and its
-   * default instance stay untouched.
+   * the child runs receive its values at runtime. The agent itself stays
+   * untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -607,8 +607,8 @@ java.lang.String defaultValue) {
    *
    * This is how a tool-using agent becomes runnable from a workflow:
    * bind an org-shared environment holding the needed credentials, and
-   * the child runs receive its values at runtime. The agent and its
-   * default instance stay untouched.
+   * the child runs receive its values at runtime. The agent itself stays
+   * untouched.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2580,8 +2580,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2600,8 +2600,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2620,8 +2620,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2640,8 +2640,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2667,8 +2667,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2691,8 +2691,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2717,8 +2717,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2744,8 +2744,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2768,8 +2768,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2792,8 +2792,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2817,8 +2817,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2840,8 +2840,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2863,8 +2863,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2880,8 +2880,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2900,8 +2900,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2921,8 +2921,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2938,8 +2938,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2956,8 +2956,8 @@ java.lang.String defaultValue) {
      *
      * This is how a tool-using agent becomes runnable from a workflow:
      * bind an org-shared environment holding the needed credentials, and
-     * the child runs receive its values at runtime. The agent and its
-     * default instance stay untouched.
+     * the child runs receive its values at runtime. The agent itself stays
+     * untouched.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 8 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>

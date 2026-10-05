@@ -20,17 +20,16 @@
  * rather than leaving a hole; the tuple source never loads a row for it
  * and the list scope never lists it.
  *
- * The three derived rules: `default_of` on both instance kinds, which the
- * blueprint's default-instance pointer decides (default-of.ts), and a
- * workflow instance's `execution_viewer`, which its execution visibility
- * decides (execution-viewer.ts).
+ * The two derived rules, both on the workflow instance: `default_of`, which
+ * the workflow's default-instance pointer decides (default-of.ts), and
+ * `execution_viewer`, which its execution visibility decides
+ * (execution-viewer.ts).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
@@ -89,19 +88,6 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.agent_channel, { schema: AgentChannelSchema }],
   [ApiResourceKind.agent_share, { schema: AgentShareSchema }],
   [ApiResourceKind.channel_app, { schema: ChannelAppSchema }],
-  [
-    ApiResourceKind.agent_instance,
-    {
-      schema: AgentInstanceSchema,
-      derived: {
-        default_of: defaultOfBlueprint({
-          kind: ApiResourceKind.agent,
-          schema: AgentSchema,
-          defaultInstanceIdOf: (agent) => agent.status?.defaultInstanceId ?? "",
-        }),
-      },
-    },
-  ],
   [ApiResourceKind.agent_execution, { schema: AgentExecutionSchema }],
   [ApiResourceKind.artifact, { schema: ArtifactSchema }],
   [ApiResourceKind.environment, { schema: EnvironmentSchema }],

@@ -51,10 +51,11 @@ message ListSessionsRequest {
   string org = 4;
 }
 
-// ListSessionsByAgentInstanceRequest lists all sessions for a specific agent instance.
-message ListSessionsByAgentInstanceRequest {
-  // Agent instance ID to filter by.
-  string agent_instance_id = 1 [(buf.validate.field).required = true];
+// ListSessionsByAgentRequest lists the conversations on one agent.
+message ListSessionsByAgentRequest {
+  // ID of the agent whose conversations to list: the sessions whose
+  // status.agent_id names it, whichever version each runs.
+  string agent_id = 1 [(buf.validate.field).required = true];
 
   // The most sessions to return, at most 100; zero returns them all.
   int32 page_size = 2 [(buf.validate.field).int32.gte = 0];

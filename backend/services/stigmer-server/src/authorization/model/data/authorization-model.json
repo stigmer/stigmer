@@ -819,7 +819,6 @@
           },
           "can_assign_roles": {},
           "can_create_agent": {},
-          "can_create_agent_instance": {},
           "can_create_agent_share": {},
           "can_create_channel_app": {},
           "can_create_environment": {},
@@ -900,11 +899,6 @@
         "can_create_agent": {
           "computedUserset": {
             "relation": "admin"
-          }
-        },
-        "can_create_agent_instance": {
-          "computedUserset": {
-            "relation": "member"
           }
         },
         "can_create_agent_share": {
@@ -1075,7 +1069,6 @@
       "metadata": {
         "module": "agentic",
         "relations": {
-          "can_create_instance": {},
           "can_delete": {},
           "can_edit": {},
           "can_execute": {},
@@ -1137,11 +1130,6 @@
         }
       },
       "relations": {
-        "can_create_instance": {
-          "computedUserset": {
-            "relation": "can_execute"
-          }
-        },
         "can_delete": {
           "computedUserset": {
             "relation": "owner"
@@ -1706,172 +1694,6 @@
         }
       },
       "type": "channel_app"
-    },
-    {
-      "metadata": {
-        "module": "agentic",
-        "relations": {
-          "agent": {
-            "directly_related_user_types": [
-              {
-                "type": "agent"
-              }
-            ]
-          },
-          "can_delete": {},
-          "can_edit": {},
-          "can_execute": {},
-          "can_grant_access": {},
-          "can_manage_audience": {},
-          "can_view": {},
-          "can_view_access": {},
-          "default_of": {
-            "directly_related_user_types": [
-              {
-                "type": "agent"
-              }
-            ]
-          },
-          "organization": {
-            "directly_related_user_types": [
-              {
-                "type": "organization"
-              }
-            ]
-          },
-          "owner": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              }
-            ]
-          },
-          "viewer": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              },
-              {
-                "relation": "viewer",
-                "type": "organization"
-              },
-              {
-                "relation": "member",
-                "type": "team"
-              }
-            ]
-          }
-        },
-        "source_info": {
-          "file": "agentic/agent_instance.fga"
-        }
-      },
-      "relations": {
-        "agent": {
-          "this": {}
-        },
-        "can_delete": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_edit": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_execute": {
-          "computedUserset": {
-            "relation": "can_view"
-          }
-        },
-        "can_grant_access": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_manage_audience": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_view": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
-        "can_view_access": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
-        "default_of": {
-          "this": {}
-        },
-        "organization": {
-          "this": {}
-        },
-        "owner": {
-          "intersection": {
-            "child": [
-              {
-                "this": {}
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "affiliated"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "viewer": {
-          "union": {
-            "child": [
-              {
-                "intersection": {
-                  "child": [
-                    {
-                      "this": {}
-                    },
-                    {
-                      "tupleToUserset": {
-                        "computedUserset": {
-                          "relation": "affiliated"
-                        },
-                        "tupleset": {
-                          "relation": "organization"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "owner"
-                }
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "viewer"
-                  },
-                  "tupleset": {
-                    "relation": "default_of"
-                  }
-                }
-              }
-            ]
-          }
-        }
-      },
-      "type": "agent_instance"
     },
     {
       "metadata": {
@@ -2858,13 +2680,6 @@
       "metadata": {
         "module": "agentic",
         "relations": {
-          "agent_instance": {
-            "directly_related_user_types": [
-              {
-                "type": "agent_instance"
-              }
-            ]
-          },
           "can_create_execution_in": {},
           "can_delete": {},
           "can_edit": {},
@@ -2912,9 +2727,6 @@
         }
       },
       "relations": {
-        "agent_instance": {
-          "this": {}
-        },
         "can_create_execution_in": {
           "computedUserset": {
             "relation": "viewer"

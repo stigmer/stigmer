@@ -29,13 +29,13 @@ import {
  * servers, skills — alongside the first message, so starting a session
  * with a configured workspace is a single API call (stigmer/stigmer#249).
  *
- * When `agentInstanceId` is omitted, the server resolves the agent's
- * default instance from the execution's `agentId` (creating the instance
- * if missing), or falls back to the platform default agent.
+ * `agentRef` names the agent the new conversation runs; the server pins
+ * the version it names (the agent's current version when it names none).
+ * Omit it for a conversation with the built-in assistant.
  */
 export interface BootstrapSessionSpec {
-  /** Agent instance the session runs against. Omit to let the server resolve it. */
-  readonly agentInstanceId?: string;
+  /** The agent the new conversation runs. Omit for the built-in assistant. */
+  readonly agentRef?: ResourceRef;
   /** Initial conversation subject. Omit for an async LLM-generated title. */
   readonly subject?: string;
   /** Workspace source entries to attach to the session. */
@@ -88,23 +88,21 @@ export interface SharedAgentExecutionFields {
   readonly message: string;
   /** Override the default model for this execution. */
   readonly modelName?: string;
-  /** Explicit agent ID. When omitted, uses the session's agent instance. */
-  readonly agentId?: string;
   /**
    * Execution-scoped secrets and configuration (Execution Flow).
    *
    * Values are injected into the agent sandbox for this execution only
    * and deleted when the execution completes. They take the highest
-   * merge priority, overriding Environment values bound via the
-   * instance. Keys must be declared in the agent's env declarations
-   * (a whitelist, not a value source) or they are dropped.
+   * merge priority, overriding every environment layer. Keys must be
+   * declared in the agent's env declarations (a whitelist, not a value
+   * source) or they are dropped.
    *
    * Use this for B2B integrations where per-call credentials are
    * injected at runtime, or for one-off secrets that should not persist.
    *
    * For persistent credentials that are reused across executions, use
-   * the Environment Flow instead (store secrets in an Environment
-   * resource and bind them via an AgentInstance).
+   * the Environment Flow instead: the keys an agent declares are read
+   * from the running person's personal environment.
    *
    * @see {@link https://stigmer.ai/docs/product/how-to-provide-secrets | How to Provide Secrets}
    */
@@ -216,7 +214,8 @@ export interface SharedAgentExecutionFields {
  *   from the embedded spec and dispatches this execution in it. The new
  *   session's ID is returned on {@link CreateAgentExecutionResult.sessionId}.
  *
- * Providing both is a type error (and an `INVALID_ARGUMENT` server-side).
+ * The two map onto the execution's `target` oneof, which carries one;
+ * providing both is a type error.
  */
 export type CreateAgentExecutionInput = SharedAgentExecutionFields &
   (
@@ -273,16 +272,16 @@ export interface UseCreateAgentExecutionReturn {
  *
  * Supports both secret delivery flows:
  *
- * - **Environment Flow** — Secrets are stored in Environment resources
- *   and bound via AgentInstance. No `runtimeEnv` needed; the backend
- *   resolves credentials from the session's agent instance.
+ * - **Environment Flow** — Secrets are stored in the running person's
+ *   personal environment. No `runtimeEnv` needed; the backend reads
+ *   every key the agent declares from there.
  * - **Execution Flow** — Pass `runtimeEnv` to inject per-execution
  *   secrets. Values are merged with the highest priority and deleted
  *   when the execution completes.
  *
  * @example
  * ```tsx
- * // Environment Flow: secrets come from the agent instance's environments
+ * // Environment Flow: secrets come from the person's personal environment
  * const { create } = useCreateAgentExecution();
  * await create({ org: "acme", sessionId: "ses_abc", message: "Review the PR" });
  * ```
@@ -309,7 +308,7 @@ export interface UseCreateAgentExecutionReturn {
  *   org: "acme",
  *   message: "Customize the landing page",
  *   sessionSpec: {
- *     agentInstanceId: "ain_abc",
+ *     agentRef: { org: "acme", slug: "site-builder" },
  *     workspaceEntries: [{ name: "site", source: { localPath: { path: "/repos/site" } } }],
  *     executionTarget: "local",
  *   },
@@ -359,7 +358,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
 
         const sessionSpec = input.sessionSpec
           ? {
-              agentInstanceId: input.sessionSpec.agentInstanceId,
+              agentRef: input.sessionSpec.agentRef,
               subject: input.sessionSpec.subject,
               workspaceEntries: input.sessionSpec.workspaceEntries,
               mcpServerUsages: input.sessionSpec.mcpServerUsages,
@@ -382,7 +381,6 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
           org: input.org,
           sessionId: input.sessionId,
           sessionSpec,
-          agentId: input.agentId,
           message: input.message,
           executionConfig,
           autoApproveAll: input.autoApproveAll,
@@ -392,11 +390,14 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
           supersedesExecutionId: input.supersedesExecutionId,
         });
 
+        // On the bootstrap path the server assigns the session and points
+        // the execution's target at it; trust the response first so both
+        // variants report the real session.
+        const target = execution.spec?.target;
         return {
           executionId: execution.metadata!.id,
-          // On the bootstrap path the server assigns the session; trust the
-          // response first so both variants report the real session.
-          sessionId: execution.spec?.sessionId ?? input.sessionId ?? "",
+          sessionId:
+            target?.case === "sessionId" ? target.value : (input.sessionId ?? ""),
         };
       } catch (err) {
         setError(toError(err));

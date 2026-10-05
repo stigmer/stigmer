@@ -2,8 +2,8 @@
 title: Sessions
 description:
   A Session is a conversation context that preserves memory across interactions.
-  Learn how Sessions work, how they connect to Agents, and how to customize them
-  per conversation.
+  Learn how Sessions work, which Agent version they run, and how to customize
+  them per conversation.
 ---
 
 When a user talks to an Agent, the conversation needs memory. The second message
@@ -26,13 +26,13 @@ complete thread when processing each new message.
 
 ## How Sessions fit in the lifecycle
 
-A Session connects an Agent (via an Agent Instance) to a conversation:
+A Session names the Agent it talks to, and each message in it is one run:
 
 {/* prettier-ignore */}
 <Mermaid
   chart={`
 graph LR
-  AI["Agent Instance"] --> S["Session"]
+  A["Agent"] --> S["Session"]
   S --> E1["Execution 1"]
   S --> E2["Execution 2"]
   S --> E3["Execution 3"]
@@ -46,37 +46,89 @@ context.
 
 ## Creating a Session
 
-In the SDK, you create a Session by specifying which Agent Instance to use:
+In the SDK, you create a Session by naming the Agent it talks to:
 
 <Tabs items={["TypeScript", "Go"]}>
   <Tab value="TypeScript">
 ```typescript
 const session = await client.session.create({
-  spec: {
-    subject: "Order inquiry",
-    agentInstanceId: "ain-abc123",
-  },
+  name: "order-inquiry",
+  org: "acme",
+  subject: "Order inquiry",
+  agentRef: { org: "acme", slug: "support-agent" },
 });
 ```
   </Tab>
   <Tab value="Go">
 
 ```go
-session, err := client.Session.Create(ctx, &sessionv1.CreateInput{
-    Spec: &sessionv1.SessionSpec{
-        Subject:         "Order inquiry",
-        AgentInstanceId: "ain-abc123",
-    },
+session, err := client.Session.Create(ctx, &stigmer.SessionInput{
+    Name:    "order-inquiry",
+    Org:     "acme",
+    Subject: "Order inquiry",
+    AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "support-agent"},
 })
 ```
 
   </Tab>
 </Tabs>
 
-If you don't specify an `agentInstanceId`, the Session runs the
+If you name no Agent, the Session runs the
 [built-in assistant](/docs/concepts/agents#the-built-in-assistant) — the same
 one the [Quickstart](/docs/getting-started/quickstart) talks to. A Session can
-later be bound to an Agent, or have its Agent removed, through an update.
+later name an Agent, change it, or drop it again through an update.
+
+A Session can name an Agent of another Organization only when that Agent is
+shared with every Organization on the platform (`visibility_platform`).
+
+## Which version a Session runs
+
+An Agent keeps a [version](/docs/concepts/agents#versions) for every change to
+its definition. A Session runs the version that was current when it started, and
+stays on it. When the Agent's author saves a change, conversations already under
+way keep the instructions, Skills and tools they started with; the change
+reaches them only when someone updates them:
+
+- **In the console**, a conversation on an older version says so and offers to
+  update it to the current version.
+- **Through the API**, update the Session with the Agent reference's `version`
+  set to `latest`:
+
+  ```yaml validate-as="Session"
+  spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: support-agent
+      version: latest
+  ```
+
+  An update that sends the reference unchanged, with no version, keeps the
+  version the conversation runs.
+
+To start a conversation on a particular version instead of the current one, name
+a tag or a version hash in the reference (`version: stable`). Every
+[Agent Execution](/docs/concepts/agents#versions) records the Agent and version
+it ran.
+
+## Who may send a message
+
+Starting a conversation on an Agent, or switching a Session to another Agent,
+needs permission to run that Agent. Every message asks again: if the Agent's
+author makes it private, or your access to it is removed, your next message in
+an existing conversation is refused. If the Agent is deleted, the next message
+fails and the error names the Agent.
+
+The keys an Agent declares in its `env` are filled when each message runs. When
+the Agent belongs to the Organization the conversation runs in, the ones nothing
+else supplies come from your personal Environment; an Agent another Organization
+published reads none of them. Those keys reach the Agent's tools and its shell,
+which follow the instructions the Agent's author wrote. An MCP Server's OAuth
+variable comes only from the sign-in to that server, never from your personal
+Environment. Before your first message in a conversation, the console names the
+keys the Agent declares.
+[Environments](/docs/concepts/environments#how-a-run-gets-its-values) explains
+every source.
 
 ## Harness
 
@@ -136,7 +188,8 @@ narrow what an Agent can do, change its lists.
 Sessions persist until explicitly deleted. You can:
 
 - **Resume** a Session by sending new messages to the same Session ID
-- **List** past Sessions and their execution history
+- **List** past Sessions, or every Session on one Agent, and their execution
+  history
 - **Delete** a Session when the conversation is no longer needed
 
 Each Session maintains its own thread of messages. The Agent sees the complete

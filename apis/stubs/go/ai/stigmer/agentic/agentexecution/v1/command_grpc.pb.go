@@ -41,8 +41,8 @@ const (
 // AgentExecutionCommandController handles write operations for agent executions.
 // Follows the standard pattern: create, update, delete (no granular field updates).
 type AgentExecutionCommandControllerClient interface {
-	// Create and trigger a new agent execution.
-	// Session is optional — can be provided or auto-created from agent_id.
+	// Create and trigger a new agent execution: a turn in an existing session,
+	// or the first turn of a new one created from session_spec.
 	Create(ctx context.Context, in *AgentExecution, opts ...grpc.CallOption) (*AgentExecution, error)
 	// Update an agent execution.
 	Update(ctx context.Context, in *AgentExecution, opts ...grpc.CallOption) (*AgentExecution, error)
@@ -252,8 +252,8 @@ func (c *agentExecutionCommandControllerClient) UploadAttachment(ctx context.Con
 // AgentExecutionCommandController handles write operations for agent executions.
 // Follows the standard pattern: create, update, delete (no granular field updates).
 type AgentExecutionCommandControllerServer interface {
-	// Create and trigger a new agent execution.
-	// Session is optional — can be provided or auto-created from agent_id.
+	// Create and trigger a new agent execution: a turn in an existing session,
+	// or the first turn of a new one created from session_spec.
 	Create(context.Context, *AgentExecution) (*AgentExecution, error)
 	// Update an agent execution.
 	Update(context.Context, *AgentExecution) (*AgentExecution, error)

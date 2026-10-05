@@ -9,7 +9,9 @@
  *
  * This builder is sandbox-safe — it evaluates jq expressions and
  * delegates to `ctx.callAgent()`. The async completion and signal
- * logic live in the workflow-side orchestrator, not here.
+ * logic live in the workflow-side orchestrator, not here. It hands
+ * over only the task's name: the ids that link the child to this run
+ * are the engine's own, never values from workflow data.
  */
 
 import type {
@@ -68,15 +70,13 @@ export class CallAgentTaskBuilder implements TaskBuilder {
 
       const config = resolved as unknown as AgentCallConfig;
 
-      const executionId =
-        (state.data["__stigmer_execution_id"] as string | undefined) ?? "";
-
-      const metadata = {
-        parentWorkflowId:
-          (state.data["__stigmer_parent_workflow_id"] as string | undefined) ?? "",
-        taskName: this.taskName,
-        workflowExecutionId: executionId,
-      };
+      // Only the task's own name travels from here. The child's `parent`
+      // link (the workflow execution id, the workflow to signal and the
+      // task token) comes from the runner's own run: the engine adds its
+      // workflow id and execution id, the activity its own task token.
+      // None of it is read from workflow data, which the workflow's own
+      // tasks can write.
+      const metadata = { taskName: this.taskName };
 
       const outputContract = withConfig.output;
       const maxRetries = outputContract?.max_retries ?? 2;

@@ -216,14 +216,14 @@ func (i *AgentChannelInput) toProto() (*agentchannelv1.AgentChannel, error) {
 		resource.Spec.AgentRef = ref
 	}
 	resource.Spec.Enabled = i.Enabled
-	if i.Slack != nil {
-		m := &agentchannelv1.SlackChannelConfig{}
-		resource.Spec.ProviderConfig = &agentchannelv1.AgentChannelSpec_Slack{Slack: m}
-	}
 	if i.Whatsapp != nil {
 		m := &agentchannelv1.WhatsAppChannelConfig{}
 		m.PhoneNumberId = i.Whatsapp.PhoneNumberId
 		resource.Spec.ProviderConfig = &agentchannelv1.AgentChannelSpec_Whatsapp{Whatsapp: m}
+	}
+	if i.Slack != nil {
+		m := &agentchannelv1.SlackChannelConfig{}
+		resource.Spec.ProviderConfig = &agentchannelv1.AgentChannelSpec_Slack{Slack: m}
 	}
 	for _, r := range i.EnvironmentRefs {
 		ref := r.toProto()

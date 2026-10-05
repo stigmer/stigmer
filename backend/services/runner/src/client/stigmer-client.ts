@@ -17,7 +17,6 @@ import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agen
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
@@ -32,7 +31,6 @@ import { ExecutionContextExecutionIdInputSchema } from "@stigmer/protos/ai/stigm
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -184,7 +182,6 @@ export class StigmerClient {
   private readonly sessionQuery: Client<typeof SessionQueryController>;
   private readonly sessionCommand: Client<typeof SessionCommandController>;
   private readonly agentQuery: Client<typeof AgentQueryController>;
-  private readonly agentInstanceQuery: Client<typeof AgentInstanceQueryController>;
   private readonly mcpServerQuery: Client<typeof McpServerQueryController>;
   private readonly mcpServerCommand: Client<typeof McpServerCommandController>;
   private readonly skillQuery: Client<typeof SkillQueryController>;
@@ -291,7 +288,6 @@ export class StigmerClient {
     this.sessionQuery = createClient(SessionQueryController, this.transport);
     this.sessionCommand = createClient(SessionCommandController, this.transport);
     this.agentQuery = createClient(AgentQueryController, this.transport);
-    this.agentInstanceQuery = createClient(AgentInstanceQueryController, this.transport);
     this.mcpServerQuery = createClient(McpServerQueryController, this.transport);
     this.mcpServerCommand = createClient(McpServerCommandController, this.transport);
     this.skillQuery = createClient(SkillQueryController, this.transport);
@@ -582,10 +578,6 @@ export class StigmerClient {
   /** One version of an agent, with its full spec: what a turn recorded on it runs. */
   async getAgentVersion(agentId: string, versionHash: string): Promise<AgentVersionEntry> {
     return this.agentQuery.getVersion({ agentId, versionHash });
-  }
-
-  async getAgentInstance(instanceId: string): Promise<AgentInstance> {
-    return this.agentInstanceQuery.get({ value: instanceId });
   }
 
   async getMcpServer(serverId: string): Promise<McpServer> {

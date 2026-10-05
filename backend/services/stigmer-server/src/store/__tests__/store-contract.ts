@@ -65,7 +65,7 @@ export const CONTRACT_SESSION_INDEX = declareListIndex({
   schema: SessionSchema,
   revision: 1,
   keys: {
-    agent_instance: field("spec.agent_instance_id"),
+    agent: field("status.agent_id"),
     channel: label("stigmer.ai/channel-id"),
   },
 });
@@ -1873,7 +1873,7 @@ export function describeStoreContract(
       id: string,
       org: string,
       createdSeconds: number | undefined,
-      extras: { agentInstanceId?: string; channel?: string } = {},
+      extras: { agentId?: string; channel?: string } = {},
     ): Session {
       return create(SessionSchema, {
         metadata: {
@@ -1884,9 +1884,9 @@ export function describeStoreContract(
               ? {}
               : { "stigmer.ai/channel-id": extras.channel },
         },
-        spec: { agentInstanceId: extras.agentInstanceId ?? "" },
-        status:
-          createdSeconds === undefined
+        status: {
+          agentId: extras.agentId ?? "",
+          ...(createdSeconds === undefined
             ? {}
             : {
                 audit: {
@@ -1894,7 +1894,8 @@ export function describeStoreContract(
                     createdAt: { seconds: BigInt(createdSeconds), nanos: 0 },
                   },
                 },
-              },
+              }),
+        },
       });
     }
 
@@ -1954,14 +1955,14 @@ export function describeStoreContract(
     });
 
     it("reads a parent's rows through a key, or through any of several", async () => {
-      await save(session("ses_1", "acme", 1, { agentInstanceId: "ain_1" }));
+      await save(session("ses_1", "acme", 1, { agentId: "agt_1" }));
       await save(session("ses_2", "acme", 2, { channel: "ach_1" }));
-      await save(session("ses_3", "acme", 3, { agentInstanceId: "ain_2" }));
+      await save(session("ses_3", "acme", 3, { agentId: "agt_2" }));
 
       expect(
         ids(
           await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
-            anyKey: [{ name: "agent_instance", value: "ain_1" }],
+            anyKey: [{ name: "agent", value: "agt_1" }],
           }),
         ),
       ).toEqual(["ses_1"]);
@@ -1969,7 +1970,7 @@ export function describeStoreContract(
         ids(
           await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
             anyKey: [
-              { name: "agent_instance", value: "ain_1" },
+              { name: "agent", value: "agt_1" },
               { name: "channel", value: "ach_1" },
             ],
           }),
@@ -1995,19 +1996,19 @@ export function describeStoreContract(
     });
 
     it("follows a key an update changes, and forgets a deleted row", async () => {
-      await save(session("ses_1", "acme", 1, { agentInstanceId: "ain_1" }));
+      await save(session("ses_1", "acme", 1, { agentId: "agt_1" }));
       await fx.store.updateResource(SESSION, "ses_1", SessionSchema, (s) => {
-        s.spec!.agentInstanceId = "ain_2";
+        s.status!.agentId = "agt_2";
       });
-      const byInstance = (value: string) =>
+      const byAgent = (value: string) =>
         fx.store.queryResources(CONTRACT_SESSION_INDEX, {
-          anyKey: [{ name: "agent_instance", value }],
+          anyKey: [{ name: "agent", value }],
         });
-      expect(ids(await byInstance("ain_1"))).toEqual([]);
-      expect(ids(await byInstance("ain_2"))).toEqual(["ses_1"]);
+      expect(ids(await byAgent("agt_1"))).toEqual([]);
+      expect(ids(await byAgent("agt_2"))).toEqual(["ses_1"]);
 
       await fx.store.deleteResource(SESSION, "ses_1");
-      expect(ids(await byInstance("ain_2"))).toEqual([]);
+      expect(ids(await byAgent("agt_2"))).toEqual([]);
       expect(await fx.store.queryResources(CONTRACT_SESSION_INDEX, {})).toEqual(
         [],
       );
@@ -2015,16 +2016,16 @@ export function describeStoreContract(
 
     it("reads a row written by a binary that does not know the index from its bytes, and repairs it", async () => {
       await save(
-        session("ses_moved", "acme", 100, { agentInstanceId: "ain_1" }),
+        session("ses_moved", "acme", 100, { agentId: "agt_1" }),
       );
       // The older binary rewrites one row into another organization and
-      // instance, and creates another row outright.
+      // agent, and creates another row outright.
       await fx.writeAsOlderBinary(
         SESSION,
         "ses_moved",
         toBinary(
           SessionSchema,
-          session("ses_moved", "other", 100, { agentInstanceId: "ain_2" }),
+          session("ses_moved", "other", 100, { agentId: "agt_2" }),
         ),
       );
       await fx.writeAsOlderBinary(
@@ -2045,7 +2046,7 @@ export function describeStoreContract(
       expect(
         ids(
           await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
-            anyKey: [{ name: "agent_instance", value: "ain_2" }],
+            anyKey: [{ name: "agent", value: "agt_2" }],
           }),
         ),
       ).toEqual(["ses_moved"]);

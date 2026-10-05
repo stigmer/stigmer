@@ -42,7 +42,11 @@ Attachments are a two-step process: upload first, then reference in the executio
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Process this configuration file"
   attachments:
     - filename: "config.yaml"
@@ -115,7 +119,11 @@ When files already exist inside the session's workspace, use `workspace_file_ref
 
 ```yaml
 spec:
-  agent_id: agt_abc123
+  session_spec:
+    agent_ref:
+      kind: agent
+      org: acme
+      slug: my-agent
   message: "Review these files"
   workspace_file_refs:
     - "src/config.yaml"

@@ -1,7 +1,7 @@
 # Fix the flaky test
 
 - Session: `ses_01`
-- Agent instance: `agi_01`
+- Agent: `acme/ci-fixer`
 - Turns: 3
 
 ---

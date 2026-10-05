@@ -298,6 +298,15 @@ export interface MessageThreadProps {
    */
   readonly summarizationEvents?: readonly SummarizationEventView[];
   /**
+   * Marks the agent version each turn ran
+   * (`AgentExecutionStatus.agent_version_hash`): a quiet divider before
+   * the first turn that recorded one and wherever the version changes, so
+   * every turn reads under the version it ran. Receives a version hash
+   * and returns how it reads (a tag, else a short hash); the session view
+   * passes `useSessionAgentVersion`'s `labelOf`. Omit for no markers.
+   */
+  readonly agentVersionLabel?: (versionHash: string) => string;
+  /**
    * Enable virtualized rendering for long conversations. Requires
    * `react-virtuoso` to be installed as a peer dependency. When
    * enabled, only visible items are rendered in the DOM, improving
@@ -406,6 +415,7 @@ export type ThreadItem =
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "recalled-memories"; readonly report: RecalledMemoriesReport; readonly facts: readonly RecalledMemoryFact[]; readonly key: string }
   | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
+  | { readonly kind: "agent-version"; readonly versionHash: string; readonly label: string; readonly key: string }
   | {
       readonly kind: "todos";
       readonly key: string;
@@ -650,8 +660,12 @@ export function buildThreadItems(
   includeFileReviewRecords = false,
   collapseStreamingPlan = false,
   pendingAttachments?: readonly MessageAttachmentView[] | null,
+  agentVersionLabel?: (versionHash: string) => string,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
+  // The version the previous turn ran, so a marker appears only where the
+  // version a turn ran starts or changes.
+  let lastAgentVersionHash = "";
   // Tool-call ids that render as an inline-approval-capable ToolCallItem (a
   // regular parent tool, or a sub-agent's nested tool). Their approvals show
   // inline on the row, so they are excluded from the bottom backstop below —
@@ -790,6 +804,24 @@ export function buildThreadItems(
       });
     }
 
+    // The agent version this turn ran opens its segment when it differs
+    // from the previous turn's. A turn that recorded none (the built-in
+    // assistant) leaves the last marker standing.
+    const turnVersionHash = exec.status?.agentVersionHash ?? "";
+    if (
+      agentVersionLabel !== undefined &&
+      turnVersionHash !== "" &&
+      turnVersionHash !== lastAgentVersionHash
+    ) {
+      lastAgentVersionHash = turnVersionHash;
+      items.push({
+        kind: "agent-version",
+        versionHash: turnVersionHash,
+        label: agentVersionLabel(turnVersionHash),
+        key: `${execId}-agent-version`,
+      });
+    }
+
     // The user-turn synthesis rule (empty / "execute" placeholder /
     // Build-from-plan skips) is the shared conversation rule — see
     // syntheticUserPrompt in @stigmer/sdk for the why of each skip.
@@ -844,7 +876,7 @@ export function buildThreadItems(
       items.push({
         kind: "recalled-memories",
         report: recalledReport,
-        facts: exec.spec?.recalledMemories?.facts ?? [],
+        facts: exec.status?.recalledMemories?.facts ?? [],
         key: `${execId}-recalled-memories`,
       });
     }
@@ -1220,6 +1252,7 @@ export function MessageThread({
   onFilePathClick,
   sandboxWorkspaceRoot,
   summarizationEvents,
+  agentVersionLabel,
   virtualized = false,
   onBuildFromPlan,
   onOpenPlan,
@@ -1238,8 +1271,8 @@ export function MessageThread({
   // the plan streaming inline, where it remains readable.
   const collapseStreamingPlan = onOpenPlan != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments, agentVersionLabel),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments, agentVersionLabel],
   );
 
   useKeyStability(items);
@@ -1666,6 +1699,8 @@ export function ThreadItemRenderer({
     }
     case "context-compacted":
       return <SummarizationCard event={item.event} />;
+    case "agent-version":
+      return <AgentVersionMarker label={item.label} />;
     case "liveness": {
       const Liveness = slots?.LivenessStatusLine ?? LivenessStatusLine;
       return <Liveness />;
@@ -1722,6 +1757,28 @@ export function ThreadItemRenderer({
       );
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// AgentVersionMarker — the agent version the following turns ran
+// ---------------------------------------------------------------------------
+
+/**
+ * A quiet centered divider naming the agent version the turns below it
+ * ran; the agent's Versions tab holds the full hash and the version's
+ * message.
+ */
+function AgentVersionMarker({ label }: { readonly label: string }) {
+  return (
+    <div
+      className="stg:flex stg:items-center stg:gap-3 stg:px-4 stg:py-2 stg:text-xs stg:text-muted-foreground"
+      data-testid="agent-version-marker"
+    >
+      <span aria-hidden="true" className="stg:h-px stg:flex-1 stg:bg-border" />
+      <span>Agent version {label}</span>
+      <span aria-hidden="true" className="stg:h-px stg:flex-1 stg:bg-border" />
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------

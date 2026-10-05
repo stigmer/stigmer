@@ -80,7 +80,7 @@ async function seedSession(
       : { createdAt: { seconds: BigInt(opts.specCreatedAtSeconds) } };
   const session = create(SessionSchema, {
     metadata: { id, name: id, org: "acme", labels: opts?.labels ?? {} },
-    spec: { subject: opts?.subject ?? "", agentInstanceId: "agi_test" },
+    spec: { subject: opts?.subject ?? "" },
     status: { audit: { statusAudit, specAudit } },
   });
   await temp.store.saveResource(

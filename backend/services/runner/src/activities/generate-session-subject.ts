@@ -52,10 +52,10 @@ import { buildChatModel } from "../shared/model-client.js";
 import { checkDirectCredentials } from "../shared/llm-backend.js";
 import { tryInferProvider } from "../shared/llm-proxy.js";
 import type { Config } from "../config.js";
+import { sessionIdOf } from "../shared/execution-target.js";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 
 /**
  * The sentinel written by the server on auto-created sessions — byte-identical
@@ -92,7 +92,6 @@ export interface SessionSubjectClient {
   getExecution(executionId: string): Promise<AgentExecution>;
   getSession(sessionId: string): Promise<Session>;
   getAgent(agentId: string): Promise<Agent>;
-  getAgentInstance(instanceId: string): Promise<AgentInstance>;
   updateSessionSubject(sessionId: string, subject: string): Promise<Session>;
 }
 
@@ -114,7 +113,7 @@ export async function generateSessionSubject(
   );
   if (execution === undefined) return;
 
-  const sessionId = execution.spec?.sessionId ?? "";
+  const sessionId = sessionIdOf(execution.spec);
   const userMessage = execution.spec?.message ?? "";
   if (sessionId === "") {
     log(`no session_id on execution ${executionId}, skipping`);
@@ -137,12 +136,12 @@ export async function generateSessionSubject(
     return;
   }
 
-  // The agent, when the conversation has one, lends the title its purpose;
-  // the built-in assistant (no agent on the session) is titled from the
+  // The agent the turn ran (its stamp), when it has one, lends the title its
+  // purpose; the built-in assistant (no agent stamped) is titled from the
   // message alone rather than left "Untitled".
   let agentName = "";
   let agentDescription = "";
-  const agentId = await resolveAgentId(execution, session, client);
+  const agentId = execution.status?.agentId ?? "";
   if (agentId !== "") {
     const agent = await getOrSkip(
       () => client.getAgent(agentId),
@@ -174,30 +173,6 @@ export async function generateSessionSubject(
   }
 
   log(`updated session ${sessionId} subject to '${subject}'`);
-}
-
-/**
- * The agent behind the execution: the direct agent_id when the execution
- * carries one, else resolved through the session's agent-instance chain.
- * Empty string when there is none (the built-in assistant) or when the
- * instance cannot be read.
- */
-export async function resolveAgentId(
-  execution: AgentExecution,
-  session: Session,
-  client: Pick<SessionSubjectClient, "getAgentInstance">,
-): Promise<string> {
-  const direct = execution.spec?.agentId ?? "";
-  if (direct !== "") return direct;
-
-  const instanceId = session.spec?.agentInstanceId ?? "";
-  if (instanceId === "") return "";
-
-  const instance = await getOrSkip(
-    () => client.getAgentInstance(instanceId),
-    `agent instance not found: ${instanceId}`,
-  );
-  return instance?.spec?.agentId ?? "";
 }
 
 interface GenerateTitleParams {

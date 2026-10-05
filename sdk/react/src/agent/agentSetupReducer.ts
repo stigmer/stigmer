@@ -32,20 +32,20 @@ export interface PendingSignIn {
  * Describes how the agent was resolved, determining how the caller
  * should create the session and its first execution.
  *
- * - `"saved"` — Secrets were persisted to the user's personal
- *   environment and a personal agent instance was created (or already
- *   existed). Use `instanceId` with `createSession`.
+ * Every mode starts the conversation on the agent itself (the session's
+ * `agentRef`); the mode says where the keys the agent declares come from:
+ *
+ * - `"saved"` — The user's personal environment holds every declared
+ *   key (saved just now or earlier). Each run reads them from there.
  * - `"oneTime"` — Secrets were collected but **not** persisted. Pass
  *   `runtimeEnv` to `createExecution` for this run only.
- * - `"direct"` — The agent has no `env` declarations and needs no
- *   secrets. Create the session with `agentRef` directly.
+ * - `"direct"` — Nothing is needed from the user: the agent declares no
+ *   keys, or the session's variables cover the ones it does.
  */
 export type AgentResolution =
   | {
-      /** Secrets were persisted to the user's personal environment. */
+      /** The user's personal environment holds every key the agent declares. */
       readonly mode: "saved";
-      /** ID of the personal agent instance to use for session creation. */
-      readonly instanceId: string;
     }
   | {
       /** Secrets were collected but not persisted — pass to execution only. */
@@ -54,7 +54,7 @@ export type AgentResolution =
       readonly runtimeEnv: Record<string, EnvVarInput>;
     }
   | {
-      /** The agent has no `env` declarations and needs no secrets. */
+      /** Nothing is needed from the user's personal environment. */
       readonly mode: "direct";
     };
 
@@ -101,7 +101,7 @@ export type AgentSetupPhase =
       readonly pendingSignIns: readonly PendingSignIn[];
     }
   | {
-      /** Environment variables are being persisted or the instance is being provisioned. */
+      /** Environment variables are being saved to the personal environment. */
       readonly status: "submitting";
       /** Reference to the agent being set up. */
       readonly agentRef: ResourceRef;
@@ -236,7 +236,7 @@ export type AgentSetupAction =
       readonly missingVariables: AgentEnvFormVariable[];
     }
   | {
-      /** Begin persisting env vars or creating an agent instance. */
+      /** Begin saving env vars to the personal environment. */
       readonly type: "SUBMIT_START";
     }
   | {

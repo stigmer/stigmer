@@ -13,9 +13,9 @@
  *     column;
  *   - an entry carries the version's full spec (spec_snapshot), which is
  *     what a turn recorded on that version runs.
- * The archive runs after the chain's last write on create (the snapshot
- * carries the default instance id the status step writes), so it
- * re-persists a revert there; on update Persist follows it.
+ * The archive runs after Persist on create (the snapshot carries the
+ * persisted row), so it re-persists a revert there; on update Persist
+ * follows it.
  *
  * Proven by __tests__/agent-versions.test.ts and the agent conformance
  * suite's version arms.

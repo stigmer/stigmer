@@ -54,7 +54,7 @@ export type Agent = Message<"ai.stigmer.agentic.agent.v1.Agent"> & {
   spec?: AgentSpec;
 
   /**
-   * System-managed state including audit trail and default instance ID.
+   * System-managed state including audit trail and current version hash.
    *
    * @generated from field: ai.stigmer.agentic.agent.v1.AgentStatus status = 5;
    */

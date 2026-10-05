@@ -44,8 +44,7 @@ vi.mock("../../client/stigmer-client.js", () => ({
     getAgentByReference: (ref: any) => {
       capturedGetByRef = ref;
       return Promise.resolve({
-        metadata: { id: "agt_contract_test" },
-        status: { defaultInstanceId: "ain_contract_test" },
+        metadata: { id: "agt_contract_test", org: "org_tt_demo", slug: "notification-analyst" },
         spec: { env: mockAgentEnv },
       });
     },
@@ -87,7 +86,7 @@ describe("CallAgent server contract compliance", () => {
     try {
       await callAgentAction(
         { agent: "notification-analyst", message: "Analyze cohort data", ...config },
-        { __stigmer_org_id: "tt-demo", ...env },
+        { __stigmer_org_id: "tt-demo", __stigmer_execution_id: "wex_contract_test", ...env },
         "wfl_parent_123",
         appConfig,
       );
@@ -135,6 +134,15 @@ describe("CallAgent server contract compliance", () => {
       await exerciseCallAgent();
       expect(capturedApplySession.metadata.org).toBe("tt-demo");
     });
+
+    it("names its agent by a reference the server's reference rule accepts", async () => {
+      await exerciseCallAgent();
+      const agentRef = capturedApplySession.spec.agentRef;
+      expect(() => assertReferenceRequirements(agentRef, "Agent", "test")).not.toThrow();
+      expect(agentRef.kind).toBe(ApiResourceKind.agent);
+      expect(agentRef.org).toBe("org_tt_demo");
+      expect(agentRef.slug).toBe("notification-analyst");
+    });
   });
 
   describe("AgentExecution create payload", () => {
@@ -156,11 +164,11 @@ describe("CallAgent server contract compliance", () => {
 
     it("has required spec fields for server pipeline", async () => {
       await exerciseCallAgent();
-      expect(capturedCreateExecution.spec.sessionId).toBe("ses_contract_test");
-      expect(capturedCreateExecution.spec.agentId).toBe("agt_contract_test");
+      expect(capturedCreateExecution.spec.target).toEqual({ case: "sessionId", value: "ses_contract_test" });
       expect(capturedCreateExecution.spec.message).toBe("Analyze cohort data");
-      expect(capturedCreateExecution.spec.callbackToken).toBeDefined();
-      expect(capturedCreateExecution.spec.parentWorkflowId).toBe("wfl_parent_123");
+      expect(capturedCreateExecution.spec.parent.workflowExecutionId).toBe("wex_contract_test");
+      expect(capturedCreateExecution.spec.parent.signalWorkflowId).toBe("wfl_parent_123");
+      expect(capturedCreateExecution.spec.parent.callbackToken).toEqual(new Uint8Array([1, 2, 3, 4]));
     });
 
     it("would have been rejected by server without the name fix", async () => {
@@ -248,7 +256,7 @@ describe("CallAgent server contract compliance", () => {
       mockApplySessionImpl = () =>
         Promise.resolve({ metadata: { id: "ses_from_apply" } });
       await exerciseCallAgent();
-      expect(capturedCreateExecution.spec.sessionId).toBe("ses_from_apply");
+      expect(capturedCreateExecution.spec.target.value).toBe("ses_from_apply");
     });
 
     it("succeeds on recovery when session already exists (apply returns existing)", async () => {
@@ -259,7 +267,7 @@ describe("CallAgent server contract compliance", () => {
         { __stigmer_execution_id: "wex_recovery_test", __stigmer_org_id: "tt-demo" },
       );
       expect(capturedCreateExecution).toBeDefined();
-      expect(capturedCreateExecution.spec.sessionId).toBe("ses_existing_789");
+      expect(capturedCreateExecution.spec.target.value).toBe("ses_existing_789");
     });
   });
 
@@ -340,6 +348,7 @@ describe("CallAgent server contract compliance", () => {
         __wfExecId: "wex_config_only",
       } as any, {
         __stigmer_org_id: "tt-demo",
+        __stigmer_execution_id: undefined,
       });
       expect(capturedCreateExecution.metadata.name).toMatch(
         /^aex-wf-wex_config_only-analyze_player_data-[0-9a-f]{8}$/,

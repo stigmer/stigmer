@@ -106,12 +106,6 @@ type organization
     # the share's own organization since the public level retired
     # (stigmer#1211), so the two questions are always one organization's.
     define can_create_agent_share: admin
-    # A personal instance's organization is the caller's, not the agent's
-    # (the tenant-family case), so the create asks this beside the agent's
-    # can_create_instance. A viewer-role account may run an org-visible
-    # agent and still lacks this standing; a guest never holds it
-    # (stigmer#1209).
-    define can_create_agent_instance: member
     # Teams are the organization's, managed by its admins (team.fga).
     define can_create_team: admin
     

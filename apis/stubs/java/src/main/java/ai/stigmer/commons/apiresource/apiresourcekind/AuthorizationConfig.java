@@ -31,13 +31,13 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * -&gt; Creates: agent_execution#session&#64;session:&lt;session_id&gt;
  * -&gt; No owner tuple (inherited from session)
  *
- * Resource with additional parent (agent_instance):
+ * Resource with additional parent (workflow_instance):
  * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
  * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
- * additional_parents: [{ kind: "agent", relation: "agent", spec_field: "agent_id" }]
- * -&gt; Creates: agent_instance#organization&#64;organization:&lt;org_id&gt;
- * -&gt; Creates: agent_instance#agent&#64;agent:&lt;agent_id&gt;
- * -&gt; Creates: agent_instance#owner&#64;identity_account:&lt;creator_id&gt;
+ * additional_parents: [{ kind: "workflow", relation: "workflow", spec_field: "workflow_id" }]
+ * -&gt; Creates: workflow_instance#organization&#64;organization:&lt;org_id&gt;
+ * -&gt; Creates: workflow_instance#workflow&#64;workflow:&lt;workflow_id&gt;
+ * -&gt; Creates: workflow_instance#owner&#64;identity_account:&lt;creator_id&gt;
  *
  * Personal resource with creator attribution (environment):
  * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -207,7 +207,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: agent_instance needs org link AND agent link.
+   * Example: workflow_instance needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -220,7 +220,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: agent_instance needs org link AND agent link.
+   * Example: workflow_instance needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -234,7 +234,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: agent_instance needs org link AND agent link.
+   * Example: workflow_instance needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -247,7 +247,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: agent_instance needs org link AND agent link.
+   * Example: workflow_instance needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -260,7 +260,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: agent_instance needs org link AND agent link.
+   * Example: workflow_instance needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -882,13 +882,13 @@ private static final long serialVersionUID = 0L;
    * -&gt; Creates: agent_execution#session&#64;session:&lt;session_id&gt;
    * -&gt; No owner tuple (inherited from session)
    *
-   * Resource with additional parent (agent_instance):
+   * Resource with additional parent (workflow_instance):
    * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
    * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-   * additional_parents: [{ kind: "agent", relation: "agent", spec_field: "agent_id" }]
-   * -&gt; Creates: agent_instance#organization&#64;organization:&lt;org_id&gt;
-   * -&gt; Creates: agent_instance#agent&#64;agent:&lt;agent_id&gt;
-   * -&gt; Creates: agent_instance#owner&#64;identity_account:&lt;creator_id&gt;
+   * additional_parents: [{ kind: "workflow", relation: "workflow", spec_field: "workflow_id" }]
+   * -&gt; Creates: workflow_instance#organization&#64;organization:&lt;org_id&gt;
+   * -&gt; Creates: workflow_instance#workflow&#64;workflow:&lt;workflow_id&gt;
+   * -&gt; Creates: workflow_instance#owner&#64;identity_account:&lt;creator_id&gt;
    *
    * Personal resource with creator attribution (environment):
    * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -1570,7 +1570,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1586,7 +1586,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1602,7 +1602,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1618,7 +1618,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1641,7 +1641,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1661,7 +1661,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1683,7 +1683,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1706,7 +1706,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1726,7 +1726,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1746,7 +1746,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1767,7 +1767,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1786,7 +1786,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1805,7 +1805,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1818,7 +1818,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1834,7 +1834,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1851,7 +1851,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1864,7 +1864,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1878,7 +1878,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: agent_instance needs org link AND agent link.
+     * Example: workflow_instance needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>

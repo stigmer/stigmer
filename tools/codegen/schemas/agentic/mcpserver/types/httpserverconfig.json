@@ -30,7 +30,7 @@
           "kind": "string"
         }
       },
-      "description": "HTTP headers to include with every request.\n Use for authentication, API versioning, or custom routing.\n\n Header values can reference environment variables using ${VAR_NAME} syntax.\n These placeholders are resolved at runtime from AgentInstance's environment.\n\n Examples:\n   \"Authorization\": \"Bearer ${API_TOKEN}\"\n   \"X-API-Version\": \"2024-01\"\n   \"X-Tenant-ID\": \"${TENANT_ID}\"",
+      "description": "HTTP headers to include with every request.\n Use for authentication, API versioning, or custom routing.\n\n Header values can reference environment variables using ${VAR_NAME} syntax.\n These placeholders are resolved at runtime from the environment values\n the run receives.\n\n Examples:\n   \"Authorization\": \"Bearer ${API_TOKEN}\"\n   \"X-API-Version\": \"2024-01\"\n   \"X-Tenant-ID\": \"${TENANT_ID}\"",
       "required": false
     },
     {

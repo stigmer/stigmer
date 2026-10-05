@@ -4,8 +4,9 @@ members only), which sites may embed the chat widget, the messages visitors
 see when a limit refuses them, and the environment credentials guest
 conversations receive. The link names the share only by its permanent ID, so
 renaming the organization never breaks it; the share's slug names it within
-its organization for the CLI and API. The referenced agent is never modified
-by share operations — applying an agent manifest cannot touch a share.
+its organization for the CLI and API. Each guest conversation starts on the
+version `agent_ref` names, or on the agent's current version when it names none,
+and the referenced agent is never modified by share operations.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

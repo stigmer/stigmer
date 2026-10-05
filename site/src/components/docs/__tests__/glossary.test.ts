@@ -23,7 +23,6 @@ const VOCABULARY = readFileSync(
 const KNOWN_DIFFERENCES: ReadonlyArray<string> = [
   "Agent",
   "Agent Execution",
-  "Agent Instance",
   "Session",
   "Workflow",
   "Skill",

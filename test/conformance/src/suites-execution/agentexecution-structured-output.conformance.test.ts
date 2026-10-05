@@ -42,7 +42,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse, type AnthropicMessageBody } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -133,7 +133,7 @@ async function runWithSchema(
     makeAgentExecution({
       org,
       name: uniqueName("aex-so"),
-      agentId: agent.metadata!.id,
+      agentRef: agentRefOf(agent),
       message: "Analyze the word hello.",
       autoApproveAll: true,
       ...(schema !== undefined ? { executionConfig: { structuredOutputSchema: schema, maxToolRounds: 10 } } : {}),

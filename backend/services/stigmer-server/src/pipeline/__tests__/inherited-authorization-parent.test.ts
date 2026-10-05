@@ -11,7 +11,7 @@
  * what that driver checks, and must arrive as a reviewed edit of this
  * table, never as a silent consequence of a kind_meta edit. Kinds with
  * additional parents whose inheritance is partial (workflow_execution's
- * opt-in `execution_viewer from workflow_instance`, agent_instance's
+ * opt-in `execution_viewer from workflow_instance`, workflow_instance's
  * `viewer from default_of`) own themselves and are pinned as `undefined`.
  */
 import { describe, expect, it } from "vitest";
@@ -42,7 +42,6 @@ describe("inheritedAuthorizationParentOf — the parent a kind's authorization i
 
   it.each([
     ApiResourceKind.workflow_execution,
-    ApiResourceKind.agent_instance,
     ApiResourceKind.workflow_instance,
     ApiResourceKind.memory,
   ])("a kind with an additional, partial parent owns itself: %s", (kind) => {

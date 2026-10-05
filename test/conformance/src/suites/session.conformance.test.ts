@@ -1,25 +1,45 @@
 // Conformance suite for the Session domain.
-// Domain: agentic / session — the runtime conversation thread that runs against
-// an AgentInstance.
+// Domain: agentic / session — the runtime conversation thread, on an agent it
+// names by reference or on the built-in assistant.
 //
 // Drives SessionCommandController + SessionQueryController through the raw proto
 // stubs and asserts the contract: CRUD round-trips, apply create/update branching,
 // immutable identity fields, the configuration fields (harness / execution_target),
-// the field-level updateSubject contract, list / listByAgentInstance queries and
+// the field-level updateSubject contract, list / listByAgent queries and
 // their cursor paging (a walk with no gap or duplicate, newest first, one
 // organization's sessions only, a token refused on another request), slug
 // semantics, and spec-first negative paths.
+//
+// The agent pin: a session names its agent by spec.agent_ref, and the server
+// writes the agent and the exact version the reference resolves to on
+// status.agent_id and status.agent_version_hash. Pinned here:
+//   - a reference with no version pins the agent's current version; a tag or
+//     a content hash pins the version it names; a version the agent does not
+//     hold is FAILED_PRECONDITION;
+//   - an update naming `latest` re-pins to the current version and stores no
+//     version (`latest` is an instruction, not a state); an update echoing the
+//     stored reference exactly (no version, or the same tag even after the tag
+//     moved) keeps the pin;
+//   - a status a client sends never survives: the server's pin wins;
+//   - another organization's agent is accepted only at platform visibility,
+//     and an update is held to the same reference rule as a create (another
+//     organization's skill that is not platform-visible is refused);
+//   - listByAgent answers the sessions pinned to an agent, whichever version.
+// Who may name or change an agent (the run gate) is the run-gate suite's.
 //
 // Session has NO Temporal involvement — it only persists conversation
 // configuration that later drives agent-execution dispatch. The lifecycle-bound
 // behaviors it gates (harness_state_id, and the harness / execution_target
 // immutability sentinels that fire only once harness_state_id is set by a real
 // execution) are therefore out of scope here and belong to the execution-lifecycle
-// suites. Likewise, the session-level mcp_server_usages / skill_refs are merged into
-// the agent graph at execution time (graph construction), not validated at create
-// (Session has no ValidateReferencesStep), so their merge semantics are a Class B
-// concern rather than a create-time contract.
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+// suites, as is the runtime merge of session-level mcp_server_usages /
+// skill_refs into the agent graph.
+import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { type Session, SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { MessageInitShape } from "@bufbuild/protobuf";
 import { ExecutionTarget, Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -27,10 +47,11 @@ import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { makeAgent } from "../support/agents";
+import { AGENT_API_VERSION, AGENT_KIND, type AgentRefInit, agentRefOf, makeAgent, makeAgentSpec } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { uniqueName } from "../support/naming";
 import { SESSION_API_VERSION, SESSION_KIND, makeSession, makeSessionSpec } from "../support/sessions";
+import { makeSkillArtifact } from "../support/skills";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -55,51 +76,92 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// An agent-bound session needs an AgentInstance to run against. Agent.create
-// provisions a default instance and returns its id on
-// status.default_instance_id, so every agent-bound test sources a real
-// instance id this way. A session with no instance is the built-in assistant.
-async function provisionAgentInstance(org: string): Promise<string> {
-  const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
-  fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  const agentInstanceId = agent.status?.defaultInstanceId;
-  if (agentInstanceId === undefined || agentInstanceId === "") {
-    throw new Error("agent create did not provision a default instance id");
-  }
-  return agentInstanceId;
+// An agent-bound session names a real agent by reference. The agent is
+// created with the instructions `said(label)`, so a later save under the same
+// name with another label is a new version of it.
+function said(label: string): string {
+  return `Session fixture agent instructions, ${label}.`;
+}
+
+async function createAgent(
+  org: string,
+  opts: { name?: string; label?: string; tag?: string; visibility?: ApiResourceVisibility } = {},
+): Promise<Agent> {
+  const agent = await clients.agentCommand.apply({
+    apiVersion: AGENT_API_VERSION,
+    kind: AGENT_KIND,
+    metadata: {
+      name: opts.name ?? uniqueName("agent"),
+      org,
+      ...(opts.tag !== undefined ? { version: { tag: opts.tag } } : {}),
+      ...(opts.visibility !== undefined ? { visibility: opts.visibility } : {}),
+    },
+    spec: makeAgentSpec({ instructions: said(opts.label ?? "v1") }),
+  });
+  fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }).catch(() => undefined));
+  return agent;
+}
+
+// The author saves a new version of `agent` (an apply under its name with
+// other instructions), optionally moving a tag to it.
+async function saveNewVersion(agent: Agent, label: string, tag?: string): Promise<Agent> {
+  const saved = await clients.agentCommand.apply({
+    apiVersion: AGENT_API_VERSION,
+    kind: AGENT_KIND,
+    metadata: { name: agent.metadata!.name, org: agent.metadata!.org, ...(tag !== undefined ? { version: { tag } } : {}) },
+    spec: makeAgentSpec({ instructions: said(label) }),
+  });
+  expect(saved.metadata?.id, "the save updates the same agent").toBe(agent.metadata?.id);
+  expect(saved.status?.versionHash, "the save is a new version").not.toBe(agent.status?.versionHash);
+  return saved;
+}
+
+async function provisionAgentRef(org: string): Promise<AgentRefInit> {
+  return agentRefOf(await createAgent(org));
 }
 
 async function createSession(
   org: string,
   name: string,
-  agentInstanceId: string,
+  agentRef: AgentRefInit | undefined,
   opts: { subject?: string; harness?: Harness; executionTarget?: ExecutionTarget } = {},
 ) {
-  const session = await clients.sessionCommand.create(makeSession({ org, name, agentInstanceId, ...opts }));
-  fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
+  const session = await clients.sessionCommand.create(makeSession({ org, name, agentRef, ...opts }));
+  fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }).catch(() => undefined));
   return session;
+}
+
+// A full update of `session` with the given spec (identity carried over).
+function updateSession(session: Session, spec: MessageInitShape<typeof SessionSpecSchema>) {
+  const { id, name, slug, org } = session.metadata!;
+  return clients.sessionCommand.update({
+    apiVersion: SESSION_API_VERSION,
+    kind: SESSION_KIND,
+    metadata: { id, name, slug, org },
+    spec,
+  });
 }
 
 describe("Session conformance — CRUD & identity", () => {
   it("[rpc:SessionCommandController.create] create assigns a ses_ id, echoes the spec, and records a created audit event", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     const name = uniqueName("session");
 
-    const created = await createSession(org, name, agentInstanceId, { subject: "Plan the migration" });
+    const created = await createSession(org, name, agentRef, { subject: "Plan the migration" });
 
     expect(created.metadata?.id, "create should assign a prefixed id").toMatch(/^ses_[0-9a-z]+$/);
     expect(created.metadata?.name).toBe(name);
     expect(created.metadata?.org).toBe(org);
-    expect(created.spec?.agentInstanceId).toBe(agentInstanceId);
+    expect(created.spec?.agentRef?.slug).toBe(agentRef.slug);
     expect(created.spec?.subject).toBe("Plan the migration");
     expect(created.status?.audit?.specAudit?.event).toBe("created");
   });
 
   it("[rpc:SessionQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
-    const created = await createSession(org, uniqueName("session"), agentInstanceId);
+    const agentRef = await provisionAgentRef(org);
+    const created = await createSession(org, uniqueName("session"), agentRef);
 
     const fetched = await clients.sessionQuery.get({ value: created.metadata!.id });
 
@@ -109,14 +171,14 @@ describe("Session conformance — CRUD & identity", () => {
 
   it("[rpc:SessionCommandController.apply] apply creates on first call and updates on second (same name + org)", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     const name = uniqueName("session");
 
-    const first = await clients.sessionCommand.apply(makeSession({ org, name, agentInstanceId, subject: "v1" }));
+    const first = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, subject: "v1" }));
     fixtures.defer(() => clients.sessionCommand.delete({ value: first.metadata!.id }));
     expect(first.status?.audit?.specAudit?.event).toBe("created");
 
-    const second = await clients.sessionCommand.apply(makeSession({ org, name, agentInstanceId, subject: "v2" }));
+    const second = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, subject: "v2" }));
 
     expect(second.metadata?.id, "apply must update the same resource").toBe(first.metadata?.id);
     expect(second.spec?.subject).toBe("v2");
@@ -125,8 +187,8 @@ describe("Session conformance — CRUD & identity", () => {
 
   it("[rpc:SessionCommandController.update] update replaces spec and name but preserves id, slug, and org", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
-    const created = await createSession(org, uniqueName("session"), agentInstanceId, { subject: "before" });
+    const agentRef = await provisionAgentRef(org);
+    const created = await createSession(org, uniqueName("session"), agentRef, { subject: "before" });
     const { id, slug } = created.metadata!;
 
     const renamed = uniqueName("renamed");
@@ -135,7 +197,7 @@ describe("Session conformance — CRUD & identity", () => {
       kind: SESSION_KIND,
       // Attempts to mutate slug/org must be ignored; only name and spec change.
       metadata: { id, name: renamed, slug: "attempted-different-slug", org: "attempted-different-org" },
-      spec: makeSessionSpec({ agentInstanceId, subject: "after" }),
+      spec: makeSessionSpec({ agentRef, subject: "after" }),
     });
 
     expect(updated.metadata?.id).toBe(id);
@@ -148,9 +210,9 @@ describe("Session conformance — CRUD & identity", () => {
 
   it("[rpc:SessionCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     const created = await clients.sessionCommand.create(
-      makeSession({ org, name: uniqueName("session"), agentInstanceId }),
+      makeSession({ org, name: uniqueName("session"), agentRef }),
     );
     const { id } = created.metadata!;
 
@@ -173,20 +235,20 @@ describe("Session conformance — CRUD & identity", () => {
 
   it("[rpc:SessionCommandController.create] derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
-    const created = await createSession(org, "My Session #1 (Test)", agentInstanceId);
+    const agentRef = await provisionAgentRef(org);
+    const created = await createSession(org, "My Session #1 (Test)", agentRef);
     expect(created.metadata?.slug).toBe("my-session-1-test");
   });
 
   it("[rpc:SessionCommandController.create] allows the same slug in different orgs", async () => {
     const a = await target.provisionTenancy();
     const b = await target.provisionTenancy();
-    const instanceA = await provisionAgentInstance(a.org);
-    const instanceB = await provisionAgentInstance(b.org);
+    const refA = await provisionAgentRef(a.org);
+    const refB = await provisionAgentRef(b.org);
     const name = uniqueName("shared");
 
-    const inA = await createSession(a.org, name, instanceA);
-    const inB = await createSession(b.org, name, instanceB);
+    const inA = await createSession(a.org, name, refA);
+    const inB = await createSession(b.org, name, refB);
 
     expect(inA.metadata?.slug).toBe(inB.metadata?.slug);
     expect(inA.metadata?.id).not.toBe(inB.metadata?.id);
@@ -196,21 +258,21 @@ describe("Session conformance — CRUD & identity", () => {
 describe("Session conformance — configuration fields", () => {
   it("[rpc:SessionCommandController.create] stores an omitted harness as UNSPECIFIED (resolved to NATIVE only at execution dispatch)", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
 
     // Session.create does not normalize harness; the "defaults to NATIVE" semantic
     // is applied at dispatch time (out of scope here), so the stored value of an
     // omitted harness is UNSPECIFIED.
-    const created = await createSession(org, uniqueName("session"), agentInstanceId);
+    const created = await createSession(org, uniqueName("session"), agentRef);
 
     expect(created.spec?.harness).toBe(Harness.UNSPECIFIED);
   });
 
   it("[rpc:SessionCommandController.create] round-trips an explicit harness and execution_target", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
 
-    const created = await createSession(org, uniqueName("session"), agentInstanceId, {
+    const created = await createSession(org, uniqueName("session"), agentRef, {
       harness: Harness.CURSOR,
       executionTarget: ExecutionTarget.LOCAL,
     });
@@ -227,8 +289,8 @@ describe("Session conformance — configuration fields", () => {
 describe("[rpc:SessionCommandController.updateSubject] Session conformance — subject", () => {
   it("updateSubject changes only the subject and preserves other spec fields", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
-    const created = await createSession(org, uniqueName("session"), agentInstanceId, {
+    const agentRef = await provisionAgentRef(org);
+    const created = await createSession(org, uniqueName("session"), agentRef, {
       subject: "original",
       harness: Harness.NATIVE,
     });
@@ -238,15 +300,15 @@ describe("[rpc:SessionCommandController.updateSubject] Session conformance — s
     expect(updated.metadata?.id).toBe(created.metadata?.id);
     expect(updated.spec?.subject).toBe("renamed thread");
     // The targeted update must leave every other field untouched.
-    expect(updated.spec?.agentInstanceId).toBe(agentInstanceId);
+    expect(updated.spec?.agentRef?.slug).toBe(agentRef.slug);
     expect(updated.spec?.harness).toBe(Harness.NATIVE);
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
   it("updateSubject can clear the subject with an empty string", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
-    const created = await createSession(org, uniqueName("session"), agentInstanceId, { subject: "to be cleared" });
+    const agentRef = await provisionAgentRef(org);
+    const created = await createSession(org, uniqueName("session"), agentRef, { subject: "to be cleared" });
 
     const updated = await clients.sessionCommand.updateSubject({ id: created.metadata!.id, subject: "" });
 
@@ -274,9 +336,9 @@ describe("[rpc:SessionCommandController.updateSubject] Session conformance — s
 describe("Session conformance — queries", () => {
   it("[rpc:SessionQueryController.list] list includes created sessions", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
-    const a = await createSession(org, uniqueName("session"), agentInstanceId);
-    const b = await createSession(org, uniqueName("session"), agentInstanceId);
+    const agentRef = await provisionAgentRef(org);
+    const a = await createSession(org, uniqueName("session"), agentRef);
+    const b = await createSession(org, uniqueName("session"), agentRef);
 
     const listed = await clients.sessionQuery.list({});
     const ids = listed.entries.map((s) => s.metadata?.id);
@@ -287,10 +349,10 @@ describe("Session conformance — queries", () => {
 
   it("[rpc:SessionQueryController.list] list pages one organization newest first, with no gap, no duplicate and a token until the last page", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     const created = new Set<string>();
     for (let i = 0; i < 5; i++) {
-      created.add((await createSession(org, uniqueName("session"), agentInstanceId)).metadata!.id);
+      created.add((await createSession(org, uniqueName("session"), agentRef)).metadata!.id);
     }
 
     const walked: Array<{ id: string; createdAt: bigint }> = [];
@@ -319,11 +381,11 @@ describe("Session conformance — queries", () => {
   it("[rpc:SessionQueryController.list] list never places another organization's session on a page, and refuses a token on another request", async () => {
     const mine = await target.provisionTenancy();
     const theirs = await target.provisionTenancy();
-    const myInstance = await provisionAgentInstance(mine.org);
-    const theirInstance = await provisionAgentInstance(theirs.org);
-    await createSession(mine.org, uniqueName("session"), myInstance);
-    await createSession(mine.org, uniqueName("session"), myInstance);
-    const theirSession = await createSession(theirs.org, uniqueName("session"), theirInstance);
+    const myAgent = await provisionAgentRef(mine.org);
+    const theirAgent = await provisionAgentRef(theirs.org);
+    await createSession(mine.org, uniqueName("session"), myAgent);
+    await createSession(mine.org, uniqueName("session"), myAgent);
+    const theirSession = await createSession(theirs.org, uniqueName("session"), theirAgent);
 
     const first = await clients.sessionQuery.list({ org: mine.org, pageSize: 1 });
     const rest = await clients.sessionQuery.list({ org: mine.org, pageSize: 5, pageToken: first.nextPageToken });
@@ -338,50 +400,49 @@ describe("Session conformance — queries", () => {
     );
   });
 
-  it("[rpc:SessionQueryController.listByAgentInstance] listByAgentInstance pages the instance's sessions", async () => {
+  it("[rpc:SessionQueryController.listByAgent] listByAgent pages the agent's sessions", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agent = await createAgent(org);
     const created = new Set<string>();
     for (let i = 0; i < 3; i++) {
-      created.add((await createSession(org, uniqueName("session"), agentInstanceId)).metadata!.id);
+      created.add((await createSession(org, uniqueName("session"), agentRefOf(agent))).metadata!.id);
     }
-    const first = await clients.sessionQuery.listByAgentInstance({ agentInstanceId, pageSize: 2 });
+    const agentId = agent.metadata!.id;
+    const first = await clients.sessionQuery.listByAgent({ agentId, pageSize: 2 });
     expect(first.entries).toHaveLength(2);
     expect(first.nextPageToken).not.toBe("");
-    const second = await clients.sessionQuery.listByAgentInstance({
-      agentInstanceId,
-      pageSize: 2,
-      pageToken: first.nextPageToken,
-    });
+    const second = await clients.sessionQuery.listByAgent({ agentId, pageSize: 2, pageToken: first.nextPageToken });
     expect(second.nextPageToken).toBe("");
     expect(new Set([...first.entries, ...second.entries].map((s) => s.metadata!.id))).toEqual(created);
   });
 
-  it("[rpc:SessionQueryController.listByAgentInstance] listByAgentInstance returns only the sessions for the given agent instance", async () => {
+  it("[rpc:SessionQueryController.listByAgent] listByAgent returns the sessions pinned to the agent, whichever version, and no other agent's", async () => {
     const { org } = await target.provisionTenancy();
-    const instanceOne = await provisionAgentInstance(org);
-    const instanceTwo = await provisionAgentInstance(org);
+    const agent = await createAgent(org);
+    const onFirst = await createSession(org, uniqueName("session"), agentRefOf(agent));
+    const saved = await saveNewVersion(agent, "v2");
+    const onSecond = await createSession(org, uniqueName("session"), agentRefOf(saved));
+    expect(onFirst.status?.agentVersionHash).not.toBe(onSecond.status?.agentVersionHash);
+    await createSession(org, uniqueName("session"), await provisionAgentRef(org));
+    await createSession(org, uniqueName("session"), undefined);
 
-    const forOne = await createSession(org, uniqueName("session"), instanceOne);
-    await createSession(org, uniqueName("session"), instanceTwo);
+    const listed = await clients.sessionQuery.listByAgent({ agentId: agent.metadata!.id });
 
-    const listed = await clients.sessionQuery.listByAgentInstance({ agentInstanceId: instanceOne });
-    const ids = listed.entries.map((s) => s.metadata?.id);
-
-    expect(ids).toContain(forOne.metadata?.id);
-    expect(ids).toHaveLength(1);
+    expect(new Set(listed.entries.map((s) => s.metadata?.id))).toEqual(
+      new Set([onFirst.metadata?.id, onSecond.metadata?.id]),
+    );
   });
 
-  it("[rpc:SessionQueryController.listByAgentInstance] listByAgentInstance returns an empty list for an unknown agent instance", async () => {
-    const listed = await clients.sessionQuery.listByAgentInstance({ agentInstanceId: "ain_doesnotexist" });
+  it("[rpc:SessionQueryController.listByAgent] listByAgent returns an empty list for an unknown agent", async () => {
+    const listed = await clients.sessionQuery.listByAgent({ agentId: "agt_doesnotexist" });
     expect(listed.entries).toHaveLength(0);
   });
 
-  it("[rpc:SessionQueryController.listByAgentInstance] listByAgentInstance rejects an empty agent_instance_id with InvalidArgument", () =>
+  it("[rpc:SessionQueryController.listByAgent] listByAgent rejects an empty agent_id with InvalidArgument", () =>
     expectGrpcCode(
-      () => clients.sessionQuery.listByAgentInstance({ agentInstanceId: "" }),
+      () => clients.sessionQuery.listByAgent({ agentId: "" }),
       Code.InvalidArgument,
-      "listByAgentInstance empty agent_instance_id",
+      "listByAgent empty agent_id",
     ));
 
   it("[rpc:SessionQueryController.listByChannel] listByChannel answers an empty list for a channel with no sessions — ordinary sessions never leak into a channel view", async () => {
@@ -403,7 +464,7 @@ describe("Session conformance — queries", () => {
       makeSlackAgentChannel(org, uniqueName("channel"), agent.metadata!.slug),
     );
     fixtures.defer(() => clients.agentChannelCommand.delete({ value: channel.metadata!.id }));
-    await createSession(org, uniqueName("session"), agent.status!.defaultInstanceId);
+    await createSession(org, uniqueName("session"), agentRefOf(agent));
 
     const listed = await clients.sessionQuery.listByChannel({ channelId: channel.metadata!.id });
 
@@ -428,7 +489,7 @@ describe("Session conformance — queries", () => {
       const agent = await scope.clients.agentCommand.create(
         makeAgent({ org, name: uniqueName("agent") }),
       );
-      const agentInstanceId = agent.status!.defaultInstanceId;
+      const agentRef = agentRefOf(agent);
       const channel = await scope.clients.agentChannelCommand.create(
         makeSlackAgentChannel(org, uniqueName("channel"), agent.metadata!.slug),
       );
@@ -438,12 +499,12 @@ describe("Session conformance — queries", () => {
         makeSession({
           org,
           name: uniqueName("session"),
-          agentInstanceId,
+          agentRef,
           labels: { "stigmer.ai/channel-id": channelId },
         }),
       );
       await scope.clients.sessionCommand.create(
-        makeSession({ org, name: uniqueName("session"), agentInstanceId }),
+        makeSession({ org, name: uniqueName("session"), agentRef }),
       );
 
       const listed = await scope.clients.sessionQuery.listByChannel({ channelId });
@@ -471,14 +532,14 @@ describe("Session conformance — queries", () => {
 describe("Session conformance — negative paths", () => {
   it("[rpc:SessionCommandController.create] rejects a wrong api_version (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     await expectGrpcCode(
       () =>
         clients.sessionCommand.create({
           apiVersion: "wrong.stigmer.ai/v1",
           kind: SESSION_KIND,
           metadata: { name: uniqueName("session"), org },
-          spec: makeSessionSpec({ agentInstanceId }),
+          spec: makeSessionSpec({ agentRef }),
         }),
       Code.InvalidArgument,
       "create with wrong api_version",
@@ -487,14 +548,14 @@ describe("Session conformance — negative paths", () => {
 
   it("[rpc:SessionCommandController.create] rejects a wrong kind (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     await expectGrpcCode(
       () =>
         clients.sessionCommand.create({
           apiVersion: SESSION_API_VERSION,
           kind: "NotASession",
           metadata: { name: uniqueName("session"), org },
-          spec: makeSessionSpec({ agentInstanceId }),
+          spec: makeSessionSpec({ agentRef }),
         }),
       Code.InvalidArgument,
       "create with wrong kind",
@@ -503,38 +564,40 @@ describe("Session conformance — negative paths", () => {
 
   it("[rpc:SessionCommandController.create] rejects a create with no metadata (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     // metadata is required=true at the proto level.
     await expectGrpcCode(
       () =>
         clients.sessionCommand.create({
           apiVersion: SESSION_API_VERSION,
           kind: SESSION_KIND,
-          spec: makeSessionSpec({ agentInstanceId }),
+          spec: makeSessionSpec({ agentRef }),
         }),
       Code.InvalidArgument,
       "create without metadata",
     );
   });
 
-  it("[rpc:SessionCommandController.create] creates a session with no agent (the built-in assistant) and stores the empty instance as given", async () => {
+  it("[rpc:SessionCommandController.create] creates a session with no agent (the built-in assistant): no reference and no pin", async () => {
     const { org } = await target.provisionTenancy();
-    // No agent_instance_id: nothing resolves it into an instance. The session
-    // runs the built-in assistant and the empty id is what persists.
+    // No agent_ref: nothing resolves. The session runs the built-in
+    // assistant and holds no pin.
     const created = await clients.sessionCommand.create({
       apiVersion: SESSION_API_VERSION,
       kind: SESSION_KIND,
       metadata: { name: uniqueName("session"), org },
     });
     fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }));
-    expect(created.spec?.agentInstanceId ?? "").toBe("");
+    expect(created.spec?.agentRef).toBeUndefined();
+    expect(created.status?.agentId ?? "").toBe("");
     const fetched = await clients.sessionQuery.get({ value: created.metadata!.id });
-    expect(fetched.spec?.agentInstanceId ?? "").toBe("");
+    expect(fetched.spec?.agentRef).toBeUndefined();
+    expect(fetched.status?.agentId ?? "").toBe("");
   });
 
   it("[rpc:SessionCommandController.update] lets a session gain an agent and drop back to the built-in assistant on update", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     const created = await clients.sessionCommand.create({
       apiVersion: SESSION_API_VERSION,
       kind: SESSION_KIND,
@@ -547,32 +610,35 @@ describe("Session conformance — negative paths", () => {
       apiVersion: SESSION_API_VERSION,
       kind: SESSION_KIND,
       metadata: { id, name, slug, org },
-      spec: makeSessionSpec({ agentInstanceId }),
+      spec: makeSessionSpec({ agentRef }),
     });
-    expect(bound.spec?.agentInstanceId).toBe(agentInstanceId);
+    expect(bound.spec?.agentRef?.slug).toBe(agentRef.slug);
+    expect(bound.status?.agentId, "gaining an agent pins it").not.toBe("");
 
-    // The instance is not an immutable field (the harness and the execution
-    // target are): an empty id on update returns the conversation to the
-    // built-in assistant.
+    // The agent is not an immutable field (the harness and the execution
+    // target are): no reference on update returns the conversation to the
+    // built-in assistant and clears the pin.
     const dropped = await clients.sessionCommand.update({
       apiVersion: SESSION_API_VERSION,
       kind: SESSION_KIND,
       metadata: { id, name, slug, org },
-      spec: makeSessionSpec({ agentInstanceId: "" }),
+      spec: makeSessionSpec(),
     });
-    expect(dropped.spec?.agentInstanceId ?? "").toBe("");
+    expect(dropped.spec?.agentRef).toBeUndefined();
+    expect(dropped.status?.agentId ?? "").toBe("");
+    expect(dropped.status?.agentVersionHash ?? "").toBe("");
   });
 
   it("[rpc:SessionCommandController.create] rejects a duplicate create (contract: AlreadyExists)", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
+    const agentRef = await provisionAgentRef(org);
     const name = uniqueName("dup");
-    await createSession(org, name, agentInstanceId);
+    await createSession(org, name, agentRef);
 
     // create's duplicate check is the shared CheckDuplicateStep, which returns a
     // typed AlreadyExists on every target.
     await expectGrpcCode(
-      () => clients.sessionCommand.create(makeSession({ org, name, agentInstanceId })),
+      () => clients.sessionCommand.create(makeSession({ org, name, agentRef })),
       Code.AlreadyExists,
       "duplicate create",
     );
@@ -580,8 +646,8 @@ describe("Session conformance — negative paths", () => {
 
   it("[rpc:SessionCommandController.create] rejects a create with no name (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    const agentInstanceId = await provisionAgentInstance(org);
-    // agent_instance_id is set so the spec is an ordinary agent-bound one; the
+    const agentRef = await provisionAgentRef(org);
+    // agent_ref is set so the spec is an ordinary agent-bound one; the
     // empty name is what must be rejected (slug resolution has nothing to
     // derive from).
     await expectGrpcCode(
@@ -590,10 +656,202 @@ describe("Session conformance — negative paths", () => {
           apiVersion: SESSION_API_VERSION,
           kind: SESSION_KIND,
           metadata: { org },
-          spec: makeSessionSpec({ agentInstanceId }),
+          spec: makeSessionSpec({ agentRef }),
         }),
       Code.InvalidArgument,
       "create without name",
     );
+  });
+});
+
+describe("Session conformance — the agent pin", () => {
+  it("[rpc:SessionCommandController.create] a session on an agent reference pins the agent and its current version", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org);
+
+    const created = await createSession(org, uniqueName("session"), agentRefOf(agent));
+
+    expect(created.status?.agentId).toBe(agent.metadata?.id);
+    expect(created.status?.agentVersionHash).toBe(agent.status?.versionHash);
+    const fetched = await clients.sessionQuery.get({ value: created.metadata!.id });
+    expect(fetched.status?.agentId).toBe(agent.metadata?.id);
+    expect(fetched.status?.agentVersionHash).toBe(agent.status?.versionHash);
+  });
+
+  it("[rpc:SessionCommandController.create] a tag pins the version it names, not the current one", async () => {
+    const { org } = await target.provisionTenancy();
+    const v1 = await createAgent(org, { tag: "stable" });
+    await saveNewVersion(v1, "v2");
+
+    const created = await createSession(org, uniqueName("session"), agentRefOf(v1, "stable"));
+
+    expect(created.status?.agentVersionHash).toBe(v1.status?.versionHash);
+    expect(created.spec?.agentRef?.version, "the tag is stored as written").toBe("stable");
+  });
+
+  it("[rpc:SessionCommandController.create] a content hash pins the version it names, not the current one", async () => {
+    const { org } = await target.provisionTenancy();
+    const v1 = await createAgent(org);
+    await saveNewVersion(v1, "v2");
+
+    const created = await createSession(org, uniqueName("session"), agentRefOf(v1, v1.status!.versionHash));
+
+    expect(created.status?.agentVersionHash).toBe(v1.status?.versionHash);
+  });
+
+  it("[rpc:SessionCommandController.create] a version the agent does not hold is refused with FailedPrecondition naming it", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org);
+    const ref = agentRefOf(agent, "no-such-tag");
+
+    const refused = await expectGrpcCode(
+      () => clients.sessionCommand.create(makeSession({ org, name: uniqueName("session"), agentRef: ref })),
+      Code.FailedPrecondition,
+      "a session on a version the agent does not hold",
+    );
+    expect(refused.rawMessage).toBe(
+      `referenced agent '${ref.org}/${ref.slug}' has no version 'no-such-tag'; name one of its tags or content hashes, or 'latest' for its current version.`,
+    );
+  });
+
+  it("[rpc:SessionCommandController.update] an update naming version latest re-pins to the version the author saved, and stores no version", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org);
+    const session = await createSession(org, uniqueName("session"), agentRefOf(agent));
+    const saved = await saveNewVersion(agent, "v2");
+
+    const updated = await updateSession(session, makeSessionSpec({ agentRef: agentRefOf(agent, "latest") }));
+
+    expect(updated.status?.agentVersionHash).toBe(saved.status?.versionHash);
+    expect(updated.spec?.agentRef?.version, "latest is an instruction, never stored").toBe("");
+    const fetched = await clients.sessionQuery.get({ value: session.metadata!.id });
+    expect(fetched.status?.agentVersionHash).toBe(saved.status?.versionHash);
+    expect(fetched.spec?.agentRef?.version).toBe("");
+  });
+
+  it("[rpc:SessionCommandController.update] an update echoing the stored reference with no version keeps the pin after the author saves", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org);
+    const session = await createSession(org, uniqueName("session"), agentRefOf(agent));
+    await saveNewVersion(agent, "v2");
+
+    const updated = await updateSession(session, makeSessionSpec({ agentRef: agentRefOf(agent), subject: "renamed" }));
+
+    expect(updated.spec?.subject).toBe("renamed");
+    expect(updated.status?.agentId).toBe(agent.metadata?.id);
+    expect(updated.status?.agentVersionHash).toBe(agent.status?.versionHash);
+  });
+
+  it("[rpc:SessionCommandController.update] an update echoing a stored tag keeps the pin after the tag moves to another version", async () => {
+    const { org } = await target.provisionTenancy();
+    const v1 = await createAgent(org, { tag: "stable" });
+    const session = await createSession(org, uniqueName("session"), agentRefOf(v1, "stable"));
+    const v2 = await saveNewVersion(v1, "v2", "stable");
+
+    const updated = await updateSession(session, makeSessionSpec({ agentRef: agentRefOf(v1, "stable"), subject: "renamed" }));
+
+    expect(updated.status?.agentVersionHash, "the echo moves nothing").toBe(v1.status?.versionHash);
+    // The tag did move: a new conversation on it pins the version it names now.
+    const fresh = await createSession(org, uniqueName("session"), agentRefOf(v1, "stable"));
+    expect(fresh.status?.agentVersionHash).toBe(v2.status?.versionHash);
+  });
+
+  it("[rpc:SessionCommandController.create] a status the client sends on create never survives: the server's pin wins", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org);
+
+    const created = await clients.sessionCommand.create({
+      ...makeSession({ org, name: uniqueName("session"), agentRef: agentRefOf(agent) }),
+      status: { agentId: "agt_forged", agentVersionHash: "f".repeat(64) },
+    });
+    fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }).catch(() => undefined));
+
+    expect(created.status?.agentId).toBe(agent.metadata?.id);
+    expect(created.status?.agentVersionHash).toBe(agent.status?.versionHash);
+  });
+
+  it("[rpc:SessionCommandController.update] a status the client sends on update never survives: the server's pin wins", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org);
+    const session = await createSession(org, uniqueName("session"), agentRefOf(agent));
+    const { id, name, slug } = session.metadata!;
+
+    const updated = await clients.sessionCommand.update({
+      apiVersion: SESSION_API_VERSION,
+      kind: SESSION_KIND,
+      metadata: { id, name, slug, org },
+      spec: makeSessionSpec({ agentRef: agentRefOf(agent), subject: "renamed" }),
+      status: { agentId: "agt_forged", agentVersionHash: "f".repeat(64) },
+    });
+
+    expect(updated.status?.agentId).toBe(agent.metadata?.id);
+    expect(updated.status?.agentVersionHash).toBe(agent.status?.versionHash);
+  });
+});
+
+describe("Session conformance — references across organizations and on update", () => {
+  const notAvailable = (kind: string, slug: string) =>
+    `referenced ${kind} '${slug}' of another organization is not available to this organization; ` +
+    "another organization's resource can be referenced only when that organization shares it at platform visibility.";
+
+  it("[rpc:SessionCommandController.create] a session naming another organization's org-visible agent is refused; its platform-visible agent is accepted", async () => {
+    const { org } = await target.provisionTenancy();
+    const { org: otherOrg } = await target.provisionTenancy();
+    const orgVisible = await createAgent(otherOrg, { visibility: ApiResourceVisibility.visibility_org });
+    const platformVisible = await createAgent(otherOrg, { visibility: ApiResourceVisibility.visibility_platform });
+
+    const refused = await expectGrpcCode(
+      () => clients.sessionCommand.create(makeSession({ org, name: uniqueName("session"), agentRef: agentRefOf(orgVisible) })),
+      Code.FailedPrecondition,
+      "a session on another organization's org-visible agent",
+    );
+    expect(refused.rawMessage).toBe(notAvailable("agent", orgVisible.metadata!.slug));
+
+    const admitted = await createSession(org, uniqueName("session"), agentRefOf(platformVisible));
+    expect(admitted.metadata?.org).toBe(org);
+    expect(admitted.status?.agentId).toBe(platformVisible.metadata?.id);
+  });
+
+  it("[rpc:SessionCommandController.update] an update introducing another organization's skill that is not platform-visible is refused", async () => {
+    const { org } = await target.provisionTenancy();
+    const { org: otherOrg } = await target.provisionTenancy();
+    const skill = await clients.skillCommand.push({
+      org: otherOrg,
+      artifact: makeSkillArtifact({ name: uniqueName("skill"), body: "# other organization's skill" }),
+    });
+    fixtures.defer(() => clients.skillCommand.delete({ value: skill.metadata!.id }).catch(() => undefined));
+    const session = await createSession(org, uniqueName("session"), await provisionAgentRef(org));
+
+    const refused = await expectGrpcCode(
+      () =>
+        updateSession(session, {
+          ...makeSessionSpec({ agentRef: { org: session.spec!.agentRef!.org, slug: session.spec!.agentRef!.slug } }),
+          skillRefs: [{ org: otherOrg, slug: skill.metadata!.slug, kind: ApiResourceKind.skill }],
+        }),
+      Code.FailedPrecondition,
+      "a session update adding another organization's private skill",
+    );
+    expect(refused.rawMessage).toBe(notAvailable("skill", skill.metadata!.slug));
+    const stored = await clients.sessionQuery.get({ value: session.metadata!.id });
+    expect(stored.spec?.skillRefs, "the refused update stored nothing").toHaveLength(0);
+  });
+
+  it("[rpc:SessionCommandController.update] an update echoing a skill deleted after the session named it is accepted: an update judges only what it introduces", async () => {
+    const { org } = await target.provisionTenancy();
+    const skill = await clients.skillCommand.push({
+      org,
+      artifact: makeSkillArtifact({ name: uniqueName("skill"), body: "# a skill the session names" }),
+    });
+    const agentRef = await provisionAgentRef(org);
+    const session = await clients.sessionCommand.create(
+      makeSession({ org, name: uniqueName("session"), agentRef, skillRefs: [skill.metadata!.slug] }),
+    );
+    fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }).catch(() => undefined));
+    await clients.skillCommand.delete({ value: skill.metadata!.id });
+
+    const updated = await updateSession(session, makeSessionSpec({ agentRef, skillRefs: [skill.metadata!.slug], subject: "renamed" }));
+
+    expect(updated.spec?.subject).toBe("renamed");
+    expect(updated.spec?.skillRefs.map((ref) => ref.slug)).toEqual([skill.metadata!.slug]);
   });
 });

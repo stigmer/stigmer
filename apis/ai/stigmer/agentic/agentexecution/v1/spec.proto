@@ -13,81 +13,76 @@ import "google/protobuf/timestamp.proto";
 // All execution results and state live in AgentExecutionStatus (in api.proto).
 message AgentExecutionSpec {
   option (buf.validate.message).cel = {
-    id: "agent_execution.session_exclusive"
-    message: "session_id and session_spec are mutually exclusive — reference an existing session or define a new one, not both"
-    expression: "!(this.session_id != '' && has(this.session_spec))"
-  };
-  option (buf.validate.message).cel = {
     id: "agent_execution.session_spec_harness_state"
     message: "session_spec.harness_state_id must be empty — harness state is created by the runner after the first execution"
     expression: "!has(this.session_spec) || this.session_spec.harness_state_id == ''"
   };
 
-  // Session ID this execution belongs to (optional).
-  //
-  // Resolution priority (enforced in handler pipeline):
-  //   1. session_id provided     -> use existing session
-  //   2. session_spec provided   -> auto-create session from the embedded spec
-  //   3. agent_id provided       -> auto-create session using agent's default instance
-  //   4. none provided           -> auto-create a session with no agent; the
-  //      built-in assistant answers
-  //
-  // session_id and agent_id may both be set — when both are present, session_id
-  // is used for session resolution and agent_id is preserved as metadata for
-  // downstream consumers (e.g., session subject generation). session_id and
-  // session_spec are mutually exclusive.
-  //
-  // An execution in an existing session belongs to that session's
-  // organization: metadata.org, when set, must be the session's
-  // (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
-  // session. An execution stays in the session it was created in: update
-  // refuses a different session_id (FAILED_PRECONDITION), and an empty one
-  // keeps the stored session.
-  string session_id = 1;
+  // Field 2 named an agent whose default instance a new conversation ran
+  // against until the instance kind was removed; a new conversation names
+  // its agent in session_spec.agent_ref.
+  reserved 2;
+  reserved "agent_id";
 
-  // Agent ID (optional).
-  //
-  // When absent along with session_id and session_spec, the execution runs
-  // the built-in assistant in a new session with no agent: a person starts a
-  // conversation without choosing an agent.
-  //
-  // Both may be set — agent_id is preserved on the execution record even when
-  // session_id is present, so downstream consumers can access the agent
-  // without resolving through the session chain.
-  //
-  // When provided without session_id, a new session is auto-created using
-  // the agent's default instance ID.
-  string agent_id = 2;
+  // Fields 6, 8 and 11 carried a workflow's callback token, its signal
+  // target and a dispatch queue override as caller-set strings; they travel
+  // together in `parent`, which the server honours only from the workflow
+  // run it names.
+  reserved 6, 8, 11;
+  reserved "callback_token", "parent_workflow_id", "activity_task_queue";
 
-  // Spec for the session to auto-create when session_id is empty (optional).
+  // Fields 15 and 16 held the preference and memory snapshots the server
+  // composes for each turn; they are AgentExecutionStatus fields 29 and 30.
+  reserved 15, 16;
+  reserved "declared_preferences", "recalled_memories";
+
+  // The conversation this turn belongs to: an existing session, or a new
+  // one. Neither set starts a new conversation with the built-in
+  // assistant: a person starts a conversation without choosing an agent.
   //
-  // This is the one-call session bootstrap: a single create carries the full
-  // session shape (workspace_entries, harness, execution_target, MCP servers,
-  // skills) together with the first message, so embedders do not need to
-  // orchestrate session.create followed by agentExecution.create. The created
-  // session's ID is returned on the persisted execution's session_id.
-  //
-  // Fields that must be set at session-creation time and are immutable once
-  // an execution has run — harness and execution_target — can only reach an
-  // auto-created session through this field.
-  //
-  // When session_spec.agent_instance_id is set, the session runs against that
-  // instance and agent_id must not also be resolved from it. When empty, the
-  // normal resolution applies: agent_id's default instance, or no agent (the
-  // built-in assistant) when agent_id is also empty.
-  //
-  // Mutually exclusive with session_id. session_spec.harness_state_id must be
-  // empty — it is server-owned harness continuity state, created by the runner
-  // after the first execution.
-  //
-  // @internal
-  // The Session resource created from this spec is the single source of truth
-  // for session configuration. The handler clears this field after the session
-  // is created (before persist), so the execution record never carries a
-  // second copy of session config that could drift as the session evolves.
-  // Extends the existing auto-create path in createSessionIfNeededStep rather
-  // than adding a parallel one (stigmer/stigmer#249).
-  ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13;
+  // A turn runs the agent its session names, at the version the session
+  // records (SessionStatus), and is refused unless the caller may add a
+  // turn to the session (can_create_execution_in) and may still run that
+  // agent (can_execute). The agent and version the turn runs are recorded on
+  // its status (agent_id, agent_version_hash).
+  oneof target {
+    // ID of the existing session this turn continues.
+    //
+    // An execution in an existing session belongs to that session's
+    // organization: metadata.org, when set, must be the session's
+    // (FAILED_PRECONDITION otherwise), and when left empty it is taken from
+    // the session. An execution stays in the session it was created in:
+    // update refuses a different session_id (FAILED_PRECONDITION), and an
+    // empty one keeps the stored session.
+    string session_id = 1;
+
+    // Spec for a new session this turn starts.
+    //
+    // This is the one-call session bootstrap: a single create carries the
+    // full session shape (the agent, workspace_entries, harness,
+    // execution_target, MCP servers, skills) together with the first
+    // message, so embedders do not need to orchestrate session.create
+    // followed by agentExecution.create. The created session's ID is
+    // returned on the persisted execution's session_id.
+    //
+    // session_spec.agent_ref names the agent the conversation runs (empty:
+    // the built-in assistant). Fields that must be set at session-creation
+    // time and are immutable once an execution has run — harness and
+    // execution_target — can only reach an auto-created session through
+    // this field. session_spec.harness_state_id must be empty — it is
+    // server-owned harness continuity state, created by the runner after
+    // the first execution.
+    //
+    // @internal
+    // The Session resource created from this spec is the single source of
+    // truth for session configuration. The handler replaces this field with
+    // the created session's id before persist, so the execution record never
+    // carries a second copy of session config that could drift as the
+    // session evolves. Extends the existing auto-create path in
+    // createSessionIfNeededStep rather than adding a parallel one
+    // (stigmer/stigmer#249).
+    ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13;
+  }
 
   // User input message that triggers this execution.
   // Each execution represents one user message and the agent's response.
@@ -109,73 +104,14 @@ message AgentExecutionSpec {
   //
   // @internal
   // Merge priority (lowest to highest): resolved Environment values — from the
-  // creating schedule's or agent_call task's environment_refs (when present),
-  // then the instance's environment_refs; a later ref wins — then runtime_env
-  // (this field). The merged map is filtered to the keys declared in
+  // creating schedule's or agent_call task's environment_refs (when present);
+  // a later ref wins — then runtime_env (this field). The merged map is filtered to the keys declared in
   // Agent.spec.env (no filtering when the agent declares none); a missing
   // required key only logs a warning — the run is not failed. The merge is
   // owned by backend/libs/go/envmerge and the agentexecution controller's
   // executionContextBuilder, and asserted by
   // test/conformance/src/suites-execution/envmerge.conformance.test.ts.
   map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 5;
-
-  // ============================================================================
-  // Temporal Async Activity Completion Token (Token Handshake Pattern)
-  // ============================================================================
-
-  // Callback token for async activity completion (optional).
-  //
-  // When a workflow invokes an agent, this token enables the workflow to
-  // wait for the agent to finish without blocking. When empty, the
-  // execution runs independently (CLI, API calls, non-workflow triggers).
-  //
-  // @internal
-  //
-  // Enables async completion pattern where the caller (typically a
-  // workflow activity) waits for actual agent completion without blocking
-  // worker threads.
-  //
-  // Flow:
-  // 1. Caller (Go Temporal activity) extracts its task token
-  // 2. Passes token in this field when creating AgentExecution
-  // 3. Returns activity.ErrResultPending (activity paused, thread released)
-  // 4. Agent workflow completes (minutes/hours later)
-  // 5. Agent workflow calls ActivityCompletionClient.complete(token, result)
-  // 6. Temporal resumes the paused activity with the result
-  //
-  // Token Format:
-  // - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
-  // - Contains: namespace, workflow ID, run ID, activity ID, attempt
-  // - DO NOT parse or modify - treat as opaque handle
-  //
-  // Security:
-  // - Token grants ability to complete the activity (bearer token)
-  // - Should only be passed through trusted internal services
-  // - Logged as Base64-encoded string (truncated for security)
-  //
-  // Timeout:
-  // - Caller should set StartToCloseTimeout (e.g., 24 hours)
-  // - If token callback never arrives, activity times out
-  //
-  // Example Usage (Go):
-  // ```go
-  // func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {
-  //     taskToken := activity.GetInfo(ctx).TaskToken
-  //     execution := &AgentExecution{
-  //         Spec: &AgentExecutionSpec{
-  //             AgentId: config.Agent,
-  //             Message: config.Message,
-  //             CallbackToken: taskToken,
-  //         },
-  //     }
-  //     client.Create(ctx, execution)
-  //     return nil, activity.ErrResultPending
-  // }
-  // ```
-  //
-  // References:
-  // - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-  bytes callback_token = 6;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Approval Configuration
@@ -201,42 +137,6 @@ message AgentExecutionSpec {
   //
   // Default: false (approvals required as configured in policies)
   bool auto_approve_all = 7;
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Parent Workflow Context
-  //
-  // Events-based notification for approval state propagation.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Parent workflow ID when this execution was triggered by a workflow (optional).
-  //
-  // When set, the platform notifies the parent workflow about approval
-  // requests instead of requiring polling. When empty, approvals are
-  // submitted directly via the SubmitApproval RPC.
-  //
-  // @internal
-  //
-  // Signal pattern (identical in both editions — the OSS TypeScript server
-  // and the cloud Java service implement the same sender):
-  // 1. The runner's workflow-execution child workflow passes its own
-  //    workflow ID when creating the AgentExecution (engine-core.ts).
-  // 2. The agent-execution workflow's HITL loop signals
-  //    "child_approval_required" to this workflow ID on EVERY approval
-  //    cycle, carrying only the child execution id as a bare string
-  //    (identity-only: proto-encoded payloads poisoned the receiving
-  //    workflow task).
-  // 3. The receiver derives the pending approvals by reading the child
-  //    execution record — the signal is never a payload copy that can drift.
-  //
-  // Format:
-  // A Temporal workflow ID; typically the runner's workflow-execution child
-  // workflow ("workflow-exec-{workflow-execution-id}").
-  //
-  // Backward Compatibility:
-  // This field is optional. Agents invoked without a parent workflow ID will
-  // continue to work normally - approval is submitted directly via the
-  // AgentExecution.SubmitApproval RPC.
-  string parent_workflow_id = 8;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // File Attachments (Artifact Lifecycle)
@@ -289,31 +189,6 @@ message AgentExecutionSpec {
   repeated string workspace_file_refs = 10;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Sandbox Affinity (Workflow Sandbox Sharing)
-  //
-  // Explicit task queue override for co-locating agent execution with parent workflow.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Explicit Temporal task queue override for activity routing.
-  //
-  // @internal
-  // When set, the agent execution's activities are routed to this queue
-  // instead of the normally-resolved queue (session:{id} or global stigmer_runner).
-  // This enables sandbox sharing: a parent workflow execution passes its own
-  // queue so child agents run in the same sandbox without provisioning new VMs.
-  //
-  // When empty: normal dispatch resolution applies (default behavior).
-  //
-  // Security: Only accepted from internal callers (workflow engine's CallAgent
-  // activity). External API callers cannot set this field — the create handler
-  // strips it during input sanitization. Presence of parent_workflow_id is used
-  // as a co-validation signal.
-  //
-  // Format: "wfexec:{workflow_execution_id}" (matches the parent workflow's
-  // sandbox queue). The prefix ensures no collision with session:{id} queues.
-  string activity_task_queue = 11;
-
-  // ─────────────────────────────────────────────────────────────────────────────
   // Edit-and-Resubmit (Supersede Link)
   //
   // Marks this execution as the corrected replacement of an earlier turn.
@@ -361,60 +236,59 @@ message AgentExecutionSpec {
   // kill-switch.
   ConversationCatchup conversation_catchup = 14;
 
-  // Standing preferences declared by the organization and the calling user,
-  // snapshotted into this execution at create time (optional).
+  // The workflow run this turn was started by (optional): set only by a
+  // workflow's agent_call step, which waits for the turn to finish.
+  //
+  // The server honours it only from the workflow run it names: a request
+  // the server composes itself, a runner whose credential is bound to that
+  // workflow run, or a caller holding the platform's
+  // can_write_reserved_labels. Any other caller that sets it is refused with
+  // INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
+  // runs where the workflow run's own activities run (its sandbox, when the
+  // deployment gives each run one), the parent is told about approval
+  // requests, and the waiting step is completed when the turn finishes.
   //
   // @internal
-  // Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
-  // empty for non-eligible callers — overwriting any caller-supplied value,
-  // so external injection is moot by construction. The two halves have
-  // different audiences. org_context is composed for every execution but a
-  // visitor's: the organization's own lanes (a person, a schedule, a
-  // workflow's agent_call, the platform's pipelines) carry it, and a caller
-  // the edition classifies as a visitor, admitted to the organization's
-  // agents without belonging to it (the hosted edition's shared-agent
-  // guests and channel senders), never does (stigmer#1401). user_context is
-  // composed only for first-party human operators (since 2026-08-15:
-  // never for machine, impersonated, guest, channel, schedule,
-  // runner, or platform-client-user callers), and only where callers are
-  // persons (the require-authentication posture, every edition;
-  // stigmer#1397); the single-operator posture (trusted-local) composes
-  // org_context only. A snapshot by design:
-  // preferences are mutable, executions are immutable audit records — this
-  // field records what the model actually saw. Composition is best-effort;
-  // a preference load failure never fails the create. Top-level rather than
-  // inside ExecutionConfig: preference content must not vanish with the
-  // execution-profile kill-switch (same rationale as conversation_catchup).
-  DeclaredPreferences declared_preferences = 15;
+  // The reserved-label guard's trust rule (guard-reserved-labels.ts),
+  // applied by VouchWorkflowParent; when the run also carries the
+  // stigmer.ai/workflow-execution-id lineage label the two must name the
+  // same run. The dispatch queue is derived from workflow_execution_id by the
+  // workflow run's own routing ("wfexec:" + id under execution routing; under
+  // global routing the run has no queue of its own and the turn dispatches
+  // as any turn does), so no caller names a queue. The edition's billing and
+  // capacity gates key on this field: a turn that runs inside a workflow
+  // run's sandbox is that run's spend.
+  WorkflowParent parent = 17;
+}
 
-  // The caller's confirmed memories, snapshotted into this execution at
-  // create time (optional).
+// WorkflowParent links a turn to the workflow run whose agent_call step
+// started it.
+message WorkflowParent {
+  // ID of the workflow execution whose step started this turn. The turn's
+  // activities run where that workflow run's own activities run.
+  string workflow_execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Temporal workflow ID the agent-execution workflow signals about
+  // approval requests ("child_approval_required", carrying only this
+  // execution's id): the workflow run's engine workflow, which for a nested
+  // workflow is a child workflow with its own id, so it is named rather
+  // than derived.
   //
   // @internal
-  // Every declared_preferences invariant carries over
-  // verbatim: SERVER-OWNED (the create pipeline stamps this
-  // field unconditionally — enabled=false with no facts for excluded
-  // callers — overwriting any caller-supplied value, so injection via
-  // the create request is moot by construction); composed only for
-  // first-party human operators with BOTH memory_enabled flags on (org
-  // AND caller where callers are persons; the single-operator posture,
-  // trusted-local: the org flag alone — stigmer#1387); confirmed records
-  // only —
-  // proposed and rejected are never injected (the consent gate is
-  // meaningless otherwise); a SNAPSHOT (memories are mutable, executions
-  // are immutable audit records — this field records the CANDIDATE set
-  // the prompt was built from, and each fact carries its memory_id so
-  // the audit links back to the addressable record; what the model
-  // actually saw is this snapshot joined to
-  // status.recalled_memories_report, whose absence means wholesale —
-  // the full set — by construction); best-effort (a memory
-  // load failure degrades to disabled, never fails the create);
-  // top-level rather than inside ExecutionConfig (must not vanish with
-  // the execution-profile kill-switch). The enabled bit doubles as the
-  // runner's signal to offer the remember tool — one
-  // server-owned field, one writer, no parallel flag. Composed by the
-  // create pipeline's compose steps.
-  RecalledMemories recalled_memories = 16;
+  // The receiver derives the pending approvals by reading this execution
+  // (identity-only signals; a proto payload poisoned the receiving workflow
+  // task).
+  string signal_workflow_id = 2;
+
+  // Temporal task token of the agent_call activity waiting for this turn
+  // (asynchronous activity completion). The agent-execution workflow
+  // completes that activity with the turn's result when the turn finishes.
+  //
+  // @internal
+  // An opaque bearer handle (namespace, workflow id, run id, activity id,
+  // attempt): never parsed, never logged except as a truncated Base64
+  // preview.
+  bytes callback_token = 3;
 }
 
 // Configuration that can be applied at execution time.
@@ -839,9 +713,9 @@ message DeclaredPreferences {
 // injection.
 //
 // @internal
-// See the recalled_memories field comment for the full ownership and
-// composition contract, and status.recalled_memories_report for which
-// candidates the runner actually injected. enabled=true with
+// See the AgentExecutionStatus.recalled_memories field comment for the full
+// ownership and composition contract, and status.recalled_memories_report
+// for which candidates the runner actually injected. enabled=true with
 // zero facts is a meaningful state: memory is on for this caller, nothing
 // is stored yet — the runner still offers the remember tool.
 message RecalledMemories {
@@ -871,7 +745,7 @@ message RecalledMemoryFact {
   // ID of the memory record this fact came from.
   //
   // @internal
-  // The transparency link: the execution spec shows exactly
+  // The transparency link: the execution status shows exactly
   // which records the model saw, and each links back to the
   // addressable, deletable memory.
   string memory_id = 1;

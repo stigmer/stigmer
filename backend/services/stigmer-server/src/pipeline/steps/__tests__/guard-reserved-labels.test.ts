@@ -5,7 +5,10 @@
  * byte-pinned INVALID_ARGUMENT copy when the Authorizer denies, the
  * permissive default allows (OSS byte-identity), the per-kind client
  * contract (stigmer.ai/personal on Environment) passes, and internal
- * callers skip entirely.
+ * callers skip entirely. The operator question itself
+ * (mayWriteReservedLabels) answers allow as yes, deny and not-found as no,
+ * and fails closed as a sanitized Internal on an authorizer that throws,
+ * reports itself unavailable, or answers a decision it does not know.
  */
 import { describe, expect, it } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -18,10 +21,15 @@ import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environmen
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
-import type { Authorizer, AuthzCheck } from "../../../extensions/authorizer.js";
+import type {
+  Authorizer,
+  AuthzCheck,
+  AuthzDecision,
+} from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { RequestContext } from "../../request-context.js";
 import {
+  mayWriteReservedLabels,
   newGuardReservedLabelsStep,
   reservedLabelMutations,
 } from "../guard-reserved-labels.js";
@@ -261,5 +269,52 @@ describe("GuardReservedLabels", () => {
     expect((error as ConnectError).rawMessage).not.toContain(
       "stigmer.ai/workflow-execution-id",
     );
+  });
+});
+
+describe("mayWriteReservedLabels", () => {
+  function answering(answer: () => Promise<AuthzDecision>): Authorizer {
+    return { authorize: answer };
+  }
+
+  it("answers allow as yes, deny and not-found as no", async () => {
+    await expect(
+      mayWriteReservedLabels(
+        answering(() => Promise.resolve({ kind: "allow" })),
+        USER,
+      ),
+    ).resolves.toBe(true);
+    await expect(mayWriteReservedLabels(denying(), USER)).resolves.toBe(false);
+    await expect(
+      mayWriteReservedLabels(
+        answering(() => Promise.resolve({ kind: "not-found" })),
+        USER,
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it("fails closed as a sanitized Internal when the check cannot be answered", async () => {
+    const outages: Authorizer[] = [
+      answering(() => Promise.reject(new Error("fga connection refused"))),
+      answering(() =>
+        Promise.resolve({
+          kind: "unavailable",
+          cause: new Error("fga timed out"),
+        }),
+      ),
+      answering(() =>
+        Promise.resolve({ kind: "maybe" } as unknown as AuthzDecision),
+      ),
+    ];
+    for (const authorizer of outages) {
+      const error = await mayWriteReservedLabels(authorizer, USER).catch(
+        (e: unknown) => e,
+      );
+      expect(error).toBeInstanceOf(ConnectError);
+      expect((error as ConnectError).code).toBe(Code.Internal);
+      expect((error as ConnectError).rawMessage).toBe(
+        "reserved-label validation could not be completed",
+      );
+    }
   });
 });

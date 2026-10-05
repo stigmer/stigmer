@@ -66,5 +66,5 @@ service AgentQueryController {
 
   // No rpc finds a stored "default agent": a Session or AgentExecution
   // created with no agent runs the built-in assistant (session/v1/spec.proto,
-  // agent_instance_id).
+  // agent_ref).
 }

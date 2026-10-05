@@ -969,8 +969,8 @@ function ResetLinkControl({
 /**
  * Binds org-shared environments to the share's `environment_refs` — the
  * consent act that makes a tool-using agent work for visitors (decision
- * 011: credentials belong to the channel, never to the agent's pristine
- * default instance). Public audience only; the section disappears for
+ * 011: credentials belong to the channel, never to the agent itself).
+ * Public audience only; the section disappears for
  * org shares, whose member sessions carry no share linkage.
  *
  * Expanded by default when the agent uses MCP tools — for those agents

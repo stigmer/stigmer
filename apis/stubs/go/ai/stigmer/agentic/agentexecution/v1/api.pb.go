@@ -36,11 +36,11 @@ type AgentExecution struct {
 	// Agent executions belong to an organization and inherit permissions from the session.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-provided inputs for this execution.
-	// Contains: session_id / session_spec / agent_id (session resolution),
-	// message, execution_config, and runtime_env. Environment bindings are
-	// NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-	// Environment Flow) or per-execution runtime_env (the Execution Flow);
-	// see the runtime_env field docs in spec.proto.
+	// Contains: the conversation (session_id or a new session_spec), message,
+	// execution_config, and runtime_env. Environment values reach a turn from
+	// the environments the server resolves for its run and from the
+	// per-execution runtime_env; see the runtime_env field docs in
+	// spec.proto.
 	Spec *AgentExecutionSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
 	// System-managed execution state and results.
 	// Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
@@ -231,7 +231,7 @@ type AgentExecutionStatus struct {
 	// prompt.
 	//
 	// Absent, or present with selection_active=false, means wholesale: every
-	// fact in the spec.recalled_memories snapshot was injected.
+	// fact in the status.recalled_memories snapshot was injected.
 	RecalledMemoriesReport *RecalledMemoriesReport `protobuf:"bytes,26,opt,name=recalled_memories_report,json=recalledMemoriesReport,proto3" json:"recalled_memories_report,omitempty"`
 	// ID of the agent this turn ran. Empty when the turn ran the built-in
 	// assistant, which is not a stored agent.
@@ -245,6 +245,12 @@ type AgentExecutionStatus struct {
 	// whose last version failed to archive); such a turn runs the agent as
 	// it is when the turn starts.
 	AgentVersionHash string `protobuf:"bytes,28,opt,name=agent_version_hash,json=agentVersionHash,proto3" json:"agent_version_hash,omitempty"`
+	// Standing preferences declared by the organization and the calling user,
+	// snapshotted into this execution at create time.
+	DeclaredPreferences *DeclaredPreferences `protobuf:"bytes,29,opt,name=declared_preferences,json=declaredPreferences,proto3" json:"declared_preferences,omitempty"`
+	// The caller's confirmed memories, snapshotted into this execution at
+	// create time: the candidate set the prompt was built from.
+	RecalledMemories *RecalledMemories `protobuf:"bytes,30,opt,name=recalled_memories,json=recalledMemories,proto3" json:"recalled_memories,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -440,6 +446,20 @@ func (x *AgentExecutionStatus) GetAgentVersionHash() string {
 	return ""
 }
 
+func (x *AgentExecutionStatus) GetDeclaredPreferences() *DeclaredPreferences {
+	if x != nil {
+		return x.DeclaredPreferences
+	}
+	return nil
+}
+
+func (x *AgentExecutionStatus) GetRecalledMemories() *RecalledMemories {
+	if x != nil {
+		return x.RecalledMemories
+	}
+	return nil
+}
+
 // Setup progress reported during the EXECUTION_PENDING phase.
 type SetupProgress struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -493,7 +513,7 @@ func (x *SetupProgress) GetCurrentPhase() string {
 type RecalledMemoriesReport struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether semantic selection was active for this execution's prompt.
-	// False means wholesale: the full spec.recalled_memories snapshot was
+	// False means wholesale: the full status.recalled_memories snapshot was
 	// injected.
 	SelectionActive bool `protobuf:"varint,1,opt,name=selection_active,json=selectionActive,proto3" json:"selection_active,omitempty"`
 	// IDs of the injected memories when selection was active.
@@ -570,7 +590,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xc5\x0f\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\x98\x11\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -596,7 +616,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x14file_change_progress\x18\x19 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.FileChangeProgressR\x12fileChangeProgress\x12v\n" +
 	"\x18recalled_memories_report\x18\x1a \x01(\v2<.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReportR\x16recalledMemoriesReport\x12\x19\n" +
 	"\bagent_id\x18\x1b \x01(\tR\aagentId\x12,\n" +
-	"\x12agent_version_hash\x18\x1c \x01(\tR\x10agentVersionHash\x1ah\n" +
+	"\x12agent_version_hash\x18\x1c \x01(\tR\x10agentVersionHash\x12l\n" +
+	"\x14declared_preferences\x18\x1d \x01(\v29.ai.stigmer.agentic.agentexecution.v1.DeclaredPreferencesR\x13declaredPreferences\x12c\n" +
+	"\x11recalled_memories\x18\x1e \x01(\v26.ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesR\x10recalledMemories\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
@@ -644,7 +666,9 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*FileChangeSet)(nil),                   // 18: ai.stigmer.agentic.agentexecution.v1.FileChangeSet
 	(*FileReviewEventStream)(nil),           // 19: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
 	(*FileChangeProgress)(nil),              // 20: ai.stigmer.agentic.agentexecution.v1.FileChangeProgress
-	(*TodoItem)(nil),                        // 21: ai.stigmer.agentic.agentexecution.v1.TodoItem
+	(*DeclaredPreferences)(nil),             // 21: ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences
+	(*RecalledMemories)(nil),                // 22: ai.stigmer.agentic.agentexecution.v1.RecalledMemories
+	(*TodoItem)(nil),                        // 23: ai.stigmer.agentic.agentexecution.v1.TodoItem
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	5,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -667,12 +691,14 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	19, // 17: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_review_event_stream:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
 	20, // 18: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_change_progress:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeProgress
 	3,  // 19: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.recalled_memories_report:type_name -> ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport
-	21, // 20: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	21, // [21:21] is the sub-list for method output_type
-	21, // [21:21] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	21, // 20: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.declared_preferences:type_name -> ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences
+	22, // 21: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.recalled_memories:type_name -> ai.stigmer.agentic.agentexecution.v1.RecalledMemories
+	23, // 22: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	23, // [23:23] is the sub-list for method output_type
+	23, // [23:23] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }

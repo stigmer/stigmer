@@ -206,14 +206,14 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
 
   it("an instance carries its blueprint link and a run its instance link (additional parents); a user-created instance at org level adds the #viewer userset", () => {
     expect(
-      derivedFor("agent_instance", {
+      derivedFor("workflow_instance", {
         visibility: ApiResourceVisibility.visibility_org,
       }),
     ).toEqual([
-      "agent_instance:agent_instance-1#organization@organization:acme",
-      "agent_instance:agent_instance-1#agent@agent:agent-1",
-      "agent_instance:agent_instance-1#owner@identity_account:ida_carol",
-      "agent_instance:agent_instance-1#viewer@organization:acme#viewer",
+      "workflow_instance:workflow_instance-1#organization@organization:acme",
+      "workflow_instance:workflow_instance-1#workflow@workflow:workflow-1",
+      "workflow_instance:workflow_instance-1#owner@identity_account:ida_carol",
+      "workflow_instance:workflow_instance-1#viewer@organization:acme#viewer",
     ]);
     expect(
       derivedFor("workflow_execution", {
@@ -236,7 +236,7 @@ const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.iam_policy,
   ApiResourceKind.organization,
   ApiResourceKind.agent,
-  ApiResourceKind.agent_instance,
+  ApiResourceKind.workflow,
   ApiResourceKind.workflow_instance,
   ApiResourceKind.workflow_execution,
   ApiResourceKind.identity_account,
@@ -549,17 +549,29 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         // carry, so the rule loads the row — one read, stated in the list
         // scope's cost pin as well.
         let rowReads = 0;
-        const instance = storedDeclaration("agent_instance");
+        const workflow = storedDeclaration("workflow");
+        await opened.store.saveResource(
+          workflow.kind,
+          "wfl_team",
+          workflow.schema,
+          fixtureRow(workflow, {
+            id: "wfl_team",
+            org: "acme",
+            visibility: ApiResourceVisibility.visibility_org,
+            createdBy: "ida_carol",
+          }),
+        );
+        const instance = storedDeclaration("workflow_instance");
         const row = fixtureRow(instance, {
-          id: "ai_seeded",
+          id: "wi_seeded",
           org: "acme",
           visibility: ApiResourceVisibility.visibility_private,
           createdBy: "ida_carol",
-          spec: { agentId: "agt_team" },
+          spec: { workflowId: "wfl_team" },
         });
         await opened.store.saveResource(
           instance.kind,
-          "ai_seeded",
+          "wi_seeded",
           instance.schema,
           row,
         );
@@ -578,7 +590,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           DAVE,
           { facts: [rowFactsOf(instance.kind, row)] },
         );
-        const object = parseObjectRef("agent_instance:ai_seeded");
+        const object = parseObjectRef("workflow_instance:wi_seeded");
         await seeded.tuplesOf(object, "owner");
         expect(rowReads, "facts alone serve the derived tuples").toBe(0);
         await seeded.tuplesOf(object, "default_of");
@@ -770,10 +782,10 @@ describe.each(driverFixtures(SEEDED_KINDS))(
     /**
      * The two derived rules through the real source and the evaluator:
      * `default_of` from the blueprint's pointer, `execution_viewer` from
-     * the instance's run-observability level. Seeded: `agt_team` (org-
-     * visible, its pointer at `ai_default`), `ai_default` (no level of its
-     * own) and `ai_personal` (private) both naming it; `agt_other` whose
-     * pointer names a row that is not `ai_stale`; `ai_orphan` naming a
+     * the instance's run-observability level. Seeded: `wfl_team` (org-
+     * visible, its pointer at `wi_default`), `wi_default` (no level of its
+     * own) and `wi_personal` (private) both naming it; `wfl_other` whose
+     * pointer names a row that is not `wi_stale`; `wi_orphan` naming a
      * blueprint that does not exist; `wi_shared` (organization level) and
      * `wi_private`, each with one run of Carol's.
      */
@@ -809,37 +821,37 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           visibility: ApiResourceVisibility.visibility_private,
           createdBy: ROOT.accountId,
         });
-        await seed("agent", "agt_team", {
+        await seed("workflow", "wfl_team", {
           org: "acme",
           visibility: ApiResourceVisibility.visibility_org,
           createdBy: CAROL.accountId,
-          status: { defaultInstanceId: "ai_default" },
+          status: { defaultInstanceId: "wi_default" },
         });
-        await seed("agent", "agt_other", {
+        await seed("workflow", "wfl_other", {
           org: "acme",
           visibility: ApiResourceVisibility.visibility_org,
           createdBy: CAROL.accountId,
-          status: { defaultInstanceId: "ai_elsewhere" },
+          status: { defaultInstanceId: "wi_elsewhere" },
         });
-        for (const [id, agentId, visibility] of [
+        for (const [id, workflowId, visibility] of [
           [
-            "ai_default",
-            "agt_team",
+            "wi_default",
+            "wfl_team",
             ApiResourceVisibility.api_resource_visibility_unspecified,
           ],
-          ["ai_personal", "agt_team", ApiResourceVisibility.visibility_private],
-          ["ai_stale", "agt_other", ApiResourceVisibility.visibility_private],
+          ["wi_personal", "wfl_team", ApiResourceVisibility.visibility_private],
+          ["wi_stale", "wfl_other", ApiResourceVisibility.visibility_private],
           [
-            "ai_orphan",
-            "agt_missing",
+            "wi_orphan",
+            "wfl_missing",
             ApiResourceVisibility.visibility_private,
           ],
         ] as const) {
-          await seed("agent_instance", id, {
+          await seed("workflow_instance", id, {
             org: "acme",
             visibility,
             createdBy: CAROL.accountId,
-            spec: { agentId },
+            spec: { workflowId },
           });
         }
         for (const [id, executionVisibility] of [
@@ -907,11 +919,13 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       it("default_of derives iff the blueprint's pointer names the instance: the default has it, a personal, a stale and an orphaned instance do not", async () => {
         expect(
-          await tuplesOf(DAVE, "agent_instance:ai_default", "default_of"),
-        ).toEqual(["agent_instance:ai_default#default_of@agent:agt_team"]);
-        for (const instance of ["ai_personal", "ai_stale", "ai_orphan"]) {
+          await tuplesOf(DAVE, "workflow_instance:wi_default", "default_of"),
+        ).toEqual([
+          "workflow_instance:wi_default#default_of@workflow:wfl_team",
+        ]);
+        for (const instance of ["wi_personal", "wi_stale", "wi_orphan"]) {
           expect(
-            await tuplesOf(DAVE, `agent_instance:${instance}`, "default_of"),
+            await tuplesOf(DAVE, `workflow_instance:${instance}`, "default_of"),
             instance,
           ).toEqual([]);
         }
@@ -920,38 +934,38 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       it("the rule's blueprint read is the loader's: `viewer from default_of` then resolves the blueprint on the same decoded row", async () => {
         const source = sourceFor(DAVE);
         await source.tuplesOf(
-          parseObjectRef("agent_instance:ai_default"),
+          parseObjectRef("workflow_instance:wi_default"),
           "default_of",
         );
         const viaRule = await source.loader.load(
-          parseObjectRef("agent:agt_team"),
+          parseObjectRef("workflow:wfl_team"),
         );
-        await source.tuplesOf(parseObjectRef("agent:agt_team"), "viewer");
+        await source.tuplesOf(parseObjectRef("workflow:wfl_team"), "viewer");
         const viaWalk = await source.loader.load(
-          parseObjectRef("agent:agt_team"),
+          parseObjectRef("workflow:wfl_team"),
         );
         expect(viaRule).toBeDefined();
         expect(viaWalk).toBe(viaRule);
       });
 
-      it("an organization member reads the default instance of an org-visible agent through the blueprint, and NOT a personal instance of the same agent — nor does the organization's owner", async () => {
+      it("an organization member reads the default instance of an org-visible workflow through the blueprint, and NOT a personal instance of the same workflow — nor does the organization's owner", async () => {
         expect(
-          await allowed(DAVE, "agent_instance:ai_default", "can_view"),
+          await allowed(DAVE, "workflow_instance:wi_default", "can_view"),
         ).toBe(true);
         expect(
-          await allowed(DAVE, "agent_instance:ai_default", "can_execute"),
+          await allowed(DAVE, "workflow_instance:wi_default", "can_execute"),
         ).toBe(true);
         expect(
-          await allowed(DAVE, "agent_instance:ai_personal", "can_view"),
+          await allowed(DAVE, "workflow_instance:wi_personal", "can_view"),
         ).toBe(false);
         expect(
-          await allowed(ROOT, "agent_instance:ai_personal", "can_view"),
+          await allowed(ROOT, "workflow_instance:wi_personal", "can_view"),
         ).toBe(false);
         expect(
-          await allowed(CAROL, "agent_instance:ai_personal", "can_view"),
+          await allowed(CAROL, "workflow_instance:wi_personal", "can_view"),
         ).toBe(true);
         expect(
-          await allowed(DAVE, "agent_instance:ai_default", "can_edit"),
+          await allowed(DAVE, "workflow_instance:wi_default", "can_edit"),
         ).toBe(false);
       });
 

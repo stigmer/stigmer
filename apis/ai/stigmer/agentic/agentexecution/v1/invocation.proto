@@ -25,8 +25,8 @@ import "buf/validate/validate.proto";
 // @internal
 // An ALLOWLIST by
 // construction: platform-owned execution fields (approval_mode,
-// execution_target, callback_token, harness_state_id,
-// activity_task_queue, auto_approve_all, org/labels/subject) cannot
+// execution_target, the workflow parent link, harness_state_id,
+// auto_approve_all, org/labels/subject) cannot
 // appear here, so embedding surfaces never need a blocklist validator
 // — the rejected alternative was embedding AgentExecutionSpec /
 // SessionSpec and validating the illegal fields away. Exclusions,
@@ -42,8 +42,9 @@ import "buf/validate/validate.proto";
 message AgentInvocation {
   // Reference to the agent to run.
   //
-  // The reference names no version (or "latest"): this runs the agent's
-  // current version, and a reference naming another version is refused.
+  // A version on the reference (a tag or a content hash) is the version
+  // each run starts on; none, or "latest", runs the agent's current version
+  // when the run starts.
   //
   // @internal
   // Embedding surfaces own the referential invariants: the schedule
@@ -108,15 +109,14 @@ message AgentInvocation {
   // This is how a tool-using agent becomes runnable unattended: bind
   // an org-shared environment holding the needed credentials (for
   // example an MCP server's shared secret), and the runs receive its
-  // values at runtime. The agent and its default instance stay
-  // untouched.
+  // values at runtime. The agent itself stays untouched.
   //
   // @internal
   // The AgentShare/AgentChannel/Schedule environment_refs lineage.
   // Resolution stays with the embedding
   // surface's pipeline (CreateExecutionContextStep branch, claim-
-  // driven, LOWEST merge priority — instance refs and runtime_env
-  // override on key conflicts). No write-time existence or visibility
+  // driven, LOWEST merge priority — runtime_env overrides on key
+  // conflicts). No write-time existence or visibility
   // check: enforcement lives solely at runtime resolution, which
   // fails closed.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [

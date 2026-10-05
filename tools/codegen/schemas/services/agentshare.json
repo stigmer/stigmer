@@ -172,7 +172,6 @@
               "session",
               "skill",
               "mcp_server",
-              "agent_instance",
               "agent_share",
               "agent_channel",
               "channel_app",
@@ -438,13 +437,14 @@
           "required": false
         },
         {
-          "name": "DefaultInstanceId",
-          "jsonName": "defaultInstanceId",
-          "protoField": "default_instance_id",
+          "name": "AgentRef",
+          "jsonName": "agentRef",
+          "protoField": "agent_ref",
           "type": {
-            "kind": "string"
+            "kind": "message",
+            "messageType": "ApiResourceReference"
           },
-          "description": "ID of the referenced agent's default instance, used by the hosted chat\n page to create sessions. This is an identifier, not a capability —\n session creation still requires an authorized token.",
+          "description": "The share's agent reference (spec.agent_ref): the hosted chat page\n starts the visitor's session on exactly this reference, version\n included. This is a name, not a capability — session creation still\n requires an authorized token, and the edition's guest gate admits a\n session only on this reference and the agent the share pins.",
           "required": false
         }
       ]
@@ -535,11 +535,6 @@
           "name": "mcp_server",
           "number": 44,
           "description": "External tool server connected via the Model Context Protocol."
-        },
-        {
-          "name": "agent_instance",
-          "number": 45,
-          "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
           "name": "agent_share",

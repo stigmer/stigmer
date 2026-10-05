@@ -1,8 +1,8 @@
 /**
  * Hermetic pin: the BUILT-IN ASSISTANT through the whole `ExecuteCursor`
- * activity — a session that names no agent instance, so the blueprint chain
- * stops at the session, the control plane is never asked for an instance or
- * an agent, and the first message the Cursor agent receives opens with the
+ * activity — a turn whose stamp names no agent, so the blueprint stops at
+ * the session, the control plane is never asked for an agent or an agent
+ * version, and the first message the Cursor agent receives opens with the
  * one built-in text framed as this harness's `<agent_instructions>`
  * (`shared/builtin-assistant-prompt.ts`; the golden in
  * `../goldens/prompt.enhanced.no-instructions.prompt.md` photographs the
@@ -95,7 +95,7 @@ describe("ExecuteCursor hermetic — the built-in assistant", () => {
       ],
     });
     const record = cursorExecutionRecord({ message: USER_MESSAGE, builtInAssistant: true });
-    const instanceRead = vi.fn(async () => {
+    const versionRead = vi.fn(async () => {
       throw new Error("must not be reached");
     });
     const agentRead = vi.fn(async () => {
@@ -106,7 +106,7 @@ describe("ExecuteCursor hermetic — the built-in assistant", () => {
       clock,
       record,
       sdk: { agents: [agent], catalog: SDK_CATALOG },
-      clientOverrides: { getAgentInstance: instanceRead, getAgent: agentRead },
+      clientOverrides: { getAgentVersion: versionRead, getAgent: agentRead },
     });
 
     const invocation = await runCursorTurn(scenario);
@@ -116,7 +116,7 @@ describe("ExecuteCursor hermetic — the built-in assistant", () => {
       ExecutionPhase.EXECUTION_IN_PROGRESS,
       ExecutionPhase.EXECUTION_COMPLETED,
     ]);
-    expect(instanceRead).not.toHaveBeenCalled();
+    expect(versionRead).not.toHaveBeenCalled();
     expect(agentRead).not.toHaveBeenCalled();
 
     expect(agent.sends).toHaveLength(1);

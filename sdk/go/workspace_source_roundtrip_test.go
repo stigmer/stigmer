@@ -23,6 +23,7 @@ import (
 
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
+	"github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -177,7 +178,7 @@ func TestWorkspaceSourceOneof_SessionCreate(t *testing.T) {
 		client, state := newCaptureClient(t)
 		if _, err := client.Session.Create(context.Background(), &SessionInput{
 			Org:              "acme",
-			AgentInstanceId:  "agent-instance-1",
+			AgentRef:         ResourceRef{Org: "acme", Slug: "reviewer"},
 			WorkspaceEntries: []*WorkspaceEntryInput{gitRepoEntry()},
 		}); err != nil {
 			t.Fatalf("Session.Create: %v", err)
@@ -196,7 +197,7 @@ func TestWorkspaceSourceOneof_SessionCreate(t *testing.T) {
 		client, state := newCaptureClient(t)
 		if _, err := client.Session.Create(context.Background(), &SessionInput{
 			Org:              "acme",
-			AgentInstanceId:  "agent-instance-1",
+			AgentRef:         ResourceRef{Org: "acme", Slug: "reviewer"},
 			WorkspaceEntries: []*WorkspaceEntryInput{localPathEntry()},
 		}); err != nil {
 			t.Fatalf("Session.Create: %v", err)
@@ -214,7 +215,7 @@ func TestWorkspaceSourceOneof_SessionCreate(t *testing.T) {
 		entry.Source.GitRepo.Depth = 0
 		if _, err := client.Session.Create(context.Background(), &SessionInput{
 			Org:              "acme",
-			AgentInstanceId:  "agent-instance-1",
+			AgentRef:         ResourceRef{Org: "acme", Slug: "reviewer"},
 			WorkspaceEntries: []*WorkspaceEntryInput{entry},
 		}); err != nil {
 			t.Fatalf("Session.Create: %v", err)
@@ -236,13 +237,20 @@ func TestWorkspaceSourceOneof_AgentExecutionSessionSpec(t *testing.T) {
 			Org:     "acme",
 			Message: "hello",
 			SessionSpec: &SessionSpecInput{
-				AgentInstanceId:  "agent-instance-1",
+				AgentRef:         ResourceRef{Org: "acme", Slug: "reviewer"},
 				WorkspaceEntries: []*WorkspaceEntryInput{gitRepoEntry()},
 			},
 		}); err != nil {
 			t.Fatalf("AgentExecution.Create: %v", err)
 		}
-		entries := state.lastAgentExecution.GetSpec().GetSessionSpec().GetWorkspaceEntries()
+		sessionSpec := state.lastAgentExecution.GetSpec().GetSessionSpec()
+		// The new conversation names its agent by reference, stamped with
+		// the agent kind, alongside the workspace.
+		ref := sessionSpec.GetAgentRef()
+		if ref.GetKind() != apiresourcekind.ApiResourceKind_agent || ref.GetOrg() != "acme" || ref.GetSlug() != "reviewer" {
+			t.Errorf("agent_ref = %v, want agent acme/reviewer", ref)
+		}
+		entries := sessionSpec.GetWorkspaceEntries()
 		if len(entries) != 1 {
 			t.Fatalf("workspace entries = %d, want 1", len(entries))
 		}
@@ -255,7 +263,7 @@ func TestWorkspaceSourceOneof_AgentExecutionSessionSpec(t *testing.T) {
 			Org:     "acme",
 			Message: "hello",
 			SessionSpec: &SessionSpecInput{
-				AgentInstanceId:  "agent-instance-1",
+				AgentRef:         ResourceRef{Org: "acme", Slug: "reviewer"},
 				WorkspaceEntries: []*WorkspaceEntryInput{localPathEntry()},
 			},
 		}); err != nil {

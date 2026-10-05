@@ -58,7 +58,7 @@ import { LOOKUP_ORDER_TOOL_NAME } from "../harness/mcp-server";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { readAnthropicRequest, type AnthropicRequestBody } from "@stigmer/test-support/llm-wire";
 import { TEMPORAL_DEV_NAMESPACE } from "@stigmer/test-support/temporal";
-import { BARE_AGENT_INSTRUCTIONS, makeAgent } from "../support/agents";
+import { BARE_AGENT_INSTRUCTIONS, agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { renderSystemPrompt, renderToolSurface } from "../support/request-shape";
@@ -115,7 +115,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       makeAgentExecution({
         org,
         name: uniqueName("aex-bench"),
-        agentId: agent.metadata!.id,
+        agentRef: agentRefOf(agent),
         sessionSpec: { subject: "benchmark readers smoke" },
         message: "Say hello.",
         autoApproveAll: true,
@@ -188,7 +188,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
         stack,
         {
           org: agent.org,
-          agentId: agent.agentId,
+          agentRef: agent.agentRef,
           harness: "deep-agent",
           modelRequested: null,
           sessionSpec: workingAgentSessionSpec(agent, Harness.NATIVE, "benchmark readers smoke"),
@@ -231,7 +231,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
           stack,
           {
             org: agent.org,
-            agentId: agent.agentId,
+            agentRef: agent.agentRef,
             harness: "deep-agent",
             modelRequested: null,
             sessionSpec: workingAgentSessionSpec(agent, Harness.NATIVE, "benchmark readers smoke"),

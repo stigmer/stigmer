@@ -44,7 +44,7 @@ type StdioServerConfigInput = z.infer<typeof StdioServerConfigInputSchema>;
 
 const HttpServerConfigInputSchema = z.object({
   url: z.string().describe("Base URL of the MCP server endpoint. Must be a valid HTTP or HTTPS URL. Examples: - 'http://localhost:3000/mcp' - 'https://mcp.example.com/v1' - 'https://api.company.com/mcp/github'"),
-  headers: z.record(z.string()).optional().describe("HTTP headers to include with every request. Use for authentication, API versioning, or custom routing. Header values can reference environment variables using ${VAR_NAME} syntax. These placeholders are resolved at runtime from AgentInstance's environment. Examples: 'Authorization': 'Bearer ${API_TOKEN}' 'X-API-Version': '2024-01' 'X-Tenant-ID': '${TENANT_ID}'"),
+  headers: z.record(z.string()).optional().describe("HTTP headers to include with every request. Use for authentication, API versioning, or custom routing. Header values can reference environment variables using ${VAR_NAME} syntax. These placeholders are resolved at runtime from the environment values the run receives. Examples: 'Authorization': 'Bearer ${API_TOKEN}' 'X-API-Version': '2024-01' 'X-Tenant-ID': '${TENANT_ID}'"),
   query_params: z.record(z.string()).optional().describe("Query parameters to append to the URL. Values can reference environment variables using ${VAR_NAME} syntax. Examples: 'region': '${AWS_REGION}' 'version': 'v1'"),
   timeout_seconds: z.number().optional().describe("Timeout for HTTP requests in seconds. Applies to both the initial connection and response streaming. Default: 30 seconds if not specified. Set higher values for MCP servers that perform long-running operations."),
 });

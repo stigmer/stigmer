@@ -19,8 +19,6 @@ import { create } from "@bufbuild/protobuf";
 import { createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
-import { AgentInstanceListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
@@ -50,7 +48,6 @@ function client() {
             }),
           }),
       });
-      service(AgentInstanceQueryController, { list: () => create(AgentInstanceListSchema, { items: [] }) });
       service(EnvironmentQueryController, { list: () => create(EnvironmentListSchema, { items: [] }) });
     }),
   });

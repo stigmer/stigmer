@@ -4,8 +4,9 @@
 // Stands up a real Connect backend over h2c serving the controllers these paths
 // call, points an SDK node client at it, and drives the resource layer end to
 // end. Asserts the SDK wiring (request shapes, RPC routing) and the protojson
-// parity contract for json output. Search results carry their organization by
-// id; the human table names it by slug.
+// parity contract for json output. Search results and a session's agent
+// reference carry their organization by id; the human table names it by slug,
+// and a session that names no agent shows the built-in assistant.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
@@ -22,7 +23,7 @@ import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
-import type { Stigmer } from "@stigmer/sdk";
+import { BUILT_IN_ASSISTANT_NAME, type Stigmer } from "@stigmer/sdk";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -37,13 +38,22 @@ const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 
 const knownExec = create(AgentExecutionSchema, {
   metadata: { id: "aex_1", org: "acme" },
-  spec: { agentId: "agt_1" },
-  status: { phase: ExecutionPhase.EXECUTION_COMPLETED, startedAt: "2026-03-01T10:00:00Z" },
+  status: { agentId: "agt_1", phase: ExecutionPhase.EXECUTION_COMPLETED, startedAt: "2026-03-01T10:00:00Z" },
 });
 
 const knownSession = create(SessionSchema, {
   metadata: { id: "ses_1", org: "acme" },
-  spec: { agentInstanceId: "agi_1", subject: "Fix the build" },
+  spec: {
+    agentRef: { kind: ApiResourceKind.agent, org: ACME_ID, slug: "helper" },
+    subject: "Fix the build",
+  },
+  status: { agentId: "agt_1", agentVersionHash: "a".repeat(64) },
+});
+
+// A conversation with the built-in assistant: no reference and no pin.
+const assistantSession = create(SessionSchema, {
+  metadata: { id: "ses_2", org: "acme" },
+  spec: { subject: "Plan the week" },
 });
 
 const knownSearchResult = create(SearchResultSchema, {
@@ -80,7 +90,7 @@ beforeAll(async () => {
       },
     });
     router.service(SessionQueryController, {
-      list: () => ({ totalPages: 1, entries: [knownSession] }),
+      list: () => ({ totalPages: 1, entries: [knownSession, assistantSession] }),
     });
     router.service(SearchService, {
       search: () => ({ entries: [knownSearchResult], totalCount: 1, totalPages: 1 }),
@@ -161,10 +171,21 @@ describe("session integration", () => {
     expect(rendered).toContain("Fix the build");
   });
 
+  it("names each session's agent by org slug and slug, or the built-in assistant", async () => {
+    const rendered = await listResources(client, ApiResourceKind.session, "", 50, "table");
+    const lines = rendered.split("\n");
+    expect(lines.find((line) => line.includes("ses_1"))).toContain("acme/helper");
+    expect(lines.find((line) => line.includes("ses_2"))).toContain(BUILT_IN_ASSISTANT_NAME);
+    expect(rendered).not.toContain(ACME_ID);
+  });
+
   it("renders session list json as the entries array every list kind shares", async () => {
     const rendered = await listResources(client, ApiResourceKind.session, "", 50, "json");
     const json = JSON.parse(rendered);
-    expect(json).toEqual([toJson(SessionSchema, knownSession, { useProtoFieldName: true })]);
+    expect(json).toEqual([
+      toJson(SessionSchema, knownSession, { useProtoFieldName: true }),
+      toJson(SessionSchema, assistantSession, { useProtoFieldName: true }),
+    ]);
   });
 });
 

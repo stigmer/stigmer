@@ -32,11 +32,11 @@ message AgentExecution {
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // User-provided inputs for this execution.
-  // Contains: session_id / session_spec / agent_id (session resolution),
-  // message, execution_config, and runtime_env. Environment bindings are
-  // NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
-  // Environment Flow) or per-execution runtime_env (the Execution Flow);
-  // see the runtime_env field docs in spec.proto.
+  // Contains: the conversation (session_id or a new session_spec), message,
+  // execution_config, and runtime_env. Environment values reach a turn from
+  // the environments the server resolves for its run and from the
+  // per-execution runtime_env; see the runtime_env field docs in
+  // spec.proto.
   AgentExecutionSpec spec = 4;
 
   // System-managed execution state and results.
@@ -366,7 +366,7 @@ message AgentExecutionStatus {
   // ─────────────────────────────────────────────────────────────────────────────
   // Recalled-Memories Injection Report
   //
-  // Runner-owned record of which spec.recalled_memories facts the semantic
+  // Runner-owned record of which status.recalled_memories facts the semantic
   // retriever injected into the prompt. Absent report = wholesale injection.
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -374,17 +374,17 @@ message AgentExecutionStatus {
   // prompt.
   //
   // Absent, or present with selection_active=false, means wholesale: every
-  // fact in the spec.recalled_memories snapshot was injected.
+  // fact in the status.recalled_memories snapshot was injected.
   //
   // @internal
   //
   // Runner-owned, single writer (the streaming_usage / context_info
   // posture): written at most once per execution, at prompt build, through
   // the runner's status lane. The server merges it presence-guarded and
-  // never writes it — the create pipeline stamps only the spec snapshot
+  // never writes it — the create pipeline stamps only the snapshot
   // (stigmer/stigmer#293).
   //
-  // The audit contract: spec.recalled_memories is the server-composed
+  // The audit contract: status.recalled_memories is the server-composed
   // CANDIDATE set (everything the caller's consent state made recallable);
   // what-the-model-saw = this report joined to that snapshot. Absent
   // report = wholesale is true by construction — for every execution that
@@ -425,6 +425,44 @@ message AgentExecutionStatus {
   // whose last version failed to archive); such a turn runs the agent as
   // it is when the turn starts.
   string agent_version_hash = 28;
+
+  // Standing preferences declared by the organization and the calling user,
+  // snapshotted into this execution at create time.
+  //
+  // @internal
+  // Server-owned: the create pipeline stamps it unconditionally (empty for
+  // callers it does not apply to), and status writes never change it. The
+  // two halves have different audiences. org_context is composed for
+  // every execution but a visitor's: the organization's own lanes (a
+  // person, a schedule, a workflow's agent_call, the platform's pipelines)
+  // carry it, and a caller the edition classifies as a visitor, admitted to
+  // the organization's agents without belonging to it (the hosted edition's
+  // shared-agent guests and channel senders), never does (stigmer#1401).
+  // user_context is composed only for first-party human operators, and only
+  // where callers are persons (the require-authentication posture, every
+  // edition; stigmer#1397); the single-operator posture (trusted-local)
+  // composes org_context only. Composition is best-effort; a preference
+  // load failure never fails the create. Outside ExecutionConfig:
+  // preference content must not vanish with the execution-profile
+  // kill-switch (the conversation_catchup rationale).
+  DeclaredPreferences declared_preferences = 29;
+
+  // The caller's confirmed memories, snapshotted into this execution at
+  // create time: the candidate set the prompt was built from.
+  //
+  // @internal
+  // Every declared_preferences invariant carries over: server-owned and
+  // stamped unconditionally (enabled=false with no facts for excluded
+  // callers); composed only for first-party human operators with both
+  // memory_enabled flags on (the organization's and, where callers are
+  // persons, the caller's; the single-operator posture, trusted-local: the
+  // organization's alone, stigmer#1387); confirmed records only, never
+  // proposed or rejected ones; best-effort (a memory load failure degrades
+  // to disabled, never fails the create). What the model actually saw is
+  // this snapshot joined to recalled_memories_report, whose absence means
+  // the whole set. The enabled bit doubles as the runner's signal to offer
+  // the remember tool. Composed by the create pipeline's compose steps.
+  RecalledMemories recalled_memories = 30;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.
@@ -453,14 +491,14 @@ message SetupProgress {
 // absence is not a degradation.
 message RecalledMemoriesReport {
   // Whether semantic selection was active for this execution's prompt.
-  // False means wholesale: the full spec.recalled_memories snapshot was
+  // False means wholesale: the full status.recalled_memories snapshot was
   // injected.
   bool selection_active = 1;
 
   // IDs of the injected memories when selection was active.
   //
   // @internal
-  // Always a subset of the spec.recalled_memories snapshot's memory_ids,
+  // Always a subset of the status.recalled_memories snapshot's memory_ids,
   // in SNAPSHOT order (oldest-first): selection is by relevance, but
   // presentation preserves the stable prompt order both editions pin.
   // Empty when selection_active is false — readers fall back

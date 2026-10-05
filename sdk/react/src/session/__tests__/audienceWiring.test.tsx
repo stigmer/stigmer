@@ -68,6 +68,16 @@ const stubNewSessionFlow = {
   setAgentRef: vi.fn(),
   resolution: null,
   setResolution: vi.fn(),
+  agentVersion: {
+    pinnedHash: "",
+    currentHash: "",
+    agentName: "",
+    isOutdated: false,
+    labelOf: (hash: string) => hash.slice(0, 12),
+    update: vi.fn(),
+    isUpdating: false,
+    updateError: null,
+  },
   mcpServerUsages: [],
   setMcpServerUsages: vi.fn(),
   skillRefs: [],
@@ -125,6 +135,16 @@ const stubSessionPageFlow = {
   setAgentRef: vi.fn(),
   resolution: null,
   setResolution: vi.fn(),
+  agentVersion: {
+    pinnedHash: "",
+    currentHash: "",
+    agentName: "",
+    isOutdated: false,
+    labelOf: (hash: string) => hash.slice(0, 12),
+    update: vi.fn(),
+    isUpdating: false,
+    updateError: null,
+  },
   mcpServerUsages: [],
   setMcpServerUsages: vi.fn(),
   skillRefs: [],
@@ -268,7 +288,6 @@ describe("NewSessionViewer — audience wiring", () => {
         onSessionCreated={vi.fn()}
         audience="guest"
         initialAgentRef={AGENT_REF}
-        initialInstanceId="inst_1"
       />,
     );
 
@@ -295,7 +314,6 @@ describe("NewSessionViewer — audience wiring", () => {
         onSessionCreated={vi.fn()}
         audience="guest"
         initialAgentRef={AGENT_REF}
-        initialInstanceId="inst_1"
       />,
     );
 
@@ -305,13 +323,12 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.onAgentRefChange).toBeUndefined();
     expect(props.onAgentResolutionChange).toBeUndefined();
     expect(props.initialAgentRef).toBeUndefined();
-    expect(props.initialInstanceId).toBeUndefined();
-    // …and the launcher pins the flow to the shared instance directly.
+    // …and the launcher pins the flow to the shared agent's reference
+    // directly, as given.
     expect(stubNewSessionFlow.setAgentRef).toHaveBeenCalledWith(AGENT_REF);
-    expect(stubNewSessionFlow.setResolution).toHaveBeenCalledWith({
-      mode: "saved",
-      instanceId: "inst_1",
-    });
+    expect(stubNewSessionFlow.setResolution).toHaveBeenCalledWith({ mode: "direct" });
+    // A guest has no personal environment, so nothing is disclosed.
+    expect(props.disclosePersonalKeys).toBe(false);
   });
 
   it("guest: forwards the audience to the flow", () => {
@@ -321,7 +338,6 @@ describe("NewSessionViewer — audience wiring", () => {
         onSessionCreated={vi.fn()}
         audience="guest"
         initialAgentRef={AGENT_REF}
-        initialInstanceId="inst_1"
       />,
     );
 
@@ -515,5 +531,90 @@ describe("owner-pinned runConfig wiring (#664)", () => {
     );
 
     expect(lastComposerProps().showModelSelector).toBe(false);
+  });
+});
+
+describe("SessionViewer — the agent version notice and the personal-key disclosure", () => {
+  const outdated = {
+    ...stubSessionPageFlow.agentVersion,
+    pinnedHash: "h_old",
+    currentHash: "h_new",
+    agentName: "Support Bot",
+    isOutdated: true,
+    update: vi.fn(),
+  };
+
+  afterEach(() => {
+    mockUseSessionPageFlow.mockImplementation(() => stubSessionPageFlow);
+  });
+
+  it("offers Update only when the conversation runs an older version, and Update moves it", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(screen.queryByText(/runs an older version/)).toBeNull();
+    cleanup();
+
+    mockUseSessionPageFlow.mockImplementation(() => ({ ...stubSessionPageFlow, agentVersion: outdated }));
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(
+      screen.getByText("This conversation runs an older version of Support Bot."),
+    ).toBeTruthy();
+    expect(outdated.update).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Update" }));
+    expect(outdated.update).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["guest", "observer"] as const)("never offers Update to the %s audience", (audience) => {
+    mockUseSessionPageFlow.mockImplementation(() => ({ ...stubSessionPageFlow, agentVersion: outdated }));
+    render(<SessionViewer sessionId="ses_1" org="acme" audience={audience} />);
+    expect(screen.queryByText(/runs an older version/)).toBeNull();
+  });
+
+  it("discloses the personal keys before a conversation's first message, never to a guest", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(lastComposerProps().disclosePersonalKeys).toBe(true);
+    cleanup();
+
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" />);
+    expect(lastComposerProps().disclosePersonalKeys).toBe(false);
+  });
+
+  it("names the keys of the session's pinned version while the next message runs the session's own agent", () => {
+    const pinnedSession = {
+      spec: { agentRef: { org: "acme", slug: "support-bot" } },
+      status: { agentId: "agt_1", agentVersionHash: "h_pinned" },
+    };
+    // A conversation with no turn yet, on its own agent: disclosed, from the pin.
+    mockUseSessionPageFlow.mockImplementation(() => ({
+      ...stubSessionPageFlow,
+      conv: { ...stubConv, session: pinnedSession },
+    }));
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(lastComposerProps().disclosePersonalKeys).toBe(true);
+    expect(lastComposerProps().personalKeysVersionHash).toBe("h_pinned");
+    cleanup();
+
+    // Turns already ran on that agent: nothing new to disclose.
+    mockUseSessionPageFlow.mockImplementation(() => ({
+      ...stubSessionPageFlow,
+      conv: { ...stubConv, session: pinnedSession, completedExecutions: [{}] as never[] },
+    }));
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(lastComposerProps().disclosePersonalKeys).toBe(false);
+    cleanup();
+
+    // The person picked another agent: disclosed, from that agent's current version.
+    mockUseSessionPageFlow.mockImplementation(() => ({
+      ...stubSessionPageFlow,
+      agentRef: { org: "acme", slug: "other-bot" },
+      conv: { ...stubConv, session: pinnedSession, completedExecutions: [{}] as never[] },
+    }));
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(lastComposerProps().disclosePersonalKeys).toBe(true);
+    expect(lastComposerProps().personalKeysVersionHash).toBeUndefined();
+  });
+
+  it("the launcher discloses the personal keys for a signed-in person", () => {
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    expect(lastComposerProps().disclosePersonalKeys).toBe(true);
   });
 });

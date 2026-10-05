@@ -149,8 +149,8 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      An Agent is a secret-free YAML blueprint that expands at runtime into
-      Instance, Session, and Execution.
+      An Agent is a secret-free, versioned YAML blueprint that a Session names
+      directly and each Execution runs.
     medium: still
     why:
       The prose says "here's how this Agent looks in the console" — one frame
@@ -171,12 +171,13 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      A Session is the durable conversation context that carries history, locks
-      a Harness, and can override Skills and tools.
+      A Session is the durable conversation context that names its Agent, runs
+      the version it started on until updated, re-checks run permission on
+      every message, locks a Harness, and can override Skills and tools.
     medium: diagram
     why:
-      The lifecycle (Instance to Session to Executions) is structure; the
-      existing mermaid carries it.
+      The lifecycle (Agent to Session to Executions) is structure; the existing
+      mermaid carries it.
 
   concepts/approval-flows:
     fate: keep
@@ -492,12 +493,13 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      How config and secrets live outside definitions, how Environments layer
-      with later-wins ordering, and what is_secret changes.
+      How config and secrets live outside definitions, how Environments bound
+      to what starts a run layer with later-wins ordering, where a run's values
+      come from (personal Environment last), and what is_secret changes.
     medium: diagram
     why:
-      Layered merging into an Instance is structure; the existing mermaid
-      carries it.
+      Layered merging into a run is structure; the existing mermaid carries
+      it.
 
   concepts/runners:
     fate: keep
@@ -508,8 +510,8 @@ pages:
       task queue and what happens when none is polling.
     medium: diagram
     why:
-      The runner's place at the end of the Agent, Instance, Session, Execution
-      chain is structure; the existing mermaid carries it.
+      The runner's place at the end of the Agent, Session, Execution chain is
+      structure; the existing mermaid carries it.
 
   guides/runners/overview:
     fate: keep

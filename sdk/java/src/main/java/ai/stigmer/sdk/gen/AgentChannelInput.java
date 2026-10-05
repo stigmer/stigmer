@@ -54,11 +54,11 @@ public final class AgentChannelInput {
                 .setKind(ApiResourceKind.agent).build());
         }
         spec.setEnabled(this.enabled);
-        if (this.slack != null) {
-            spec.setSlack(this.slack.toProto());
-        }
         if (this.whatsapp != null) {
             spec.setWhatsapp(this.whatsapp.toProto());
+        }
+        if (this.slack != null) {
+            spec.setSlack(this.slack.toProto());
         }
         if (this.environmentRefs != null) {
             for (ResourceRef item : this.environmentRefs) {

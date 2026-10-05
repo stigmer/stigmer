@@ -47,7 +47,7 @@ status:
       task_type: WORKFLOW_TASK_AGENT_INVOCATION
       status: WORKFLOW_TASK_IN_PROGRESS
       input:
-        agent_instance_id: agi-account-creator
+        agent: account-creator
         prompt: "Create account for john.doe@example.com on plan=pro"
       started_at: "2025-01-11T14:30:24Z"
     - task_id: task-3
@@ -242,7 +242,7 @@ Each entry in `status.tasks` is a `WorkflowTask` — the atomic unit of work in 
 
 | Type | Enum Value | Description |
 |---|---|---|
-| `WORKFLOW_TASK_AGENT_INVOCATION` | 1 | Invoke an AI AgentInstance with a prompt. Waits for agent execution to complete. |
+| `WORKFLOW_TASK_AGENT_INVOCATION` | 1 | Invoke an Agent with a prompt, in a new session on the agent the task names. Waits for agent execution to complete. |
 | `WORKFLOW_TASK_APPROVAL` | 2 | Pause workflow and wait for human approval from designated approvers. |
 | `WORKFLOW_TASK_API_CALL` | 3 | Make an HTTP or gRPC API call to an external service. |
 | `WORKFLOW_TASK_CONDITIONAL` | 4 | Evaluate a boolean expression and branch to different task paths. |
@@ -267,7 +267,7 @@ Each entry in `status.tasks` is a `WorkflowTask` — the atomic unit of work in 
 
 ```yaml
 input:
-  agent_instance_id: agi-customer-support
+  agent: customer-support
   prompt: "Analyze this feedback: {{workflow.input.trigger_message}}"
   max_tokens: 500
 output:

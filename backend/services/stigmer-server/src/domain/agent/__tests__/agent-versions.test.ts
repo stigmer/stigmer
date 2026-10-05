@@ -6,7 +6,7 @@
  *
  * The load-bearing pins:
  *   - create records the first version; its snapshot (what getVersion
- *     serves) carries the default instance id the second persist writes;
+ *     serves) is the agent as created;
  *   - an unchanged update records nothing and keeps the version chain; a
  *     changed one chains a new version; an A→B→A update repoints without a
  *     new row, and listVersions marks the older row current;
@@ -17,8 +17,9 @@
  *   - tagVersion moves a tag single-holder and reconciles the head; an
  *     unchanged re-apply naming a tag moves it too;
  *   - delete drops the agent's version rows;
- *   - a reference to an agent that names a version is refused on a run
- *     surface (a share), the surface running the agent's current version.
+ *   - a reference to an agent that names a version is accepted on a run
+ *     surface (a share) and kept as written: the session the surface
+ *     starts pins that version.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -128,7 +129,7 @@ async function expectCode(
 }
 
 describe("agent versions: what a write records", () => {
-  it("create records the first version, whose snapshot carries the default instance id", async () => {
+  it("create records the first version, whose snapshot is the agent as created", async () => {
     const created = await command.create(
       agentInput(uniqueName("First"), "v1", { message: "the first cut" }),
     );
@@ -146,7 +147,8 @@ describe("agent versions: what a write records", () => {
       hash,
       AgentSchema,
     );
-    expect(archived.status?.defaultInstanceId).not.toBe("");
+    expect(archived.metadata?.id).toBe(id);
+    expect(archived.spec?.instructions).toBe(said("v1"));
 
     const entry = await query.getVersion({ agentId: id, versionHash: hash });
     expect(entry.isCurrent).toBe(true);
@@ -302,23 +304,20 @@ describe("agent versions: delete and references", () => {
     expect(await versionRows(id)).toBe(0);
   });
 
-  it("a share whose agent reference names a version is refused: the share runs the current version", async () => {
+  it("a share whose agent reference names a version is accepted and keeps the version as written", async () => {
     const agent = await command.apply(agentInput(uniqueName("Shared"), "v1"));
-    await expectCode(
-      shares.create({
-        apiVersion: API_VERSION,
-        kind: "AgentShare",
-        metadata: { name: uniqueName("share"), org: ORG },
-        spec: {
-          agentRef: {
-            kind: ApiResourceKind.agent,
-            slug: agent.metadata!.slug,
-            version: agent.status!.versionHash,
-          },
+    const share = await shares.create({
+      apiVersion: API_VERSION,
+      kind: "AgentShare",
+      metadata: { name: uniqueName("share"), org: ORG },
+      spec: {
+        agentRef: {
+          kind: ApiResourceKind.agent,
+          slug: agent.metadata!.slug,
+          version: agent.status!.versionHash,
         },
-      }),
-      Code.InvalidArgument,
-      "runs the agent's current version and cannot run another; omit the version",
-    );
+      },
+    });
+    expect(share.spec?.agentRef?.version).toBe(agent.status!.versionHash);
   });
 });

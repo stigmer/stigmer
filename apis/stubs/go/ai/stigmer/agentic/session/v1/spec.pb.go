@@ -27,14 +27,28 @@ const (
 // SessionSpec defines the configurable properties of a session.
 type SessionSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Agent instance this session runs against; empty means no agent, and the
-	// built-in assistant answers with the MCP servers and skills this session
-	// itself declares.
+	// The agent this conversation runs, as 'org/slug' with an optional
+	// version; empty means no agent, and the built-in assistant answers with
+	// the MCP servers and skills this session itself declares.
 	//
-	// A session may gain an agent or drop back to the built-in assistant on
-	// update; the harness and execution target are the immutable fields, not
-	// this one.
-	AgentInstanceId string `protobuf:"bytes,1,opt,name=agent_instance_id,json=agentInstanceId,proto3" json:"agent_instance_id,omitempty"`
+	// The conversation runs the agent version this reference resolved to
+	// when it was written, recorded in status.agent_id and
+	// status.agent_version_hash, so an author saving a new version never
+	// changes an open conversation under its people. A version names a tag or
+	// a content hash; none, on a reference the session did not already hold,
+	// names the agent's current version. To move a conversation to the
+	// agent's current version, update the session with this reference's
+	// version set to `latest`: the server pins that version and stores the
+	// reference with no version. An update that sends the stored reference
+	// unchanged keeps the version the conversation runs, even when the tag it
+	// names has moved since.
+	//
+	// A session may gain an agent, change it or drop back to the built-in
+	// assistant on update; the harness and execution target are the
+	// immutable fields, not this one. Naming an agent, or changing it, needs
+	// permission to run that agent (can_execute), and every turn asks it
+	// again.
+	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,14,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Conversation title for UI display.
 	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
 	// Harness-specific state identifier for conversation continuity.
@@ -151,11 +165,11 @@ func (*SessionSpec) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_session_v1_spec_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *SessionSpec) GetAgentInstanceId() string {
+func (x *SessionSpec) GetAgentRef() *apiresource.ApiResourceReference {
 	if x != nil {
-		return x.AgentInstanceId
+		return x.AgentRef
 	}
-	return ""
+	return nil
 }
 
 func (x *SessionSpec) GetSubject() string {
@@ -232,9 +246,10 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xc1\b\n" +
-	"\vSessionSpec\x12*\n" +
-	"\x11agent_instance_id\x18\x01 \x01(\tR\x0fagentInstanceId\x12\x18\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xec\t\n" +
+	"\vSessionSpec\x12\xbb\x01\n" +
+	"\tagent_ref\x18\x0e \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBh\xbaHa\xba\x01^\n" +
+	"\x16session_agent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xe0\x85,(R\bagentRef\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12(\n" +
 	"\x10harness_state_id\x18\x03 \x01(\tR\x0eharnessStateId\x127\n" +
 	"\x18harness_state_id_history\x18\r \x03(\tR\x15harnessStateIdHistory\x12T\n" +
@@ -252,7 +267,7 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\x10execution_target\x18\f \x01(\x0e2..ai.stigmer.agentic.session.v1.ExecutionTargetR\x0fexecutionTarget\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x99\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02R\x11agent_instance_idB\x99\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -271,26 +286,27 @@ var file_ai_stigmer_agentic_session_v1_spec_proto_msgTypes = make([]protoimpl.Me
 var file_ai_stigmer_agentic_session_v1_spec_proto_goTypes = []any{
 	(*SessionSpec)(nil),                      // 0: ai.stigmer.agentic.session.v1.SessionSpec
 	nil,                                      // 1: ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
-	(*WorkspaceEntry)(nil),                   // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry
-	(*v1.McpServerUsage)(nil),                // 3: ai.stigmer.agentic.agent.v1.McpServerUsage
-	(*apiresource.ApiResourceReference)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*WorkspaceEntry)(nil),                   // 3: ai.stigmer.agentic.session.v1.WorkspaceEntry
+	(*v1.McpServerUsage)(nil),                // 4: ai.stigmer.agentic.agent.v1.McpServerUsage
 	(Harness)(0),                             // 5: ai.stigmer.agentic.session.v1.Harness
 	(CursorMode)(0),                          // 6: ai.stigmer.agentic.session.v1.CursorMode
 	(ExecutionTarget)(0),                     // 7: ai.stigmer.agentic.session.v1.ExecutionTarget
 }
 var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
-	2, // 1: ai.stigmer.agentic.session.v1.SessionSpec.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
-	3, // 2: ai.stigmer.agentic.session.v1.SessionSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
-	4, // 3: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	5, // 4: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
-	6, // 5: ai.stigmer.agentic.session.v1.SessionSpec.cursor_mode:type_name -> ai.stigmer.agentic.session.v1.CursorMode
-	7, // 6: ai.stigmer.agentic.session.v1.SessionSpec.execution_target:type_name -> ai.stigmer.agentic.session.v1.ExecutionTarget
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.session.v1.SessionSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	1, // 1: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
+	3, // 2: ai.stigmer.agentic.session.v1.SessionSpec.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
+	4, // 3: ai.stigmer.agentic.session.v1.SessionSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
+	2, // 4: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5, // 5: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
+	6, // 6: ai.stigmer.agentic.session.v1.SessionSpec.cursor_mode:type_name -> ai.stigmer.agentic.session.v1.CursorMode
+	7, // 7: ai.stigmer.agentic.session.v1.SessionSpec.execution_target:type_name -> ai.stigmer.agentic.session.v1.ExecutionTarget
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_spec_proto_init() }

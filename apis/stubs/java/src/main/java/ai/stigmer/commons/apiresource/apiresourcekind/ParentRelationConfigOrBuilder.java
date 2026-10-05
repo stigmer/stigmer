@@ -62,7 +62,8 @@ public interface ParentRelationConfigOrBuilder extends
    * <pre>
    * Field name in the resource's spec message that contains the parent ID.
    * The service extracts this field from resource.spec to resolve the parent ID.
-   * Example: "session_id" for agent_execution, "agent_id" for agent_instance.
+   * Example: "session_id" for agent_execution, "workflow_id" for
+   * workflow_instance.
    * This eliminates hardcoded parent ID extraction logic in the service.
    * </pre>
    *
@@ -74,7 +75,8 @@ public interface ParentRelationConfigOrBuilder extends
    * <pre>
    * Field name in the resource's spec message that contains the parent ID.
    * The service extracts this field from resource.spec to resolve the parent ID.
-   * Example: "session_id" for agent_execution, "agent_id" for agent_instance.
+   * Example: "session_id" for agent_execution, "workflow_id" for
+   * workflow_instance.
    * This eliminates hardcoded parent ID extraction logic in the service.
    * </pre>
    *

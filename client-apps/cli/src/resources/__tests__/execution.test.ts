@@ -71,8 +71,11 @@ describe("renderExecutionList", () => {
     entries: [
       create(AgentExecutionSchema, {
         metadata: { id: "aex_1" },
-        spec: { agentId: "agt_1" },
-        status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS, startedAt: "2026-03-01T10:00:00Z" },
+        status: {
+          agentId: "agt_1",
+          phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+          startedAt: "2026-03-01T10:00:00Z",
+        },
       }),
     ],
   });
@@ -88,6 +91,8 @@ describe("renderExecutionList", () => {
     const table = renderExecutionList(result, "table", "agent");
     expect(table).toContain("AGENT");
     expect(table).toContain("aex_1");
+    // The agent column is the agent the turn ran, as the server recorded it.
+    expect(table).toContain("agt_1");
     expect(table).toContain("in-progress");
   });
 });

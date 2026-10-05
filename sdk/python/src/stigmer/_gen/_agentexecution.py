@@ -181,35 +181,23 @@ class AgentExecutionInput:
     labels: dict[str, str] | None = None
     visibility: int = 0
     session_id: str = ""
-    agent_id: str = ""
     session_spec: SessionSpecInput | None = None
     message: str = ""
     execution_config: ExecutionConfigInput | None = None
     runtime_env: dict[str, EnvVarInput] = field(default_factory=dict)
-    callback_token: bytes = b""
     auto_approve_all: bool = False
-    parent_workflow_id: str = ""
     attachments: list[AttachmentInput] = field(default_factory=list)
     workspace_file_refs: list[str] = field(default_factory=list)
-    activity_task_queue: str = ""
     supersedes_execution_id: str = ""
     conversation_catchup: ConversationCatchupInput | None = None
-    declared_preferences: DeclaredPreferencesInput | None = None
-    recalled_memories: RecalledMemoriesInput | None = None
+    parent: WorkflowParentInput | None = None
 
     def _to_proto(self) -> api_pb2.AgentExecution:
         spec = spec_pb2.AgentExecutionSpec(
-            session_id=self.session_id,
-            agent_id=self.agent_id,
             message=self.message,
-            callback_token=self.callback_token,
             auto_approve_all=self.auto_approve_all,
-            parent_workflow_id=self.parent_workflow_id,
-            activity_task_queue=self.activity_task_queue,
             supersedes_execution_id=self.supersedes_execution_id,
         )
-        if self.session_spec is not None:
-            spec.session_spec.CopyFrom(self.session_spec._to_proto())
         if self.execution_config is not None:
             spec.execution_config.CopyFrom(self.execution_config._to_proto())
         for k, v in self.runtime_env.items():
@@ -222,10 +210,12 @@ class AgentExecutionInput:
             spec.workspace_file_refs.extend(self.workspace_file_refs)
         if self.conversation_catchup is not None:
             spec.conversation_catchup.CopyFrom(self.conversation_catchup._to_proto())
-        if self.declared_preferences is not None:
-            spec.declared_preferences.CopyFrom(self.declared_preferences._to_proto())
-        if self.recalled_memories is not None:
-            spec.recalled_memories.CopyFrom(self.recalled_memories._to_proto())
+        if self.parent is not None:
+            spec.parent.CopyFrom(self.parent._to_proto())
+        if self.session_spec is not None:
+            spec.session_spec.CopyFrom(self.session_spec._to_proto())
+        if self.session_id:
+            setattr(spec, "session_id", self.session_id)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -250,7 +240,7 @@ class AgentExecutionInput:
 class SessionSpecInput:
     """SDK input type for SessionSpec."""
 
-    agent_instance_id: str = ""
+    agent_ref: ResourceRef | None = None
     subject: str = ""
     harness_state_id: str = ""
     harness_state_id_history: list[str] = field(default_factory=list)
@@ -264,13 +254,16 @@ class SessionSpecInput:
 
     def _to_proto(self) -> session_spec_pb2.SessionSpec:
         msg = session_spec_pb2.SessionSpec(
-            agent_instance_id=self.agent_instance_id,
             subject=self.subject,
             harness_state_id=self.harness_state_id,
             harness=self.harness,
             cursor_mode=self.cursor_mode,
             execution_target=self.execution_target,
         )
+        if self.agent_ref is not None and (self.agent_ref.org or self.agent_ref.slug):
+            _ref = self.agent_ref._to_proto()
+            _ref.kind = 40
+            msg.agent_ref.CopyFrom(_ref)
         if self.harness_state_id_history:
             msg.harness_state_id_history.extend(self.harness_state_id_history)
         if self.metadata:
@@ -311,10 +304,10 @@ class WorkspaceSourceInput:
 
     def _to_proto(self) -> session_workspace_pb2.WorkspaceSource:
         msg = session_workspace_pb2.WorkspaceSource()
-        if self.git_repo is not None:
-            msg.git_repo.CopyFrom(self.git_repo._to_proto())
         if self.local_path is not None:
             msg.local_path.CopyFrom(self.local_path._to_proto())
+        if self.git_repo is not None:
+            msg.git_repo.CopyFrom(self.git_repo._to_proto())
         return msg
 
 
@@ -445,47 +438,18 @@ class ConversationCatchupInput:
 
 
 @dataclass
-class DeclaredPreferencesInput:
-    """SDK input type for DeclaredPreferences."""
+class WorkflowParentInput:
+    """SDK input type for WorkflowParent."""
 
-    org_context: str = ""
-    user_context: str = ""
+    workflow_execution_id: str = ""
+    signal_workflow_id: str = ""
+    callback_token: bytes = b""
 
-    def _to_proto(self) -> spec_pb2.DeclaredPreferences:
-        msg = spec_pb2.DeclaredPreferences(
-            org_context=self.org_context,
-            user_context=self.user_context,
-        )
-        return msg
-
-
-@dataclass
-class RecalledMemoriesInput:
-    """SDK input type for RecalledMemories."""
-
-    enabled: bool = False
-    facts: list[RecalledMemoryFactInput] = field(default_factory=list)
-
-    def _to_proto(self) -> spec_pb2.RecalledMemories:
-        msg = spec_pb2.RecalledMemories(
-            enabled=self.enabled,
-        )
-        for item in self.facts:
-            msg.facts.append(item._to_proto())
-        return msg
-
-
-@dataclass
-class RecalledMemoryFactInput:
-    """SDK input type for RecalledMemoryFact."""
-
-    memory_id: str = ""
-    content: str = ""
-
-    def _to_proto(self) -> spec_pb2.RecalledMemoryFact:
-        msg = spec_pb2.RecalledMemoryFact(
-            memory_id=self.memory_id,
-            content=self.content,
+    def _to_proto(self) -> spec_pb2.WorkflowParent:
+        msg = spec_pb2.WorkflowParent(
+            workflow_execution_id=self.workflow_execution_id,
+            signal_workflow_id=self.signal_workflow_id,
+            callback_token=self.callback_token,
         )
         return msg
 

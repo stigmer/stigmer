@@ -235,7 +235,7 @@ status:
       task_type: WORKFLOW_TASK_AGENT_INVOCATION
       status: WORKFLOW_TASK_IN_PROGRESS
       input:
-        agent_instance_id: agi-content-analyzer
+        agent: content-analyzer
         prompt: "Analyze sentiment of these 2 support tickets: ..."
       metadata:
         agent_execution_id: agx-analyzer-001

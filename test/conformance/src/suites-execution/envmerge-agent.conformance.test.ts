@@ -1,30 +1,37 @@
-// Conformance suite for environment-merge precedence — the AGENT-INSTANCE
-// half (Class B). The workflow half lives in
+// Conformance suite for environment-merge precedence — the AGENT half
+// (Class B). The workflow half lives in
 // envmerge-workflow.conformance.test.ts: rosters are file-granular and the
 // local-execution target rostered agent-execution suites before the
 // workflow-execution engine existed, so the two aggregates' assertions ship
 // as two files.
 //
 // Domain: agentic — the env layering that populates an ExecutionContext at
-// run start, exercised through AgentExecution (via AgentInstance). The
-// merge contract itself (two value layers + blueprint key whitelist,
-// stigmer#222) is documented in the workflow half's header.
+// run start, exercised through AgentExecution. A turn's value layers are the
+// lane's (a PlatformClient's, a schedule's or a workflow task's
+// environment_refs) and its own runtime_env; the agent's declarations are
+// the key whitelist; and a declared key no layer carries is filled from the
+// run's person's personal environment, by declared key, after every layer
+// (the personal-key bridge; the two-person form, where a member's turn reads
+// the member's value and never the agent author's, is pinned on the enforcing
+// lane in runner-as-subject.conformance.test.ts). The merge contract itself (value
+// layers + blueprint key whitelist, stigmer#222) is documented in the
+// workflow half's header.
 //
 // Observation strategy: the ExecutionContext is created SYNCHRONOUSLY
 // inside the create pipeline, so it exists the instant create() returns; a
 // held mock-LLM turn keeps the run non-terminal (and its ephemeral context
-// alive) while getByExecutionId reads it.
+// alive) while getByExecutionId reads it. Values are plain (not secret) so
+// the read shows them unredacted.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
 import { makeHttpMcpServer } from "../support/mcpservers";
-import { makeAgentInstance } from "../support/agentinstances";
-import { type EnvVarDeclarationInit, type EnvironmentValueInit, makeEnvironment } from "../support/environments";
+import { type EnvVarDeclarationInit, type EnvironmentValueInit, makePersonalEnvironment } from "../support/environments";
 import { type ExecutionValueInit } from "../support/executioncontexts";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
@@ -60,55 +67,31 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// One Environment layer: a name hint (for readability in server logs) plus its
-// spec.data. Refs are merged in array order, so the last layer wins on conflicts.
-interface EnvLayer {
-  name?: string;
-  data: Record<string, EnvironmentValueInit>;
-}
-
 interface MergeSetup {
-  // Instance environment_refs, merged in order (later overrides earlier).
-  environments: EnvLayer[];
+  // The run's person's personal environment (stigmer.ai/personal): the
+  // fill-in for a declared key no value layer carries.
+  personal: Record<string, EnvironmentValueInit>;
   // Blueprint env declarations (the whitelist the merged env is filtered to).
   env: Record<string, EnvVarDeclarationInit>;
   // Execution-scoped overrides (highest precedence).
   runtimeEnv?: Record<string, ExecutionValueInit>;
 }
 
-// Creates the requested Environment resources and returns their org/slug refs,
-// tracking each for cleanup.
-async function seedEnvironments(org: string, layers: EnvLayer[]): Promise<{ org: string; slug: string }[]> {
-  const refs: { org: string; slug: string }[] = [];
-  for (const layer of layers) {
-    const env = await clients.environmentCommand.create(
-      makeEnvironment({ org, name: uniqueName(layer.name ?? "env"), data: layer.data }),
-    );
-    fixtures.defer(() => clients.environmentCommand.delete({ resourceId: env.metadata!.id }));
-    refs.push({ org, slug: env.metadata!.slug });
-  }
-  return refs;
-}
-
-// Drives the AGENT env-merge path end to end: Environment(s) -> Agent (env
-// whitelist) -> AgentInstance (environment_refs) -> Session (bound to the
-// instance) -> AgentExecution (runtime_env) against the session. Providing
-// session_id makes the create pipeline skip default-instance/session creation, so
-// the env merge resolves the instance via Session -> agent_instance_id (Path B).
-// A held mock turn keeps the run non-terminal for the read.
+// Drives the AGENT env-merge path end to end: the caller's personal
+// Environment -> Agent (env whitelist) -> Session on the agent ->
+// AgentExecution (runtime_env) in the session. A held mock turn keeps the run
+// non-terminal for the read.
 async function runAgentMerge(org: string, setup: MergeSetup) {
-  const refs = await seedEnvironments(org, setup.environments);
+  const personal = await clients.environmentCommand.create(
+    makePersonalEnvironment({ org, name: uniqueName("personal"), data: setup.personal }),
+  );
+  fixtures.defer(() => clients.environmentCommand.delete({ resourceId: personal.metadata!.id }));
 
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent"), env: setup.env }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
-  const instance = await clients.agentInstanceCommand.create(
-    makeAgentInstance({ org, name: uniqueName("ain"), agentId: agent.metadata!.id, environmentRefs: refs }),
-  );
-  fixtures.defer(() => clients.agentInstanceCommand.delete({ value: instance.metadata!.id }));
-
   const session = await clients.sessionCommand.create(
-    makeSession({ org, name: uniqueName("session"), agentInstanceId: instance.metadata!.id }),
+    makeSession({ org, name: uniqueName("session"), agentRef: agentRefOf(agent) }),
   );
   fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
 
@@ -127,29 +110,42 @@ async function runAgentMerge(org: string, setup: MergeSetup) {
   return { execution, data: context.spec?.data ?? {} };
 }
 
-describe("envmerge conformance — Agent instance layer", () => {
-  it("AgentInstance environment_refs reach the ExecutionContext; runtime_env overrides them; undeclared keys are filtered", async () => {
+describe("envmerge conformance — the agent's declared keys", () => {
+  it("a key the agent declares and no layer carries is filled from the run's person's personal environment", async () => {
     const { org } = await target.provisionTenancy();
     const { data } = await runAgentMerge(org, {
-      environments: [
-        {
-          data: {
-            PRECEDENCE_KEY: { value: "from-environment" },
-            ENV_ONLY_KEY: { value: "env-value" },
-            UNDECLARED_KEY: { value: "dropped" },
-          },
-        },
-      ],
-      env: { PRECEDENCE_KEY: {}, ENV_ONLY_KEY: {}, RUNTIME_ONLY_KEY: {} },
+      personal: { BRIDGE_KEY: { value: "personal-value", isSecret: false } },
+      env: { BRIDGE_KEY: { isSecret: false } },
+    });
+
+    expect(data.BRIDGE_KEY?.value, "the personal environment fills the agent's declared key").toBe("personal-value");
+  });
+
+  it("runtime_env wins over the personal environment for a declared key", async () => {
+    const { org } = await target.provisionTenancy();
+    const { data } = await runAgentMerge(org, {
+      personal: { PRECEDENCE_KEY: { value: "from-personal", isSecret: false } },
+      env: { PRECEDENCE_KEY: { isSecret: false }, RUNTIME_ONLY_KEY: { isSecret: false } },
       runtimeEnv: { PRECEDENCE_KEY: { value: "from-runtime" }, RUNTIME_ONLY_KEY: { value: "runtime-value" } },
     });
 
-    expect(data.ENV_ONLY_KEY?.value, "the AgentInstance environment_refs layer reaches the ExecutionContext").toBe(
-      "env-value",
+    expect(data.PRECEDENCE_KEY?.value, "the personal fill-in never overrides a value a layer carries").toBe(
+      "from-runtime",
     );
-    expect(data.PRECEDENCE_KEY?.value, "runtime_env overrides the AgentInstance environment layer").toBe("from-runtime");
     expect(data.RUNTIME_ONLY_KEY?.value, "a runtime-only declared key is present").toBe("runtime-value");
-    expect(data.UNDECLARED_KEY, "keys not declared in the agent whitelist are excluded").toBeUndefined();
+  });
+
+  it("keys the agent does not declare are excluded, wherever they come from", async () => {
+    const { org } = await target.provisionTenancy();
+    const { data } = await runAgentMerge(org, {
+      personal: { UNDECLARED_PERSONAL_KEY: { value: "dropped", isSecret: false } },
+      env: { DECLARED_KEY: { isSecret: false } },
+      runtimeEnv: { DECLARED_KEY: { value: "kept" }, UNDECLARED_RUNTIME_KEY: { value: "dropped" } },
+    });
+
+    expect(data.DECLARED_KEY?.value).toBe("kept");
+    expect(data.UNDECLARED_PERSONAL_KEY, "a personal key the agent does not declare never reaches the run").toBeUndefined();
+    expect(data.UNDECLARED_RUNTIME_KEY, "a runtime key the agent does not declare is filtered").toBeUndefined();
   });
 });
 
@@ -186,14 +182,12 @@ describe("envmerge conformance — the agent's shell", () => {
       }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    const agentInstanceId = agent.status?.defaultInstanceId ?? "";
-    expect(agentInstanceId, "the agent's default instance").not.toBe("");
 
     const session = await clients.sessionCommand.create(
       makeSession({
         org,
         name: uniqueName("shell-session"),
-        agentInstanceId,
+        agentRef: agentRefOf(agent),
         ...(serverOn === "session" ? { mcpServerRefs: [server.metadata!.slug] } : {}),
       }),
     );

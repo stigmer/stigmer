@@ -3,7 +3,8 @@
  *
  * The LLM seam (model registry + chat model) is module-mocked; the backend
  * client is injected through SessionSubjectClient, so every skip branch,
- * the agent-resolution chain, and both fallback classes are pinned without
+ * the agent read from the turn's stamp (never from the session, which may
+ * since name another agent), and both fallback classes are pinned without
  * Temporal or network coupling. Behavioral contract mirrors the cloud
  * GenerateSessionSubjectActivityImpl (see the activity header).
  */
@@ -13,7 +14,6 @@ import { ConnectError, Code } from "@connectrpc/connect";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 
 vi.mock("../../shared/model-registry.js", () => ({
   getSummarizationModel: vi.fn(async (primary: string) => primary),
@@ -31,7 +31,6 @@ vi.mock("../../shared/llm-proxy.js", () => ({
 import {
   AUTO_CREATED_SUBJECT,
   generateSessionSubject,
-  resolveAgentId,
   heuristicSubject,
   cleanSubject,
   buildUserPrompt,
@@ -48,22 +47,27 @@ import { checkDirectCredentials } from "../../shared/llm-backend.js";
 const EXECUTION_ID = "aex_test123";
 const SESSION_ID = "ses_test456";
 const AGENT_ID = "agt_test789";
-const INSTANCE_ID = "ain_test012";
 
-function fakeExecution(overrides: Record<string, unknown> = {}): AgentExecution {
+interface ExecutionShape {
+  sessionId?: string;
+  agentId?: string;
+  message?: string;
+}
+
+/** A turn as the server dispatches it: its session on the target, its agent stamped in status. */
+function fakeExecution(shape: ExecutionShape = {}): AgentExecution {
   return {
     spec: {
-      sessionId: SESSION_ID,
-      agentId: AGENT_ID,
-      message: "Explain how database indexing works for PostgreSQL",
-      ...overrides,
+      target: { case: "sessionId", value: shape.sessionId ?? SESSION_ID },
+      message: shape.message ?? "Explain how database indexing works for PostgreSQL",
     },
+    status: { agentId: shape.agentId ?? AGENT_ID },
   } as unknown as AgentExecution;
 }
 
-function fakeSession(subject: string = AUTO_CREATED_SUBJECT, agentInstanceId = ""): Session {
+function fakeSession(subject: string = AUTO_CREATED_SUBJECT): Session {
   return {
-    spec: { subject, agentInstanceId },
+    spec: { subject },
   } as unknown as Session;
 }
 
@@ -74,10 +78,6 @@ function fakeAgent(): Agent {
   } as unknown as Agent;
 }
 
-function fakeInstance(agentId: string): AgentInstance {
-  return { spec: { agentId } } as unknown as AgentInstance;
-}
-
 function notFound(): ConnectError {
   return new ConnectError("not found", Code.NotFound);
 }
@@ -86,7 +86,6 @@ interface ClientBehavior {
   execution?: AgentExecution | Error;
   session?: Session | Error;
   agent?: Agent | Error;
-  instance?: AgentInstance | Error;
   updateError?: Error;
 }
 
@@ -100,7 +99,6 @@ function fakeClient(behavior: ClientBehavior = {}) {
     getExecution: vi.fn(() => resolve(behavior.execution, fakeExecution())),
     getSession: vi.fn(() => resolve(behavior.session, fakeSession())),
     getAgent: vi.fn(() => resolve(behavior.agent, fakeAgent())),
-    getAgentInstance: vi.fn(() => resolve(behavior.instance, fakeInstance(AGENT_ID))),
     updateSessionSubject: vi.fn((sessionId: string, subject: string) => {
       if (behavior.updateError) return Promise.reject(behavior.updateError);
       updated.push({ sessionId, subject });
@@ -143,7 +141,6 @@ describe("generateSessionSubject", () => {
     const { client, updated } = fakeClient({ execution: fakeExecution({ agentId: "" }) });
     await generateSessionSubject(EXECUTION_ID, client, OPTIONS);
     expect(updated).toHaveLength(1);
-    expect(client.getAgentInstance).not.toHaveBeenCalled();
     expect(client.getAgent).not.toHaveBeenCalled();
   });
 
@@ -259,42 +256,39 @@ describe("generateSessionSubject", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Agent resolution (direct + instance chain)
+// The agent: the turn's stamp alone
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("resolveAgentId", () => {
-  it("prefers the execution's direct agent_id", async () => {
-    const { client } = fakeClient();
-    const id = await resolveAgentId(fakeExecution(), fakeSession(), client);
-    expect(id).toBe(AGENT_ID);
-    expect(client.getAgentInstance).not.toHaveBeenCalled();
+describe("the agent behind the title", () => {
+  it("reads the agent the turn stamped, and lends its name and purpose to the prompt", async () => {
+    let prompt = "";
+    vi.mocked(buildChatModel).mockResolvedValue({
+      model: {
+        invoke: vi.fn(async (messages: Array<{ content: unknown }>) => {
+          prompt = String(messages[1]?.content ?? "");
+          return { content: "PostgreSQL B-tree Indexing" };
+        }),
+      },
+    } as never);
+    const { client } = fakeClient({ execution: fakeExecution({ agentId: "agt_stamped" }) });
+
+    await generateSessionSubject(EXECUTION_ID, client, OPTIONS);
+
+    expect(client.getAgent).toHaveBeenCalledWith("agt_stamped");
+    expect(prompt).toContain("test-agent");
   });
 
-  it("resolves through the session's agent-instance chain", async () => {
-    const { client } = fakeClient({ instance: fakeInstance("agt_from_instance") });
-    const id = await resolveAgentId(
-      fakeExecution({ agentId: "" }),
-      fakeSession(AUTO_CREATED_SUBJECT, INSTANCE_ID),
-      client,
-    );
-    expect(id).toBe("agt_from_instance");
-    expect(client.getAgentInstance).toHaveBeenCalledWith(INSTANCE_ID);
-  });
+  it("never reads the session's agent: a turn with no stamp is titled as the built-in assistant's", async () => {
+    const session = {
+      spec: { subject: AUTO_CREATED_SUBJECT, agentRef: { org: "acme", slug: "builder" } },
+      status: { agentId: "agt_session_pin" },
+    } as unknown as Session;
+    const { client, updated } = fakeClient({ execution: fakeExecution({ agentId: "" }), session });
 
-  it("returns empty when neither a direct id nor an instance exists", async () => {
-    const { client } = fakeClient();
-    const id = await resolveAgentId(fakeExecution({ agentId: "" }), fakeSession(), client);
-    expect(id).toBe("");
-  });
+    await generateSessionSubject(EXECUTION_ID, client, OPTIONS);
 
-  it("returns empty when the instance row is NOT_FOUND", async () => {
-    const { client } = fakeClient({ instance: notFound() });
-    const id = await resolveAgentId(
-      fakeExecution({ agentId: "" }),
-      fakeSession(AUTO_CREATED_SUBJECT, INSTANCE_ID),
-      client,
-    );
-    expect(id).toBe("");
+    expect(client.getAgent).not.toHaveBeenCalled();
+    expect(updated).toHaveLength(1);
   });
 });
 

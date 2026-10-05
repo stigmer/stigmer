@@ -457,8 +457,8 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create and trigger a new agent execution.
-     * Session is optional — can be provided or auto-created from agent_id.
+     * Create and trigger a new agent execution: a turn in an existing session,
+     * or the first turn of a new one created from session_spec.
      * </pre>
      */
     default void create(ai.stigmer.agentic.agentexecution.v1.AgentExecution request,
@@ -650,8 +650,8 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create and trigger a new agent execution.
-     * Session is optional — can be provided or auto-created from agent_id.
+     * Create and trigger a new agent execution: a turn in an existing session,
+     * or the first turn of a new one created from session_spec.
      * </pre>
      */
     public void create(ai.stigmer.agentic.agentexecution.v1.AgentExecution request,
@@ -840,8 +840,8 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create and trigger a new agent execution.
-     * Session is optional — can be provided or auto-created from agent_id.
+     * Create and trigger a new agent execution: a turn in an existing session,
+     * or the first turn of a new one created from session_spec.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.AgentExecution create(ai.stigmer.agentic.agentexecution.v1.AgentExecution request) throws io.grpc.StatusException {
@@ -1018,8 +1018,8 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create and trigger a new agent execution.
-     * Session is optional — can be provided or auto-created from agent_id.
+     * Create and trigger a new agent execution: a turn in an existing session,
+     * or the first turn of a new one created from session_spec.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.AgentExecution create(ai.stigmer.agentic.agentexecution.v1.AgentExecution request) {
@@ -1196,8 +1196,8 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create and trigger a new agent execution.
-     * Session is optional — can be provided or auto-created from agent_id.
+     * Create and trigger a new agent execution: a turn in an existing session,
+     * or the first turn of a new one created from session_spec.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.AgentExecution> create(

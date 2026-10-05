@@ -32,7 +32,7 @@ const fakeSession = create(SessionSchema, {
 
 const fakeExecution = create(AgentExecutionSchema, {
   metadata: { id: "aex_01" },
-  spec: { sessionId: "ses_01", message: "Why is CI red?" },
+  spec: { target: { case: "sessionId", value: "ses_01" }, message: "Why is CI red?" },
   status: {
     phase: ExecutionPhase.EXECUTION_COMPLETED,
     messages: [

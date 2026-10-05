@@ -333,7 +333,7 @@ describe("useNewSessionFlow", () => {
       // Guests submit against an explicitly pinned shared agent.
       act(() => {
         result.current.setAgentRef({ org: "acme", slug: "shared-agent" });
-        result.current.setResolution({ mode: "saved", instanceId: "inst-shared" });
+        result.current.setResolution({ mode: "direct" });
       });
 
       await act(async () => {
@@ -373,9 +373,8 @@ describe("useNewSessionFlow", () => {
       expect(execInput.message).toBe("Hello");
       expect(execInput.sessionSpec).toBeDefined();
       // No agent picked: the built-in assistant, nothing to resolve or wait
-      // for — the session spec carries no instance and no agent id.
-      expect(execInput.sessionSpec.agentInstanceId).toBeUndefined();
-      expect(execInput.agentId).toBeUndefined();
+      // for — the session spec names no agent.
+      expect(execInput.sessionSpec.agentRef).toBeUndefined();
       expect(execInput.sessionId).toBeUndefined();
     });
 
@@ -590,13 +589,16 @@ describe("useNewSessionFlow", () => {
   });
 
   describe("submit — agent resolution strategies", () => {
-    it("uses the saved resolution's instance directly (no agent lookup)", async () => {
+    it.each([
+      ["saved", { mode: "saved" } as const],
+      ["direct", { mode: "direct" } as const],
+    ])("starts the conversation on the agent itself for a %s resolution, reading no agent", async (_mode, resolution) => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       act(() => {
         result.current.setAgentRef({ org: "acme", slug: "reviewer" });
-        result.current.setResolution({ mode: "saved", instanceId: "saved-inst" });
+        result.current.setResolution(resolution);
       });
       await act(async () => {
         await result.current.submit("Hello");
@@ -604,28 +606,9 @@ describe("useNewSessionFlow", () => {
 
       expect(mockGetByReference).not.toHaveBeenCalled();
       const execInput = mockCreateExecution.mock.calls[0][0];
-      expect(execInput.sessionSpec.agentInstanceId).toBe("saved-inst");
-      expect(execInput.agentId).toBeUndefined();
-    });
-
-    it("resolves a non-saved agentRef to agentId and lets the server pick the instance", async () => {
-      mockGetByReference.mockResolvedValueOnce({ metadata: { id: "agt-resolved" } });
-      const opts = defaultOptions();
-      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
-
-      act(() => {
-        result.current.setAgentRef({ org: "acme", slug: "reviewer" });
-        result.current.setResolution({ mode: "direct" });
-      });
-      await act(async () => {
-        await result.current.submit("Hello");
-      });
-
-      expect(mockGetByReference).toHaveBeenCalledWith({ org: "acme", slug: "reviewer" });
-      const execInput = mockCreateExecution.mock.calls[0][0];
-      expect(execInput.agentId).toBe("agt-resolved");
-      // The server resolves (and if needed creates) the default instance.
-      expect(execInput.sessionSpec.agentInstanceId).toBeUndefined();
+      // No version: the server pins the agent's current version.
+      expect(execInput.sessionSpec.agentRef).toEqual({ org: "acme", slug: "reviewer" });
+      expect(execInput.sessionId).toBeUndefined();
     });
   });
 
@@ -1037,15 +1020,20 @@ describe("useNewSessionFlow", () => {
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       act(() => {
-        result.current.setAgentRef({ org: "acme", slug: "support-bot" });
-        result.current.setResolution({ mode: "saved", instanceId: "shared-inst" });
+        result.current.setAgentRef({ org: "acme", slug: "support-bot", version: "v2" });
+        result.current.setResolution({ mode: "direct" });
       });
       await act(async () => {
         await result.current.submit("Hello");
       });
 
       expect(mockCreateExecution).toHaveBeenCalledOnce();
-      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.agentInstanceId).toBe("shared-inst");
+      // The share's reference travels as pinned, version included.
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.agentRef).toEqual({
+        org: "acme",
+        slug: "support-bot",
+        version: "v2",
+      });
       expect(opts.onSessionCreated).toHaveBeenCalledWith("sess-new");
     });
 
@@ -1082,7 +1070,7 @@ describe("useNewSessionFlow", () => {
 
       act(() => {
         result.current.setAgentRef({ org: "acme", slug: "support-bot" });
-        result.current.setResolution({ mode: "saved", instanceId: "shared-inst" });
+        result.current.setResolution({ mode: "direct" });
       });
       await act(async () => {
         await result.current.submit("Hello");
@@ -1132,7 +1120,7 @@ describe("useNewSessionFlow", () => {
 
       act(() => {
         result.current.setAgentRef({ org: "acme", slug: "support-bot" });
-        result.current.setResolution({ mode: "saved", instanceId: "shared-inst" });
+        result.current.setResolution({ mode: "direct" });
       });
       await act(async () => {
         await result.current.submit("Hello");
@@ -1161,7 +1149,7 @@ describe("useNewSessionFlow", () => {
 
       act(() => {
         result.current.setAgentRef({ org: "acme", slug: "support-bot" });
-        result.current.setResolution({ mode: "saved", instanceId: "shared-inst" });
+        result.current.setResolution({ mode: "direct" });
       });
       await act(async () => {
         await result.current.submit("Hello");

@@ -8,13 +8,22 @@
 // `mcpServerRefs`, which composes the Agent->McpServer reference invariant
 // exercised by ValidateReferencesStep.
 //
+// A conversation names its agent by reference (`AgentRefInit`, projected by
+// `makeAgentRef` into an ApiResourceReference of kind agent): a Session's
+// spec.agent_ref, or a turn's new-conversation session_spec.agent_ref. The
+// server pins the agent and version the reference resolves to on the
+// session's status, so the reference is how every suite starts a
+// conversation on an agent; `agentRefOf` reads one off a created Agent.
+//
 // Negative cases (too-short instructions, missing name) are written inline in
 // the suite, not here: this module represents validity by construction, matching
 // the convention established by support/workflows.ts.
 import type { InitShape } from "./init-shape";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./environments";
 
 export const AGENT_API_VERSION = "agentic.stigmer.ai/v1";
@@ -106,5 +115,34 @@ export function makeAgent(opts: AgentOptions): InitShape<typeof AgentSchema> {
     kind: AGENT_KIND,
     metadata: { name, org, ...(labels !== undefined ? { labels } : {}) },
     spec: makeAgentSpec(spec),
+  };
+}
+
+// A reference to an agent: its organization and slug, and optionally the
+// version a conversation pins (a tag, a content hash, or `latest`; empty is
+// the agent's current version on create).
+export interface AgentRefInit {
+  org: string;
+  slug: string;
+  version?: string;
+}
+
+// The reference a created Agent answers to, optionally at a version.
+export function agentRefOf(agent: Agent, version?: string): AgentRefInit {
+  const org = agent.metadata?.org ?? "";
+  const slug = agent.metadata?.slug ?? "";
+  if (org === "" || slug === "") {
+    throw new Error("agentRefOf needs an agent the server returned (org and slug set)");
+  }
+  return { org, slug, ...(version !== undefined ? { version } : {}) };
+}
+
+// The ApiResourceReference a Session's or a turn's agent_ref carries.
+export function makeAgentRef(ref: AgentRefInit): InitShape<typeof ApiResourceReferenceSchema> {
+  return {
+    kind: ApiResourceKind.agent,
+    org: ref.org,
+    slug: ref.slug,
+    ...(ref.version !== undefined ? { version: ref.version } : {}),
   };
 }

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEimQEKC0FnZW50U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSGwoTZGVmYXVsdF9pbnN0YW5jZV9pZBgBIAEoCRIUCgx2ZXJzaW9uX2hhc2gYAyABKAlKBAgCEANSEHNoYXJlX2xpbmtfdG9rZW5iBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEilwEKC0FnZW50U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSFAoMdmVyc2lvbl9oYXNoGAMgASgJSgQIARACSgQIAhADUhNkZWZhdWx0X2luc3RhbmNlX2lkUhBzaGFyZV9saW5rX3Rva2VuYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * AgentStatus contains system-managed state for an agent.
@@ -26,16 +26,6 @@ export type AgentStatus = Message<"ai.stigmer.agentic.agent.v1.AgentStatus"> & {
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
    */
   audit?: ApiResourceAudit;
-
-  /**
-   * ID of the default agent instance.
-   * Every agent has exactly one default instance that uses all agent defaults
-   * and requires no additional configuration. Created automatically when the
-   * agent is created.
-   *
-   * @generated from field: string default_instance_id = 1;
-   */
-  defaultInstanceId: string;
 
   /**
    * Content hash of the agent's current version: the SHA-256 of the

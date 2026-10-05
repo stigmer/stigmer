@@ -111,7 +111,7 @@ function agentRun(
 ) {
   return create(AgentExecutionSchema, {
     metadata: { id, name: id, org: extra.org ?? "acme" },
-    spec: { sessionId: extra.sessionId ?? "" },
+    spec: { target: { case: "sessionId", value: extra.sessionId ?? "" } },
     status: {
       phase,
       completedAt,

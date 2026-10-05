@@ -8,8 +8,9 @@
  * Proven by agentexecution.conformance.test.ts
  * (CONFORMANCE_TARGET=local) and __tests__/.
  *
- * Every chain opens with Authorize, and create also authorizes its run
- * target (AuthorizeRunTarget); create and delete run the shared
+ * Every chain opens with Authorize, and create also asks the run gate's
+ * two questions (AuthorizeRunTarget on the conversation, AuthorizeRunAgent
+ * on the agent the turn runs); create and delete run the shared
  * tuple-lifecycle steps against the composed lifecycle. The direct
  * handlers — subscribe and the two artifact reads — evaluate their
  * annotation through authorizeDirect; uploadAttachment is authorized at
@@ -55,6 +56,7 @@ import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newAuthorizeRunTargetStep } from "../../pipeline/steps/authorize-run-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
+import type { WorkflowRunQueue } from "../../temporal/workflowexecution/dispatch.js";
 import { newRecordRunnerLineageLabelsStep } from "./record-runner-lineage-labels.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import {
@@ -95,15 +97,10 @@ import {
   getArtifactDownloadUrl,
   uploadAttachment,
 } from "./artifacts.js";
-import type {
-  AgentLoaderProvider,
-  ExecutionAgentInstanceCreatorProvider,
-  SessionCreatorProvider,
-} from "./create-steps.js";
+import type { SessionCreatorProvider } from "./create-steps.js";
 import {
   newComposeDeclaredPreferencesStep,
   newComposeRecalledMemoriesStep,
-  newCreateDefaultInstanceIfNeededStep,
   newCreateSessionIfNeededStep,
   newProcessAttachmentsStep,
   newSetInitialPhaseStep,
@@ -124,7 +121,10 @@ import {
   resumeExecution,
   terminateExecution,
 } from "./lifecycle.js";
-import { agentExecutionRunTarget } from "./run-target.js";
+import {
+  agentExecutionRunAgent,
+  agentExecutionRunTarget,
+} from "./run-target.js";
 import { agentExecutionSearchExtractor } from "./search-extractor.js";
 import {
   newValidateSessionImmutabilityStep,
@@ -138,6 +138,10 @@ import { updateStatus } from "./update-status.js";
 import { newValidateServiceTierStep } from "./validate-service-tier.js";
 import { newValidateThinkingModeStep } from "./validate-thinking-mode.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
+import {
+  newValidateParentImmutabilityStep,
+  newVouchWorkflowParentStep,
+} from "./vouch-workflow-parent.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import {
   EXECUTION_LIST_KEY,
@@ -214,12 +218,16 @@ export interface AgentExecutionControllerDeps {
    */
   readonly runnerCredentialProvider: RunnerCredentialProvider;
   /**
-   * The in-process edges the create pipeline consumes (lazy providers —
+   * The in-process edge the create pipeline consumes (a lazy provider —
    * the routes↔clients cycle resolves at request time).
    */
-  readonly agentLoader: AgentLoaderProvider;
-  readonly agentInstanceCreator: ExecutionAgentInstanceCreatorProvider;
   readonly sessionCreator: SessionCreatorProvider;
+  /**
+   * The queue a vouched parent link routes a workflow's child turn to (its
+   * run's own queue under execution routing, else none): StartWorkflow and
+   * the session sandbox ensure share the one rule.
+   */
+  readonly workflowRunQueue: WorkflowRunQueue;
   /** The shared EC-builder deps (create's step 16 + recover's recreate). */
   readonly executionContextBuilder: ExecutionContextBuilderDeps;
   /**
@@ -312,28 +320,29 @@ export function registerAgentExecutionServices(
 }
 
 /**
- * Create — create.go buildCreatePipeline, step-for-step: validation
- * (proto → visibility → tier #357) → the run gate
- * (AuthorizeRunTarget: asking the target's own permission
- * by request shape — session, instance or blueprint; the all-empty shape
- * is the built-in assistant, which the run gate does not check (create is
- * is_skip_authorization; its auto-created session's own create authorizes
- * can_create_session on the org) — before the engine gate so a denied caller
- * learns nothing about engine state, and before every side effect) → the
- * session's organization (#1580, session-binding.ts: a turn in a session
- * belongs to that session's organization, filled in when the request
- * names none) → the thinking-mode validation (#772), which judges the
- * model on the harness the execution will run on and so may read the
- * stored session: both run behind the run gate, so nothing about a
- * session is read or disclosed before the caller may add a turn to it
- * (#1280) → the standard build
- * → the engine gate (fail fast BEFORE the first side effect, so a down
- * engine orphans nothing) → the pre-side-effect gate slot (empty in OSS) → the
- * side-effecting steps (default instance, session bootstrap,
- * preference/memory snapshots, initial phase, the ExecutionContext with
- * merged env, attachment validation) → Persist → IndexSearch →
- * StartWorkflow (after persist; a start failure marks the execution
- * FAILED, recoverable via Recover).
+ * Create — create.go buildCreatePipeline: validation (proto → visibility →
+ * tier #357) → the run gate's first question (AuthorizeRunTarget: may the
+ * caller add a turn to the session it names; a new conversation asks
+ * nothing here, its session create asks can_create_session and the
+ * agent's can_execute) → the session's organization (#1580,
+ * session-binding.ts: a turn in a session belongs to that session's
+ * organization, filled in when the request names none; the chain's one
+ * read of the stored session) → the thinking-mode validation (#772), which
+ * judges the model on the harness the execution will run on from that
+ * read: both run behind the run gate, so nothing about a session is read
+ * or disclosed before the caller may add a turn to it (#1280) → the
+ * standard build → the workflow link's vouch beside the lineage labels'
+ * (vouch-workflow-parent.ts) → the reserved-label guard → the reference
+ * rule → ResolveRunAgent, which stamps the agent and version the turn runs
+ * (the session's pin, or the new session's agent_ref) → the run gate's
+ * second question (AuthorizeRunAgent: may the caller still run that
+ * agent) → the engine gate (fail fast BEFORE the first side effect, so a
+ * down engine orphans nothing) → the pre-side-effect gate slot (empty in
+ * OSS) → the side-effecting steps (session bootstrap, which re-takes the
+ * stamp from the session it creates; preference/memory snapshots; initial
+ * phase; the ExecutionContext with merged env; attachment validation) →
+ * Persist → IndexSearch → StartWorkflow (after persist; a start failure
+ * marks the execution FAILED, recoverable via Recover).
  */
 async function createExecution(
   deps: AgentExecutionControllerDeps,
@@ -363,16 +372,31 @@ async function createExecution(
       newAuthorizeRunTargetStep(deps.authorizer, agentExecutionRunTarget),
     )
     .addStep(newValidateSessionOrganizationStep(deps.store))
-    .addStep(newValidateThinkingModeStep(deps.modelRegistry, deps.store))
+    .addStep(newValidateThinkingModeStep(deps.modelRegistry))
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
     // Vouches the runner-stamped workflow lineage labels (or refuses a
     // wrong-binding stamp) BEFORE the guard diffs them — the Java
-    // RecordRunnerLineageLabelsStep position.
+    // RecordRunnerLineageLabelsStep position — and the workflow link under
+    // the same rule.
     .addStep(newRecordRunnerLineageLabelsStep(deps.runnerCredentialProvider))
+    .addStep(
+      newVouchWorkflowParentStep(
+        deps.runnerCredentialProvider,
+        deps.authorizer,
+      ),
+    )
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newResolveRunAgentStep(deps.store, deps.logger, deps.authorizer))
+    .addStep(
+      newAuthorizeRunTargetStep(
+        deps.authorizer,
+        agentExecutionRunAgent,
+        "AuthorizeRunAgent",
+      ),
+    )
     .addStep(newEnsureEngineAvailableStep(deps.engineState));
   // The pre-side-effect gate slot: after
   // every pure validation/resolution step, before the first side-effecting
@@ -385,25 +409,11 @@ async function createExecution(
   }
   await builder
     .addStep(
-      newCreateDefaultInstanceIfNeededStep({
-        store: deps.store,
-        logger: deps.logger,
-        agentLoader: deps.agentLoader,
-        agentInstanceCreator: deps.agentInstanceCreator,
-        authorizationLifecycle: deps.authorizationLifecycle,
-      }),
-    )
-    .addStep(
       newCreateSessionIfNeededStep({
         logger: deps.logger,
         sessionCreator: deps.sessionCreator,
       }),
     )
-    // The agent and the exact version this turn runs, stamped once; every
-    // later reader (the context build below and on recover, the runner's
-    // hydration) takes the stamp, so a version saved mid-turn never
-    // changes what runs.
-    .addStep(newResolveRunAgentStep(deps.store, deps.logger))
     .addStep(
       newComposeDeclaredPreferencesStep(
         deps.store,
@@ -442,6 +452,7 @@ async function createExecution(
         logger: deps.logger,
         engineState: deps.engineState,
         statusObservers: deps.statusObservers,
+        workflowRunQueue: deps.workflowRunQueue,
       }),
     )
     // The session-lane sandbox ensure: after StartWorkflow,
@@ -454,6 +465,7 @@ async function createExecution(
         logger: deps.logger,
         lane: deps.sandboxLane,
         temporalConfig: deps.temporalConfig,
+        workflowRunQueue: deps.workflowRunQueue,
       }),
     )
     .build()
@@ -468,9 +480,10 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 /**
  * Update — update.go buildUpdatePipeline: USER-initiated spec updates
  * (status updates from the runner use UpdateStatus instead). Standard
- * chain; BuildUpdateState clears status per the shared pattern, and
+ * chain; BuildUpdateState clears status per the shared pattern,
  * ValidateSessionImmutability keeps the execution in its session
- * (session-binding.ts).
+ * (session-binding.ts), and ValidateParentImmutability keeps the workflow
+ * run it was started by (vouch-workflow-parent.ts).
  */
 async function update(
   deps: AgentExecutionControllerDeps,
@@ -498,6 +511,7 @@ async function update(
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newValidateSessionImmutabilityStep())
+    .addStep(newValidateParentImmutabilityStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistStep(deps.store))

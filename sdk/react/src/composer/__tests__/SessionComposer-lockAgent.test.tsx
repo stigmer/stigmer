@@ -12,7 +12,6 @@ import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 const mockAgentSetup = {
   state: { status: "idle" } as Record<string, unknown>,
   resolveAgent: vi.fn(),
-  resolveToInstance: vi.fn(),
   submitEnvVars: vi.fn(),
   reset: vi.fn(),
 };

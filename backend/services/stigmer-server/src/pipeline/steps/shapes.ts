@@ -49,7 +49,9 @@ function camelCaseFieldName(specField: string): string {
  * read from the resource's spec — the ParentIdExtractorRegistry port, with
  * zero hardcoded kind knowledge: the proto config names the field, this
  * reads it structurally (spec messages are plain objects whose properties
- * are the camelCase proto field names). Returns "" for every miss (no
+ * are the camelCase proto field names, and a oneof member is held under its
+ * oneof's property as `{ case, value }`, as an execution's session_id is
+ * under `target`). Returns "" for every miss (no
  * spec, no field, non-string value); the caller decides whether that is
  * fatal — the tuple lifecycle throws at create (Java's registry returned
  * null and the service threw), the list scope carries no parent.
@@ -66,8 +68,22 @@ export function parentIdOf(resource: object, specField: string): string {
   if (spec === undefined) {
     return "";
   }
-  const value = spec[camelCaseFieldName(specField)];
-  return typeof value === "string" ? value : "";
+  const name = camelCaseFieldName(specField);
+  const value = spec[name];
+  if (typeof value === "string") {
+    return value;
+  }
+  for (const held of Object.values(spec)) {
+    if (
+      held !== null &&
+      typeof held === "object" &&
+      (held as { case?: unknown }).case === name
+    ) {
+      const member = (held as { value?: unknown }).value;
+      return typeof member === "string" ? member : "";
+    }
+  }
+  return "";
 }
 
 /** A message-typed field, statically narrowed so get()/set() type-check. */

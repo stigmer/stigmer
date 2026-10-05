@@ -20,10 +20,10 @@ function agentResult(id: string, slug: string, description: string) {
   return create(SearchResultSchema, { id, qualifiedSlug: slug, description });
 }
 
-function session(id: string, subject: string, agentInstanceId: string) {
+function session(id: string, subject: string, agentSlug: string) {
   return create(SessionSchema, {
     metadata: { id },
-    spec: { subject, agentInstanceId },
+    spec: { subject, agentRef: { org: "org_acme", slug: agentSlug, kind: 40 } },
   });
 }
 
@@ -118,9 +118,9 @@ describe("AgentPicker", () => {
 describe("SessionPicker", () => {
   it("client-side filters the session list and returns the chosen session", async () => {
     const sessions = [
-      session("ses_1", "deploy staging", "ai_1"),
-      session("ses_2", "review PR", "ai_2"),
-      session("ses_3", "deploy prod", "ai_3"),
+      session("ses_1", "deploy staging", "deployer"),
+      session("ses_2", "review PR", "reviewer"),
+      session("ses_3", "deploy prod", "deployer"),
     ];
     const client = fakeClient({
       session: { list: vi.fn(async () => ({ entries: sessions })) },

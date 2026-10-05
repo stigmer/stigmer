@@ -61,7 +61,6 @@ Every resource type has a typed client accessible as a method on `StigmerClient`
 |--------------------------|--------------------|
 | `agents()`               | Agent              |
 | `agentExecutions()`      | AgentExecution     |
-| `agentInstances()`       | AgentInstance      |
 | `apiKeys()`              | ApiKey             |
 | `environments()`         | Environment        |
 | `executionContexts()`    | ExecutionContext    |

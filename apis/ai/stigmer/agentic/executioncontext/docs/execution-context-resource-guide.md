@@ -121,10 +121,12 @@ ExecutionContexts contain the **merged secrets** a runner needs at execution tim
 Execution starts
     │
     ▼
-Execution engine resolves environment_refs from AgentInstance/WorkflowInstance
+Execution engine resolves environment_refs from what started the run
+(schedule, agent_call task, PlatformClient; WorkflowInstance for a workflow run)
     │
     ▼
-Engine merges resolved values (later refs override earlier) + any B2B runtime-injected values
+Engine merges resolved values (later refs override earlier) + any B2B runtime-injected values,
+then fills declared keys still missing from OAuth tokens and the run's person's personal environment
     │
     ▼
 Engine calls ExecutionContextCommandController.create(ExecutionContext)
@@ -156,7 +158,7 @@ ExecutionContext and Environment solve different problems in the same value-inje
 |---|---|---|
 | Lifecycle | Persistent | Ephemeral — one execution |
 | Created by | Users (via CLI or API) | Execution engine (operator) |
-| Reusable | Yes — many instances can reference it | No — 1:1 with one execution |
+| Reusable | Yes — many schedules, workflow tasks and PlatformClients can reference it | No — 1:1 with one execution |
 | Primary key | Resource ID or name | `execution_id` |
 | Secret reads | Redacted in all API responses | Decrypted for runner via `getByExecutionId` |
 | User-visible | Yes | No |

@@ -60,13 +60,14 @@ message LocalPathSource {
 //
 // @internal
 // Authentication: The provisioner resolves GITHUB_TOKEN from the merged
-// environment (instance environment_refs < ExecutionContext.runtime_env). As a
-// workspace-provisioning key it is re-injected past the Agent.spec.env
-// declared-key filter when the session has git_repo entries, with a fallback
-// to the caller's personal environment (see the agentexecution controller's
-// executionContextBuilder). The token is injected into the clone URL, consumed
-// by provisioning, and stripped before forwarding to the agent runtime. SSH
-// key authentication is a future enhancement.
+// environment (the run's environment_refs layers <
+// ExecutionContext.runtime_env). As a workspace-provisioning key it is
+// re-injected past the Agent.spec.env declared-key filter when the session has
+// git_repo entries, with a fallback to the caller's personal environment (see
+// the agentexecution controller's executionContextBuilder). The token is
+// injected into the clone URL, consumed by provisioning, and stripped before
+// forwarding to the agent runtime. SSH key authentication is a future
+// enhancement.
 message GitRepoSource {
   // HTTPS clone URL for the repository.
   string url = 1 [

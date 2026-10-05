@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentResolution } from "../agent/index.js";
-import { useStigmer } from "../hooks.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables.js";
@@ -15,7 +14,8 @@ import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/ses
 import { fromProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target.js";
 import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation.js";
 import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
-import { useAgentRefFromSession } from "./useAgentRefFromSession.js";
+import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
+import { useSessionAgentVersion, type UseSessionAgentVersionReturn } from "./useSessionAgentVersion.js";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
 import { toSessionUpdateInput } from "@stigmer/sdk";
 import type { SessionAudience } from "./audience.js";
@@ -49,11 +49,11 @@ export interface UseSessionPageFlowOptions {
   readonly getRuntimeEnv?: RuntimeEnvProvider;
   /**
    * Who this flow serves. `"guest"` adapts the orchestration to the
-   * guest principal's permission model: the session→agent derivation
-   * (`agentInstance.get` → `agent.get`), a read a guest token cannot
-   * make, is skipped. Follow-ups then carry no agent override and simply
-   * continue on the session's bound instance, which is exactly right for
-   * a shared-agent page.
+   * guest principal's permission model: the agent reads behind the
+   * version state (a read a guest token cannot make) are skipped, and
+   * follow-ups carry no agent override, so they simply continue on the
+   * agent and version the session pinned, which is exactly right for a
+   * shared-agent page.
    * See {@link SessionAudience}.
    *
    * @default "integrator"
@@ -139,11 +139,19 @@ export interface UseSessionPageFlowReturn {
   readonly setResolution: (r: AgentResolution | null) => void;
   /**
    * Drop the session's agent: the next follow-up rebinds the session to
-   * the built-in assistant (an empty `agentInstanceId` on the wire), so
-   * the conversation continues without an agent rather than only looking
-   * as if it had. Picking an agent again undoes it.
+   * the built-in assistant (no `agentRef` on the wire), so the
+   * conversation continues without an agent rather than only looking as
+   * if it had. Picking an agent again undoes it.
    */
   readonly clearAgent: () => void;
+
+  /**
+   * The agent version this conversation runs against the version its
+   * agent is at now, with the explicit act that moves the conversation to
+   * the current one. Nothing else in this flow changes the version: a
+   * follow-up that rewrites the session keeps its pin. Inert for guests.
+   */
+  readonly agentVersion: UseSessionAgentVersionReturn;
 
   /** Active MCP server configurations for follow-ups. */
   readonly mcpServerUsages: McpServerUsageInput[];
@@ -308,7 +316,6 @@ export function useSessionPageFlow(
   const pinnedServiceTier = runConfig?.serviceTier;
   const pinnedThinkingMode = runConfig?.thinkingMode;
 
-  const stigmer = useStigmer();
   const conv = useSessionConversation(sessionId, org);
   const harness: HarnessOption = fromProtoHarness(
     conv.session?.spec?.harness ?? Harness.UNSPECIFIED,
@@ -446,16 +453,17 @@ export function useSessionPageFlow(
   // Agent — derive from session, allow mid-session changes
   // -------------------------------------------------------------------------
 
-  // Guests skip agent derivation entirely (`null` = the hooks' stable
-  // no-op): the reads are FGA-denied for a guest token, and a guest
-  // never overrides the session's agent — `resolution` stays null, so
-  // follow-ups continue on the bound instance without an override.
-  // `null` while the session has not loaded; "" once it has and names no
-  // agent (the built-in assistant).
-  const sessionInstanceId = conv.session?.spec?.agentInstanceId ?? null;
-  const { agentRef: derivedAgentRef } = useAgentRefFromSession(
-    isGuest ? null : sessionInstanceId,
+  // The agent the session names, read from its spec. `undefined` while the
+  // session has not loaded; `null` once it has and names no agent (the
+  // built-in assistant).
+  const sessionAgentRef = useMemo(
+    () => (conv.session ? agentRefOfSession(conv.session) : undefined),
+    [conv.session],
   );
+  const agentVersion = useSessionAgentVersion(conv.session, {
+    enabled: !isGuest,
+    moveToCurrentVersion: conv.moveToCurrentAgentVersion,
+  });
 
   const [agentRef, setAgentRefState] = useState<ResourceRef | null>(null);
   const [resolution, setResolutionState] = useState<AgentResolution | null>(null);
@@ -469,14 +477,14 @@ export function useSessionPageFlow(
   // Seed the selection from the session once it is known: its agent when
   // it names one, nothing when it runs the built-in assistant. Runs once,
   // so a later pick or clear by the person is never overwritten by a
-  // derived ref arriving after the fact.
-  if (!agentInitDone && sessionInstanceId !== null) {
-    if (sessionInstanceId === "") {
-      setAgentInitDone(true);
-    } else if (derivedAgentRef) {
-      setAgentInitDone(true);
-      setAgentRefState(derivedAgentRef);
-      setResolutionState({ mode: "saved", instanceId: sessionInstanceId });
+  // derived ref arriving after the fact. Guests are never seeded: their
+  // composer has no agent machinery, and a follow-up of theirs carries no
+  // override, so it continues on the session's own agent and pin.
+  if (!agentInitDone && !isGuest && sessionAgentRef !== undefined) {
+    setAgentInitDone(true);
+    if (sessionAgentRef !== null) {
+      setAgentRefState(sessionAgentRef);
+      setResolutionState({ mode: "direct" });
     }
   }
 
@@ -555,27 +563,19 @@ export function useSessionPageFlow(
       // failures must land in submitError instead.
       //
       // The agent override is tri-state: `undefined` leaves the session's
-      // binding alone; an instance id rebinds it; "" clears it to the
-      // built-in assistant (the server treats an empty id as no agent).
-      let agentInstanceIdOverride: string | undefined;
+      // agent and its pinned version alone; a reference rebinds the session
+      // to that agent (no version, so the server pins its current one);
+      // `null` clears it to the built-in assistant.
+      let agentRefOverride: ResourceRef | null | undefined;
       let runtimeEnv: SessionComposerSubmitContext["runtimeEnv"];
 
       try {
-        if (resolution) {
-          if (
-            resolution.mode === "saved" &&
-            resolution.instanceId !== sessionInstanceId
-          ) {
-            agentInstanceIdOverride = resolution.instanceId;
-          } else if (resolution.mode === "direct" && agentRef) {
-            const agent = await stigmer.agent.getByReference(agentRef);
-            const defaultId = agent.status?.defaultInstanceId;
-            if (defaultId && defaultId !== sessionInstanceId) {
-              agentInstanceIdOverride = defaultId;
-            }
+        if (resolution && agentRef) {
+          if (!isSameAgent(agentRef, sessionAgentRef)) {
+            agentRefOverride = { org: agentRef.org, slug: agentRef.slug };
           }
-        } else if (agentCleared && sessionInstanceId) {
-          agentInstanceIdOverride = "";
+        } else if (agentCleared && sessionAgentRef) {
+          agentRefOverride = null;
         }
 
         // Evaluated per follow-up so short-lived host credentials are
@@ -589,7 +589,7 @@ export function useSessionPageFlow(
       }
 
       conv.sendFollowUp(message, {
-        agentInstanceId: agentInstanceIdOverride,
+        agentRef: agentRefOverride,
         // The owner pin wins over everything the user or the SDK
         // resolved (#664); the pinned tier is stamped only as "fast" —
         // an untouched/standard tier stays off the wire, preserving the
@@ -620,7 +620,7 @@ export function useSessionPageFlow(
 
       sessionVariables.clear();
     },
-    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, agentCleared, sessionInstanceId, stigmer, autoApproveAll, getRuntimeEnv],
+    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, agentCleared, sessionAgentRef, autoApproveAll, getRuntimeEnv],
   );
 
   // -------------------------------------------------------------------------
@@ -660,6 +660,7 @@ export function useSessionPageFlow(
     resolution,
     setResolution,
     clearAgent,
+    agentVersion,
     mcpServerUsages,
     setMcpServerUsages,
     skillRefs,

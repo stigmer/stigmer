@@ -60,8 +60,8 @@ export interface UseSharedAgentProfileReturn {
  * By default this hook calls the `getSharedProfile` endpoint, which is
  * **public** — it requires no authentication. The server returns a
  * trimmed projection safe for anonymous visitors: name, description,
- * icon, and the default instance id needed to start a session
- * (an identifier, not a capability — session creation still requires
+ * icon, and the share's agent reference (version included) a session
+ * starts on (a name, not a capability — session creation still requires
  * an authorized token, e.g. a guest token from `createGuestAuth`).
  * With `{ audience: "org" }` it calls the authenticated
  * `getSharedProfileForMember` endpoint instead, which resolves

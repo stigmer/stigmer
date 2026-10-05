@@ -15,7 +15,18 @@
  * the organization-slug ledger and fills it: every live organization
  * unretired, every organization a surviving scoped row names with none live
  * retired, across keyset pages; a scoped row it cannot decode fails the
- * step and leaves the database at v11 with no ledger.
+ * step and leaves the database at v11 with no ledger. v14 removes the agent
+ * instance kind: every session that ran against an instance names the
+ * instance's agent and pins its current version (or keeps a deleted
+ * agent's id, or continues with the built-in assistant when the instance is
+ * gone, or names no agent), across keyset pages, and the instance rows
+ * leave every table; the store opened on the migrated database finds each
+ * moved session through the session list index's `agent` key, the one
+ * listByAgent reads; every IamPolicy row naming an instance as resource
+ * or principal leaves with its list keys (its history kept) while a grant
+ * on another kind stays; a session, instance, agent or policy row it
+ * cannot decode fails the step, naming the row, and leaves the database at
+ * v13.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -37,15 +48,24 @@ import {
   CONTRACT_SESSION_INDEX,
   CONTRACT_STORE_OPTIONS,
 } from "../../__tests__/store-contract.js";
+import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { SqliteStore } from "../store.js";
 import {
   CURRENT_SCHEMA_VERSION,
   SCHEMA_VERSION_10,
   SCHEMA_VERSION_12,
   SCHEMA_VERSION_13,
+  SCHEMA_VERSION_14,
   getSchemaVersion,
   runMigrations,
 } from "../migrations.js";
+import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
+import {
+  policyRow,
+  retiredInstanceRow,
+  retiredSessionRow,
+  sessionBytes,
+} from "../../__tests__/retired-instance-rows.js";
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
 import { materializeGoFixture } from "./support.js";
@@ -121,7 +141,7 @@ describe("newer database schema", () => {
     );
     const session = create(SessionSchema, {
       metadata: { id: "ses_preserved", org: "acme" },
-      spec: { agentInstanceId: "ain_preserved" },
+      status: { agentId: "agt_preserved" },
     });
     db.prepare(
       `INSERT INTO resources (kind, id, data) VALUES ('session', 'ses_preserved', ?)`,
@@ -205,7 +225,7 @@ describe("fresh database", () => {
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
     ]);
   });
 
@@ -337,7 +357,7 @@ describe("Go-created v6 database adoption (the Go fixture)", () => {
     // A session as the Go server wrote it: four columns, no list facts.
     const session = create(SessionSchema, {
       metadata: { id: "ses_go", org: "acme" },
-      spec: { agentInstanceId: "ain_go" },
+      status: { agentId: "agt_go" },
     });
     const before = new DatabaseSync(fixture.dbPath);
     before
@@ -365,7 +385,7 @@ describe("Go-created v6 database adoption (the Go fixture)", () => {
       0,
     );
     const rows = await store.queryResources(CONTRACT_SESSION_INDEX, {
-      anyKey: [{ name: "agent_instance", value: "ain_go" }],
+      anyKey: [{ name: "agent", value: "agt_go" }],
     });
     expect(rows.map((row) => row.id)).toEqual(["ses_go"]);
   });
@@ -596,12 +616,13 @@ describe("v10: the retired public level leaves every row", () => {
     insert(setup, "agent", "agt_private", privateBytes);
     setup.close();
 
-    const store = SqliteStore.open(dbPath);
-    cleanups.push(() => store.close());
+    // The chain stops at v10: v14 removes the retired agent instance rows
+    // this step moves.
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_10);
 
-    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_10);
     for (const entry of PUBLIC_ROW_KINDS_AT_RETIREMENT) {
       const moved = row(db, entry.kind, `${entry.kind}_public`);
       expect(moved.data, entry.kind).toEqual(
@@ -817,7 +838,7 @@ describe("v13: the resource-name table replaces the organization-slug ledger", (
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
 
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_13);
+    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
     expect(tableNames(db)).not.toContain("organization_slugs");
     expect(
       db
@@ -843,5 +864,392 @@ describe("v13: the resource-name table replaces the organization-slug ledger", (
         expires_at: "",
       },
     ]);
+  });
+});
+
+describe("v14: sessions name their agent and the agent instance rows leave", () => {
+  const ORG = "org_01jz0000000000000000000000";
+  const HEAD = "e".repeat(64);
+  const SPEC = { subject: "Release notes" };
+
+  /** A v13 database: the chain replayed up to the step before v14. */
+  function v13Database(): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_14 - 1);
+    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_14 - 1);
+    return { dbPath, db: setup };
+  }
+
+  function insert(
+    db: DatabaseSync,
+    kind: string,
+    id: string,
+    data: Uint8Array,
+  ): void {
+    db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, '2026-09-01 00:00:00')`,
+    ).run(kind, id, data);
+  }
+
+  function data(db: DatabaseSync, kind: string, id: string): Uint8Array {
+    return (
+      db
+        .prepare(`SELECT data FROM resources WHERE kind = ? AND id = ?`)
+        .get(kind, id) as { data: Uint8Array }
+    ).data;
+  }
+
+  function count(db: DatabaseSync, table: string, kind: string): number {
+    return (
+      db
+        .prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = ?`)
+        .get(kind) as { n: number }
+    ).n;
+  }
+
+  function seedInstances(db: DatabaseSync): void {
+    insert(
+      db,
+      "agent",
+      "agt_1",
+      toBinary(
+        AgentSchema,
+        create(AgentSchema, {
+          metadata: { id: "agt_1", org: ORG, slug: "reviewer" },
+          status: { versionHash: HEAD },
+        }),
+      ),
+    );
+    insert(
+      db,
+      "agent_instance",
+      "ain_1",
+      retiredInstanceRow({
+        metadata: { id: "ain_1", org: ORG, slug: "reviewer-default" },
+        agentId: "agt_1",
+      }),
+    );
+    insert(
+      db,
+      "agent_instance",
+      "ain_orphan",
+      retiredInstanceRow({
+        metadata: { id: "ain_orphan", org: ORG, slug: "gone-default" },
+        agentId: "agt_gone",
+      }),
+    );
+  }
+
+  it("moves every session onto its instance's agent and removes the instance rows from every table", async () => {
+    const { dbPath, db: setup } = v13Database();
+    seedInstances(setup);
+    const metadata = (id: string) => ({ id, org: ORG, slug: id });
+    insert(
+      setup,
+      "session",
+      "ses_live",
+      retiredSessionRow({ metadata: metadata("ses_live"), instanceId: "ain_1", spec: SPEC }),
+    );
+    insert(
+      setup,
+      "session",
+      "ses_agent_gone",
+      retiredSessionRow({
+        metadata: metadata("ses_agent_gone"),
+        instanceId: "ain_orphan",
+        spec: SPEC,
+      }),
+    );
+    insert(
+      setup,
+      "session",
+      "ses_instance_gone",
+      retiredSessionRow({
+        metadata: metadata("ses_instance_gone"),
+        instanceId: "ain_deleted",
+        spec: SPEC,
+      }),
+    );
+    const assistant = retiredSessionRow({
+      metadata: metadata("ses_assistant"),
+      instanceId: "",
+      spec: SPEC,
+    });
+    insert(setup, "session", "ses_assistant", assistant);
+    setup
+      .prepare(
+        `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('agent_instance', 'ain_1', ?, '', '')`,
+      )
+      .run(new Uint8Array([0x00]));
+    setup
+      .prepare(
+        `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('agent_instance', 'ain_1', 'agent', 'agt_1', '')`,
+      )
+      .run();
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_14);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_14);
+
+    expect(data(db, "session", "ses_live")).toEqual(
+      sessionBytes({
+        metadata: metadata("ses_live"),
+        spec: {
+          ...SPEC,
+          agentRef: { kind: 40, org: ORG, slug: "reviewer" },
+        },
+        status: { agentId: "agt_1", agentVersionHash: HEAD },
+      }),
+    );
+    expect(data(db, "session", "ses_agent_gone")).toEqual(
+      sessionBytes({
+        metadata: metadata("ses_agent_gone"),
+        spec: SPEC,
+        status: { agentId: "agt_gone" },
+      }),
+    );
+    expect(data(db, "session", "ses_instance_gone")).toEqual(
+      sessionBytes({ metadata: metadata("ses_instance_gone"), spec: SPEC }),
+    );
+    expect(data(db, "session", "ses_assistant")).toEqual(assistant);
+    expect(
+      (
+        db
+          .prepare(
+            `SELECT updated_at FROM resources WHERE kind = 'session' AND id = 'ses_assistant'`,
+          )
+          .get() as { updated_at: string }
+      ).updated_at,
+    ).toBe("2026-09-01 00:00:00");
+
+    for (const table of ["resources", "resource_audit", "resource_list_keys"]) {
+      expect(count(db, table, "agent_instance")).toBe(0);
+    }
+    expect(count(db, "resources", "agent")).toBe(1);
+
+    // The store the server opens on the migrated database lists each moved
+    // session under its agent, through the key listByAgent reads.
+    const store = SqliteStore.open(dbPath, undefined, {
+      listIndexes: [sessionListIndex],
+    });
+    cleanups.push(() => store.close());
+    const byAgent = async (agentId: string): Promise<string[]> =>
+      (
+        await store.queryResources(sessionListIndex, {
+          anyKey: [{ name: "agent", value: agentId }],
+        })
+      ).map((row) => row.id);
+    expect(await byAgent("agt_1")).toEqual(["ses_live"]);
+    expect(await byAgent("agt_gone")).toEqual(["ses_agent_gone"]);
+  });
+
+  it("removes every grant naming an instance and keeps a grant on another kind", () => {
+    const { dbPath, db: setup } = v13Database();
+    seedInstances(setup);
+    const onAgent = {
+      id: "iam_on_agent",
+      principal: "identity_account:ida_1",
+      relation: "viewer",
+      resource: "agent:agt_1",
+    };
+    for (const policy of [
+      {
+        id: "iam_on_instance",
+        principal: "identity_account:ida_1",
+        relation: "viewer",
+        resource: "agent_instance:ain_1",
+      },
+      {
+        id: "iam_from_instance",
+        principal: "agent_instance:ain_1",
+        relation: "agent_instance",
+        resource: "session:ses_1",
+      },
+      onAgent,
+    ]) {
+      insert(setup, "iam_policy", policy.id, policyRow(policy));
+      setup
+        .prepare(
+          `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
+        )
+        .run(policy.id, policy.principal.split(":")[1] ?? "");
+    }
+    setup
+      .prepare(
+        `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iam_on_instance', ?, '', '')`,
+      )
+      .run(new Uint8Array([0x00]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_14);
+
+    const ids = (table: string) =>
+      (
+        db
+          .prepare(`SELECT id FROM ${table} WHERE kind = 'iam_policy' ORDER BY id`)
+          .all() as Array<{ id: string }>
+      ).map((row) => row.id);
+    expect(ids("resources")).toEqual(["iam_on_agent"]);
+    expect(ids("resource_list_keys")).toEqual(["iam_on_agent"]);
+    expect(data(db, "iam_policy", "iam_on_agent")).toEqual(policyRow(onAgent));
+    expect(count(db, "resource_audit", "iam_policy")).toBe(1);
+  });
+
+  it("reads sessions across keyset pages, missing none past the first page", () => {
+    const { dbPath, db: setup } = v13Database();
+    seedInstances(setup);
+    const total = RETIREMENT_PAGE_SIZE + 3;
+    for (let i = 0; i < total; i++) {
+      const id = `ses_${String(i).padStart(4, "0")}`;
+      insert(
+        setup,
+        "session",
+        id,
+        retiredSessionRow({
+          metadata: { id, org: ORG, slug: id },
+          instanceId: "ain_1",
+        }),
+      );
+    }
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_14);
+
+    const rows = db
+      .prepare(`SELECT data FROM resources WHERE kind = 'session'`)
+      .all() as Array<{ data: Uint8Array }>;
+    expect(rows).toHaveLength(total);
+    for (const row of rows) {
+      expect(fromBinary(SessionSchema, row.data).status?.agentId).toBe("agt_1");
+    }
+  });
+
+  it("a session that does not decode fails the step, names the row, and leaves the database at v13", () => {
+    const { dbPath, db: setup } = v13Database();
+    seedInstances(setup);
+    insert(setup, "session", "ses_broken", new Uint8Array([0x22, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_14)).toThrow(
+      "session 'ses_broken' cannot be read to retire the agent instance kind",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_14 - 1);
+    expect(count(db, "resources", "agent_instance")).toBe(2);
+  });
+
+  it("continues a session on an instance that names no agent with the built-in assistant", () => {
+    const BLANK_SESSION = { id: "ses_blank", org: ORG, slug: "ses_blank" };
+    const { dbPath, db: setup } = v13Database();
+    insert(
+      setup,
+      "agent_instance",
+      "ain_blank",
+      retiredInstanceRow({
+        metadata: { id: "ain_blank", org: ORG, slug: "blank-default" },
+        agentId: "",
+      }),
+    );
+    insert(
+      setup,
+      "session",
+      "ses_blank",
+      retiredSessionRow({
+        metadata: BLANK_SESSION,
+        instanceId: "ain_blank",
+        spec: SPEC,
+      }),
+    );
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_14);
+
+    expect(data(db, "session", "ses_blank")).toEqual(
+      sessionBytes({ metadata: BLANK_SESSION, spec: SPEC }),
+    );
+    expect(count(db, "resources", "agent_instance")).toBe(0);
+  });
+
+  it.each([
+    { kind: "agent_instance", id: "ain_broken" },
+    // ain_orphan names agt_gone: the step reads it as the agent.
+    { kind: "agent", id: "agt_gone" },
+    { kind: "iam_policy", id: "iam_broken" },
+  ])(
+    "a $kind row that does not decode fails the step, names the row, and leaves the database at v13",
+    (broken) => {
+      const { dbPath, db: setup } = v13Database();
+      seedInstances(setup);
+      insert(setup, broken.kind, broken.id, new Uint8Array([0x22, 0xff]));
+      setup.close();
+
+      const db = new DatabaseSync(dbPath);
+      cleanups.push(() => db.close());
+      expect(() => runMigrations(db, SCHEMA_VERSION_14)).toThrow(
+        `${broken.kind} '${broken.id}' cannot be read to retire the agent instance kind`,
+      );
+      expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_14 - 1);
+      expect(count(db, "resources", "agent_instance")).toBe(
+        broken.kind === "agent_instance" ? 3 : 2,
+      );
+    },
+  );
+
+  it("replays the frozen steps over instance rows from v9 exactly as they shipped, then removes them", () => {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_10 - 1);
+    insert(
+      setup,
+      "agent_instance",
+      "ain_public",
+      retiredInstanceRow({
+        metadata: {
+          id: "ain_public",
+          org: "deleted-org",
+          slug: "bot-shared",
+          visibility: ApiResourceVisibility.visibility_public,
+        },
+        agentId: "agt_1",
+      }),
+    );
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_12);
+    // v10 moved the retired row to org without disturbing another byte…
+    expect(data(db, "agent_instance", "ain_public")).toEqual(
+      retiredInstanceRow({
+        metadata: {
+          id: "ain_public",
+          org: "deleted-org",
+          slug: "bot-shared",
+          visibility: ApiResourceVisibility.visibility_org,
+        },
+        agentId: "agt_1",
+      }),
+    );
+    // …and v12 recorded the organization it names, with none live, retired.
+    expect(
+      db
+        .prepare(
+          `SELECT slug, retired_at IS NOT NULL AS retired FROM organization_slugs`,
+        )
+        .all(),
+    ).toEqual([{ slug: "deleted-org", retired: 1 }]);
+
+    runMigrations(db, SCHEMA_VERSION_14);
+    expect(count(db, "resources", "agent_instance")).toBe(0);
   });
 });

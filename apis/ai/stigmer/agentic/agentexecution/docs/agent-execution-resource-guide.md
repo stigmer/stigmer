@@ -39,17 +39,18 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/spec.proto`.
 
 ### Session and Agent Targeting
 
-Either `session_id` or `agent_id` must be provided. Both are optional in the sense that you choose one path.
+`target` is a oneof: set `session_id` or `session_spec`, or neither.
 
 | Field | Type | Description |
 |---|---|---|
-| `session_id` | `string` | The session this execution belongs to. If provided, the execution is appended to the existing session's conversation history. |
-| `agent_id` | `string` | Required when `session_id` is omitted. A new session is auto-created using the agent's default instance. |
+| `session_id` | `string` | The session this execution continues. The execution is appended to the session's conversation history and runs the agent version the session records. |
+| `session_spec` | `SessionSpec` | A new session to create with this first message. `session_spec.agent_ref` names the agent the conversation runs (`org/slug`, with an optional tag or hash version); the created session's ID is returned on the execution's `session_id`. |
 
 **Targeting rules:**
 - Provide `session_id` to continue an existing conversation.
-- Provide `agent_id` alone to start a fresh session automatically.
-- Providing both is allowed — `session_id` takes precedence.
+- Provide `session_spec` with `agent_ref` to start a new conversation on an agent, at its current version unless the reference names one.
+- Provide neither to start a new conversation with the built-in assistant.
+- Every execution is refused unless the caller may add a turn to the session (`can_create_execution_in`) and may still run the session's agent (`can_execute`). An agent deleted behind the session fails the execution with `FAILED_PRECONDITION` naming the agent.
 
 ### Message
 
@@ -70,7 +71,7 @@ Optional overrides for this specific execution. When not specified, defaults are
 
 | Field | Type | Description |
 |---|---|---|
-| `runtime_env` | `map<string, ExecutionValue>` | Execution-scoped secrets and environment variables. Available only for this execution. Deleted when execution completes. Highest merge priority: Environment values (via instance `environment_refs`) < `runtime_env`. Keys must be declared in `Agent.spec.env` (a declaration whitelist, not a value source) or they are dropped. |
+| `runtime_env` | `map<string, ExecutionValue>` | Execution-scoped secrets and environment variables. Available only for this execution. Deleted when execution completes. Highest merge priority: Environment values (the creating schedule's, `agent_call` task's or PlatformClient's `environment_refs`) < `runtime_env`; declared keys still missing are filled from the run's person's personal environment. Keys must be declared in `Agent.spec.env` (a declaration whitelist, not a value source) or they are dropped. |
 
 Use `runtime_env` for B2B integrations where secrets must be injected at runtime per-caller, not stored in the agent configuration.
 
@@ -91,8 +92,7 @@ Use `runtime_env` for B2B integrations where secrets must be injected at runtime
 
 | Field | Type | Description |
 |---|---|---|
-| `callback_token` | `bytes` | Temporal task token for async activity completion. Set by automated pipeline callers (Zigflow). See [async-workflow-integration.md](async-workflow-integration.md). |
-| `parent_workflow_id` | `string` | Temporal workflow ID of the calling workflow. Enables events-based approval notification — the agent signals the parent when approval is required. |
+| `parent` | `WorkflowParent` | The workflow run whose `agent_call` step started this turn: `workflow_execution_id`, `signal_workflow_id` (the workflow told about approval requests) and `callback_token` (the Temporal task token the turn completes). Honoured only from the workflow run it names: a server-composed request, a runner whose credential is bound to that run, or a holder of `can_write_reserved_labels`. Anyone else who sets it is refused with `INVALID_ARGUMENT`. See [async-workflow-integration.md](async-workflow-integration.md). |
 
 ---
 
@@ -139,6 +139,10 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/api.proto`. All fields are syst
 | `error` | `string` | Error message when `phase == EXECUTION_FAILED`. Empty otherwise. |
 | `started_at` | `string` | ISO 8601 timestamp when execution began processing. |
 | `completed_at` | `string` | ISO 8601 timestamp when execution reached a terminal state. Empty for non-terminal phases. |
+| `agent_id` | `string` | The agent this turn ran, from its session; empty for the built-in assistant. |
+| `agent_version_hash` | `string` | The agent version this turn ran, from its session. |
+| `declared_preferences` | `DeclaredPreferences` | The organization's and the person's standing context, snapshotted when the turn was created. |
+| `recalled_memories` | `RecalledMemories` | The confirmed memories recalled into this turn, snapshotted when it was created. |
 
 ### Messages
 

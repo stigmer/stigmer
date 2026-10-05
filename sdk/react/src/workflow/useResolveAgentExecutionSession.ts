@@ -43,7 +43,8 @@ export function useResolveAgentExecutionSession(
   const fetchFn = agentExecutionId
     ? async () => {
         const execution = await stigmer.agentExecution.get(agentExecutionId);
-        return execution.spec?.sessionId ?? null;
+        const target = execution.spec?.target;
+        return target?.case === "sessionId" ? target.value : null;
       }
     : null;
 

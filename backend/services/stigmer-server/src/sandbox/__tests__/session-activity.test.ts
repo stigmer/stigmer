@@ -86,7 +86,7 @@ function execution(
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "AgentExecution",
     metadata: { id, name: id, org: "org-a" },
-    spec: { sessionId, agentId: "agt_1", message: "hi" },
+    spec: { target: { case: "sessionId", value: sessionId }, message: "hi" },
     status: {
       phase,
       completedAt: completedAt?.toISOString() ?? "",

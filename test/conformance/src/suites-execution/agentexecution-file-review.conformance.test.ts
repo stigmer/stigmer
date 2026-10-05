@@ -53,7 +53,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { GitWorkspace, requireGit } from "../harness/git-workspace";
 import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import { allToolCalls, awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import {
   awaitFileReview,
@@ -123,16 +123,12 @@ async function startFileReviewRun(
     }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  const instanceId = agent.status?.defaultInstanceId;
-  if (instanceId === undefined || instanceId === "") {
-    throw new Error("agent create did not provision a default instance");
-  }
 
   const session = await clients.sessionCommand.create(
     makeSession({
       org,
       name: uniqueName("ses-filereview"),
-      agentInstanceId: instanceId,
+      agentRef: agentRefOf(agent),
       harness: Harness.NATIVE,
       localWorkspaces: [{ name: "repo", path: workspace.dir }],
     }),

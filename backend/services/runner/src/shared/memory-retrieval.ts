@@ -6,7 +6,7 @@
  *
  * Sibling of recalled-memories.ts (which owns presentation) — this module
  * owns SELECTION: which subset of the server-composed candidate set
- * (`spec.recalled_memories`, the auditable snapshot both editions' compose
+ * (`status.recalled_memories`, the auditable snapshot both editions' compose
  * steps stamp) actually rides the prompt. The compose steps never change;
  * selection is a runner concern because the runner owns prompt assembly,
  * provider credentials, and the metered proxy lane (control-plane-adjacent

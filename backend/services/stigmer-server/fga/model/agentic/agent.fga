@@ -45,7 +45,7 @@ module agentic
 #   org's IdentityProvider (the multi-tenant "private catalog" primitive).
 # - Modeled as a single structural relation (platform_viewer) composed into
 #   viewer, so one tuple drives view and execute — same precedent as
-#   execution_viewer on instances.
+#   execution_viewer on workflow instances.
 # - An unconditioned userset, so it resolves in listing queries just like
 #   org visibility.
 
@@ -115,22 +115,20 @@ type agent
     define can_delete: owner
     
     # ========================================
-    # EXECUTION & INSTANCES
+    # EXECUTION
     # ========================================
     # Platform invariant: you can run what you can read. The OSS run gate
-    # (the AuthorizeRunTarget step in the session, agent-execution and
-    # workflow-execution create chains; stigmer#1066)
-    # asks can_execute on the blueprint or instance a run targets — for
-    # every direct caller; the runtime lanes are admitted by their own gate
-    # steps through authorizer/lane-admission.ts — and instance models
-    # define can_execute: can_view. Deriving from viewer keeps every
+    # (the AuthorizeRunTarget and AuthorizeRunAgent steps in the session,
+    # agent-execution and workflow-execution chains; stigmer#1066) asks
+    # can_execute on the agent a session names and on the agent every turn
+    # runs — for every direct caller; the runtime lanes are admitted by
+    # their own gate steps through authorizer/lane-admission.ts. Deriving from viewer keeps every
     # visibility level (org tuple, platform_viewer)
     # executable through one composition with no separate execute tuples
     # to reconcile. (Until 2026-09-11 this comment named a retired Java
     # step, BlueprintAccessAuthorization, that the TypeScript server never
     # had; nothing asked can_execute.)
     define can_execute: viewer
-    define can_create_instance: can_execute
     
     # ========================================
     # IAM POLICY MANAGEMENT

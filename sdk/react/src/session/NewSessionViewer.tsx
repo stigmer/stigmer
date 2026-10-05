@@ -91,10 +91,10 @@ export interface NewSessionViewerProps {
    * `"guest"` (anonymous visitor with a guest token) is pure chat: it
    * additionally hides the model/harness/mode pickers, attachments,
    * the workspace picker, and the session panel, binds the session to
-   * `initialAgentRef` + `initialInstanceId` without any picker
-   * machinery, and skips the org-level reads a guest principal cannot
-   * make. Requires both `initialAgentRef` and `initialInstanceId` —
-   * a guest launcher never falls back to the org default agent.
+   * `initialAgentRef` (version included) without any picker machinery,
+   * and skips the org-level reads a guest principal cannot make.
+   * Requires `initialAgentRef` — a guest launcher never falls back to
+   * the built-in assistant.
    *
    * See {@link SessionAudience}.
    *
@@ -174,17 +174,12 @@ export interface NewSessionViewerProps {
    */
   readonly accountDefaults?: AccountExecutionDefaults;
 
-  /** Agent to auto-select on mount (used for draft flows). */
-  readonly initialAgentRef?: ResourceRef;
   /**
-   * Pre-bind the new session to a specific `AgentInstance` on mount.
-   *
-   * Requires `initialAgentRef`. When both are set, the session is created
-   * against this exact configured deployment (the env-collection flow is
-   * skipped because the instance already binds its environment). Powers the
-   * "Start session" action on the Agent detail page's Instances tab.
+   * Agent to auto-select on mount (used for draft flows and the agent
+   * detail page's "Start session"). The conversation starts on this
+   * reference; a version it names is the version the session pins.
    */
-  readonly initialInstanceId?: string;
+  readonly initialAgentRef?: ResourceRef;
   /** Files to auto-attach on mount (used for edit flows). */
   readonly initialAttachments?: File[];
 
@@ -266,7 +261,6 @@ export function NewSessionViewer({
   defaultHarness,
   accountDefaults,
   initialAgentRef,
-  initialInstanceId,
   initialAttachments,
   heading = "What would you like to work on?",
   placeholder = "Describe what you need help with\u2026",
@@ -304,14 +298,14 @@ export function NewSessionViewer({
   // the composer's agent machinery (picker, env-collection, personal
   // environments — all org reads a guest token cannot make) stays fully
   // unwired, and the launcher pins the flow to the shared agent's
-  // instance directly. Without the pin, submission fails closed in
-  // useNewSessionFlow rather than falling back to the org default agent.
+  // reference directly. Without the pin, submission fails closed in
+  // useNewSessionFlow rather than falling back to the built-in assistant.
   const { setAgentRef, setResolution } = flow;
   useEffect(() => {
-    if (!isGuest || !initialAgentRef || !initialInstanceId) return;
+    if (!isGuest || !initialAgentRef) return;
     setAgentRef(initialAgentRef);
-    setResolution({ mode: "saved", instanceId: initialInstanceId });
-  }, [isGuest, initialAgentRef, initialInstanceId, setAgentRef, setResolution]);
+    setResolution({ mode: "direct" });
+  }, [isGuest, initialAgentRef, setAgentRef, setResolution]);
 
   // The unified-panel controller (shared with SessionViewer). The
   // launcher has no execution yet, so the FSM inputs are static. It has no
@@ -452,7 +446,10 @@ export function NewSessionViewer({
           onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
           onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
           initialAgentRef={isGuest ? undefined : initialAgentRef}
-          initialInstanceId={isGuest ? undefined : initialInstanceId}
+          // Every message here starts a conversation, so the keys the
+          // selected agent will read from the person's personal environment
+          // are named first. A guest has no personal environment.
+          disclosePersonalKeys={!isGuest}
           initialAttachments={isGuest ? undefined : initialAttachments}
           lockAgent={isCurated && initialAgentRef != null}
           mcpServerUsages={isCurated ? undefined : flow.mcpServerUsages}

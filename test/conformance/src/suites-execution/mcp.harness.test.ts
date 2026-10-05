@@ -21,7 +21,7 @@ import type { McpToolFixture } from "../harness/mcp-server";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitTerminal,
   makeAgentExecution,
@@ -82,7 +82,7 @@ describe("Execution harness smoke — MCP tool dispatch", () => {
       makeAgentExecution({
         org,
         name: uniqueName("aex-mcp-smoke"),
-        agentId: agent.metadata!.id,
+        agentRef: agentRefOf(agent),
         autoApproveAll: true,
       }),
     );

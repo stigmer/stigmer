@@ -42,7 +42,7 @@ import { spawnRunner, type RunningRunner } from "@stigmer/test-support/runner-pr
 import { spawnServer, type RunningServer } from "@stigmer/test-support/server-process";
 import { spawnTemporal, type RunningTemporal } from "@stigmer/test-support/temporal";
 import { ensureLibraryServerEntry } from "@stigmer/test-support/ts-build";
-import { BARE_AGENT_INSTRUCTIONS, makeAgent } from "../support/agents";
+import { type AgentRefInit, BARE_AGENT_INSTRUCTIONS, agentRefOf, makeAgent } from "../support/agents";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import {
   provisionWorkingAgent,
@@ -265,10 +265,11 @@ function sessionHarness(harness: BenchmarkHarness): Harness {
 /** The agent an attempt runs, provisioned fresh; its resources are deferred on `fixtures`. */
 interface ProvisionedAgent {
   org: string;
-  agentId: string;
+  agentRef: AgentRefInit;
   sessionSpec: MessageInitShape<typeof SessionSpecSchema>;
 }
 
+/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
 async function provisionAgent(
   stack: BenchmarkStack,
   fixtures: FixtureTracker,
@@ -280,17 +281,18 @@ async function provisionAgent(
       mcpUrl: stack.mcpFixture.url(WORKING_AGENT_MCP_TOOLS),
       workspaceDir: WORKING_WORKSPACE_DIR,
     });
-    return { org: agent.org, agentId: agent.agentId, sessionSpec: workingAgentSessionSpec(agent, harness, BENCHMARK_SESSION_SUBJECT) };
+    return { org: agent.org, agentRef: agent.agentRef, sessionSpec: workingAgentSessionSpec(agent, harness, BENCHMARK_SESSION_SUBJECT) };
   }
   const org = uniqueOrg();
   const agent = await stack.clients.agentCommand.create(
     makeAgent({ org, name: uniqueName("bench-agent"), instructions: BARE_AGENT_INSTRUCTIONS }),
   );
   fixtures.defer(() => stack.clients.agentCommand.delete({ value: agent.metadata!.id }));
-  return { org, agentId: agent.metadata!.id, sessionSpec: { harness, subject: BENCHMARK_SESSION_SUBJECT } };
+  return { org, agentRef: agentRefOf(agent), sessionSpec: { harness, subject: BENCHMARK_SESSION_SUBJECT } };
 }
 
 /** One attempt of a cell: one execution, or one three-turn session whose second turn is the sample. */
+/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
 async function measureCell(
   stack: BenchmarkStack,
   cell: BenchmarkCell,
@@ -310,7 +312,7 @@ async function measureCell(
     }
     const plan: SessionPlan = {
       org: agent.org,
-      agentId: agent.agentId,
+      agentRef: agent.agentRef,
       harness: cell.harness,
       modelRequested: cell.modelRequested,
       ...(thinking !== undefined ? { thinking } : {}),
@@ -339,6 +341,7 @@ async function measureCell(
 }
 
 /** One graded attempt of a quality task: the session, its end state, the subject and the verdict. */
+/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
 async function gradeQualityCell(
   stack: BenchmarkStack,
   cell: PlannedQualityCell,
@@ -376,7 +379,7 @@ async function gradeQualityCell(
       stack,
       {
         org: agent.org,
-        agentId: agent.agentId,
+        agentRef: agent.agentRef,
         harness: cell.harness,
         modelRequested: cell.modelRequested,
         ...(thinking !== undefined ? { thinking } : {}),

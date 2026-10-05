@@ -1,5 +1,3 @@
-import { create } from "@bufbuild/protobuf";
-import { GetAgentInstancesByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { test, expect } from "../../../fixtures";
 import { openManageAccessFromKebab } from "../../../helpers/access";
 
@@ -75,15 +73,10 @@ test.describe("Manage access on a session", () => {
       !!process.env.STIGMER_E2E_CLOUD,
       "a session's People axis is the Enterprise and Cloud editions'; this pins the open-source posture",
     );
-    const instances = await stigmerClient.agentInstance.getByAgent(
-      create(GetAgentInstancesByAgentRequestSchema, { agentId: testAgent.id }),
-    );
-    const instanceId = instances.items[0]?.metadata?.id;
-    expect(instanceId, "every agent gets a default instance").toBeTruthy();
     const session = await stigmerClient.session.create({
       name: `e2e-session-${Date.now()}`,
       org: testAgent.org,
-      agentInstanceId: instanceId,
+      agentRef: { org: testAgent.org, slug: testAgent.slug },
       subject: "manage access posture",
     });
     try {

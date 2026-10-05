@@ -4,16 +4,19 @@ import { renderHook, act } from "@testing-library/react";
 // ---------------------------------------------------------------------------
 // Guest-audience gating for useSessionPageFlow.
 //
-// A guest token cannot derive the session's agent (`agentInstance.get` →
-// `agent.get` are FGA-denied — sharing writes no tuples). The flow must put
-// the lookup into its `null` no-op mode and send follow-ups without an
-// agent override, continuing on the session's server-bound instance.
+// A guest token cannot read the session's agent (`agent.get` is FGA-denied —
+// sharing writes no tuples). The flow must turn the agent-version reads off,
+// seed no agent selection, and send follow-ups without an agent override,
+// continuing on the agent and version the session pinned.
 // ---------------------------------------------------------------------------
 
 const mockSendFollowUp = vi.fn();
 
 const mockConv = {
-  session: { spec: { agentInstanceId: "inst_bound" } },
+  session: {
+    spec: { agentRef: { org: "acme", slug: "support-bot", version: "v2", kind: 40 } },
+    status: { agentId: "agt_1", agentVersionHash: "h2" },
+  },
   isLoading: false,
   completedExecutions: [] as unknown[],
   activeStreamExecution: null,
@@ -64,12 +67,12 @@ vi.mock("../usePersistedModel", () => ({
     usePersistedModelSpy(opts),
 }));
 
-const useAgentRefFromSessionSpy = vi.fn((_instanceId: string | null) => ({
-  agentRef: null,
-}));
-vi.mock("../useAgentRefFromSession", () => ({
-  useAgentRefFromSession: (instanceId: string | null) =>
-    useAgentRefFromSessionSpy(instanceId),
+const useSessionAgentVersionSpy = vi.fn(
+  (_session: unknown, _opts: { enabled: boolean }) => ({ isOutdated: false }),
+);
+vi.mock("../useSessionAgentVersion", () => ({
+  useSessionAgentVersion: (session: unknown, opts: { enabled: boolean }) =>
+    useSessionAgentVersionSpy(session, opts),
 }));
 
 import { useSessionPageFlow } from "../useSessionPageFlow";
@@ -81,16 +84,23 @@ describe("useSessionPageFlow — guest audience", () => {
     vi.clearAllMocks();
   });
 
-  it("disables the session→agent derivation", () => {
-    renderHook(() => useSessionPageFlow({ ...OPTS, audience: "guest" }));
+  it("turns the agent reads off and seeds no agent selection", () => {
+    const { result } = renderHook(() => useSessionPageFlow({ ...OPTS, audience: "guest" }));
 
-    expect(useAgentRefFromSessionSpy).toHaveBeenCalledWith(null);
+    expect(useSessionAgentVersionSpy).toHaveBeenCalledWith(
+      mockConv.session,
+      expect.objectContaining({ enabled: false }),
+    );
+    expect(result.current.agentRef).toBeNull();
   });
 
-  it("keeps the lookup active for other audiences", () => {
+  it("keeps the agent reads on for other audiences", () => {
     renderHook(() => useSessionPageFlow(OPTS));
 
-    expect(useAgentRefFromSessionSpy).toHaveBeenCalledWith("inst_bound");
+    expect(useSessionAgentVersionSpy).toHaveBeenCalledWith(
+      mockConv.session,
+      expect.objectContaining({ enabled: true }),
+    );
   });
 
   it("sends follow-ups without an agent override", async () => {
@@ -103,8 +113,8 @@ describe("useSessionPageFlow — guest audience", () => {
     });
 
     expect(mockSendFollowUp).toHaveBeenCalledTimes(1);
-    // No override: the execution continues on the session's bound instance.
-    expect(mockSendFollowUp.mock.calls[0][1].agentInstanceId).toBeUndefined();
+    // No override: the execution continues on the session's pinned agent.
+    expect(mockSendFollowUp.mock.calls[0][1].agentRef).toBeUndefined();
   });
 
   it("disables model persistence — a Console-stored model must not leak in", () => {

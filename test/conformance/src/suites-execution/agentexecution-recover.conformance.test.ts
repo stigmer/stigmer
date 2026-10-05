@@ -34,7 +34,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
-import { makeAgent } from "../support/agents";
+import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -67,17 +67,17 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// A valid Agent; returns its id.
-async function provisionAgent(org: string): Promise<string> {
+// A valid Agent; returns its reference.
+async function provisionAgent(org: string): Promise<AgentRefInit> {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-recover") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  return agent.metadata!.id;
+  return agentRefOf(agent);
 }
 
 describe("AgentExecution recover — happy path", () => {
   it("[rpc:AgentExecutionCommandController.recover] recovers a FAILED execution back to IN_PROGRESS with the error cleared, then completes", async () => {
     const { org } = await target.provisionTenancy();
-    const agentId = await provisionAgent(org);
+    const agentRef = await provisionAgent(org);
 
     // Turn 1: deterministic non-retryable LLM failure (400 is in LangChain's
     // STATUS_NO_RETRY list — fail-fast, no backoff stall).
@@ -86,7 +86,7 @@ describe("AgentExecution recover — happy path", () => {
     mock.enqueue(anthropicText("Recovered successfully."));
 
     const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-recover-happy"), agentId }),
+      makeAgentExecution({ org, name: uniqueName("aex-recover-happy"), agentRef }),
     );
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -119,12 +119,12 @@ describe("AgentExecution recover — happy path", () => {
 describe("AgentExecution recover — idempotency", () => {
   it("[rpc:AgentExecutionCommandController.recover] is an idempotent no-op on an already-IN_PROGRESS execution", async () => {
     const { org } = await target.provisionTenancy();
-    const agentId = await provisionAgent(org);
+    const agentRef = await provisionAgent(org);
 
     // A held turn keeps the run IN_PROGRESS across the poll-and-act window.
     mock.enqueue(anthropicText("Working..."), { delayMs: HOLD_MS });
     const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-recover"), agentId }),
+      makeAgentExecution({ org, name: uniqueName("aex-recover"), agentRef }),
     );
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -146,7 +146,7 @@ describe("AgentExecution recover — idempotency", () => {
 describe("AgentExecution recover — concurrency", () => {
   it("[rpc:AgentExecutionCommandController.recover] two concurrent recovers of one FAILED execution both answer IN_PROGRESS, the runner is re-dispatched once, and the run completes", async () => {
     const { org } = await target.provisionTenancy();
-    const agentId = await provisionAgent(org);
+    const agentRef = await provisionAgent(org);
 
     mock.enqueueError(400);
     // The one recovery turn, held so the run sits IN_PROGRESS while the
@@ -154,7 +154,7 @@ describe("AgentExecution recover — concurrency", () => {
     mock.enqueue(anthropicText("Recovered once."), { delayMs: HOLD_MS });
 
     const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-recover-twice"), agentId }),
+      makeAgentExecution({ org, name: uniqueName("aex-recover-twice"), agentRef }),
     );
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

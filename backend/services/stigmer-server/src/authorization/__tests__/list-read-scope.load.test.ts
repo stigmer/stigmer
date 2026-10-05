@@ -26,7 +26,7 @@
  *     owner-only kind (session), over a kind with one userset hop
  *     (org-visible agents for a member), over the parent hop at two
  *     densities (executions in ten sessions, and in a thousand), over the
- *     kind whose `derived` rule reads the row (instances of one agent);
+ *     kind whose `derived` rule reads the row (instances of one workflow);
  *     the enumeration verb over the blueprint kind (the console library's
  *     path);
  *   - five Enterprise shapes over private agents: a team member's grants
@@ -249,7 +249,7 @@ const SHAPES: ReadonlyArray<Shape> = [
       org: ORG,
       visibility: ApiResourceVisibility.visibility_private,
       createdBy: "",
-      spec: { sessionId: `ses_${i % 10}` },
+      spec: { target: { case: "sessionId", value: `ses_${i % 10}` } },
     }),
   },
   {
@@ -266,32 +266,32 @@ const SHAPES: ReadonlyArray<Shape> = [
       org: ORG,
       visibility: ApiResourceVisibility.visibility_private,
       createdBy: "",
-      spec: { sessionId: `ses_${i % 1_000}` },
+      spec: { target: { case: "sessionId", value: `ses_${i % 1_000}` } },
     }),
   },
   {
-    name: "restrict: instances of one agent for a viewer (the `derived` rule reads each row)",
-    kind: "agent_instance",
+    name: "restrict: instances of one workflow for a viewer (the `derived` rule reads each row)",
+    kind: "workflow_instance",
     caller: VIEWER,
     verb: "restrict",
     parents: [
       {
-        type: "agent",
+        type: "workflow",
         facts: {
-          id: "agt_shared",
+          id: "wfl_shared",
           org: ORG,
           visibility: ApiResourceVisibility.visibility_org,
           createdBy: FOUNDER,
-          status: { defaultInstanceId: "ai_0" },
+          status: { defaultInstanceId: "wfi_0" },
         },
       },
     ],
     row: (i) => ({
-      id: `ai_${i}`,
+      id: `wfi_${i}`,
       org: ORG,
       visibility: ApiResourceVisibility.visibility_private,
       createdBy: FOUNDER,
-      spec: { agentId: "agt_shared" },
+      spec: { workflowId: "wfl_shared" },
     }),
     // The viewer reaches the DEFAULT instance through the blueprint and no
     // other; the cost measured is the rule's read of every candidate row.
@@ -440,7 +440,8 @@ describe.each(
     ApiResourceKind.agent,
     ApiResourceKind.session,
     ApiResourceKind.agent_execution,
-    ApiResourceKind.agent_instance,
+    ApiResourceKind.workflow,
+    ApiResourceKind.workflow_instance,
   ]),
 )("the built-in evaluator's cost on $name", (fixture) => {
   describe.skipIf(fixture.skip)("measured", () => {

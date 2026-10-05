@@ -281,6 +281,22 @@ describe("file-mode apply — kinds the registry does not know", () => {
     }
   });
 
+  it("refuses an AgentInstance manifest, naming the agent as where a conversation starts", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(
+        dir,
+        "instance.yaml",
+        ["kind: AgentInstance", "metadata:", "  name: Reviewer", "  slug: reviewer-default", ""].join("\n"),
+      );
+      expect(() => resolveApplyItems(dir)).toThrow(
+        /kind 'AgentInstance' in .*instance\.yaml is no longer a Stigmer resource.*stigmer run <org>\/<agent>/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("refuses a kind that never existed with the plain unknown-kind sentence", () => {
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {

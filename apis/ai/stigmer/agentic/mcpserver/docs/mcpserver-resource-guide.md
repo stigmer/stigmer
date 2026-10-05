@@ -109,7 +109,7 @@ All spec fields are defined by `McpServerSpec` in `ai/stigmer/agentic/mcpserver/
 | `spec.tags` | No | Categorization tags for marketplace discoverability. Use lowercase, hyphenated values. Tags here are separate from `metadata.tags` — these describe the server's domain and capabilities. |
 | `spec.stdio` | Conditionally required | Configuration for a subprocess-based server. Exactly one of `stdio` or `http` must be specified. See [server-types.md](server-types.md). |
 | `spec.http` | Conditionally required | Configuration for an HTTP-based server. Exactly one of `stdio` or `http` must be specified. See [server-types.md](server-types.md). |
-| `spec.env_spec` | No | Required environment variables (schema only). Actual values are provided at runtime via the AgentInstance's environment binding. See [Environment Specification](#environment-specification). |
+| `spec.env_spec` | No | Required environment variables (schema only). Actual values are provided when each run starts. See [Environment Specification](#environment-specification). |
 
 ### Server Type (oneof — required)
 
@@ -138,7 +138,7 @@ A tool asks for approval before it runs when the server itself marks it destruct
 
 ### Environment Specification
 
-`env_spec` declares the schema of environment variables the MCP server requires at runtime. This is documentation + validation, not actual values. Values are provided via the AgentInstance's environment binding.
+`env_spec` declares the schema of environment variables the MCP server requires at runtime. This is documentation + validation, not actual values. Values come from the run's resolved environment (the Environments bound to what started the run, `runtime_env`, then OAuth tokens and the personal environment of the person who sent the message for keys still missing).
 
 ```yaml
 spec:
@@ -156,9 +156,9 @@ spec:
 |---|---|
 | `value` | Actual value. Leave empty in the McpServer spec — values are provided at runtime. Can be pre-populated for non-secret, shared defaults. |
 | `is_secret` | `true`: encrypted at rest, redacted in logs, requires special permissions to read. `false`: stored as plaintext, visible in audit logs. |
-| `description` | Shown in the UI when configuring an AgentInstance. Be specific about the required format and permissions (e.g., "GitHub PAT with `repo` and `read:org` scopes"). |
+| `description` | Shown in the UI when a person supplies the value. Be specific about the required format and permissions (e.g., "GitHub PAT with `repo` and `read:org` scopes"). |
 
-The `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and are shared across McpServers, Agents, AgentInstances, and WorkflowInstances.
+The `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and are shared across McpServers, Agents, and WorkflowInstances.
 
 ## Status Fields
 

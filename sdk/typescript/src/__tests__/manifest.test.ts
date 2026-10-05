@@ -195,7 +195,7 @@ describe("serializeManifest", () => {
       description: "Patient-facing WhatsApp assistant.",
       instructions: "Short messages.\nOne question at a time.\n",
     },
-    status: { defaultInstanceId: "agi_01example" },
+    status: { versionHash: "3f2a9c1e" },
   });
 
   it("emits the canonical envelope: apiVersion spelling, no status", () => {
@@ -378,6 +378,6 @@ describe("manifest registry", () => {
       .filter((h) => h.updateVisibility !== undefined)
       .map((h) => h.yamlKind)
       .sort();
-    expect(withBinding).toEqual(["Agent", "AgentInstance", "Environment", "McpServer", "Workflow"]);
+    expect(withBinding).toEqual(["Agent", "Environment", "McpServer", "Workflow"]);
   });
 });

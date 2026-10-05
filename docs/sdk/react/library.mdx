@@ -248,8 +248,8 @@ Behavior hook that updates the visibility of a resource.
 
 Supports blueprints (Agent, Workflow, Skill, MCP Server, Plugin) with
 the full private/org/platform spectrum (a plugin's change reaches
-every resource it installed, by the server's contract), instances
-(AgentInstance, WorkflowInstance) with private/org, and environments
+every resource it installed, by the server's contract), workflow
+instances with private/org, and environments
 with private/org (secret values never leave the org boundary, so the
 platform level is rejected by the backend).
 
@@ -613,7 +613,7 @@ function findStreamingPlan(execution: AgentExecution | null | undefined): Stream
 
 ### instanceVisibilityLevels
 
-The levels an instance (agent_instance, workflow_instance) selector
+The levels an instance (workflow_instance) selector
 offers, in escalation order: Private / Organization.
 
 Platform is deliberately absent — instances are tenant-isolated by

@@ -90,14 +90,6 @@ describe("samples", () => {
     });
   });
 
-  describe("agentInstance", () => {
-    it("creates an agent instance referencing demo agent", () => {
-      const ai = samples.agentInstance();
-      expect(ai.kind).toBe("AgentInstance");
-      expect(ai.spec?.agentId).toContain("agt-");
-    });
-  });
-
   describe("message primitives", () => {
     it("humanMessage has correct type", () => {
       const msg = samples.humanMessage("Hello");
@@ -196,7 +188,6 @@ describe("samples determinism", () => {
     skill: () => samples.skill(),
     mcpServer: () => samples.mcpServer(),
     environment: () => samples.environment(),
-    agentInstance: () => samples.agentInstance(),
     apiKey: () => samples.apiKey(),
     organization: () => samples.organization(),
     organizationList: () => samples.organizationList(),

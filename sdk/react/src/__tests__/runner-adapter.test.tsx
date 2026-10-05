@@ -26,11 +26,6 @@ function createMockStigmer(overrides: {
   create?: (...args: unknown[]) => Promise<unknown>;
 } = {}) {
   return {
-    agent: {
-      getByReference: vi.fn().mockResolvedValue({
-        status: { defaultInstanceId: "ain-default" },
-      }),
-    },
     session: {
       create: overrides.create ?? vi.fn().mockResolvedValue({
         metadata: { id: "ses-new-1" },
@@ -97,7 +92,7 @@ describe("RunnerAdapter", () => {
       await act(async () => {
         created = await result.current.create({
           org: "acme",
-          agentInstanceId: "ain-123",
+          agentRef: { org: "acme", slug: "helper" },
         });
       });
 
