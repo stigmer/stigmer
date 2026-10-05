@@ -14,10 +14,15 @@
  * interpreter's `-c` script (`bash -c`, `bash -lc`, `/bin/sh -ec`, behind a
  * wrapper or not) is scanned as one more command line.
  *
+ * A word is literal only when the shell would run it as written. An
+ * unquoted `$`, glob character (`*`, `?`, `[`), `~`, brace (`{a,b}`
+ * expands) or redirection (`>out` before a command) makes it not literal,
+ * and the caller treats such a word as possibly anything.
+ *
  * Its one safety rule: what it cannot be sure it understood answers `null`,
  * and the caller then runs the hook. An unbalanced quote or bracket, a
- * heredoc, `eval`, and `sh -c` or `bash -c` over anything but a literal
- * string are all `null`. Matching too widely runs a hook more often and the
+ * heredoc, `eval`, a `function` definition, and `sh -c` or `bash -c` over
+ * anything but a literal string are all `null`. Matching too widely runs a hook more often and the
  * hook still decides; matching too narrowly would skip a policy.
  */
 
@@ -35,7 +40,7 @@ export type ShellCommand = readonly ShellWord[];
 const INTERPRETERS = new Set(["sh", "bash", "zsh", "dash", "ksh"]);
 
 /** Words that open or continue a compound command before the command it runs. */
-const OPENING_WORDS = new Set(["if", "then", "elif", "else", "do", "while", "until", "!", "{"]);
+const OPENING_WORDS = new Set(["if", "then", "elif", "else", "do", "while", "until", "!", "{", "coproc"]);
 
 /** Words that close a compound command, and run nothing. */
 const CLOSING_WORDS = new Set(["fi", "done", "}", "esac"]);
@@ -62,7 +67,7 @@ function collect(line: string, out: ShellCommand[], depth: number): boolean {
   for (const words of scanned.commands) {
     const command = withoutCompoundWords(words);
     if (command.length === 0) continue;
-    if (command[0]!.text === "eval") return false;
+    if (command[0]!.text === "eval" || command[0]!.text === "function") return false;
     const script = interpreterScript(command);
     if (script === null) return false;
     if (script !== undefined && !collect(script, out, depth + 1)) return false;
@@ -197,7 +202,7 @@ function scan(line: string): Scanned | null {
       i += 1;
       continue;
     }
-    if (c === "$" || c === "*" || c === "?" || c === "[" || c === "~") literal = false;
+    if ("$*?[~{}<>".includes(c)) literal = false;
     text += c;
     inWord = true;
     i += 1;

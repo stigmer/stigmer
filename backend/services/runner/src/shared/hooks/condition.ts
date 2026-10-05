@@ -7,13 +7,19 @@
  *
  *  - `Bash(spec)` matches when ANY simple command of the input matches
  *    (`shell-commands.ts` splits it, nested substitutions and subshells
- *    included), with leading assignments and wrappers (`timeout`, `time`,
- *    `nice`, `nohup`, `stdbuf`, `command`, `builtin`, `noglob`, a bare
- *    `xargs`) also tried stripped. `*` is any text; a trailing ` *` also
- *    matches the bare command, so `git *` matches `git`, and the older `:*`
- *    is a prefix. A word the shell would expand (`$x`, `$(…)`, an unquoted
- *    glob) could be anything, so only the words before it decide: a command
- *    they rule out does not match, and any other might.
+ *    included), with leading assignments and wrappers also tried stripped.
+ *    The wrappers are Claude's (`timeout`, `time`, `nice`, `nohup`,
+ *    `stdbuf`, `command`, `builtin`, `noglob`, `xargs`) and a few more that
+ *    run their arguments (`exec`, `env`, `sudo`, `doas`, `setsid`,
+ *    `ionice`, `chrt`, `taskset`, `watch`); since their options may take
+ *    arguments, every word after one is tried as the command's start. A
+ *    command named by path (`/bin/rm`) is also tried by its last segment.
+ *    `*` is any text; a trailing ` *` also matches the bare command, so
+ *    `git *` matches `git`, and the older `:*` is a prefix. A word the shell
+ *    would expand (`$x`, `$(…)`, a glob, a brace list, a redirection) could
+ *    be anything, so only the words before it decide: a command they rule
+ *    out does not match, and any other might. Wider than Claude's rule is
+ *    the safe side here (see below).
  *  - `Read(path)` and `Edit(path)` are gitignore-style paths, matched
  *    against the real absolute path: `//abs` from the filesystem root, `~/p`
  *    from home, `/p` from the workspace root, `p` or `./p` from the
@@ -88,15 +94,24 @@ function toolMatches(tool: string, toolName: string): boolean {
 
 // ── Bash ──────────────────────────────────────────────────────────
 
-const WRAPPERS = new Set(["timeout", "time", "nice", "nohup", "stdbuf", "command", "builtin", "noglob", "xargs"]);
+const WRAPPERS = new Set([
+  "timeout", "time", "nice", "nohup", "stdbuf", "command", "builtin", "noglob", "xargs",
+  "exec", "env", "sudo", "doas", "setsid", "ionice", "chrt", "taskset", "watch",
+]);
 const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
+
+/** How many forms of one simple command are tried, at most; past it the command matches. */
+const MAX_FORMS = 256;
 
 function bashMatches(spec: string, command: unknown): boolean {
   if (typeof command !== "string") return true;
   const commands = splitShellCommands(command);
   if (commands === null) return true;
   const patterns = bashPatterns(spec);
-  return commands.some((words) => commandForms(words).some((form) => formMatches(patterns, form)));
+  return commands.some((words) => {
+    const forms = commandForms(words);
+    return forms === null || forms.some((form) => formMatches(patterns, form));
+  });
 }
 
 /**
@@ -134,34 +149,37 @@ function couldContinue(pattern: string, prefix: string): boolean {
   return star !== -1 && prefix.startsWith(literal);
 }
 
-/** A simple command, and the same with its assignments and wrappers peeled off, one layer at a time. */
-function commandForms(words: ShellCommand): (readonly ShellWord[])[] {
-  const forms: (readonly ShellWord[])[] = [words];
-  let rest: readonly ShellWord[] = words;
-  for (let layer = 0; layer < 4; layer++) {
-    const peeled = peel(rest);
-    if (peeled.length === rest.length || peeled.length === 0) break;
-    forms.push(peeled);
-    rest = peeled;
+/**
+ * Each command a simple command may run: itself without its leading
+ * assignments, and after a wrapper every later word as the start; a command
+ * named by path is also tried by its last segment. `null` when there are too
+ * many to try, which matches.
+ */
+function commandForms(words: ShellCommand): (readonly ShellWord[])[] | null {
+  const forms: (readonly ShellWord[])[] = [];
+  const pending: (readonly ShellWord[])[] = [words];
+  while (pending.length > 0) {
+    const form = pending.pop()!;
+    let assignments = 0;
+    while (assignments < form.length && ASSIGNMENT.test(form[assignments]!.text)) assignments += 1;
+    if (assignments > 0) {
+      // An assignment runs nothing; the command after it is the one to judge.
+      pending.push(form.slice(assignments));
+      continue;
+    }
+    if (form.length === 0) continue;
+    forms.push(form);
+    if (forms.length + pending.length > MAX_FORMS) return null;
+    const head = form[0]!;
+    if (head.literal && head.text.includes("/") && !head.text.endsWith("/")) {
+      pending.push([{ text: head.text.slice(head.text.lastIndexOf("/") + 1), literal: true }, ...form.slice(1)]);
+    }
+    if (head.literal && WRAPPERS.has(head.text)) {
+      if (forms.length + pending.length + form.length > MAX_FORMS) return null;
+      for (let start = 1; start < form.length; start++) pending.push(form.slice(start));
+    }
   }
   return forms;
-}
-
-/** Leading assignments, then one wrapper and its options. */
-function peel(words: readonly ShellWord[]): readonly ShellWord[] {
-  let i = 0;
-  while (i < words.length && ASSIGNMENT.test(words[i]!.text)) i += 1;
-  const head = words[i]?.text;
-  if (head === undefined || !WRAPPERS.has(head)) return words.slice(i);
-  if (head === "xargs" && words[i + 1]?.text.startsWith("-")) return words.slice(i);
-  i += 1;
-  while (i < words.length && words[i]!.text.startsWith("-")) {
-    const flag = words[i]!.text;
-    i += 1;
-    if (head === "nice" && flag === "-n") i += 1;
-  }
-  if (head === "timeout" && i < words.length) i += 1;
-  return words.slice(i);
 }
 
 function joinWords(words: readonly ShellWord[]): string {
