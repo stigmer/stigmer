@@ -288,6 +288,21 @@ describe("what a command runs with", () => {
     expect(beforeRun).toHaveBeenCalledTimes(2);
     expect(onActivity).toHaveBeenCalledWith("hook plugin safety");
   });
+
+  it("refuses the call, naming why, when the plugin's tree cannot be restored, and runs nothing", async () => {
+    const beforeRun = vi.fn(async () => {
+      throw new Error("ENOSPC: no space left on device");
+    });
+    const run = vi.fn<HookProcessRunner>();
+    const hooks = evaluator([{ source: plugin("safety", { beforeRun }), groups: [group("PreToolUse", "Bash", { command: "a" })] }], run);
+    const outcome = await hooks.preToolUse(SHELL, {});
+    expect(outcome).toMatchObject({
+      decision: "deny",
+      hook: "safety",
+      reason: "the plugin's files could not be restored to the installed version: ENOSPC: no space left on device",
+    });
+    expect(run).not.toHaveBeenCalled();
+  });
 });
 
 describe("PostToolUse", () => {

@@ -224,7 +224,16 @@ export class HookEvaluator {
     if (typeof command === "string") {
       return { exitCode: null, stdout: "", stderr: "", timedOut: false, spawnError: command };
     }
-    await source.beforeRun?.();
+    try {
+      await source.beforeRun?.();
+    } catch (err) {
+      // A tree the tamper guard cannot restore cannot run the hook as it was
+      // installed, and skipping it would drop its policy: the call is refused
+      // as a hook's exit 2 refuses it, naming why.
+      const reason = `the plugin's files could not be restored to the installed version: ${err instanceof Error ? err.message : String(err)}`;
+      console.warn(`[hooks] ${label(source)}: ${reason}`);
+      return { exitCode: 2, stdout: "", stderr: reason, timedOut: false };
+    }
 
     const stdin = JSON.stringify({
       session_id: this.deps.sessionId,
