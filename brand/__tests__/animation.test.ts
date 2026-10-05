@@ -23,15 +23,15 @@ test("the fully revealed film mark matches the static SVG silhouette", async () 
   assert.deepEqual(await alpha(() => 1), expected);
 });
 
-test("a hidden film mark leaves no visible connectors or dots", async () => {
+test("a hidden film mark leaves no visible forms or dots", async () => {
   assert.ok((await alpha(() => 0)).every((value) => value === 0));
 });
 
-test("partial reveal fades connectors with their parent form", async () => {
+test("partial reveal fades each entire outline evenly", async () => {
   const actual = await alpha(() => 0.5);
   assert.ok(actual.some((value) => value > 0));
   assert.ok(
     actual.every((value) => value <= 128),
-    "overlapping connectors must not appear brighter than their form",
+    "no region of an outline may appear brighter during its fade",
   );
 });

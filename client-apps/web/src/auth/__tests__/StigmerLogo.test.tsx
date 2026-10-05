@@ -1,4 +1,4 @@
-/** Pin the refined silhouette and prevent SVG mask collisions between mounted logo instances. */
+/** Pin the canonical silhouette and keep repeated logo instances independent. */
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import { describe, expect, it } from "vitest";
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { StigmerLogo } from "../StigmerLogo";
 
 describe("refined brand mark", () => {
-  it("uses an independent mask for each mounted logo", () => {
+  it("renders repeated logos without shared SVG definitions", () => {
     const markup = renderToStaticMarkup(
       createElement(
         "div",
@@ -18,12 +18,9 @@ describe("refined brand mark", () => {
         createElement(StigmerLogo),
       ),
     );
-    const ids = [...markup.matchAll(/<mask id="([^"]+)"/g)].map(
-      (match) => match[1],
-    );
-    expect(ids).toHaveLength(2);
-    expect(new Set(ids).size).toBe(2);
-    for (const id of ids) expect(markup).toContain(`url(#${id})`);
+    expect(markup.match(/<svg\b/g)).toHaveLength(2);
+    expect(markup.match(/<path\b/g)).toHaveLength(16);
+    expect(markup).not.toMatch(/<(?:defs|mask)\b|url\(#/);
   });
 
   it("renders the same alpha silhouette as the approved vector asset", async () => {
