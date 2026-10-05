@@ -269,6 +269,7 @@ const consumerIdentityAccountStore: IdentityAccountStore = {
     ),
   findDirectByEmail: () => Promise.resolve(undefined),
   findByIds: () => Promise.resolve([]),
+  findByOrg: () => Promise.resolve([]),
 };
 
 /**
