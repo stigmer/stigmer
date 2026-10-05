@@ -8,8 +8,10 @@ import { openManageAccessFromKebab, visibilityBadge } from "../../../helpers/acc
  * A blueprint (agent, workflow) is created at Organization visibility, the
  * blueprint default. Its detail header shows the level as a badge that opens
  * the Manage access dialog, and the dialog's General access control is where
- * the level changes: Private or Organization, never the retired public
- * level. A change is written to the server and the header follows it.
+ * the level changes: Private, Organization or, for an organization that
+ * is not itself a child on a server that holds more than one, Child
+ * organizations; never the retired public level. A change is written to
+ * the server and the header follows it.
  *
  * Run against the open-source server, where the owner of a resource holds
  * this control in every edition (the audience permission). Each test seeds
@@ -31,7 +33,7 @@ test.describe("Blueprint visibility", () => {
       await expect(dialog.getByRole("heading", { name: "General access" })).toBeVisible();
     });
 
-    test("the visibility control offers exactly Private and Organization", async ({
+    test("the visibility control offers exactly Private, Organization and Child organizations", async ({
       page,
       testAgent,
     }) => {
@@ -48,9 +50,10 @@ test.describe("Blueprint visibility", () => {
       // that the option really receives the pointer (it once did not: #1509).
       await listbox.getByRole("option", { name: /^Private/ }).click({ trial: true });
       const options = listbox.getByRole("option");
-      await expect(options).toHaveCount(2);
+      await expect(options).toHaveCount(3);
       await expect(options.nth(0)).toHaveAccessibleName(/^Private/);
       await expect(options.nth(1)).toHaveAccessibleName(/^Organization/);
+      await expect(options.nth(2)).toHaveAccessibleName(/^Child organizations/);
       await expect(page.getByRole("option", { name: /^Public/ })).toHaveCount(0);
     });
 
