@@ -26,6 +26,10 @@
  * Claude's `defer` re-fires PreToolUse), asks again, and the stored decision
  * answers it; the publish runs; COMPLETED. Every row says the hook decided.
  *
+ * Two refusals settle as the tool lists' does, EXECUTION_FAILED on the
+ * actionable surface with their own sentence: a referenced plugin that cannot
+ * be read, and a hook that reads a variable the run does not give the agent.
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
  */
@@ -40,6 +44,7 @@ import {
   ApprovalAction,
   ApprovalPolicySource,
   ExecutionPhase,
+  MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -223,5 +228,47 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(turn.outcome.kind).toBe("returned");
     expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_FAILED);
     expect(record.lastFullStatus!.error).toMatch(/^The plugin 'gone' that the agent's hooks reference could not be read: /);
+  });
+
+  it("refuses the turn with its own sentence when a hook reads a variable the run does not give the agent", async () => {
+    clock.reset();
+    const record = deepAgentExecutionRecord({
+      message: "Clean the build.",
+      hooks: [create(HookSourceSchema, {
+        source: {
+          case: "inline",
+          value: create(HookConfigSchema, {
+            format: HookFormat.CLAUDE_CODE,
+            groups: [create(HookGroupSchema, {
+              event: "PreToolUse",
+              matcher: "Bash",
+              handlers: [create(HookHandlerSchema, { command: "/bin/echo", args: ["${user_config.API_TOKEN}"] })],
+            })],
+          }),
+        },
+      })],
+    });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      script: () => {
+        throw new Error("the model must never be asked when a hook cannot run");
+      },
+    });
+
+    const turn = await runDeepAgentTurn(scenario, { turnSeq: 0 });
+
+    expect(turn.outcome.kind, "a deterministic refusal RETURNS").toBe("returned");
+    const final = record.lastFullStatus!;
+    const message =
+      "A hook in the agent's own hooks block reads the variable API_TOKEN, which this run does not give the agent. " +
+      "Declare API_TOKEN in the agent's env and set its value, then run again.";
+    expect(final.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+    expect(final.error).toBe(message);
+    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+      `Execution failed: ${message}`,
+    ]);
   });
 });
