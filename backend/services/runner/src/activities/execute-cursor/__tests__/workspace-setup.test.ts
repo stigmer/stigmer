@@ -592,7 +592,14 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     });
     expect(statSync(join(getHitlGateDir(workspaceRoot), "workspace-files.json")).mode & 0o777, "the snapshot is the owner's alone").toBe(0o600);
     // The agent edits both files during the turn, adding a hook to each.
-    writeFileSync(settings, JSON.stringify({ model: "y", hooks: { PostToolUse: [{ matcher: "", hooks: [{ type: "command", command: "added" }] }] } }), "utf-8");
+    writeFileSync(settings, JSON.stringify({
+      model: "y",
+      hooks: {
+        // The agent also wrote back the set-aside hook: kept once.
+        PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "touch fired" }] }],
+        PostToolUse: [{ matcher: "", hooks: [{ type: "command", command: "added" }] }],
+      },
+    }), "utf-8");
     const during = JSON.parse(readFileSync(cursorHooks, "utf-8"));
     during.hooks.preToolUse.push({ command: "./added-by-agent.sh" });
     writeFileSync(cursorHooks, JSON.stringify(during), "utf-8");
@@ -619,6 +626,16 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
       model: "z",
       hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "touch fired" }] }] },
     });
+  });
+
+  it("keeps an agent's edit of a .claude settings file that no longer parses as it is", async () => {
+    const { workspaceRoot, hitlDir, settings } = workspace();
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders: workspaceFolders([workspaceRoot], []) });
+    writeFileSync(settings, "{ half written", "utf-8");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await removeHitlGate(handle);
+    warn.mockRestore();
+    expect(readFileSync(settings, "utf-8")).toBe("{ half written");
   });
 
   it("keeps an agent's deletion of a .claude settings file, and returns .cursor/hooks.json as it was over an edit that no longer parses", async () => {
