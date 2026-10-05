@@ -23,7 +23,10 @@
  * The rule is simpler than the SDK's own load test on purpose, so an SDK
  * bump cannot quietly widen what loads; a file that does not parse refuses
  * nothing, since the SDK loads no hooks from it. Every folder is checked,
- * not only the one the SDK reads today.
+ * not only the one the SDK reads today. A runner-owned folder's settings
+ * file reached through a link (one that is a link, or resolves outside the
+ * folder) is never edited either, since the file it reaches may be a
+ * person's own; carrying hooks, it refuses the turn the same way.
  *
  * RESTORING. Every file the gate rewrites is snapshotted under the gate
  * directory, its original bytes beside the bytes the gate wrote, before it
@@ -43,8 +46,8 @@
  * 0600): a settings file can carry tokens in its `env`.
  */
 
-import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { lstat, mkdir, readdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { join, sep } from "node:path";
 import type { ProvisionResult } from "../../shared/workspace/types.js";
 
 const CLAUDE_DIR = ".claude";
@@ -69,13 +72,21 @@ export function workspaceFolders(dirs: readonly string[], provisionResults: read
   }));
 }
 
-/** A Cursor turn on a person's own folder whose `.claude` settings carry hooks the SDK would run. */
+/**
+ * A Cursor turn whose `.claude` settings carry hooks the SDK would run and
+ * the runner may not set aside: in a person's own folder, or reached
+ * through a link (a file that is one, or that resolves outside its folder).
+ */
 export class CursorWorkspaceHooksRefusal extends Error {
-  constructor(files: readonly string[]) {
+  constructor(files: readonly string[], why: "own-folder" | "linked" = "own-folder") {
     super(
       `${files.join(" and ")} ${files.length === 1 ? "carries" : "carry"} Claude Code hooks, which the Cursor engine ` +
-        "would run beside the agent's own. Stigmer does not edit a folder of yours, so it cannot set them aside for the turn. " +
-        "Run this session on Stigmer's native engine, or move the hooks out of the folder's .claude settings.",
+        "would run beside the agent's own. " +
+        (why === "own-folder"
+          ? "Stigmer does not edit a folder of yours, so it cannot set them aside for the turn. " +
+            "Run this session on Stigmer's native engine, or move the hooks out of the folder's .claude settings."
+          : "Stigmer does not edit a file through a link, so it cannot set them aside for the turn. " +
+            "Run this session on Stigmer's native engine, or replace the link with a file."),
     );
     this.name = "CursorWorkspaceHooksRefusal";
   }
@@ -93,13 +104,34 @@ export async function claudeSettingsWithHooks(dir: string): Promise<string[]> {
   return found;
 }
 
-/** Refuse the turn when a person's own folder carries `.claude` hooks. Throws {@link CursorWorkspaceHooksRefusal}. */
+/**
+ * Refuse the turn when `.claude` hooks would run that the runner may not set
+ * aside: a person's own folder's, or a runner-owned folder's reached through
+ * a link. Throws {@link CursorWorkspaceHooksRefusal}.
+ */
 export async function refuseOwnFolderHooks(folders: readonly WorkspaceFolder[]): Promise<void> {
-  const files: string[] = [];
+  const own: string[] = [];
+  const linked: string[] = [];
   for (const folder of folders) {
-    if (!folder.runnerOwned) files.push(...(await claudeSettingsWithHooks(folder.dir)));
+    for (const path of await claudeSettingsWithHooks(folder.dir)) {
+      if (!folder.runnerOwned) own.push(path);
+      else if (await linkedOut(folder.dir, path)) linked.push(path);
+    }
   }
-  if (files.length > 0) throw new CursorWorkspaceHooksRefusal(files);
+  if (own.length > 0) throw new CursorWorkspaceHooksRefusal(own);
+  if (linked.length > 0) throw new CursorWorkspaceHooksRefusal(linked, "linked");
+}
+
+/**
+ * Whether a settings file is reached through a link: it is one, or it
+ * resolves outside its folder (a linked `.claude` directory). Editing it
+ * would edit a file the folder does not hold, a person's own settings
+ * perhaps.
+ */
+async function linkedOut(dir: string, path: string): Promise<boolean> {
+  if ((await lstat(path)).isSymbolicLink()) return true;
+  const root = await realpath(dir);
+  return !(await realpath(path)).startsWith(`${root}${sep}`);
 }
 
 /** How a rewritten file's original is put back over an agent's edit. */
@@ -124,7 +156,7 @@ export async function claudeSettingsRewrites(folders: readonly WorkspaceFolder[]
       const path = join(folder.dir, CLAUDE_DIR, name);
       const original = await readOrNull(path);
       const parsed = parseObject(original);
-      if (original === null || parsed === undefined || !("hooks" in parsed)) continue;
+      if (original === null || parsed === undefined || !("hooks" in parsed) || (await linkedOut(folder.dir, path))) continue;
       const { hooks: _hooks, ...rest } = parsed;
       rewrites.push({ path, kind: "claude-settings", original, written: `${JSON.stringify(rest, null, 2)}\n` });
     }

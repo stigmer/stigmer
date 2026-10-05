@@ -36,6 +36,7 @@
  * the model wrote it.
  */
 
+import { isDeepStrictEqual } from "node:util";
 import { isAbsolute, resolve } from "node:path";
 import type { HookFormatName } from "../../shared/hooks/hook-set.js";
 import type { CallViews, CursorToolView, HookToolViews, PluginServerName, ToolView, ViewedCall } from "../../shared/hooks/tool-view.js";
@@ -112,6 +113,9 @@ export class CursorEngineToolViews implements HookToolViews {
   }
 
   argsFrom(call: ViewedCall, format: HookFormatName, input: Args): Args | string {
+    // A rewrite that hands the call back as the hook saw it is none, even
+    // where no rewrite could be taken back (an MCP call, a Delete).
+    if (this.echoes(call, format, input)) return { ...call.args };
     if (call.serverSlug !== "") return "Cursor's engine applies no rewrite of an MCP call";
     const next = format === "cursor" ? { ...call.args, ...input } : this.fromClaude(call, input);
     if (typeof next === "string") return next;
@@ -127,6 +131,16 @@ export class CursorEngineToolViews implements HookToolViews {
       return `Cursor's engine does not apply a rewrite of ${call.name}'s ${unapplied.join(", ")}`;
     }
     return next;
+  }
+
+  /** Whether a rewrite repeats the view's own input: every key a Cursor-format one names, all of a Claude Code one. */
+  private echoes(call: ViewedCall, format: HookFormatName, input: Args): boolean {
+    const view = this.viewsOf(call)[format];
+    if (view === undefined) return false;
+    const seen = asJson(view.toolInput);
+    const given = asJson(input);
+    if (format === "claude-code") return isDeepStrictEqual(given, seen);
+    return Object.keys(given).every((key) => isDeepStrictEqual(given[key], seen[key]));
   }
 
   private mcpViews(call: ViewedCall): CallViews {
@@ -186,4 +200,9 @@ export class CursorEngineToolViews implements HookToolViews {
         return `a Claude Code hook sees Cursor's ${call.name} as another tool, so its rewrite cannot be taken back`;
     }
   }
+}
+
+/** A value as JSON would carry it: an absent key and an undefined one are alike. */
+function asJson(value: Args): Args {
+  return JSON.parse(JSON.stringify(value)) as Args;
 }

@@ -125,6 +125,13 @@ describe("the hook server's answers", () => {
     });
   });
 
+  it("asks, with no rewrite, when a hook's rewrite repeats an MCP call it cannot rewrite", async () => {
+    const { h } = handler(evaluator(() => decide("ask", { updatedInput: { q: "a" } })));
+    const reply = (await h.answer(request({ hook_event_name: "beforeMCPExecution", tool_name: "search", tool_input: '{"q":"a"}', mcp_server_name: "github" }))) as Record<string, string>;
+    expect(reply["decision"]).toBe("ask");
+    expect(JSON.parse(reply["allow"]!)).toEqual({ permission: "allow" });
+  });
+
   it("answers none when no hook decides, or the payload names no tool", async () => {
     const { h } = handler(evaluator(() => ({})));
     expect(await h.answer(request(shellPayload("ls")))).toEqual({ decision: "none" });
@@ -154,10 +161,11 @@ describe("the hook server's answers", () => {
     const write = { hook_event_name: "preToolUse", tool_name: "Write", tool_input: { file_path: "/w/a.txt", content: "x" } };
     const toEnv = handler(evaluator(() => decide("allow", { updatedInput: { file_path: "/w/.env", content: "x" } })));
     const blocked = (await toEnv.h.answer(request(write))) as Record<string, string>;
-    expect(blocked["decision"]).toBe("deny");
+    expect([blocked["decision"], blocked["hook"]], "the row names the hook whose rewrite was refused").toEqual(["deny", "safety"]);
     expect(blocked["message"]).toContain("secret-like pattern");
     const moved = handler(evaluator(() => decide("allow", { updatedInput: { file_path: "/w/b.txt", content: "x" } })), new Map(), { captureMode: true });
-    expect(((await moved.h.answer(request(write))) as Record<string, string>)["message"]).toContain("review cannot follow");
+    const refused = (await moved.h.answer(request(write))) as Record<string, string>;
+    expect([refused["message"], refused["hook"]]).toEqual([expect.stringContaining("review cannot follow"), "safety"]);
     const free = handler(evaluator(() => decide("allow", { updatedInput: { file_path: "/w/b.txt", content: "x" } })));
     expect(((await free.h.answer(request(write))) as Record<string, string>)["decision"]).toBe("allow");
   });
@@ -198,15 +206,23 @@ describe("the hook server's answers", () => {
 });
 
 describe("the decision log", () => {
-  it("hands each decision to its row once, by identity, else by key, oldest first", () => {
+  it("hands each decision to its row once: by identity, by the rewrite's identity, or by the same path spelled relatively; never by the tool alone", () => {
     const log = new HookDecisionLog();
-    log.record(grantToken("Read", "/w/a"), { provenance: "hook", hook: "one" });
-    log.record(grantToken("Grep", "/w"), { provenance: "approval_lease", hook: "two" });
-    log.record(grantToken("Grep", "/w/docs"), { provenance: "hook", hook: "three" });
+    log.record([grantToken("Read", "/w/a")], { provenance: "hook", hook: "one" });
+    log.record([grantToken("Grep", "/w/docs")], { provenance: "approval_lease", hook: "two" });
+    log.record([grantToken("shell", "ls"), grantToken("shell", "ls -a")], { provenance: "hook", hook: "three" });
     expect(log.take("read", "", { path: "/w/a" })).toEqual({ provenance: "hook", hook: "one" });
     expect(log.take("read", "", { path: "/w/a" }), "taken once").toBeUndefined();
-    expect(log.take("glob", "", { targetDirectory: "/elsewhere" }), "spelled otherwise: by key, oldest first").toEqual({ provenance: "approval_lease", hook: "two" });
-    expect(log.take("shell", "", { command: "ls" })).toBeUndefined();
+    expect(log.take("grep", "", { pattern: "x", path: "/w/other" }), "another path of the same tool").toBeUndefined();
+    expect(log.take("grep", "", { pattern: "x", path: "docs" }), "the same path, relative").toEqual({ provenance: "approval_lease", hook: "two" });
+    expect(log.take("shell", "", { command: "pwd" }), "another command").toBeUndefined();
+    expect(log.take("shell", "", { command: "ls -a" }), "the command as the hook rewrote it").toEqual({ provenance: "hook", hook: "three" });
+  });
+
+  it("records an allow's rewrite under the rewritten call too", async () => {
+    const { h, decisions } = handler(evaluator(() => decide("allow", { updatedInput: { command: "ls -a" } })));
+    await h.answer(request(shellPayload("ls"), { identity: grantToken("shell", "ls"), coarse: grantToken("shell", "ls") }));
+    expect(decisions.take("shell", "", { command: "ls -a" })).toEqual({ provenance: "hook", hook: "safety" });
   });
 });
 

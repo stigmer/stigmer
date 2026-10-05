@@ -94,6 +94,13 @@ describe("a rewrite on the Cursor engine", () => {
     expect(back("Grep", { pattern: "a", file_path: "/w" }, "claude-code", { pattern: "b", path: "/w" })).toEqual({ pattern: "b", file_path: "/w" });
   });
 
+  it("takes a rewrite that repeats the call as the call itself, an MCP call's and a Delete's included", () => {
+    expect(back("search", { q: "a" }, "claude-code", { q: "a" }, "github")).toEqual({ q: "a" });
+    expect(back("search", { q: "a" }, "cursor", { q: "a" }, "github")).toEqual({ q: "a" });
+    expect(back("Delete", { file_path: "/w/a" }, "claude-code", { file_path: "/w/a", content: "" })).toEqual({ file_path: "/w/a" });
+    expect(back("Shell", { command: "ls", cwd: "/w" }, "cursor", { command: "ls" }), "a Cursor-format one names only some keys").toEqual({ command: "ls", cwd: "/w" });
+  });
+
   it("refuses what Cursor's engine would drop, naming it", () => {
     expect(back("Write", { file_path: "/w/a", content: "x" }, "claude-code", { file_path: "/w/a", content: "y" })).toBe(
       "Cursor's engine does not apply a rewrite of Write's content",

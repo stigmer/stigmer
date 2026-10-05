@@ -21,6 +21,7 @@ import {
   rmSync,
   statSync,
   chmodSync,
+  symlinkSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -532,6 +533,29 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
     expect(readFileSync(settings, "utf-8")).toBe(original);
     await removeHitlGate(handle);
+  });
+
+  it("never edits a runner-owned folder's settings reached through a link, and refuses the turn naming it", async () => {
+    const { workspaceRoot, hitlDir, settings } = workspace();
+    const elsewhere = mkdtempSync(join(tmpdir(), "elsewhere-"));
+    tempDirs.push(elsewhere);
+    const outside = join(elsewhere, "settings.json");
+    const outsideBytes = `${JSON.stringify({ hooks: { PreToolUse: [{ matcher: "", hooks: [{ type: "command", command: "mine" }] }] } })}\n`;
+    writeFileSync(outside, outsideBytes, "utf-8");
+    rmSync(settings);
+    symlinkSync(outside, settings);
+    const folders = workspaceFolders([workspaceRoot], []);
+    await expect(refuseOwnFolderHooks(folders)).rejects.toThrow(/through a link/);
+    const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+    expect(readFileSync(outside, "utf-8"), "the linked file is not edited").toBe(outsideBytes);
+    await removeHitlGate(handle);
+    expect(readFileSync(outside, "utf-8")).toBe(outsideBytes);
+
+    // A linked .claude directory reaches outside the folder the same way.
+    const linkedDir = workspace();
+    rmSync(join(linkedDir.workspaceRoot, ".claude"), { recursive: true });
+    symlinkSync(elsewhere, join(linkedDir.workspaceRoot, ".claude"));
+    await expect(refuseOwnFolderHooks(workspaceFolders([linkedDir.workspaceRoot], []))).rejects.toThrow(/through a link/);
   });
 
   it("refuses nothing for an empty hooks object or a file that does not parse", async () => {

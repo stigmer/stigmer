@@ -63,6 +63,7 @@ import type { PolicySource } from "../../shared/approval-policy.js";
 import type { HookEvaluator, HookToolCall } from "../../shared/hooks/evaluate.js";
 import { HOOK_FEEDBACK_HEADING, hookAskMessage, hookLabel, hookRefusalMessage, personDecisionSentence } from "../../shared/hooks/messages.js";
 import { grantToken, toolIdentity, type PersonRefusal } from "./approval-state.js";
+import { extractArgKey } from "./approval-policy.js";
 import { rowNameOf } from "./hook-views.js";
 import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
 import { APPROVAL_REQUIRED_AGENT_MESSAGE, SECRET_BLOCKED_AGENT_MESSAGE, UNATTENDED_SKIP_AGENT_MESSAGE } from "./hook-script.js";
@@ -83,25 +84,26 @@ export interface HookDecisionRecord {
 
 /**
  * The hooks' decisions on the calls of this turn, by the call's coarse
- * identity (`grantToken` of its key and salient), oldest first. The
- * translator takes each when the call's row shows up on the stream; a call
- * whose arguments the stream spells differently from the hook is matched by
- * its key alone.
+ * identity (`grantToken` of its key and salient) and, when a hook rewrote
+ * the call, the identity of the call as rewritten; oldest first. The
+ * translator takes each when the call's row shows up on the stream. A row
+ * that names the same path relatively, where the hook saw it absolute, is
+ * the same call; a row of the same tool on anything else is not.
  */
 export class HookDecisionLog {
-  private readonly records: { readonly token: string; readonly key: string; readonly record: HookDecisionRecord }[] = [];
+  private readonly records: { readonly tokens: readonly string[]; readonly key: string; readonly salients: readonly string[]; readonly record: HookDecisionRecord }[] = [];
 
-  record(token: string, record: HookDecisionRecord): void {
-    const key = keyOfToken(token);
-    this.records.push({ token, key, record });
+  record(tokens: readonly string[], record: HookDecisionRecord): void {
+    const ids = tokens.map(identityOfToken);
+    this.records.push({ tokens, key: ids[0]?.key ?? "", salients: ids.map((id) => id.salient), record });
   }
 
   /** The decision on a streamed call, consumed; `undefined` when no hook decided it. */
   take(name: string, mcpServerSlug: string, input: Record<string, unknown>): HookDecisionRecord | undefined {
     const id = toolIdentity(name, mcpServerSlug, input);
     const token = grantToken(id.key, id.salient);
-    let index = this.records.findIndex((r) => r.token === token);
-    if (index === -1) index = this.records.findIndex((r) => r.key === id.key);
+    let index = this.records.findIndex((r) => r.tokens.includes(token));
+    if (index === -1) index = this.records.findIndex((r) => r.key === id.key && r.salients.some((salient) => samePath(salient, id.salient)));
     if (index === -1) return undefined;
     const [taken] = this.records.splice(index, 1);
     return taken!.record;
@@ -119,10 +121,15 @@ function provenanceOf(decision: "allow" | "ask", leased: boolean, globalBypass: 
   return leased ? "approval_lease" : "hook";
 }
 
-function keyOfToken(token: string): string {
-  const decoded = Buffer.from(token, "base64").toString("utf-8");
-  const newline = decoded.indexOf("\n");
-  return newline === -1 ? decoded : decoded.slice(0, newline);
+function identityOfToken(token: string): { key: string; salient: string } {
+  const [key = "", salient = ""] = Buffer.from(token, "base64").toString("utf-8").split("\n");
+  return { key, salient };
+}
+
+/** One path spelled absolute and the other relative to a root it ends in. */
+function samePath(absolute: string, relative: string): boolean {
+  const rel = relative.replace(/^\.\//, "");
+  return absolute.startsWith("/") && rel !== "" && !rel.startsWith("/") && absolute.endsWith(`/${rel}`);
 }
 
 /** What the script receives for a `pre` request; every answer is the JSON it prints. */
@@ -297,7 +304,7 @@ export class HookRequestHandler {
           const message = askWithRewriteMessage(outcome.hook);
           return { decision: "deny", hook: outcome.hook, deny: denyAnswer(message), message };
         }
-        const moved = this.movedFile(call, outcome.updatedArgs);
+        const moved = this.movedFile(call, outcome.updatedArgs, outcome.hook);
         if (moved !== undefined) return moved;
         const refusal = this.refusals.get(identity) ?? this.refusals.get(coarse);
         if (refusal !== undefined) {
@@ -305,7 +312,9 @@ export class HookRequestHandler {
           return { decision: "refused", deny: denyAnswer(message), message };
         }
         const record: HookDecisionRecord = { provenance: provenanceOf(outcome.decision, outcome.leased, this.turn.globalBypass), hook: outcome.hook };
-        this.decisions.record(coarse || identity, record);
+        const called = coarse || identity;
+        const rewritten = outcome.updatedArgs !== undefined ? [grantToken(identityOfToken(called).key, extractArgKey(outcome.updatedArgs))] : [];
+        this.decisions.record([called, ...rewritten], record);
         if (outcome.decision === "allow") return { decision: "allow", hook: outcome.hook, allow };
         const message = outcome.reason || hookAskMessage(outcome.hook, toolName);
         return {
@@ -330,18 +339,18 @@ export class HookRequestHandler {
     }
   }
 
-  /** A write or a deletion a hook moved to another file, refused or blocked; `undefined` when it stays put. */
-  private movedFile(call: HookToolCall, rewrite: Record<string, unknown> | undefined): PreReply | undefined {
+  /** A write or a deletion a hook moved to another file, refused or blocked, naming the hook; `undefined` when it stays put. */
+  private movedFile(call: HookToolCall, rewrite: Record<string, unknown> | undefined, hook: string): PreReply | undefined {
     if ((call.name !== "Write" && call.name !== "Delete") || rewrite === undefined) return undefined;
     // A write's or a deletion's rewrite here can only move its path
     // (`hook-views.ts`), and an unchanged one is none (`evaluate.ts`).
     const target = rewrite["file_path"];
     if (typeof target === "string" && isSecretLikePath(target)) {
-      return { decision: "deny", deny: JSON.stringify({ permission: "deny", agent_message: SECRET_BLOCKED_AGENT_MESSAGE, user_message: SECRET_BLOCKED_AGENT_MESSAGE }), message: SECRET_BLOCKED_AGENT_MESSAGE };
+      return { decision: "deny", hook, deny: JSON.stringify({ permission: "deny", agent_message: SECRET_BLOCKED_AGENT_MESSAGE, user_message: SECRET_BLOCKED_AGENT_MESSAGE }), message: SECRET_BLOCKED_AGENT_MESSAGE };
     }
     if (this.turn.captureMode) {
       const message = "A hook moved this file change to another file, which this turn's review cannot follow, so the call was refused.";
-      return { decision: "deny", deny: denyAnswer(message), message };
+      return { decision: "deny", hook, deny: denyAnswer(message), message };
     }
     return undefined;
   }
