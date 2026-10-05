@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.mcpserver.v1;
+
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "buf/validate/validate.proto";
+
+// McpServerUsage declares that an agent (AgentSpec.mcp_server_usages) or a
+// session (SessionSpec.mcp_server_usages) uses a McpServer resource.
+//
+// Every tool of a used server is available to the agent unless its tool
+// lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the
+// server is named by its slug, as in mcp__<server-slug>.
+message McpServerUsage {
+  // Reference to the McpServer resource.
+  ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [
+    (ai.stigmer.commons.apiresource.reference_kind) = mcp_server,
+    (buf.validate.field).required = true
+  ];
+
+  // Field 2 held enabled_tools, a per-server tool allow-list, and field 3
+  // tool_approval_overrides, per-tool approval settings. Both were removed
+  // with the approval-policy model: the agent's tool lists narrow its tools,
+  // and a tool asks before it runs when its server marks it destructive.
+  reserved 2, 3;
+  reserved "enabled_tools", "tool_approval_overrides";
+}

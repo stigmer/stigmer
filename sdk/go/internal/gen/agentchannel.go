@@ -6,7 +6,6 @@ import (
 	"context"
 
 	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
@@ -187,15 +186,6 @@ type WhatsAppChannelConfigInput struct {
 	PhoneNumberId string
 }
 
-// RunConfigInput is the SDK input type for RunConfig.
-type RunConfigInput struct {
-	ModelName     string
-	MaxCostUsd    float64
-	MaxToolRounds int32
-	ServiceTier   agentexecutionv1.ServiceTier
-	ThinkingMode  agentexecutionv1.ThinkingMode
-}
-
 func (i *AgentChannelInput) toProto() (*agentchannelv1.AgentChannel, error) {
 	resource := &agentchannelv1.AgentChannel{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -246,16 +236,6 @@ func (i *AgentChannelInput) toProto() (*agentchannelv1.AgentChannel, error) {
 	return resource, nil
 }
 
-func (i *RunConfigInput) toProto() (*agentexecutionv1.RunConfig, error) {
-	return &agentexecutionv1.RunConfig{
-		ModelName:     i.ModelName,
-		MaxCostUsd:    i.MaxCostUsd,
-		MaxToolRounds: i.MaxToolRounds,
-		ServiceTier:   i.ServiceTier,
-		ThinkingMode:  i.ThinkingMode,
-	}, nil
-}
-
 // AgentChannelInputFromProto creates a AgentChannelInput from a proto AgentChannel resource.
 func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInput {
 	if p == nil {
@@ -303,18 +283,5 @@ func whatsAppChannelConfigInputFromProto(p *agentchannelv1.WhatsAppChannelConfig
 	}
 	input := &WhatsAppChannelConfigInput{}
 	input.PhoneNumberId = p.GetPhoneNumberId()
-	return input
-}
-
-func runConfigInputFromProto(p *agentexecutionv1.RunConfig) *RunConfigInput {
-	if p == nil {
-		return nil
-	}
-	input := &RunConfigInput{}
-	input.ModelName = p.GetModelName()
-	input.MaxCostUsd = p.GetMaxCostUsd()
-	input.MaxToolRounds = p.GetMaxToolRounds()
-	input.ServiceTier = p.GetServiceTier()
-	input.ThinkingMode = p.GetThinkingMode()
 	return input
 }

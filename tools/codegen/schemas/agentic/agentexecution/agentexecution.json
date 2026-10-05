@@ -42,14 +42,49 @@
       }
     },
     {
-      "name": "ExecutionConfig",
-      "jsonName": "executionConfig",
-      "protoField": "execution_config",
+      "name": "RunConfig",
+      "jsonName": "runConfig",
+      "protoField": "run_config",
       "type": {
         "kind": "message",
-        "messageType": "ExecutionConfig"
+        "messageType": "RunConfig"
       },
-      "description": "Optional execution-time configuration overrides.\n Example: Specify the model to use for this execution.",
+      "description": "The settings this message asks for (optional): a model, a speed tier,\n thinking, and run bounds. Zero or empty fields are not set here.\n\n The server resolves the settings the turn runs with once, at create,\n and records them on AgentExecutionStatus.run_config. A choice (model,\n tier, thinking) comes from the most specific layer that makes one: this\n field, then the defaults of the agent the turn runs, then the lane's\n operator profile. A bound (cost, tool rounds, result size) is the\n tightest one any layer sets, so a message can lower an agent's cap but\n never raise it. RunConfig's own comment has the full rule.\n\n Unlike a saved surface's settings, a message may set service_tier or\n thinking_mode without a model: it then adjusts the model a less\n specific layer chose (for example, thinking off for one message on an\n agent whose default turns it on).\n\n A lane that composes the turn for a surface (a schedule, a workflow\n step) writes that surface's saved settings here. On a lane where the\n caller is a visitor (the hosted edition's shared-agent guests and\n channel senders), the surface's saved settings replace this field.",
+      "required": false
+    },
+    {
+      "name": "InteractionMode",
+      "jsonName": "interactionMode",
+      "protoField": "interaction_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.agentexecution.v1.InteractionMode",
+        "enumValues": [
+          "INTERACTION_MODE_AGENT",
+          "INTERACTION_MODE_PLAN"
+        ]
+      },
+      "description": "Interaction mode for this message.\n\n AGENT (default): full tool access — read, write, create, delete, shell.\n PLAN: read-only analysis — read, search, list only. No file mutations.\n\n When UNSPECIFIED, defaults to AGENT.\n\n The mode is set per message and does not carry over between messages\n in the same session. Users toggle mode in the session composer before\n sending each message.",
+      "required": false
+    },
+    {
+      "name": "BuildFromPlan",
+      "jsonName": "buildFromPlan",
+      "protoField": "build_from_plan",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Marks this message as a \"Build from plan\" turn: the user approved a plan\n produced by a prior Plan-mode execution and asked the agent to implement it.\n\n When set, the runner injects the implement-plan directive into the agent's\n prompt (see runner shared/implement-plan-prompt.ts). If the approved plan\n document travels as an attachment (the normal case), the directive points\n the agent at the attached plan file and treats it as authoritative; when no\n plan attachment is present (e.g. the client's upload failed), the directive\n tells the agent to follow the plan from the conversation instead.\n\n Clients set this flag INSTEAD of embedding implement instructions in\n `message`, so `message` stays a short human-readable label (e.g.\n \"Build from plan\") that UIs can render as a compact chip.\n\n Like interaction_mode, this is per message and never carries over\n between messages in the same session.",
+      "required": false
+    },
+    {
+      "name": "StructuredOutputSchema",
+      "jsonName": "structuredOutputSchema",
+      "protoField": "structured_output_schema",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "JSON Schema that the agent's output must conform to (optional).\n\n When set, the runner enforces structured output:\n - Native harness: uses deepagents responseFormat/ToolStrategy\n - Cursor harness: prompt instruction + extraction fallback\n\n The validated structured data is returned in the activity result\n and passed back to the parent workflow as `structured`.",
       "required": false
     },
     {

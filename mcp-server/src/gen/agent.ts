@@ -6,8 +6,12 @@
 import { generateSlug, enumFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema, McpServerUsageSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -31,6 +35,8 @@ export const AgentInputShape = {
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality."),
   tools: z.array(z.string()).optional().describe("Tools this agent may use; empty means every tool it has. Entries use Claude Code's names: a built-in such as Read, Grep, Bash, Write, Edit, Glob, Agent or WebFetch; mcp__<server-slug> for every tool of one MCP server, mcp__<server-slug>__<tool> for one tool, and mcp__* for every MCP tool. A specifier in parentheses, as in Bash(git push *), is accepted and governs the whole tool. Agent(explore, shell) also limits which sub-agents this agent may start; the Cursor engine cannot hold its built-in sub-agents back, so it refuses a turn whose agent limits Agent to types. The lists hold on both engines, and under 'approve everything' too."),
   disallowed_tools: z.array(z.string()).optional().describe("Tools this agent may never use, in the same names as tools. Applied before tools, so a tool named in both is excluded."),
+  run_config: z.lazy(() => RunConfigInputSchema).optional().describe("The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message or the surface it came through sets its own (RunConfig has the rule). Versioned with the agent, so a conversation pinned to a version keeps that version's defaults. A choice here (model_name, service_tier, thinking_mode) applies only on the engine named in harness; on a conversation running the other engine only the bounds apply. A bound here is a cap: a message or a surface can lower it, never raise it. A model must be named together with harness, and must be one that engine lists; service_tier FAST and thinking_mode ENABLED need a model that engine prices or marks capable. Checked when the agent is saved."),
+  harness: z.string().optional().describe("The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names none. Unspecified: the platform's default engine (native). Model names belong to an engine (each lists its own), so run_config's model, tier and thinking count only on this engine. A conversation keeps the engine it started on; a later version naming another engine changes only new conversations. Allowed values: HARNESS_NATIVE, HARNESS_CURSOR."),
 } as const;
 
 export const AgentInputSchema = z.object(AgentInputShape);
@@ -59,7 +65,7 @@ const SubAgentInputSchema = z.object({
   description: z.string().optional().describe("What this sub-agent specializes in."),
   instructions: z.string().optional().describe("System prompt for this sub-agent."),
   skill_refs: z.array(z.lazy(() => SkillRefInputSchema)).optional().describe("Skill resources for this sub-agent."),
-  model_override: z.string().optional().describe("Model override for this sub-agent. When set, uses this model instead of the parent's model. When empty, inherits the parent agent's model."),
+  model_override: z.string().optional().describe("Model override for this sub-agent. When set, uses this model instead of the model the turn runs. When empty, inherits the model the turn runs."),
   tools: z.array(z.string()).optional().describe("Tools this sub-agent may use, from what the parent may use; empty means all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent, the type list of an Agent(...) entry is ignored, as in Claude Code. The Cursor engine cannot tell which sub-agent made a call, so it refuses a turn whose sub-agent carries its own lists; the native engine runs it."),
   disallowed_tools: z.array(z.string()).optional().describe("Tools this sub-agent may never use, in the same names as tools."),
 });
@@ -71,6 +77,16 @@ const EnvVarDeclarationInputSchema = z.object({
   optional: z.boolean().optional().describe("Whether this variable is optional."),
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
+
+const RunConfigInputSchema = z.object({
+  model_name: z.string().optional().describe("The model each run uses. Example: 'claude-sonnet-4-6'."),
+  max_cost_usd: z.number().optional().describe("Maximum estimated cost in USD per run. When the run's estimated spend reaches this limit, the run stops with a 'send another message to continue' prompt and ends TERMINATED; the work done so far is kept. The limit is checked each time the engine reports its spend, so a run can end somewhat above it. The native harness reports after every model call, counts a sub-agent's spend toward the limit, and advises the agent to wrap up at about 80% of the budget; the Cursor harness gives no warning. 0 = not set at this layer. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. The spend is the runner's estimate, reported on AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed amount."),
+  max_tool_rounds: z.number().optional().describe("Maximum model-to-tools reasoning cycles per message. A round is one model response that proposes one or more tool calls, followed by their execution; parallel tool calls in one response are one round. When the limit is reached the run stops with a 'send another message to continue' prompt, and the work done so far is kept. The agent is advised to wrap up at about 80% of the budget. 0 = not set at this layer; with no layer setting it the agent runs until the task completes or loop detection stops a repetitive pattern. When set, the valid range is 10–1000; values outside it are clamped to the nearest bound. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. Sub-agent rounds are not counted, and the Cursor harness does not enforce this field."),
+  service_tier: z.string().optional().describe("Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one. In workflow YAML the shorthand spellings 'standard'/'fast' are accepted alongside the canonical enum names. UNSPECIFIED is not set at this layer; with no layer setting it the run uses STANDARD, never the provider account default. FAST is valid only for a model whose registry entry declares a fast pricing variant on the engine that runs it; validated fail-closed on the resolved settings at create. Allowed values: SERVICE_TIER_STANDARD, SERVICE_TIER_FAST."),
+  thinking_mode: z.string().optional().describe("Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output). In workflow YAML the shorthand spellings 'disabled'/'enabled' are accepted alongside the canonical enum names. UNSPECIFIED is not set at this layer; with no layer setting it the run uses DISABLED, never the provider account default. ENABLED is valid only for a model whose registry entry declares the thinking capability on the engine that runs it; validated fail-closed on the resolved settings at create. Combines freely with service_tier. Allowed values: THINKING_MODE_DISABLED, THINKING_MODE_ENABLED."),
+  max_tool_result_chars: z.number().optional().describe("Maximum number of characters for a single tool result before truncation. When a tool result exceeds this limit, it is truncated and a marker is appended: '[truncated — result exceeded {limit} chars, ask for specific sections]' 0 = not set at this layer; with no layer setting it the platform default applies (30,000 chars, about 7,500 tokens). Applies to all tool results (shell, read, write, MCP tools), except built-in tools that already manage their output size."),
+});
+type RunConfigInput = z.infer<typeof RunConfigInputSchema>;
 
 
 /** Build the fully-formed Agent proto from the flat MCP apply input. */
@@ -88,6 +104,8 @@ export function agentInputToProto(input: AgentInput): Agent {
   }
   if (input.tools !== undefined) spec.tools = input.tools;
   if (input.disallowed_tools !== undefined) spec.disallowedTools = input.disallowed_tools;
+  if (input.run_config !== undefined) spec.runConfig = runConfigInputToProto(input.run_config);
+  spec.harness = enumFromString(Harness, input.harness) as Harness;
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -143,6 +161,17 @@ function envVarDeclarationInputToProto(input: EnvVarDeclarationInput) {
   if (input.is_secret !== undefined) result.isSecret = input.is_secret;
   if (input.description !== undefined) result.description = input.description;
   if (input.optional !== undefined) result.optional = input.optional;
+  return result;
+}
+
+function runConfigInputToProto(input: RunConfigInput) {
+  const result = create(RunConfigSchema);
+  if (input.model_name !== undefined) result.modelName = input.model_name;
+  if (input.max_cost_usd !== undefined) result.maxCostUsd = input.max_cost_usd;
+  if (input.max_tool_rounds !== undefined) result.maxToolRounds = input.max_tool_rounds;
+  result.serviceTier = enumFromString(ServiceTier, input.service_tier) as ServiceTier;
+  result.thinkingMode = enumFromString(ThinkingMode, input.thinking_mode) as ThinkingMode;
+  if (input.max_tool_result_chars !== undefined) result.maxToolResultChars = input.max_tool_result_chars;
   return result;
 }
 

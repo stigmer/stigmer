@@ -432,12 +432,14 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Per-turn model choice and run bounds for conversations on this
-   * channel, overriding the platform's channel execution profile.
+   * channel.
    *
-   * Unset fields inherit the platform default. model_name replaces the
-   * platform model outright, while max_cost_usd and max_tool_rounds can
-   * only lower the platform caps — a channel owner can reduce what one
-   * turn may spend, never raise it past the platform profile.
+   * These settings are the turn's own layer: unset fields fall to the
+   * agent's defaults, then to the platform's channel execution profile
+   * (RunConfig has the rule). A choice set here wins over the agent's;
+   * max_cost_usd and max_tool_rounds can only lower the agent's and the
+   * platform's caps — a channel owner can reduce what one turn may spend,
+   * never raise it. What a sender's own request carries is never read.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -450,12 +452,14 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Per-turn model choice and run bounds for conversations on this
-   * channel, overriding the platform's channel execution profile.
+   * channel.
    *
-   * Unset fields inherit the platform default. model_name replaces the
-   * platform model outright, while max_cost_usd and max_tool_rounds can
-   * only lower the platform caps — a channel owner can reduce what one
-   * turn may spend, never raise it past the platform profile.
+   * These settings are the turn's own layer: unset fields fall to the
+   * agent's defaults, then to the platform's channel execution profile
+   * (RunConfig has the rule). A choice set here wins over the agent's;
+   * max_cost_usd and max_tool_rounds can only lower the agent's and the
+   * platform's caps — a channel owner can reduce what one turn may spend,
+   * never raise it. What a sender's own request carries is never read.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -468,12 +472,14 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Per-turn model choice and run bounds for conversations on this
-   * channel, overriding the platform's channel execution profile.
+   * channel.
    *
-   * Unset fields inherit the platform default. model_name replaces the
-   * platform model outright, while max_cost_usd and max_tool_rounds can
-   * only lower the platform caps — a channel owner can reduce what one
-   * turn may spend, never raise it past the platform profile.
+   * These settings are the turn's own layer: unset fields fall to the
+   * agent's defaults, then to the platform's channel execution profile
+   * (RunConfig has the rule). A choice set here wins over the agent's;
+   * max_cost_usd and max_tool_rounds can only lower the agent's and the
+   * platform's caps — a channel owner can reduce what one turn may spend,
+   * never raise it. What a sender's own request carries is never read.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -2423,12 +2429,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for conversations on this
-     * channel, overriding the platform's channel execution profile.
+     * channel.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a channel owner can reduce what one
-     * turn may spend, never raise it past the platform profile.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's channel execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a channel owner can reduce what one turn may spend,
+     * never raise it. What a sender's own request carries is never read.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -2440,12 +2448,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for conversations on this
-     * channel, overriding the platform's channel execution profile.
+     * channel.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a channel owner can reduce what one
-     * turn may spend, never raise it past the platform profile.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's channel execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a channel owner can reduce what one turn may spend,
+     * never raise it. What a sender's own request carries is never read.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -2461,12 +2471,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for conversations on this
-     * channel, overriding the platform's channel execution profile.
+     * channel.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a channel owner can reduce what one
-     * turn may spend, never raise it past the platform profile.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's channel execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a channel owner can reduce what one turn may spend,
+     * never raise it. What a sender's own request carries is never read.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -2487,12 +2499,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for conversations on this
-     * channel, overriding the platform's channel execution profile.
+     * channel.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a channel owner can reduce what one
-     * turn may spend, never raise it past the platform profile.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's channel execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a channel owner can reduce what one turn may spend,
+     * never raise it. What a sender's own request carries is never read.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -2511,12 +2525,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for conversations on this
-     * channel, overriding the platform's channel execution profile.
+     * channel.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a channel owner can reduce what one
-     * turn may spend, never raise it past the platform profile.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's channel execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a channel owner can reduce what one turn may spend,
+     * never raise it. What a sender's own request carries is never read.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -2542,12 +2558,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for conversations on this
-     * channel, overriding the platform's channel execution profile.
+     * channel.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a channel owner can reduce what one
-     * turn may spend, never raise it past the platform profile.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's channel execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a channel owner can reduce what one turn may spend,
+     * never raise it. What a sender's own request carries is never read.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -2565,12 +2583,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for conversations on this
-     * channel, overriding the platform's channel execution profile.
+     * channel.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a channel owner can reduce what one
-     * turn may spend, never raise it past the platform profile.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's channel execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a channel owner can reduce what one turn may spend,
+     * never raise it. What a sender's own request carries is never read.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -2583,12 +2603,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for conversations on this
-     * channel, overriding the platform's channel execution profile.
+     * channel.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a channel owner can reduce what one
-     * turn may spend, never raise it past the platform profile.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's channel execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a channel owner can reduce what one turn may spend,
+     * never raise it. What a sender's own request carries is never read.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
@@ -2604,12 +2626,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for conversations on this
-     * channel, overriding the platform's channel execution profile.
+     * channel.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a channel owner can reduce what one
-     * turn may spend, never raise it past the platform profile.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's channel execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a channel owner can reduce what one turn may spend,
+     * never raise it. What a sender's own request carries is never read.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>

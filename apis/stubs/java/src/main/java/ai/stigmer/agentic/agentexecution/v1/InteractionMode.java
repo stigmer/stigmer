@@ -10,8 +10,9 @@ package ai.stigmer.agentic.agentexecution.v1;
  * InteractionMode controls the agent's behavioral posture for an execution.
  *
  * Determines what the agent is allowed to do — analysis only, or full
- * read-write access. Mode is set per-execution via ExecutionConfig and
- * does not carry over between executions.
+ * read-write access. Mode is set per message
+ * (AgentExecutionSpec.interaction_mode) and does not carry over between
+ * executions.
  *
  * Enforcement:
  * - Native harness (LangGraph): tool-level enforcement — write tools are

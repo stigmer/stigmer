@@ -127,8 +127,8 @@ public interface StreamingUsageSummaryOrBuilder extends
    * <pre>
    * Service tier the runner requested for this execution's model calls.
    *
-   * Always explicit once the runner has translated the execution config
-   * (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+   * Always explicit once the runner has translated the turn's settings
+   * (STANDARD when AgentExecutionStatus.run_config.service_tier was unset) — the audit
    * record that the account default was never left in control.
    * </pre>
    *
@@ -140,8 +140,8 @@ public interface StreamingUsageSummaryOrBuilder extends
    * <pre>
    * Service tier the runner requested for this execution's model calls.
    *
-   * Always explicit once the runner has translated the execution config
-   * (STANDARD when ExecutionConfig.service_tier was unset) — the audit
+   * Always explicit once the runner has translated the turn's settings
+   * (STANDARD when AgentExecutionStatus.run_config.service_tier was unset) — the audit
    * record that the account default was never left in control.
    * </pre>
    *
@@ -178,8 +178,8 @@ public interface StreamingUsageSummaryOrBuilder extends
    * <pre>
    * Thinking mode the runner requested for this execution's model calls.
    *
-   * Always explicit once the runner has translated the execution config
-   * (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+   * Always explicit once the runner has translated the turn's settings
+   * (DISABLED when AgentExecutionStatus.run_config.thinking_mode was unset) — the audit
    * record that the account default was never left in control
    * (stigmer/stigmer#772; several catalog defaults are thinking=true).
    * </pre>
@@ -192,8 +192,8 @@ public interface StreamingUsageSummaryOrBuilder extends
    * <pre>
    * Thinking mode the runner requested for this execution's model calls.
    *
-   * Always explicit once the runner has translated the execution config
-   * (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit
+   * Always explicit once the runner has translated the turn's settings
+   * (DISABLED when AgentExecutionStatus.run_config.thinking_mode was unset) — the audit
    * record that the account default was never left in control
    * (stigmer/stigmer#772; several catalog defaults are thinking=true).
    * </pre>

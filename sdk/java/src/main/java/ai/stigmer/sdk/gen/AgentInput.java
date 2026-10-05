@@ -4,9 +4,13 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentSpec;
-import ai.stigmer.agentic.agent.v1.McpServerUsage;
 import ai.stigmer.agentic.agent.v1.SubAgent;
+import ai.stigmer.agentic.agentexecution.v1.RunConfig;
+import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
+import ai.stigmer.agentic.agentexecution.v1.ThinkingMode;
 import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
+import ai.stigmer.agentic.mcpserver.v1.McpServerUsage;
+import ai.stigmer.agentic.session.v1.Harness;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceMetadataVersion;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
@@ -30,6 +34,8 @@ public final class AgentInput {
     private final java.util.Map<String, EnvVarDeclarationInput> env;
     private final java.util.List<String> tools;
     private final java.util.List<String> disallowedTools;
+    private final RunConfigInput runConfig;
+    private final Harness harness;
 
     private AgentInput(Builder builder) {
         this.id = builder.id;
@@ -48,6 +54,8 @@ public final class AgentInput {
         this.env = builder.env;
         this.tools = builder.tools;
         this.disallowedTools = builder.disallowedTools;
+        this.runConfig = builder.runConfig;
+        this.harness = builder.harness;
     }
 
     Agent toProto() {
@@ -87,6 +95,12 @@ public final class AgentInput {
         }
         if (this.disallowedTools != null && !this.disallowedTools.isEmpty()) {
             spec.addAllDisallowedTools(this.disallowedTools);
+        }
+        if (this.runConfig != null) {
+            spec.setRunConfig(this.runConfig.toProto());
+        }
+        if (this.harness != null) {
+            spec.setHarness(this.harness);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -137,6 +151,8 @@ public final class AgentInput {
         private java.util.Map<String, EnvVarDeclarationInput> env;
         private java.util.List<String> tools;
         private java.util.List<String> disallowedTools;
+        private RunConfigInput runConfig;
+        private Harness harness;
 
         private Builder() {}
 
@@ -161,6 +177,8 @@ public final class AgentInput {
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
         public Builder tools(java.util.List<String> tools) { this.tools = tools; return this; }
         public Builder disallowedTools(java.util.List<String> disallowedTools) { this.disallowedTools = disallowedTools; return this; }
+        public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
+        public Builder harness(Harness harness) { this.harness = harness; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
     }
@@ -305,6 +323,64 @@ public final class AgentInput {
             public Builder optional(boolean optional) { this.optional = optional; return this; }
 
             public EnvVarDeclarationInput build() { return new EnvVarDeclarationInput(this); }
+        }
+    }
+
+    /** SDK input type for RunConfig. */
+    public static final class RunConfigInput {
+        private final String modelName;
+        private final double maxCostUsd;
+        private final int maxToolRounds;
+        private final ServiceTier serviceTier;
+        private final ThinkingMode thinkingMode;
+        private final int maxToolResultChars;
+
+        private RunConfigInput(Builder builder) {
+            this.modelName = builder.modelName;
+            this.maxCostUsd = builder.maxCostUsd;
+            this.maxToolRounds = builder.maxToolRounds;
+            this.serviceTier = builder.serviceTier;
+            this.thinkingMode = builder.thinkingMode;
+            this.maxToolResultChars = builder.maxToolResultChars;
+        }
+
+        RunConfig toProto() {
+            RunConfig.Builder builder = RunConfig.newBuilder();
+            if (this.modelName != null) {
+                builder.setModelName(this.modelName);
+            }
+            builder.setMaxCostUsd(this.maxCostUsd);
+            builder.setMaxToolRounds(this.maxToolRounds);
+            if (this.serviceTier != null) {
+                builder.setServiceTier(this.serviceTier);
+            }
+            if (this.thinkingMode != null) {
+                builder.setThinkingMode(this.thinkingMode);
+            }
+            builder.setMaxToolResultChars(this.maxToolResultChars);
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String modelName;
+            private double maxCostUsd;
+            private int maxToolRounds;
+            private ServiceTier serviceTier;
+            private ThinkingMode thinkingMode;
+            private int maxToolResultChars;
+
+            private Builder() {}
+
+            public Builder modelName(String modelName) { this.modelName = modelName; return this; }
+            public Builder maxCostUsd(double maxCostUsd) { this.maxCostUsd = maxCostUsd; return this; }
+            public Builder maxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; return this; }
+            public Builder serviceTier(ServiceTier serviceTier) { this.serviceTier = serviceTier; return this; }
+            public Builder thinkingMode(ThinkingMode thinkingMode) { this.thinkingMode = thinkingMode; return this; }
+            public Builder maxToolResultChars(int maxToolResultChars) { this.maxToolResultChars = maxToolResultChars; return this; }
+
+            public RunConfigInput build() { return new RunConfigInput(this); }
         }
     }
 }

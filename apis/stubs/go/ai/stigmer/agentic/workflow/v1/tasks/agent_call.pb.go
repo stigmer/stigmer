@@ -54,8 +54,8 @@ type AgentCallTaskConfig struct {
 	// Example: {"GITHUB_TOKEN": "${ .secrets.GH_TOKEN }"}
 	// Optional.
 	Env map[string]string `protobuf:"bytes,3,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Per-call model choice and run bounds. Unset fields inherit the
-	// platform defaults.
+	// Per-call model choice and run bounds. Unset fields fall to the agent's
+	// defaults (RunConfig has the rule).
 	RunConfig *v1.RunConfig `protobuf:"bytes,4,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	// Structured output contract for this agent call.
 	//

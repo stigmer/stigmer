@@ -1,4 +1,7 @@
+from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as _invocation_pb2
 from ai.stigmer.agentic.environment.v1 import spec_pb2 as _spec_pb2
+from ai.stigmer.agentic.mcpserver.v1 import usage_pb2 as _usage_pb2
+from ai.stigmer.agentic.session.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from buf.validate import validate_pb2 as _validate_pb2
@@ -11,7 +14,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentSpec(_message.Message):
-    __slots__ = ("description", "icon_url", "instructions", "mcp_server_usages", "skill_refs", "sub_agents", "env", "tools", "disallowed_tools")
+    __slots__ = ("description", "icon_url", "instructions", "mcp_server_usages", "skill_refs", "sub_agents", "env", "tools", "disallowed_tools", "run_config", "harness")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -28,16 +31,20 @@ class AgentSpec(_message.Message):
     ENV_FIELD_NUMBER: _ClassVar[int]
     TOOLS_FIELD_NUMBER: _ClassVar[int]
     DISALLOWED_TOOLS_FIELD_NUMBER: _ClassVar[int]
+    RUN_CONFIG_FIELD_NUMBER: _ClassVar[int]
+    HARNESS_FIELD_NUMBER: _ClassVar[int]
     description: str
     icon_url: str
     instructions: str
-    mcp_server_usages: _containers.RepeatedCompositeFieldContainer[McpServerUsage]
+    mcp_server_usages: _containers.RepeatedCompositeFieldContainer[_usage_pb2.McpServerUsage]
     skill_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     sub_agents: _containers.RepeatedCompositeFieldContainer[SubAgent]
     env: _containers.MessageMap[str, _spec_pb2.EnvVarDeclaration]
     tools: _containers.RepeatedScalarFieldContainer[str]
     disallowed_tools: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ...) -> None: ...
+    run_config: _invocation_pb2.RunConfig
+    harness: _enum_pb2.Harness
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_usage_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ...) -> None: ...
 
 class SubAgent(_message.Message):
     __slots__ = ("name", "description", "instructions", "skill_refs", "model_override", "tools", "disallowed_tools")
@@ -56,9 +63,3 @@ class SubAgent(_message.Message):
     tools: _containers.RepeatedScalarFieldContainer[str]
     disallowed_tools: _containers.RepeatedScalarFieldContainer[str]
     def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., instructions: _Optional[str] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., model_override: _Optional[str] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ...) -> None: ...
-
-class McpServerUsage(_message.Message):
-    __slots__ = ("mcp_server_ref",)
-    MCP_SERVER_REF_FIELD_NUMBER: _ClassVar[int]
-    mcp_server_ref: _io_pb2.ApiResourceReference
-    def __init__(self, mcp_server_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...

@@ -210,8 +210,9 @@ public interface AgentInvocationOrBuilder extends
 
   /**
    * <pre>
-   * Per-invocation model choice and run bounds. Unset fields inherit
-   * the embedding surface's platform execution profile.
+   * Per-invocation model choice and run bounds. Unset fields fall to the
+   * agent's defaults, then to the lane's operator profile (RunConfig has the
+   * rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -220,8 +221,9 @@ public interface AgentInvocationOrBuilder extends
   boolean hasRunConfig();
   /**
    * <pre>
-   * Per-invocation model choice and run bounds. Unset fields inherit
-   * the embedding surface's platform execution profile.
+   * Per-invocation model choice and run bounds. Unset fields fall to the
+   * agent's defaults, then to the lane's operator profile (RunConfig has the
+   * rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
@@ -230,8 +232,9 @@ public interface AgentInvocationOrBuilder extends
   ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig();
   /**
    * <pre>
-   * Per-invocation model choice and run bounds. Unset fields inherit
-   * the embedding surface's platform execution profile.
+   * Per-invocation model choice and run bounds. Unset fields fall to the
+   * agent's defaults, then to the lane's operator profile (RunConfig has the
+   * rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>

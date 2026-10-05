@@ -78,9 +78,9 @@ public interface AgentSpecOrBuilder extends
    * Each entry must reference a unique McpServer resource by slug.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
    */
-  java.util.List<ai.stigmer.agentic.agent.v1.McpServerUsage> 
+  java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> 
       getMcpServerUsagesList();
   /**
    * <pre>
@@ -88,16 +88,16 @@ public interface AgentSpecOrBuilder extends
    * Each entry must reference a unique McpServer resource by slug.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.agentic.agent.v1.McpServerUsage getMcpServerUsages(int index);
+  ai.stigmer.agentic.mcpserver.v1.McpServerUsage getMcpServerUsages(int index);
   /**
    * <pre>
    * MCP servers this agent can use.
    * Each entry must reference a unique McpServer resource by slug.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
    */
   int getMcpServerUsagesCount();
   /**
@@ -106,9 +106,9 @@ public interface AgentSpecOrBuilder extends
    * Each entry must reference a unique McpServer resource by slug.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
    */
-  java.util.List<? extends ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder> 
+  java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> 
       getMcpServerUsagesOrBuilderList();
   /**
    * <pre>
@@ -116,9 +116,9 @@ public interface AgentSpecOrBuilder extends
    * Each entry must reference a unique McpServer resource by slug.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
+  ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
       int index);
 
   /**
@@ -403,4 +403,102 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    */
   com.google.protobuf.ByteString
       getDisallowedToolsBytes(int index);
+
+  /**
+   * <pre>
+   * The author's run defaults: the model, speed tier, thinking and run
+   * bounds a turn on this agent uses unless the message or the surface it
+   * came through sets its own (RunConfig has the rule). Versioned with the
+   * agent, so a conversation pinned to a version keeps that version's
+   * defaults.
+   *
+   * A choice here (model_name, service_tier, thinking_mode) applies only on
+   * the engine named in harness; on a conversation running the other engine
+   * only the bounds apply. A bound here is a cap: a message or a surface can
+   * lower it, never raise it. A model must be named together with harness,
+   * and must be one that engine lists; service_tier FAST and thinking_mode
+   * ENABLED need a model that engine prices or marks capable. Checked when
+   * the agent is saved.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+   * @return Whether the runConfig field is set.
+   */
+  boolean hasRunConfig();
+  /**
+   * <pre>
+   * The author's run defaults: the model, speed tier, thinking and run
+   * bounds a turn on this agent uses unless the message or the surface it
+   * came through sets its own (RunConfig has the rule). Versioned with the
+   * agent, so a conversation pinned to a version keeps that version's
+   * defaults.
+   *
+   * A choice here (model_name, service_tier, thinking_mode) applies only on
+   * the engine named in harness; on a conversation running the other engine
+   * only the bounds apply. A bound here is a cap: a message or a surface can
+   * lower it, never raise it. A model must be named together with harness,
+   * and must be one that engine lists; service_tier FAST and thinking_mode
+   * ENABLED need a model that engine prices or marks capable. Checked when
+   * the agent is saved.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+   * @return The runConfig.
+   */
+  ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig();
+  /**
+   * <pre>
+   * The author's run defaults: the model, speed tier, thinking and run
+   * bounds a turn on this agent uses unless the message or the surface it
+   * came through sets its own (RunConfig has the rule). Versioned with the
+   * agent, so a conversation pinned to a version keeps that version's
+   * defaults.
+   *
+   * A choice here (model_name, service_tier, thinking_mode) applies only on
+   * the engine named in harness; on a conversation running the other engine
+   * only the bounds apply. A bound here is a cap: a message or a surface can
+   * lower it, never raise it. A model must be named together with harness,
+   * and must be one that engine lists; service_tier FAST and thinking_mode
+   * ENABLED need a model that engine prices or marks capable. Checked when
+   * the agent is saved.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12 [json_name = "runConfig"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder();
+
+  /**
+   * <pre>
+   * The engine this agent's run defaults were chosen for, and the engine a
+   * new conversation on this agent starts on when the person or the surface
+   * starting it names none. Unspecified: the platform's default engine
+   * (native).
+   *
+   * Model names belong to an engine (each lists its own), so run_config's
+   * model, tier and thinking count only on this engine. A conversation keeps
+   * the engine it started on; a later version naming another engine changes
+   * only new conversations.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 13 [json_name = "harness"];</code>
+   * @return The enum numeric value on the wire for harness.
+   */
+  int getHarnessValue();
+  /**
+   * <pre>
+   * The engine this agent's run defaults were chosen for, and the engine a
+   * new conversation on this agent starts on when the person or the surface
+   * starting it names none. Unspecified: the platform's default engine
+   * (native).
+   *
+   * Model names belong to an engine (each lists its own), so run_config's
+   * model, tier and thinking count only on this engine. A conversation keeps
+   * the engine it started on; a later version naming another engine changes
+   * only new conversations.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 13 [json_name = "harness"];</code>
+   * @return The harness.
+   */
+  ai.stigmer.agentic.session.v1.Harness getHarness();
 }

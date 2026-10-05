@@ -154,8 +154,8 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
-   * Per-call model choice and run bounds. Unset fields inherit the
-   * platform defaults.
+   * Per-call model choice and run bounds. Unset fields fall to the agent's
+   * defaults (RunConfig has the rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -164,8 +164,8 @@ java.lang.String defaultValue);
   boolean hasRunConfig();
   /**
    * <pre>
-   * Per-call model choice and run bounds. Unset fields inherit the
-   * platform defaults.
+   * Per-call model choice and run bounds. Unset fields fall to the agent's
+   * defaults (RunConfig has the rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
@@ -174,8 +174,8 @@ java.lang.String defaultValue);
   ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig();
   /**
    * <pre>
-   * Per-call model choice and run bounds. Unset fields inherit the
-   * platform defaults.
+   * Per-call model choice and run bounds. Unset fields fall to the agent's
+   * defaults (RunConfig has the rule).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>

@@ -72,7 +72,7 @@ public enum ApprovalPolicySource
   APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN(7),
   /**
    * <pre>
-   * The unattended approval mode (ExecutionConfig.approval_mode =
+   * The unattended approval mode (AgentExecutionStatus.approval_mode =
    * APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
    * the surface that created the execution (a messaging channel, a guest
    * share) has no approver, so the platform skipped the tool and told the
@@ -148,7 +148,7 @@ public enum ApprovalPolicySource
   public static final int APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN_VALUE = 7;
   /**
    * <pre>
-   * The unattended approval mode (ExecutionConfig.approval_mode =
+   * The unattended approval mode (AgentExecutionStatus.approval_mode =
    * APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
    * the surface that created the execution (a messaging channel, a guest
    * share) has no approver, so the platform skipped the tool and told the

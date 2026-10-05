@@ -46,6 +46,7 @@ private static final long serialVersionUID = 0L;
     fileChangeSets_ = java.util.Collections.emptyList();
     agentId_ = "";
     agentVersionHash_ = "";
+    approvalMode_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1060,7 +1061,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * <pre>
    * Structured output extracted from the agent's final response.
    *
-   * Populated when ExecutionConfig.structured_output_schema was set and the
+   * Populated when spec.structured_output_schema was set and the
    * runner successfully extracted schema-conforming data. Only meaningful
    * when phase is EXECUTION_COMPLETED.
    *
@@ -1084,7 +1085,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * <pre>
    * Structured output extracted from the agent's final response.
    *
-   * Populated when ExecutionConfig.structured_output_schema was set and the
+   * Populated when spec.structured_output_schema was set and the
    * runner successfully extracted schema-conforming data. Only meaningful
    * when phase is EXECUTION_COMPLETED.
    *
@@ -1108,7 +1109,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * <pre>
    * Structured output extracted from the agent's final response.
    *
-   * Populated when ExecutionConfig.structured_output_schema was set and the
+   * Populated when spec.structured_output_schema was set and the
    * runner successfully extracted schema-conforming data. Only meaningful
    * when phase is EXECUTION_COMPLETED.
    *
@@ -1521,6 +1522,99 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     return recalledMemories_ == null ? ai.stigmer.agentic.agentexecution.v1.RecalledMemories.getDefaultInstance() : recalledMemories_;
   }
 
+  public static final int RUN_CONFIG_FIELD_NUMBER = 31;
+  private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
+  /**
+   * <pre>
+   * The settings this turn runs with: spec.run_config (or the saved settings
+   * of the surface it came through), the defaults of the agent version the
+   * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+   *
+   * An empty model_name means no layer named one and the engine chose (the
+   * native engine's registry default; Cursor's Auto).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+   * @return Whether the runConfig field is set.
+   */
+  @java.lang.Override
+  public boolean hasRunConfig() {
+    return ((bitField0_ & 0x00000800) != 0);
+  }
+  /**
+   * <pre>
+   * The settings this turn runs with: spec.run_config (or the saved settings
+   * of the surface it came through), the defaults of the agent version the
+   * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+   *
+   * An empty model_name means no layer named one and the engine chose (the
+   * native engine's registry default; Cursor's Auto).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+   * @return The runConfig.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig() {
+    return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+  }
+  /**
+   * <pre>
+   * The settings this turn runs with: spec.run_config (or the saved settings
+   * of the surface it came through), the defaults of the agent version the
+   * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+   *
+   * An empty model_name means no layer named one and the engine chose (the
+   * native engine's registry default; Cursor's Auto).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+    return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+  }
+
+  public static final int APPROVAL_MODE_FIELD_NUMBER = 32;
+  private int approvalMode_ = 0;
+  /**
+   * <pre>
+   * How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
+   * UNSPECIFIED.
+   *
+   * A fact of the lane the turn came through, never of the request: a
+   * schedule's turn and the hosted edition's shared-agent guest and channel
+   * turns are UNATTENDED (nobody is present to approve); every other turn is
+   * INTERACTIVE, a workflow step's included (its workflow takes the approval
+   * request).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
+   * @return The enum numeric value on the wire for approvalMode.
+   */
+  @java.lang.Override public int getApprovalModeValue() {
+    return approvalMode_;
+  }
+  /**
+   * <pre>
+   * How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
+   * UNSPECIFIED.
+   *
+   * A fact of the lane the turn came through, never of the request: a
+   * schedule's turn and the hosted edition's shared-agent guest and channel
+   * turns are UNATTENDED (nobody is present to approve); every other turn is
+   * INTERACTIVE, a workflow step's included (its workflow takes the approval
+   * request).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
+   * @return The approvalMode.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ApprovalMode getApprovalMode() {
+    ai.stigmer.agentic.agentexecution.v1.ApprovalMode result = ai.stigmer.agentic.agentexecution.v1.ApprovalMode.forNumber(approvalMode_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalMode.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1609,6 +1703,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     if (((bitField0_ & 0x00000400) != 0)) {
       output.writeMessage(30, getRecalledMemories());
+    }
+    if (((bitField0_ & 0x00000800) != 0)) {
+      output.writeMessage(31, getRunConfig());
+    }
+    if (approvalMode_ != ai.stigmer.agentic.agentexecution.v1.ApprovalMode.APPROVAL_MODE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(32, approvalMode_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1749,6 +1849,14 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(30, getRecalledMemories());
     }
+    if (((bitField0_ & 0x00000800) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(31, getRunConfig());
+    }
+    if (approvalMode_ != ai.stigmer.agentic.agentexecution.v1.ApprovalMode.APPROVAL_MODE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(32, approvalMode_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1850,6 +1958,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (!getRecalledMemories()
           .equals(other.getRecalledMemories())) return false;
     }
+    if (hasRunConfig() != other.hasRunConfig()) return false;
+    if (hasRunConfig()) {
+      if (!getRunConfig()
+          .equals(other.getRunConfig())) return false;
+    }
+    if (approvalMode_ != other.approvalMode_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1947,6 +2061,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       hash = (37 * hash) + RECALLED_MEMORIES_FIELD_NUMBER;
       hash = (53 * hash) + getRecalledMemories().hashCode();
     }
+    if (hasRunConfig()) {
+      hash = (37 * hash) + RUN_CONFIG_FIELD_NUMBER;
+      hash = (53 * hash) + getRunConfig().hashCode();
+    }
+    hash = (37 * hash) + APPROVAL_MODE_FIELD_NUMBER;
+    hash = (53 * hash) + approvalMode_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -2121,6 +2241,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         internalGetRecalledMemoriesReportFieldBuilder();
         internalGetDeclaredPreferencesFieldBuilder();
         internalGetRecalledMemoriesFieldBuilder();
+        internalGetRunConfigFieldBuilder();
       }
     }
     @java.lang.Override
@@ -2232,6 +2353,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         recalledMemoriesBuilder_.dispose();
         recalledMemoriesBuilder_ = null;
       }
+      runConfig_ = null;
+      if (runConfigBuilder_ != null) {
+        runConfigBuilder_.dispose();
+        runConfigBuilder_ = null;
+      }
+      approvalMode_ = 0;
       return this;
     }
 
@@ -2413,6 +2540,15 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
             ? recalledMemories_
             : recalledMemoriesBuilder_.build();
         to_bitField0_ |= 0x00000400;
+      }
+      if (((from_bitField0_ & 0x02000000) != 0)) {
+        result.runConfig_ = runConfigBuilder_ == null
+            ? runConfig_
+            : runConfigBuilder_.build();
+        to_bitField0_ |= 0x00000800;
+      }
+      if (((from_bitField0_ & 0x04000000) != 0)) {
+        result.approvalMode_ = approvalMode_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -2652,6 +2788,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (other.hasRecalledMemories()) {
         mergeRecalledMemories(other.getRecalledMemories());
       }
+      if (other.hasRunConfig()) {
+        mergeRunConfig(other.getRunConfig());
+      }
+      if (other.approvalMode_ != 0) {
+        setApprovalModeValue(other.getApprovalModeValue());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2870,6 +3012,18 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               bitField0_ |= 0x01000000;
               break;
             } // case 242
+            case 250: {
+              input.readMessage(
+                  internalGetRunConfigFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x02000000;
+              break;
+            } // case 250
+            case 256: {
+              approvalMode_ = input.readEnum();
+              bitField0_ |= 0x04000000;
+              break;
+            } // case 256
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -6495,7 +6649,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <pre>
      * Structured output extracted from the agent's final response.
      *
-     * Populated when ExecutionConfig.structured_output_schema was set and the
+     * Populated when spec.structured_output_schema was set and the
      * runner successfully extracted schema-conforming data. Only meaningful
      * when phase is EXECUTION_COMPLETED.
      *
@@ -6518,7 +6672,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <pre>
      * Structured output extracted from the agent's final response.
      *
-     * Populated when ExecutionConfig.structured_output_schema was set and the
+     * Populated when spec.structured_output_schema was set and the
      * runner successfully extracted schema-conforming data. Only meaningful
      * when phase is EXECUTION_COMPLETED.
      *
@@ -6545,7 +6699,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <pre>
      * Structured output extracted from the agent's final response.
      *
-     * Populated when ExecutionConfig.structured_output_schema was set and the
+     * Populated when spec.structured_output_schema was set and the
      * runner successfully extracted schema-conforming data. Only meaningful
      * when phase is EXECUTION_COMPLETED.
      *
@@ -6577,7 +6731,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <pre>
      * Structured output extracted from the agent's final response.
      *
-     * Populated when ExecutionConfig.structured_output_schema was set and the
+     * Populated when spec.structured_output_schema was set and the
      * runner successfully extracted schema-conforming data. Only meaningful
      * when phase is EXECUTION_COMPLETED.
      *
@@ -6607,7 +6761,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <pre>
      * Structured output extracted from the agent's final response.
      *
-     * Populated when ExecutionConfig.structured_output_schema was set and the
+     * Populated when spec.structured_output_schema was set and the
      * runner successfully extracted schema-conforming data. Only meaningful
      * when phase is EXECUTION_COMPLETED.
      *
@@ -6644,7 +6798,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <pre>
      * Structured output extracted from the agent's final response.
      *
-     * Populated when ExecutionConfig.structured_output_schema was set and the
+     * Populated when spec.structured_output_schema was set and the
      * runner successfully extracted schema-conforming data. Only meaningful
      * when phase is EXECUTION_COMPLETED.
      *
@@ -6673,7 +6827,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <pre>
      * Structured output extracted from the agent's final response.
      *
-     * Populated when ExecutionConfig.structured_output_schema was set and the
+     * Populated when spec.structured_output_schema was set and the
      * runner successfully extracted schema-conforming data. Only meaningful
      * when phase is EXECUTION_COMPLETED.
      *
@@ -6697,7 +6851,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <pre>
      * Structured output extracted from the agent's final response.
      *
-     * Populated when ExecutionConfig.structured_output_schema was set and the
+     * Populated when spec.structured_output_schema was set and the
      * runner successfully extracted schema-conforming data. Only meaningful
      * when phase is EXECUTION_COMPLETED.
      *
@@ -6724,7 +6878,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <pre>
      * Structured output extracted from the agent's final response.
      *
-     * Populated when ExecutionConfig.structured_output_schema was set and the
+     * Populated when spec.structured_output_schema was set and the
      * runner successfully extracted schema-conforming data. Only meaningful
      * when phase is EXECUTION_COMPLETED.
      *
@@ -8171,6 +8325,315 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         recalledMemories_ = null;
       }
       return recalledMemoriesBuilder_;
+    }
+
+    private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> runConfigBuilder_;
+    /**
+     * <pre>
+     * The settings this turn runs with: spec.run_config (or the saved settings
+     * of the surface it came through), the defaults of the agent version the
+     * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+     *
+     * An empty model_name means no layer named one and the engine chose (the
+     * native engine's registry default; Cursor's Auto).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+     * @return Whether the runConfig field is set.
+     */
+    public boolean hasRunConfig() {
+      return ((bitField0_ & 0x02000000) != 0);
+    }
+    /**
+     * <pre>
+     * The settings this turn runs with: spec.run_config (or the saved settings
+     * of the surface it came through), the defaults of the agent version the
+     * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+     *
+     * An empty model_name means no layer named one and the engine chose (the
+     * native engine's registry default; Cursor's Auto).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+     * @return The runConfig.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig() {
+      if (runConfigBuilder_ == null) {
+        return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+      } else {
+        return runConfigBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The settings this turn runs with: spec.run_config (or the saved settings
+     * of the surface it came through), the defaults of the agent version the
+     * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+     *
+     * An empty model_name means no layer named one and the engine chose (the
+     * native engine's registry default; Cursor's Auto).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+     */
+    public Builder setRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
+      if (runConfigBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        runConfig_ = value;
+      } else {
+        runConfigBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x02000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The settings this turn runs with: spec.run_config (or the saved settings
+     * of the surface it came through), the defaults of the agent version the
+     * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+     *
+     * An empty model_name means no layer named one and the engine chose (the
+     * native engine's registry default; Cursor's Auto).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+     */
+    public Builder setRunConfig(
+        ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder builderForValue) {
+      if (runConfigBuilder_ == null) {
+        runConfig_ = builderForValue.build();
+      } else {
+        runConfigBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x02000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The settings this turn runs with: spec.run_config (or the saved settings
+     * of the surface it came through), the defaults of the agent version the
+     * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+     *
+     * An empty model_name means no layer named one and the engine chose (the
+     * native engine's registry default; Cursor's Auto).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+     */
+    public Builder mergeRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
+      if (runConfigBuilder_ == null) {
+        if (((bitField0_ & 0x02000000) != 0) &&
+          runConfig_ != null &&
+          runConfig_ != ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance()) {
+          getRunConfigBuilder().mergeFrom(value);
+        } else {
+          runConfig_ = value;
+        }
+      } else {
+        runConfigBuilder_.mergeFrom(value);
+      }
+      if (runConfig_ != null) {
+        bitField0_ |= 0x02000000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The settings this turn runs with: spec.run_config (or the saved settings
+     * of the surface it came through), the defaults of the agent version the
+     * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+     *
+     * An empty model_name means no layer named one and the engine chose (the
+     * native engine's registry default; Cursor's Auto).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+     */
+    public Builder clearRunConfig() {
+      bitField0_ = (bitField0_ & ~0x02000000);
+      runConfig_ = null;
+      if (runConfigBuilder_ != null) {
+        runConfigBuilder_.dispose();
+        runConfigBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The settings this turn runs with: spec.run_config (or the saved settings
+     * of the surface it came through), the defaults of the agent version the
+     * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+     *
+     * An empty model_name means no layer named one and the engine chose (the
+     * native engine's registry default; Cursor's Auto).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder getRunConfigBuilder() {
+      bitField0_ |= 0x02000000;
+      onChanged();
+      return internalGetRunConfigFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The settings this turn runs with: spec.run_config (or the saved settings
+     * of the surface it came through), the defaults of the agent version the
+     * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+     *
+     * An empty model_name means no layer named one and the engine chose (the
+     * native engine's registry default; Cursor's Auto).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+      if (runConfigBuilder_ != null) {
+        return runConfigBuilder_.getMessageOrBuilder();
+      } else {
+        return runConfig_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+      }
+    }
+    /**
+     * <pre>
+     * The settings this turn runs with: spec.run_config (or the saved settings
+     * of the surface it came through), the defaults of the agent version the
+     * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+     *
+     * An empty model_name means no layer named one and the engine chose (the
+     * native engine's registry default; Cursor's Auto).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> 
+        internalGetRunConfigFieldBuilder() {
+      if (runConfigBuilder_ == null) {
+        runConfigBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder>(
+                getRunConfig(),
+                getParentForChildren(),
+                isClean());
+        runConfig_ = null;
+      }
+      return runConfigBuilder_;
+    }
+
+    private int approvalMode_ = 0;
+    /**
+     * <pre>
+     * How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
+     * UNSPECIFIED.
+     *
+     * A fact of the lane the turn came through, never of the request: a
+     * schedule's turn and the hosted edition's shared-agent guest and channel
+     * turns are UNATTENDED (nobody is present to approve); every other turn is
+     * INTERACTIVE, a workflow step's included (its workflow takes the approval
+     * request).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
+     * @return The enum numeric value on the wire for approvalMode.
+     */
+    @java.lang.Override public int getApprovalModeValue() {
+      return approvalMode_;
+    }
+    /**
+     * <pre>
+     * How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
+     * UNSPECIFIED.
+     *
+     * A fact of the lane the turn came through, never of the request: a
+     * schedule's turn and the hosted edition's shared-agent guest and channel
+     * turns are UNATTENDED (nobody is present to approve); every other turn is
+     * INTERACTIVE, a workflow step's included (its workflow takes the approval
+     * request).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
+     * @param value The enum numeric value on the wire for approvalMode to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalModeValue(int value) {
+      approvalMode_ = value;
+      bitField0_ |= 0x04000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
+     * UNSPECIFIED.
+     *
+     * A fact of the lane the turn came through, never of the request: a
+     * schedule's turn and the hosted edition's shared-agent guest and channel
+     * turns are UNATTENDED (nobody is present to approve); every other turn is
+     * INTERACTIVE, a workflow step's included (its workflow takes the approval
+     * request).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
+     * @return The approvalMode.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalMode getApprovalMode() {
+      ai.stigmer.agentic.agentexecution.v1.ApprovalMode result = ai.stigmer.agentic.agentexecution.v1.ApprovalMode.forNumber(approvalMode_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalMode.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
+     * UNSPECIFIED.
+     *
+     * A fact of the lane the turn came through, never of the request: a
+     * schedule's turn and the hosted edition's shared-agent guest and channel
+     * turns are UNATTENDED (nobody is present to approve); every other turn is
+     * INTERACTIVE, a workflow step's included (its workflow takes the approval
+     * request).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
+     * @param value The approvalMode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalMode(ai.stigmer.agentic.agentexecution.v1.ApprovalMode value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x04000000;
+      approvalMode_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
+     * UNSPECIFIED.
+     *
+     * A fact of the lane the turn came through, never of the request: a
+     * schedule's turn and the hosted edition's shared-agent guest and channel
+     * turns are UNATTENDED (nobody is present to approve); every other turn is
+     * INTERACTIVE, a workflow step's included (its workflow takes the approval
+     * request).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearApprovalMode() {
+      bitField0_ = (bitField0_ & ~0x04000000);
+      approvalMode_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus)

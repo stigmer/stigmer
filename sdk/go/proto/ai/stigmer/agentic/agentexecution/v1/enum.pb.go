@@ -1132,7 +1132,7 @@ const (
 	// (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint
 	// annotation).
 	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN ApprovalPolicySource = 7
-	// The unattended approval mode (ExecutionConfig.approval_mode =
+	// The unattended approval mode (AgentExecutionStatus.approval_mode =
 	// APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
 	// the surface that created the execution (a messaging channel, a guest
 	// share) has no approver, so the platform skipped the tool and told the
@@ -1348,8 +1348,9 @@ func (ApprovalRetractionReason) EnumDescriptor() ([]byte, []int) {
 // InteractionMode controls the agent's behavioral posture for an execution.
 //
 // Determines what the agent is allowed to do — analysis only, or full
-// read-write access. Mode is set per-execution via ExecutionConfig and
-// does not carry over between executions.
+// read-write access. Mode is set per message
+// (AgentExecutionSpec.interaction_mode) and does not carry over between
+// executions.
 //
 // Enforcement:
 //   - Native harness (LangGraph): tool-level enforcement — write tools are

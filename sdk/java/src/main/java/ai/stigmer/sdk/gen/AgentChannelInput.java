@@ -200,6 +200,7 @@ public final class AgentChannelInput {
         private final int maxToolRounds;
         private final ServiceTier serviceTier;
         private final ThinkingMode thinkingMode;
+        private final int maxToolResultChars;
 
         private RunConfigInput(Builder builder) {
             this.modelName = builder.modelName;
@@ -207,6 +208,7 @@ public final class AgentChannelInput {
             this.maxToolRounds = builder.maxToolRounds;
             this.serviceTier = builder.serviceTier;
             this.thinkingMode = builder.thinkingMode;
+            this.maxToolResultChars = builder.maxToolResultChars;
         }
 
         RunConfig toProto() {
@@ -222,6 +224,7 @@ public final class AgentChannelInput {
             if (this.thinkingMode != null) {
                 builder.setThinkingMode(this.thinkingMode);
             }
+            builder.setMaxToolResultChars(this.maxToolResultChars);
             return builder.build();
         }
 
@@ -233,6 +236,7 @@ public final class AgentChannelInput {
             private int maxToolRounds;
             private ServiceTier serviceTier;
             private ThinkingMode thinkingMode;
+            private int maxToolResultChars;
 
             private Builder() {}
 
@@ -241,6 +245,7 @@ public final class AgentChannelInput {
             public Builder maxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; return this; }
             public Builder serviceTier(ServiceTier serviceTier) { this.serviceTier = serviceTier; return this; }
             public Builder thinkingMode(ThinkingMode thinkingMode) { this.thinkingMode = thinkingMode; return this; }
+            public Builder maxToolResultChars(int maxToolResultChars) { this.maxToolResultChars = maxToolResultChars; return this; }
 
             public RunConfigInput build() { return new RunConfigInput(this); }
         }

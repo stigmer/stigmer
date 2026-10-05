@@ -101,11 +101,11 @@ export class GeneratedClient {
 
 // Re-export all resource client types and input types.
 export { AgentClient } from "./agent.js";
-export { type AgentInput, type McpServerUsageInput, type SubAgentInput, type EnvVarDeclarationInput } from "./agent.js";
+export { type AgentInput, type McpServerUsageInput, type SubAgentInput, type EnvVarDeclarationInput, type RunConfigInput } from "./agent.js";
 export { AgentChannelClient } from "./agentchannel.js";
-export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput, type RunConfigInput } from "./agentchannel.js";
+export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput } from "./agentchannel.js";
 export { AgentExecutionClient } from "./agentexecution.js";
-export { type AgentExecutionInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput, type ConversationCatchupInput, type WorkflowParentInput } from "./agentexecution.js";
+export { type AgentExecutionInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type AttachmentInput, type ConversationCatchupInput, type WorkflowParentInput } from "./agentexecution.js";
 export { AgentShareClient } from "./agentshare.js";
 export { type AgentShareInput, type AgentShareMessagesInput } from "./agentshare.js";
 export { ApiKeyClient } from "./apikey.js";

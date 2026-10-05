@@ -34,6 +34,7 @@ private static final long serialVersionUID = 0L;
   }
   private AgentExecutionSpec() {
     message_ = "";
+    interactionMode_ = 0;
     attachments_ = java.util.Collections.emptyList();
     workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
@@ -331,45 +332,232 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int EXECUTION_CONFIG_FIELD_NUMBER = 4;
-  private ai.stigmer.agentic.agentexecution.v1.ExecutionConfig executionConfig_;
+  public static final int RUN_CONFIG_FIELD_NUMBER = 18;
+  private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
   /**
    * <pre>
-   * Optional execution-time configuration overrides.
-   * Example: Specify the model to use for this execution.
+   * The settings this message asks for (optional): a model, a speed tier,
+   * thinking, and run bounds. Zero or empty fields are not set here.
+   *
+   * The server resolves the settings the turn runs with once, at create,
+   * and records them on AgentExecutionStatus.run_config. A choice (model,
+   * tier, thinking) comes from the most specific layer that makes one: this
+   * field, then the defaults of the agent the turn runs, then the lane's
+   * operator profile. A bound (cost, tool rounds, result size) is the
+   * tightest one any layer sets, so a message can lower an agent's cap but
+   * never raise it. RunConfig's own comment has the full rule.
+   *
+   * Unlike a saved surface's settings, a message may set service_tier or
+   * thinking_mode without a model: it then adjusts the model a less
+   * specific layer chose (for example, thinking off for one message on an
+   * agent whose default turns it on).
+   *
+   * A lane that composes the turn for a surface (a schedule, a workflow
+   * step) writes that surface's saved settings here. On a lane where the
+   * caller is a visitor (the hosted edition's shared-agent guests and
+   * channel senders), the surface's saved settings replace this field.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
-   * @return Whether the executionConfig field is set.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
+   * @return Whether the runConfig field is set.
    */
   @java.lang.Override
-  public boolean hasExecutionConfig() {
+  public boolean hasRunConfig() {
     return ((bitField0_ & 0x00000001) != 0);
   }
   /**
    * <pre>
-   * Optional execution-time configuration overrides.
-   * Example: Specify the model to use for this execution.
+   * The settings this message asks for (optional): a model, a speed tier,
+   * thinking, and run bounds. Zero or empty fields are not set here.
+   *
+   * The server resolves the settings the turn runs with once, at create,
+   * and records them on AgentExecutionStatus.run_config. A choice (model,
+   * tier, thinking) comes from the most specific layer that makes one: this
+   * field, then the defaults of the agent the turn runs, then the lane's
+   * operator profile. A bound (cost, tool rounds, result size) is the
+   * tightest one any layer sets, so a message can lower an agent's cap but
+   * never raise it. RunConfig's own comment has the full rule.
+   *
+   * Unlike a saved surface's settings, a message may set service_tier or
+   * thinking_mode without a model: it then adjusts the model a less
+   * specific layer chose (for example, thinking off for one message on an
+   * agent whose default turns it on).
+   *
+   * A lane that composes the turn for a surface (a schedule, a workflow
+   * step) writes that surface's saved settings here. On a lane where the
+   * caller is a visitor (the hosted edition's shared-agent guests and
+   * channel senders), the surface's saved settings replace this field.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
-   * @return The executionConfig.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
+   * @return The runConfig.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ExecutionConfig getExecutionConfig() {
-    return executionConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.getDefaultInstance() : executionConfig_;
+  public ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig() {
+    return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
   }
   /**
    * <pre>
-   * Optional execution-time configuration overrides.
-   * Example: Specify the model to use for this execution.
+   * The settings this message asks for (optional): a model, a speed tier,
+   * thinking, and run bounds. Zero or empty fields are not set here.
+   *
+   * The server resolves the settings the turn runs with once, at create,
+   * and records them on AgentExecutionStatus.run_config. A choice (model,
+   * tier, thinking) comes from the most specific layer that makes one: this
+   * field, then the defaults of the agent the turn runs, then the lane's
+   * operator profile. A bound (cost, tool rounds, result size) is the
+   * tightest one any layer sets, so a message can lower an agent's cap but
+   * never raise it. RunConfig's own comment has the full rule.
+   *
+   * Unlike a saved surface's settings, a message may set service_tier or
+   * thinking_mode without a model: it then adjusts the model a less
+   * specific layer chose (for example, thinking off for one message on an
+   * agent whose default turns it on).
+   *
+   * A lane that composes the turn for a surface (a schedule, a workflow
+   * step) writes that surface's saved settings here. On a lane where the
+   * caller is a visitor (the hosted edition's shared-agent guests and
+   * channel senders), the surface's saved settings replace this field.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ExecutionConfigOrBuilder getExecutionConfigOrBuilder() {
-    return executionConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.getDefaultInstance() : executionConfig_;
+  public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+    return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+  }
+
+  public static final int INTERACTION_MODE_FIELD_NUMBER = 19;
+  private int interactionMode_ = 0;
+  /**
+   * <pre>
+   * Interaction mode for this message.
+   *
+   * AGENT (default): full tool access — read, write, create, delete, shell.
+   * PLAN: read-only analysis — read, search, list only. No file mutations.
+   *
+   * When UNSPECIFIED, defaults to AGENT.
+   *
+   * The mode is set per message and does not carry over between messages
+   * in the same session. Users toggle mode in the session composer before
+   * sending each message.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 19 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for interactionMode.
+   */
+  @java.lang.Override public int getInteractionModeValue() {
+    return interactionMode_;
+  }
+  /**
+   * <pre>
+   * Interaction mode for this message.
+   *
+   * AGENT (default): full tool access — read, write, create, delete, shell.
+   * PLAN: read-only analysis — read, search, list only. No file mutations.
+   *
+   * When UNSPECIFIED, defaults to AGENT.
+   *
+   * The mode is set per message and does not carry over between messages
+   * in the same session. Users toggle mode in the session composer before
+   * sending each message.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 19 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+   * @return The interactionMode.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.InteractionMode getInteractionMode() {
+    ai.stigmer.agentic.agentexecution.v1.InteractionMode result = ai.stigmer.agentic.agentexecution.v1.InteractionMode.forNumber(interactionMode_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.InteractionMode.UNRECOGNIZED : result;
+  }
+
+  public static final int BUILD_FROM_PLAN_FIELD_NUMBER = 20;
+  private boolean buildFromPlan_ = false;
+  /**
+   * <pre>
+   * Marks this message as a "Build from plan" turn: the user approved a plan
+   * produced by a prior Plan-mode execution and asked the agent to implement it.
+   *
+   * When set, the runner injects the implement-plan directive into the agent's
+   * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+   * document travels as an attachment (the normal case), the directive points
+   * the agent at the attached plan file and treats it as authoritative; when no
+   * plan attachment is present (e.g. the client's upload failed), the directive
+   * tells the agent to follow the plan from the conversation instead.
+   *
+   * Clients set this flag INSTEAD of embedding implement instructions in
+   * `message`, so `message` stays a short human-readable label (e.g.
+   * "Build from plan") that UIs can render as a compact chip.
+   *
+   * Like interaction_mode, this is per message and never carries over
+   * between messages in the same session.
+   * </pre>
+   *
+   * <code>bool build_from_plan = 20 [json_name = "buildFromPlan"];</code>
+   * @return The buildFromPlan.
+   */
+  @java.lang.Override
+  public boolean getBuildFromPlan() {
+    return buildFromPlan_;
+  }
+
+  public static final int STRUCTURED_OUTPUT_SCHEMA_FIELD_NUMBER = 21;
+  private com.google.protobuf.Struct structuredOutputSchema_;
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to (optional).
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+   * @return Whether the structuredOutputSchema field is set.
+   */
+  @java.lang.Override
+  public boolean hasStructuredOutputSchema() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to (optional).
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+   * @return The structuredOutputSchema.
+   */
+  @java.lang.Override
+  public com.google.protobuf.Struct getStructuredOutputSchema() {
+    return structuredOutputSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutputSchema_;
+  }
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to (optional).
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+   */
+  @java.lang.Override
+  public com.google.protobuf.StructOrBuilder getStructuredOutputSchemaOrBuilder() {
+    return structuredOutputSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutputSchema_;
   }
 
   public static final int RUNTIME_ENV_FIELD_NUMBER = 5;
@@ -864,7 +1052,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    */
   @java.lang.Override
   public boolean hasConversationCatchup() {
-    return ((bitField0_ & 0x00000002) != 0);
+    return ((bitField0_ & 0x00000004) != 0);
   }
   /**
    * <pre>
@@ -924,7 +1112,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    */
   @java.lang.Override
   public boolean hasParent() {
-    return ((bitField0_ & 0x00000004) != 0);
+    return ((bitField0_ & 0x00000008) != 0);
   }
   /**
    * <pre>
@@ -990,9 +1178,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, message_);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(4, getExecutionConfig());
-    }
     com.google.protobuf.GeneratedMessage
       .serializeStringMapTo(
         output,
@@ -1014,11 +1199,23 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (targetCase_ == 13) {
       output.writeMessage(13, (ai.stigmer.agentic.session.v1.SessionSpec) target_);
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(14, getConversationCatchup());
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000008) != 0)) {
       output.writeMessage(17, getParent());
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(18, getRunConfig());
+    }
+    if (interactionMode_ != ai.stigmer.agentic.agentexecution.v1.InteractionMode.INTERACTION_MODE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(19, interactionMode_);
+    }
+    if (buildFromPlan_ != false) {
+      output.writeBool(20, buildFromPlan_);
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(21, getStructuredOutputSchema());
     }
     getUnknownFields().writeTo(output);
   }
@@ -1034,10 +1231,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, message_);
-    }
-    if (((bitField0_ & 0x00000001) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(4, getExecutionConfig());
     }
     for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> entry
          : internalGetRuntimeEnv().getMap().entrySet()) {
@@ -1077,13 +1270,29 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(13, (ai.stigmer.agentic.session.v1.SessionSpec) target_);
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(14, getConversationCatchup());
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000008) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(17, getParent());
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(18, getRunConfig());
+    }
+    if (interactionMode_ != ai.stigmer.agentic.agentexecution.v1.InteractionMode.INTERACTION_MODE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(19, interactionMode_);
+    }
+    if (buildFromPlan_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(20, buildFromPlan_);
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(21, getStructuredOutputSchema());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -1102,10 +1311,18 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
 
     if (!getMessage()
         .equals(other.getMessage())) return false;
-    if (hasExecutionConfig() != other.hasExecutionConfig()) return false;
-    if (hasExecutionConfig()) {
-      if (!getExecutionConfig()
-          .equals(other.getExecutionConfig())) return false;
+    if (hasRunConfig() != other.hasRunConfig()) return false;
+    if (hasRunConfig()) {
+      if (!getRunConfig()
+          .equals(other.getRunConfig())) return false;
+    }
+    if (interactionMode_ != other.interactionMode_) return false;
+    if (getBuildFromPlan()
+        != other.getBuildFromPlan()) return false;
+    if (hasStructuredOutputSchema() != other.hasStructuredOutputSchema()) return false;
+    if (hasStructuredOutputSchema()) {
+      if (!getStructuredOutputSchema()
+          .equals(other.getStructuredOutputSchema())) return false;
     }
     if (!internalGetRuntimeEnv().equals(
         other.internalGetRuntimeEnv())) return false;
@@ -1153,9 +1370,18 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + MESSAGE_FIELD_NUMBER;
     hash = (53 * hash) + getMessage().hashCode();
-    if (hasExecutionConfig()) {
-      hash = (37 * hash) + EXECUTION_CONFIG_FIELD_NUMBER;
-      hash = (53 * hash) + getExecutionConfig().hashCode();
+    if (hasRunConfig()) {
+      hash = (37 * hash) + RUN_CONFIG_FIELD_NUMBER;
+      hash = (53 * hash) + getRunConfig().hashCode();
+    }
+    hash = (37 * hash) + INTERACTION_MODE_FIELD_NUMBER;
+    hash = (53 * hash) + interactionMode_;
+    hash = (37 * hash) + BUILD_FROM_PLAN_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getBuildFromPlan());
+    if (hasStructuredOutputSchema()) {
+      hash = (37 * hash) + STRUCTURED_OUTPUT_SCHEMA_FIELD_NUMBER;
+      hash = (53 * hash) + getStructuredOutputSchema().hashCode();
     }
     if (!internalGetRuntimeEnv().getMap().isEmpty()) {
       hash = (37 * hash) + RUNTIME_ENV_FIELD_NUMBER;
@@ -1351,7 +1577,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private void maybeForceBuilderInitialization() {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
-        internalGetExecutionConfigFieldBuilder();
+        internalGetRunConfigFieldBuilder();
+        internalGetStructuredOutputSchemaFieldBuilder();
         internalGetAttachmentsFieldBuilder();
         internalGetConversationCatchupFieldBuilder();
         internalGetParentFieldBuilder();
@@ -1365,10 +1592,17 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         sessionSpecBuilder_.clear();
       }
       message_ = "";
-      executionConfig_ = null;
-      if (executionConfigBuilder_ != null) {
-        executionConfigBuilder_.dispose();
-        executionConfigBuilder_ = null;
+      runConfig_ = null;
+      if (runConfigBuilder_ != null) {
+        runConfigBuilder_.dispose();
+        runConfigBuilder_ = null;
+      }
+      interactionMode_ = 0;
+      buildFromPlan_ = false;
+      structuredOutputSchema_ = null;
+      if (structuredOutputSchemaBuilder_ != null) {
+        structuredOutputSchemaBuilder_.dispose();
+        structuredOutputSchemaBuilder_ = null;
       }
       internalGetMutableRuntimeEnv().clear();
       autoApproveAll_ = false;
@@ -1378,7 +1612,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         attachments_ = null;
         attachmentsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000200);
       workspaceFileRefs_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       supersedesExecutionId_ = "";
@@ -1429,9 +1663,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec result) {
       if (attachmentsBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0)) {
+        if (((bitField0_ & 0x00000200) != 0)) {
           attachments_ = java.util.Collections.unmodifiableList(attachments_);
-          bitField0_ = (bitField0_ & ~0x00000040);
+          bitField0_ = (bitField0_ & ~0x00000200);
         }
         result.attachments_ = attachments_;
       } else {
@@ -1446,35 +1680,47 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.executionConfig_ = executionConfigBuilder_ == null
-            ? executionConfig_
-            : executionConfigBuilder_.build();
+        result.runConfig_ = runConfigBuilder_ == null
+            ? runConfig_
+            : runConfigBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.runtimeEnv_ = internalGetRuntimeEnv().build(RuntimeEnvDefaultEntryHolder.defaultEntry);
+        result.interactionMode_ = interactionMode_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.autoApproveAll_ = autoApproveAll_;
+        result.buildFromPlan_ = buildFromPlan_;
+      }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.structuredOutputSchema_ = structuredOutputSchemaBuilder_ == null
+            ? structuredOutputSchema_
+            : structuredOutputSchemaBuilder_.build();
+        to_bitField0_ |= 0x00000002;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.runtimeEnv_ = internalGetRuntimeEnv().build(RuntimeEnvDefaultEntryHolder.defaultEntry);
+      }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.autoApproveAll_ = autoApproveAll_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         workspaceFileRefs_.makeImmutable();
         result.workspaceFileRefs_ = workspaceFileRefs_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.supersedesExecutionId_ = supersedesExecutionId_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         result.conversationCatchup_ = conversationCatchupBuilder_ == null
             ? conversationCatchup_
             : conversationCatchupBuilder_.build();
-        to_bitField0_ |= 0x00000002;
+        to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.parent_ = parentBuilder_ == null
             ? parent_
             : parentBuilder_.build();
-        to_bitField0_ |= 0x00000004;
+        to_bitField0_ |= 0x00000008;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1505,12 +1751,21 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         bitField0_ |= 0x00000004;
         onChanged();
       }
-      if (other.hasExecutionConfig()) {
-        mergeExecutionConfig(other.getExecutionConfig());
+      if (other.hasRunConfig()) {
+        mergeRunConfig(other.getRunConfig());
+      }
+      if (other.interactionMode_ != 0) {
+        setInteractionModeValue(other.getInteractionModeValue());
+      }
+      if (other.getBuildFromPlan() != false) {
+        setBuildFromPlan(other.getBuildFromPlan());
+      }
+      if (other.hasStructuredOutputSchema()) {
+        mergeStructuredOutputSchema(other.getStructuredOutputSchema());
       }
       internalGetMutableRuntimeEnv().mergeFrom(
           other.internalGetRuntimeEnv());
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000080;
       if (other.getAutoApproveAll() != false) {
         setAutoApproveAll(other.getAutoApproveAll());
       }
@@ -1518,7 +1773,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         if (!other.attachments_.isEmpty()) {
           if (attachments_.isEmpty()) {
             attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000200);
           } else {
             ensureAttachmentsIsMutable();
             attachments_.addAll(other.attachments_);
@@ -1531,7 +1786,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
             attachmentsBuilder_.dispose();
             attachmentsBuilder_ = null;
             attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000200);
             attachmentsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetAttachmentsFieldBuilder() : null;
@@ -1543,7 +1798,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!other.workspaceFileRefs_.isEmpty()) {
         if (workspaceFileRefs_.isEmpty()) {
           workspaceFileRefs_ = other.workspaceFileRefs_;
-          bitField0_ |= 0x00000080;
+          bitField0_ |= 0x00000400;
         } else {
           ensureWorkspaceFileRefsIsMutable();
           workspaceFileRefs_.addAll(other.workspaceFileRefs_);
@@ -1552,7 +1807,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       if (!other.getSupersedesExecutionId().isEmpty()) {
         supersedesExecutionId_ = other.supersedesExecutionId_;
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000800;
         onChanged();
       }
       if (other.hasConversationCatchup()) {
@@ -1612,25 +1867,18 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 34: {
-              input.readMessage(
-                  internalGetExecutionConfigFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 34
             case 42: {
               com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
               runtimeEnv__ = input.readMessage(
                   RuntimeEnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableRuntimeEnv().ensureBuilderMap().put(
                   runtimeEnv__.getKey(), runtimeEnv__.getValue());
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000080;
               break;
             } // case 42
             case 56: {
               autoApproveAll_ = input.readBool();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000100;
               break;
             } // case 56
             case 74: {
@@ -1653,7 +1901,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
             } // case 82
             case 98: {
               supersedesExecutionId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000800;
               break;
             } // case 98
             case 106: {
@@ -1667,16 +1915,40 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               input.readMessage(
                   internalGetConversationCatchupFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00001000;
               break;
             } // case 114
             case 138: {
               input.readMessage(
                   internalGetParentFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00002000;
               break;
             } // case 138
+            case 146: {
+              input.readMessage(
+                  internalGetRunConfigFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 146
+            case 152: {
+              interactionMode_ = input.readEnum();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 152
+            case 160: {
+              buildFromPlan_ = input.readBool();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 160
+            case 170: {
+              input.readMessage(
+                  internalGetStructuredOutputSchemaFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 170
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2274,53 +2546,107 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return this;
     }
 
-    private ai.stigmer.agentic.agentexecution.v1.ExecutionConfig executionConfig_;
+    private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ExecutionConfig, ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.Builder, ai.stigmer.agentic.agentexecution.v1.ExecutionConfigOrBuilder> executionConfigBuilder_;
+        ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> runConfigBuilder_;
     /**
      * <pre>
-     * Optional execution-time configuration overrides.
-     * Example: Specify the model to use for this execution.
+     * The settings this message asks for (optional): a model, a speed tier,
+     * thinking, and run bounds. Zero or empty fields are not set here.
+     *
+     * The server resolves the settings the turn runs with once, at create,
+     * and records them on AgentExecutionStatus.run_config. A choice (model,
+     * tier, thinking) comes from the most specific layer that makes one: this
+     * field, then the defaults of the agent the turn runs, then the lane's
+     * operator profile. A bound (cost, tool rounds, result size) is the
+     * tightest one any layer sets, so a message can lower an agent's cap but
+     * never raise it. RunConfig's own comment has the full rule.
+     *
+     * Unlike a saved surface's settings, a message may set service_tier or
+     * thinking_mode without a model: it then adjusts the model a less
+     * specific layer chose (for example, thinking off for one message on an
+     * agent whose default turns it on).
+     *
+     * A lane that composes the turn for a surface (a schedule, a workflow
+     * step) writes that surface's saved settings here. On a lane where the
+     * caller is a visitor (the hosted edition's shared-agent guests and
+     * channel senders), the surface's saved settings replace this field.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
-     * @return Whether the executionConfig field is set.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
+     * @return Whether the runConfig field is set.
      */
-    public boolean hasExecutionConfig() {
+    public boolean hasRunConfig() {
       return ((bitField0_ & 0x00000008) != 0);
     }
     /**
      * <pre>
-     * Optional execution-time configuration overrides.
-     * Example: Specify the model to use for this execution.
+     * The settings this message asks for (optional): a model, a speed tier,
+     * thinking, and run bounds. Zero or empty fields are not set here.
+     *
+     * The server resolves the settings the turn runs with once, at create,
+     * and records them on AgentExecutionStatus.run_config. A choice (model,
+     * tier, thinking) comes from the most specific layer that makes one: this
+     * field, then the defaults of the agent the turn runs, then the lane's
+     * operator profile. A bound (cost, tool rounds, result size) is the
+     * tightest one any layer sets, so a message can lower an agent's cap but
+     * never raise it. RunConfig's own comment has the full rule.
+     *
+     * Unlike a saved surface's settings, a message may set service_tier or
+     * thinking_mode without a model: it then adjusts the model a less
+     * specific layer chose (for example, thinking off for one message on an
+     * agent whose default turns it on).
+     *
+     * A lane that composes the turn for a surface (a schedule, a workflow
+     * step) writes that surface's saved settings here. On a lane where the
+     * caller is a visitor (the hosted edition's shared-agent guests and
+     * channel senders), the surface's saved settings replace this field.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
-     * @return The executionConfig.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
+     * @return The runConfig.
      */
-    public ai.stigmer.agentic.agentexecution.v1.ExecutionConfig getExecutionConfig() {
-      if (executionConfigBuilder_ == null) {
-        return executionConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.getDefaultInstance() : executionConfig_;
+    public ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig() {
+      if (runConfigBuilder_ == null) {
+        return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
       } else {
-        return executionConfigBuilder_.getMessage();
+        return runConfigBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * Optional execution-time configuration overrides.
-     * Example: Specify the model to use for this execution.
+     * The settings this message asks for (optional): a model, a speed tier,
+     * thinking, and run bounds. Zero or empty fields are not set here.
+     *
+     * The server resolves the settings the turn runs with once, at create,
+     * and records them on AgentExecutionStatus.run_config. A choice (model,
+     * tier, thinking) comes from the most specific layer that makes one: this
+     * field, then the defaults of the agent the turn runs, then the lane's
+     * operator profile. A bound (cost, tool rounds, result size) is the
+     * tightest one any layer sets, so a message can lower an agent's cap but
+     * never raise it. RunConfig's own comment has the full rule.
+     *
+     * Unlike a saved surface's settings, a message may set service_tier or
+     * thinking_mode without a model: it then adjusts the model a less
+     * specific layer chose (for example, thinking off for one message on an
+     * agent whose default turns it on).
+     *
+     * A lane that composes the turn for a surface (a schedule, a workflow
+     * step) writes that surface's saved settings here. On a lane where the
+     * caller is a visitor (the hosted edition's shared-agent guests and
+     * channel senders), the surface's saved settings replace this field.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
      */
-    public Builder setExecutionConfig(ai.stigmer.agentic.agentexecution.v1.ExecutionConfig value) {
-      if (executionConfigBuilder_ == null) {
+    public Builder setRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
+      if (runConfigBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        executionConfig_ = value;
+        runConfig_ = value;
       } else {
-        executionConfigBuilder_.setMessage(value);
+        runConfigBuilder_.setMessage(value);
       }
       bitField0_ |= 0x00000008;
       onChanged();
@@ -2328,18 +2654,36 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional execution-time configuration overrides.
-     * Example: Specify the model to use for this execution.
+     * The settings this message asks for (optional): a model, a speed tier,
+     * thinking, and run bounds. Zero or empty fields are not set here.
+     *
+     * The server resolves the settings the turn runs with once, at create,
+     * and records them on AgentExecutionStatus.run_config. A choice (model,
+     * tier, thinking) comes from the most specific layer that makes one: this
+     * field, then the defaults of the agent the turn runs, then the lane's
+     * operator profile. A bound (cost, tool rounds, result size) is the
+     * tightest one any layer sets, so a message can lower an agent's cap but
+     * never raise it. RunConfig's own comment has the full rule.
+     *
+     * Unlike a saved surface's settings, a message may set service_tier or
+     * thinking_mode without a model: it then adjusts the model a less
+     * specific layer chose (for example, thinking off for one message on an
+     * agent whose default turns it on).
+     *
+     * A lane that composes the turn for a surface (a schedule, a workflow
+     * step) writes that surface's saved settings here. On a lane where the
+     * caller is a visitor (the hosted edition's shared-agent guests and
+     * channel senders), the surface's saved settings replace this field.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
      */
-    public Builder setExecutionConfig(
-        ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.Builder builderForValue) {
-      if (executionConfigBuilder_ == null) {
-        executionConfig_ = builderForValue.build();
+    public Builder setRunConfig(
+        ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder builderForValue) {
+      if (runConfigBuilder_ == null) {
+        runConfig_ = builderForValue.build();
       } else {
-        executionConfigBuilder_.setMessage(builderForValue.build());
+        runConfigBuilder_.setMessage(builderForValue.build());
       }
       bitField0_ |= 0x00000008;
       onChanged();
@@ -2347,25 +2691,43 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional execution-time configuration overrides.
-     * Example: Specify the model to use for this execution.
+     * The settings this message asks for (optional): a model, a speed tier,
+     * thinking, and run bounds. Zero or empty fields are not set here.
+     *
+     * The server resolves the settings the turn runs with once, at create,
+     * and records them on AgentExecutionStatus.run_config. A choice (model,
+     * tier, thinking) comes from the most specific layer that makes one: this
+     * field, then the defaults of the agent the turn runs, then the lane's
+     * operator profile. A bound (cost, tool rounds, result size) is the
+     * tightest one any layer sets, so a message can lower an agent's cap but
+     * never raise it. RunConfig's own comment has the full rule.
+     *
+     * Unlike a saved surface's settings, a message may set service_tier or
+     * thinking_mode without a model: it then adjusts the model a less
+     * specific layer chose (for example, thinking off for one message on an
+     * agent whose default turns it on).
+     *
+     * A lane that composes the turn for a surface (a schedule, a workflow
+     * step) writes that surface's saved settings here. On a lane where the
+     * caller is a visitor (the hosted edition's shared-agent guests and
+     * channel senders), the surface's saved settings replace this field.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
      */
-    public Builder mergeExecutionConfig(ai.stigmer.agentic.agentexecution.v1.ExecutionConfig value) {
-      if (executionConfigBuilder_ == null) {
+    public Builder mergeRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
+      if (runConfigBuilder_ == null) {
         if (((bitField0_ & 0x00000008) != 0) &&
-          executionConfig_ != null &&
-          executionConfig_ != ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.getDefaultInstance()) {
-          getExecutionConfigBuilder().mergeFrom(value);
+          runConfig_ != null &&
+          runConfig_ != ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance()) {
+          getRunConfigBuilder().mergeFrom(value);
         } else {
-          executionConfig_ = value;
+          runConfig_ = value;
         }
       } else {
-        executionConfigBuilder_.mergeFrom(value);
+        runConfigBuilder_.mergeFrom(value);
       }
-      if (executionConfig_ != null) {
+      if (runConfig_ != null) {
         bitField0_ |= 0x00000008;
         onChanged();
       }
@@ -2373,71 +2735,569 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Optional execution-time configuration overrides.
-     * Example: Specify the model to use for this execution.
+     * The settings this message asks for (optional): a model, a speed tier,
+     * thinking, and run bounds. Zero or empty fields are not set here.
+     *
+     * The server resolves the settings the turn runs with once, at create,
+     * and records them on AgentExecutionStatus.run_config. A choice (model,
+     * tier, thinking) comes from the most specific layer that makes one: this
+     * field, then the defaults of the agent the turn runs, then the lane's
+     * operator profile. A bound (cost, tool rounds, result size) is the
+     * tightest one any layer sets, so a message can lower an agent's cap but
+     * never raise it. RunConfig's own comment has the full rule.
+     *
+     * Unlike a saved surface's settings, a message may set service_tier or
+     * thinking_mode without a model: it then adjusts the model a less
+     * specific layer chose (for example, thinking off for one message on an
+     * agent whose default turns it on).
+     *
+     * A lane that composes the turn for a surface (a schedule, a workflow
+     * step) writes that surface's saved settings here. On a lane where the
+     * caller is a visitor (the hosted edition's shared-agent guests and
+     * channel senders), the surface's saved settings replace this field.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
      */
-    public Builder clearExecutionConfig() {
+    public Builder clearRunConfig() {
       bitField0_ = (bitField0_ & ~0x00000008);
-      executionConfig_ = null;
-      if (executionConfigBuilder_ != null) {
-        executionConfigBuilder_.dispose();
-        executionConfigBuilder_ = null;
+      runConfig_ = null;
+      if (runConfigBuilder_ != null) {
+        runConfigBuilder_.dispose();
+        runConfigBuilder_ = null;
       }
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Optional execution-time configuration overrides.
-     * Example: Specify the model to use for this execution.
+     * The settings this message asks for (optional): a model, a speed tier,
+     * thinking, and run bounds. Zero or empty fields are not set here.
+     *
+     * The server resolves the settings the turn runs with once, at create,
+     * and records them on AgentExecutionStatus.run_config. A choice (model,
+     * tier, thinking) comes from the most specific layer that makes one: this
+     * field, then the defaults of the agent the turn runs, then the lane's
+     * operator profile. A bound (cost, tool rounds, result size) is the
+     * tightest one any layer sets, so a message can lower an agent's cap but
+     * never raise it. RunConfig's own comment has the full rule.
+     *
+     * Unlike a saved surface's settings, a message may set service_tier or
+     * thinking_mode without a model: it then adjusts the model a less
+     * specific layer chose (for example, thinking off for one message on an
+     * agent whose default turns it on).
+     *
+     * A lane that composes the turn for a surface (a schedule, a workflow
+     * step) writes that surface's saved settings here. On a lane where the
+     * caller is a visitor (the hosted edition's shared-agent guests and
+     * channel senders), the surface's saved settings replace this field.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.Builder getExecutionConfigBuilder() {
+    public ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder getRunConfigBuilder() {
       bitField0_ |= 0x00000008;
       onChanged();
-      return internalGetExecutionConfigFieldBuilder().getBuilder();
+      return internalGetRunConfigFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * Optional execution-time configuration overrides.
-     * Example: Specify the model to use for this execution.
+     * The settings this message asks for (optional): a model, a speed tier,
+     * thinking, and run bounds. Zero or empty fields are not set here.
+     *
+     * The server resolves the settings the turn runs with once, at create,
+     * and records them on AgentExecutionStatus.run_config. A choice (model,
+     * tier, thinking) comes from the most specific layer that makes one: this
+     * field, then the defaults of the agent the turn runs, then the lane's
+     * operator profile. A bound (cost, tool rounds, result size) is the
+     * tightest one any layer sets, so a message can lower an agent's cap but
+     * never raise it. RunConfig's own comment has the full rule.
+     *
+     * Unlike a saved surface's settings, a message may set service_tier or
+     * thinking_mode without a model: it then adjusts the model a less
+     * specific layer chose (for example, thinking off for one message on an
+     * agent whose default turns it on).
+     *
+     * A lane that composes the turn for a surface (a schedule, a workflow
+     * step) writes that surface's saved settings here. On a lane where the
+     * caller is a visitor (the hosted edition's shared-agent guests and
+     * channel senders), the surface's saved settings replace this field.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.ExecutionConfigOrBuilder getExecutionConfigOrBuilder() {
-      if (executionConfigBuilder_ != null) {
-        return executionConfigBuilder_.getMessageOrBuilder();
+    public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+      if (runConfigBuilder_ != null) {
+        return runConfigBuilder_.getMessageOrBuilder();
       } else {
-        return executionConfig_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.getDefaultInstance() : executionConfig_;
+        return runConfig_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
       }
     }
     /**
      * <pre>
-     * Optional execution-time configuration overrides.
-     * Example: Specify the model to use for this execution.
+     * The settings this message asks for (optional): a model, a speed tier,
+     * thinking, and run bounds. Zero or empty fields are not set here.
+     *
+     * The server resolves the settings the turn runs with once, at create,
+     * and records them on AgentExecutionStatus.run_config. A choice (model,
+     * tier, thinking) comes from the most specific layer that makes one: this
+     * field, then the defaults of the agent the turn runs, then the lane's
+     * operator profile. A bound (cost, tool rounds, result size) is the
+     * tightest one any layer sets, so a message can lower an agent's cap but
+     * never raise it. RunConfig's own comment has the full rule.
+     *
+     * Unlike a saved surface's settings, a message may set service_tier or
+     * thinking_mode without a model: it then adjusts the model a less
+     * specific layer chose (for example, thinking off for one message on an
+     * agent whose default turns it on).
+     *
+     * A lane that composes the turn for a surface (a schedule, a workflow
+     * step) writes that surface's saved settings here. On a lane where the
+     * caller is a visitor (the hosted edition's shared-agent guests and
+     * channel senders), the surface's saved settings replace this field.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ExecutionConfig, ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.Builder, ai.stigmer.agentic.agentexecution.v1.ExecutionConfigOrBuilder> 
-        internalGetExecutionConfigFieldBuilder() {
-      if (executionConfigBuilder_ == null) {
-        executionConfigBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.ExecutionConfig, ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.Builder, ai.stigmer.agentic.agentexecution.v1.ExecutionConfigOrBuilder>(
-                getExecutionConfig(),
+        ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> 
+        internalGetRunConfigFieldBuilder() {
+      if (runConfigBuilder_ == null) {
+        runConfigBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder>(
+                getRunConfig(),
                 getParentForChildren(),
                 isClean());
-        executionConfig_ = null;
+        runConfig_ = null;
       }
-      return executionConfigBuilder_;
+      return runConfigBuilder_;
+    }
+
+    private int interactionMode_ = 0;
+    /**
+     * <pre>
+     * Interaction mode for this message.
+     *
+     * AGENT (default): full tool access — read, write, create, delete, shell.
+     * PLAN: read-only analysis — read, search, list only. No file mutations.
+     *
+     * When UNSPECIFIED, defaults to AGENT.
+     *
+     * The mode is set per message and does not carry over between messages
+     * in the same session. Users toggle mode in the session composer before
+     * sending each message.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 19 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+     * @return The enum numeric value on the wire for interactionMode.
+     */
+    @java.lang.Override public int getInteractionModeValue() {
+      return interactionMode_;
+    }
+    /**
+     * <pre>
+     * Interaction mode for this message.
+     *
+     * AGENT (default): full tool access — read, write, create, delete, shell.
+     * PLAN: read-only analysis — read, search, list only. No file mutations.
+     *
+     * When UNSPECIFIED, defaults to AGENT.
+     *
+     * The mode is set per message and does not carry over between messages
+     * in the same session. Users toggle mode in the session composer before
+     * sending each message.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 19 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+     * @param value The enum numeric value on the wire for interactionMode to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setInteractionModeValue(int value) {
+      interactionMode_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Interaction mode for this message.
+     *
+     * AGENT (default): full tool access — read, write, create, delete, shell.
+     * PLAN: read-only analysis — read, search, list only. No file mutations.
+     *
+     * When UNSPECIFIED, defaults to AGENT.
+     *
+     * The mode is set per message and does not carry over between messages
+     * in the same session. Users toggle mode in the session composer before
+     * sending each message.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 19 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+     * @return The interactionMode.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.InteractionMode getInteractionMode() {
+      ai.stigmer.agentic.agentexecution.v1.InteractionMode result = ai.stigmer.agentic.agentexecution.v1.InteractionMode.forNumber(interactionMode_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.InteractionMode.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Interaction mode for this message.
+     *
+     * AGENT (default): full tool access — read, write, create, delete, shell.
+     * PLAN: read-only analysis — read, search, list only. No file mutations.
+     *
+     * When UNSPECIFIED, defaults to AGENT.
+     *
+     * The mode is set per message and does not carry over between messages
+     * in the same session. Users toggle mode in the session composer before
+     * sending each message.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 19 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+     * @param value The interactionMode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setInteractionMode(ai.stigmer.agentic.agentexecution.v1.InteractionMode value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000010;
+      interactionMode_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Interaction mode for this message.
+     *
+     * AGENT (default): full tool access — read, write, create, delete, shell.
+     * PLAN: read-only analysis — read, search, list only. No file mutations.
+     *
+     * When UNSPECIFIED, defaults to AGENT.
+     *
+     * The mode is set per message and does not carry over between messages
+     * in the same session. Users toggle mode in the session composer before
+     * sending each message.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 19 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearInteractionMode() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      interactionMode_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private boolean buildFromPlan_ ;
+    /**
+     * <pre>
+     * Marks this message as a "Build from plan" turn: the user approved a plan
+     * produced by a prior Plan-mode execution and asked the agent to implement it.
+     *
+     * When set, the runner injects the implement-plan directive into the agent's
+     * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+     * document travels as an attachment (the normal case), the directive points
+     * the agent at the attached plan file and treats it as authoritative; when no
+     * plan attachment is present (e.g. the client's upload failed), the directive
+     * tells the agent to follow the plan from the conversation instead.
+     *
+     * Clients set this flag INSTEAD of embedding implement instructions in
+     * `message`, so `message` stays a short human-readable label (e.g.
+     * "Build from plan") that UIs can render as a compact chip.
+     *
+     * Like interaction_mode, this is per message and never carries over
+     * between messages in the same session.
+     * </pre>
+     *
+     * <code>bool build_from_plan = 20 [json_name = "buildFromPlan"];</code>
+     * @return The buildFromPlan.
+     */
+    @java.lang.Override
+    public boolean getBuildFromPlan() {
+      return buildFromPlan_;
+    }
+    /**
+     * <pre>
+     * Marks this message as a "Build from plan" turn: the user approved a plan
+     * produced by a prior Plan-mode execution and asked the agent to implement it.
+     *
+     * When set, the runner injects the implement-plan directive into the agent's
+     * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+     * document travels as an attachment (the normal case), the directive points
+     * the agent at the attached plan file and treats it as authoritative; when no
+     * plan attachment is present (e.g. the client's upload failed), the directive
+     * tells the agent to follow the plan from the conversation instead.
+     *
+     * Clients set this flag INSTEAD of embedding implement instructions in
+     * `message`, so `message` stays a short human-readable label (e.g.
+     * "Build from plan") that UIs can render as a compact chip.
+     *
+     * Like interaction_mode, this is per message and never carries over
+     * between messages in the same session.
+     * </pre>
+     *
+     * <code>bool build_from_plan = 20 [json_name = "buildFromPlan"];</code>
+     * @param value The buildFromPlan to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBuildFromPlan(boolean value) {
+
+      buildFromPlan_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Marks this message as a "Build from plan" turn: the user approved a plan
+     * produced by a prior Plan-mode execution and asked the agent to implement it.
+     *
+     * When set, the runner injects the implement-plan directive into the agent's
+     * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+     * document travels as an attachment (the normal case), the directive points
+     * the agent at the attached plan file and treats it as authoritative; when no
+     * plan attachment is present (e.g. the client's upload failed), the directive
+     * tells the agent to follow the plan from the conversation instead.
+     *
+     * Clients set this flag INSTEAD of embedding implement instructions in
+     * `message`, so `message` stays a short human-readable label (e.g.
+     * "Build from plan") that UIs can render as a compact chip.
+     *
+     * Like interaction_mode, this is per message and never carries over
+     * between messages in the same session.
+     * </pre>
+     *
+     * <code>bool build_from_plan = 20 [json_name = "buildFromPlan"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearBuildFromPlan() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      buildFromPlan_ = false;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.Struct structuredOutputSchema_;
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> structuredOutputSchemaBuilder_;
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to (optional).
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+     * @return Whether the structuredOutputSchema field is set.
+     */
+    public boolean hasStructuredOutputSchema() {
+      return ((bitField0_ & 0x00000040) != 0);
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to (optional).
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+     * @return The structuredOutputSchema.
+     */
+    public com.google.protobuf.Struct getStructuredOutputSchema() {
+      if (structuredOutputSchemaBuilder_ == null) {
+        return structuredOutputSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutputSchema_;
+      } else {
+        return structuredOutputSchemaBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to (optional).
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+     */
+    public Builder setStructuredOutputSchema(com.google.protobuf.Struct value) {
+      if (structuredOutputSchemaBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        structuredOutputSchema_ = value;
+      } else {
+        structuredOutputSchemaBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to (optional).
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+     */
+    public Builder setStructuredOutputSchema(
+        com.google.protobuf.Struct.Builder builderForValue) {
+      if (structuredOutputSchemaBuilder_ == null) {
+        structuredOutputSchema_ = builderForValue.build();
+      } else {
+        structuredOutputSchemaBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to (optional).
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+     */
+    public Builder mergeStructuredOutputSchema(com.google.protobuf.Struct value) {
+      if (structuredOutputSchemaBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0) &&
+          structuredOutputSchema_ != null &&
+          structuredOutputSchema_ != com.google.protobuf.Struct.getDefaultInstance()) {
+          getStructuredOutputSchemaBuilder().mergeFrom(value);
+        } else {
+          structuredOutputSchema_ = value;
+        }
+      } else {
+        structuredOutputSchemaBuilder_.mergeFrom(value);
+      }
+      if (structuredOutputSchema_ != null) {
+        bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to (optional).
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+     */
+    public Builder clearStructuredOutputSchema() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      structuredOutputSchema_ = null;
+      if (structuredOutputSchemaBuilder_ != null) {
+        structuredOutputSchemaBuilder_.dispose();
+        structuredOutputSchemaBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to (optional).
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+     */
+    public com.google.protobuf.Struct.Builder getStructuredOutputSchemaBuilder() {
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return internalGetStructuredOutputSchemaFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to (optional).
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+     */
+    public com.google.protobuf.StructOrBuilder getStructuredOutputSchemaOrBuilder() {
+      if (structuredOutputSchemaBuilder_ != null) {
+        return structuredOutputSchemaBuilder_.getMessageOrBuilder();
+      } else {
+        return structuredOutputSchema_ == null ?
+            com.google.protobuf.Struct.getDefaultInstance() : structuredOutputSchema_;
+      }
+    }
+    /**
+     * <pre>
+     * JSON Schema that the agent's output must conform to (optional).
+     *
+     * When set, the runner enforces structured output:
+     * - Native harness: uses deepagents responseFormat/ToolStrategy
+     * - Cursor harness: prompt instruction + extraction fallback
+     *
+     * The validated structured data is returned in the activity result
+     * and passed back to the parent workflow as `structured`.
+     * </pre>
+     *
+     * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> 
+        internalGetStructuredOutputSchemaFieldBuilder() {
+      if (structuredOutputSchemaBuilder_ == null) {
+        structuredOutputSchemaBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder>(
+                getStructuredOutputSchema(),
+                getParentForChildren(),
+                isClean());
+        structuredOutputSchema_ = null;
+      }
+      return structuredOutputSchemaBuilder_;
     }
 
     private static final class RuntimeEnvConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> {
@@ -2468,7 +3328,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (runtimeEnv_ == null) {
         runtimeEnv_ = new com.google.protobuf.MapFieldBuilder<>(runtimeEnvConverter);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000080;
       onChanged();
       return runtimeEnv_;
     }
@@ -2574,7 +3434,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return runtimeEnvConverter.build(map.get(key));
     }
     public Builder clearRuntimeEnv() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000080);
       internalGetMutableRuntimeEnv().clear();
       return this;
     }
@@ -2606,7 +3466,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
         getMutableRuntimeEnv() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000080;
       return internalGetMutableRuntimeEnv().ensureMessageMap();
     }
     /**
@@ -2631,7 +3491,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableRuntimeEnv().ensureBuilderMap()
           .put(key, value);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000080;
       return this;
     }
     /**
@@ -2658,7 +3518,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       internalGetMutableRuntimeEnv().ensureBuilderMap()
           .putAll(values);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000080;
       return this;
     }
     /**
@@ -2748,7 +3608,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder setAutoApproveAll(boolean value) {
 
       autoApproveAll_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -2777,7 +3637,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearAutoApproveAll() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000100);
       autoApproveAll_ = false;
       onChanged();
       return this;
@@ -2786,9 +3646,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private java.util.List<ai.stigmer.agentic.agentexecution.v1.Attachment> attachments_ =
       java.util.Collections.emptyList();
     private void ensureAttachmentsIsMutable() {
-      if (!((bitField0_ & 0x00000040) != 0)) {
+      if (!((bitField0_ & 0x00000200) != 0)) {
         attachments_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.Attachment>(attachments_);
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000200;
        }
     }
 
@@ -3103,7 +3963,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder clearAttachments() {
       if (attachmentsBuilder_ == null) {
         attachments_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000200);
         onChanged();
       } else {
         attachmentsBuilder_.clear();
@@ -3285,7 +4145,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         attachmentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentexecution.v1.Attachment, ai.stigmer.agentic.agentexecution.v1.Attachment.Builder, ai.stigmer.agentic.agentexecution.v1.AttachmentOrBuilder>(
                 attachments_,
-                ((bitField0_ & 0x00000040) != 0),
+                ((bitField0_ & 0x00000200) != 0),
                 getParentForChildren(),
                 isClean());
         attachments_ = null;
@@ -3299,7 +4159,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!workspaceFileRefs_.isModifiable()) {
         workspaceFileRefs_ = new com.google.protobuf.LazyStringArrayList(workspaceFileRefs_);
       }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000400;
     }
     /**
      * <pre>
@@ -3470,7 +4330,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.set(index, value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3509,7 +4369,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3548,7 +4408,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       ensureWorkspaceFileRefsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, workspaceFileRefs_);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3584,7 +4444,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder clearWorkspaceFileRefs() {
       workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000080);;
+      bitField0_ = (bitField0_ & ~0x00000400);;
       onChanged();
       return this;
     }
@@ -3624,7 +4484,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       checkByteStringIsUtf8(value);
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3708,7 +4568,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       supersedesExecutionId_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -3730,7 +4590,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder clearSupersedesExecutionId() {
       supersedesExecutionId_ = getDefaultInstance().getSupersedesExecutionId();
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000800);
       onChanged();
       return this;
     }
@@ -3756,7 +4616,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       supersedesExecutionId_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -3779,7 +4639,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return Whether the conversationCatchup field is set.
      */
     public boolean hasConversationCatchup() {
-      return ((bitField0_ & 0x00000200) != 0);
+      return ((bitField0_ & 0x00001000) != 0);
     }
     /**
      * <pre>
@@ -3824,7 +4684,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         conversationCatchupBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -3848,7 +4708,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         conversationCatchupBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -3867,7 +4727,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder mergeConversationCatchup(ai.stigmer.agentic.agentexecution.v1.ConversationCatchup value) {
       if (conversationCatchupBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0) &&
+        if (((bitField0_ & 0x00001000) != 0) &&
           conversationCatchup_ != null &&
           conversationCatchup_ != ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.getDefaultInstance()) {
           getConversationCatchupBuilder().mergeFrom(value);
@@ -3878,7 +4738,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         conversationCatchupBuilder_.mergeFrom(value);
       }
       if (conversationCatchup_ != null) {
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00001000;
         onChanged();
       }
       return this;
@@ -3897,7 +4757,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
      */
     public Builder clearConversationCatchup() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00001000);
       conversationCatchup_ = null;
       if (conversationCatchupBuilder_ != null) {
         conversationCatchupBuilder_.dispose();
@@ -3920,7 +4780,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.Builder getConversationCatchupBuilder() {
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00001000;
       onChanged();
       return internalGetConversationCatchupFieldBuilder().getBuilder();
     }
@@ -3994,7 +4854,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return Whether the parent field is set.
      */
     public boolean hasParent() {
-      return ((bitField0_ & 0x00000400) != 0);
+      return ((bitField0_ & 0x00002000) != 0);
     }
     /**
      * <pre>
@@ -4047,7 +4907,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         parentBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -4075,7 +4935,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         parentBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -4098,7 +4958,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder mergeParent(ai.stigmer.agentic.agentexecution.v1.WorkflowParent value) {
       if (parentBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0) &&
+        if (((bitField0_ & 0x00002000) != 0) &&
           parent_ != null &&
           parent_ != ai.stigmer.agentic.agentexecution.v1.WorkflowParent.getDefaultInstance()) {
           getParentBuilder().mergeFrom(value);
@@ -4109,7 +4969,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         parentBuilder_.mergeFrom(value);
       }
       if (parent_ != null) {
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00002000;
         onChanged();
       }
       return this;
@@ -4132,7 +4992,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
      */
     public Builder clearParent() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00002000);
       parent_ = null;
       if (parentBuilder_ != null) {
         parentBuilder_.dispose();
@@ -4159,7 +5019,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.WorkflowParent.Builder getParentBuilder() {
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00002000;
       onChanged();
       return internalGetParentFieldBuilder().getBuilder();
     }

@@ -71,8 +71,8 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
   env: { [key: string]: string };
 
   /**
-   * Per-call model choice and run bounds. Unset fields inherit the
-   * platform defaults.
+   * Per-call model choice and run bounds. Unset fields fall to the agent's
+   * defaults (RunConfig has the rule).
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4;
    */

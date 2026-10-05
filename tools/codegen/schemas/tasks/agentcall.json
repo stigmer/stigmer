@@ -60,7 +60,7 @@
         "kind": "message",
         "messageType": "RunConfig"
       },
-      "description": "Per-call model choice and run bounds. Unset fields inherit the\n platform defaults.",
+      "description": "Per-call model choice and run bounds. Unset fields fall to the agent's\n defaults (RunConfig has the rule).",
       "required": false
     },
     {

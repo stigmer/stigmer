@@ -68,93 +68,99 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "gmer/agentic/agentexecution/v1/context.p" +
       "roto\032/ai/stigmer/agentic/agentexecution/" +
       "v1/enum.proto\0325ai/stigmer/agentic/agente" +
-      "xecution/v1/filereview.proto\0322ai/stigmer" +
-      "/agentic/agentexecution/v1/message.proto" +
-      "\032/ai/stigmer/agentic/agentexecution/v1/s" +
-      "pec.proto\0323ai/stigmer/agentic/agentexecu" +
-      "tion/v1/subagent.proto\032/ai/stigmer/agent" +
-      "ic/agentexecution/v1/todo.proto\0320ai/stig" +
-      "mer/agentic/agentexecution/v1/usage.prot" +
-      "o\0324ai/stigmer/agentic/agentexecution/v1/" +
-      "writeback.proto\032-ai/stigmer/commons/apir" +
-      "esource/metadata.proto\032+ai/stigmer/commo" +
-      "ns/apiresource/status.proto\032\033buf/validat" +
-      "e/validate.proto\032\034google/protobuf/struct" +
-      ".proto\"\365\002\n\016AgentExecution\022=\n\013api_version" +
-      "\030\001 \001(\tB\034\272H\031r\027\n\025agentic.stigmer.ai/v1R\nap" +
-      "iVersion\022)\n\004kind\030\002 \001(\tB\025\272H\022r\020\n\016AgentExec" +
-      "utionR\004kind\022W\n\010metadata\030\003 \001(\01323.ai.stigm" +
-      "er.commons.apiresource.ApiResourceMetada" +
-      "taB\006\272H\003\310\001\001R\010metadata\022L\n\004spec\030\004 \001(\01328.ai." +
-      "stigmer.agentic.agentexecution.v1.AgentE" +
-      "xecutionSpecR\004spec\022R\n\006status\030\005 \001(\0132:.ai." +
-      "stigmer.agentic.agentexecution.v1.AgentE" +
-      "xecutionStatusR\006status\"\230\021\n\024AgentExecutio" +
-      "nStatus\022F\n\005audit\030c \001(\01320.ai.stigmer.comm" +
-      "ons.apiresource.ApiResourceAuditR\005audit\022" +
-      "N\n\010messages\030\001 \003(\01322.ai.stigmer.agentic.a" +
-      "gentexecution.v1.AgentMessageR\010messages\022" +
-      "T\n\005phase\030\002 \001(\01624.ai.stigmer.agentic.agen" +
-      "texecution.v1.ExecutionPhaseB\010\272H\005\202\001\002\020\001R\005" +
-      "phase\022i\n\024sub_agent_executions\030\004 \003(\01327.ai" +
-      ".stigmer.agentic.agentexecution.v1.SubAg" +
-      "entExecutionR\022subAgentExecutions\022\024\n\005erro" +
-      "r\030\006 \001(\tR\005error\022\035\n\nstarted_at\030\007 \001(\tR\tstar" +
-      "tedAt\022!\n\014completed_at\030\010 \001(\tR\013completedAt" +
-      "\022[\n\005todos\030\t \003(\0132E.ai.stigmer.agentic.age" +
-      "ntexecution.v1.AgentExecutionStatus.Todo" +
-      "sEntryR\005todos\022%\n\016callback_token\030\n \001(\014R\rc" +
-      "allbackToken\022b\n\021pending_approvals\030\020 \003(\0132" +
-      "5.ai.stigmer.agentic.agentexecution.v1.P" +
-      "endingApprovalR\020pendingApprovals\022m\n\025appr" +
-      "oval_event_stream\030\026 \001(\01329.ai.stigmer.age" +
-      "ntic.agentexecution.v1.ApprovalEventStre" +
-      "amR\023approvalEventStream\022T\n\014context_info\030" +
-      "\016 \001(\01321.ai.stigmer.agentic.agentexecutio" +
-      "n.v1.ContextInfoR\013contextInfo\022U\n\tartifac" +
-      "ts\030\017 \003(\01327.ai.stigmer.agentic.agentexecu" +
-      "tion.v1.ExecutionArtifactR\tartifacts\022l\n\025" +
-      "workspace_write_backs\030\021 \003(\01328.ai.stigmer" +
-      ".agentic.agentexecution.v1.WorkspaceWrit" +
-      "eBackR\023workspaceWriteBacks\022Z\n\016setup_prog" +
-      "ress\030\022 \001(\01323.ai.stigmer.agentic.agentexe" +
-      "cution.v1.SetupProgressR\rsetupProgress\022d" +
-      "\n\017streaming_usage\030\024 \001(\0132;.ai.stigmer.age" +
-      "ntic.agentexecution.v1.StreamingUsageSum" +
-      "maryR\016streamingUsage\022D\n\021structured_outpu" +
-      "t\030\025 \001(\0132\027.google.protobuf.StructR\020struct" +
-      "uredOutput\022]\n\020file_change_sets\030\027 \003(\01323.a" +
-      "i.stigmer.agentic.agentexecution.v1.File" +
-      "ChangeSetR\016fileChangeSets\022t\n\030file_review" +
-      "_event_stream\030\030 \001(\0132;.ai.stigmer.agentic" +
-      ".agentexecution.v1.FileReviewEventStream" +
-      "R\025fileReviewEventStream\022j\n\024file_change_p" +
-      "rogress\030\031 \001(\01328.ai.stigmer.agentic.agent" +
-      "execution.v1.FileChangeProgressR\022fileCha" +
-      "ngeProgress\022v\n\030recalled_memories_report\030" +
-      "\032 \001(\0132<.ai.stigmer.agentic.agentexecutio" +
-      "n.v1.RecalledMemoriesReportR\026recalledMem" +
-      "oriesReport\022\031\n\010agent_id\030\033 \001(\tR\007agentId\022," +
-      "\n\022agent_version_hash\030\034 \001(\tR\020agentVersion" +
-      "Hash\022l\n\024declared_preferences\030\035 \001(\01329.ai." +
-      "stigmer.agentic.agentexecution.v1.Declar" +
-      "edPreferencesR\023declaredPreferences\022c\n\021re" +
-      "called_memories\030\036 \001(\01326.ai.stigmer.agent" +
-      "ic.agentexecution.v1.RecalledMemoriesR\020r" +
-      "ecalledMemories\032h\n\nTodosEntry\022\020\n\003key\030\001 \001" +
-      "(\tR\003key\022D\n\005value\030\002 \001(\0132..ai.stigmer.agen" +
-      "tic.agentexecution.v1.TodoItemR\005value:\0028" +
-      "\001J\004\010\014\020\rR\020resolved_context\"4\n\rSetupProgre" +
-      "ss\022#\n\rcurrent_phase\030\001 \001(\tR\014currentPhase\"" +
-      "\234\001\n\026RecalledMemoriesReport\022)\n\020selection_" +
-      "active\030\001 \001(\010R\017selectionActive\022.\n\023injecte" +
-      "d_memory_ids\030\002 \003(\tR\021injectedMemoryIds\022\'\n" +
-      "\017embedding_model\030\003 \001(\tR\016embeddingModelB\277" +
-      "\001B\010ApiProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agenti" +
-      "c.Agentexecution.V1\312\002$Ai\\Stigmer\\Agentic" +
-      "\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agentic\\" +
-      "Agentexecution\\V1\\GPBMetadata\352\002(Ai::Stig" +
-      "mer::Agentic::Agentexecution::V1b\006proto3"
+      "xecution/v1/filereview.proto\0325ai/stigmer" +
+      "/agentic/agentexecution/v1/invocation.pr" +
+      "oto\0322ai/stigmer/agentic/agentexecution/v" +
+      "1/message.proto\032/ai/stigmer/agentic/agen" +
+      "texecution/v1/spec.proto\0323ai/stigmer/age" +
+      "ntic/agentexecution/v1/subagent.proto\032/a" +
+      "i/stigmer/agentic/agentexecution/v1/todo" +
+      ".proto\0320ai/stigmer/agentic/agentexecutio" +
+      "n/v1/usage.proto\0324ai/stigmer/agentic/age" +
+      "ntexecution/v1/writeback.proto\032-ai/stigm" +
+      "er/commons/apiresource/metadata.proto\032+a" +
+      "i/stigmer/commons/apiresource/status.pro" +
+      "to\032\033buf/validate/validate.proto\032\034google/" +
+      "protobuf/struct.proto\"\365\002\n\016AgentExecution" +
+      "\022=\n\013api_version\030\001 \001(\tB\034\272H\031r\027\n\025agentic.st" +
+      "igmer.ai/v1R\napiVersion\022)\n\004kind\030\002 \001(\tB\025\272" +
+      "H\022r\020\n\016AgentExecutionR\004kind\022W\n\010metadata\030\003" +
+      " \001(\01323.ai.stigmer.commons.apiresource.Ap" +
+      "iResourceMetadataB\006\272H\003\310\001\001R\010metadata\022L\n\004s" +
+      "pec\030\004 \001(\01328.ai.stigmer.agentic.agentexec" +
+      "ution.v1.AgentExecutionSpecR\004spec\022R\n\006sta" +
+      "tus\030\005 \001(\0132:.ai.stigmer.agentic.agentexec" +
+      "ution.v1.AgentExecutionStatusR\006status\"\301\022" +
+      "\n\024AgentExecutionStatus\022F\n\005audit\030c \001(\01320." +
+      "ai.stigmer.commons.apiresource.ApiResour" +
+      "ceAuditR\005audit\022N\n\010messages\030\001 \003(\01322.ai.st" +
+      "igmer.agentic.agentexecution.v1.AgentMes" +
+      "sageR\010messages\022T\n\005phase\030\002 \001(\01624.ai.stigm" +
+      "er.agentic.agentexecution.v1.ExecutionPh" +
+      "aseB\010\272H\005\202\001\002\020\001R\005phase\022i\n\024sub_agent_execut" +
+      "ions\030\004 \003(\01327.ai.stigmer.agentic.agentexe" +
+      "cution.v1.SubAgentExecutionR\022subAgentExe" +
+      "cutions\022\024\n\005error\030\006 \001(\tR\005error\022\035\n\nstarted" +
+      "_at\030\007 \001(\tR\tstartedAt\022!\n\014completed_at\030\010 \001" +
+      "(\tR\013completedAt\022[\n\005todos\030\t \003(\0132E.ai.stig" +
+      "mer.agentic.agentexecution.v1.AgentExecu" +
+      "tionStatus.TodosEntryR\005todos\022%\n\016callback" +
+      "_token\030\n \001(\014R\rcallbackToken\022b\n\021pending_a" +
+      "pprovals\030\020 \003(\01325.ai.stigmer.agentic.agen" +
+      "texecution.v1.PendingApprovalR\020pendingAp" +
+      "provals\022m\n\025approval_event_stream\030\026 \001(\01329" +
+      ".ai.stigmer.agentic.agentexecution.v1.Ap" +
+      "provalEventStreamR\023approvalEventStream\022T" +
+      "\n\014context_info\030\016 \001(\01321.ai.stigmer.agenti" +
+      "c.agentexecution.v1.ContextInfoR\013context" +
+      "Info\022U\n\tartifacts\030\017 \003(\01327.ai.stigmer.age" +
+      "ntic.agentexecution.v1.ExecutionArtifact" +
+      "R\tartifacts\022l\n\025workspace_write_backs\030\021 \003" +
+      "(\01328.ai.stigmer.agentic.agentexecution.v" +
+      "1.WorkspaceWriteBackR\023workspaceWriteBack" +
+      "s\022Z\n\016setup_progress\030\022 \001(\01323.ai.stigmer.a" +
+      "gentic.agentexecution.v1.SetupProgressR\r" +
+      "setupProgress\022d\n\017streaming_usage\030\024 \001(\0132;" +
+      ".ai.stigmer.agentic.agentexecution.v1.St" +
+      "reamingUsageSummaryR\016streamingUsage\022D\n\021s" +
+      "tructured_output\030\025 \001(\0132\027.google.protobuf" +
+      ".StructR\020structuredOutput\022]\n\020file_change" +
+      "_sets\030\027 \003(\01323.ai.stigmer.agentic.agentex" +
+      "ecution.v1.FileChangeSetR\016fileChangeSets" +
+      "\022t\n\030file_review_event_stream\030\030 \001(\0132;.ai." +
+      "stigmer.agentic.agentexecution.v1.FileRe" +
+      "viewEventStreamR\025fileReviewEventStream\022j" +
+      "\n\024file_change_progress\030\031 \001(\01328.ai.stigme" +
+      "r.agentic.agentexecution.v1.FileChangePr" +
+      "ogressR\022fileChangeProgress\022v\n\030recalled_m" +
+      "emories_report\030\032 \001(\0132<.ai.stigmer.agenti" +
+      "c.agentexecution.v1.RecalledMemoriesRepo" +
+      "rtR\026recalledMemoriesReport\022\031\n\010agent_id\030\033" +
+      " \001(\tR\007agentId\022,\n\022agent_version_hash\030\034 \001(" +
+      "\tR\020agentVersionHash\022l\n\024declared_preferen" +
+      "ces\030\035 \001(\01329.ai.stigmer.agentic.agentexec" +
+      "ution.v1.DeclaredPreferencesR\023declaredPr" +
+      "eferences\022c\n\021recalled_memories\030\036 \001(\01326.a" +
+      "i.stigmer.agentic.agentexecution.v1.Reca" +
+      "lledMemoriesR\020recalledMemories\022N\n\nrun_co" +
+      "nfig\030\037 \001(\0132/.ai.stigmer.agentic.agentexe" +
+      "cution.v1.RunConfigR\trunConfig\022W\n\rapprov" +
+      "al_mode\030  \001(\01622.ai.stigmer.agentic.agent" +
+      "execution.v1.ApprovalModeR\014approvalMode\032" +
+      "h\n\nTodosEntry\022\020\n\003key\030\001 \001(\tR\003key\022D\n\005value" +
+      "\030\002 \001(\0132..ai.stigmer.agentic.agentexecuti" +
+      "on.v1.TodoItemR\005value:\0028\001J\004\010\014\020\rR\020resolve" +
+      "d_context\"4\n\rSetupProgress\022#\n\rcurrent_ph" +
+      "ase\030\001 \001(\tR\014currentPhase\"\234\001\n\026RecalledMemo" +
+      "riesReport\022)\n\020selection_active\030\001 \001(\010R\017se" +
+      "lectionActive\022.\n\023injected_memory_ids\030\002 \003" +
+      "(\tR\021injectedMemoryIds\022\'\n\017embedding_model" +
+      "\030\003 \001(\tR\016embeddingModelB\277\001B\010ApiProtoP\001\242\002\004" +
+      "ASAA\252\002$Ai.Stigmer.Agentic.Agentexecution" +
+      ".V1\312\002$Ai\\Stigmer\\Agentic\\Agentexecution\\" +
+      "V1\342\0020Ai\\Stigmer\\Agentic\\Agentexecution\\V" +
+      "1\\GPBMetadata\352\002(Ai::Stigmer::Agentic::Ag" +
+      "entexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -164,6 +170,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.agentexecution.v1.ContextProto.getDescriptor(),
           ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor(),
           ai.stigmer.agentic.agentexecution.v1.FilereviewProto.getDescriptor(),
+          ai.stigmer.agentic.agentexecution.v1.InvocationProto.getDescriptor(),
           ai.stigmer.agentic.agentexecution.v1.MessageProto.getDescriptor(),
           ai.stigmer.agentic.agentexecution.v1.SpecProto.getDescriptor(),
           ai.stigmer.agentic.agentexecution.v1.SubagentProto.getDescriptor(),
@@ -186,7 +193,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionStatus_descriptor,
-        new java.lang.String[] { "Audit", "Messages", "Phase", "SubAgentExecutions", "Error", "StartedAt", "CompletedAt", "Todos", "CallbackToken", "PendingApprovals", "ApprovalEventStream", "ContextInfo", "Artifacts", "WorkspaceWriteBacks", "SetupProgress", "StreamingUsage", "StructuredOutput", "FileChangeSets", "FileReviewEventStream", "FileChangeProgress", "RecalledMemoriesReport", "AgentId", "AgentVersionHash", "DeclaredPreferences", "RecalledMemories", });
+        new java.lang.String[] { "Audit", "Messages", "Phase", "SubAgentExecutions", "Error", "StartedAt", "CompletedAt", "Todos", "CallbackToken", "PendingApprovals", "ApprovalEventStream", "ContextInfo", "Artifacts", "WorkspaceWriteBacks", "SetupProgress", "StreamingUsage", "StructuredOutput", "FileChangeSets", "FileReviewEventStream", "FileChangeProgress", "RecalledMemoriesReport", "AgentId", "AgentVersionHash", "DeclaredPreferences", "RecalledMemories", "RunConfig", "ApprovalMode", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionStatus_TodosEntry_descriptor =
       internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionStatus_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionStatus_TodosEntry_fieldAccessorTable = new
@@ -211,6 +218,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     ai.stigmer.agentic.agentexecution.v1.ContextProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.FilereviewProto.getDescriptor();
+    ai.stigmer.agentic.agentexecution.v1.InvocationProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.MessageProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.SpecProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.SubagentProto.getDescriptor();

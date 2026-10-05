@@ -20,10 +20,10 @@ from ai.stigmer.agentic.agentchannel.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
-from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as agentexecution_invocation_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
+from ._agent import RunConfigInput
 
 
 class AgentChannelClient:
@@ -253,27 +253,6 @@ class WhatsAppChannelConfigInput:
     def _to_proto(self) -> spec_pb2.WhatsAppChannelConfig:
         msg = spec_pb2.WhatsAppChannelConfig(
             phone_number_id=self.phone_number_id,
-        )
-        return msg
-
-
-@dataclass
-class RunConfigInput:
-    """SDK input type for RunConfig."""
-
-    model_name: str = ""
-    max_cost_usd: float = 0.0
-    max_tool_rounds: int = 0
-    service_tier: int = 0
-    thinking_mode: int = 0
-
-    def _to_proto(self) -> agentexecution_invocation_pb2.RunConfig:
-        msg = agentexecution_invocation_pb2.RunConfig(
-            model_name=self.model_name,
-            max_cost_usd=self.max_cost_usd,
-            max_tool_rounds=self.max_tool_rounds,
-            service_tier=self.service_tier,
-            thinking_mode=self.thinking_mode,
         )
         return msg
 

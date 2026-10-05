@@ -1732,6 +1732,23 @@
       ]
     },
     {
+      "name": "ApprovalMode",
+      "description": "ApprovalMode controls how an execution resolves HITL approval gates.\n\n The approval default (shell commands, file writes and deletes, and MCP tools\n their server marks destructive) decides WHICH tools are gated; this mode\n decides WHAT HAPPENS when a gate fires. It exists for surfaces where\n no approver is present at the conversation — messaging channels\n (Slack/WhatsApp) and guest shares — where an interactive pause would park\n the execution in EXECUTION_WAITING_FOR_APPROVAL forever.\n\n The mode is stamped by the SURFACE that creates the execution (the channel\n session broker, the guest execution scope step), never chosen by the\n external user: it is runtime policy owned by the delivery surface, exactly\n like the bounded channel execution profile. Interactive surfaces (console,\n CLI) leave it unset.\n\n Two different consents, deliberately separated:\n - Operator consent (this gate) protects the org's tools and data and is\n   never delegated to an external user — a channel guest cannot authorize\n   the org's destructive operations.\n - End-user intent confirmation (\"book Monday 10 AM — shall I?\") is\n   conversational, owned by the agent's instructions.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalMode",
+      "values": [
+        {
+          "name": "APPROVAL_MODE_INTERACTIVE",
+          "number": 1,
+          "description": "Interactive approval (today's behavior): a gated tool pauses the\n execution (EXECUTION_WAITING_FOR_APPROVAL) until a human submits a\n decision via the submitApproval RPC. No timeout — the execution waits\n indefinitely."
+        },
+        {
+          "name": "APPROVAL_MODE_UNATTENDED",
+          "number": 2,
+          "description": "Unattended: no approver exists on the creating surface. A gated tool is\n resolved as an automatic SKIP — the tool does NOT run, the model is told\n the action requires an approval that is not available in this\n conversation and to adapt and explain in plain language, and the turn\n continues to normal completion. The skipped call is stamped\n TOOL_CALL_SKIPPED with approval_policy_source = UNATTENDED_SKIP; no\n approval-request event is authored (nothing is ever pending).\n\n A future \"park the turn and notify an org approver asynchronously\"\n behavior will be a NEW enum value, not a reinterpretation of this one."
+        }
+      ]
+    },
+    {
       "name": "MessageType",
       "description": "MessageType defines the type of message in the conversation.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.MessageType",
@@ -1900,7 +1917,7 @@
         {
           "name": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
           "number": 8,
-          "description": "The unattended approval mode (ExecutionConfig.approval_mode =\n APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:\n the surface that created the execution (a messaging channel, a guest\n share) has no approver, so the platform skipped the tool and told the\n model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it\n records HOW the gate was resolved, overriding the gating-layer source on\n the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO\n approval_action / approved_by (those record human decisions only), and\n no approval-request event is ever authored for it."
+          "description": "The unattended approval mode (AgentExecutionStatus.approval_mode =\n APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:\n the surface that created the execution (a messaging channel, a guest\n share) has no approver, so the platform skipped the tool and told the\n model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it\n records HOW the gate was resolved, overriding the gating-layer source on\n the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO\n approval_action / approved_by (those record human decisions only), and\n no approval-request event is ever authored for it."
         }
       ]
     },
@@ -2150,28 +2167,6 @@
       ]
     },
     {
-      "name": "SnapshotKind",
-      "description": "SnapshotKind is the substrate backing a SnapshotRef.",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.SnapshotKind",
-      "values": [
-        {
-          "name": "SNAPSHOT_KIND_GIT_TREE_REF",
-          "number": 1,
-          "description": "A git no-commit tree ref (git-tracked/untracked paths only)."
-        },
-        {
-          "name": "SNAPSHOT_KIND_CAS_MANIFEST",
-          "number": 2,
-          "description": "A content-addressed manifest (ignored/non-git paths)."
-        },
-        {
-          "name": "SNAPSHOT_KIND_HYBRID",
-          "number": 3,
-          "description": "Both a git tree ref and a CAS manifest (mixed workspace)."
-        }
-      ]
-    },
-    {
       "name": "ServiceTier",
       "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ServiceTier",
@@ -2202,6 +2197,28 @@
           "name": "THINKING_MODE_ENABLED",
           "number": 2,
           "description": "Extended reasoning on: the model's thinking variant, billed at base\n per-token rates (reasoning tokens bill as output tokens).\n\n Valid only for models whose registry entry on the execution's harness\n declares a thinking capability; refused at execution create otherwise."
+        }
+      ]
+    },
+    {
+      "name": "SnapshotKind",
+      "description": "SnapshotKind is the substrate backing a SnapshotRef.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SnapshotKind",
+      "values": [
+        {
+          "name": "SNAPSHOT_KIND_GIT_TREE_REF",
+          "number": 1,
+          "description": "A git no-commit tree ref (git-tracked/untracked paths only)."
+        },
+        {
+          "name": "SNAPSHOT_KIND_CAS_MANIFEST",
+          "number": 2,
+          "description": "A content-addressed manifest (ignored/non-git paths)."
+        },
+        {
+          "name": "SNAPSHOT_KIND_HYBRID",
+          "number": 3,
+          "description": "Both a git tree ref and a CAS manifest (mixed workspace)."
         }
       ]
     },
@@ -2391,6 +2408,23 @@
           "name": "visibility_platform",
           "number": 4,
           "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    },
+    {
+      "name": "InteractionMode",
+      "description": "InteractionMode controls the agent's behavioral posture for an execution.\n\n Determines what the agent is allowed to do — analysis only, or full\n read-write access. Mode is set per message\n (AgentExecutionSpec.interaction_mode) and does not carry over between\n executions.\n\n Enforcement:\n - Native harness (LangGraph): tool-level enforcement — write tools are\n   removed from the tool set in PLAN mode.\n - Cursor harness: best-effort via system prompt injection. The Cursor SDK\n   does not expose a mode parameter, so the agent is instructed not to\n   make changes. When the SDK adds native mode support, the prompt-based\n   approach will be replaced.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.InteractionMode",
+      "values": [
+        {
+          "name": "INTERACTION_MODE_AGENT",
+          "number": 1,
+          "description": "Full agent mode with unrestricted tool access.\n\n The agent can read, write, create, edit, and delete files; run shell\n commands; and invoke any configured tool. This is the standard\n execution mode for interactive sessions."
+        },
+        {
+          "name": "INTERACTION_MODE_PLAN",
+          "number": 2,
+          "description": "Read-only planning mode — analysis and recommendations only.\n\n The agent can read files, search code, list directories, and reason\n about the codebase, but cannot create, edit, or delete files or run\n mutating shell commands. Designed for exploring approaches, producing\n implementation plans, and answering architectural questions without\n side effects.\n\n Native harness: enforced by removing write tools from the tool set.\n Cursor harness: best-effort via system prompt directive."
         }
       ]
     },
@@ -2618,40 +2652,6 @@
           "description": "Create a branch and pull request from the agent's file changes after execution completes."
         }
       ]
-    },
-    {
-      "name": "InteractionMode",
-      "description": "InteractionMode controls the agent's behavioral posture for an execution.\n\n Determines what the agent is allowed to do — analysis only, or full\n read-write access. Mode is set per-execution via ExecutionConfig and\n does not carry over between executions.\n\n Enforcement:\n - Native harness (LangGraph): tool-level enforcement — write tools are\n   removed from the tool set in PLAN mode.\n - Cursor harness: best-effort via system prompt injection. The Cursor SDK\n   does not expose a mode parameter, so the agent is instructed not to\n   make changes. When the SDK adds native mode support, the prompt-based\n   approach will be replaced.",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.InteractionMode",
-      "values": [
-        {
-          "name": "INTERACTION_MODE_AGENT",
-          "number": 1,
-          "description": "Full agent mode with unrestricted tool access.\n\n The agent can read, write, create, edit, and delete files; run shell\n commands; and invoke any configured tool. This is the standard\n execution mode for interactive sessions."
-        },
-        {
-          "name": "INTERACTION_MODE_PLAN",
-          "number": 2,
-          "description": "Read-only planning mode — analysis and recommendations only.\n\n The agent can read files, search code, list directories, and reason\n about the codebase, but cannot create, edit, or delete files or run\n mutating shell commands. Designed for exploring approaches, producing\n implementation plans, and answering architectural questions without\n side effects.\n\n Native harness: enforced by removing write tools from the tool set.\n Cursor harness: best-effort via system prompt directive."
-        }
-      ]
-    },
-    {
-      "name": "ApprovalMode",
-      "description": "ApprovalMode controls how an execution resolves HITL approval gates.\n\n The approval default (shell commands, file writes and deletes, and MCP tools\n their server marks destructive) decides WHICH tools are gated; this mode\n decides WHAT HAPPENS when a gate fires. It exists for surfaces where\n no approver is present at the conversation — messaging channels\n (Slack/WhatsApp) and guest shares — where an interactive pause would park\n the execution in EXECUTION_WAITING_FOR_APPROVAL forever.\n\n The mode is stamped by the SURFACE that creates the execution (the channel\n session broker, the guest execution scope step), never chosen by the\n external user: it is runtime policy owned by the delivery surface, exactly\n like the bounded channel execution profile. Interactive surfaces (console,\n CLI) leave it unset.\n\n Two different consents, deliberately separated:\n - Operator consent (this gate) protects the org's tools and data and is\n   never delegated to an external user — a channel guest cannot authorize\n   the org's destructive operations.\n - End-user intent confirmation (\"book Monday 10 AM — shall I?\") is\n   conversational, owned by the agent's instructions.",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalMode",
-      "values": [
-        {
-          "name": "APPROVAL_MODE_INTERACTIVE",
-          "number": 1,
-          "description": "Interactive approval (today's behavior): a gated tool pauses the\n execution (EXECUTION_WAITING_FOR_APPROVAL) until a human submits a\n decision via the submitApproval RPC. No timeout — the execution waits\n indefinitely."
-        },
-        {
-          "name": "APPROVAL_MODE_UNATTENDED",
-          "number": 2,
-          "description": "Unattended: no approver exists on the creating surface. A gated tool is\n resolved as an automatic SKIP — the tool does NOT run, the model is told\n the action requires an approval that is not available in this\n conversation and to adapt and explain in plain language, and the turn\n continues to normal completion. The skipped call is stamped\n TOOL_CALL_SKIPPED with approval_policy_source = UNATTENDED_SKIP; no\n approval-request event is authored (nothing is ever pending).\n\n A future \"park the turn and notify an org approver asynchronously\"\n behavior will be a NEW enum value, not a reinterpretation of this one."
-        }
-      ]
     }
   ],
   "resourceDescription": "AgentExecution represents a single agent execution instance (conversational).\n Follows the standard pattern: spec contains user inputs, status contains execution results.",
@@ -2871,7 +2871,7 @@
         "type": {
           "kind": "struct"
         },
-        "description": "Structured output extracted from the agent's final response.\n\n Populated when ExecutionConfig.structured_output_schema was set and the\n runner successfully extracted schema-conforming data. Only meaningful\n when phase is EXECUTION_COMPLETED.\n\n For native harness: populated from LangGraph graphState.structuredResponse\n (ToolStrategy enforcement). For Cursor harness: populated from 3-tier\n extraction (JSON.parse → fence extraction → extraction LLM fallback).\n\n Consumers: frontend architect/refine hooks read this instead of parsing\n YAML from messages. Workflow callback path reads structured_output from\n the Temporal activity result (separate channel, same data).",
+        "description": "Structured output extracted from the agent's final response.\n\n Populated when spec.structured_output_schema was set and the\n runner successfully extracted schema-conforming data. Only meaningful\n when phase is EXECUTION_COMPLETED.\n\n For native harness: populated from LangGraph graphState.structuredResponse\n (ToolStrategy enforcement). For Cursor harness: populated from 3-tier\n extraction (JSON.parse → fence extraction → extraction LLM fallback).\n\n Consumers: frontend architect/refine hooks read this instead of parsing\n YAML from messages. Workflow callback path reads structured_output from\n the Temporal activity result (separate channel, same data).",
         "required": false
       },
       {
@@ -2961,6 +2961,32 @@
           "messageType": "RecalledMemories"
         },
         "description": "The caller's confirmed memories, snapshotted into this execution at\n create time: the candidate set the prompt was built from.",
+        "required": false
+      },
+      {
+        "name": "RunConfig",
+        "jsonName": "runConfig",
+        "protoField": "run_config",
+        "type": {
+          "kind": "message",
+          "messageType": "RunConfig"
+        },
+        "description": "The settings this turn runs with: spec.run_config (or the saved settings\n of the surface it came through), the defaults of the agent version the\n turn runs, and the lane's operator profile, resolved by RunConfig's rule.\n\n An empty model_name means no layer named one and the engine chose (the\n native engine's registry default; Cursor's Auto).",
+        "required": false
+      },
+      {
+        "name": "ApprovalMode",
+        "jsonName": "approvalMode",
+        "protoField": "approval_mode",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalMode",
+          "enumValues": [
+            "APPROVAL_MODE_INTERACTIVE",
+            "APPROVAL_MODE_UNATTENDED"
+          ]
+        },
+        "description": "How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never\n UNSPECIFIED.\n\n A fact of the lane the turn came through, never of the request: a\n schedule's turn and the hosted edition's shared-agent guest and channel\n turns are UNATTENDED (nobody is present to approve); every other turn is\n INTERACTIVE, a workflow step's included (its workflow takes the approval\n request).",
         "required": false
       }
     ]
@@ -3832,7 +3858,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Token threshold that triggers summarization.\n\n When current_token_count exceeds this value, summarization is triggered\n to reduce context size. This is either the model default from Model\n Registry or a custom override from ContextManagementConfig.\n\n Typically set to ~90% of context_window_limit.",
+          "description": "Token threshold that triggers summarization.\n\n When current_token_count exceeds this value, summarization is triggered\n to reduce context size, taken from the model's Model Registry entry.\n\n Typically set to ~90% of context_window_limit.",
           "required": false
         },
         {
@@ -3842,7 +3868,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Target token count after summarization.\n\n Summarization aims to reduce context to approximately this size.\n This is either the model default from Model Registry or a custom\n override from ContextManagementConfig.\n\n Typically set to ~80% of context_window_limit.",
+          "description": "Target token count after summarization.\n\n Summarization aims to reduce context to approximately this size,\n taken from the model's Model Registry entry.\n\n Typically set to ~80% of context_window_limit.",
           "required": false
         },
         {
@@ -3852,7 +3878,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether summarization is enabled for this execution.\n\n false if ContextManagementConfig.disable_summarization was true.\n true otherwise (default).\n\n When false, no summarization events will occur regardless of\n token count. The execution may fail if context exceeds limits.",
+          "description": "Whether summarization is enabled for this execution.\n\n When false, no summarization events will occur regardless of\n token count. The execution may fail if context exceeds limits.",
           "required": false
         },
         {
@@ -5134,6 +5160,84 @@
       ]
     },
     {
+      "name": "RunConfig",
+      "description": "RunConfig is the settings message for every run: a model, a speed tier,\n thinking, and run bounds.\n\n The same message is a message's request (AgentExecutionSpec.run_config),\n a surface's saved settings (a schedule's invocation, a channel, a share, a\n workflow agent_call step), an agent author's defaults (AgentSpec.run_config,\n versioned with the agent), and the settings a turn ran with\n (AgentExecutionStatus.run_config). Zero or empty means \"not set at this\n layer\".\n\n The server resolves a turn's settings once, at create, from three layers,\n most specific first: the message (or the surface it came through), the\n agent's defaults, and the lane's operator profile.\n\n - Choices. model_name comes from the first layer that names one. When no\n   layer names one, the model is left to the engine (the native engine's\n   registry default; Cursor's Auto). service_tier and thinking_mode each\n   come from the first layer, at or above the model's layer, that sets\n   them: a less specific layer's tier or thinking was chosen for another\n   model, so it never lands on this one. Without a model, tier and thinking\n   come only from the message.\n - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take\n   the smallest positive value any layer sets. An operator profile is a\n   ceiling the message, the surface and the agent can lower but never\n   raise.\n - The agent's choices apply only on the engine its defaults name\n   (AgentSpec.harness). On a conversation running the other engine the\n   agent layer gives its bounds alone.\n\n Saved settings are self-contained: a surface or an agent that sets\n service_tier FAST or thinking_mode ENABLED names the model it is for. Only a\n message may set them alone, to adjust the model it is given.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.RunConfig",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/invocation.proto",
+      "fields": [
+        {
+          "name": "ModelName",
+          "jsonName": "modelName",
+          "protoField": "model_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The model each run uses. Example: \"claude-sonnet-4-6\".",
+          "required": false
+        },
+        {
+          "name": "MaxCostUsd",
+          "jsonName": "maxCostUsd",
+          "protoField": "max_cost_usd",
+          "type": {
+            "kind": "double"
+          },
+          "description": "Maximum estimated cost in USD per run.\n\n When the run's estimated spend reaches this limit, the run stops with a\n \"send another message to continue\" prompt and ends TERMINATED; the work\n done so far is kept. The limit is checked each time the engine reports\n its spend, so a run can end somewhat above it. The native harness\n reports after every model call, counts a sub-agent's spend toward the\n limit, and advises the agent to wrap up at about 80% of the budget; the\n Cursor harness gives no warning.\n\n 0 = not set at this layer. The budget is per message: a follow-up\n message, or a run resuming after an approval, starts a fresh count. The\n spend is the runner's estimate, reported on\n AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed\n amount.",
+          "required": false
+        },
+        {
+          "name": "MaxToolRounds",
+          "jsonName": "maxToolRounds",
+          "protoField": "max_tool_rounds",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum model-to-tools reasoning cycles per message.\n\n A round is one model response that proposes one or more tool calls,\n followed by their execution; parallel tool calls in one response are one\n round. When the limit is reached the run stops with a \"send another\n message to continue\" prompt, and the work done so far is kept. The agent\n is advised to wrap up at about 80% of the budget.\n\n 0 = not set at this layer; with no layer setting it the agent runs until\n the task completes or loop detection stops a repetitive pattern. When\n set, the valid range is 10–1000; values outside it are clamped to the\n nearest bound. The budget is per message: a follow-up message, or a run\n resuming after an approval, starts a fresh count. Sub-agent rounds are\n not counted, and the Cursor harness does not enforce this field.",
+          "required": false
+        },
+        {
+          "name": "ServiceTier",
+          "jsonName": "serviceTier",
+          "protoField": "service_tier",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ServiceTier",
+            "enumValues": [
+              "SERVICE_TIER_STANDARD",
+              "SERVICE_TIER_FAST"
+            ]
+          },
+          "description": "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.\n\n In workflow YAML the shorthand spellings \"standard\"/\"fast\" are\n accepted alongside the canonical enum names.\n\n UNSPECIFIED is not set at this layer; with no layer setting it the run\n uses STANDARD, never the provider account default. FAST is valid only\n for a model whose registry entry declares a fast pricing variant on the\n engine that runs it; validated fail-closed on the resolved settings at\n create.",
+          "required": false
+        },
+        {
+          "name": "ThinkingMode",
+          "jsonName": "thinkingMode",
+          "protoField": "thinking_mode",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ThinkingMode",
+            "enumValues": [
+              "THINKING_MODE_DISABLED",
+              "THINKING_MODE_ENABLED"
+            ]
+          },
+          "description": "Thinking mode for each run's model calls: disabled (the default) or\n enabled, where enabled selects the model's extended-reasoning variant\n (billed at base per-token rates — reasoning tokens bill as output).\n\n In workflow YAML the shorthand spellings \"disabled\"/\"enabled\" are\n accepted alongside the canonical enum names.\n\n UNSPECIFIED is not set at this layer; with no layer setting it the run\n uses DISABLED, never the provider account default. ENABLED is valid only\n for a model whose registry entry declares the thinking capability on the\n engine that runs it; validated fail-closed on the resolved settings at\n create. Combines freely with service_tier.",
+          "required": false
+        },
+        {
+          "name": "MaxToolResultChars",
+          "jsonName": "maxToolResultChars",
+          "protoField": "max_tool_result_chars",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of characters for a single tool result before truncation.\n When a tool result exceeds this limit, it is truncated and a marker is\n appended: \"[truncated — result exceeded {limit} chars, ask for specific sections]\"\n\n 0 = not set at this layer; with no layer setting it the platform default\n applies (30,000 chars, about 7,500 tokens). Applies to all tool results\n (shell, read, write, MCP tools), except built-in tools that already\n manage their output size.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "SetupProgress",
       "description": "Setup progress reported during the EXECUTION_PENDING phase.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.SetupProgress",
@@ -5305,7 +5409,7 @@
               "SERVICE_TIER_FAST"
             ]
           },
-          "description": "Service tier the runner requested for this execution's model calls.\n\n Always explicit once the runner has translated the execution config\n (STANDARD when ExecutionConfig.service_tier was unset) — the audit\n record that the account default was never left in control.",
+          "description": "Service tier the runner requested for this execution's model calls.\n\n Always explicit once the runner has translated the turn's settings\n (STANDARD when AgentExecutionStatus.run_config.service_tier was unset) — the audit\n record that the account default was never left in control.",
           "required": false
         },
         {
@@ -5330,7 +5434,7 @@
               "THINKING_MODE_ENABLED"
             ]
           },
-          "description": "Thinking mode the runner requested for this execution's model calls.\n\n Always explicit once the runner has translated the execution config\n (DISABLED when ExecutionConfig.thinking_mode was unset) — the audit\n record that the account default was never left in control\n (stigmer/stigmer#772; several catalog defaults are thinking=true).",
+          "description": "Thinking mode the runner requested for this execution's model calls.\n\n Always explicit once the runner has translated the turn's settings\n (DISABLED when AgentExecutionStatus.run_config.thinking_mode was unset) — the audit\n record that the account default was never left in control\n (stigmer/stigmer#772; several catalog defaults are thinking=true).",
           "required": false
         }
       ]

@@ -85,7 +85,7 @@
         "kind": "message",
         "messageType": "RunConfig"
       },
-      "description": "Per-invocation model choice and run bounds. Unset fields inherit\n the embedding surface's platform execution profile.",
+      "description": "Per-invocation model choice and run bounds. Unset fields fall to the\n agent's defaults, then to the lane's operator profile (RunConfig has the\n rule).",
       "required": false
     }
   ]

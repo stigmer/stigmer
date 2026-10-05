@@ -354,9 +354,9 @@ java.lang.String defaultValue);
    * agent whose tools list does not name a session server cannot use it.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
    */
-  java.util.List<ai.stigmer.agentic.agent.v1.McpServerUsage> 
+  java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> 
       getMcpServerUsagesList();
   /**
    * <pre>
@@ -368,9 +368,9 @@ java.lang.String defaultValue);
    * agent whose tools list does not name a session server cannot use it.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.agentic.agent.v1.McpServerUsage getMcpServerUsages(int index);
+  ai.stigmer.agentic.mcpserver.v1.McpServerUsage getMcpServerUsages(int index);
   /**
    * <pre>
    * MCP servers to make available in this session.
@@ -381,7 +381,7 @@ java.lang.String defaultValue);
    * agent whose tools list does not name a session server cannot use it.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
    */
   int getMcpServerUsagesCount();
   /**
@@ -394,9 +394,9 @@ java.lang.String defaultValue);
    * agent whose tools list does not name a session server cannot use it.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
    */
-  java.util.List<? extends ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder> 
+  java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> 
       getMcpServerUsagesOrBuilderList();
   /**
    * <pre>
@@ -408,9 +408,9 @@ java.lang.String defaultValue);
    * agent whose tools list does not name a session server cannot use it.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
+  ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
       int index);
 
   /**

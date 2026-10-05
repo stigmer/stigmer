@@ -6,7 +6,9 @@ import (
 	"context"
 
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
@@ -134,6 +136,8 @@ type AgentInput struct {
 	Env             map[string]*EnvVarDeclarationInput
 	Tools           []string
 	DisallowedTools []string
+	RunConfig       *RunConfigInput
+	Harness         sessionv1.Harness
 }
 
 // McpServerUsageInput is the SDK input type for McpServerUsage.
@@ -157,6 +161,16 @@ type EnvVarDeclarationInput struct {
 	IsSecret    bool
 	Description string
 	Optional    bool
+}
+
+// RunConfigInput is the SDK input type for RunConfig.
+type RunConfigInput struct {
+	ModelName          string
+	MaxCostUsd         float64
+	MaxToolRounds      int32
+	ServiceTier        agentexecutionv1.ServiceTier
+	ThinkingMode       agentexecutionv1.ThinkingMode
+	MaxToolResultChars int32
 }
 
 func (i *AgentInput) toProto() (*agentv1.Agent, error) {
@@ -212,11 +226,19 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 	}
 	resource.Spec.Tools = i.Tools
 	resource.Spec.DisallowedTools = i.DisallowedTools
+	if i.RunConfig != nil {
+		v, err := i.RunConfig.toProto()
+		if err != nil {
+			return nil, fieldErr("RunConfig", err)
+		}
+		resource.Spec.RunConfig = v
+	}
+	resource.Spec.Harness = i.Harness
 	return resource, nil
 }
 
-func (i *McpServerUsageInput) toProto() (*agentv1.McpServerUsage, error) {
-	p := &agentv1.McpServerUsage{}
+func (i *McpServerUsageInput) toProto() (*mcpserverv1.McpServerUsage, error) {
+	p := &mcpserverv1.McpServerUsage{}
 	if i.McpServerRef.Org != "" || i.McpServerRef.Slug != "" {
 		ref := i.McpServerRef.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_mcp_server
@@ -246,6 +268,17 @@ func (i *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration, er
 		IsSecret:    i.IsSecret,
 		Description: i.Description,
 		Optional:    i.Optional,
+	}, nil
+}
+
+func (i *RunConfigInput) toProto() (*agentexecutionv1.RunConfig, error) {
+	return &agentexecutionv1.RunConfig{
+		ModelName:          i.ModelName,
+		MaxCostUsd:         i.MaxCostUsd,
+		MaxToolRounds:      i.MaxToolRounds,
+		ServiceTier:        i.ServiceTier,
+		ThinkingMode:       i.ThinkingMode,
+		MaxToolResultChars: i.MaxToolResultChars,
 	}, nil
 }
 
@@ -284,11 +317,13 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 		}
 		input.Tools = s.GetTools()
 		input.DisallowedTools = s.GetDisallowedTools()
+		input.RunConfig = runConfigInputFromProto(s.GetRunConfig())
+		input.Harness = s.GetHarness()
 	}
 	return input
 }
 
-func mcpServerUsageInputFromProto(p *agentv1.McpServerUsage) *McpServerUsageInput {
+func mcpServerUsageInputFromProto(p *mcpserverv1.McpServerUsage) *McpServerUsageInput {
 	if p == nil {
 		return nil
 	}
@@ -322,5 +357,19 @@ func envVarDeclarationInputFromProto(p *environmentv1.EnvVarDeclaration) *EnvVar
 	input.IsSecret = p.GetIsSecret()
 	input.Description = p.GetDescription()
 	input.Optional = p.GetOptional()
+	return input
+}
+
+func runConfigInputFromProto(p *agentexecutionv1.RunConfig) *RunConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &RunConfigInput{}
+	input.ModelName = p.GetModelName()
+	input.MaxCostUsd = p.GetMaxCostUsd()
+	input.MaxToolRounds = p.GetMaxToolRounds()
+	input.ServiceTier = p.GetServiceTier()
+	input.ThinkingMode = p.GetThinkingMode()
+	input.MaxToolResultChars = p.GetMaxToolResultChars()
 	return input
 }

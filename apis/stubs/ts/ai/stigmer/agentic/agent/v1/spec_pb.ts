@@ -4,8 +4,14 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { RunConfig } from "../../agentexecution/v1/invocation_pb.js";
+import { file_ai_stigmer_agentic_agentexecution_v1_invocation } from "../../agentexecution/v1/invocation_pb.js";
 import type { EnvVarDeclaration } from "../../environment/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_environment_v1_spec } from "../../environment/v1/spec_pb.js";
+import type { McpServerUsage } from "../../mcpserver/v1/usage_pb.js";
+import { file_ai_stigmer_agentic_mcpserver_v1_usage } from "../../mcpserver/v1/usage_pb.js";
+import type { Harness } from "../../session/v1/enum_pb.js";
+import { file_ai_stigmer_agentic_session_v1_enum } from "../../session/v1/enum_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -16,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIu4HCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkSgwEKBXRvb2xzGAogAygJQnS6SHGSAW4ibHJqGIACMmVeKG1jcF9fXCp8bWNwX19bYS16XVthLXowLTktXSpbYS16MC05XShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJBKOAQoQZGlzYWxsb3dlZF90b29scxgLIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4AUoECAgQCUoECAkQClIHc2hhcmluZ1IQZGF0YXN0b3JlX3VzYWdlcyLIBAoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJEoMBCgV0b29scxgHIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQSjgEKEGRpc2FsbG93ZWRfdG9vbHMYCCADKAlCdLpIcZIBbiJscmoYgAIyZV4obWNwX19cKnxtY3BfX1thLXpdW2EtejAtOS1dKlthLXowLTldKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkSgQIBBAFUgptY3BfYWNjZXNzIp4BCg5NY3BTZXJ2ZXJVc2FnZRJYCg5tY3Bfc2VydmVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsLEoECAIQA0oECAMQBFINZW5hYmxlZF90b29sc1IXdG9vbF9hcHByb3ZhbF9vdmVycmlkZXNiBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIvAICglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEtIBChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyVXNhZ2VChQG6SIEBkgF+Iny6AXkKFm1jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0ErABCgpza2lsbF9yZWZzGAUgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQma6SF+SAVwiWroBVwoPc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSOQoKc3ViX2FnZW50cxgGIAMoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5TdWJBZ2VudBI8CgNlbnYYByADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRTcGVjLkVudkVudHJ5EoMBCgV0b29scxgKIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQSjgEKEGRpc2FsbG93ZWRfdG9vbHMYCyADKAlCdLpIcZIBbiJscmoYgAIyZV4obWNwX19cKnxtY3BfX1thLXpdW2EtejAtOS1dKlthLXowLTldKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEkMKCnJ1bl9jb25maWcYDCABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUnVuQ29uZmlnEjcKB2hhcm5lc3MYDSABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5IYXJuZXNzGmAKCEVudkVudHJ5EgsKA2tleRgBIAEoCRJDCgV2YWx1ZRgCIAEoCzI0LmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZWYXJEZWNsYXJhdGlvbjoCOAFKBAgIEAlKBAgJEApSB3NoYXJpbmdSEGRhdGFzdG9yZV91c2FnZXMiyAQKCFN1YkFnZW50EhQKBG5hbWUYASABKAlCBrpIA8gBARITCgtkZXNjcmlwdGlvbhgCIAEoCRIdCgxpbnN0cnVjdGlvbnMYAyABKAlCB7pIBHICEAoSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxIWCg5tb2RlbF9vdmVycmlkZRgGIAEoCRKDAQoFdG9vbHMYByADKAlCdLpIcZIBbiJscmoYgAIyZV4obWNwX19cKnxtY3BfX1thLXpdW2EtejAtOS1dKlthLXowLTldKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEo4BChBkaXNhbGxvd2VkX3Rvb2xzGAggAygJQnS6SHGSAW4ibHJqGIACMmVeKG1jcF9fXCp8bWNwX19bYS16XVthLXowLTktXSpbYS16MC05XShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJEoECAQQBVIKbWNwX2FjY2Vzc2IGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_invocation, file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_mcpserver_v1_usage, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentSpec defines the configurable properties of an agent.
@@ -50,7 +56,7 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * MCP servers this agent can use.
    * Each entry must reference a unique McpServer resource by slug.
    *
-   * @generated from field: repeated ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 4;
+   * @generated from field: repeated ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4;
    */
   mcpServerUsages: McpServerUsage[];
 
@@ -102,6 +108,40 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * @generated from field: repeated string disallowed_tools = 11;
    */
   disallowedTools: string[];
+
+  /**
+   * The author's run defaults: the model, speed tier, thinking and run
+   * bounds a turn on this agent uses unless the message or the surface it
+   * came through sets its own (RunConfig has the rule). Versioned with the
+   * agent, so a conversation pinned to a version keeps that version's
+   * defaults.
+   *
+   * A choice here (model_name, service_tier, thinking_mode) applies only on
+   * the engine named in harness; on a conversation running the other engine
+   * only the bounds apply. A bound here is a cap: a message or a surface can
+   * lower it, never raise it. A model must be named together with harness,
+   * and must be one that engine lists; service_tier FAST and thinking_mode
+   * ENABLED need a model that engine prices or marks capable. Checked when
+   * the agent is saved.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 12;
+   */
+  runConfig?: RunConfig;
+
+  /**
+   * The engine this agent's run defaults were chosen for, and the engine a
+   * new conversation on this agent starts on when the person or the surface
+   * starting it names none. Unspecified: the platform's default engine
+   * (native).
+   *
+   * Model names belong to an engine (each lists its own), so run_config's
+   * model, tier and thinking count only on this engine. A conversation keeps
+   * the engine it started on; a later version naming another engine changes
+   * only new conversations.
+   *
+   * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 13;
+   */
+  harness: Harness;
 };
 
 /**
@@ -150,8 +190,8 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
 
   /**
    * Model override for this sub-agent.
-   * When set, uses this model instead of the parent's model.
-   * When empty, inherits the parent agent's model.
+   * When set, uses this model instead of the model the turn runs.
+   * When empty, inherits the model the turn runs.
    *
    * @generated from field: string model_override = 6;
    */
@@ -182,29 +222,4 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
  */
 export const SubAgentSchema: GenMessage<SubAgent> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
-
-/**
- * McpServerUsage declares that this agent uses a McpServer resource.
- *
- * Every tool of a used server is available to the agent unless its tool
- * lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the
- * server is named by its slug, as in mcp__<server-slug>.
- *
- * @generated from message ai.stigmer.agentic.agent.v1.McpServerUsage
- */
-export type McpServerUsage = Message<"ai.stigmer.agentic.agent.v1.McpServerUsage"> & {
-  /**
-   * Reference to the McpServer resource.
-   *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1;
-   */
-  mcpServerRef?: ApiResourceReference;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agent.v1.McpServerUsage.
- * Use `create(McpServerUsageSchema)` to create a new message.
- */
-export const McpServerUsageSchema: GenMessage<McpServerUsage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
 

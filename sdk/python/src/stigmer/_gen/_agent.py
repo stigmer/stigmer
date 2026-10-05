@@ -18,7 +18,9 @@ from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
 from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2
+from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as agentexecution_invocation_pb2
 from ai.stigmer.agentic.environment.v1 import spec_pb2 as environment_spec_pb2
+from ai.stigmer.agentic.mcpserver.v1 import usage_pb2 as mcpserver_usage_pb2
 
 from ._errors import wrap_error
 from ._types import ListParams, ListResult, ResourceRef
@@ -136,12 +138,15 @@ class AgentInput:
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
     tools: list[str] = field(default_factory=list)
     disallowed_tools: list[str] = field(default_factory=list)
+    run_config: RunConfigInput | None = None
+    harness: int = 0
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
             description=self.description,
             icon_url=self.icon_url,
             instructions=self.instructions,
+            harness=self.harness,
         )
         for item in self.mcp_server_usages:
             spec.mcp_server_usages.append(item._to_proto())
@@ -157,6 +162,8 @@ class AgentInput:
             spec.tools.extend(self.tools)
         if self.disallowed_tools:
             spec.disallowed_tools.extend(self.disallowed_tools)
+        if self.run_config is not None:
+            spec.run_config.CopyFrom(self.run_config._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -187,8 +194,8 @@ class McpServerUsageInput:
 
     mcp_server_ref: ResourceRef | None
 
-    def _to_proto(self) -> spec_pb2.McpServerUsage:
-        msg = spec_pb2.McpServerUsage()
+    def _to_proto(self) -> mcpserver_usage_pb2.McpServerUsage:
+        msg = mcpserver_usage_pb2.McpServerUsage()
         if self.mcp_server_ref is not None and (self.mcp_server_ref.org or self.mcp_server_ref.slug):
             _ref = self.mcp_server_ref._to_proto()
             _ref.kind = 44
@@ -239,6 +246,29 @@ class EnvVarDeclarationInput:
             is_secret=self.is_secret,
             description=self.description,
             optional=self.optional,
+        )
+        return msg
+
+
+@dataclass
+class RunConfigInput:
+    """SDK input type for RunConfig."""
+
+    model_name: str = ""
+    max_cost_usd: float = 0.0
+    max_tool_rounds: int = 0
+    service_tier: int = 0
+    thinking_mode: int = 0
+    max_tool_result_chars: int = 0
+
+    def _to_proto(self) -> agentexecution_invocation_pb2.RunConfig:
+        msg = agentexecution_invocation_pb2.RunConfig(
+            model_name=self.model_name,
+            max_cost_usd=self.max_cost_usd,
+            max_tool_rounds=self.max_tool_rounds,
+            service_tier=self.service_tier,
+            thinking_mode=self.thinking_mode,
+            max_tool_result_chars=self.max_tool_result_chars,
         )
         return msg
 
