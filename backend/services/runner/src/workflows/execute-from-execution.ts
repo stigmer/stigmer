@@ -60,7 +60,12 @@ export const EXECUTE_FROM_EXECUTION_WORKFLOW_TYPE =
 
 export interface ExecuteFromExecutionInput {
   execution_id: string;
-  workflow_instance_id: string;
+  /**
+   * The server no longer writes this key: a run names its workflow alone.
+   * It stays optional so histories recorded before that change still replay;
+   * this workflow ignores it.
+   */
+  workflow_instance_id?: string;
   workflow_id: string;
   org_id: string;
   callback_token?: Uint8Array | null;
@@ -87,13 +92,11 @@ export async function executeFromExecution(
   log.info("Hydrating workflow execution from slim IDs", {
     executionId: input.execution_id,
     workflowId: input.workflow_id,
-    workflowInstanceId: input.workflow_instance_id,
     orgId: input.org_id,
   });
 
   const materialized = await hydrateProxy.HydrateWorkflowExecution({
     execution_id: input.execution_id,
-    workflow_instance_id: input.workflow_instance_id,
     workflow_id: input.workflow_id,
     org_id: input.org_id,
   });

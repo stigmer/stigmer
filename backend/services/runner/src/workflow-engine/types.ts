@@ -870,7 +870,6 @@ export interface ExecutionStartedEvent extends EventBase {
   readonly type: "execution_started";
   readonly totalTasks: number;
   readonly workflowId: string;
-  readonly workflowInstanceId: string;
 }
 
 export interface ExecutionCompletedEvent extends EventBase {

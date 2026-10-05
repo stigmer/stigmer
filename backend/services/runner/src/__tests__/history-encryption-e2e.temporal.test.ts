@@ -184,7 +184,6 @@ describe("History encryption tripwire — Temporal TestWorkflowEnvironment", () 
         args: [
           {
             execution_id: "tripwire-exec",
-            workflow_instance_id: "",
             workflow_id: "tripwire-wf",
             org_id: "tripwire-org",
           },

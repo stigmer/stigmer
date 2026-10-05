@@ -1,3 +1,9 @@
+/**
+ * Pins the hydration activity: what it reads from the server for a run and
+ * what it refuses. A run executes the workflow version it pinned at create;
+ * the live workflow is read only for a run that pins none, and a pinned
+ * version that cannot be read is never answered with the head.
+ */
 import { describe, it, expect, vi } from "vitest";
 import { ApplicationFailure } from "@temporalio/activity";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
@@ -15,10 +21,28 @@ do:
         message: hello
 `;
 
+const PINNED_YAML = `
+document:
+  dsl: "1.0.0"
+  name: pinned-workflow
+  namespace: default
+do:
+  - greet:
+      set:
+        message: pinned
+`;
+
+const PINNED_HASH = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
+/** A run row that pinned {@link PINNED_HASH} at create. */
+const PINNED_EXECUTION = {
+  spec: { triggerMessage: "" },
+  status: { workflowVersionHash: PINNED_HASH },
+};
+
 function makeInput(overrides: Partial<HydrateInput> = {}): HydrateInput {
   return {
     execution_id: "wfx_test-123",
-    workflow_instance_id: "wfi_inst-456",
     workflow_id: "wfl_wf-789",
     org_id: "org_test",
     ...overrides,
@@ -28,11 +52,11 @@ function makeInput(overrides: Partial<HydrateInput> = {}): HydrateInput {
 function makeMockClient(opts: {
   workflowExecution?: unknown;
   workflow?: unknown;
-  workflowInstance?: unknown;
+  workflowVersion?: unknown;
   executionContext?: unknown;
   workflowExecutionError?: unknown;
   workflowError?: unknown;
-  workflowInstanceError?: unknown;
+  workflowVersionError?: unknown;
   executionContextError?: unknown;
 } = {}) {
   return {
@@ -52,10 +76,10 @@ function makeMockClient(opts: {
             },
           },
         }),
-    getWorkflowInstance: opts.workflowInstanceError
-      ? vi.fn().mockRejectedValue(opts.workflowInstanceError)
-      : vi.fn().mockResolvedValue(opts.workflowInstance ?? {
-          spec: { workflowId: "wfl_resolved-from-instance" },
+    getWorkflowVersion: opts.workflowVersionError
+      ? vi.fn().mockRejectedValue(opts.workflowVersionError)
+      : vi.fn().mockResolvedValue(opts.workflowVersion ?? {
+          validatedYaml: PINNED_YAML,
         }),
     // No scoped token — the OSS/local shape (no runner credential to exchange).
     acquireScopedRunnerToken: vi.fn().mockResolvedValue(undefined),
@@ -88,7 +112,6 @@ describe("hydrateWorkflowExecution", () => {
     expect(result.metadata).toEqual({
       execution_id: "wfx_test-123",
       workflow_id: "wfl_wf-789",
-      workflow_instance_id: "wfi_inst-456",
       org_id: "org_test",
     });
   });
@@ -274,23 +297,84 @@ describe("hydrateWorkflowExecution", () => {
       .rejects.toThrow("Failed to parse");
   });
 
-  it("resolves workflow ID from WorkflowInstance when workflow_id is empty", async () => {
+  it("fails non-retryably, naming the execution, when the run names no workflow", async () => {
     const client = makeMockClient();
     const input = makeInput({ workflow_id: "" });
 
-    const result = await hydrateWorkflowExecution(input, client);
+    const err = await hydrateWorkflowExecution(input, client).catch((e: unknown) => e);
 
-    expect(client.getWorkflowInstance).toHaveBeenCalledWith("wfi_inst-456");
-    expect(client.getWorkflow).toHaveBeenCalledWith("wfl_resolved-from-instance");
-    expect(result.metadata?.workflow_id).toBe("wfl_resolved-from-instance");
+    expect(err).toBeInstanceOf(ApplicationFailure);
+    expect((err as ApplicationFailure).nonRetryable).toBe(true);
+    expect((err as ApplicationFailure).type).toBe("MISSING_WORKFLOW_REFERENCE");
+    expect((err as ApplicationFailure).message).toContain("wfx_test-123");
+    expect(client.getWorkflow).not.toHaveBeenCalled();
   });
 
-  it("throws when neither workflow_id nor workflow_instance_id provided", async () => {
-    const client = makeMockClient();
-    const input = makeInput({ workflow_id: "", workflow_instance_id: "" });
+  describe("the workflow version a run executes", () => {
+    it("reads the live workflow for a run that pins no version", async () => {
+      const client = makeMockClient({
+        workflowExecution: { spec: { triggerMessage: "" }, status: { workflowVersionHash: "" } },
+      });
 
-    await expect(hydrateWorkflowExecution(input, client))
-      .rejects.toThrow("Neither workflow_id nor workflow_instance_id");
+      const result = await hydrateWorkflowExecution(makeInput(), client);
+
+      expect(client.getWorkflow).toHaveBeenCalledWith("wfl_wf-789");
+      expect(client.getWorkflowVersion).not.toHaveBeenCalled();
+      expect(result.model.document.name).toBe("test-workflow");
+    });
+
+    it("runs the pinned version's YAML, never the live workflow", async () => {
+      const client = makeMockClient({ workflowExecution: PINNED_EXECUTION });
+
+      const result = await hydrateWorkflowExecution(makeInput(), client);
+
+      expect(client.getWorkflowVersion).toHaveBeenCalledWith("wfl_wf-789", PINNED_HASH);
+      expect(client.getWorkflow).not.toHaveBeenCalled();
+      expect(result.model.document.name).toBe("pinned-workflow");
+    });
+
+    it("fails non-retryably, naming the version and workflow, when the pinned version is NOT_FOUND", async () => {
+      const client = makeMockClient({
+        workflowExecution: PINNED_EXECUTION,
+        workflowVersionError: Object.assign(new Error("version not found"), { code: 5 }),
+      });
+
+      const err = await hydrateWorkflowExecution(makeInput(), client).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(ApplicationFailure);
+      expect((err as ApplicationFailure).nonRetryable).toBe(true);
+      expect((err as ApplicationFailure).type).toBe("WORKFLOW_VERSION_NOT_FOUND");
+      expect((err as ApplicationFailure).message).toContain(PINNED_HASH.slice(0, 12));
+      expect((err as ApplicationFailure).message).toContain("wfl_wf-789");
+      expect(client.getWorkflow).not.toHaveBeenCalled();
+    });
+
+    it("rethrows a transient error from the version read for the activity's retry policy", async () => {
+      const transient = Object.assign(new Error("connection reset"), { code: 14 });
+      const client = makeMockClient({
+        workflowExecution: PINNED_EXECUTION,
+        workflowVersionError: transient,
+      });
+
+      const err = await hydrateWorkflowExecution(makeInput(), client).catch((e: unknown) => e);
+
+      expect(err).toBe(transient);
+      expect(client.getWorkflow).not.toHaveBeenCalled();
+    });
+
+    it("fails non-retryably when the pinned version carries no YAML", async () => {
+      const client = makeMockClient({
+        workflowExecution: PINNED_EXECUTION,
+        workflowVersion: { validatedYaml: "" },
+      });
+
+      const err = await hydrateWorkflowExecution(makeInput(), client).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(ApplicationFailure);
+      expect((err as ApplicationFailure).nonRetryable).toBe(true);
+      expect((err as ApplicationFailure).type).toBe("WORKFLOW_VERSION_YAML_EMPTY");
+      expect(client.getWorkflow).not.toHaveBeenCalled();
+    });
   });
 
   it("assembles metadata correctly from input fields", async () => {
@@ -298,7 +382,6 @@ describe("hydrateWorkflowExecution", () => {
     const input = makeInput({
       execution_id: "exec-abc",
       workflow_id: "wfl_xyz",
-      workflow_instance_id: "wfi_123",
       org_id: "org_test",
     });
 
@@ -307,7 +390,6 @@ describe("hydrateWorkflowExecution", () => {
     expect(result.metadata).toEqual({
       execution_id: "exec-abc",
       workflow_id: "wfl_xyz",
-      workflow_instance_id: "wfi_123",
       org_id: "org_test",
     });
   });

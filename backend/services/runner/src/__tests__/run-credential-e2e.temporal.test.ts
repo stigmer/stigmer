@@ -121,7 +121,6 @@ async function runOnce(credential: string | undefined): Promise<string> {
   const executionId = `wex_e2e_${Math.random().toString(36).slice(2)}`;
   const input: ExecuteFromExecutionInput = {
     execution_id: executionId,
-    workflow_instance_id: "wfi_1",
     workflow_id: "wf_1",
     org_id: "org_1",
     ...(credential !== undefined

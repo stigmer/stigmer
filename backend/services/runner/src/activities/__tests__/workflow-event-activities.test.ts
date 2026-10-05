@@ -218,7 +218,6 @@ describe("toProtoEvent", () => {
         occurredAt: NOW,
         totalTasks: 5,
         workflowId: "wf-123",
-        workflowInstanceId: "wfi-456",
       });
 
       expect(evt.eventType).toBe(WorkflowEventType.execution_started);
@@ -226,7 +225,6 @@ describe("toProtoEvent", () => {
       if (evt.payload.case !== "executionStarted") throw new Error("unexpected");
       expect(evt.payload.value.totalTasks).toBe(5);
       expect(evt.payload.value.workflowId).toBe("wf-123");
-      expect(evt.payload.value.workflowInstanceId).toBe("wfi-456");
     });
   });
 
