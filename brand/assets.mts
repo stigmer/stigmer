@@ -27,3 +27,24 @@ export async function brandSvg({
     .replaceAll("#0a0a0a", color)
     .replace("</title>", `</title>${backdrop}`);
 }
+
+/** Pair the unmodified mark with the approved, font-independent Instrument Sans lettering. */
+export async function brandLockupSvg({
+  width = 1536,
+  color = "#0a0a0a",
+}: {
+  width?: number;
+  color?: string;
+} = {}): Promise<string> {
+  const mark = await brandSvg({ size: 96, color });
+  const wordmark = await readFile(
+    new URL("./source/wordmark.svg", import.meta.url),
+    "utf8",
+  );
+  // The 96-unit mark box retains its original clear space; this offset gives
+  // the lettering a visible gap of 0.38 times its 48-unit capital height.
+  const lettering = wordmark
+    .replace("<svg ", '<svg x="103.62352941176471" ')
+    .replaceAll("#0a0a0a", color);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${Math.round((width * 96) / 364)}" viewBox="0 0 364 96"><title>Stigmer</title>${mark}${lettering}</svg>\n`;
+}

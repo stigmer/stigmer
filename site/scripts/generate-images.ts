@@ -18,7 +18,7 @@
  */
 
 import sharp from "sharp";
-import { brandSvg } from "../../brand/assets.mjs";
+import { brandLockupSvg, brandSvg } from "../../brand/assets.mjs";
 import pngToIco from "png-to-ico";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -72,6 +72,10 @@ async function generateFavicon(
  * Larger icons retain standard padding and rounded backgrounds.
  */
 async function generateAllIcons(): Promise<void> {
+  await fs.writeFile(
+    path.join(PUBLIC_DIR, "logo-lockup-white.svg"),
+    await brandLockupSvg({ color: "#fefefe" }),
+  );
   const faviconSvg = await brandSvg({
     size: 32,
     color: "#fefefe",
