@@ -686,8 +686,19 @@ describe("the step over a store", () => {
         notAvailableReferenceMessage(entry, ref(K.plugin, "globex", "theirs")),
     );
 
+    // Another organization's plugin is admitted from the writer's parent,
+    // shared with its child organizations.
+    await store.saveResource(
+      K.organization,
+      "acme",
+      OrganizationSchema,
+      create(OrganizationSchema, {
+        metadata: { id: "acme", name: "Acme", slug: "acme" },
+        spec: { parentOrg: "globex" },
+      }),
+    );
     await seedPlugin("plg_1", "acme", "safety", V.visibility_org);
-    await seedPlugin("plg_2", "globex", "theirs", V.visibility_platform);
+    await seedPlugin("plg_2", "globex", "theirs", V.visibility_child_orgs);
     await expect(
       run(
         hooked([
