@@ -4,5 +4,6 @@
 // mapping rationale.
 export {
   describeApprovalPolicySource,
+  hookApproveAllLabel,
   isInformativePolicySource,
 } from "@stigmer/sdk";

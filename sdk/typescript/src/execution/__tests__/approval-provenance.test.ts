@@ -1,11 +1,13 @@
 // Pins the provenance labels every surface shows for a tool call's approval
-// source, and which sources the approval card surfaces inline. The phrases are
-// shared by the React card, the ink prompt and the Go CLI's mirror, so a change
-// here is a user-visible change on all three.
+// source, which sources the approval card surfaces inline, and the "approve
+// all" label for a call a hook asked about. The phrases are shared by the
+// React card and the ink prompt, so a change here is a user-visible change on
+// both.
 import { describe, it, expect } from "vitest";
 import {
   ApprovalPolicySource,
   describeApprovalPolicySource,
+  hookApproveAllLabel,
   isInformativePolicySource,
 } from "../approval-provenance";
 
@@ -26,6 +28,14 @@ describe("describeApprovalPolicySource", () => {
     expect(describeApprovalPolicySource(ApprovalPolicySource.UNATTENDED_SKIP)).toBe(
       "skipped: approval not available on this surface",
     );
+  });
+
+  it("names the hook that decided, or the agent's own hooks", () => {
+    expect(describeApprovalPolicySource(ApprovalPolicySource.HOOK, "safety")).toBe(
+      "decided by the safety plugin's hook",
+    );
+    expect(describeApprovalPolicySource(ApprovalPolicySource.HOOK)).toBe("decided by the agent's hook");
+    expect(isInformativePolicySource(ApprovalPolicySource.HOOK)).toBe(true);
   });
 
   it("returns null for UNSPECIFIED (legacy, or a call that needed no approval)", () => {
@@ -68,5 +78,14 @@ describe("isInformativePolicySource", () => {
     ]) {
       expect(describeApprovalPolicySource(source)).not.toBeNull();
     }
+  });
+});
+
+describe("hookApproveAllLabel", () => {
+  it("names what the lease covers and whose asks it is", () => {
+    expect(hookApproveAllLabel("shell commands", "safety")).toBe(
+      "Approve all shell commands the safety plugin asks about",
+    );
+    expect(hookApproveAllLabel("file writes", "")).toBe("Approve all file writes the agent's hooks ask about");
   });
 });

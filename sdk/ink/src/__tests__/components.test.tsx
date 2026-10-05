@@ -239,6 +239,21 @@ describe("ApprovalPrompt", () => {
     expect(output).toContain("[s] Skip");
   });
 
+  it("names the asking hook on a hook's card: its lease and its reason", () => {
+    const pending = create(PendingApprovalSchema);
+    pending.toolCallId = "tc-hook";
+    pending.toolName = "execute";
+    pending.approvalPolicySource = ApprovalPolicySource.HOOK;
+    pending.approvalPolicyHook = "safety";
+
+    const { lastFrame } = render(
+      <ApprovalPrompt pendingApproval={pending} onSubmit={() => {}} />,
+    );
+    const output = lastFrame() ?? "";
+    expect(output).toContain("[a] Approve all shell commands the safety plugin asks about");
+    expect(output).toContain("decided by the safety plugin's hook");
+  });
+
   it("renders the shell intent as supplementary context, args foregrounded (stigmer#276)", () => {
     const pending = create(PendingApprovalSchema);
     pending.toolCallId = "tc-1";
