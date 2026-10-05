@@ -23,7 +23,12 @@
  *     settings are validated, so the checks judge what will actually run on
  *     every lane and nothing has been reserved or written when they refuse.
  *   - Answering a lane replaces the request's run_config with the lane's
- *     `settings`: a visitor's own settings are never consulted.
+ *     `settings`: a visitor's own settings are never consulted. It does not
+ *     touch the per-message intents at the top of the spec
+ *     (interaction_mode, build_from_plan, structured_output_schema) nor
+ *     auto_approve_all: whether a visitor may set them is the edition's
+ *     call, made in its own gate steps (the hosted edition clears all four
+ *     for a share's guest).
  *   - A throw fails the create (the store-fault posture of every create
  *     step); answering nothing means the turn is the core's to place.
  */
