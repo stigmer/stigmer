@@ -5,8 +5,12 @@
  * names no version (an agent last written before agents were versioned).
  *
  * A server-internal read by point reads on the store, made after the chain's
- * run gate has judged the agent: the defaults travel only into the server's
- * own resolution, never to the caller. A version the agent no longer holds
+ * run gate has judged the agent. The defaults reach the turn's
+ * status.run_config, which anyone who may read the turn sees, a hosted
+ * share's guest included, who may not read the agent itself. That is
+ * deliberate: a model name, a tier, thinking and the caps are the settings
+ * the reader's own turn ran with, and say nothing of the agent's
+ * instructions, tools or keys. A version the agent no longer holds
  * answers the version-history NotFound naming it, as the context build's
  * read does; a store fault is Internal.
  *

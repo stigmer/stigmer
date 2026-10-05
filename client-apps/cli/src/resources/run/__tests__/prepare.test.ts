@@ -379,15 +379,29 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
     expect(prepared.model).toBe("gpt-5");
   });
 
-  it("an explicit --model always wins", async () => {
+  it("an explicit --model always wins, and alone it names no engine, neither the agent's nor the account's", async () => {
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, model: "default" },
-      clientWithPreferences(ACCOUNT),
+      clientWithPreferences({ ...ACCOUNT, defaultHarness: "cursor" }),
       "acme",
       undefined,
       { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
     );
     expect(prepared.model).toBe("default");
+    // The server reads a model named alone on native.
+    expect(prepared.harness).toBe("");
+  });
+
+  it("--model with --harness keeps the engine named", async () => {
+    const prepared = await prepareAgentExec(
+      { ...BASE_FLAGS, model: "composer-2.5", harness: "cursor" },
+      clientWithPreferences(ACCOUNT),
+      "acme",
+      undefined,
+      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
+    );
+    expect(prepared.harness).toBe("cursor");
+    expect(prepared.model).toBe("composer-2.5");
   });
 
   it("an agent naming the native engine outranks an account that prefers cursor", async () => {

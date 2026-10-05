@@ -183,7 +183,10 @@ export async function callAgentAction(
     `wfExecId=${wfExecId}, task=${taskName ?? "(none)"}`,
   );
 
-  const harness = resolveHarness(resolved.harness);
+  const harness = resolveHarness(
+    resolved.harness,
+    (resolved.run_config?.model_name ?? "").trim() !== "",
+  );
   const executionTarget = resolveExecutionTarget(
     runtimeEnv["__stigmer_execution_target"] as number | undefined,
   );
@@ -380,8 +383,17 @@ function shortUniqueId(): string {
   return randomUUID().replace(/-/g, "").slice(0, 8);
 }
 
-function resolveHarness(harnessStr?: string): Harness {
-  if (!harnessStr) return Harness.NATIVE;
+/**
+ * The engine of the step's conversation: the one the step names; else
+ * native when its run_config names a model (a model name belongs to an
+ * engine, and the step's save checked it against native); else unset, so
+ * the server starts the conversation on the agent's own engine
+ * (AgentSpec.harness), then native. The rule a turn naming its own session
+ * spec gets from the server (resolve-run-config.ts), applied here because
+ * this step creates its session before its turn.
+ */
+function resolveHarness(harnessStr: string | undefined, namesModel: boolean): Harness {
+  if (!harnessStr) return namesModel ? Harness.NATIVE : Harness.UNSPECIFIED;
 
   switch (harnessStr.toUpperCase()) {
     case "HARNESS_NATIVE":

@@ -45,7 +45,7 @@ export function addAgentExecFlags(command: Command): Command {
     .option("--env-file <path>", "load env from file (repeatable, later override earlier)", collect, [])
     .option("--secret <kv>", "secret env var KEY=VALUE (repeatable, encrypted)", collect, [])
     .option("--secret-file <path>", "load secrets from file (repeatable, encrypted)", collect, [])
-    .option("--model <model>", "LLM model to use (e.g. claude-sonnet-4-6); unset, the agent's default model for the engine applies")
+    .option("--model <model>", "LLM model to use (e.g. claude-sonnet-4-6); with no --harness it runs on native, so pass --harness cursor for a Cursor model; unset, the agent's default model for the engine applies")
     .option("--auto-approve", "automatically approve all tool executions")
     .option("--mode <mode>", 'interaction mode: "agent" (default) or "plan" (read-only)')
     .option("--service-tier <tier>", 'model service tier: "standard" or "fast" (the model, from --model or the agent\'s defaults, must have a fast tier; billed at fast rates); unset keeps the agent\'s default')

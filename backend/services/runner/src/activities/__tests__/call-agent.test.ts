@@ -27,6 +27,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApprovalMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 
 let mockGetAgentByReference: ReturnType<typeof vi.fn>;
@@ -263,6 +264,22 @@ describe("callAgentAction", () => {
         slug: "my-agent",
         version: "",
       });
+    });
+
+    it.each<[string, Record<string, unknown>, Harness]>([
+      ["the engine the step names", { harness: "CURSOR" }, Harness.CURSOR],
+      ["native when the step names a model but no engine", { run_config: { model_name: "claude-haiku-4.5" } }, Harness.NATIVE],
+      ["no engine when the step names neither, so the agent's own engine applies", {}, Harness.UNSPECIFIED],
+    ])("starts the step's conversation on %s", async (_, step, harness) => {
+      await expect(
+        callAgentAction(
+          { agent: "my-agent", message: "Hello", ...step },
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
+          "wfl_parent",
+          appConfig,
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+      expect(mockCreateSession.mock.calls[0][0].spec.harness).toBe(harness);
     });
 
     it("names the agent the reference resolved to, in its own organization, never the reference's spelling", async () => {

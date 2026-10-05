@@ -84,10 +84,11 @@ export interface PreparedRun {
   readonly serviceTier: ServiceTierFlag;
   readonly thinking: ThinkingFlag;
   /**
-   * The RESOLVED harness for the new session: the explicit flag, else the
-   * engine the agent names, else the account preference (when the caller
-   * opted in), else "" — which stays off the wire so the server default
-   * (native) applies. Also drives the header's
+   * The RESOLVED harness for the new session: the explicit flag; else ""
+   * when `--model` names a model alone (the server reads it on native);
+   * else the engine the agent names, else the account preference (when the
+   * caller opted in), else "" — which stays off the wire so the server
+   * default (native) applies. Also drives the header's
    * visibility row: a cursor session is never entered silently.
    */
   readonly harness: HarnessFlag;
@@ -151,7 +152,12 @@ export async function prepareAgentExec(
     agentHarness !== "" &&
     (flags.harness === "" || flags.harness === agentHarness) &&
     (options?.agentSpec?.runConfig?.modelName ?? "") !== "";
-  const wantsHarnessFill = flags.harness === "" && agentHarness === "";
+  // A --model with no --harness names no engine: the server starts the
+  // conversation on native, the engine a model named alone is read on, so
+  // neither the agent's engine nor the account's is filled in under it.
+  const modelNamesEngine = flags.model !== "" && flags.harness === "";
+  const wantsHarnessFill =
+    flags.harness === "" && agentHarness === "" && !modelNamesEngine;
   const wantsModelFill = flags.model === "" && !agentModelApplies;
   const accountDefaults =
     options?.accountPreferencesAvailable === true &&
@@ -161,9 +167,11 @@ export async function prepareAgentExec(
   const harness =
     flags.harness !== ""
       ? flags.harness
-      : agentHarness !== ""
-        ? agentHarness
-        : accountDefaults.harness;
+      : modelNamesEngine
+        ? ""
+        : agentHarness !== ""
+          ? agentHarness
+          : accountDefaults.harness;
   const model = wantsModelFill
     ? harness === "cursor"
       ? accountDefaults.cursorModel
