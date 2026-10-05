@@ -7,7 +7,12 @@
  * and command substitutions. This is a small scanner for exactly that, not
  * a shell: it understands quotes and escapes, collects `$( )`, backticks
  * and a leading `( )` as nested command lines, and returns each simple
- * command as its words with the quotes removed.
+ * command as its words with the quotes removed. The shell's own words that
+ * open or close a compound command (`if`, `then`, `do`, `{`, `!`, `fi`,
+ * `done`, `}` and the rest) are not commands: they are dropped, so
+ * `if true; then rm -rf build; fi` runs `true` and `rm -rf build`. An
+ * interpreter's `-c` script (`bash -c`, `bash -lc`, `/bin/sh -ec`, behind a
+ * wrapper or not) is scanned as one more command line.
  *
  * Its one safety rule: what it cannot be sure it understood answers `null`,
  * and the caller then runs the hook. An unbalanced quote or bracket, a
@@ -29,6 +34,15 @@ export type ShellCommand = readonly ShellWord[];
 
 const INTERPRETERS = new Set(["sh", "bash", "zsh", "dash", "ksh"]);
 
+/** Words that open or continue a compound command before the command it runs. */
+const OPENING_WORDS = new Set(["if", "then", "elif", "else", "do", "while", "until", "!", "{"]);
+
+/** Words that close a compound command, and run nothing. */
+const CLOSING_WORDS = new Set(["fi", "done", "}", "esac"]);
+
+/** A shell's option word that includes `c`: `-c`, `-lc`, `-ec`. */
+const SCRIPT_FLAG = /^-[A-Za-z]*c[A-Za-z]*$/;
+
 /** Every simple command `line` runs, nested ones included; `null` when it cannot be sure. */
 export function splitShellCommands(line: string): readonly ShellCommand[] | null {
   const out: ShellCommand[] = [];
@@ -45,21 +59,41 @@ function collect(line: string, out: ShellCommand[], depth: number): boolean {
   for (const nested of scanned.nested) {
     if (!collect(nested, out, depth + 1)) return false;
   }
-  for (const command of scanned.commands) {
+  for (const words of scanned.commands) {
+    const command = withoutCompoundWords(words);
     if (command.length === 0) continue;
-    const head = command[0]!.text;
-    if (head === "eval") return false;
-    if (INTERPRETERS.has(head)) {
-      const flag = command.findIndex((word, i) => i > 0 && word.text === "-c");
-      if (flag !== -1) {
-        const script = command[flag + 1];
-        if (script === undefined || !script.literal) return false;
-        if (!collect(script.text, out, depth + 1)) return false;
-      }
-    }
+    if (command[0]!.text === "eval") return false;
+    const script = interpreterScript(command);
+    if (script === null) return false;
+    if (script !== undefined && !collect(script, out, depth + 1)) return false;
     out.push(command);
   }
   return true;
+}
+
+/** A simple command without the compound command's own words around it. */
+function withoutCompoundWords(words: ShellCommand): ShellCommand {
+  let start = 0;
+  while (start < words.length && OPENING_WORDS.has(words[start]!.text)) start += 1;
+  let end = words.length;
+  while (end > start && CLOSING_WORDS.has(words[end - 1]!.text)) end -= 1;
+  return words.slice(start, end);
+}
+
+/**
+ * The script an interpreter in this command runs with `-c`: `undefined` when
+ * there is none, `null` when there is one it cannot read (not literal, or
+ * missing). The interpreter may sit behind a wrapper or be named by path, so
+ * any word naming one counts.
+ */
+function interpreterScript(command: ShellCommand): string | null | undefined {
+  const shell = command.findIndex((word) => INTERPRETERS.has(word.text.slice(word.text.lastIndexOf("/") + 1)));
+  if (shell === -1) return undefined;
+  const flag = command.findIndex((word, i) => i > shell && SCRIPT_FLAG.test(word.text));
+  if (flag === -1) return undefined;
+  const script = command[flag + 1];
+  if (script === undefined || !script.literal || script.text.startsWith("-")) return null;
+  return script.text;
 }
 
 interface Scanned {

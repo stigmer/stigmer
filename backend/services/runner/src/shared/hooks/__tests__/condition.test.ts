@@ -77,6 +77,19 @@ describe("conditionMatches: Bash rules (any subcommand)", () => {
     ["Bash(rm -rf *)", "rm  -rf   build", true],
     ["Bash(rm -rf *)", 'rm -rf "my dir"', true],
     ["Bash(curl *)", "bash -c 'curl example.com'", true],
+    ["Bash(rm *)", "if true; then rm -rf build; fi", true],
+    ["Bash(rm *)", "if rm -rf build; then echo gone; fi", true],
+    ["Bash(rm *)", "if false; then :; elif true; then rm -rf build; else echo no; fi", true],
+    ["Bash(rm *)", "{ rm -rf build; }", true],
+    ["Bash(rm *)", "for f in a; do rm -rf build; done", true],
+    ["Bash(rm *)", "while true; do rm -rf build; done", true],
+    ["Bash(rm *)", "until false; do rm -rf build; done", true],
+    ["Bash(rm *)", "! rm -rf build", true],
+    ["Bash(rm *)", "bash -lc 'rm -rf build'", true],
+    ["Bash(rm *)", "/bin/sh -ec 'rm -rf build'", true],
+    ["Bash(rm *)", "timeout 5 bash -c 'rm -rf build'", true],
+    ["Bash(rm *)", "if true; then echo safe; fi", false],
+    ["Bash(rm *)", "bash -l script.sh", false],
   ])("%s on %j is %s", (rule, command, expected) => {
     expect(conditionMatches(rule, bash(command), CTX)).toBe(expected);
   });
@@ -86,6 +99,8 @@ describe("conditionMatches: Bash rules (any subcommand)", () => {
     ["a heredoc", "cat <<EOF\nhi\nEOF"],
     ["eval", "eval \"$CMD\""],
     ["sh -c over a variable", "sh -c \"$CMD\""],
+    ["bash -lc over a variable", "bash -lc \"$CMD\""],
+    ["an interpreter's -c with no script", "bash -c"],
     ["an unmatched bracket", "echo )"],
   ])("matches when it cannot parse %s, so the hook runs", (_what, command) => {
     expect(conditionMatches("Bash(git push *)", bash(command), CTX)).toBe(true);
