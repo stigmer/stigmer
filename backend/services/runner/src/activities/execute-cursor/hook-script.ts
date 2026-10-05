@@ -847,27 +847,34 @@ fi
 #  - deny, or a call a person refused earlier this run that a hook would let
 #    through (refused): record kind "hook" with the refusal, deny. The agent
 #    continues; nothing pauses.
-#  - ask: allowed under the pre-armed bypass or an approved grant; skipped
-#    under the unattended mode; otherwise recorded kind "approval" with the
-#    hook and its message, which pauses the turn on the hook's card.
+#  - ask: under the pre-armed bypass or an approved grant, as an allow;
+#    skipped under the unattended mode; otherwise recorded kind "approval"
+#    with the hook and its message, which pauses the turn on the hook's card.
 #  - allow: the capture arms below still review the call, and nothing after
 #    them may ask (1i).
 #  - none: no hook decided; every arm below runs as it would without hooks.
 #  - anything else: the server did not answer; a hook that cannot be asked
 #    is not skipped, so the call is refused (fail-closed).
-# A secret-like write is blocked before a hook is asked, so no card ever
-# shows its content.
+# A secret-like write the hook asks on is blocked rather than shown on a
+# card, and one it allows meets the same block the deny-gate applies (1i).
 HOOK_ALLOW=false
 HOOK_ALLOW_RESPONSE=""
-if [ -n "$HOOK_SOCKET" ] && { [ "$HOOK_EVENT" = "beforeMCPExecution" ] || { [ "$HOOK_EVENT" = "preToolUse" ] && [ "\${TOOL_NAME#MCP:}" = "$TOOL_NAME" ]; }; }; then
-  if [ "$CATEGORY" = "write" ] && [ -n "$SALIENT" ] && ! echo "$STATE" | grep -q '"autoApproveAll":true'; then
-    HOOK_SECRET=$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${secretClassifyScript}' 2>/dev/null || echo ok)
-    if [ "$HOOK_SECRET" = "secret" ]; then
-      record_denial "$PRIMARY_TOKEN" "secret"
-      echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written."}'
-      exit 0
-    fi
+# An allowed call's answer: a hook's (its context and any rewrite) once one
+# allowed it, else the plain allow.
+__stigmer_allow() {
+  if [ -n "$HOOK_ALLOW_RESPONSE" ]; then
+    printf '%s\\n' "$HOOK_ALLOW_RESPONSE"
+  else
+    echo '{"permission":"allow"}'
   fi
+}
+# Whether this call is a secret-like write, outside the pre-armed bypass.
+__stigmer_secret_write() {
+  [ "$CATEGORY" = "write" ] && [ -n "$SALIENT" ] || return 1
+  ! echo "$STATE" | grep -q '"autoApproveAll":true' || return 1
+  [ "$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${secretClassifyScript}' 2>/dev/null || echo ok)" = "secret" ]
+}
+if [ -n "$HOOK_SOCKET" ] && { [ "$HOOK_EVENT" = "beforeMCPExecution" ] || { [ "$HOOK_EVENT" = "preToolUse" ] && [ "\${TOOL_NAME#MCP:}" = "$TOOL_NAME" ]; }; }; then
   if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
     HOOK_ID="$MCP_TOKEN"
     HOOK_COARSE="$MCP_TOKEN"
@@ -888,20 +895,25 @@ if [ -n "$HOOK_SOCKET" ] && { [ "$HOOK_EVENT" = "beforeMCPExecution" ] || { [ "$
       ;;
     ask)
       if echo "$STATE" | grep -q '"autoApproveAll":true' || __stigmer_granted; then
-        printf '%s\\n' "$HOOK_REPLY" | sed -n 3p | base64 -d
-        echo
-        exit 0
-      fi
-      if [ "$UNATTENDED_SKIP" = "true" ]; then
+        # Satisfied: an allow, so the capture arms below still review it.
+        HOOK_ALLOW=true
+        HOOK_ALLOW_RESPONSE=$(printf '%s\\n' "$HOOK_REPLY" | sed -n 3p | base64 -d)
+      elif [ "$UNATTENDED_SKIP" = "true" ]; then
         record_denial "$HOOK_ID" "unattended" "" "$HOOK_SLUG"
         printf '%s\\n' "$HOOK_REPLY" | sed -n 6p | base64 -d
         echo
         exit 0
+      elif __stigmer_secret_write; then
+        # Never shown on a card: its content is a secret's.
+        record_denial "$PRIMARY_TOKEN" "secret"
+        echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written."}'
+        exit 0
+      else
+        record_denial "$HOOK_ID" "approval" "$HOOK_MESSAGE" "$HOOK_SLUG"
+        printf '%s\\n' "$HOOK_REPLY" | sed -n 5p | base64 -d
+        echo
+        exit 0
       fi
-      record_denial "$HOOK_ID" "approval" "$HOOK_MESSAGE" "$HOOK_SLUG"
-      printf '%s\\n' "$HOOK_REPLY" | sed -n 5p | base64 -d
-      echo
-      exit 0
       ;;
     allow)
       HOOK_ALLOW=true
@@ -937,7 +949,7 @@ if [ "$CAPTURE_IGNORED" = "true" ] && [ "$CATEGORY" = "write" ] && [ -n "$SALIEN
   OBS_DIR="$(dirname "$STATE_FILE")/${CAS_OBSERVATIONS_DIRNAME}"
   OBS_RESULT=$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${observationStagingScript}' "$GIT_ROOT" "$OBS_DIR" 2>/dev/null || echo error)
   if [ "$OBS_RESULT" = "captured" ]; then
-    echo '{"permission":"allow"}'
+    __stigmer_allow
     exit 0
   elif [ "$OBS_RESULT" = "secret" ]; then
     # Kind "secret": attributable but deliberately non-pausing (the agent moves
@@ -977,16 +989,23 @@ if [ "$CAPTURE_IGNORED" = "true" ] && [ "$CATEGORY" = "delete" ] && [ -n "$SALIE
     OBS_DIR="$(dirname "$STATE_FILE")/${CAS_OBSERVATIONS_DIRNAME}"
     OBS_RESULT=$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${observationStagingScript}' "$GIT_ROOT" "$OBS_DIR" 2>/dev/null || echo error)
     if [ "$OBS_RESULT" = "captured" ]; then
-      echo '{"permission":"allow"}'
+      __stigmer_allow
       exit 0
     fi
   fi
 fi
 
 # --- 1i. A hook's allow ---
-# Capture (above) has reviewed what it reviews; nothing below may ask.
+# Capture (above) has reviewed what it reviews; nothing below may ask. A
+# write takes the deny-gate's own rule (3): a git-tracked one flows to the
+# turn's review in capture mode, and any other secret-like one is blocked.
 if [ "$HOOK_ALLOW" = "true" ]; then
-  printf '%s\\n' "$HOOK_ALLOW_RESPONSE"
+  if ! { [ "$CAPTURE_MODE" = "true" ] && [ "$GIT_WORKSPACE" = "true" ] && [ "$CATEGORY" = "write" ] && ! __stigmer_is_gitignored "$SALIENT"; } && __stigmer_secret_write; then
+    record_denial "$PRIMARY_TOKEN" "secret"
+    echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written."}'
+    exit 0
+  fi
+  __stigmer_allow
   exit 0
 fi
 

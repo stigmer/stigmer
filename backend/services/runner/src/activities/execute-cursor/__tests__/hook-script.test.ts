@@ -21,6 +21,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { buildHookClientScript, generateHookScript } from "../hook-script.js";
+import { create as createMessage } from "@bufbuild/protobuf";
+import { HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
+import { HookSet } from "../../../shared/hooks/hook-set.js";
+import { buildShellEnv } from "../../../shared/shell-env.js";
+import { startHookServer } from "../hook-server.js";
+import { CursorEngineToolViews } from "../hook-views.js";
 import { buildApprovalState, grantToken, primaryToken, scopeRefusalToken, toolIdentity } from "../approval-state.js";
 import { AGENT_SCOPE_KEY, READ_SCOPE_KEY, compileHookToolScope, scopeKey } from "../hook-scope.js";
 import { CURSOR_SDK_TOOL_COVERS, ToolScope } from "../../../shared/tool-lists.js";
@@ -1147,5 +1154,84 @@ d("generated approval hook: the agent's hooks", () => {
       execFileSync(process.execPath, ["-e", client, unreachable.socketPath, "t", mode, "", ""], { input: "{}" }).toString();
     expect(run("pre")).toBe("error");
     expect(run("post")).toBe("{}");
+  });
+});
+
+// A hook's answer meets capture and the secret block as the deny-gate's own
+// answers do: an ask that trust or a grant satisfies still has a CAS-owned
+// write staged for review; a secret-like write a hook asks on is blocked,
+// never shown on a card; a hook's allow of a git-tracked write in capture
+// mode flows to the turn's review; a staged write keeps the hook's context.
+d("generated approval hook: a hook's answer under capture and the secret block", () => {
+  async function withHook(answer: object, opts: Parameters<typeof setup>[0], run: (h: ReturnType<typeof setup>) => Promise<void>): Promise<void> {
+    const evaluator = new HookEvaluator({
+      set: HookSet.of([{
+        source: { plugin: "guard", root: "", data: "", options: new Map() },
+        groups: [createMessage(HookGroupSchema, { event: "PreToolUse", matcher: "", handlers: [createMessage(HookHandlerSchema, { command: `printf '%s' '${JSON.stringify(answer)}'` })] })],
+      }]),
+      views: new CursorEngineToolViews({ workspaceRoot: "/", pluginServers: new Map(), platformServerSlugs: new Set() }),
+      sessionId: "s",
+      workspaceRoot: tmpdir(),
+      permissionMode: "default",
+      baseEnv: buildShellEnv({}),
+      homeDir: tmpdir(),
+      leases: new Set(),
+    });
+    const server = await startHookServer({ evaluator, refusals: new Map(), captureMode: opts?.captureMode ?? false });
+    try {
+      await run(setup({ ...opts, hookServer: { socketPath: server.socketPath, token: server.token } }));
+    } finally {
+      await server.close();
+    }
+  }
+  const ask = { hookSpecificOutput: { permissionDecision: "ask" } };
+  const allowWithContext = { hookSpecificOutput: { permissionDecision: "allow", additionalContext: "logged" } };
+
+  it("stages a gitignored write a hook asked on under trust, as it stages one without hooks", async () => {
+    await withHook(ask, { autoApproveAll: true, captureMode: true, captureIgnored: true, gitignored: ["*.log"] }, async (h) => {
+      const res = await h.decideAsync({ ...hookWrite(join(h.root, "out.log"), "x"), hook_event_name: "preToolUse" });
+      expect(res.permission).toBe("allow");
+      expect((await h.observations()).captured, "staged for review").toHaveLength(1);
+    });
+  });
+
+  it("stages a gitignored write a hook asked on that a grant answers", async () => {
+    await withHook(ask, { captureMode: true, captureIgnored: true, gitignored: ["*.log"] }, async (h) => {
+      const file = join(h.root, "out.log");
+      // The approval's grant, as the resumed turn writes it into the state.
+      const statePath = join(h.hitlDir, "state.json");
+      const state = JSON.parse(readFileSync(statePath, "utf-8")) as { approvedGrantTokens: string[] };
+      state.approvedGrantTokens.push(primaryToken("write", file, contentDigest({ file_path: file, content: "x" })));
+      writeFileSync(statePath, JSON.stringify(state), "utf-8");
+      const res = await h.decideAsync({ ...hookWrite(file, "x"), hook_event_name: "preToolUse" });
+      expect(res.permission).toBe("allow");
+      expect((await h.observations()).captured, "staged for review").toHaveLength(1);
+    });
+  });
+
+  it("blocks a secret-like write a hook asks on, never showing it on a card", async () => {
+    await withHook(ask, {}, async (h) => {
+      const res = await h.decideAsync({ ...hookWrite(join(h.root, ".env"), "TOKEN=x"), hook_event_name: "preToolUse" });
+      expect(res.permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["secret"]);
+      expect(h.ledger()[0]).not.toHaveProperty("input");
+    });
+  });
+
+  it("lets a git-tracked write a hook allows flow in capture mode, and blocks a secret-like one outside it", async () => {
+    await withHook(allowWithContext, { captureMode: true, gitignored: [] }, async (h) => {
+      expect((await h.decideAsync({ ...hookWrite(join(h.root, ".env"), "TOKEN=x"), hook_event_name: "preToolUse" })).permission).toBe("allow");
+    });
+    await withHook(allowWithContext, {}, async (h) => {
+      expect((await h.decideAsync({ ...hookWrite(join(h.root, ".env"), "TOKEN=x"), hook_event_name: "preToolUse" })).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["secret"]);
+    });
+  });
+
+  it("keeps a hook's context on a write the capture arm staged", async () => {
+    await withHook(allowWithContext, { captureMode: true, captureIgnored: true, gitignored: ["*.log"] }, async (h) => {
+      const res = await h.decideAsync({ ...hookWrite(join(h.root, "out.log"), "x"), hook_event_name: "preToolUse" });
+      expect(JSON.parse(res.raw.trim())).toEqual({ permission: "allow", additional_context: "Hook feedback:\nlogged" });
+    });
   });
 });

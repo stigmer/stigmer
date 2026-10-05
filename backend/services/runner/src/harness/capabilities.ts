@@ -96,6 +96,14 @@ export type StateIdSource = "deterministic" | "engine-minted";
 export interface FileReviewIdentity {
   readonly harnessId: string;
   readonly excludePaths: readonly string[];
+  /**
+   * Workspace-relative paths the harness rewrites for the turn's duration
+   * only and restores before it returns: left out of the mid-run progress
+   * diff, which would show the harness's own rewrite, and never out of the
+   * baseline or the candidate, which see the file as its owner and the
+   * agent left it, so an agent's own edit to one is still reviewed.
+   */
+  readonly transientPaths?: readonly string[];
 }
 
 export interface HarnessCapabilities {
