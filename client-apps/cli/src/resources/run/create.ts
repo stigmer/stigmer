@@ -15,9 +15,11 @@ import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecuti
 import {
   type AgentExecutionSpec,
   AgentExecutionSpecSchema,
-  type ExecutionConfig,
-  ExecutionConfigSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import {
+  type RunConfig,
+  RunConfigSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { type SessionSpec, SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -97,7 +99,10 @@ export async function createAgentExecution(
       workspaceFileRefs: [...input.workspaceFileRefs],
       autoApproveAll: input.autoApproveAll,
       target: buildTarget(input),
-      executionConfig: buildExecutionConfig(input.model, input.mode, input.serviceTier, input.thinking),
+      runConfig: buildRunConfig(input.model, input.serviceTier, input.thinking),
+      // Only "plan" maps to a non-default mode; "agent"/"" leave it
+      // unspecified (agent).
+      interactionMode: input.mode === "plan" ? InteractionMode.PLAN : InteractionMode.UNSPECIFIED,
     }),
   });
   return controller(AgentExecutionCommandController).create(execution);
@@ -175,22 +180,21 @@ function buildSessionSpec(
   return spec;
 }
 
-// Build ExecutionConfig, or undefined when no flag is set so the backend
-// applies its defaults. Mirrors Go's buildExecutionConfig (only "plan" maps to a
-// non-default InteractionMode; "agent"/"" leave it unspecified). An explicit
-// --service-tier or --thinking value maps to the enum even for the base
-// choice ("standard"/"disabled"): unspecified vs explicit is a load-bearing
-// ledger distinction (#357/#772).
-function buildExecutionConfig(
+// Build the RunConfig this message asks for, or undefined when no flag is set
+// so the less specific layers (the agent's run defaults, the operator profile)
+// choose. An explicit --service-tier or --thinking value maps to the enum even
+// for the base choice ("standard"/"disabled"): sent alone it adjusts the model
+// another layer chose (thinking off for one message on an agent whose
+// defaults turn it on), and unspecified vs explicit is a load-bearing ledger
+// distinction (#357/#772).
+function buildRunConfig(
   model: string,
-  mode: RunMode,
   serviceTier: ServiceTierFlag,
   thinking: ThinkingFlag,
-): ExecutionConfig | undefined {
-  if (model === "" && mode === "" && serviceTier === "" && thinking === "") return undefined;
-  const cfg = create(ExecutionConfigSchema);
+): RunConfig | undefined {
+  if (model === "" && serviceTier === "" && thinking === "") return undefined;
+  const cfg = create(RunConfigSchema);
   if (model !== "") cfg.modelName = model;
-  if (mode === "plan") cfg.interactionMode = InteractionMode.PLAN;
   if (serviceTier === "fast") cfg.serviceTier = ServiceTier.FAST;
   else if (serviceTier === "standard") cfg.serviceTier = ServiceTier.STANDARD;
   if (thinking === "enabled") cfg.thinkingMode = ThinkingMode.ENABLED;

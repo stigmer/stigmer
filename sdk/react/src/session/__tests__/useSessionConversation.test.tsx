@@ -573,7 +573,7 @@ describe("useSessionConversation", () => {
         org: "org",
         sessionId: "session-1",
         message: "Follow-up message",
-        executionConfig: expect.objectContaining({ modelName: "default" }),
+        runConfig: expect.objectContaining({ modelName: "default" }),
       }),
     );
   });

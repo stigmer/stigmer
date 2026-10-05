@@ -12,7 +12,8 @@
  *    keeps that pin when a retry re-applies the same reference
  * 5. Create the AgentExecution in that session, linked to the workflow run
  *    by `parent` (workflow execution id, the workflow to signal, the task
- *    token)
+ *    token), carrying the step's settings as the turn's request
+ *    (`spec.run_config`, never an approval mode) and its output schema
  * 6. Throw CompleteAsyncError — worker thread released
  *
  * The session names the agent itself, never a stand-in: a step that names
@@ -41,14 +42,14 @@ import { Context, CompleteAsyncError } from "@temporalio/activity";
 import { StigmerClient } from "../client/stigmer-client.js";
 import type { Config } from "../config.js";
 import { resolveObjectPlaceholders } from "../workflow-engine/resolve.js";
-import type { AgentCallConfig } from "../workflow-engine/types.js";
+import type { AgentCallConfig, AgentCallRunConfig } from "../workflow-engine/types.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   AgentExecutionSpecSchema,
-  ExecutionConfigSchema,
   WorkflowParentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -182,7 +183,10 @@ export async function callAgentAction(
     `wfExecId=${wfExecId}, task=${taskName ?? "(none)"}`,
   );
 
-  const harness = resolveHarness(resolved.harness);
+  const harness = resolveHarness(
+    resolved.harness,
+    (resolved.run_config?.model_name ?? "").trim() !== "",
+  );
   const executionTarget = resolveExecutionTarget(
     runtimeEnv["__stigmer_execution_target"] as number | undefined,
   );
@@ -268,58 +272,29 @@ export async function callAgentAction(
     });
   }
 
-  // Honest RunConfig → ExecutionConfig mapping (issue #358): every field
-  // the author may set is forwarded to a field the runner enforces.
-  // model_name replaces the agent's default outright; max_cost_usd feeds
-  // the turn runtime's cost guard (shared/cost-guard.ts, both harnesses);
-  // max_tool_rounds feeds resolveToolRoundLimit (native
-  // harness only); service_tier and thinking_mode feed the cursor
-  // harness's explicit variant selection (issues #357/#772). Zero/unset
-  // means "no override" and is omitted.
-  const runConfig = resolved.run_config;
-  const hasModel = !!runConfig?.model_name;
-  const hasCostCap = (runConfig?.max_cost_usd ?? 0) > 0;
-  const hasToolRounds = (runConfig?.max_tool_rounds ?? 0) > 0;
-  // Loader guarantees a canonical enum name; an unknown one here means the
-  // loader and this mapping drifted — fail the task, never silently drop a
-  // variant directive.
-  const SERVICE_TIER_BY_NAME: Record<string, ServiceTier> = {
-    SERVICE_TIER_STANDARD: ServiceTier.STANDARD,
-    SERVICE_TIER_FAST: ServiceTier.FAST,
-  };
-  const serviceTier = runConfig?.service_tier
-    ? SERVICE_TIER_BY_NAME[runConfig.service_tier]
-    : undefined;
-  if (runConfig?.service_tier && serviceTier === undefined) {
-    throw new Error(
-      `call:agent run_config.service_tier '${runConfig.service_tier}' has no proto mapping`,
-    );
-  }
-  const hasServiceTier = serviceTier !== undefined;
-  const THINKING_MODE_BY_NAME: Record<string, ThinkingMode> = {
-    THINKING_MODE_DISABLED: ThinkingMode.DISABLED,
-    THINKING_MODE_ENABLED: ThinkingMode.ENABLED,
-  };
-  const thinkingMode = runConfig?.thinking_mode
-    ? THINKING_MODE_BY_NAME[runConfig.thinking_mode]
-    : undefined;
-  if (runConfig?.thinking_mode && thinkingMode === undefined) {
-    throw new Error(
-      `call:agent run_config.thinking_mode '${runConfig.thinking_mode}' has no proto mapping`,
-    );
-  }
-  const hasThinkingMode = thinkingMode !== undefined;
-  const hasOutputSchema = !!resolved.output?.schema;
+  // The step's settings travel to the child turn as its request
+  // (`spec.run_config`), field for field: zero or empty means "not set at
+  // this layer" and is carried as such, never filled in here. The settings
+  // the turn RUNS WITH are resolved once by the control plane at create
+  // (backend/services/stigmer-server/src/domain/agentexecution/resolve-run-config.ts):
+  // the step's settings are the turn's layer, and the agent's defaults and
+  // caps apply beneath it, so a step's bound can lower the agent's cap but
+  // never raise it. The runner's guards read that resolution
+  // (`status.run_config`), not this request.
+  //
+  // No approval mode is written: it is a fact of the lane the server
+  // records. A workflow step is INTERACTIVE, and its parent workflow takes
+  // the approval request.
+  const stepRunConfig = resolved.run_config;
+  const runConfig = stepRunConfig === undefined ? undefined : toRunConfig(stepRunConfig);
+  const outputSchema = resolved.output?.schema;
 
   console.log(
-    `[CallAgent] schema propagation diagnostic: ` +
-    `hasOutputSchema=${hasOutputSchema}, ` +
-    `hasModel=${hasModel}, hasCostCap=${hasCostCap}, hasToolRounds=${hasToolRounds}, ` +
-    `hasServiceTier=${hasServiceTier}, ` +
+    `[CallAgent] run settings: ` +
+    `hasRunConfig=${runConfig !== undefined}, ` +
+    `hasOutputSchema=${outputSchema !== undefined}, ` +
     `configKeys=[${Object.keys(resolved).join(",")}], ` +
-    `hasOutput=${resolved.output !== undefined}, ` +
-    `outputKeys=${resolved.output ? JSON.stringify(Object.keys(resolved.output)) : "N/A"}, ` +
-    `__taskName=${(resolved as any).__taskName ?? "MISSING"}, ` +
+    `task=${taskName ?? "(none)"}, ` +
     `wfExecId=${wfExecId}`,
   );
 
@@ -332,20 +307,9 @@ export async function callAgentAction(
       callbackToken: taskToken,
     }),
     runtimeEnv: runtimeEnvProto,
+    ...(runConfig !== undefined ? { runConfig } : {}),
+    ...(outputSchema !== undefined ? { structuredOutputSchema: outputSchema as JsonObject } : {}),
   });
-
-  if (hasModel || hasCostCap || hasToolRounds || hasServiceTier || hasThinkingMode || hasOutputSchema) {
-    const execConfig = create(ExecutionConfigSchema, {});
-    if (hasModel) execConfig.modelName = runConfig!.model_name!;
-    if (hasCostCap) execConfig.maxCostUsd = runConfig!.max_cost_usd!;
-    if (hasToolRounds) execConfig.maxToolRounds = runConfig!.max_tool_rounds!;
-    if (hasServiceTier) execConfig.serviceTier = serviceTier!;
-    if (hasThinkingMode) execConfig.thinkingMode = thinkingMode!;
-    if (hasOutputSchema) {
-      execConfig.structuredOutputSchema = resolved.output!.schema as JsonObject;
-    }
-    executionSpec.executionConfig = execConfig;
-  }
 
   // Workflow provenance labels: the server's CreateExecutionContextStep
   // keys the agent_call environment_refs resolution on these (the
@@ -419,8 +383,17 @@ function shortUniqueId(): string {
   return randomUUID().replace(/-/g, "").slice(0, 8);
 }
 
-function resolveHarness(harnessStr?: string): Harness {
-  if (!harnessStr) return Harness.NATIVE;
+/**
+ * The engine of the step's conversation: the one the step names; else
+ * native when its run_config names a model (a model name belongs to an
+ * engine, and the step's save checked it against native); else unset, so
+ * the server starts the conversation on the agent's own engine
+ * (AgentSpec.harness), then native. The rule a turn naming its own session
+ * spec gets from the server (resolve-run-config.ts), applied here because
+ * this step creates its session before its turn.
+ */
+function resolveHarness(harnessStr: string | undefined, namesModel: boolean): Harness {
+  if (!harnessStr) return namesModel ? Harness.NATIVE : Harness.UNSPECIFIED;
 
   switch (harnessStr.toUpperCase()) {
     case "HARNESS_NATIVE":
@@ -455,4 +428,40 @@ export function createCallAgentActivities(appConfig: Config) {
       }
     },
   };
+}
+
+const SERVICE_TIER_BY_NAME: Readonly<Record<string, ServiceTier | undefined>> = {
+  SERVICE_TIER_STANDARD: ServiceTier.STANDARD,
+  SERVICE_TIER_FAST: ServiceTier.FAST,
+};
+
+const THINKING_MODE_BY_NAME: Readonly<Record<string, ThinkingMode | undefined>> = {
+  THINKING_MODE_DISABLED: ThinkingMode.DISABLED,
+  THINKING_MODE_ENABLED: ThinkingMode.ENABLED,
+};
+
+/**
+ * The step's run_config as the proto message, every field carried as the
+ * author wrote it (zero or empty stays "not set"). The loader guarantees a
+ * canonical enum name for the tier and thinking mode; an unknown one here
+ * means the loader and this mapping drifted, so the task fails rather than
+ * silently dropping a variant directive.
+ */
+export function toRunConfig(step: AgentCallRunConfig): RunConfig {
+  const serviceTier = step.service_tier ? SERVICE_TIER_BY_NAME[step.service_tier] : ServiceTier.UNSPECIFIED;
+  if (serviceTier === undefined) {
+    throw new Error(`call:agent run_config.service_tier '${step.service_tier}' has no proto mapping`);
+  }
+  const thinkingMode = step.thinking_mode ? THINKING_MODE_BY_NAME[step.thinking_mode] : ThinkingMode.UNSPECIFIED;
+  if (thinkingMode === undefined) {
+    throw new Error(`call:agent run_config.thinking_mode '${step.thinking_mode}' has no proto mapping`);
+  }
+  return create(RunConfigSchema, {
+    modelName: step.model_name ?? "",
+    maxCostUsd: step.max_cost_usd ?? 0,
+    maxToolRounds: step.max_tool_rounds ?? 0,
+    maxToolResultChars: step.max_tool_result_chars ?? 0,
+    serviceTier,
+    thinkingMode,
+  });
 }

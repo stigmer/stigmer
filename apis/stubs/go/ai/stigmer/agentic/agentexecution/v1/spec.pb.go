@@ -48,9 +48,66 @@ type AgentExecutionSpec struct {
 	// User input message that triggers this execution.
 	// Each execution represents one user message and the agent's response.
 	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
-	// Optional execution-time configuration overrides.
-	// Example: Specify the model to use for this execution.
-	ExecutionConfig *ExecutionConfig `protobuf:"bytes,4,opt,name=execution_config,json=executionConfig,proto3" json:"execution_config,omitempty"`
+	// The settings this message asks for (optional): a model, a speed tier,
+	// thinking, and run bounds. Zero or empty fields are not set here.
+	//
+	// The server resolves the settings the turn runs with once, at create,
+	// and records them on AgentExecutionStatus.run_config. A choice (model,
+	// tier, thinking) comes from the most specific layer that makes one: this
+	// field, then the defaults of the agent the turn runs, then the lane's
+	// operator profile. A bound (cost, tool rounds, result size) is the
+	// tightest one any layer sets, so a message can lower an agent's cap but
+	// never raise it. RunConfig's own comment has the full rule.
+	//
+	// Unlike a saved surface's settings, a message may set service_tier or
+	// thinking_mode without a model: it then adjusts the model a less
+	// specific layer chose (for example, thinking off for one message on an
+	// agent whose default turns it on).
+	//
+	// A lane that composes the turn for a surface (a schedule, a workflow
+	// step) writes that surface's saved settings here. On a lane where the
+	// caller is a visitor (the hosted edition's shared-agent guests and
+	// channel senders), the surface's saved settings replace this field; the
+	// per-message intents below are the edition's to allow or clear for a
+	// visitor, not replaced with this field.
+	RunConfig *RunConfig `protobuf:"bytes,18,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
+	// Interaction mode for this message.
+	//
+	// AGENT (default): full tool access — read, write, create, delete, shell.
+	// PLAN: read-only analysis — read, search, list only. No file mutations.
+	//
+	// When UNSPECIFIED, defaults to AGENT.
+	//
+	// The mode is set per message and does not carry over between messages
+	// in the same session. Users toggle mode in the session composer before
+	// sending each message.
+	InteractionMode InteractionMode `protobuf:"varint,19,opt,name=interaction_mode,json=interactionMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.InteractionMode" json:"interaction_mode,omitempty"`
+	// Marks this message as a "Build from plan" turn: the user approved a plan
+	// produced by a prior Plan-mode execution and asked the agent to implement it.
+	//
+	// When set, the runner injects the implement-plan directive into the agent's
+	// prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+	// document travels as an attachment (the normal case), the directive points
+	// the agent at the attached plan file and treats it as authoritative; when no
+	// plan attachment is present (e.g. the client's upload failed), the directive
+	// tells the agent to follow the plan from the conversation instead.
+	//
+	// Clients set this flag INSTEAD of embedding implement instructions in
+	// `message`, so `message` stays a short human-readable label (e.g.
+	// "Build from plan") that UIs can render as a compact chip.
+	//
+	// Like interaction_mode, this is per message and never carries over
+	// between messages in the same session.
+	BuildFromPlan bool `protobuf:"varint,20,opt,name=build_from_plan,json=buildFromPlan,proto3" json:"build_from_plan,omitempty"`
+	// JSON Schema that the agent's output must conform to (optional).
+	//
+	// When set, the runner enforces structured output:
+	// - Native harness: uses deepagents responseFormat/ToolStrategy
+	// - Cursor harness: prompt instruction + extraction fallback
+	//
+	// The validated structured data is returned in the activity result
+	// and passed back to the parent workflow as `structured`.
+	StructuredOutputSchema *structpb.Struct `protobuf:"bytes,21,opt,name=structured_output_schema,json=structuredOutputSchema,proto3" json:"structured_output_schema,omitempty"`
 	// Runtime environment variables and secrets (execution-scoped).
 	// These values are only available for this specific execution and take the
 	// highest merge priority, overriding values from Environments bound via
@@ -213,9 +270,30 @@ func (x *AgentExecutionSpec) GetMessage() string {
 	return ""
 }
 
-func (x *AgentExecutionSpec) GetExecutionConfig() *ExecutionConfig {
+func (x *AgentExecutionSpec) GetRunConfig() *RunConfig {
 	if x != nil {
-		return x.ExecutionConfig
+		return x.RunConfig
+	}
+	return nil
+}
+
+func (x *AgentExecutionSpec) GetInteractionMode() InteractionMode {
+	if x != nil {
+		return x.InteractionMode
+	}
+	return InteractionMode_INTERACTION_MODE_UNSPECIFIED
+}
+
+func (x *AgentExecutionSpec) GetBuildFromPlan() bool {
+	if x != nil {
+		return x.BuildFromPlan
+	}
+	return false
+}
+
+func (x *AgentExecutionSpec) GetStructuredOutputSchema() *structpb.Struct {
+	if x != nil {
+		return x.StructuredOutputSchema
 	}
 	return nil
 }
@@ -381,376 +459,6 @@ func (x *WorkflowParent) GetCallbackToken() []byte {
 	return nil
 }
 
-// Configuration that can be applied at execution time.
-type ExecutionConfig struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The model to use for this execution.
-	// Example: "claude-sonnet-4-6"
-	ModelName string `protobuf:"bytes,1,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
-	// Context management configuration for this execution.
-	// Controls automatic summarization behavior for long-running conversations.
-	// When not specified, defaults are derived from the Model Registry.
-	ContextManagement *ContextManagementConfig `protobuf:"bytes,2,opt,name=context_management,json=contextManagement,proto3" json:"context_management,omitempty"`
-	// Maximum number of model-to-tools reasoning cycles per message.
-	//
-	// A round is one model response that proposes one or more tool calls,
-	// followed by their execution; parallel tool calls in one response are one
-	// round. When the limit is reached the run stops with a "send another
-	// message to continue" prompt, and the work done so far is kept. The agent
-	// is advised to wrap up at about 80% of the budget.
-	//
-	// 0 = unlimited, the default and the recommendation: the agent runs until
-	// the task completes or loop detection stops a repetitive pattern (7
-	// consecutive / 20 total duplicate patterns). When set, the valid range is
-	// 10–1000; values outside it are clamped to the nearest bound. The budget
-	// is per message: a follow-up message, or a run resuming after an approval,
-	// starts a fresh count. Sub-agent rounds are not counted, and the Cursor
-	// harness does not enforce this field.
-	MaxToolRounds int32 `protobuf:"varint,3,opt,name=max_tool_rounds,json=maxToolRounds,proto3" json:"max_tool_rounds,omitempty"`
-	// Maximum number of characters for a single tool result before truncation.
-	// When a tool result exceeds this limit, it is truncated and a marker is
-	// appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
-	//
-	// 0 = use platform default (recommended: 30,000 chars ~ 7,500 tokens).
-	// Set higher for agents that work with large files/outputs.
-	//
-	// Applies to all tool results (shell, read, write, MCP tools).
-	// Does not apply to built-in tools that already manage their output size.
-	MaxToolResultChars int32 `protobuf:"varint,4,opt,name=max_tool_result_chars,json=maxToolResultChars,proto3" json:"max_tool_result_chars,omitempty"`
-	// Maximum estimated cost in USD for this execution.
-	//
-	// When the execution's estimated spend reaches this limit, the run stops
-	// with a "send another message to continue" prompt and the execution ends
-	// TERMINATED; the work done so far is kept. The limit is checked each time
-	// the engine reports its spend, so a run can end somewhat above it. The
-	// native harness reports after every model call, counts a sub-agent's spend
-	// toward the limit, and advises the agent to wrap up at about 80% of the
-	// budget; the Cursor harness gives no warning.
-	//
-	// 0.0 = no cost cap (default, unlimited).
-	// Recommended: 1.00-5.00 for interactive sessions, 10.00+ for batch workflows.
-	//
-	// The budget is per message: a follow-up message, or a run resuming after
-	// an approval, starts a fresh count. The spend is the runner's estimate,
-	// reported on AgentExecutionStatus.streaming_usage.estimated_cost_usd, not
-	// the billed amount.
-	MaxCostUsd float64 `protobuf:"fixed64,5,opt,name=max_cost_usd,json=maxCostUsd,proto3" json:"max_cost_usd,omitempty"`
-	// Interaction mode for this execution.
-	//
-	// AGENT (default): full tool access — read, write, create, delete, shell.
-	// PLAN: read-only analysis — read, search, list only. No file mutations.
-	//
-	// When UNSPECIFIED, defaults to AGENT for backward compatibility.
-	//
-	// The mode is set per-execution and does not carry over between executions
-	// in the same session. Users toggle mode in the session composer before
-	// sending each message.
-	InteractionMode InteractionMode `protobuf:"varint,6,opt,name=interaction_mode,json=interactionMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.InteractionMode" json:"interaction_mode,omitempty"`
-	// JSON Schema that the agent's output must conform to.
-	//
-	// When set, the runner enforces structured output:
-	// - Native harness: uses deepagents responseFormat/ToolStrategy
-	// - Cursor harness: prompt instruction + extraction fallback
-	//
-	// The validated structured data is returned in the activity result
-	// and passed back to the parent workflow as `structured`.
-	StructuredOutputSchema *structpb.Struct `protobuf:"bytes,7,opt,name=structured_output_schema,json=structuredOutputSchema,proto3" json:"structured_output_schema,omitempty"`
-	// Marks this execution as a "Build from plan" turn: the user approved a plan
-	// produced by a prior Plan-mode execution and asked the agent to implement it.
-	//
-	// When set, the runner injects the implement-plan directive into the agent's
-	// prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
-	// document travels as an attachment (the normal case), the directive points
-	// the agent at the attached plan file and treats it as authoritative; when no
-	// plan attachment is present (e.g. the client's upload failed), the directive
-	// tells the agent to follow the plan from the conversation instead.
-	//
-	// Clients set this flag INSTEAD of embedding implement instructions in
-	// `message`, so `message` stays a short human-readable label (e.g.
-	// "Build from plan") that UIs can render as a compact chip.
-	//
-	// Like interaction_mode, this is per-execution and never carries over
-	// between executions in the same session.
-	BuildFromPlan bool `protobuf:"varint,8,opt,name=build_from_plan,json=buildFromPlan,proto3" json:"build_from_plan,omitempty"`
-	// How approval gates resolve for this execution. See ApprovalMode.
-	//
-	// UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
-	// decides (today's behavior). UNATTENDED: gated tools auto-skip and the
-	// model adapts — set by surfaces with no approver (channel session broker,
-	// guest execution scope step), never by external callers (the guest scope
-	// step replaces the whole execution_config, so a guest-supplied mode is
-	// discarded with the rest of the config).
-	//
-	// Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
-	// unattended mode resolves gates so tools SKIP. When both are set the
-	// bypass wins by layer order (the gate never fires).
-	ApprovalMode ApprovalMode `protobuf:"varint,9,opt,name=approval_mode,json=approvalMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalMode" json:"approval_mode,omitempty"`
-	// Service tier for this execution's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
-	//
-	// UNSPECIFIED/STANDARD: the model's base-priced configuration, requested
-	// explicitly — never the provider account default. FAST: the model's fast
-	// variant at the registry's fast rates; valid only for models whose
-	// registry entry declares a fast pricing variant, and requires model_name
-	// to be set (validated fail-closed at create time).
-	ServiceTier ServiceTier `protobuf:"varint,10,opt,name=service_tier,json=serviceTier,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ServiceTier" json:"service_tier,omitempty"`
-	// Thinking mode for this execution's model calls: disabled (the default)
-	// or enabled, where enabled selects the model's extended-reasoning variant.
-	//
-	// UNSPECIFIED/DISABLED: the model's base variant, pinned explicitly —
-	// never the provider account default. ENABLED: the model's thinking
-	// variant, billed at base per-token rates (reasoning tokens bill as
-	// output); valid only for models whose registry entry declares the
-	// thinking capability, and requires model_name to be set (validated
-	// fail-closed at create time). Combines freely with service_tier.
-	ThinkingMode  ThinkingMode `protobuf:"varint,11,opt,name=thinking_mode,json=thinkingMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ThinkingMode" json:"thinking_mode,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ExecutionConfig) Reset() {
-	*x = ExecutionConfig{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ExecutionConfig) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ExecutionConfig) ProtoMessage() {}
-
-func (x *ExecutionConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ExecutionConfig.ProtoReflect.Descriptor instead.
-func (*ExecutionConfig) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *ExecutionConfig) GetModelName() string {
-	if x != nil {
-		return x.ModelName
-	}
-	return ""
-}
-
-func (x *ExecutionConfig) GetContextManagement() *ContextManagementConfig {
-	if x != nil {
-		return x.ContextManagement
-	}
-	return nil
-}
-
-func (x *ExecutionConfig) GetMaxToolRounds() int32 {
-	if x != nil {
-		return x.MaxToolRounds
-	}
-	return 0
-}
-
-func (x *ExecutionConfig) GetMaxToolResultChars() int32 {
-	if x != nil {
-		return x.MaxToolResultChars
-	}
-	return 0
-}
-
-func (x *ExecutionConfig) GetMaxCostUsd() float64 {
-	if x != nil {
-		return x.MaxCostUsd
-	}
-	return 0
-}
-
-func (x *ExecutionConfig) GetInteractionMode() InteractionMode {
-	if x != nil {
-		return x.InteractionMode
-	}
-	return InteractionMode_INTERACTION_MODE_UNSPECIFIED
-}
-
-func (x *ExecutionConfig) GetStructuredOutputSchema() *structpb.Struct {
-	if x != nil {
-		return x.StructuredOutputSchema
-	}
-	return nil
-}
-
-func (x *ExecutionConfig) GetBuildFromPlan() bool {
-	if x != nil {
-		return x.BuildFromPlan
-	}
-	return false
-}
-
-func (x *ExecutionConfig) GetApprovalMode() ApprovalMode {
-	if x != nil {
-		return x.ApprovalMode
-	}
-	return ApprovalMode_APPROVAL_MODE_UNSPECIFIED
-}
-
-func (x *ExecutionConfig) GetServiceTier() ServiceTier {
-	if x != nil {
-		return x.ServiceTier
-	}
-	return ServiceTier_SERVICE_TIER_UNSPECIFIED
-}
-
-func (x *ExecutionConfig) GetThinkingMode() ThinkingMode {
-	if x != nil {
-		return x.ThinkingMode
-	}
-	return ThinkingMode_THINKING_MODE_UNSPECIFIED
-}
-
-// ContextManagementConfig controls automatic context summarization behavior.
-//
-// Context summarization monitors token usage and automatically summarizes
-// older conversation history when approaching the model's context window limit.
-// This enables long-running agent conversations without hitting context limits.
-//
-// ## Default Behavior
-//
-// When not specified, defaults are derived from the Model Registry:
-// - Each model has a configured context_window, trigger_threshold, and target_tokens
-// - Summarization is enabled by default for all models
-// - Economy-tier models (claude-haiku-4, gpt-4o-mini) are used for summarization
-//
-// ## Configuration Options
-//
-// - **disable_summarization**: Opt out of automatic summarization entirely
-// - **custom_trigger_threshold**: Override when summarization triggers
-// - **custom_target_tokens**: Override the target size after summarization
-//
-// ## Example YAML
-//
-// Default behavior (use model registry defaults):
-//
-//	execution_config:
-//	  model_name: "claude-sonnet-4.5"
-//	  # context_management not specified = use defaults
-//
-// Disable summarization:
-//
-//	execution_config:
-//	  model_name: "claude-sonnet-4.5"
-//	  context_management:
-//	    disable_summarization: true
-//
-// Custom thresholds (tokens):
-//
-//	execution_config:
-//	  model_name: "claude-sonnet-4.5"
-//	  context_management:
-//	    custom_trigger_threshold: 100000
-//	    custom_target_tokens: 80000
-type ContextManagementConfig struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Disable automatic context summarization for this execution.
-	//
-	// When true, the agent will never trigger automatic summarization,
-	// even if the context window approaches the model's limit.
-	//
-	// Use cases:
-	// - Short-lived executions that won't approach context limits
-	// - Debugging context-related issues
-	// - Workflows that manage their own context externally
-	//
-	// Warning: Disabling summarization may cause execution failure
-	// if context exceeds model limits.
-	//
-	// Default: false (summarization enabled based on model defaults)
-	DisableSummarization bool `protobuf:"varint,1,opt,name=disable_summarization,json=disableSummarization,proto3" json:"disable_summarization,omitempty"`
-	// Custom token threshold to trigger summarization.
-	//
-	// When the context token count exceeds this threshold, summarization
-	// is triggered to reduce context size. Set to 0 to use model default.
-	//
-	// The default trigger threshold from Model Registry is typically 90%
-	// of the model's context window (e.g., 180K for 200K context models).
-	//
-	// Must be greater than custom_target_tokens if both are specified.
-	//
-	// Default: 0 (use model default from Model Registry)
-	CustomTriggerThreshold int32 `protobuf:"varint,2,opt,name=custom_trigger_threshold,json=customTriggerThreshold,proto3" json:"custom_trigger_threshold,omitempty"`
-	// Custom target token count after summarization.
-	//
-	// Summarization aims to reduce context to approximately this size.
-	// Set to 0 to use model default.
-	//
-	// The default target from Model Registry is typically 80% of the
-	// model's context window (e.g., 160K for 200K context models).
-	//
-	// Must be less than custom_trigger_threshold if both are specified.
-	//
-	// Default: 0 (use model default from Model Registry)
-	CustomTargetTokens int32 `protobuf:"varint,3,opt,name=custom_target_tokens,json=customTargetTokens,proto3" json:"custom_target_tokens,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *ContextManagementConfig) Reset() {
-	*x = ContextManagementConfig{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ContextManagementConfig) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ContextManagementConfig) ProtoMessage() {}
-
-func (x *ContextManagementConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ContextManagementConfig.ProtoReflect.Descriptor instead.
-func (*ContextManagementConfig) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *ContextManagementConfig) GetDisableSummarization() bool {
-	if x != nil {
-		return x.DisableSummarization
-	}
-	return false
-}
-
-func (x *ContextManagementConfig) GetCustomTriggerThreshold() int32 {
-	if x != nil {
-		return x.CustomTriggerThreshold
-	}
-	return 0
-}
-
-func (x *ContextManagementConfig) GetCustomTargetTokens() int32 {
-	if x != nil {
-		return x.CustomTargetTokens
-	}
-	return 0
-}
-
 // Attachment represents a file attached to an agent execution.
 //
 // All files must be pre-uploaded via the uploadAttachment RPC and referenced
@@ -816,7 +524,7 @@ type Attachment struct {
 
 func (x *Attachment) Reset() {
 	*x = Attachment{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -828,7 +536,7 @@ func (x *Attachment) String() string {
 func (*Attachment) ProtoMessage() {}
 
 func (x *Attachment) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -841,7 +549,7 @@ func (x *Attachment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attachment.ProtoReflect.Descriptor instead.
 func (*Attachment) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Attachment) GetFilename() string {
@@ -901,7 +609,7 @@ type ConversationCatchup struct {
 
 func (x *ConversationCatchup) Reset() {
 	*x = ConversationCatchup{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -913,7 +621,7 @@ func (x *ConversationCatchup) String() string {
 func (*ConversationCatchup) ProtoMessage() {}
 
 func (x *ConversationCatchup) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -926,7 +634,7 @@ func (x *ConversationCatchup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationCatchup.ProtoReflect.Descriptor instead.
 func (*ConversationCatchup) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ConversationCatchup) GetDigest() string {
@@ -957,7 +665,7 @@ type DeclaredPreferences struct {
 
 func (x *DeclaredPreferences) Reset() {
 	*x = DeclaredPreferences{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -969,7 +677,7 @@ func (x *DeclaredPreferences) String() string {
 func (*DeclaredPreferences) ProtoMessage() {}
 
 func (x *DeclaredPreferences) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -982,7 +690,7 @@ func (x *DeclaredPreferences) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeclaredPreferences.ProtoReflect.Descriptor instead.
 func (*DeclaredPreferences) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DeclaredPreferences) GetOrgContext() string {
@@ -1015,7 +723,7 @@ type RecalledMemories struct {
 
 func (x *RecalledMemories) Reset() {
 	*x = RecalledMemories{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1027,7 +735,7 @@ func (x *RecalledMemories) String() string {
 func (*RecalledMemories) ProtoMessage() {}
 
 func (x *RecalledMemories) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1040,7 +748,7 @@ func (x *RecalledMemories) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecalledMemories.ProtoReflect.Descriptor instead.
 func (*RecalledMemories) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RecalledMemories) GetEnabled() bool {
@@ -1071,7 +779,7 @@ type RecalledMemoryFact struct {
 
 func (x *RecalledMemoryFact) Reset() {
 	*x = RecalledMemoryFact{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1083,7 +791,7 @@ func (x *RecalledMemoryFact) String() string {
 func (*RecalledMemoryFact) ProtoMessage() {}
 
 func (x *RecalledMemoryFact) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1096,7 +804,7 @@ func (x *RecalledMemoryFact) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecalledMemoryFact.ProtoReflect.Descriptor instead.
 func (*RecalledMemoryFact) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RecalledMemoryFact) GetMemoryId() string {
@@ -1117,14 +825,17 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x96\n" +
-	"\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a5ai/stigmer/agentic/agentexecution/v1/invocation.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x83\f\n" +
 	"\x12AgentExecutionSpec\x12\x1f\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
 	"\fsession_spec\x18\r \x01(\v2*.ai.stigmer.agentic.session.v1.SessionSpecH\x00R\vsessionSpec\x12!\n" +
-	"\amessage\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\amessage\x12`\n" +
-	"\x10execution_config\x18\x04 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.ExecutionConfigR\x0fexecutionConfig\x12i\n" +
+	"\amessage\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\amessage\x12N\n" +
+	"\n" +
+	"run_config\x18\x12 \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\x12j\n" +
+	"\x10interaction_mode\x18\x13 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.InteractionModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0finteractionMode\x12&\n" +
+	"\x0fbuild_from_plan\x18\x14 \x01(\bR\rbuildFromPlan\x12Q\n" +
+	"\x18structured_output_schema\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12i\n" +
 	"\vruntime_env\x18\x05 \x03(\v2H.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntryR\n" +
 	"runtimeEnv\x12(\n" +
 	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x12R\n" +
@@ -1138,30 +849,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01:\xea\x01\xbaH\xe6\x01\x1a\xe3\x01\n" +
 	"*agent_execution.session_spec_harness_state\x12psession_spec.harness_state_id must be empty — harness state is created by the runner after the first execution\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''B\b\n" +
-	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x14declared_preferencesR\x11recalled_memories\"\xa2\x01\n" +
+	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x04\x10\x05R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x14declared_preferencesR\x11recalled_memoriesR\x10execution_config\"\xa2\x01\n" +
 	"\x0eWorkflowParent\x12;\n" +
 	"\x15workflow_execution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x13workflowExecutionId\x12,\n" +
 	"\x12signal_workflow_id\x18\x02 \x01(\tR\x10signalWorkflowId\x12%\n" +
-	"\x0ecallback_token\x18\x03 \x01(\fR\rcallbackToken\"\xa8\x06\n" +
-	"\x0fExecutionConfig\x12\x1d\n" +
-	"\n" +
-	"model_name\x18\x01 \x01(\tR\tmodelName\x12l\n" +
-	"\x12context_management\x18\x02 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagement\x12&\n" +
-	"\x0fmax_tool_rounds\x18\x03 \x01(\x05R\rmaxToolRounds\x121\n" +
-	"\x15max_tool_result_chars\x18\x04 \x01(\x05R\x12maxToolResultChars\x12 \n" +
-	"\fmax_cost_usd\x18\x05 \x01(\x01R\n" +
-	"maxCostUsd\x12j\n" +
-	"\x10interaction_mode\x18\x06 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.InteractionModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0finteractionMode\x12Q\n" +
-	"\x18structured_output_schema\x18\a \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12&\n" +
-	"\x0fbuild_from_plan\x18\b \x01(\bR\rbuildFromPlan\x12a\n" +
-	"\rapproval_mode\x18\t \x01(\x0e22.ai.stigmer.agentic.agentexecution.v1.ApprovalModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\fapprovalMode\x12^\n" +
-	"\fservice_tier\x18\n" +
-	" \x01(\x0e21.ai.stigmer.agentic.agentexecution.v1.ServiceTierB\b\xbaH\x05\x82\x01\x02\x10\x01R\vserviceTier\x12a\n" +
-	"\rthinking_mode\x18\v \x01(\x0e22.ai.stigmer.agentic.agentexecution.v1.ThinkingModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\fthinkingMode\"\xcc\x01\n" +
-	"\x17ContextManagementConfig\x123\n" +
-	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
-	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +
-	"\x14custom_target_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12customTargetTokens\"\x96\x03\n" +
+	"\x0ecallback_token\x18\x03 \x01(\fR\rcallbackToken\"\x96\x03\n" +
 	"\n" +
 	"Attachment\x12\xe2\x01\n" +
 	"\bfilename\x18\x01 \x01(\tB\xc5\x01\xbaH\xc1\x01\xba\x01\xb9\x01\n" +
@@ -1202,48 +894,40 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_goTypes = []any{
-	(*AgentExecutionSpec)(nil),      // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
-	(*WorkflowParent)(nil),          // 1: ai.stigmer.agentic.agentexecution.v1.WorkflowParent
-	(*ExecutionConfig)(nil),         // 2: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
-	(*ContextManagementConfig)(nil), // 3: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
-	(*Attachment)(nil),              // 4: ai.stigmer.agentic.agentexecution.v1.Attachment
-	(*ConversationCatchup)(nil),     // 5: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
-	(*DeclaredPreferences)(nil),     // 6: ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences
-	(*RecalledMemories)(nil),        // 7: ai.stigmer.agentic.agentexecution.v1.RecalledMemories
-	(*RecalledMemoryFact)(nil),      // 8: ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact
-	nil,                             // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
-	(*v11.SessionSpec)(nil),         // 10: ai.stigmer.agentic.session.v1.SessionSpec
-	(InteractionMode)(0),            // 11: ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	(*structpb.Struct)(nil),         // 12: google.protobuf.Struct
-	(ApprovalMode)(0),               // 13: ai.stigmer.agentic.agentexecution.v1.ApprovalMode
-	(ServiceTier)(0),                // 14: ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	(ThinkingMode)(0),               // 15: ai.stigmer.agentic.agentexecution.v1.ThinkingMode
-	(*timestamppb.Timestamp)(nil),   // 16: google.protobuf.Timestamp
-	(*v1.ExecutionValue)(nil),       // 17: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*AgentExecutionSpec)(nil),    // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
+	(*WorkflowParent)(nil),        // 1: ai.stigmer.agentic.agentexecution.v1.WorkflowParent
+	(*Attachment)(nil),            // 2: ai.stigmer.agentic.agentexecution.v1.Attachment
+	(*ConversationCatchup)(nil),   // 3: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
+	(*DeclaredPreferences)(nil),   // 4: ai.stigmer.agentic.agentexecution.v1.DeclaredPreferences
+	(*RecalledMemories)(nil),      // 5: ai.stigmer.agentic.agentexecution.v1.RecalledMemories
+	(*RecalledMemoryFact)(nil),    // 6: ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact
+	nil,                           // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
+	(*v11.SessionSpec)(nil),       // 8: ai.stigmer.agentic.session.v1.SessionSpec
+	(*RunConfig)(nil),             // 9: ai.stigmer.agentic.agentexecution.v1.RunConfig
+	(InteractionMode)(0),          // 10: ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	(*structpb.Struct)(nil),       // 11: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
+	(*v1.ExecutionValue)(nil),     // 13: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
-	10, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
-	2,  // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.execution_config:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
-	9,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
-	4,  // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.attachments:type_name -> ai.stigmer.agentic.agentexecution.v1.Attachment
-	5,  // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.conversation_catchup:type_name -> ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
-	1,  // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.parent:type_name -> ai.stigmer.agentic.agentexecution.v1.WorkflowParent
-	3,  // 6: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
-	11, // 7: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	12, // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
-	13, // 9: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.approval_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalMode
-	14, // 10: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	15, // 11: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.thinking_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ThinkingMode
-	16, // 12: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
-	8,  // 13: ai.stigmer.agentic.agentexecution.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact
-	17, // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	8,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
+	9,  // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.run_config:type_name -> ai.stigmer.agentic.agentexecution.v1.RunConfig
+	10, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	11, // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.structured_output_schema:type_name -> google.protobuf.Struct
+	7,  // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
+	2,  // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.attachments:type_name -> ai.stigmer.agentic.agentexecution.v1.Attachment
+	3,  // 6: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.conversation_catchup:type_name -> ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
+	1,  // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.parent:type_name -> ai.stigmer.agentic.agentexecution.v1.WorkflowParent
+	12, // 8: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
+	6,  // 9: ai.stigmer.agentic.agentexecution.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact
+	13, // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() }
@@ -1252,6 +936,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
+	file_ai_stigmer_agentic_agentexecution_v1_invocation_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[0].OneofWrappers = []any{
 		(*AgentExecutionSpec_SessionId)(nil),
 		(*AgentExecutionSpec_SessionSpec)(nil),
@@ -1262,7 +947,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

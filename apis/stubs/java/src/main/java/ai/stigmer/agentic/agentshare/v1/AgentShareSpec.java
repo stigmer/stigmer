@@ -400,13 +400,14 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Per-turn model choice and run bounds for guest conversations on this
-   * share, overriding the platform's guest execution profile.
+   * share.
    *
-   * Unset fields inherit the platform default. model_name replaces the
-   * platform model outright, while max_cost_usd and max_tool_rounds can
-   * only lower the platform caps — a share owner can reduce what one
-   * guest turn may spend, never raise it past the platform profile.
-   * Valid on public-audience shares only.
+   * These settings are the turn's own layer: unset fields fall to the
+   * agent's defaults, then to the platform's guest execution profile
+   * (RunConfig has the rule). A choice set here wins over the agent's;
+   * max_cost_usd and max_tool_rounds can only lower the agent's and the
+   * platform's caps — a share owner can reduce what one guest turn may
+   * spend, never raise it. Valid on public-audience shares only.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -419,13 +420,14 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Per-turn model choice and run bounds for guest conversations on this
-   * share, overriding the platform's guest execution profile.
+   * share.
    *
-   * Unset fields inherit the platform default. model_name replaces the
-   * platform model outright, while max_cost_usd and max_tool_rounds can
-   * only lower the platform caps — a share owner can reduce what one
-   * guest turn may spend, never raise it past the platform profile.
-   * Valid on public-audience shares only.
+   * These settings are the turn's own layer: unset fields fall to the
+   * agent's defaults, then to the platform's guest execution profile
+   * (RunConfig has the rule). A choice set here wins over the agent's;
+   * max_cost_usd and max_tool_rounds can only lower the agent's and the
+   * platform's caps — a share owner can reduce what one guest turn may
+   * spend, never raise it. Valid on public-audience shares only.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -438,13 +440,14 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Per-turn model choice and run bounds for guest conversations on this
-   * share, overriding the platform's guest execution profile.
+   * share.
    *
-   * Unset fields inherit the platform default. model_name replaces the
-   * platform model outright, while max_cost_usd and max_tool_rounds can
-   * only lower the platform caps — a share owner can reduce what one
-   * guest turn may spend, never raise it past the platform profile.
-   * Valid on public-audience shares only.
+   * These settings are the turn's own layer: unset fields fall to the
+   * agent's defaults, then to the platform's guest execution profile
+   * (RunConfig has the rule). A choice set here wins over the agent's;
+   * max_cost_usd and max_tool_rounds can only lower the agent's and the
+   * platform's caps — a share owner can reduce what one guest turn may
+   * spend, never raise it. Valid on public-audience shares only.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -2220,13 +2223,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for guest conversations on this
-     * share, overriding the platform's guest execution profile.
+     * share.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a share owner can reduce what one
-     * guest turn may spend, never raise it past the platform profile.
-     * Valid on public-audience shares only.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's guest execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a share owner can reduce what one guest turn may
+     * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -2238,13 +2242,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for guest conversations on this
-     * share, overriding the platform's guest execution profile.
+     * share.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a share owner can reduce what one
-     * guest turn may spend, never raise it past the platform profile.
-     * Valid on public-audience shares only.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's guest execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a share owner can reduce what one guest turn may
+     * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -2260,13 +2265,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for guest conversations on this
-     * share, overriding the platform's guest execution profile.
+     * share.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a share owner can reduce what one
-     * guest turn may spend, never raise it past the platform profile.
-     * Valid on public-audience shares only.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's guest execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a share owner can reduce what one guest turn may
+     * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -2287,13 +2293,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for guest conversations on this
-     * share, overriding the platform's guest execution profile.
+     * share.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a share owner can reduce what one
-     * guest turn may spend, never raise it past the platform profile.
-     * Valid on public-audience shares only.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's guest execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a share owner can reduce what one guest turn may
+     * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -2312,13 +2319,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for guest conversations on this
-     * share, overriding the platform's guest execution profile.
+     * share.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a share owner can reduce what one
-     * guest turn may spend, never raise it past the platform profile.
-     * Valid on public-audience shares only.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's guest execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a share owner can reduce what one guest turn may
+     * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -2344,13 +2352,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for guest conversations on this
-     * share, overriding the platform's guest execution profile.
+     * share.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a share owner can reduce what one
-     * guest turn may spend, never raise it past the platform profile.
-     * Valid on public-audience shares only.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's guest execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a share owner can reduce what one guest turn may
+     * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -2368,13 +2377,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for guest conversations on this
-     * share, overriding the platform's guest execution profile.
+     * share.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a share owner can reduce what one
-     * guest turn may spend, never raise it past the platform profile.
-     * Valid on public-audience shares only.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's guest execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a share owner can reduce what one guest turn may
+     * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -2387,13 +2397,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for guest conversations on this
-     * share, overriding the platform's guest execution profile.
+     * share.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a share owner can reduce what one
-     * guest turn may spend, never raise it past the platform profile.
-     * Valid on public-audience shares only.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's guest execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a share owner can reduce what one guest turn may
+     * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -2409,13 +2420,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Per-turn model choice and run bounds for guest conversations on this
-     * share, overriding the platform's guest execution profile.
+     * share.
      *
-     * Unset fields inherit the platform default. model_name replaces the
-     * platform model outright, while max_cost_usd and max_tool_rounds can
-     * only lower the platform caps — a share owner can reduce what one
-     * guest turn may spend, never raise it past the platform profile.
-     * Valid on public-audience shares only.
+     * These settings are the turn's own layer: unset fields fall to the
+     * agent's defaults, then to the platform's guest execution profile
+     * (RunConfig has the rule). A choice set here wins over the agent's;
+     * max_cost_usd and max_tool_rounds can only lower the agent's and the
+     * platform's caps — a share owner can reduce what one guest turn may
+     * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>

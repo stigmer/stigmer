@@ -18,7 +18,7 @@ from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as agentexecutio
 
 from ._errors import wrap_error
 from ._types import ResourceRef
-from ._agentchannel import RunConfigInput
+from ._agent import RunConfigInput
 from ._agentexecution import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
 
 

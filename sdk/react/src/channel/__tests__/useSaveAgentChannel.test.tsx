@@ -3,6 +3,10 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { AgentChannelInput } from "@stigmer/sdk";
+import {
+  ServiceTier,
+  ThinkingMode,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { useSaveAgentChannel, agentChannelToInput } from "../useSaveAgentChannel";
 
@@ -143,6 +147,27 @@ describe("agentChannelToInput", () => {
       maxToolRounds: 8,
       serviceTier: undefined,
     });
+  });
+
+  it("carries every run_config field — a field the rebuild drops is a field the toggle wipes", () => {
+    const runConfig = {
+      modelName: "claude-sonnet-4.6",
+      maxCostUsd: 0.5,
+      maxToolRounds: 12,
+      serviceTier: ServiceTier.FAST,
+      thinkingMode: ThinkingMode.ENABLED,
+      maxToolResultChars: 20000,
+    };
+    const channel = makeChannel({
+      spec: {
+        agentRef: { org: "acme", slug: "support-agent" },
+        enabled: true,
+        providerConfig: { case: "slack", value: {} },
+        runConfig,
+      },
+    });
+
+    expect(agentChannelToInput(channel).runConfig).toStrictEqual(runConfig);
   });
 
   it("omits runConfig entirely when the channel carries none", () => {

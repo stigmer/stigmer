@@ -644,6 +644,9 @@ function convertAgentCallTask(cfg: AgentCallTaskConfig): YamlMap {
     if (rc.maxToolRounds > 0) {
       runConfig["max_tool_rounds"] = rc.maxToolRounds;
     }
+    if (rc.maxToolResultChars > 0) {
+      runConfig["max_tool_result_chars"] = rc.maxToolResultChars;
+    }
     // Emitted as the lowercase shorthand ("standard"/"fast"), the same
     // authoring idiom as harness below; the runner loader maps it back
     // to the canonical enum name.

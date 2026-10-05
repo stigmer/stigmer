@@ -156,33 +156,203 @@ public interface AgentExecutionSpecOrBuilder extends
 
   /**
    * <pre>
-   * Optional execution-time configuration overrides.
-   * Example: Specify the model to use for this execution.
+   * The settings this message asks for (optional): a model, a speed tier,
+   * thinking, and run bounds. Zero or empty fields are not set here.
+   *
+   * The server resolves the settings the turn runs with once, at create,
+   * and records them on AgentExecutionStatus.run_config. A choice (model,
+   * tier, thinking) comes from the most specific layer that makes one: this
+   * field, then the defaults of the agent the turn runs, then the lane's
+   * operator profile. A bound (cost, tool rounds, result size) is the
+   * tightest one any layer sets, so a message can lower an agent's cap but
+   * never raise it. RunConfig's own comment has the full rule.
+   *
+   * Unlike a saved surface's settings, a message may set service_tier or
+   * thinking_mode without a model: it then adjusts the model a less
+   * specific layer chose (for example, thinking off for one message on an
+   * agent whose default turns it on).
+   *
+   * A lane that composes the turn for a surface (a schedule, a workflow
+   * step) writes that surface's saved settings here. On a lane where the
+   * caller is a visitor (the hosted edition's shared-agent guests and
+   * channel senders), the surface's saved settings replace this field; the
+   * per-message intents below are the edition's to allow or clear for a
+   * visitor, not replaced with this field.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
-   * @return Whether the executionConfig field is set.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
+   * @return Whether the runConfig field is set.
    */
-  boolean hasExecutionConfig();
+  boolean hasRunConfig();
   /**
    * <pre>
-   * Optional execution-time configuration overrides.
-   * Example: Specify the model to use for this execution.
+   * The settings this message asks for (optional): a model, a speed tier,
+   * thinking, and run bounds. Zero or empty fields are not set here.
+   *
+   * The server resolves the settings the turn runs with once, at create,
+   * and records them on AgentExecutionStatus.run_config. A choice (model,
+   * tier, thinking) comes from the most specific layer that makes one: this
+   * field, then the defaults of the agent the turn runs, then the lane's
+   * operator profile. A bound (cost, tool rounds, result size) is the
+   * tightest one any layer sets, so a message can lower an agent's cap but
+   * never raise it. RunConfig's own comment has the full rule.
+   *
+   * Unlike a saved surface's settings, a message may set service_tier or
+   * thinking_mode without a model: it then adjusts the model a less
+   * specific layer chose (for example, thinking off for one message on an
+   * agent whose default turns it on).
+   *
+   * A lane that composes the turn for a surface (a schedule, a workflow
+   * step) writes that surface's saved settings here. On a lane where the
+   * caller is a visitor (the hosted edition's shared-agent guests and
+   * channel senders), the surface's saved settings replace this field; the
+   * per-message intents below are the edition's to allow or clear for a
+   * visitor, not replaced with this field.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
-   * @return The executionConfig.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
+   * @return The runConfig.
    */
-  ai.stigmer.agentic.agentexecution.v1.ExecutionConfig getExecutionConfig();
+  ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig();
   /**
    * <pre>
-   * Optional execution-time configuration overrides.
-   * Example: Specify the model to use for this execution.
+   * The settings this message asks for (optional): a model, a speed tier,
+   * thinking, and run bounds. Zero or empty fields are not set here.
+   *
+   * The server resolves the settings the turn runs with once, at create,
+   * and records them on AgentExecutionStatus.run_config. A choice (model,
+   * tier, thinking) comes from the most specific layer that makes one: this
+   * field, then the defaults of the agent the turn runs, then the lane's
+   * operator profile. A bound (cost, tool rounds, result size) is the
+   * tightest one any layer sets, so a message can lower an agent's cap but
+   * never raise it. RunConfig's own comment has the full rule.
+   *
+   * Unlike a saved surface's settings, a message may set service_tier or
+   * thinking_mode without a model: it then adjusts the model a less
+   * specific layer chose (for example, thinking off for one message on an
+   * agent whose default turns it on).
+   *
+   * A lane that composes the turn for a surface (a schedule, a workflow
+   * step) writes that surface's saved settings here. On a lane where the
+   * caller is a visitor (the hosted edition's shared-agent guests and
+   * channel senders), the surface's saved settings replace this field; the
+   * per-message intents below are the edition's to allow or clear for a
+   * visitor, not replaced with this field.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
    */
-  ai.stigmer.agentic.agentexecution.v1.ExecutionConfigOrBuilder getExecutionConfigOrBuilder();
+  ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder();
+
+  /**
+   * <pre>
+   * Interaction mode for this message.
+   *
+   * AGENT (default): full tool access — read, write, create, delete, shell.
+   * PLAN: read-only analysis — read, search, list only. No file mutations.
+   *
+   * When UNSPECIFIED, defaults to AGENT.
+   *
+   * The mode is set per message and does not carry over between messages
+   * in the same session. Users toggle mode in the session composer before
+   * sending each message.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 19 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for interactionMode.
+   */
+  int getInteractionModeValue();
+  /**
+   * <pre>
+   * Interaction mode for this message.
+   *
+   * AGENT (default): full tool access — read, write, create, delete, shell.
+   * PLAN: read-only analysis — read, search, list only. No file mutations.
+   *
+   * When UNSPECIFIED, defaults to AGENT.
+   *
+   * The mode is set per message and does not carry over between messages
+   * in the same session. Users toggle mode in the session composer before
+   * sending each message.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 19 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+   * @return The interactionMode.
+   */
+  ai.stigmer.agentic.agentexecution.v1.InteractionMode getInteractionMode();
+
+  /**
+   * <pre>
+   * Marks this message as a "Build from plan" turn: the user approved a plan
+   * produced by a prior Plan-mode execution and asked the agent to implement it.
+   *
+   * When set, the runner injects the implement-plan directive into the agent's
+   * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+   * document travels as an attachment (the normal case), the directive points
+   * the agent at the attached plan file and treats it as authoritative; when no
+   * plan attachment is present (e.g. the client's upload failed), the directive
+   * tells the agent to follow the plan from the conversation instead.
+   *
+   * Clients set this flag INSTEAD of embedding implement instructions in
+   * `message`, so `message` stays a short human-readable label (e.g.
+   * "Build from plan") that UIs can render as a compact chip.
+   *
+   * Like interaction_mode, this is per message and never carries over
+   * between messages in the same session.
+   * </pre>
+   *
+   * <code>bool build_from_plan = 20 [json_name = "buildFromPlan"];</code>
+   * @return The buildFromPlan.
+   */
+  boolean getBuildFromPlan();
+
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to (optional).
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+   * @return Whether the structuredOutputSchema field is set.
+   */
+  boolean hasStructuredOutputSchema();
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to (optional).
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+   * @return The structuredOutputSchema.
+   */
+  com.google.protobuf.Struct getStructuredOutputSchema();
+  /**
+   * <pre>
+   * JSON Schema that the agent's output must conform to (optional).
+   *
+   * When set, the runner enforces structured output:
+   * - Native harness: uses deepagents responseFormat/ToolStrategy
+   * - Cursor harness: prompt instruction + extraction fallback
+   *
+   * The validated structured data is returned in the activity result
+   * and passed back to the parent workflow as `structured`.
+   * </pre>
+   *
+   * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
+   */
+  com.google.protobuf.StructOrBuilder getStructuredOutputSchemaOrBuilder();
 
   /**
    * <pre>

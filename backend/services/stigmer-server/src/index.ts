@@ -355,6 +355,12 @@ export { createErrorBoundaryInterceptor } from "./pipeline/interceptors/error-bo
 // organization's agents without belonging to it, so their runs never carry
 // the organization's standing context (stigmer/stigmer#1401).
 export type { VisitorClassifier } from "./extensions/visitor-classifier.js";
+// The lanes an edition's visitors' turns come through (drivers.runLanes):
+// their saved settings, operator profile and approval mode, read by the
+// server's one settings resolution; and that resolution's rule, for an
+// edition's own tests.
+export type { RunLane, RunLanes } from "./extensions/run-lanes.js";
+export { resolveRunConfig } from "./domain/agentexecution/resolve-run-config.js";
 // The tuple lifecycle's resolution, for a kind a composition serves outside
 // the generic chains (a cloud-served create): `resolveResourceCreatedEvent`
 // derives the creation event from the kind's `kind_meta` exactly as the

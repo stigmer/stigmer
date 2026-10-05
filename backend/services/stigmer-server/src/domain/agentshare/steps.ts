@@ -57,6 +57,7 @@ import {
   evaluateAuthorizer,
 } from "../../pipeline/steps/authorize.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
+import { savedChoiceWithoutModelRefusal } from "../workflow/registry/run-config-checks.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -390,6 +391,7 @@ export function newResolveShareDefaultsStep(
       }
 
       ctx.set(REFERENCED_AGENT_KEY, agent);
+      refuseSavedChoiceWithoutModel(share);
 
       // Canonical-share default: no slug and no name means "share this
       // agent under its own slug". A caller-provided name still flows
@@ -400,6 +402,20 @@ export function newResolveShareDefaultsStep(
       }
     },
   };
+}
+
+/**
+ * A share's saved settings name the model their tier or thinking is for
+ * (registry/run-config-checks.ts): refused at create, apply and update.
+ */
+function refuseSavedChoiceWithoutModel(share: AgentShare): void {
+  const reason = savedChoiceWithoutModelRefusal(
+    { prefix: "", fieldPath: "spec.run_config" },
+    share.spec?.runConfig,
+  );
+  if (reason !== "") {
+    throw invalidArgumentError(reason);
+  }
 }
 
 /**
@@ -452,6 +468,7 @@ export function newValidateShareUpdateStep(): PipelineStep<AgentShareDesc> {
         );
       }
 
+      refuseSavedChoiceWithoutModel(ctx.newState);
       const inputRef = ctx.input.spec?.agentRef;
       const existingRef = existing.spec?.agentRef;
 

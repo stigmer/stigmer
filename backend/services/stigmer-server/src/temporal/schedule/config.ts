@@ -14,6 +14,12 @@
  * precedent of a domain-local config was driven by a domain-step consumer
  * (oss#397) that schedule does not have.
  */
+import { create } from "@bufbuild/protobuf";
+
+import {
+  RunConfigSchema,
+  type RunConfig,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 
 export class ScheduleTemporalConfig {
   constructor(
@@ -70,6 +76,20 @@ export class ScheduleTemporalConfig {
      */
     readonly runHistoryRetentionDays: number,
   ) {}
+
+  /**
+   * The schedule lane's operator profile: the bounds every scheduled turn
+   * is capped by, as the one settings resolution reads them
+   * (domain/agentexecution/resolve-run-config.ts) — a ceiling the schedule's
+   * own run_config and the agent's defaults can lower, never raise. A
+   * disabled bound (0) is not set.
+   */
+  executionProfile(): RunConfig {
+    return create(RunConfigSchema, {
+      maxToolRounds: Math.max(this.executionProfileMaxToolRounds, 0),
+      maxCostUsd: Math.max(this.executionProfileMaxCostUsd, 0),
+    });
+  }
 
   /**
    * Clamps the tracking budget to at least 1 minute and at least one hour

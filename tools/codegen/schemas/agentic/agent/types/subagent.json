@@ -62,7 +62,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Model override for this sub-agent.\n When set, uses this model instead of the parent's model.\n When empty, inherits the parent agent's model.",
+      "description": "Model override for this sub-agent.\n When set, uses this model instead of the model the turn runs.\n When empty, inherits the model the turn runs.",
       "required": false
     },
     {

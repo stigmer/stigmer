@@ -6,14 +6,15 @@ import { type ResourceRef, type EnvVarInput } from "./types.js";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { McpServerUsageSchema, type McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import { InteractionMode, ApprovalMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { AgentExecutionIdSchema, AgentExecutionUpdateStatusInputSchema, UpdateStatusResponseSchema, SubmitApprovalInputSchema, SubmitFileDecisionInputSchema, CancelAgentExecutionInputSchema, TerminateAgentExecutionInputSchema, RecoverAgentExecutionInputSchema, PauseAgentExecutionInputSchema, ResumeAgentExecutionInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListAgentExecutionsRequestSchema, AgentExecutionListSchema, ListAgentExecutionsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetExecutionUsageReportInputSchema, GetExecutionUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetAgentExecutionSummaryRequestSchema, AgentExecutionSummarySchema, type AgentExecutionUpdateStatusInput, type UpdateStatusResponse, type SubmitApprovalInput, type SubmitFileDecisionInput, type CancelAgentExecutionInput, type TerminateAgentExecutionInput, type RecoverAgentExecutionInput, type PauseAgentExecutionInput, type ResumeAgentExecutionInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListAgentExecutionsRequest, type AgentExecutionList, type ListAgentExecutionsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetExecutionUsageReportInput, type GetExecutionUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetAgentExecutionSummaryRequest, type AgentExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
-import { AgentExecutionSpecSchema, ContextManagementConfigSchema, ExecutionConfigSchema, AttachmentSchema, ConversationCatchupSchema, WorkflowParentSchema, type ContextManagementConfig, type ExecutionConfig, type Attachment, type ConversationCatchup, type WorkflowParent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentExecutionSpecSchema, AttachmentSchema, ConversationCatchupSchema, WorkflowParentSchema, type Attachment, type ConversationCatchup, type WorkflowParent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
+import { McpServerUsageSchema, type McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -189,7 +190,10 @@ export interface AgentExecutionInput {
   sessionId?: string;
   sessionSpec?: SessionSpecInput;
   message?: string;
-  executionConfig?: ExecutionConfigInput;
+  runConfig?: RunConfigInput;
+  interactionMode?: InteractionMode;
+  buildFromPlan?: boolean;
+  structuredOutputSchema?: JsonObject;
   runtimeEnv?: Record<string, EnvVarInput>;
   autoApproveAll?: boolean;
   attachments?: AttachmentInput[];
@@ -245,26 +249,14 @@ export interface McpServerUsageInput {
   mcpServerRef: ResourceRef;
 }
 
-/** SDK input type for ExecutionConfig. */
-export interface ExecutionConfigInput {
+/** SDK input type for RunConfig. */
+export interface RunConfigInput {
   modelName?: string;
-  contextManagement?: ContextManagementConfigInput;
-  maxToolRounds?: number;
-  maxToolResultChars?: number;
   maxCostUsd?: number;
-  interactionMode?: InteractionMode;
-  structuredOutputSchema?: JsonObject;
-  buildFromPlan?: boolean;
-  approvalMode?: ApprovalMode;
+  maxToolRounds?: number;
   serviceTier?: ServiceTier;
   thinkingMode?: ThinkingMode;
-}
-
-/** SDK input type for ContextManagementConfig. */
-export interface ContextManagementConfigInput {
-  disableSummarization?: boolean;
-  customTriggerThreshold?: number;
-  customTargetTokens?: number;
+  maxToolResultChars?: number;
 }
 
 /** SDK input type for Attachment. */
@@ -345,28 +337,15 @@ function buildSessionSpecProto(input: SessionSpecInput) {
   return msg;
 }
 
-function buildContextManagementConfigProto(input: ContextManagementConfigInput) {
-  return Object.assign(create(ContextManagementConfigSchema), stripUndefined({
-    disableSummarization: input.disableSummarization,
-    customTriggerThreshold: input.customTriggerThreshold,
-    customTargetTokens: input.customTargetTokens,
+function buildRunConfigProto(input: RunConfigInput) {
+  return Object.assign(create(RunConfigSchema), stripUndefined({
+    modelName: input.modelName,
+    maxCostUsd: input.maxCostUsd,
+    maxToolRounds: input.maxToolRounds,
+    serviceTier: input.serviceTier,
+    thinkingMode: input.thinkingMode,
+    maxToolResultChars: input.maxToolResultChars,
   }));
-}
-
-function buildExecutionConfigProto(input: ExecutionConfigInput) {
-  const msg = create(ExecutionConfigSchema);
-  if (input.modelName !== undefined) msg.modelName = input.modelName;
-  if (input.contextManagement) msg.contextManagement = buildContextManagementConfigProto(input.contextManagement);
-  if (input.maxToolRounds !== undefined) msg.maxToolRounds = input.maxToolRounds;
-  if (input.maxToolResultChars !== undefined) msg.maxToolResultChars = input.maxToolResultChars;
-  if (input.maxCostUsd !== undefined) msg.maxCostUsd = input.maxCostUsd;
-  if (input.interactionMode !== undefined) msg.interactionMode = input.interactionMode;
-  if (input.structuredOutputSchema !== undefined) msg.structuredOutputSchema = input.structuredOutputSchema;
-  if (input.buildFromPlan !== undefined) msg.buildFromPlan = input.buildFromPlan;
-  if (input.approvalMode !== undefined) msg.approvalMode = input.approvalMode;
-  if (input.serviceTier !== undefined) msg.serviceTier = input.serviceTier;
-  if (input.thinkingMode !== undefined) msg.thinkingMode = input.thinkingMode;
-  return msg;
 }
 
 function buildAttachmentProto(input: AttachmentInput) {
@@ -396,7 +375,7 @@ function buildWorkflowParentProto(input: WorkflowParentInput) {
 }
 
 export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecution {
-  const executionConfig = input.executionConfig ? buildExecutionConfigProto(input.executionConfig) : undefined;
+  const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   let runtimeEnv;
   if (input.runtimeEnv) {
     runtimeEnv = Object.fromEntries(Object.entries(input.runtimeEnv).map(([k, v]) =>
@@ -407,7 +386,10 @@ export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecu
   const parent = input.parent ? buildWorkflowParentProto(input.parent) : undefined;
   const spec = Object.assign(create(AgentExecutionSpecSchema), stripUndefined({
     message: input.message,
-    executionConfig,
+    runConfig,
+    interactionMode: input.interactionMode,
+    buildFromPlan: input.buildFromPlan,
+    structuredOutputSchema: input.structuredOutputSchema,
     runtimeEnv,
     autoApproveAll: input.autoApproveAll,
     attachments,
@@ -488,27 +470,14 @@ function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
   };
 }
 
-function toContextManagementConfigInput(msg: ContextManagementConfig): ContextManagementConfigInput {
-  return {
-    disableSummarization: msg.disableSummarization || undefined,
-    customTriggerThreshold: msg.customTriggerThreshold || undefined,
-    customTargetTokens: msg.customTargetTokens || undefined,
-  };
-}
-
-function toExecutionConfigInput(msg: ExecutionConfig): ExecutionConfigInput {
+function toRunConfigInput(msg: RunConfig): RunConfigInput {
   return {
     modelName: msg.modelName || undefined,
-    contextManagement: msg.contextManagement ? toContextManagementConfigInput(msg.contextManagement) : undefined,
-    maxToolRounds: msg.maxToolRounds || undefined,
-    maxToolResultChars: msg.maxToolResultChars || undefined,
     maxCostUsd: msg.maxCostUsd || undefined,
-    interactionMode: msg.interactionMode || undefined,
-    structuredOutputSchema: msg.structuredOutputSchema,
-    buildFromPlan: msg.buildFromPlan || undefined,
-    approvalMode: msg.approvalMode || undefined,
+    maxToolRounds: msg.maxToolRounds || undefined,
     serviceTier: msg.serviceTier || undefined,
     thinkingMode: msg.thinkingMode || undefined,
+    maxToolResultChars: msg.maxToolResultChars || undefined,
   };
 }
 
@@ -566,7 +535,10 @@ export function toAgentExecutionUpdateInput(resource: AgentExecution): AgentExec
     sessionId: spec.target?.case === "sessionId" ? spec.target.value : undefined,
     sessionSpec: spec.target?.case === "sessionSpec" ? toSessionSpecInput(spec.target.value) : undefined,
     message: spec.message || undefined,
-    executionConfig: spec.executionConfig ? toExecutionConfigInput(spec.executionConfig) : undefined,
+    runConfig: spec.runConfig ? toRunConfigInput(spec.runConfig) : undefined,
+    interactionMode: spec.interactionMode || undefined,
+    buildFromPlan: spec.buildFromPlan || undefined,
+    structuredOutputSchema: spec.structuredOutputSchema,
     runtimeEnv: toExecVarInputMap(spec.runtimeEnv),
     autoApproveAll: spec.autoApproveAll || undefined,
     attachments: spec.attachments?.length ? spec.attachments.map(toAttachmentInput) : undefined,

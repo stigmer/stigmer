@@ -718,7 +718,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * <pre>
    * Structured output extracted from the agent's final response.
    *
-   * Populated when ExecutionConfig.structured_output_schema was set and the
+   * Populated when spec.structured_output_schema was set and the
    * runner successfully extracted schema-conforming data. Only meaningful
    * when phase is EXECUTION_COMPLETED.
    *
@@ -739,7 +739,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * <pre>
    * Structured output extracted from the agent's final response.
    *
-   * Populated when ExecutionConfig.structured_output_schema was set and the
+   * Populated when spec.structured_output_schema was set and the
    * runner successfully extracted schema-conforming data. Only meaningful
    * when phase is EXECUTION_COMPLETED.
    *
@@ -760,7 +760,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * <pre>
    * Structured output extracted from the agent's final response.
    *
-   * Populated when ExecutionConfig.structured_output_schema was set and the
+   * Populated when spec.structured_output_schema was set and the
    * runner successfully extracted schema-conforming data. Only meaningful
    * when phase is EXECUTION_COMPLETED.
    *
@@ -1043,4 +1043,79 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * <code>.ai.stigmer.agentic.agentexecution.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesOrBuilder getRecalledMemoriesOrBuilder();
+
+  /**
+   * <pre>
+   * The settings this turn runs with: spec.run_config (or the saved settings
+   * of the surface it came through), the defaults of the agent version the
+   * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+   *
+   * An empty model_name means no layer named one and the engine chose (the
+   * native engine's registry default; Cursor's Auto).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+   * @return Whether the runConfig field is set.
+   */
+  boolean hasRunConfig();
+  /**
+   * <pre>
+   * The settings this turn runs with: spec.run_config (or the saved settings
+   * of the surface it came through), the defaults of the agent version the
+   * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+   *
+   * An empty model_name means no layer named one and the engine chose (the
+   * native engine's registry default; Cursor's Auto).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+   * @return The runConfig.
+   */
+  ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig();
+  /**
+   * <pre>
+   * The settings this turn runs with: spec.run_config (or the saved settings
+   * of the surface it came through), the defaults of the agent version the
+   * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
+   *
+   * An empty model_name means no layer named one and the engine chose (the
+   * native engine's registry default; Cursor's Auto).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder();
+
+  /**
+   * <pre>
+   * How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
+   * UNSPECIFIED.
+   *
+   * A fact of the lane the turn came through, never of the request: a
+   * schedule's turn and the hosted edition's shared-agent guest and channel
+   * turns are UNATTENDED (nobody is present to approve); every other turn is
+   * INTERACTIVE, a workflow step's included (its workflow takes the approval
+   * request).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
+   * @return The enum numeric value on the wire for approvalMode.
+   */
+  int getApprovalModeValue();
+  /**
+   * <pre>
+   * How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
+   * UNSPECIFIED.
+   *
+   * A fact of the lane the turn came through, never of the request: a
+   * schedule's turn and the hosted edition's shared-agent guest and channel
+   * turns are UNATTENDED (nobody is present to approve); every other turn is
+   * INTERACTIVE, a workflow step's included (its workflow takes the approval
+   * request).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
+   * @return The approvalMode.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ApprovalMode getApprovalMode();
 }

@@ -39,6 +39,9 @@
  *   - resource row readers (where the built-in authorizer reads the rows
  *     of a kind a unit keeps in a store of its own, so an edition above
  *     open source can keep open source's authorizer) — landed 2026-09-29
+ *   - run lanes (the lanes an edition's visitors' turns come through, with
+ *     their saved settings, operator profile and approval mode, read by the
+ *     server's one settings resolution) — landed 2026-10-05
  *
  * Merge rules (enforced by resolveExtensions): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -76,6 +79,7 @@ import type { PrincipalDisplay } from "./principal-display.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 import type { ResourceRowReader } from "./resource-row-reader.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
+import type { RunLanes } from "./run-lanes.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
 
 /** The driver contributions of one extension unit. */
@@ -306,6 +310,13 @@ export interface ExtensionDrivers {
    * visitor — OSS behavior byte-identical.
    */
   readonly visitorClassifier?: VisitorClassifier;
+  /**
+   * The run lanes (single-instance point): the lanes an edition's visitors'
+   * turns come through (extensions/run-lanes.ts carries the contract). When
+   * composed, ResolveRunConfig asks it before placing a turn on a core
+   * lane; when absent, every turn is a core lane's — OSS behavior.
+   */
+  readonly runLanes?: RunLanes;
   /**
    * Row readers keyed by the kind whose rows they read
    * (extensions/resource-row-reader.ts): the built-in authorizer's loader

@@ -151,8 +151,8 @@ export interface PromptBuilderInput {
    */
   interactionMode?: InteractionMode;
   /**
-   * The execution is a Build-from-plan turn (spec.execution_config
-   * .build_from_plan): appends the shared implement-plan directive, pointing
+   * The execution is a Build-from-plan turn (spec.build_from_plan):
+   * appends the shared implement-plan directive, pointing
    * the model at the injected approved plan document (or, when the plan
    * attachment did not materialize, at the conversation's plan). The user
    * message itself is just a short label ("Build from plan").

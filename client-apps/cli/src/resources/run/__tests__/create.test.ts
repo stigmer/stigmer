@@ -1,5 +1,5 @@
 // Unit tests for run-path resource creation: full-proto field mapping, the
-// message default, ExecutionConfig presence/contents, runtime-env conversion,
+// message default, run_config presence/contents, the top-level mode, runtime-env conversion,
 // the one-call session_spec bootstrap, the turn's target (an existing session
 // by id alone, or a new conversation naming its agent by reference), and the
 // workflow shape. The controller is faked to capture the exact proto sent to
@@ -73,11 +73,11 @@ describe("createAgentExecution", () => {
     expect(exec.spec?.workspaceFileRefs).toEqual(["src/a.ts"]);
     expect(exec.spec?.runtimeEnv.FOO).toMatchObject({ value: "bar", isSecret: false });
     expect(exec.spec?.runtimeEnv.TOKEN).toMatchObject({ value: "s", isSecret: true });
-    expect(exec.spec?.executionConfig?.modelName).toBe("claude");
-    expect(exec.spec?.executionConfig?.interactionMode).toBe(InteractionMode.PLAN);
+    expect(exec.spec?.runConfig?.modelName).toBe("claude");
+    expect(exec.spec?.interactionMode).toBe(InteractionMode.PLAN);
   });
 
-  it("omits ExecutionConfig when neither model nor mode is set", async () => {
+  it("omits run_config and the mode when no flag is set", async () => {
     const { fn } = fakeController();
     const exec = await createAgentExecution(fn, {
       agentRef: AGENT_REF,
@@ -95,7 +95,8 @@ describe("createAgentExecution", () => {
       harness: "",
     });
     expect(exec.spec?.message).toBe("hi");
-    expect(exec.spec?.executionConfig).toBeUndefined();
+    expect(exec.spec?.runConfig).toBeUndefined();
+    expect(exec.spec?.interactionMode).toBe(InteractionMode.UNSPECIFIED);
   });
 
   it("maps --service-tier fast to the enum (#357)", async () => {
@@ -115,7 +116,7 @@ describe("createAgentExecution", () => {
       autoApproveAll: false,
       harness: "",
     });
-    expect(exec.spec?.executionConfig?.serviceTier).toBe(ServiceTier.FAST);
+    expect(exec.spec?.runConfig?.serviceTier).toBe(ServiceTier.FAST);
   });
 
   it("maps an explicit --service-tier standard to STANDARD, not UNSPECIFIED", async () => {
@@ -137,7 +138,7 @@ describe("createAgentExecution", () => {
       autoApproveAll: false,
       harness: "",
     });
-    expect(exec.spec?.executionConfig?.serviceTier).toBe(ServiceTier.STANDARD);
+    expect(exec.spec?.runConfig?.serviceTier).toBe(ServiceTier.STANDARD);
   });
 
   it("maps --thinking enabled to the enum (#772)", async () => {
@@ -157,7 +158,7 @@ describe("createAgentExecution", () => {
       autoApproveAll: false,
       harness: "",
     });
-    expect(exec.spec?.executionConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
+    expect(exec.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
   });
 
   it("maps an explicit --thinking disabled to DISABLED, not UNSPECIFIED", async () => {
@@ -179,7 +180,7 @@ describe("createAgentExecution", () => {
       autoApproveAll: false,
       harness: "",
     });
-    expect(exec.spec?.executionConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
+    expect(exec.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
   });
 
   it("leaves InteractionMode unspecified for agent mode", async () => {
@@ -200,7 +201,7 @@ describe("createAgentExecution", () => {
       harness: "",
     });
     expect(exec.spec?.target).toEqual({ case: "sessionId", value: "ses_1" });
-    expect(exec.spec?.executionConfig?.interactionMode).toBe(InteractionMode.UNSPECIFIED);
+    expect(exec.spec?.interactionMode).toBe(InteractionMode.UNSPECIFIED);
   });
 
   it("embeds workspace entries as session_spec (one-call bootstrap) with an empty subject", async () => {

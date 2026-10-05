@@ -610,7 +610,7 @@ export function applyUpdateStatusMerge(
   }
 
   // Merge structured_output: populated by the runner on COMPLETED when
-  // ExecutionConfig had structured_output_schema; immutable after first
+  // the turn set spec.structured_output_schema; immutable after first
   // population.
   if (requestStatus.structuredOutput !== undefined) {
     status.structuredOutput = requestStatus.structuredOutput;

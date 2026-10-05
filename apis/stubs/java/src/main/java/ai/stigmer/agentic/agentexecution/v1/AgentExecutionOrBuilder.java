@@ -84,7 +84,7 @@ public interface AgentExecutionOrBuilder extends
    * <pre>
    * User-provided inputs for this execution.
    * Contains: the conversation (session_id or a new session_spec), message,
-   * execution_config, and runtime_env. Environment values reach a turn from
+   * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
    * the environments the server resolves for its run and from the
    * per-execution runtime_env; see the runtime_env field docs in
    * spec.proto.
@@ -98,7 +98,7 @@ public interface AgentExecutionOrBuilder extends
    * <pre>
    * User-provided inputs for this execution.
    * Contains: the conversation (session_id or a new session_spec), message,
-   * execution_config, and runtime_env. Environment values reach a turn from
+   * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
    * the environments the server resolves for its run and from the
    * per-execution runtime_env; see the runtime_env field docs in
    * spec.proto.
@@ -112,7 +112,7 @@ public interface AgentExecutionOrBuilder extends
    * <pre>
    * User-provided inputs for this execution.
    * Contains: the conversation (session_id or a new session_spec), message,
-   * execution_config, and runtime_env. Environment values reach a turn from
+   * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
    * the environments the server resolves for its run and from the
    * per-execution runtime_env; see the runtime_env field docs in
    * spec.proto.

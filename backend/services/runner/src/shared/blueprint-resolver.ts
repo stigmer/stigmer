@@ -33,7 +33,8 @@
 import { ConnectError } from "@connectrpc/connect";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentSpec, McpServerUsage, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentSpec, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";

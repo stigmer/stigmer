@@ -8,8 +8,11 @@ package agentv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
-	v11 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
+	v12 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
+	v11 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
+	v14 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
+	v13 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -37,7 +40,7 @@ type AgentSpec struct {
 	Instructions string `protobuf:"bytes,3,opt,name=instructions,proto3" json:"instructions,omitempty"`
 	// MCP servers this agent can use.
 	// Each entry must reference a unique McpServer resource by slug.
-	McpServerUsages []*McpServerUsage `protobuf:"bytes,4,rep,name=mcp_server_usages,json=mcpServerUsages,proto3" json:"mcp_server_usages,omitempty"`
+	McpServerUsages []*v1.McpServerUsage `protobuf:"bytes,4,rep,name=mcp_server_usages,json=mcpServerUsages,proto3" json:"mcp_server_usages,omitempty"`
 	// Skill resources providing additional knowledge to the agent.
 	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
 	// Sub-agents that can be delegated to.
@@ -46,7 +49,7 @@ type AgentSpec struct {
 	SubAgents []*SubAgent `protobuf:"bytes,6,rep,name=sub_agents,json=subAgents,proto3" json:"sub_agents,omitempty"`
 	// Environment variable declarations for this agent.
 	// Keys are variable names; values describe their metadata and optionality.
-	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,7,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Env map[string]*v11.EnvVarDeclaration `protobuf:"bytes,7,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Tools this agent may use; empty means every tool it has.
 	//
 	// Entries use Claude Code's names: a built-in such as Read, Grep, Bash,
@@ -69,7 +72,32 @@ type AgentSpec struct {
 	// without the approval it would otherwise need. The native engine runs hooks
 	// in Claude Code's format; the Cursor engine refuses a turn whose agent has
 	// hooks.
-	Hooks         []*HookSource `protobuf:"bytes,12,rep,name=hooks,proto3" json:"hooks,omitempty"`
+	Hooks []*HookSource `protobuf:"bytes,12,rep,name=hooks,proto3" json:"hooks,omitempty"`
+	// The author's run defaults: the model, speed tier, thinking and run
+	// bounds a turn on this agent uses unless the message or the surface it
+	// came through sets its own (RunConfig has the rule). Versioned with the
+	// agent, so a conversation pinned to a version keeps that version's
+	// defaults.
+	//
+	// A choice here (model_name, service_tier, thinking_mode) applies only on
+	// the engine named in harness; on a conversation running the other engine
+	// only the bounds apply. A bound here is a cap: a message or a surface can
+	// lower it, never raise it. A model must be named together with harness,
+	// and must be one that engine lists; service_tier FAST and thinking_mode
+	// ENABLED need a model that engine prices or marks capable. Checked when
+	// the agent is saved.
+	RunConfig *v12.RunConfig `protobuf:"bytes,13,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
+	// The engine this agent's run defaults were chosen for, and the engine a
+	// new conversation on this agent starts on when the person or the surface
+	// starting it names neither an engine nor a model (a turn that names a
+	// model but no engine starts on native, the engine its name was checked
+	// against). Unspecified: the platform's default engine (native).
+	//
+	// Model names belong to an engine (each lists its own), so run_config's
+	// model, tier and thinking count only on this engine. A conversation keeps
+	// the engine it started on; a later version naming another engine changes
+	// only new conversations.
+	Harness       v13.Harness `protobuf:"varint,14,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -125,7 +153,7 @@ func (x *AgentSpec) GetInstructions() string {
 	return ""
 }
 
-func (x *AgentSpec) GetMcpServerUsages() []*McpServerUsage {
+func (x *AgentSpec) GetMcpServerUsages() []*v1.McpServerUsage {
 	if x != nil {
 		return x.McpServerUsages
 	}
@@ -146,7 +174,7 @@ func (x *AgentSpec) GetSubAgents() []*SubAgent {
 	return nil
 }
 
-func (x *AgentSpec) GetEnv() map[string]*v1.EnvVarDeclaration {
+func (x *AgentSpec) GetEnv() map[string]*v11.EnvVarDeclaration {
 	if x != nil {
 		return x.Env
 	}
@@ -172,6 +200,20 @@ func (x *AgentSpec) GetHooks() []*HookSource {
 		return x.Hooks
 	}
 	return nil
+}
+
+func (x *AgentSpec) GetRunConfig() *v12.RunConfig {
+	if x != nil {
+		return x.RunConfig
+	}
+	return nil
+}
+
+func (x *AgentSpec) GetHarness() v13.Harness {
+	if x != nil {
+		return x.Harness
+	}
+	return v13.Harness(0)
 }
 
 // HookSource is one source of an agent's hooks: a plugin, or a hooks block
@@ -233,7 +275,7 @@ func (x *HookSource) GetPlugin() *apiresource.ApiResourceReference {
 	return nil
 }
 
-func (x *HookSource) GetInline() *v11.HookConfig {
+func (x *HookSource) GetInline() *v14.HookConfig {
 	if x != nil {
 		if x, ok := x.Source.(*HookSource_Inline); ok {
 			return x.Inline
@@ -253,7 +295,7 @@ type HookSource_Plugin struct {
 
 type HookSource_Inline struct {
 	// A hooks block in Claude Code's hooks.json shape, written in the agent.
-	Inline *v11.HookConfig `protobuf:"bytes,2,opt,name=inline,proto3,oneof"`
+	Inline *v14.HookConfig `protobuf:"bytes,2,opt,name=inline,proto3,oneof"`
 }
 
 func (*HookSource_Plugin) isHookSource_Source() {}
@@ -275,8 +317,8 @@ type SubAgent struct {
 	// Skill resources for this sub-agent.
 	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
 	// Model override for this sub-agent.
-	// When set, uses this model instead of the parent's model.
-	// When empty, inherits the parent agent's model.
+	// When set, uses this model instead of the model the turn runs.
+	// When empty, inherits the model the turn runs.
 	ModelOverride string `protobuf:"bytes,6,opt,name=model_override,json=modelOverride,proto3" json:"model_override,omitempty"`
 	// Tools this sub-agent may use, from what the parent may use; empty means
 	// all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
@@ -369,67 +411,18 @@ func (x *SubAgent) GetDisallowedTools() []string {
 	return nil
 }
 
-// McpServerUsage declares that this agent uses a McpServer resource.
-//
-// Every tool of a used server is available to the agent unless its tool
-// lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the
-// server is named by its slug, as in mcp__<server-slug>.
-type McpServerUsage struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Reference to the McpServer resource.
-	McpServerRef  *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=mcp_server_ref,json=mcpServerRef,proto3" json:"mcp_server_ref,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *McpServerUsage) Reset() {
-	*x = McpServerUsage{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *McpServerUsage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*McpServerUsage) ProtoMessage() {}
-
-func (x *McpServerUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use McpServerUsage.ProtoReflect.Descriptor instead.
-func (*McpServerUsage) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *McpServerUsage) GetMcpServerRef() *apiresource.ApiResourceReference {
-	if x != nil {
-		return x.McpServerRef
-	}
-	return nil
-}
-
 var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xa1\t\n" +
+	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a5ai/stigmer/agentic/agentexecution/v1/invocation.proto\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a+ai/stigmer/agentic/mcpserver/v1/usage.proto\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb7\n" +
+	"\n" +
 	"\tAgentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12+\n" +
 	"\finstructions\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\n" +
-	"R\finstructions\x12\xdf\x01\n" +
-	"\x11mcp_server_usages\x18\x04 \x03(\v2+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x85\x01\xbaH\x81\x01\x92\x01~\"|\xba\x01y\n" +
+	"R\finstructions\x12\xe3\x01\n" +
+	"\x11mcp_server_usages\x18\x04 \x03(\v2/.ai.stigmer.agentic.mcpserver.v1.McpServerUsageB\x85\x01\xbaH\x81\x01\x92\x01~\"|\xba\x01y\n" +
 	"\x16mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\xbb\x01\n" +
 	"\n" +
 	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBf\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
@@ -440,7 +433,10 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x05tools\x18\n" +
 	" \x03(\tBt\xbaHq\x92\x01n\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\x9f\x01\n" +
 	"\x10disallowed_tools\x18\v \x03(\tBt\xbaHq\x92\x01n\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x0fdisallowedTools\x12=\n" +
-	"\x05hooks\x18\f \x03(\v2'.ai.stigmer.agentic.agent.v1.HookSourceR\x05hooks\x1al\n" +
+	"\x05hooks\x18\f \x03(\v2'.ai.stigmer.agentic.agent.v1.HookSourceR\x05hooks\x12N\n" +
+	"\n" +
+	"run_config\x18\r \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfig\x12@\n" +
+	"\aharness\x18\x0e \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x1al\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
 	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\b\x10\tJ\x04\b\t\x10\n" +
@@ -462,10 +458,7 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x0emodel_override\x18\x06 \x01(\tR\rmodelOverride\x12\x8a\x01\n" +
 	"\x05tools\x18\a \x03(\tBt\xbaHq\x92\x01n\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\x9f\x01\n" +
 	"\x10disallowed_tools\x18\b \x03(\tBt\xbaHq\x92\x01n\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x0fdisallowedToolsJ\x04\b\x04\x10\x05R\n" +
-	"mcp_access\"\xac\x01\n" +
-	"\x0eMcpServerUsage\x12f\n" +
-	"\x0emcp_server_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
-	"\xbaH\x03\xc8\x01\x01\xe0\x85,,R\fmcpServerRefJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\renabled_toolsR\x17tool_approval_overridesB\x8d\x02\n" +
+	"mcp_accessB\x8d\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\tSpecProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (
@@ -480,33 +473,36 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	(*AgentSpec)(nil),                        // 0: ai.stigmer.agentic.agent.v1.AgentSpec
 	(*HookSource)(nil),                       // 1: ai.stigmer.agentic.agent.v1.HookSource
 	(*SubAgent)(nil),                         // 2: ai.stigmer.agentic.agent.v1.SubAgent
-	(*McpServerUsage)(nil),                   // 3: ai.stigmer.agentic.agent.v1.McpServerUsage
-	nil,                                      // 4: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	nil,                                      // 3: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	(*v1.McpServerUsage)(nil),                // 4: ai.stigmer.agentic.mcpserver.v1.McpServerUsage
 	(*apiresource.ApiResourceReference)(nil), // 5: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v11.HookConfig)(nil),                   // 6: ai.stigmer.agentic.plugin.v1.HookConfig
-	(*v1.EnvVarDeclaration)(nil),             // 7: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(*v12.RunConfig)(nil),                    // 6: ai.stigmer.agentic.agentexecution.v1.RunConfig
+	(v13.Harness)(0),                         // 7: ai.stigmer.agentic.session.v1.Harness
+	(*v14.HookConfig)(nil),                   // 8: ai.stigmer.agentic.plugin.v1.HookConfig
+	(*v11.EnvVarDeclaration)(nil),            // 9: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
-	3,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
+	4,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerUsage
 	5,  // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	2,  // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
-	4,  // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	3,  // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
 	1,  // 4: ai.stigmer.agentic.agent.v1.AgentSpec.hooks:type_name -> ai.stigmer.agentic.agent.v1.HookSource
-	5,  // 5: ai.stigmer.agentic.agent.v1.HookSource.plugin:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	6,  // 6: ai.stigmer.agentic.agent.v1.HookSource.inline:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
-	5,  // 7: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	5,  // 8: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	7,  // 9: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	6,  // 5: ai.stigmer.agentic.agent.v1.AgentSpec.run_config:type_name -> ai.stigmer.agentic.agentexecution.v1.RunConfig
+	7,  // 6: ai.stigmer.agentic.agent.v1.AgentSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
+	5,  // 7: ai.stigmer.agentic.agent.v1.HookSource.plugin:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	8,  // 8: ai.stigmer.agentic.agent.v1.HookSource.inline:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
+	5,  // 9: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	9,  // 10: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_spec_proto_init() }
@@ -524,7 +520,7 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

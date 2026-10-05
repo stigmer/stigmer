@@ -18,6 +18,11 @@
  * The legacy positional `(executionId, threadId)` form the control planes
  * still may send (`shared/activity-input.ts`) rides on the same golden, and
  * matching the SAME file is the assertion that it is invisible to the status.
+ *
+ * The model the turn builds is the one the control plane resolved
+ * (`status.run_config`), never the one the request asked for
+ * (`spec.run_config`): a request that disagrees with the resolution runs the
+ * resolution.
  * An empty `thread_id` rode here too (carried from `index.test.ts`: "handles
  * empty threadId gracefully") until @langchain/langgraph-checkpoint 1.1's
  * memory saver started refusing an empty key. That arm was only ever true of
@@ -37,9 +42,10 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
+import { create, toJson } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -59,6 +65,7 @@ import {
   beginDeepAgentScenario,
   deepAgentExecutionRecord,
   runDeepAgentTurn,
+  type DeepAgentRecordOptions,
   type DeepAgentTurnOptions,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
@@ -84,9 +91,9 @@ describe("ExecuteDeepAgent hermetic — plain turn", () => {
     env.dispose();
   });
 
-  async function runPlainTurn(turn: DeepAgentTurnOptions = {}) {
+  async function runPlainTurn(turn: DeepAgentTurnOptions = {}, recordOptions: Partial<DeepAgentRecordOptions> = {}) {
     clock.reset();
-    const record = deepAgentExecutionRecord({ message: USER_MESSAGE });
+    const record = deepAgentExecutionRecord({ message: USER_MESSAGE, ...recordOptions });
     const scenario = beginDeepAgentScenario({
       env,
       clock,
@@ -135,5 +142,15 @@ describe("ExecuteDeepAgent hermetic — plain turn", () => {
     expect(invocation.outcome.kind).toBe("returned");
     const json = JSON.stringify(toJson(AgentExecutionStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot(GOLDEN);
+  });
+
+  it("builds the model the resolved settings name, never the one the request asked for", async () => {
+    const { invocation } = await runPlainTurn({}, {
+      requestRunConfig: create(RunConfigSchema, { modelName: "request-only-model" }),
+    });
+    expect(invocation.outcome.kind).toBe("returned");
+    const builds = recordedModelBuilds();
+    expect(builds[0]?.modelName, "status.runConfig.modelName").toBe(FIXTURE.model);
+    expect(builds.map((b) => b.modelName)).not.toContain("request-only-model");
   });
 });

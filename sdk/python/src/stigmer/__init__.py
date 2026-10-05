@@ -40,14 +40,13 @@ from ._gen._agent import (
     AgentClient,
     AgentInput,
     McpServerUsageInput,
+    RunConfigInput,
     SubAgentInput,
 )
 from ._gen._agentexecution import (
     AgentExecutionClient,
     AgentExecutionInput,
     AttachmentInput,
-    ContextManagementConfigInput,
-    ExecutionConfigInput,
 )
 from ._gen._apikey import ApiKeyClient, ApiKeyInput
 from ._gen._environment import EnvironmentClient, EnvironmentInput
@@ -170,12 +169,10 @@ __all__ = [
     "ApiKeyInput",
     "ApiResourceRefInput",
     "AttachmentInput",
-    "ContextManagementConfigInput",
     "DeleteResourceInput",
     "EnvironmentInput",
     "EnvSpecInput",
     "EnvVarInput",
-    "ExecutionConfigInput",
     "ExecutionContextInput",
     "ExportInput",
     "FlowControlInput",
@@ -189,6 +186,7 @@ __all__ = [
     "McpServerUsageInput",
     "OAuthAppInput",
     "OrganizationInput",
+    "RunConfigInput",
     "SessionInput",
     "SkillInput",
     "StdioServerConfigInput",

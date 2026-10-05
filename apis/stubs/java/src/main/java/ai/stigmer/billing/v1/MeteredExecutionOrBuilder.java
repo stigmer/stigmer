@@ -34,9 +34,11 @@ public interface MeteredExecutionOrBuilder extends
 
   /**
    * <pre>
-   * The execution's configured model (spec.execution_config.model_name) —
-   * the authoritative statement of what was asked for, and the pricing
-   * fallback when the wire's requested_model came up empty.
+   * The model the execution resolved (status.run_config.model_name, whichever
+   * layer chose it: the message, the agent's defaults or the lane's profile)
+   * — the authoritative statement of what was asked for, and the pricing
+   * fallback when the wire's requested_model came up empty. Empty when no
+   * layer named a model and the engine chose.
    * </pre>
    *
    * <code>string pinned_model = 2 [json_name = "pinnedModel"];</code>
@@ -45,9 +47,11 @@ public interface MeteredExecutionOrBuilder extends
   java.lang.String getPinnedModel();
   /**
    * <pre>
-   * The execution's configured model (spec.execution_config.model_name) —
-   * the authoritative statement of what was asked for, and the pricing
-   * fallback when the wire's requested_model came up empty.
+   * The model the execution resolved (status.run_config.model_name, whichever
+   * layer chose it: the message, the agent's defaults or the lane's profile)
+   * — the authoritative statement of what was asked for, and the pricing
+   * fallback when the wire's requested_model came up empty. Empty when no
+   * layer named a model and the engine chose.
    * </pre>
    *
    * <code>string pinned_model = 2 [json_name = "pinnedModel"];</code>
@@ -58,7 +62,7 @@ public interface MeteredExecutionOrBuilder extends
 
   /**
    * <pre>
-   * The service tier the execution requested (spec.execution_config.
+   * The service tier the execution resolved (status.run_config.
    * service_tier); UNSPECIFIED resolves to standard. Reconciled against
    * served_service_tier by the service_tier.mismatch counter.
    * </pre>
@@ -69,7 +73,7 @@ public interface MeteredExecutionOrBuilder extends
   int getRequestedServiceTierValue();
   /**
    * <pre>
-   * The service tier the execution requested (spec.execution_config.
+   * The service tier the execution resolved (status.run_config.
    * service_tier); UNSPECIFIED resolves to standard. Reconciled against
    * served_service_tier by the service_tier.mismatch counter.
    * </pre>
@@ -81,7 +85,7 @@ public interface MeteredExecutionOrBuilder extends
 
   /**
    * <pre>
-   * The thinking mode the execution requested (spec.execution_config.
+   * The thinking mode the execution resolved (status.run_config.
    * thinking_mode). Reconciled against the served variant by the
    * thinking.mismatch counter.
    * </pre>
@@ -92,7 +96,7 @@ public interface MeteredExecutionOrBuilder extends
   int getRequestedThinkingModeValue();
   /**
    * <pre>
-   * The thinking mode the execution requested (spec.execution_config.
+   * The thinking mode the execution resolved (status.run_config.
    * thinking_mode). Reconciled against the served variant by the
    * thinking.mismatch counter.
    * </pre>

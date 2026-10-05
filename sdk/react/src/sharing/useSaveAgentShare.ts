@@ -118,6 +118,8 @@ export function draftFromShare(share: AgentShare | null): AgentShareDraft {
           maxCostUsd: spec.runConfig.maxCostUsd,
           maxToolRounds: spec.runConfig.maxToolRounds,
           serviceTier: spec.runConfig.serviceTier,
+          thinkingMode: spec.runConfig.thinkingMode,
+          maxToolResultChars: spec.runConfig.maxToolResultChars,
         }
       : undefined,
   };

@@ -162,9 +162,9 @@ export class ModelRegistryStore implements ModelCatalogProvider {
 
   /**
    * Whether a model reference prices the given variant key under ANY
-   * harness — the registry-backed capability check for
-   * ExecutionConfig.service_tier at execution create (oss#357), which is
-   * deliberately harness-free (it never resolves the session).
+   * harness — the engine-free form, for a caller that knows no engine.
+   * Execution create judges a turn's resolved service_tier with the
+   * harness form, on the engine the conversation runs (oss#357).
    */
   hasPricingVariant(model: string, variant: string): boolean {
     return this.currentCatalog.hasPricingVariant(model, variant);

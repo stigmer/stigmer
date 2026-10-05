@@ -8,7 +8,7 @@ package sessionv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -246,7 +246,7 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xec\t\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/agentic/mcpserver/v1/usage.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xf0\t\n" +
 	"\vSessionSpec\x12\xbb\x01\n" +
 	"\tagent_ref\x18\x0e \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBh\xbaHa\xba\x01^\n" +
 	"\x16session_agent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xe0\x85,(R\bagentRef\x12\x18\n" +
@@ -254,8 +254,8 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\x10harness_state_id\x18\x03 \x01(\tR\x0eharnessStateId\x127\n" +
 	"\x18harness_state_id_history\x18\r \x03(\tR\x15harnessStateIdHistory\x12T\n" +
 	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Z\n" +
-	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xea\x01\n" +
-	"\x11mcp_server_usages\x18\a \x03(\v2+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x90\x01\xbaH\x8c\x01\x92\x01\x88\x01\"\x85\x01\xba\x01\x81\x01\n" +
+	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xee\x01\n" +
+	"\x11mcp_server_usages\x18\a \x03(\v2/.ai.stigmer.agentic.mcpserver.v1.McpServerUsageB\x90\x01\xbaH\x8c\x01\x92\x01\x88\x01\"\x85\x01\xba\x01\x81\x01\n" +
 	"\x1esession_mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\xc3\x01\n" +
 	"\n" +
 	"skill_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBn\xbaHg\x92\x01d\"b\xba\x01_\n" +
@@ -288,7 +288,7 @@ var file_ai_stigmer_agentic_session_v1_spec_proto_goTypes = []any{
 	nil,                                      // 1: ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
 	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
 	(*WorkspaceEntry)(nil),                   // 3: ai.stigmer.agentic.session.v1.WorkspaceEntry
-	(*v1.McpServerUsage)(nil),                // 4: ai.stigmer.agentic.agent.v1.McpServerUsage
+	(*v1.McpServerUsage)(nil),                // 4: ai.stigmer.agentic.mcpserver.v1.McpServerUsage
 	(Harness)(0),                             // 5: ai.stigmer.agentic.session.v1.Harness
 	(CursorMode)(0),                          // 6: ai.stigmer.agentic.session.v1.CursorMode
 	(ExecutionTarget)(0),                     // 7: ai.stigmer.agentic.session.v1.ExecutionTarget
@@ -297,7 +297,7 @@ var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.session.v1.SessionSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // 1: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
 	3, // 2: ai.stigmer.agentic.session.v1.SessionSpec.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
-	4, // 3: ai.stigmer.agentic.session.v1.SessionSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
+	4, // 3: ai.stigmer.agentic.session.v1.SessionSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerUsage
 	2, // 4: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	5, // 5: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
 	6, // 6: ai.stigmer.agentic.session.v1.SessionSpec.cursor_mode:type_name -> ai.stigmer.agentic.session.v1.CursorMode

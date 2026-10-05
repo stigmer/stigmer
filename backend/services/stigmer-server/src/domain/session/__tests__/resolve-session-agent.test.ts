@@ -15,7 +15,10 @@
  *   - an agent gone since the reference rule's scan is FAILED_PRECONDITION;
  *     a chain that ran without the recorded targets is Internal, and so is
  *     a failing read of the agent row;
- *   - a client-sent status never survives: the step writes both fields.
+ *   - a client-sent status never survives: the step writes both fields;
+ *   - a new conversation naming no engine starts on the engine of the
+ *     agent version it pins; one naming an engine keeps it; a stored
+ *     conversation is never given one.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -27,6 +30,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -434,5 +438,53 @@ describe("ResolveSessionAgent", () => {
     expect(error.rawMessage).toContain(
       "failed to resolve the agent this conversation runs",
     );
+  });
+});
+
+describe("ResolveSessionAgent: a new conversation's engine", () => {
+  /** reviewer's head names cursor; its tagged older version names none. */
+  async function seedCursorAgent(): Promise<void> {
+    await seedAgent("agt_1", "reviewer");
+    await store.saveResource(
+      ApiResourceKind.agent,
+      "agt_1",
+      AgentSchema,
+      create(AgentSchema, {
+        metadata: { id: "agt_1", org: ORG, slug: "reviewer" },
+        spec: { harness: Harness.CURSOR },
+        status: { versionHash: HEAD },
+      }),
+    );
+  }
+
+  it("starts on the engine the pinned version names when the request names none", async () => {
+    await seedCursorAgent();
+    const session = await pin(sessionNaming("reviewer"));
+    expect(session.spec?.harness).toBe(Harness.CURSOR);
+  });
+
+  it("keeps the engine the request names", async () => {
+    await seedCursorAgent();
+    const request = sessionNaming("reviewer");
+    request.spec!.harness = Harness.NATIVE;
+    expect((await pin(request)).spec?.harness).toBe(Harness.NATIVE);
+  });
+
+  it("reads the engine of the version pinned, not the head", async () => {
+    await seedCursorAgent();
+    expect((await pin(sessionNaming("reviewer", "v1"))).spec?.harness).toBe(
+      Harness.UNSPECIFIED,
+    );
+  });
+
+  it("never gives a stored conversation an engine", async () => {
+    await seedCursorAgent();
+    const stored = sessionNaming("reviewer", "", {
+      agentId: "agt_1",
+      agentVersionHash: OLDER,
+    });
+    const session = await pin(sessionNaming("reviewer", "latest"), { stored });
+    expect(session.status?.agentVersionHash).toBe(HEAD);
+    expect(session.spec?.harness).toBe(Harness.UNSPECIFIED);
   });
 });

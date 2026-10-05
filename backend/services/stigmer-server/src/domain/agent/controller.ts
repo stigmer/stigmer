@@ -141,6 +141,8 @@ import {
   newSaveAgentVersionStep,
   newTagAgentVersionStep,
 } from "./versions.js";
+import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
+import { newValidateAgentRunConfigStep } from "./validate-run-config.js";
 
 export interface AgentControllerDeps {
   readonly store: Store;
@@ -149,6 +151,11 @@ export interface AgentControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /**
+   * The model registry — ValidateAgentRunConfig judges an agent's run
+   * defaults against the engine they name.
+   */
+  readonly modelRegistry: ModelCatalogProvider;
 }
 
 /** Registers both agent services on the router (routes stage). */
@@ -177,10 +184,11 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Create — chain per Go buildCreatePipeline. The first version is hashed
- * before Persist and archived after it, so its snapshot carries the
- * persisted row; the archive re-persists a revert because no write follows
- * it.
+ * Create — chain per Go buildCreatePipeline. The run defaults are judged
+ * against the engine they name before the version is hashed
+ * (validate-run-config.ts). The first version is hashed before Persist and
+ * archived after it, so its snapshot carries the persisted row; the archive
+ * re-persists a revert because no write follows it.
  */
 async function createAgent(
   deps: AgentControllerDeps,
@@ -208,6 +216,7 @@ async function createAgent(
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
+    .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
     .addStep(newPersistStep(deps.store))
@@ -226,7 +235,7 @@ async function createAgent(
 
 /**
  * Update — chain per Go buildUpdatePipeline. The stored spec is hashed
- * after the MCP env merge; a new spec records a version, a reproduced one
+ * after the MCP env merge and the run-defaults check; a new spec records a version, a reproduced one
  * points back at it, an unchanged one records none and still moves a newly
  * named tag. Persist follows the archive and flushes any revert.
  */
@@ -258,6 +267,7 @@ async function update(
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
+    .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
     .addStep(newSaveAgentVersionStep(deps.store, deps.logger, false))

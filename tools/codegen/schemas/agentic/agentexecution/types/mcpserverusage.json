@@ -1,8 +1,8 @@
 {
   "name": "McpServerUsage",
-  "description": "McpServerUsage declares that this agent uses a McpServer resource.\n\n Every tool of a used server is available to the agent unless its tool\n lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the\n server is named by its slug, as in mcp__\u003cserver-slug\u003e.",
-  "protoType": "ai.stigmer.agentic.agent.v1.McpServerUsage",
-  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "description": "McpServerUsage declares that an agent (AgentSpec.mcp_server_usages) or a\n session (SessionSpec.mcp_server_usages) uses a McpServer resource.\n\n Every tool of a used server is available to the agent unless its tool\n lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the\n server is named by its slug, as in mcp__\u003cserver-slug\u003e.",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerUsage",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/usage.proto",
   "fields": [
     {
       "name": "McpServerRef",

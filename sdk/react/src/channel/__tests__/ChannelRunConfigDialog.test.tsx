@@ -1,3 +1,11 @@
+/**
+ * The channel's run-settings dialog: what a save writes to the channel's
+ * run_config. The fields the dialog does not edit (the tool-round and
+ * tool-result bounds) ride through a save verbatim, an emptied draft clears
+ * the block, the tier and thinking switches are carried only when
+ * actively chosen with a model, and a stored tier or thinking (an explicit
+ * standard or disabled among them) survives a save that leaves it alone.
+ */
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -56,6 +64,7 @@ function makeChannel(runConfig?: {
   modelName?: string;
   maxCostUsd?: number;
   maxToolRounds?: number;
+  maxToolResultChars?: number;
   serviceTier?: ServiceTier;
   thinkingMode?: ThinkingMode;
 }) {
@@ -78,6 +87,7 @@ function makeChannel(runConfig?: {
               modelName: runConfig.modelName ?? "",
               maxCostUsd: runConfig.maxCostUsd ?? 0,
               maxToolRounds: runConfig.maxToolRounds ?? 0,
+              maxToolResultChars: runConfig.maxToolResultChars ?? 0,
               serviceTier: runConfig.serviceTier ?? ServiceTier.UNSPECIFIED,
               thinkingMode: runConfig.thinkingMode ?? ThinkingMode.UNSPECIFIED,
             },
@@ -147,6 +157,20 @@ describe("ChannelRunConfigDialog", () => {
     expect(input.runConfig?.modelName).toBe("claude-haiku-4-5");
   });
 
+  it("preserves max_tool_result_chars verbatim even though it never renders", async () => {
+    const { apply } = renderDialog(
+      makeChannel({ modelName: "claude-haiku-4-5", maxToolResultChars: 16000 }),
+    );
+
+    expect(screen.queryByText(/tool result/i)).toBeNull();
+    await save();
+
+    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
+    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    expect(input.runConfig?.maxToolResultChars).toBe(16000);
+    expect(input.runConfig?.maxToolRounds).toBeUndefined();
+  });
+
   it("clears run_config entirely when the draft is emptied (empty = inherit)", async () => {
     const { apply } = renderDialog(
       makeChannel({ modelName: "claude-haiku-4-5", maxCostUsd: 2 }),
@@ -192,6 +216,66 @@ describe("ChannelRunConfigDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: /Haiku 4\.5/ }));
     const toggle = await screen.findByRole("switch", { name: "Thinking" });
     expect(toggle.getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("a budget-only edit keeps a stored explicit standard tier and disabled thinking", async () => {
+    const { apply } = renderDialog(
+      makeChannel({
+        modelName: "claude-haiku-4-5",
+        serviceTier: ServiceTier.STANDARD,
+        thinkingMode: ThinkingMode.DISABLED,
+      }),
+    );
+
+    fireEvent.change(screen.getByLabelText(/Budget per run/), {
+      target: { value: "3" },
+    });
+    await save();
+
+    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
+    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    expect(input.runConfig?.maxCostUsd).toBe(3);
+    expect(input.runConfig?.serviceTier).toBe(ServiceTier.STANDARD);
+    expect(input.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
+  });
+
+  it("a stored explicit tier and thinking without a model survive a budget edit", async () => {
+    const { apply } = renderDialog(
+      makeChannel({
+        serviceTier: ServiceTier.STANDARD,
+        thinkingMode: ThinkingMode.DISABLED,
+      }),
+    );
+
+    fireEvent.change(screen.getByLabelText(/Budget per run/), {
+      target: { value: "1" },
+    });
+    await save();
+
+    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
+    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    expect(input.runConfig?.modelName).toBeUndefined();
+    expect(input.runConfig?.serviceTier).toBe(ServiceTier.STANDARD);
+    expect(input.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
+  });
+
+  it("resetting to the platform default drops the stored tier and thinking with the model", async () => {
+    const { apply } = renderDialog(
+      makeChannel({
+        modelName: "claude-haiku-4-5",
+        maxCostUsd: 2,
+        thinkingMode: ThinkingMode.DISABLED,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset to platform default" }));
+    await save();
+
+    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
+    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    expect(input.runConfig?.maxCostUsd).toBe(2);
+    expect(input.runConfig?.modelName).toBeUndefined();
+    expect(input.runConfig?.thinkingMode).toBeUndefined();
   });
 
   it("collects a budget without requiring a model pin", async () => {

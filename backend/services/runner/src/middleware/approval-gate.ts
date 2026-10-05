@@ -200,9 +200,9 @@ export interface ApprovalGateConfig {
   /** The sub-agent this gate serves, which a hook sees as `agent_type` and `agent_id`; absent on the parent. */
   readonly subAgent?: HookCallScope["subAgent"];
   /**
-   * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED):
-   * the creating surface — a messaging channel, a guest share — has no
-   * approver, so a gated tool is resolved as an automatic SKIP (the model is
+   * Unattended approval mode (`status.approval_mode` = UNATTENDED):
+   * the lane the turn came through — a schedule, a messaging channel, a
+   * guest share — has no approver, so a gated tool is resolved as an automatic SKIP (the model is
    * told to adapt) instead of `interrupt()`. The execution never enters
    * WAITING_FOR_APPROVAL. What is gated is unchanged — only the resolution
    * differs.

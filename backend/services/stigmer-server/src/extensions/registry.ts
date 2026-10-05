@@ -72,6 +72,7 @@ import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-p
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
+import type { RunLanes } from "./run-lanes.js";
 import { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "../sandbox/provisioner.js";
 import type { WorkerFactory } from "../temporal/manager.js";
 import type { Authorizer } from "./authorizer.js";
@@ -385,6 +386,11 @@ export interface ResolvedExtensionDrivers {
    */
   readonly visitorClassifier: VisitorClassifier | undefined;
   /**
+   * The run lanes — undefined = no edition lanes, so every turn is placed
+   * on a core lane (schedule, workflow step, interactive).
+   */
+  readonly runLanes: RunLanes | undefined;
+  /**
    * Kind → the reader of that kind's rows (extensions/resource-row-reader.ts),
    * validated against the kinds open source keeps itself. Empty = the
    * built-in authorizer reads every row from the generic Store and identity
@@ -466,6 +472,8 @@ export function resolveExtensions(
   let guestTokenMintingDeclaredBy: string | undefined;
   let visitorClassifier: VisitorClassifier | undefined;
   let visitorClassifierDeclaredBy: string | undefined;
+  let runLanes: RunLanes | undefined;
+  let runLanesDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -744,6 +752,16 @@ export function resolveExtensions(
       visitorClassifierDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.runLanes !== undefined) {
+      if (runLanesDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers RunLanes, but '${runLanesDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      runLanes = unit.drivers.runLanes;
+      runLanesDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -949,6 +967,7 @@ export function resolveExtensions(
       platformTokenKeys,
       guestTokenMinting,
       visitorClassifier,
+      runLanes,
       resourceRowReaders,
     },
     services,

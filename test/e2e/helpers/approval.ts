@@ -94,7 +94,7 @@ export function shellBlock(toolCallId: string, command: string): ToolUseBlock {
  * `gateTurns` for the multi-step shape) followed by a single terminating text
  * turn (served after the LAST gate resolves and its tool executes).
  *
- * `executionConfig` is intentionally left unset to mirror the proven conformance
+ * `runConfig` is intentionally left unset to mirror the proven conformance
  * path: the runner's default native model is anthropic, so traffic routes through
  * the mock proxy's `/v1/messages` path. Pinning a model id here would risk an
  * unresolved-registry id (the user-facing id is `claude-sonnet-4.6`, the api id

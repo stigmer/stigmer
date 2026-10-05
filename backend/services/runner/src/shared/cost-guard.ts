@@ -1,5 +1,7 @@
 /**
- * ExecutionConfig.max_cost_usd enforcement as a hard stop on a harness turn.
+ * RunConfig.max_cost_usd enforcement as a hard stop on a harness turn: the
+ * bound the turn runs with (`status.run_config`, the control plane's one
+ * resolution), never the request's own.
  *
  * The one enforcement of the cap, for every harness: the turn runtime
  * (`harness/run-turn.ts`) calls `costCapExceeded` on each usage delta an

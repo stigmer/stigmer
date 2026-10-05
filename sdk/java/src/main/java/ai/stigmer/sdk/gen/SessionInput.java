@@ -2,7 +2,7 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.agent.v1.McpServerUsage;
+import ai.stigmer.agentic.mcpserver.v1.McpServerUsage;
 import ai.stigmer.agentic.session.v1.CursorMode;
 import ai.stigmer.agentic.session.v1.ExecutionTarget;
 import ai.stigmer.agentic.session.v1.GitRepoSource;

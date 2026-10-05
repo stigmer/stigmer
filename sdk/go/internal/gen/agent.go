@@ -6,8 +6,11 @@ import (
 	"context"
 
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
@@ -136,6 +139,8 @@ type AgentInput struct {
 	Tools           []string
 	DisallowedTools []string
 	Hooks           []*HookSourceInput
+	RunConfig       *RunConfigInput
+	Harness         sessionv1.Harness
 }
 
 // McpServerUsageInput is the SDK input type for McpServerUsage.
@@ -187,6 +192,16 @@ type HookHandlerInput struct {
 	TimeoutSeconds int32
 	Condition      string
 	FailClosed     bool
+}
+
+// RunConfigInput is the SDK input type for RunConfig.
+type RunConfigInput struct {
+	ModelName          string
+	MaxCostUsd         float64
+	MaxToolRounds      int32
+	ServiceTier        agentexecutionv1.ServiceTier
+	ThinkingMode       agentexecutionv1.ThinkingMode
+	MaxToolResultChars int32
 }
 
 func (i *AgentInput) toProto() (*agentv1.Agent, error) {
@@ -249,11 +264,19 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		}
 		resource.Spec.Hooks = append(resource.Spec.Hooks, v)
 	}
+	if i.RunConfig != nil {
+		v, err := i.RunConfig.toProto()
+		if err != nil {
+			return nil, fieldErr("RunConfig", err)
+		}
+		resource.Spec.RunConfig = v
+	}
+	resource.Spec.Harness = i.Harness
 	return resource, nil
 }
 
-func (i *McpServerUsageInput) toProto() (*agentv1.McpServerUsage, error) {
-	p := &agentv1.McpServerUsage{}
+func (i *McpServerUsageInput) toProto() (*mcpserverv1.McpServerUsage, error) {
+	p := &mcpserverv1.McpServerUsage{}
 	if i.McpServerRef.Org != "" || i.McpServerRef.Slug != "" {
 		ref := i.McpServerRef.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_mcp_server
@@ -332,6 +355,17 @@ func (i *HookHandlerInput) toProto() (*pluginv1.HookHandler, error) {
 	}, nil
 }
 
+func (i *RunConfigInput) toProto() (*agentexecutionv1.RunConfig, error) {
+	return &agentexecutionv1.RunConfig{
+		ModelName:          i.ModelName,
+		MaxCostUsd:         i.MaxCostUsd,
+		MaxToolRounds:      i.MaxToolRounds,
+		ServiceTier:        i.ServiceTier,
+		ThinkingMode:       i.ThinkingMode,
+		MaxToolResultChars: i.MaxToolResultChars,
+	}, nil
+}
+
 // AgentInputFromProto creates a AgentInput from a proto Agent resource.
 func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 	if p == nil {
@@ -370,11 +404,13 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 		for _, item := range s.GetHooks() {
 			input.Hooks = append(input.Hooks, hookSourceInputFromProto(item))
 		}
+		input.RunConfig = runConfigInputFromProto(s.GetRunConfig())
+		input.Harness = s.GetHarness()
 	}
 	return input
 }
 
-func mcpServerUsageInputFromProto(p *agentv1.McpServerUsage) *McpServerUsageInput {
+func mcpServerUsageInputFromProto(p *mcpserverv1.McpServerUsage) *McpServerUsageInput {
 	if p == nil {
 		return nil
 	}
@@ -456,5 +492,19 @@ func hookHandlerInputFromProto(p *pluginv1.HookHandler) *HookHandlerInput {
 	input.TimeoutSeconds = p.GetTimeoutSeconds()
 	input.Condition = p.GetCondition()
 	input.FailClosed = p.GetFailClosed()
+	return input
+}
+
+func runConfigInputFromProto(p *agentexecutionv1.RunConfig) *RunConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &RunConfigInput{}
+	input.ModelName = p.GetModelName()
+	input.MaxCostUsd = p.GetMaxCostUsd()
+	input.MaxToolRounds = p.GetMaxToolRounds()
+	input.ServiceTier = p.GetServiceTier()
+	input.ThinkingMode = p.GetThinkingMode()
+	input.MaxToolResultChars = p.GetMaxToolResultChars()
 	return input
 }

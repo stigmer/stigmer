@@ -74,6 +74,7 @@ export type {
   CostTier,
   UseModelRegistryReturn,
   UseModelRegistryOptions,
+  InheritedModel,
   ModelSelectorProps,
   HarnessSelectorProps,
   HarnessOption,
@@ -868,9 +869,14 @@ export {
   useCreateAgent,
   useUpdateAgent,
   AgentCreationWizard,
+  agentHarnessOf,
+  agentRunDefaultsFor,
+  useRunAgentSpec,
 } from "./agent/index.js";
 export type {
   UseAgentReturn,
+  AgentRunDefaults,
+  UseRunAgentSpecReturn,
   UseAgentCountOptions,
   UseAgentCountReturn,
   UseAgentListOptions,

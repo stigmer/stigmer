@@ -9,7 +9,10 @@ instructions (system prompt), which MCP servers it can use, which Skills it has,
 optional Sub-Agents for delegation, and the tools it may and may never use, in
 Claude Code's names (`tools` and `disallowed_tools`, deny applied first). Its
 `hooks`, a plugin's or a block written in the agent in Claude Code's format, can
-refuse a tool call, ask a person first, or let it run.
+refuse a tool call, ask a person first, or let it run. Its `run_config` and
+`harness` are the run defaults a conversation on it starts with: the model and
+thinking a message or a surface may replace, and limits it may lower but never
+raise.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -33,6 +36,10 @@ spec:
     - plugin:
         kind: plugin
         slug: safety
+  harness: HARNESS_NATIVE
+  run_config:
+    model_name: claude-sonnet-4.5
+    max_cost_usd: 2
 ```
 
 ## Client Access
@@ -283,6 +290,8 @@ const agent = await stigmer.agent.apply({
   tools: [],
   disallowedTools: [],
   hooks: [],
+  runConfig: {},
+  harness: "...",
 });
 ```
 </Tab>
@@ -303,6 +312,8 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   Tools:           []string{},
   DisallowedTools: []string{},
   Hooks:           []stigmer.HookSourceInput{},
+  RunConfig:       &stigmer.RunConfigInput{},
+  Harness:         "...",
 })
 ```
 </Tab>
@@ -323,6 +334,8 @@ agent = client.agents.apply(AgentInput(
     tools=[],
     disallowed_tools=[],
     hooks=[],
+    run_config=None,
+    harness="...",
 ))
 ```
 </Tab>
@@ -343,6 +356,8 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .tools(List.of())
     .disallowedTools(List.of())
     .hooks(List.of())
+    .runConfig(null)
+    .harness("...")
     .build());
 ```
 </Tab>
@@ -374,6 +389,8 @@ const agent = await stigmer.agent.create({
   tools: [],
   disallowedTools: [],
   hooks: [],
+  runConfig: {},
+  harness: "...",
 });
 ```
 </Tab>
@@ -394,6 +411,8 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   Tools:           []string{},
   DisallowedTools: []string{},
   Hooks:           []stigmer.HookSourceInput{},
+  RunConfig:       &stigmer.RunConfigInput{},
+  Harness:         "...",
 })
 ```
 </Tab>
@@ -414,6 +433,8 @@ agent = client.agents.create(AgentInput(
     tools=[],
     disallowed_tools=[],
     hooks=[],
+    run_config=None,
+    harness="...",
 ))
 ```
 </Tab>
@@ -434,6 +455,8 @@ Agent agent = client.agents().create(AgentInput.builder()
     .tools(List.of())
     .disallowedTools(List.of())
     .hooks(List.of())
+    .runConfig(null)
+    .harness("...")
     .build());
 ```
 </Tab>
@@ -465,6 +488,8 @@ const agent = await stigmer.agent.update({
   tools: [],
   disallowedTools: [],
   hooks: [],
+  runConfig: {},
+  harness: "...",
 });
 ```
 </Tab>
@@ -485,6 +510,8 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
   Tools:           []string{},
   DisallowedTools: []string{},
   Hooks:           []stigmer.HookSourceInput{},
+  RunConfig:       &stigmer.RunConfigInput{},
+  Harness:         "...",
 })
 ```
 </Tab>
@@ -505,6 +532,8 @@ agent = client.agents.update(AgentInput(
     tools=[],
     disallowed_tools=[],
     hooks=[],
+    run_config=None,
+    harness="...",
 ))
 ```
 </Tab>
@@ -525,6 +554,8 @@ Agent agent = client.agents().update(AgentInput.builder()
     .tools(List.of())
     .disallowedTools(List.of())
     .hooks(List.of())
+    .runConfig(null)
+    .harness("...")
     .build());
 ```
 </Tab>
@@ -689,12 +720,14 @@ Input for creating or updating an Agent.
     tools: { type: "string[]", description: "Tools this agent may use; empty means every tool it has." },
     disallowedTools: { type: "string[]", description: "Tools this agent may never use, in the same names as tools." },
     hooks: { type: "HookSourceInput[]", description: "Hooks that run around this agent's tool calls, and its sub-agents' calls.", typeDescriptionLink: "#hooksourceinput" },
+    runConfig: { type: "RunConfigInput", description: "The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message or the surface it came through sets its own (RunConfig has the rule).", typeDescriptionLink: "#runconfiginput" },
+    harness: { type: "Harness", description: "The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against).", typeDescriptionLink: "#harness" },
   }}
 />
 
 ### McpServerUsageInput
 
-McpServerUsage declares that this agent uses a McpServer resource.
+McpServerUsage declares that an agent (AgentSpec.mcp_server_usages) or a session (SessionSpec.mcp_server_usages) uses a McpServer resource.
 
 <TypeTable
   type={{
@@ -788,6 +821,21 @@ HookHandler is one command a hook runs.
     timeoutSeconds: { type: "number", description: "Seconds the command may run before it is stopped; zero means the default, 600 seconds." },
     condition: { type: "string", description: "A permission rule that narrows when the handler runs, e.g. \"Bash(git push *)\"; empty means whenever the group matches." },
     failClosed: { type: "boolean", description: "Whether a crash, timeout or missing answer blocks the call instead of letting it through." },
+  }}
+/>
+
+### RunConfigInput
+
+RunConfig is the settings message for every run: a model, a speed tier, thinking, and run bounds.
+
+<TypeTable
+  type={{
+    modelName: { type: "string", description: "The model each run uses." },
+    maxCostUsd: { type: "number", description: "Maximum estimated cost in USD per run." },
+    maxToolRounds: { type: "number", description: "Maximum model-to-tools reasoning cycles per message." },
+    serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
+    thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
+    maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
   }}
 />
 
@@ -891,6 +939,15 @@ AgentStatus contains system-managed state for an agent.
   }}
 />
 
+### Harness
+
+Harness identifies the execution engine that processes agent activities for a session.
+
+| Value | Description |
+|-------|-------------|
+| `HARNESS_NATIVE` | Stigmer's native execution engine. |
+| `HARNESS_CURSOR` | Cursor SDK execution engine. |
+
 ### HookFormat
 
 HookFormat is the hook format a plugin's hooks are written in.
@@ -899,4 +956,22 @@ HookFormat is the hook format a plugin's hooks are written in.
 |-------|-------------|
 | `HOOK_FORMAT_CLAUDE_CODE` | Claude Code's hook format, also used by Codex plugins. |
 | `HOOK_FORMAT_CURSOR` | Cursor's hook format. |
+
+### ServiceTier
+
+ServiceTier selects the provider-side speed/service tier for an execution's model calls.
+
+| Value | Description |
+|-------|-------------|
+| `SERVICE_TIER_STANDARD` | Standard tier: the model's base-priced configuration, requested explicitly. |
+| `SERVICE_TIER_FAST` | Fast tier: the model's fast variant, billed at the registry's fast variant rates. |
+
+### ThinkingMode
+
+ThinkingMode selects the model's extended-reasoning ("thinking") variant for an execution's model calls — the second variant dimension alongside ServiceTier (stigmer/stigmer#772).
+
+| Value | Description |
+|-------|-------------|
+| `THINKING_MODE_DISABLED` | Extended reasoning off: the model's base variant, requested explicitly (thinking=false pinned where the model declares the parameter). |
+| `THINKING_MODE_ENABLED` | Extended reasoning on: the model's thinking variant, billed at base per-token rates (reasoning tokens bill as output tokens). |
 

@@ -138,8 +138,9 @@ engine that processes the Agent's turns. Stigmer supports two: **Native** (the
 default) and **Cursor** (for Cursor SDK-powered execution with access to
 Cursor-specific models and coding tools).
 
-You set the Harness when creating a Session. Once the first execution runs, the
-Harness is locked for that Session.
+You set the Harness when creating a Session; when you set none, the Session
+starts on the Agent's own `harness`, or native when the Agent names none. Once
+the first execution runs, the Harness is locked for that Session.
 
 ```yaml validate-as="Session"
 spec:

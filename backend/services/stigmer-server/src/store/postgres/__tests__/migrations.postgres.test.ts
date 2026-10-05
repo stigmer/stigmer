@@ -40,6 +40,10 @@ import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import {
+  ApprovalMode,
+  InteractionMode,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -55,6 +59,7 @@ import {
   SCHEMA_VERSION_7,
   SCHEMA_VERSION_8,
   SCHEMA_VERSION_9,
+  SCHEMA_VERSION_10,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -64,6 +69,11 @@ import {
   retiredSessionRow,
   sessionBytes,
 } from "../../__tests__/retired-instance-rows.js";
+import {
+  executionBytes,
+  retiredExecutionRow,
+} from "../../__tests__/retired-execution-rows.js";
+import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { PostgresStore } from "../store.js";
 import {
@@ -1193,6 +1203,127 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
 
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_9);
           expect(await count(client, "resources", "agent_instance")).toBe(0);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v10: a turn's settings leave the retired execution_config", () => {
+      const seededAt = new Date("2026-09-01T00:00:00Z");
+      const metadata = (id: string) => ({ id, org: "org_1", slug: id });
+
+      async function v9Client(): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_10 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insert(client: pg.Client, id: string, data: Uint8Array): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at) VALUES ('agent_execution', $1, $2, $3)`,
+          [id, Buffer.from(data), seededAt],
+        );
+      }
+
+      async function row(
+        client: pg.Client,
+        id: string,
+      ): Promise<{ data: Uint8Array; updatedAt: Date }> {
+        const result = await client.query<{ data: Buffer; updated_at: Date }>(
+          `SELECT data, updated_at FROM resources WHERE kind = 'agent_execution' AND id = $1`,
+          [id],
+        );
+        return {
+          data: new Uint8Array(result.rows[0]!.data),
+          updatedAt: result.rows[0]!.updated_at,
+        };
+      }
+
+      it("rewrites every turn into the current shape and leaves its stamp alone", async () => {
+        const client = await v9Client();
+        try {
+          await insert(
+            client,
+            "aex_plan",
+            retiredExecutionRow({
+              metadata: metadata("aex_plan"),
+              config: {
+                modelName: "claude-sonnet-5",
+                maxCostUsd: 2,
+                interactionMode: InteractionMode.PLAN,
+                approvalMode: ApprovalMode.UNATTENDED,
+              },
+            }),
+          );
+          await insert(client, "aex_bare", retiredExecutionRow({ metadata: metadata("aex_bare") }));
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_10);
+
+          const plan = await row(client, "aex_plan");
+          expect(plan.data).toEqual(
+            executionBytes({
+              metadata: metadata("aex_plan"),
+              spec: {
+                message: "hello",
+                runConfig: { modelName: "claude-sonnet-5", maxCostUsd: 2 },
+                interactionMode: InteractionMode.PLAN,
+              },
+              status: {
+                runConfig: { modelName: "claude-sonnet-5", maxCostUsd: 2 },
+                approvalMode: ApprovalMode.UNATTENDED,
+              },
+            }),
+          );
+          expect(plan.updatedAt).toEqual(seededAt);
+          expect((await row(client, "aex_bare")).data).toEqual(
+            executionBytes({
+              metadata: metadata("aex_bare"),
+              spec: { message: "hello" },
+              status: { runConfig: {}, approvalMode: ApprovalMode.INTERACTIVE },
+            }),
+          );
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads every page of turns", async () => {
+        const client = await v9Client();
+        try {
+          for (let i = 0; i <= EXECUTION_CONFIG_PAGE_SIZE; i++) {
+            const id = `aex_${String(i).padStart(4, "0")}`;
+            await insert(client, id, retiredExecutionRow({ metadata: metadata(id), config: { maxCostUsd: 1 } }));
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_10);
+          const last = `aex_${String(EXECUTION_CONFIG_PAGE_SIZE).padStart(4, "0")}`;
+          expect((await row(client, last)).data).toEqual(
+            executionBytes({
+              metadata: metadata(last),
+              spec: { message: "hello", runConfig: { maxCostUsd: 1 } },
+              status: { runConfig: { maxCostUsd: 1 }, approvalMode: ApprovalMode.INTERACTIVE },
+            }),
+          );
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("an unreadable turn fails the step, rolls back the turns it rewrote, and leaves the database at v9", async () => {
+        const client = await v9Client();
+        try {
+          // A readable turn ahead of the unreadable one in id order is
+          // rewritten first; the failure must take that rewrite back.
+          const good = retiredExecutionRow({ metadata: metadata("aex_a_good"), config: { maxCostUsd: 1 } });
+          await insert(client, "aex_a_good", good);
+          await insert(client, "aex_b_bad", new Uint8Array([0xff, 0xff, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_10)).rejects.toThrow(
+            "agent_execution 'aex_b_bad'",
+          );
+          const version = await client.query(`SELECT MAX(version) AS version FROM schema_version`);
+          expect(Number(version.rows[0].version)).toBe(SCHEMA_VERSION_10 - 1);
+          expect((await row(client, "aex_a_good")).data).toEqual(good);
         } finally {
           await client.end();
         }

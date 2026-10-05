@@ -1,4 +1,4 @@
-// Conformance suite for ExecutionConfig.max_tool_rounds (Class B).
+// Conformance suite for RunConfig.max_tool_rounds (Class B).
 // Domain: agentic / agentexecution — the round budget a run's tool use is held to.
 //
 // The contract under test (stigmer/stigmer#1463, spec.proto's max_tool_rounds):
@@ -75,7 +75,7 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("AgentExecution execution_config.max_tool_rounds", () => {
+describe("AgentExecution run_config.max_tool_rounds", () => {
   // The run passes its 80% advisory on the way to the limit, so this case is
   // also the end-to-end proof that the advisory reaches an Anthropic model as
   // a request it accepts (stigmer/stigmer#1354).
@@ -104,7 +104,7 @@ describe("AgentExecution execution_config.max_tool_rounds", () => {
         agentRef: agentRefOf(agent),
         message: "Echo each round.",
         autoApproveAll: true,
-        executionConfig: { maxToolRounds: MAX_TOOL_ROUNDS },
+        runConfig: { maxToolRounds: MAX_TOOL_ROUNDS },
       }),
     );
     const executionId = execution.metadata!.id;

@@ -88,6 +88,16 @@ import {
   newStartWorkflowStep,
 } from "../create-steps.js";
 import type { SessionCreatorProvider } from "../create-steps.js";
+import type { ModelCatalogProvider } from "../../workflow/registry/model-catalog-provider.js";
+
+/**
+ * CreateSessionIfNeeded's settings deps where the chain recorded no
+ * resolution (these cases run the step alone): nothing is read.
+ */
+const noRunConfigReads = {
+  store: {} as Store,
+  modelRegistry: {} as ModelCatalogProvider,
+};
 import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
 import type {
   ExecutionEngineState,
@@ -207,6 +217,7 @@ describe("the built-in assistant (no session and no session_spec named)", () => 
   it("createSessionIfNeeded creates the session with no agent and points the turn at it", async () => {
     const sessions = recordingSessionCreator("ses_assistant");
     const step = newCreateSessionIfNeededStep({
+      ...noRunConfigReads,
       logger: silentLogger,
       sessionCreator: sessions.creator,
     });
@@ -232,6 +243,7 @@ describe("the built-in assistant (no session and no session_spec named)", () => 
   it("createSessionIfNeeded forwards a caller session_spec that names no agent", async () => {
     const sessions = recordingSessionCreator("ses_assistant_tools");
     const step = newCreateSessionIfNeededStep({
+      ...noRunConfigReads,
       logger: silentLogger,
       sessionCreator: sessions.creator,
     });
@@ -264,6 +276,7 @@ describe("a new conversation on an agent", () => {
       agentVersionHash: "e".repeat(64),
     });
     const step = newCreateSessionIfNeededStep({
+      ...noRunConfigReads,
       logger: silentLogger,
       sessionCreator: sessions.creator,
     });
@@ -307,6 +320,7 @@ describe("a new conversation on an agent", () => {
 // InvalidArgument, never Internal), with the wrapped #852 message shape.
 it("createSessionIfNeeded surfaces the inner status code of a failed session create", async () => {
   const step = newCreateSessionIfNeededStep({
+    ...noRunConfigReads,
     logger: silentLogger,
     sessionCreator: () => ({
       createAsCaller: async () => {
@@ -328,6 +342,7 @@ it("createSessionIfNeeded surfaces the inner status code of a failed session cre
 // auto-creation entirely, and leaves the stamp ResolveRunAgent wrote.
 it("createSessionIfNeeded skips when a session is provided", async () => {
   const step = newCreateSessionIfNeededStep({
+    ...noRunConfigReads,
     logger: silentLogger,
     sessionCreator: () => {
       throw new Error("session creator must not be reached");

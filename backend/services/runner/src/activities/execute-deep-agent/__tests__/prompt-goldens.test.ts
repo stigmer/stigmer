@@ -53,7 +53,7 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema, ExecutionConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -178,10 +178,8 @@ function everythingInput(shape: EverythingShape): TurnInput {
       target: { case: "sessionId", value: sessionId },
       message: USER_MESSAGE,
       workspaceFileRefs: ["app/src/deploy.ts", "docs/RELEASES.md"],
-      executionConfig: create(ExecutionConfigSchema, {
-        ...(shape.interactionMode !== undefined ? { interactionMode: shape.interactionMode } : {}),
-        ...(shape.buildFromPlan !== undefined ? { buildFromPlan: shape.buildFromPlan } : {}),
-      }),
+      ...(shape.interactionMode !== undefined ? { interactionMode: shape.interactionMode } : {}),
+      ...(shape.buildFromPlan !== undefined ? { buildFromPlan: shape.buildFromPlan } : {}),
     }),
   });
   return turnInputFixture({

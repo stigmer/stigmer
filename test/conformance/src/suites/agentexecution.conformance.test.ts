@@ -78,23 +78,49 @@ describe("AgentExecution conformance — one-call session bootstrap validation (
 describe("AgentExecution conformance — service-tier fail-closed validation (#357)", () => {
   // The tier exists to make pricing deterministic, so it is validated where
   // the price is decided — at create, against the model registry — with
-  // identical rules and messages in both editions (OSS Go
-  // validateServiceTierStep, cloud Java ValidateServiceTierStep). Both
-  // refusals fire before any resource resolution, so fake ids suffice.
+  // identical rules and messages in every edition. It judges the settings
+  // the turn resolved (the message's, the agent's defaults, the lane's
+  // profile), so it runs behind the run gate: each arm creates a real agent,
+  // which an enforcing edition would otherwise refuse as PermissionDenied
+  // first. Every arm is a refusal, before any side effect.
+  async function tierAgent(
+    org: string,
+    defaults: Pick<Parameters<typeof makeAgent>[0], "harness" | "runConfig"> = {},
+  ): Promise<Agent> {
+    return clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("agent-tier"), instructions: "You validate service tiers.", ...defaults }),
+    );
+  }
+
+  async function refusedWith(
+    org: string,
+    agent: Agent,
+    label: string,
+    runConfig: Parameters<typeof makeAgentExecution>[0]["runConfig"],
+    what: string,
+  ): Promise<string> {
+    try {
+      const err = await expectGrpcCode(
+        () =>
+          clients.agentExecutionCommand.create(
+            makeAgentExecution({ org, name: uniqueName(label), agentRef: agentRefOf(agent), runConfig }),
+          ),
+        Code.InvalidArgument,
+        what,
+      );
+      return err.rawMessage;
+    } finally {
+      await clients.agentCommand.delete({ value: agent.metadata!.id });
+    }
+  }
 
   it("[rpc:AgentExecutionCommandController.create] rejects fast without a pinned model (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.create(
-          makeAgentExecution({
-            org,
-            name: uniqueName("aex-tier-no-model"),
-            agentRef: { org, slug: "fake-agent" },
-            executionConfig: { serviceTier: ServiceTier.FAST },
-          }),
-        ),
-      Code.InvalidArgument,
+    await refusedWith(
+      org,
+      await tierAgent(org),
+      "aex-tier-no-model",
+      { serviceTier: ServiceTier.FAST },
       "create with service_tier fast and no model_name",
     );
   });
@@ -104,22 +130,29 @@ describe("AgentExecution conformance — service-tier fail-closed validation (#3
     // claude-haiku-4-5 is registered but prices no fast variant — selecting
     // a tier billing cannot price would trip the undercharge guard, so
     // selection and billability are coupled by refusing here.
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.create(
-          makeAgentExecution({
-            org,
-            name: uniqueName("aex-tier-unpriced"),
-            agentRef: { org, slug: "fake-agent" },
-            executionConfig: {
-              modelName: "claude-haiku-4-5",
-              serviceTier: ServiceTier.FAST,
-            },
-          }),
-        ),
-      Code.InvalidArgument,
+    await refusedWith(
+      org,
+      await tierAgent(org),
+      "aex-tier-unpriced",
+      { modelName: "claude-haiku-4-5", serviceTier: ServiceTier.FAST },
       "create with service_tier fast on a model without a fast variant",
     );
+  });
+
+  it("[rpc:AgentExecutionCommandController.create] judges a tier a message sets alone on the agent's model, naming both layers (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    // The agent's default model prices no fast variant; the message asks
+    // for fast without naming a model, so the turn would run fast on the
+    // agent's model. The refusal says which layer chose each.
+    const message = await refusedWith(
+      org,
+      await tierAgent(org, { harness: Harness.NATIVE, runConfig: { modelName: "claude-sonnet-5" } }),
+      "aex-tier-agent-model",
+      { serviceTier: ServiceTier.FAST },
+      "create with service_tier fast on the agent's default model, which prices none",
+    );
+    expect(message).toContain("the request's run_config");
+    expect(message).toContain("the agent's run defaults");
   });
 });
 
@@ -139,7 +172,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
 
   async function expectRefused(
     label: string,
-    executionConfig: Parameters<typeof makeAgentExecution>[0]["executionConfig"],
+    runConfig: Parameters<typeof makeAgentExecution>[0]["runConfig"],
     harness: Harness,
     what: string,
   ): Promise<void> {
@@ -154,7 +187,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
               name: uniqueName(label),
               agentRef: agentRefOf(agent),
               sessionSpec: { harness },
-              executionConfig,
+              runConfig,
             }),
           ),
         Code.InvalidArgument,

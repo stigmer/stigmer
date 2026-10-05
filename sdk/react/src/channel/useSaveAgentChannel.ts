@@ -79,6 +79,7 @@ export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
             maxToolRounds: spec.runConfig.maxToolRounds,
             serviceTier: spec.runConfig.serviceTier,
             thinkingMode: spec.runConfig.thinkingMode,
+            maxToolResultChars: spec.runConfig.maxToolResultChars,
           },
         }
       : {}),

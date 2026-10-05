@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/invocation.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_invocation: GenFile = /*@__PURE__*/
-  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvaW52b2NhdGlvbi5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIvAECg9BZ2VudEludm9jYXRpb24SrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEhsKB21lc3NhZ2UYAiABKAlCCrpIB3IFEAEYgEASNwoHaGFybmVzcxgDIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSSAoRd29ya3NwYWNlX2VudHJpZXMYBCADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLIAQoQZW52aXJvbm1lbnRfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1EkMKCnJ1bl9jb25maWcYBiABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUnVuQ29uZmlnIo8CCglSdW5Db25maWcSEgoKbW9kZWxfbmFtZRgBIAEoCRIkCgxtYXhfY29zdF91c2QYAiABKAFCDrpICxIJKQAAAAAAAAAAEiAKD21heF90b29sX3JvdW5kcxgDIAEoBUIHukgEGgIoABJRCgxzZXJ2aWNlX3RpZXIYBCABKA4yMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU2VydmljZVRpZXJCCLpIBYIBAhABElMKDXRoaW5raW5nX21vZGUYBSABKA4yMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVGhpbmtpbmdNb2RlQgi6SAWCAQIQAWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvaW52b2NhdGlvbi5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIvAECg9BZ2VudEludm9jYXRpb24SrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEhsKB21lc3NhZ2UYAiABKAlCCrpIB3IFEAEYgEASNwoHaGFybmVzcxgDIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSSAoRd29ya3NwYWNlX2VudHJpZXMYBCADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLIAQoQZW52aXJvbm1lbnRfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1EkMKCnJ1bl9jb25maWcYBiABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUnVuQ29uZmlnIrcCCglSdW5Db25maWcSEgoKbW9kZWxfbmFtZRgBIAEoCRIkCgxtYXhfY29zdF91c2QYAiABKAFCDrpICxIJKQAAAAAAAAAAEiAKD21heF90b29sX3JvdW5kcxgDIAEoBUIHukgEGgIoABJRCgxzZXJ2aWNlX3RpZXIYBCABKA4yMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU2VydmljZVRpZXJCCLpIBYIBAhABElMKDXRoaW5raW5nX21vZGUYBSABKA4yMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVGhpbmtpbmdNb2RlQgi6SAWCAQIQARImChVtYXhfdG9vbF9yZXN1bHRfY2hhcnMYBiABKAVCB7pIBBoCKABiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentInvocation is what a caller may ask an agent to do.
@@ -58,7 +58,9 @@ export type AgentInvocation = Message<"ai.stigmer.agentic.agentexecution.v1.Agen
   message: string;
 
   /**
-   * Execution engine for the run's session. Unspecified inherits the
+   * Execution engine for the run's session. Unspecified: native when
+   * run_config names a model (the engine the model was checked against at
+   * save), else the agent's own engine (AgentSpec.harness), else the
    * embedding surface's platform default.
    *
    * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 3;
@@ -86,8 +88,9 @@ export type AgentInvocation = Message<"ai.stigmer.agentic.agentexecution.v1.Agen
   environmentRefs: ApiResourceReference[];
 
   /**
-   * Per-invocation model choice and run bounds. Unset fields inherit
-   * the embedding surface's platform execution profile.
+   * Per-invocation model choice and run bounds. Unset fields fall to the
+   * agent's defaults, then to the lane's operator profile (RunConfig has the
+   * rule).
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 6;
    */
@@ -102,12 +105,38 @@ export const AgentInvocationSchema: GenMessage<AgentInvocation> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_invocation, 0);
 
 /**
- * RunConfig is the owner-settable model choice and run bounds.
+ * RunConfig is the settings message for every run: a model, a speed tier,
+ * thinking, and run bounds.
  *
- * Each field mirrors its ExecutionConfig namesake; zero/empty means
- * "inherit the surface's platform default". Embeddable on its own:
- * surfaces that derive agent and message elsewhere (a channel's
- * conversations, for example) carry just this message.
+ * The same message is a message's request (AgentExecutionSpec.run_config),
+ * a surface's saved settings (a schedule's invocation, a channel, a share, a
+ * workflow agent_call step), an agent author's defaults (AgentSpec.run_config,
+ * versioned with the agent), and the settings a turn ran with
+ * (AgentExecutionStatus.run_config). Zero or empty means "not set at this
+ * layer".
+ *
+ * The server resolves a turn's settings once, at create, from three layers,
+ * most specific first: the message (or the surface it came through), the
+ * agent's defaults, and the lane's operator profile.
+ *
+ * - Choices. model_name comes from the first layer that names one. When no
+ *   layer names one, the model is left to the engine (the native engine's
+ *   registry default; Cursor's Auto). service_tier and thinking_mode each
+ *   come from the first layer, at or above the model's layer, that sets
+ *   them: a less specific layer's tier or thinking was chosen for another
+ *   model, so it never lands on this one. Without a model, tier and thinking
+ *   come only from the message.
+ * - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take
+ *   the smallest positive value any layer sets. An operator profile is a
+ *   ceiling the message, the surface and the agent can lower but never
+ *   raise.
+ * - The agent's choices apply only on the engine its defaults name
+ *   (AgentSpec.harness). On a conversation running the other engine the
+ *   agent layer gives its bounds alone.
+ *
+ * Saved settings are self-contained: a surface or an agent that sets
+ * service_tier FAST or thinking_mode ENABLED names the model it is for. Only a
+ * message may set them alone, to adjust the model it is given.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.RunConfig
  */
@@ -120,16 +149,41 @@ export type RunConfig = Message<"ai.stigmer.agentic.agentexecution.v1.RunConfig"
   modelName: string;
 
   /**
-   * Maximum estimated cost in USD per run. The surface's platform
-   * execution profile caps this value; the lower bound wins.
+   * Maximum estimated cost in USD per run.
+   *
+   * When the run's estimated spend reaches this limit, the run stops with a
+   * "send another message to continue" prompt and ends TERMINATED; the work
+   * done so far is kept. The limit is checked each time the engine reports
+   * its spend, so a run can end somewhat above it. The native harness
+   * reports after every model call, counts a sub-agent's spend toward the
+   * limit, and advises the agent to wrap up at about 80% of the budget; the
+   * Cursor harness gives no warning.
+   *
+   * 0 = not set at this layer. The budget is per message: a follow-up
+   * message, or a run resuming after an approval, starts a fresh count. The
+   * spend is the runner's estimate, reported on
+   * AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed
+   * amount.
    *
    * @generated from field: double max_cost_usd = 2;
    */
   maxCostUsd: number;
 
   /**
-   * Maximum model-to-tools reasoning cycles per run. The surface's
-   * platform execution profile caps this value; the lower bound wins.
+   * Maximum model-to-tools reasoning cycles per message.
+   *
+   * A round is one model response that proposes one or more tool calls,
+   * followed by their execution; parallel tool calls in one response are one
+   * round. When the limit is reached the run stops with a "send another
+   * message to continue" prompt, and the work done so far is kept. The agent
+   * is advised to wrap up at about 80% of the budget.
+   *
+   * 0 = not set at this layer; with no layer setting it the agent runs until
+   * the task completes or loop detection stops a repetitive pattern. When
+   * set, the valid range is 10–1000; values outside it are clamped to the
+   * nearest bound. The budget is per message: a follow-up message, or a run
+   * resuming after an approval, starts a fresh count. Sub-agent rounds are
+   * not counted, and the Cursor harness does not enforce this field.
    *
    * @generated from field: int32 max_tool_rounds = 3;
    */
@@ -141,11 +195,11 @@ export type RunConfig = Message<"ai.stigmer.agentic.agentexecution.v1.RunConfig"
    * In workflow YAML the shorthand spellings "standard"/"fast" are
    * accepted alongside the canonical enum names.
    *
-   * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
-   * surface's platform default, which itself resolves to STANDARD —
-   * never the provider account default. FAST requires model_name
-   * (here or from the platform profile) to name a model with a
-   * registry fast pricing variant; validated fail-closed at create.
+   * UNSPECIFIED is not set at this layer; with no layer setting it the run
+   * uses STANDARD, never the provider account default. FAST is valid only
+   * for a model whose registry entry declares a fast pricing variant on the
+   * engine that runs it; validated fail-closed on the resolved settings at
+   * create.
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4;
    */
@@ -159,16 +213,29 @@ export type RunConfig = Message<"ai.stigmer.agentic.agentexecution.v1.RunConfig"
    * In workflow YAML the shorthand spellings "disabled"/"enabled" are
    * accepted alongside the canonical enum names.
    *
-   * Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
-   * surface's platform default, which itself resolves to DISABLED —
-   * never the provider account default. ENABLED requires model_name
-   * (here or from the platform profile) to name a model whose registry
-   * entry declares the thinking capability; validated fail-closed at
+   * UNSPECIFIED is not set at this layer; with no layer setting it the run
+   * uses DISABLED, never the provider account default. ENABLED is valid only
+   * for a model whose registry entry declares the thinking capability on the
+   * engine that runs it; validated fail-closed on the resolved settings at
    * create. Combines freely with service_tier.
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ThinkingMode thinking_mode = 5;
    */
   thinkingMode: ThinkingMode;
+
+  /**
+   * Maximum number of characters for a single tool result before truncation.
+   * When a tool result exceeds this limit, it is truncated and a marker is
+   * appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+   *
+   * 0 = not set at this layer; with no layer setting it the platform default
+   * applies (30,000 chars, about 7,500 tokens). Applies to all tool results
+   * (shell, read, write, MCP tools), except built-in tools that already
+   * manage their output size.
+   *
+   * @generated from field: int32 max_tool_result_chars = 6;
+   */
+  maxToolResultChars: number;
 };
 
 /**

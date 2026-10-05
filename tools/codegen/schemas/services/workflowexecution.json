@@ -2125,7 +2125,7 @@
         {
           "name": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
           "number": 8,
-          "description": "The unattended approval mode (ExecutionConfig.approval_mode =\n APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:\n the surface that created the execution (a messaging channel, a guest\n share) has no approver, so the platform skipped the tool and told the\n model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it\n records HOW the gate was resolved, overriding the gating-layer source on\n the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO\n approval_action / approved_by (those record human decisions only), and\n no approval-request event is ever authored for it."
+          "description": "The unattended approval mode (AgentExecutionStatus.approval_mode =\n APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:\n the lane the execution came through (a schedule's fire, a messaging\n channel, a guest share) has no approver, so the platform skipped the\n tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it\n records HOW the gate was resolved, overriding the gating-layer source on\n the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO\n approval_action / approved_by (those record human decisions only), and\n no approval-request event is ever authored for it."
         },
         {
           "name": "APPROVAL_POLICY_SOURCE_HOOK",

@@ -72,8 +72,8 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
   env: { [key: string]: string };
 
   /**
-   * Per-call model choice and run bounds. Unset fields inherit the
-   * platform defaults.
+   * Per-call model choice and run bounds. Unset fields fall to the agent's
+   * defaults (RunConfig has the rule).
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4;
    */
@@ -104,8 +104,9 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    * the AgentExecution. The harness is a session-level concern — it determines
    * tool availability, state management, model access, and billing tier.
    *
-   * When unspecified, defaults to HARNESS_NATIVE (the workflow
-   * surface's platform default).
+   * When unspecified: native when run_config names a model (the engine the
+   * model was checked against at save), else the agent's own engine
+   * (AgentSpec.harness), else native.
    *
    * YAML Example:
    *   - code_review:

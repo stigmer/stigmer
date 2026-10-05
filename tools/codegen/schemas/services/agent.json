@@ -683,6 +683,23 @@
       ]
     },
     {
+      "name": "Harness",
+      "description": "Harness identifies the execution engine that processes agent activities\n for a session.\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs engine-native)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
+      "protoType": "ai.stigmer.agentic.session.v1.Harness",
+      "values": [
+        {
+          "name": "HARNESS_NATIVE",
+          "number": 1,
+          "description": "Stigmer's native execution engine.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
+        },
+        {
+          "name": "HARNESS_CURSOR",
+          "number": 2,
+          "description": "Cursor SDK execution engine.\n\n Cursor-managed conversation state, Cursor built-in tools + MCP,\n both local and cloud runtimes. Premium billing tier."
+        }
+      ]
+    },
+    {
       "name": "HookFormat",
       "description": "HookFormat is the hook format a plugin's hooks are written in.",
       "protoType": "ai.stigmer.agentic.plugin.v1.HookFormat",
@@ -696,6 +713,40 @@
           "name": "HOOK_FORMAT_CURSOR",
           "number": 2,
           "description": "Cursor's hook format."
+        }
+      ]
+    },
+    {
+      "name": "ServiceTier",
+      "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ServiceTier",
+      "values": [
+        {
+          "name": "SERVICE_TIER_STANDARD",
+          "number": 1,
+          "description": "Standard tier: the model's base-priced configuration, requested\n explicitly."
+        },
+        {
+          "name": "SERVICE_TIER_FAST",
+          "number": 2,
+          "description": "Fast tier: the model's fast variant, billed at the registry's fast\n variant rates.\n\n Valid only for models whose registry entry declares a fast pricing\n variant; refused at execution create otherwise."
+        }
+      ]
+    },
+    {
+      "name": "ThinkingMode",
+      "description": "ThinkingMode selects the model's extended-reasoning (\"thinking\") variant\n for an execution's model calls — the second variant dimension alongside\n ServiceTier (stigmer/stigmer#772).\n\n Unlike the fast tier, thinking is NOT a separately priced dimension:\n Cursor bills thinking variants at the model's base per-token rates\n (verified against the live pricing page and 277 team-ledger events on\n 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills\n exactly the fast variant rate). Thinking costs more only by generating\n additional reasoning tokens, billed as ordinary output. Selectability is\n therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for\n models whose registry entry on the execution's harness declares a\n thinking capability (capabilities.thinking or capabilities.adaptive_thinking),\n refused at create time otherwise. ENABLED means \"the model reasons before\n it answers\", in the form its entry declares: a fixed budget or adaptive\n depth.\n\n The load-bearing rule mirrors ServiceTier: UNSPECIFIED resolves to\n THINKING_MODE_DISABLED — never the provider account default. Several\n catalog default variants are thinking=true (claude-haiku-4-5), so an\n unpinned selection would silently follow an out-of-band account setting;\n the runner always sends an explicit thinking pin where the model declares\n the parameter. The one exception is a model whose entry declares\n capabilities.thinking_required: it always thinks, so an explicit DISABLED\n is refused at create and UNSPECIFIED runs with thinking on.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ThinkingMode",
+      "values": [
+        {
+          "name": "THINKING_MODE_DISABLED",
+          "number": 1,
+          "description": "Extended reasoning off: the model's base variant, requested explicitly\n (thinking=false pinned where the model declares the parameter).\n Refused at execution create for a model that requires thinking."
+        },
+        {
+          "name": "THINKING_MODE_ENABLED",
+          "number": 2,
+          "description": "Extended reasoning on: the model's thinking variant, billed at base\n per-token rates (reasoning tokens bill as output tokens).\n\n Valid only for models whose registry entry on the execution's harness\n declares a thinking capability; refused at execution create otherwise."
         }
       ]
     }

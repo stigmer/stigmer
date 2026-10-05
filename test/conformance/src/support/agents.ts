@@ -18,6 +18,8 @@
 // Negative cases (too-short instructions, missing name) are written inline in
 // the suite, not here: this module represents validity by construction, matching
 // the convention established by support/workflows.ts.
+import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { InitShape } from "./init-shape";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema, type HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -69,6 +71,11 @@ export interface AgentSpecOptions {
   // key whitelist the execution engine filters the merged environment against.
   // Declarations carry no value (that is the instance/runtime job); see envmerge.
   env?: Record<string, EnvVarDeclarationInit>;
+  // The author's run defaults (spec.run_config) and the engine they were
+  // chosen for (spec.harness). A model needs an engine; the server checks
+  // both at save.
+  runConfig?: InitShape<typeof RunConfigSchema>;
+  harness?: Harness;
   // The agent's hooks: plugin references and its own hooks block, as written.
   hooks?: InitShape<typeof HookSourceSchema>[];
 }
@@ -97,6 +104,8 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof Age
     ...(opts.env !== undefined ? { env: makeEnvDeclarations(opts.env) } : {}),
     ...(opts.tools !== undefined ? { tools: opts.tools } : {}),
     ...(opts.disallowedTools !== undefined ? { disallowedTools: opts.disallowedTools } : {}),
+    ...(opts.runConfig !== undefined ? { runConfig: opts.runConfig } : {}),
+    ...(opts.harness !== undefined ? { harness: opts.harness } : {}),
     ...(opts.hooks !== undefined ? { hooks: opts.hooks } : {}),
   };
 }

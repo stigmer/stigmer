@@ -53,6 +53,12 @@ import {
 } from "../agent-instance-retired.js";
 import type { InstanceAgent } from "../agent-instance-retired.js";
 import {
+  EXECUTION_CONFIG_PAGE_SIZE,
+  EXECUTION_KIND,
+  migrateExecutionRow,
+  unreadableExecutionError,
+} from "../execution-config-retired.js";
+import {
   HISTORY_PAGE_SIZE,
   ORGANIZATION_SCOPED_KINDS_AT_LEDGER,
   organizationNamedBy,
@@ -78,11 +84,13 @@ export const SCHEMA_VERSION_7 = 7;
 export const SCHEMA_VERSION_8 = 8;
 /** v9: sessions name their agent directly; the agent instance rows removed. */
 export const SCHEMA_VERSION_9 = 9;
-/** v10: the organization deletion table (DDL only). */
+/** v10: every turn's settings move out of the retired execution_config. */
 export const SCHEMA_VERSION_10 = 10;
+/** v11: the organization deletion table (DDL only). */
+export const SCHEMA_VERSION_11 = 11;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_10;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_11;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -132,6 +140,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_8, migrateToV8],
       [SCHEMA_VERSION_9, migrateToV9],
       [SCHEMA_VERSION_10, migrateToV10],
+      [SCHEMA_VERSION_11, migrateToV11],
     ];
 
     for (const [version, migrate] of chain) {
@@ -719,14 +728,55 @@ async function migrateToV9(client: PoolClient): Promise<void> {
 }
 
 /**
- * v10: the organizations being deleted, one row each (interface.ts,
+ * v10: a turn's settings leave the retired execution_config
+ * (execution-config-retired.ts says what each row becomes and why an
+ * unreadable row fails the step). Every execution row is read in keyset
+ * pages on `(kind, id)` and rewritten unless it is already in the current
+ * shape, its `updated_at` left alone (the list keys it feeds are
+ * unchanged). The chain's advisory lock keeps a second instance's boot out
+ * of the step, and the transaction makes it whole or nothing.
+ */
+async function migrateToV10(client: PoolClient): Promise<void> {
+  for (let after = ""; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [EXECUTION_KIND, after, EXECUTION_CONFIG_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      let migrated: Uint8Array | undefined;
+      try {
+        migrated = migrateExecutionRow(new Uint8Array(row.data));
+      } catch (error) {
+        throw unreadableExecutionError(row.id, error);
+      }
+      if (migrated !== undefined) {
+        await client.query(
+          `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
+          [Buffer.from(migrated), EXECUTION_KIND, row.id],
+        );
+      }
+    }
+    if (rows.length < EXECUTION_CONFIG_PAGE_SIZE) {
+      return;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+}
+
+/**
+ * v11: the organizations being deleted, one row each (interface.ts,
  * OrganizationDeletionStore, says why the state is not on the
  * organization's row). DDL only: no database before this version holds an
  * organization being deleted. The times are RFC-3339 TEXT, byte-collated so
  * the purge's age comparisons are the strings' order whatever the locale
  * (the v8 precedent).
  */
-async function migrateToV10(client: PoolClient): Promise<void> {
+async function migrateToV11(client: PoolClient): Promise<void> {
   await client.query(`
     CREATE TABLE organization_deletions (
       org TEXT NOT NULL PRIMARY KEY,
