@@ -146,10 +146,8 @@ export function newRefuseDeletingSingleOrganizationStep<
 
 /** How many organizations the store holds that are not being deleted. */
 export async function countLiveOrganizations(store: Store): Promise<number> {
-  const [rows, deletions] = await Promise.all([
-    store.listResources(ApiResourceKind.organization),
-    store.organizationDeletions.list(),
-  ]);
+  const rows = await store.listResources(ApiResourceKind.organization);
+  const deletions = await store.organizationDeletions.list();
   if (deletions.length === 0) {
     return rows.length;
   }
