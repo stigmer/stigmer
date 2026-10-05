@@ -257,9 +257,9 @@ describe("downloadArtifact — transfer lane routing", () => {
     });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403 }));
 
-    const error = await downloadArtifact(client, "skills/a.zip").catch((err: unknown) => err as Error);
-    expect(error.message).toBe("artifact fetch failed: HTTP 403 from https://storage.example.com/bucket/skills/a.zip");
-    expect(error.message).not.toContain("secret-signature");
+    const failed = downloadArtifact(client, "skills/a.zip");
+    await expect(failed).rejects.toThrow(new Error("artifact fetch failed: HTTP 403 from https://storage.example.com/bucket/skills/a.zip"));
+    await expect(failed).rejects.not.toThrow("secret-signature");
   });
 
   it("names an unparseable minted URL without repeating it", async () => {
