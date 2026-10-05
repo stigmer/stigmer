@@ -26,8 +26,9 @@
  *
  * THE PROTOCOL. One JSON line in, one JSON line out. A `pre` request carries
  * the hook payload of a `preToolUse` (a built-in) or `beforeMCPExecution`
- * (an MCP tool, the event that names its server), and the identity token
- * the script computed for the call; the reply is the decision and the
+ * (an MCP tool, the event that names its server), and the identity tokens
+ * the script computed for the call (its own, its coarse one, and the exact
+ * one a hook's ask is granted or refused under); the reply is the decision and the
  * ready-made answers the script prints for each outcome, so the bash side
  * only chooses. A `post` request carries a `postToolUse` payload and is
  * answered with the context the hooks hand back to the model, under the
@@ -36,8 +37,9 @@
  * A call a person skipped or rejected earlier this run is answered
  * `refused` when a hook would allow it or ask on it again, with the
  * person's own decision as the model's reason: a person's refusal binds on
- * the model's retry, as on the native engine. Only a hook's deny comes
- * before it.
+ * the model's retry, as on the native engine. A refusal of a hook's ask
+ * binds that exact call, as its approval would have. Only a hook's deny
+ * comes before it.
  *
  * A hook that moves a write or a deletion to another file is checked
  * again, as the native engine checks a rewrite: onto a secret-like path the
@@ -270,7 +272,8 @@ export class HookRequestHandler {
     if (request["mode"] === "post") return { response: await this.post(payload) };
     const identity = typeof request["identity"] === "string" ? request["identity"] : "";
     const coarse = typeof request["coarse"] === "string" ? request["coarse"] : "";
-    return this.pre(payload, identity, coarse);
+    const exact = typeof request["exact"] === "string" ? request["exact"] : "";
+    return this.pre(payload, identity, coarse, exact);
   }
 
   private authorized(token: unknown): boolean {
@@ -279,7 +282,7 @@ export class HookRequestHandler {
     return given.length === this.tokenBytes.length && timingSafeEqual(given, this.tokenBytes);
   }
 
-  private async pre(payload: Record<string, unknown>, identity: string, coarse: string): Promise<PreReply> {
+  private async pre(payload: Record<string, unknown>, identity: string, coarse: string, exact: string): Promise<PreReply> {
     const call = this.callOf(payload);
     if (call === undefined) return { decision: "none" };
     const outcome = await this.evaluator.preToolUse(call, {});
@@ -306,7 +309,7 @@ export class HookRequestHandler {
         }
         const moved = this.movedFile(call, outcome.updatedArgs, outcome.hook);
         if (moved !== undefined) return moved;
-        const refusal = this.refusals.get(identity) ?? this.refusals.get(coarse);
+        const refusal = this.refusals.get(identity) ?? this.refusals.get(coarse) ?? (exact !== "" ? this.refusals.get(exact) : undefined);
         if (refusal !== undefined) {
           const message = personDecisionSentence(refusal.toolName, refusal.action, "");
           return { decision: "refused", deny: denyAnswer(message), message };

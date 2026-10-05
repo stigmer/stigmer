@@ -122,6 +122,7 @@ describe("a row's name", () => {
     expect(rowNameOf(call("Grep", { pattern: "", glob: "*" }))).toBe("glob");
     expect(rowNameOf(call("Grep", { pattern: "x" }))).toBe("grep");
     expect(rowNameOf(call("search", {}, "github"))).toBe("search");
+    expect([rowNameOf(call("List", {})), rowNameOf(call("ReadLints", {}))]).toEqual(["ls", "readLints"]);
   });
 });
 

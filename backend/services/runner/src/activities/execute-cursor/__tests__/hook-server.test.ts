@@ -25,7 +25,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { HookSet } from "../../../shared/hooks/hook-set.js";
 import type { HookRunResult } from "../../../shared/hooks/run.js";
-import { grantToken, type PersonRefusal } from "../approval-state.js";
+import { grantToken, hookAskDigest, type PersonRefusal } from "../approval-state.js";
 import { HookDecisionLog, HookRequestHandler, HookSocketPathError, startHookServer, type HookTurnMode } from "../hook-server.js";
 import { CursorEngineToolViews } from "../hook-views.js";
 
@@ -155,6 +155,20 @@ describe("the hook server's answers", () => {
     );
     const denied = handler(evaluator(() => decide("deny")), refusals);
     expect(((await denied.h.answer(request(shellPayload("rm -rf x")))) as Record<string, string>)["decision"]).toBe("deny");
+  });
+
+  it("holds a person's refusal of a hook's ask to that exact call", async () => {
+    const exact = (pr: number) => Buffer.from(`srv/merge\n\n${hookAskDigest({ pr })}`, "utf-8").toString("base64");
+    const refusals = new Map<string, PersonRefusal>([[exact(1), { action: "reject", toolName: "merge" }]]);
+    const { h } = handler(evaluator(() => decide("ask")), refusals);
+    const merge = (pr: number) =>
+      h.answer(request({ hook_event_name: "beforeMCPExecution", tool_name: "merge", tool_input: JSON.stringify({ pr }), mcp_server_name: "srv" }, {
+        identity: grantToken("srv/merge", ""),
+        coarse: grantToken("srv/merge", ""),
+        exact: exact(pr),
+      })) as Promise<Record<string, string>>;
+    expect((await merge(1))["decision"]).toBe("refused");
+    expect((await merge(2))["decision"], "merging another PR is the hook's to ask on").toBe("ask");
   });
 
   it("blocks a write a hook moves onto a secret-like path, and refuses any move in capture mode", async () => {

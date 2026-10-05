@@ -9,8 +9,9 @@
  *     and redact the model's provisional post-denial narration;
  *  3. settle unattended-mode denials as SKIPPED;
  *  4. detect UNATTRIBUTED hook blocks (issue #205) — a tool blocked by a hook
- *     with no ledger entry of any kind was denied by a FOREIGN hook the merge
- *     preserved, and the caller fails the run rather than completing silently;
+ *     with no ledger entry of any kind was denied by a FOREIGN hook the gate's
+ *     set-aside of the workspace's hook files missed, and the caller fails the
+ *     run rather than completing silently;
  *  5. settle UNRESOLVED tool calls (issue #965) — a this-turn row still
  *     non-terminal on a completing turn with no ledger attribution hung inside
  *     the harness and can never complete; it is settled to an honest
@@ -114,8 +115,8 @@ export interface TurnBoundaryResult {
   readonly deniedToolCallCount: number;
   /**
    * Hook-blocked tool calls this turn that NO denial-ledger entry accounts for
-   * (issue #205): a foreign `.cursor/hooks.json` hook — or our own hook with a
-   * failed ledger append — denied them, and Stigmer cannot approve on its
+   * (issue #205): a foreign hook the set-aside missed — or our own hook with
+   * a failed ledger append — denied them, and Stigmer cannot approve on its
    * behalf. When the turn is not otherwise pausing, the caller must surface an
    * explicit EXECUTION_FAILED instead of completing with the work silently
    * undone (a pausing turn is not silent — the caller logs and pauses as usual).

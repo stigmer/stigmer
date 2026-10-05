@@ -606,15 +606,26 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     });
   });
 
-  it("restores the original when the agent deleted a set-aside file, and keeps an edit that no longer parses", async () => {
-    const { workspaceRoot, hitlDir, settings, original } = workspace();
+  it("keeps an agent's deletion of a set-aside file, and an edit that no longer parses", async () => {
+    const { workspaceRoot, hitlDir, settings } = workspace();
     const folders = workspaceFolders([workspaceRoot], []);
     const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
     rmSync(settings);
     writeFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "{ half written", "utf-8");
     await removeHitlGate(handle);
-    expect(readFileSync(settings, "utf-8")).toBe(original);
+    expect(existsSync(settings), "the deletion is the agent's, for the review to show").toBe(false);
     expect(readFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "utf-8")).toBe("{ half written");
+  });
+
+  it("puts the set-aside files back when the install fails after setting them aside", async () => {
+    const { workspaceRoot, hitlDir, settings, original } = workspace();
+    mkdirSync(join(workspaceRoot, ".cursor"), { recursive: true });
+    // A file where the install writes its rules directory: the install fails after the set-aside.
+    writeFileSync(join(workspaceRoot, ".cursor", "rules"), "not a directory", "utf-8");
+    await expect(
+      installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders: workspaceFolders([workspaceRoot], []) }),
+    ).rejects.toThrow();
+    expect(readFileSync(settings, "utf-8")).toBe(original);
   });
 
   it("keeps restoring the rest when one file cannot be written back, and reads a corrupt snapshot as none", async () => {
@@ -622,10 +633,11 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     const folders = workspaceFolders([workspaceRoot], []);
     const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    rmSync(settings, { force: true });
-    chmodSync(join(workspaceRoot, ".claude"), 0o500);
+    // The agent edits the settings file and it cannot be written back.
+    writeFileSync(settings, JSON.stringify({ model: "y" }), "utf-8");
+    chmodSync(settings, 0o400);
     await removeHitlGate(handle);
-    chmodSync(join(workspaceRoot, ".claude"), 0o700);
+    chmodSync(settings, 0o600);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("could not restore"));
     expect(existsSync(join(workspaceRoot, ".cursor", "hooks.json")), "the hooks file still came back").toBe(false);
     warn.mockRestore();

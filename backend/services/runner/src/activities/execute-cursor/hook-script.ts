@@ -241,7 +241,7 @@ const HOOKS_UNAVAILABLE_AGENT_MESSAGE =
 export function buildHookClientScript(): string {
   return [
     `const net=require("net");`,
-    `const [sock,tok,mode,id,coarse]=process.argv.slice(1);`,
+    `const [sock,tok,mode,id,coarse,exact]=process.argv.slice(1);`,
     `let input="";process.stdin.setEncoding("utf8");process.stdin.on("data",(c)=>{input+=c;});`,
     `process.stdin.on("end",()=>{`,
     `let payload=null;try{payload=JSON.parse(input);}catch(e){}`,
@@ -251,7 +251,7 @@ export function buildHookClientScript(): string {
     `const c=net.createConnection(sock);`,
     `c.setEncoding("utf8");`,
     `c.on("error",fail);`,
-    `c.on("connect",()=>{c.write(JSON.stringify({token:tok,mode:mode,payload:payload,identity:id,coarse:coarse})+"\\n");});`,
+    `c.on("connect",()=>{c.write(JSON.stringify({token:tok,mode:mode,payload:payload,identity:id,coarse:coarse,exact:exact})+"\\n");});`,
     `c.on("data",(d)=>{buf+=d;const i=buf.indexOf("\\n");if(i<0)return;`,
     `let r=null;try{r=JSON.parse(buf.slice(0,i));}catch(e){return fail();}`,
     `if(!r||typeof r!=="object"||r.error!==undefined)return fail();`,
@@ -902,7 +902,7 @@ if [ -n "$HOOK_SOCKET" ] && { [ "$HOOK_EVENT" = "beforeMCPExecution" ] || { [ "$
     HOOK_ID="$PRIMARY_TOKEN"
     HOOK_COARSE="$TOKEN"
   fi
-  HOOK_REPLY=$(printf '%s' "$INPUT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${hookClientScript}' "$HOOK_SOCKET" "$HOOK_TOKEN" pre "$HOOK_ID" "$HOOK_COARSE" 2>/dev/null || echo error)
+  HOOK_REPLY=$(printf '%s' "$INPUT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${hookClientScript}' "$HOOK_SOCKET" "$HOOK_TOKEN" pre "$HOOK_ID" "$HOOK_COARSE" "$HOOK_ARGS_TOKEN" 2>/dev/null || echo error)
   HOOK_DECISION=$(printf '%s\\n' "$HOOK_REPLY" | sed -n 1p)
   HOOK_SLUG=$(printf '%s\\n' "$HOOK_REPLY" | sed -n 2p)
   HOOK_MESSAGE=$(printf '%s\\n' "$HOOK_REPLY" | sed -n 7p)

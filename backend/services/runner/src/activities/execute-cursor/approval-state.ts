@@ -148,12 +148,16 @@ export function toolIdentity(
  * no approval category: what a hook's ask on it is keyed by on both sides
  * (`@cursor/sdk` 1.0.31, live: a read streams as `read`, a search as `grep`,
  * a glob as `glob`, and the hook sees `Read`, `Grep`, and `Grep` with an
- * empty pattern).
+ * empty pattern; from its bundle and tool vocabulary: a directory listing
+ * streams as `ls` and a lint read as `readLints`, and the hook sees `List`
+ * and `ReadLints`). `hook-views.ts` `rowNameOf` is the inverse.
  */
 const STREAM_TO_HOOK_NAME: ReadonlyMap<string, string> = new Map([
   ["read", "Read"],
   ["grep", "Grep"],
   ["glob", "Grep"],
+  ["ls", "List"],
+  ["readLints", "ReadLints"],
 ]);
 
 /**
@@ -526,8 +530,10 @@ export function buildPersonRefusals(
     if (decision !== ApprovalAction.REJECT && decision !== ApprovalAction.SKIP) continue;
     const refusal: PersonRefusal = { action: decision === ApprovalAction.SKIP ? "skip" : "reject", toolName: pa.toolName };
     const id = toolIdentity(pa.toolName, pa.mcpServerSlug, parseArgs(pa.argsPreview));
-    refusals.set(primaryToken(id.key, id.salient, contentDigests?.get(pa.toolCallId) ?? ""), refusal);
-    refusals.set(grantToken(id.key, id.salient), refusal);
+    const digest = contentDigests?.get(pa.toolCallId) ?? "";
+    refusals.set(primaryToken(id.key, id.salient, digest), refusal);
+    // A hook's ask was refused for that exact call, as it is granted for one.
+    if (!digest.startsWith(HOOK_ASK_DIGEST_PREFIX)) refusals.set(grantToken(id.key, id.salient), refusal);
   }
   return refusals;
 }

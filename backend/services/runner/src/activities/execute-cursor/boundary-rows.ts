@@ -898,16 +898,18 @@ export interface UnattributedHookBlock {
  * Detect tool calls blocked by a hook that STIGMER'S OWN hook did not deny —
  * the issue #205 invariant check "a blocked tool must never silently complete".
  *
- * Cursor runs EVERY hook registered in the workspace's `.cursor/hooks.json`
- * and a deny from any of them blocks the tool. Our hook records every deny it
- * issues to the denial ledger (all kinds — see {@link DeniedLedgerEntry}), so a
- * FAILED tool call carrying Cursor's hook-block error text with NO matching
- * ledger entry was blocked by a FOREIGN hook (a user/team `preToolUse` policy
- * hook the merge deliberately preserves) — or, equally fatally, by our own
- * hook whose best-effort ledger append failed. Either way the runner cannot
- * pause for approval (an approval grants a token only OUR hook reads; the
- * foreign hook would deny the re-attempt forever), so the caller surfaces an
- * explicit failure instead of completing with the work silently undone.
+ * Cursor runs EVERY hook it loads, and a deny from any of them blocks the
+ * tool. The gate sets a workspace's own hook files aside for the turn
+ * (`workspace-hook-files.ts`), and our hook records every deny it issues to
+ * the denial ledger (all kinds — see {@link DeniedLedgerEntry}), so a FAILED
+ * tool call carrying Cursor's hook-block error text with NO matching ledger
+ * entry was blocked by a FOREIGN hook the set-aside missed (one loaded from
+ * a file the turn does not rewrite, or written during the turn) — or,
+ * equally fatally, by our own hook whose best-effort ledger append failed.
+ * Either way the runner cannot pause for approval (an approval grants a
+ * token only OUR hook reads; the foreign hook would deny the re-attempt
+ * forever), so the caller surfaces an explicit failure instead of
+ * completing with the work silently undone.
  *
  * Attribution, in order:
  *  1. Any `fail-closed` ledger entry → the gate itself was broken this turn and
@@ -930,8 +932,7 @@ export interface UnattributedHookBlock {
  * prior-turn rows were already adjudicated and must never re-trigger.
  * Deliberately conservative: an ordinary tool failure (no hook-block text)
  * is never reported, and a foreign hook denying with fully custom text evades
- * the marker match (the documented residual — the install-time
- * foreignGatingHooks warning still fires for diagnosability).
+ * the marker match (the documented residual).
  */
 export function detectUnattributedHookBlocks(
   messages: readonly AgentMessage[],

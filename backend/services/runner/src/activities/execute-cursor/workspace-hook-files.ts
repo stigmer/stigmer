@@ -32,10 +32,11 @@
  * directory, its original bytes beside the bytes the gate wrote, before it
  * is written ({@link rewriteWorkspaceFiles}). At the turn's end
  * ({@link restoreWorkspaceFiles}) a file that still holds what the gate
- * wrote gets its original back; a file the agent edited keeps the agent's
- * edit with the gate's own change undone (the set-aside hook entries
- * returned, any the agent added kept beside them, and the gate's removed),
- * with a log line; the turn's file review then sees what the agent changed.
+ * wrote gets its original back; a file the agent deleted stays deleted; a
+ * file the agent edited keeps the agent's edit with the gate's own change
+ * undone (the set-aside hook entries returned, any the agent added kept
+ * beside them, and the gate's removed), with a log line. The turn's file
+ * review then sees what the agent changed.
  * A snapshot a crashed runner left behind is restored when the next runner
  * boots ({@link restoreAbandonedWorkspaceFiles}), before any turn pins the
  * tree its file review compares against; restored later, the files would
@@ -237,7 +238,12 @@ interface Snapshot {
 
 async function restoreOne(rewrite: WorkspaceFileRewrite, isGateEntry: (entry: unknown) => boolean): Promise<void> {
   const current = await readOrNull(rewrite.path);
-  if (current === rewrite.written || current === null) {
+  if (current === null) {
+    // The agent deleted it: its edit, kept for the turn's review to show.
+    if (rewrite.original !== null) console.log(`[workspace hooks] ${rewrite.path} was deleted during the turn; the deletion is kept`);
+    return;
+  }
+  if (current === rewrite.written) {
     if (rewrite.original === null) await rm(rewrite.path, { force: true });
     else await writeFile(rewrite.path, rewrite.original, "utf-8");
     return;

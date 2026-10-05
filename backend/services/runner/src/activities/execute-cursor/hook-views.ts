@@ -86,6 +86,10 @@ export function rowNameOf(call: ViewedCall): string {
       return "edit";
     case "Grep":
       return isListing(call.args) ? "glob" : "grep";
+    case "List":
+      return "ls";
+    case "ReadLints":
+      return "readLints";
     default:
       return call.name.toLowerCase();
   }

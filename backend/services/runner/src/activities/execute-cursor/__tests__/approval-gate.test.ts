@@ -35,6 +35,7 @@ import {
   buildApprovalState,
   buildPersonRefusals,
   grantToken,
+  hookAskDigest,
   primaryToken,
   toolIdentity,
 } from "../approval-state.js";
@@ -167,6 +168,17 @@ describe("buildPersonRefusals", () => {
     expect(refusals.get(grantToken("write", "/x/a")), "a content-less retry of the same file").toEqual({ action: "skip", toolName: "edit" });
     expect(refusals.get(grantToken("github/close_issue", ""))).toEqual({ action: "reject", toolName: "close_issue" });
     expect(refusals.has(grantToken("shell", "ls"))).toBe(false);
+  });
+
+  it("holds a refused hook ask to that exact call, as its approval would have been", () => {
+    const digest = hookAskDigest({ pr: 1 });
+    const refusals = buildPersonRefusals(
+      [pending({ toolCallId: "c1", toolName: "merge", mcpServerSlug: "srv", argsPreview: JSON.stringify({ pr: 1 }) })],
+      new Map([["c1", ApprovalAction.REJECT]]),
+      new Map([["c1", digest]]),
+    );
+    expect(refusals.get(primaryToken("srv/merge", "", digest))).toEqual({ action: "reject", toolName: "merge" });
+    expect(refusals.has(grantToken("srv/merge", "")), "merging another PR is not refused").toBe(false);
   });
 });
 

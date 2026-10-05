@@ -207,7 +207,14 @@ export async function installHitlGate(params: {
   // this rule, which takes precedence over MCP-server instructions and persists
   // across resumed turns, is the strongest available lever to stop the model
   // from misreading the gate as a broken environment.
-  const rule = await installWorkspaceRule(workspaceRoot);
+  let rule: WorkspaceFileSnapshot;
+  try {
+    rule = await installWorkspaceRule(workspaceRoot);
+  } catch (err) {
+    // No handle reaches the caller to restore them: the set-aside files come back here.
+    await restoreWorkspaceFiles(gateDir, isStigmerHookEntry);
+    throw err;
+  }
 
   return { hooksJsonPath, rule, gateDir };
 }

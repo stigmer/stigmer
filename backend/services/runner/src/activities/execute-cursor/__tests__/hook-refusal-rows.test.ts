@@ -31,6 +31,7 @@ describe("stampHookRefusedToolCalls", () => {
     const read = row("c-read", "read", { path: "notes.md" }, ToolCallStatus.TOOL_CALL_RUNNING);
     const inSubAgent = row("c-sub", "shell", { command: "curl x" });
     const ran = row("c-ran", "shell", { command: "ls" }, ToolCallStatus.TOOL_CALL_COMPLETED);
+    const listing = row("c-ls", "ls", { path: "/w/src" });
     const earlier = row("c-earlier", "shell", { command: "rm -rf x" });
     const ledger: DeniedLedgerEntry[] = [
       { toolName: "Shell", token: grantToken("shell", "rm -rf x"), kind: "hook", message: "no deletes", hook: "safety" },
@@ -39,14 +40,17 @@ describe("stampHookRefusedToolCalls", () => {
       // The hook saw an absolute path; the stream spelled it relatively.
       { toolName: "Read", token: grantToken("Read", "/w/notes.md"), kind: "hook", message: "no reading notes", hook: "" },
       { toolName: "Shell", token: grantToken("shell", "curl x"), kind: "hook", message: "no network", hook: "net" },
+      // The hook's List is the stream's `ls`.
+      { toolName: "List", token: grantToken("List", "/w/src"), kind: "hook", message: "no listing src", hook: "safety" },
       { toolName: "Shell", token: grantToken("shell", "ls"), kind: "hook", message: "would not match a ran row", hook: "x" },
       { toolName: "Shell", token: grantToken("shell", "whoami"), kind: "hook" },
       { toolName: "Shell", token: grantToken("shell", "rm -rf x"), kind: "approval", hook: "safety" },
     ];
-    const messages = [message(earlier), message(shell, edit, read, ran), message(row("c-task", "task", {}, ToolCallStatus.TOOL_CALL_COMPLETED))];
+    const messages = [message(earlier), message(shell, edit, read, ran, listing), message(row("c-task", "task", {}, ToolCallStatus.TOOL_CALL_COMPLETED))];
     const subAgents = [create(SubAgentExecutionSchema, { id: "c-task", messages: [message(inSubAgent)] })];
 
-    expect(stampHookRefusedToolCalls(messages, subAgents, ledger, 1, "/w")).toBe(4);
+    expect(stampHookRefusedToolCalls(messages, subAgents, ledger, 1, "/w")).toBe(5);
+    expect([listing.error, listing.approvalPolicyHook]).toEqual(["no listing src", "safety"]);
     expect([shell.status, shell.error, shell.approvalPolicySource, shell.approvalPolicyHook]).toEqual([
       ToolCallStatus.TOOL_CALL_FAILED, "no deletes", ApprovalPolicySource.HOOK, "safety",
     ]);
