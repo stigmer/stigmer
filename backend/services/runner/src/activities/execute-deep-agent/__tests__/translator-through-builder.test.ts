@@ -584,7 +584,7 @@ describe("the native translator through the builder", () => {
       leasedCategories: new Set(),
       globalBypass: false,
       unattended: false,
-      unattendedSkips: new Set(),
+      unattendedSkips: new Map(),
       ...overrides,
     };
   }
@@ -626,7 +626,7 @@ describe("the native translator through the builder", () => {
       expect(tc.requiresApproval).toBe(false);
       expect(tc.mcpServerSlug).toBe("github");
       expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN);
-      expect(tc.policyEngineVersion).toBe("default-1");
+      expect(tc.policyEngineVersion).toBe("hooks-1");
       expect(sb.awaitingApproval).toBe(false);
     });
 

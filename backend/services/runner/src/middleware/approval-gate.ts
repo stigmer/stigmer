@@ -41,8 +41,43 @@
  *
  * Whether a tool may be called at all is not this gate's question: the
  * agent's tool lists are enforced by `tool-scope.ts`, installed ahead of this
- * gate, so a listed-out call is refused before it could reach a card, and
- * the refusal binds even when this gate is absent (auto-approve-all).
+ * gate, so a listed-out call is refused before it could reach a card or a
+ * hook, and the refusal binds even when this gate is absent.
+ *
+ * Hooks. An agent's hooks (`shared/hooks/`) are an input to this one
+ * decision point, never a middleware of their own, so the resume, the
+ * bypass and capture are handled once. Per call, in order:
+ *
+ *  1. Secret-like writes are blocked exactly as before, ahead of any hook:
+ *     no hook can allow one where the block applies. A hook's rewritten
+ *     arguments are checked again.
+ *  2. PreToolUse. `deny` refuses the call (the handler never runs; the row
+ *     opens and fails through the refusal event, with the hook named);
+ *     `ask` (or `defer`) shows the approval card, naming the hook, unless
+ *     "trust this whole run" satisfies it or the unattended mode skips it;
+ *     `allow` runs the call without the default's ask; a hook's rewritten
+ *     input replaces the arguments. No decision falls through.
+ *  3. Capture mode keeps its flow-and-review bookkeeping for whatever runs:
+ *     capture is review, not approval, so a hook's `allow` never skips it.
+ *  4. The default, only when no hook decided.
+ *  5. The handler; when it succeeds, PostToolUse. Every hook's context, and
+ *     a PostToolUse hook's reasons for blocking, are appended to the result.
+ *
+ * A call a hook decided writes its provenance on the graph's custom stream
+ * ({@link TOOL_POLICY_EVENT}) before its handler runs: a hook is a process,
+ * and the translator cannot re-derive what it answered.
+ *
+ * Under "trust this whole run" (pre-armed auto_approve_all) the gate is
+ * installed only when the agent has hooks, and then runs only them and the
+ * handler: a hook's `deny` still binds, its `ask` is satisfied, and
+ * everything else stays as the bypass has it (no default, no capture
+ * bookkeeping, no secret block — secret writes are kept out of review by
+ * `filereview/secret-paths.ts`).
+ *
+ * On resume the node restarts and PreToolUse runs again, as Claude Code's
+ * `defer` re-fires it: a `deny` binds even after an approval, and a repeated
+ * `ask` is answered by the stored decision through `interrupt()`. PostToolUse
+ * runs once, because the handler runs once.
  *
  * Shadow ExecutionReceipt: when the gateway lets a side effect through it emits a
  * structured, non-persisted receipt (a `[hitl-gateway] receipt …` log carrying
@@ -56,6 +91,7 @@
  */
 
 import { ToolMessage } from "@langchain/core/messages";
+import type { Command } from "@langchain/langgraph";
 import { interrupt } from "@langchain/langgraph";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
 import {
@@ -65,6 +101,8 @@ import {
   resolveToolApproval,
   unattendedSkipMessage,
 } from "../shared/approval-policy.js";
+import { NO_PRE_TOOL_USE, type HookCallScope, type HookEvaluator, type PreToolUseOutcome } from "../shared/hooks/evaluate.js";
+import { TOOL_REFUSED_EVENT, customStreamWriterOf, type ToolRefusedPayload } from "./tool-scope.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
 import { extractFilePath } from "../shared/file-tools.js";
 import { isSecretLikePath } from "../shared/filereview/secret-paths.js";
@@ -150,6 +188,19 @@ export interface ApprovalGateConfig {
    */
   readonly captureDeleteBefore?: (rawPath: string) => Promise<void>;
   /**
+   * The agent's hooks, run before the default (the header's order); absent
+   * or null when the agent has none. Shared by the parent and every
+   * sub-agent gate: hooks are agent-wide, as a plugin's are in Claude Code.
+   */
+  readonly hooks?: HookEvaluator | null;
+  /**
+   * Pre-armed auto_approve_all. The gate is installed under it only when the
+   * agent has hooks, and then runs only them and the handler (the header).
+   */
+  readonly globalBypass?: boolean;
+  /** The sub-agent this gate serves, which a hook sees as `agent_type` and `agent_id`; absent on the parent. */
+  readonly subAgent?: HookCallScope["subAgent"];
+  /**
    * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED):
    * the creating surface — a messaging channel, a guest share — has no
    * approver, so a gated tool is resolved as an automatic SKIP (the model is
@@ -159,7 +210,8 @@ export interface ApprovalGateConfig {
    */
   readonly unattended?: boolean;
   /**
-   * Registry of tool-call ids this gate auto-skipped under {@link unattended}
+   * Registry of tool-call ids this gate auto-skipped under {@link unattended},
+   * each with the hook whose ask was skipped (`null` when the default asked)
    * — the gate is the single WRITER; `reconcileUnattendedSkips` (hitl.ts) is
    * the reader that folds each id into a terminal TOOL_CALL_SKIPPED row with
    * UNATTENDED_SKIP provenance after the stream. In-process, per-execution
@@ -167,8 +219,26 @@ export interface ApprovalGateConfig {
    * matching); inherited verbatim by sub-agent gates so their skips land in
    * the same registry.
    */
-  readonly unattendedSkips?: Set<string>;
+  readonly unattendedSkips?: Map<string, string | null>;
 }
+
+/**
+ * The custom-stream event a call a hook decided writes before its handler
+ * runs (`translator.ts` reads it into a `tool_policy` transcript event).
+ */
+export const TOOL_POLICY_EVENT = "stigmer.tool_policy";
+
+/** The {@link TOOL_POLICY_EVENT} payload. */
+export interface ToolPolicyPayload {
+  readonly name: typeof TOOL_POLICY_EVENT;
+  readonly tool_call_id: string;
+  readonly policy_source: PolicySource;
+  /** The deciding plugin's slug; `""` for the agent's own hooks block. */
+  readonly policy_hook: string;
+}
+
+/** The heading the hooks' feedback is appended to a tool result under. */
+export const HOOK_FEEDBACK_HEADING = "Hook feedback:";
 
 interface ApprovalDecision {
   readonly action: string;
@@ -198,10 +268,9 @@ export function createApprovalGateMiddleware(
 ): StigmerMiddleware {
   const { mcpDefault, toolServerMap } = config;
   const leasedCategories = config.leasedCategories ?? EMPTY_CATEGORY_SET;
-
-  // No global-bypass early return: a pre-armed spec.auto_approve_all means the
-  // gate is never even installed (turn-setup.ts builds this config only when not
-  // global). Scoped leases keep the gate active so non-leased actions still gate.
+  const hooks = config.hooks ?? null;
+  const globalBypass = config.globalBypass ?? false;
+  const scope: HookCallScope = config.subAgent ? { subAgent: config.subAgent } : {};
 
   return {
     name: "ApprovalGateMiddleware",
@@ -212,97 +281,53 @@ export function createApprovalGateMiddleware(
       const serverSlug = toolServerMap.get(toolName) ?? "";
       const category = toolApprovalCategory(toolName);
 
-      // Capture mode (git workspaces): a git-tracked built-in file mutation flows
-      // during the turn and is reviewed post-hoc via the file_review ledger (the
-      // apply-then-review model). shell and MCP tools (serverSlug present) are
-      // never bypassed here.
-      if (
-        config.fileCaptureMode &&
-        config.isCapturablePath &&
-        !serverSlug &&
-        (category === "write" || category === "delete")
-      ) {
-        const path = extractFilePath(toolCall.args);
-        if (path !== null) {
-          if (await config.isCapturablePath(path)) {
-            // Git-tracked: flows and is reviewed post-hoc by the git substrate.
-            emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", "file_capture");
-            return await handler(request);
-          }
-          // Gitignored / non-git path: a gate whose backend the shared CAS
-          // observer wraps (captureIgnored — the parent gate, and sub-agent
-          // gates) routes it into CAS capture; any other gate falls
-          // through to the interrupt gate below.
-          if (config.captureIgnored) {
-            if (category === "write") {
-              if (isSecretLikePath(path)) {
-                // Fail-closed: a secret-like gitignored WRITE is NEVER
-                // applied and NEVER captured — its content must not surface
-                // anywhere, approval prompt included. Record it so the turn
-                // boundary authors a DIFF_UNREVIEWABLE entry (blocking
-                // approval); nothing is written.
-                config.recordBlockedSecret?.(path);
-                return secretBlockToolMessage(toolName, path, toolCall.id);
-              }
-              // Non-secret gitignored write/edit: flows (apply-then-review). The
-              // CAS observer already holds its before-bytes and the turn boundary
-              // captures it into CAS.
-              emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", "file_capture");
-              return await handler(request);
-            }
-            if (category === "delete" && config.captureDeleteBefore && !isSecretLikePath(path)) {
-              // Non-secret CAS-owned delete: capture the before-bytes NOW (the
-              // one moment they still exist on disk — no backend delete method
-              // to observe them), then flow. The turn boundary reads after=null
-              // and authors a reviewable, restorable DELETE entry (issue #303).
-              //
-              // A SECRET-LIKE delete deliberately falls through to the interrupt
-              // gate instead: unlike a write, its args expose no secret content,
-              // so a human may safely approve it — but its before-bytes must
-              // never enter CAS, so it cannot flow. (This also aligns the twins:
-              // the Cursor hook routes secret deletes to its deny-gate.)
-              await config.captureDeleteBefore(path);
-              emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", "file_capture");
-              return await handler(request);
-            }
-          }
+      // 1. Secret-like writes, ahead of anything a hook could answer.
+      if (!globalBypass) {
+        const blocked = await secretWriteBlock(config, toolCall, serverSlug, category);
+        if (blocked) return blocked;
+      }
+
+      // 2. PreToolUse.
+      const pre = hooks
+        ? await hooks.preToolUse({ id: toolCall.id, name: toolName, args: toolCall.args, serverSlug }, scope)
+        : NO_PRE_TOOL_USE;
+      if (pre.decision === "deny") return refuseByHook(request, pre);
+
+      let call = request;
+      if (pre.updatedArgs !== undefined) {
+        call = { ...request, toolCall: { ...toolCall, args: pre.updatedArgs } };
+        if (!globalBypass) {
+          const blocked = await secretWriteBlock(config, call.toolCall, serverSlug, category);
+          if (blocked) return blocked;
         }
       }
 
-      // Deny-gate secret hard-block: a built-in file WRITE to a
-      // secret-like path that reaches here has no capture substrate for it — the
-      // classic no-storage deny-gate, or a git workspace with no artifact storage
-      // whose gitignored write skipped the captureIgnored arm above. It must NOT
-      // surface its content for approval, so hard-block it (never applied, graph
-      // continues) exactly like the capture-mode secret block — a secret write is
-      // never applied or persisted in ANY mode. Placed AFTER the capture block so
-      // capture-mode paths stay byte-identical (a capturable write already flowed;
-      // a captureIgnored gitignored secret write is already blocked). A delete
-      // carries no content, so a secret-like delete needs no hard-block: it stays
-      // on the interrupt gate below, where a human may still approve it (its
-      // bytes are simply never captured). recordBlockedSecret is a no-op unless a
-      // turn boundary reads it (the git-no-storage case, where it authors a
-      // content-less DIFF_UNREVIEWABLE).
-      if (!serverSlug && category === "write") {
-        const path = extractFilePath(toolCall.args);
-        if (path !== null && isSecretLikePath(path)) {
-          config.recordBlockedSecret?.(path);
-          return secretBlockToolMessage(toolName, path, toolCall.id);
-        }
+      const hookSource = await resolveHookDecision(config, call, serverSlug, pre, globalBypass);
+      if (hookSource instanceof ToolMessage) return hookSource;
+
+      const run = async (source: PolicySource | undefined, authorization: AuthorizationSource) => {
+        if (hookSource !== undefined) writeToolPolicy(call, hookSource, pre.hook);
+        emitExecutionReceipt(config, call.toolCall, serverSlug, category, authorization, source);
+        return withHookFeedback(await handler(call), call, serverSlug, pre, hooks, scope);
+      };
+
+      if (hookSource !== undefined) {
+        // A hook decided: capture still reviews what runs (3).
+        if (!globalBypass) await captureFlows(config, call.toolCall, serverSlug, category);
+        return run(hookSource, pre.decision === "ask" && hookSource === "hook" ? "approval" : "auto_approve");
+      }
+      if (globalBypass) return run("auto_approve_all", "auto_approve");
+
+      // 3. Capture mode: a mutation it can review flows.
+      if (await captureFlows(config, call.toolCall, serverSlug, category)) {
+        return run("file_capture", "auto_approve");
       }
 
-      const requirement = resolveToolApproval(
-        toolName,
-        serverSlug,
-        toolCall.args,
-        mcpDefault,
-        leasedCategories,
-      );
-
+      // 4. The default.
+      const requirement = resolveToolApproval(toolName, serverSlug, call.toolCall.args, mcpDefault, leasedCategories);
       if (!requirement.requiresApproval) {
         // Backing authorization: the default does not ask for this tool, or a lease cleared it.
-        emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", requirement.source);
-        return await handler(request);
+        return run(requirement.source, "auto_approve");
       }
 
       // Unattended surfaces (channels, guest shares) have no approver, so a
@@ -312,16 +337,9 @@ export function createApprovalGateMiddleware(
       // language, and the turn continues to normal completion instead of
       // parking in WAITING_FOR_APPROVAL forever. The registry entry lets the
       // post-stream reconciler stamp the terminal SKIPPED row + provenance.
-      if (config.unattended) {
-        config.unattendedSkips?.add(toolCall.id);
-        return new ToolMessage({
-          content: unattendedSkipMessage(toolName),
-          tool_call_id: toolCall.id,
-          name: toolName,
-        });
-      }
+      if (config.unattended) return skipUnattended(config, call, null);
 
-      const approvalRequest = {
+      const decision = await askPerson(call, {
         tool_call_id: toolCall.id,
         tool_name: toolName,
         mcp_server_slug: serverSlug,
@@ -330,58 +348,254 @@ export function createApprovalGateMiddleware(
         // reinvocation that seeds the WAITING_APPROVAL tool call (index.ts) can
         // persist ToolCall.approval_policy_source without re-deriving it.
         policy_source: requirement.source,
-      };
-
-      const response = interrupt(approvalRequest) as ApprovalDecision;
-
-      const action = (
-        typeof response === "object" && response !== null
-          ? (response.action ?? "")
-          : ""
-      ).toString().toLowerCase();
-
-      if (action === "approve") {
-        // Backing authorization: the user approved THIS interrupted call.
-        emitExecutionReceipt(config, toolCall, serverSlug, category, "approval", requirement.source);
-        return await handler(request);
-      }
-
-      if (action === "skip") {
-        const comment = response.comment ?? "";
-        const skipMessage = comment
-          ? `Tool '${toolName}' was skipped by user: ${comment}. Please proceed without this operation.`
-          : `Tool '${toolName}' was skipped by user. Please proceed without this operation.`;
-
-        return new ToolMessage({
-          content: skipMessage,
-          tool_call_id: toolCall.id,
-          name: toolName,
-        });
-      }
-
-      if (action === "reject") {
-        // REJECT denies THIS tool call and continues the run (it does not
-        // terminate the execution — see APPROVAL_ACTION_REJECT in enum.proto).
-        // Feed the user's objection back so the model adapts rather than
-        // retrying. Distinct from SKIP only by the strength of the signal.
-        const comment = response.comment ?? "";
-        const rejectMessage = comment
-          ? `Tool '${toolName}' was rejected by the user: ${comment}. Do not retry it; proceed by taking their objection into account.`
-          : `Tool '${toolName}' was rejected by the user. Do not retry it; proceed by taking their objection into account.`;
-        return new ToolMessage({
-          content: rejectMessage,
-          tool_call_id: toolCall.id,
-          name: toolName,
-        });
-      }
-
-      return new ToolMessage({
-        content: `Tool '${toolName}' approval returned unknown action: '${action}'. Treating as skip.`,
-        tool_call_id: toolCall.id,
-        name: toolName,
       });
+      if (decision !== "approve") return decision;
+      // Backing authorization: the user approved THIS interrupted call.
+      return run(requirement.source, "approval");
     },
   };
+
+  /**
+   * What a hook's non-deny answer does to the call: the provenance it runs
+   * under, `undefined` when no hook decided, or the message that ends it
+   * without running (the unattended skip, or a person's skip or reject).
+   */
+  async function resolveHookDecision(
+    gate: ApprovalGateConfig,
+    call: ToolCallRequest,
+    serverSlug: string,
+    pre: PreToolUseOutcome,
+    bypass: boolean,
+  ): Promise<PolicySource | undefined | ToolMessage> {
+    switch (pre.decision) {
+      case undefined:
+        return undefined;
+      case "allow":
+        return pre.leased ? "approval_lease" : "hook";
+      case "ask": {
+        if (bypass) return "auto_approve_all";
+        if (gate.unattended) return skipUnattended(gate, call, pre.hook);
+        const decision = await askPerson(call, {
+          tool_call_id: call.toolCall.id,
+          tool_name: call.toolCall.name,
+          mcp_server_slug: serverSlug,
+          message: pre.reason || hookAskMessage(pre.hook, hooks?.viewOf({ ...call.toolCall, serverSlug })?.toolName ?? call.toolCall.name),
+          policy_source: "hook",
+          policy_hook: pre.hook,
+        });
+        return decision === "approve" ? "hook" : decision;
+      }
+      case "deny":
+        throw new Error("approval gate: a hook's deny is refused before its decision is resolved");
+      default: {
+        const exhaustive: never = pre.decision;
+        throw new Error(`approval gate: unknown hook decision ${String(exhaustive)}`);
+      }
+    }
+  }
+}
+
+/** The interrupt payload: identity and the card's facts, nothing the row already holds. */
+interface ApprovalRequestPayload {
+  readonly tool_call_id: string;
+  readonly tool_name: string;
+  readonly mcp_server_slug: string;
+  readonly message: string;
+  readonly policy_source: PolicySource | undefined;
+  /** The plugin whose hook asked; present only when one did. */
+  readonly policy_hook?: string;
+}
+
+/**
+ * Pause for a person's decision (`interrupt()`; on resume it returns the
+ * stored decision). `"approve"` lets the call run; anything else is the
+ * message the call ends with, unrun.
+ */
+async function askPerson(call: ToolCallRequest, payload: ApprovalRequestPayload): Promise<"approve" | ToolMessage> {
+  const toolName = call.toolCall.name;
+  const response = interrupt(payload) as ApprovalDecision;
+  const action = (
+    typeof response === "object" && response !== null
+      ? (response.action ?? "")
+      : ""
+  ).toString().toLowerCase();
+
+  if (action === "approve") return "approve";
+
+  if (action === "skip") {
+    const comment = response.comment ?? "";
+    const skipMessage = comment
+      ? `Tool '${toolName}' was skipped by user: ${comment}. Please proceed without this operation.`
+      : `Tool '${toolName}' was skipped by user. Please proceed without this operation.`;
+    return new ToolMessage({ content: skipMessage, tool_call_id: call.toolCall.id, name: toolName });
+  }
+
+  if (action === "reject") {
+    // REJECT denies THIS tool call and continues the run (it does not
+    // terminate the execution — see APPROVAL_ACTION_REJECT in enum.proto).
+    // Feed the user's objection back so the model adapts rather than
+    // retrying. Distinct from SKIP only by the strength of the signal.
+    const comment = response.comment ?? "";
+    const rejectMessage = comment
+      ? `Tool '${toolName}' was rejected by the user: ${comment}. Do not retry it; proceed by taking their objection into account.`
+      : `Tool '${toolName}' was rejected by the user. Do not retry it; proceed by taking their objection into account.`;
+    return new ToolMessage({ content: rejectMessage, tool_call_id: call.toolCall.id, name: toolName });
+  }
+
+  return new ToolMessage({
+    content: `Tool '${toolName}' approval returned unknown action: '${action}'. Treating as skip.`,
+    tool_call_id: call.toolCall.id,
+    name: toolName,
+  });
+}
+
+/** Resolve an ask on an unattended surface as a skip; `hook` names the hook that asked, `null` the default. */
+function skipUnattended(config: ApprovalGateConfig, call: ToolCallRequest, hook: string | null): ToolMessage {
+  config.unattendedSkips?.set(call.toolCall.id, hook);
+  return new ToolMessage({
+    content: unattendedSkipMessage(call.toolCall.name),
+    tool_call_id: call.toolCall.id,
+    name: call.toolCall.name,
+  });
+}
+
+/**
+ * The secret-like write block: a built-in WRITE to a secret-like path that
+ * has no capture substrate for it is never applied and never surfaced for
+ * approval. Undefined when the call is not blocked.
+ *
+ * The cases, unchanged from before hooks: in capture mode a git-tracked path
+ * flows (git reviews it); a gitignored or non-git one is blocked whether or
+ * not a CAS observer backs the gate (`captureIgnored` would capture it, and
+ * its content must not surface anywhere); outside capture mode, the classic
+ * no-storage deny-gate, it is blocked. The turn boundary reads the recorded
+ * path to author a content-less DIFF_UNREVIEWABLE entry. A delete carries no
+ * content, so a secret-like delete needs no block: a human may still approve
+ * it on the card (its bytes are simply never captured).
+ */
+async function secretWriteBlock(
+  config: ApprovalGateConfig,
+  toolCall: ToolCallRequest["toolCall"],
+  serverSlug: string,
+  category: ToolApprovalCategory | undefined,
+): Promise<ToolMessage | undefined> {
+  if (serverSlug || category !== "write") return undefined;
+  const path = extractFilePath(toolCall.args);
+  if (path === null || !isSecretLikePath(path)) return undefined;
+  if (config.fileCaptureMode && config.isCapturablePath && (await config.isCapturablePath(path))) return undefined;
+  config.recordBlockedSecret?.(path);
+  return secretBlockToolMessage(toolCall.name, path, toolCall.id);
+}
+
+/**
+ * Capture mode (git workspaces): whether a built-in file mutation flows
+ * during the turn, to be reviewed after it through the file-review ledger
+ * (apply-then-review), doing the bookkeeping that review needs. shell and MCP
+ * tools (serverSlug present) never flow here.
+ *
+ *  - A git-tracked path flows: the git substrate reviews it.
+ *  - A gitignored or non-git path flows only on a gate whose backend the
+ *    shared CAS observer wraps (`captureIgnored`: the parent gate, and the
+ *    sub-agent gates): a write (secret-like ones were already blocked), its
+ *    before-bytes already held by the observer; or a delete that is not
+ *    secret-like, whose before-bytes are captured NOW (issue #303: the one
+ *    moment they still exist, with no backend delete method to observe
+ *    them). A secret-like delete stays on the interrupt gate: a human may
+ *    approve it, but its bytes must never enter CAS.
+ *
+ * Any other gate answers false, and the default decides.
+ */
+async function captureFlows(
+  config: ApprovalGateConfig,
+  toolCall: ToolCallRequest["toolCall"],
+  serverSlug: string,
+  category: ToolApprovalCategory | undefined,
+): Promise<boolean> {
+  if (!config.fileCaptureMode || !config.isCapturablePath || serverSlug) return false;
+  if (category !== "write" && category !== "delete") return false;
+  const path = extractFilePath(toolCall.args);
+  if (path === null) return false;
+  if (await config.isCapturablePath(path)) return true;
+  if (!config.captureIgnored) return false;
+  if (category === "write") return true;
+  if (config.captureDeleteBefore && !isSecretLikePath(path)) {
+    await config.captureDeleteBefore(path);
+    return true;
+  }
+  return false;
+}
+
+/** A hook's refusal: the handler never runs, the model reads why, and the row opens and fails with the hook named. */
+function refuseByHook(request: ToolCallRequest, pre: PreToolUseOutcome): ToolMessage {
+  const { id, name, args } = request.toolCall;
+  const message = `${hookLabel(pre.hook)} refused this call${pre.reason ? `: ${pre.reason}` : "."}`;
+  customStreamWriterOf<ToolRefusedPayload>(request.runtime)?.({
+    name: TOOL_REFUSED_EVENT,
+    tool_call_id: id,
+    tool_name: name,
+    input: args,
+    message,
+    policy_source: "hook",
+    policy_hook: pre.hook,
+  });
+  return new ToolMessage({ content: message, tool_call_id: id, name, status: "error" });
+}
+
+/** Say on the custom stream which hook decided a call that is about to run (the header). */
+function writeToolPolicy(call: ToolCallRequest, source: PolicySource, hook: string): void {
+  customStreamWriterOf<ToolPolicyPayload>(call.runtime)?.({
+    name: TOOL_POLICY_EVENT,
+    tool_call_id: call.toolCall.id,
+    policy_source: source,
+    policy_hook: hook,
+  });
+}
+
+/** How a card or a refusal names a hook source. */
+function hookLabel(hook: string): string {
+  return hook === "" ? "The agent's hook" : `The ${hook} plugin's hook`;
+}
+
+/** The card's message when an asking hook gave no reason. */
+function hookAskMessage(hook: string, toolName: string): string {
+  return hook === "" ? `The agent's hooks ask before ${toolName}` : `The ${hook} plugin asks before ${toolName}`;
+}
+
+/**
+ * The call's result with the hooks' feedback appended: PreToolUse context
+ * whatever the result, and, when the call succeeded, what PostToolUse hooks
+ * hand back (their reasons for blocking, then their context). A result that
+ * is not a tool message (a graph command) is returned as it is.
+ */
+async function withHookFeedback(
+  result: ToolMessage | Command,
+  call: ToolCallRequest,
+  serverSlug: string,
+  pre: PreToolUseOutcome,
+  hooks: HookEvaluator | null,
+  scope: HookCallScope,
+): Promise<ToolMessage | Command> {
+  if (hooks === null || !(result instanceof ToolMessage)) return result;
+  const feedback = [...pre.additionalContext];
+  if (result.status !== "error") {
+    const post = await hooks.postToolUse(
+      { id: call.toolCall.id, name: call.toolCall.name, args: call.toolCall.args, serverSlug },
+      scope,
+      typeof result.content === "string" ? result.content : JSON.stringify(result.content),
+    );
+    feedback.push(...post.blockReasons, ...post.additionalContext);
+    for (const error of post.errors) console.warn(`[hooks] a PostToolUse hook failed: ${error}`);
+  }
+  if (feedback.length === 0) return result;
+  const appended = `${HOOK_FEEDBACK_HEADING}\n${feedback.join("\n\n")}`;
+  return new ToolMessage({
+    content: typeof result.content === "string"
+      ? `${result.content}\n\n${appended}`
+      : [...result.content, { type: "text", text: appended }],
+    tool_call_id: result.tool_call_id,
+    name: result.name,
+    ...(result.status !== undefined ? { status: result.status } : {}),
+  });
 }
 
 /** Shared empty set so a config without leases allocates nothing per call. */

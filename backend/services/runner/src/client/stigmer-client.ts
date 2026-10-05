@@ -23,6 +23,9 @@ import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/ar
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import type { CreateArtifactInput } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { GetArtifactResponse as GetPluginArtifactResponse, PluginArtifactDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import type { RecordLlmCallUsageInput, RecordLlmCallUsageResponse } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -185,6 +188,7 @@ export class StigmerClient {
   private readonly mcpServerQuery: Client<typeof McpServerQueryController>;
   private readonly mcpServerCommand: Client<typeof McpServerCommandController>;
   private readonly skillQuery: Client<typeof SkillQueryController>;
+  private readonly pluginQuery: Client<typeof PluginQueryController>;
   private readonly billingCommand: Client<typeof BillingCommandController>;
   private readonly artifactCommand: Client<typeof ArtifactCommandController>;
   readonly workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
@@ -291,6 +295,7 @@ export class StigmerClient {
     this.mcpServerQuery = createClient(McpServerQueryController, this.transport);
     this.mcpServerCommand = createClient(McpServerCommandController, this.transport);
     this.skillQuery = createClient(SkillQueryController, this.transport);
+    this.pluginQuery = createClient(PluginQueryController, this.transport);
     this.billingCommand = createClient(BillingCommandController, this.transport);
     this.artifactCommand = createClient(ArtifactCommandController, this.transport);
     this.workflowExecutionCommand = createClient(WorkflowExecutionCommandController, this.transport);
@@ -629,6 +634,27 @@ export class StigmerClient {
    */
   async getSkillArtifactDownloadUrl(artifactStorageKey: string): Promise<SkillArtifactDownloadUrl> {
     return this.skillQuery.getArtifactDownloadUrl({ artifactStorageKey });
+  }
+
+  async getPlugin(pluginId: string): Promise<Plugin> {
+    return this.pluginQuery.get({ value: pluginId });
+  }
+
+  async getPluginByReference(ref: ApiResourceReference): Promise<Plugin> {
+    return this.pluginQuery.getByReference(ref);
+  }
+
+  async getPluginArtifact(artifactStorageKey: string): Promise<GetPluginArtifactResponse> {
+    return this.pluginQuery.getArtifact({ artifactStorageKey });
+  }
+
+  /**
+   * Mint an HTTP download URL for a plugin archive, the skill lane's twin:
+   * preferred over getPluginArtifact for the bytes, and answered
+   * UNIMPLEMENTED by a server that predates it.
+   */
+  async getPluginArtifactDownloadUrl(artifactStorageKey: string): Promise<PluginArtifactDownloadUrl> {
+    return this.pluginQuery.getArtifactDownloadUrl({ artifactStorageKey });
   }
 
   async createArtifact(input: CreateArtifactInput): Promise<Artifact> {

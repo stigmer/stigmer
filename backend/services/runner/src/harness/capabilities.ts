@@ -28,6 +28,7 @@
  * | `systemPrompt`    | yes                         | no (rides the first message)            | yes                                           | no (`AGENTS.md` or first message)              |
  * | `subAgents`       | yes (compiled sub-graphs)   | yes (`agents` option)                   | yes (`AgentDefinition`)                       | no                                             |
  * | `toolRestriction` | yes (tool list)             | no (the hook enforces)                  | yes (`disallowedTools`, `tools`)              | per-server config                              |
+ * | `runsHooks`       | yes (in the approval gate)  | not yet (refused)                       | yes (its own hooks)                           | (surveyed later)                               |
  * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG (transport re-sniffs)         | (surveyed later)                              | (surveyed later)                               |
  * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, `.cursor/hooks.json` excluded | (surveyed later)                              | (surveyed later)                               |
  *
@@ -106,6 +107,12 @@ export interface HarnessCapabilities {
   readonly subAgents: boolean;
   /** The engine can hide or deny every tool an agent's tool lists exclude; otherwise its approval hook refuses what it cannot hide. */
   readonly toolRestriction: boolean;
+  /**
+   * The engine runs an agent's hooks around its tool calls. A turn whose
+   * agent has hooks is refused on an engine that does not, before anything
+   * is fetched: a hook that silently does not run is a policy that vanished.
+   */
+  readonly runsHooks: boolean;
   /** Which image types the engine can display inline; the runtime degrades the rest before the turn. */
   readonly visionProfile: VisionProfile;
   /** How the harness's captured file changes are identified and what its own repo writes are excluded from a diff. */

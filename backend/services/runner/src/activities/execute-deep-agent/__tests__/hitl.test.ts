@@ -194,7 +194,7 @@ describe("reconcileUnattendedSkips", () => {
       { id: "call-1", status: ToolCallStatus.TOOL_CALL_COMPLETED, result: "was skipped" },
     ]);
 
-    reconcileUnattendedSkips(status, new Set(["call-1"]));
+    reconcileUnattendedSkips(status, new Map([["call-1", null]]));
 
     const tc = status.messages[0].toolCalls[0];
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
@@ -210,7 +210,7 @@ describe("reconcileUnattendedSkips", () => {
       { id: "call-1", status: ToolCallStatus.TOOL_CALL_RUNNING },
     ]);
 
-    reconcileUnattendedSkips(status, new Set(["call-1"]));
+    reconcileUnattendedSkips(status, new Map([["call-1", null]]));
 
     const tc = status.messages[0].toolCalls[0];
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
@@ -222,8 +222,8 @@ describe("reconcileUnattendedSkips", () => {
       { id: "call-1", status: ToolCallStatus.TOOL_CALL_COMPLETED, result: "real result" },
     ]);
 
-    reconcileUnattendedSkips(status, new Set(["other-call"]));
-    reconcileUnattendedSkips(status, new Set());
+    reconcileUnattendedSkips(status, new Map([["other-call", null]]));
+    reconcileUnattendedSkips(status, new Map());
     reconcileUnattendedSkips(status, undefined);
 
     const tc = status.messages[0].toolCalls[0];
@@ -248,7 +248,7 @@ describe("reconcileUnattendedSkips", () => {
       }],
     });
 
-    reconcileUnattendedSkips(status, new Set(["sub-call-1"]));
+    reconcileUnattendedSkips(status, new Map([["sub-call-1", null]]));
 
     const tc = status.subAgentExecutions[0].messages[0].toolCalls[0];
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
@@ -260,9 +260,9 @@ describe("reconcileUnattendedSkips", () => {
       { id: "call-1", status: ToolCallStatus.TOOL_CALL_COMPLETED },
     ]);
 
-    reconcileUnattendedSkips(status, new Set(["call-1"]));
+    reconcileUnattendedSkips(status, new Map([["call-1", null]]));
     const after = JSON.stringify(status.messages[0].toolCalls[0]);
-    reconcileUnattendedSkips(status, new Set(["call-1"]));
+    reconcileUnattendedSkips(status, new Map([["call-1", null]]));
 
     expect(JSON.stringify(status.messages[0].toolCalls[0])).toBe(after);
   });

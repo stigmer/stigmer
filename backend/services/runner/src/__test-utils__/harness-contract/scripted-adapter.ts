@@ -116,6 +116,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       systemPrompt: true,
       subAgents: false,
       toolRestriction: true,
+      runsHooks: true,
       visionProfile: DEEP_AGENT_VISION_PROFILE,
       fileReview: { harnessId: "scripted", excludePaths: [] },
     };

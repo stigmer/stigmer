@@ -530,6 +530,8 @@ export interface PendingInterrupt {
    * provenance-tagged.
    */
   policySource: string;
+  /** The plugin whose hook asked (approval-gate.ts `policy_hook`); undefined when no hook asked. */
+  policyHook: string | undefined;
 }
 
 /**
@@ -560,6 +562,7 @@ export function readPendingInterrupts(state: {
         toolName: (v.tool_name as string) ?? "",
         message: (v.message as string) ?? "",
         policySource: (v.policy_source as string) ?? "",
+        policyHook: typeof v.policy_hook === "string" ? v.policy_hook : undefined,
       });
     }
   }

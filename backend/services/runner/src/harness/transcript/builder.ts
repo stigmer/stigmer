@@ -129,7 +129,7 @@ import {
   ToolCallStreamingSource,
   ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { POLICY_ENGINE_VERSION, toProtoPolicySource } from "../../shared/approval-policy.js";
+import { POLICY_ENGINE_VERSION, toProtoPolicySource, type PolicySource } from "../../shared/approval-policy.js";
 import { SALIENT_ARG_FIELDS, buildElidedArgsPreview, redactSensitiveArgs } from "../../shared/args-preview.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { applyTodoUpdate } from "../../shared/todos.js";
@@ -140,6 +140,7 @@ import type {
   SubAgentFailedEvent,
   SubAgentFinishedEvent,
   SubAgentStartedEvent,
+  ToolPolicyEvent,
   ToolStartedEvent,
   TranscriptEvent,
 } from "./events.js";
@@ -155,6 +156,8 @@ export class TranscriptBuilder {
   private _awaitingApproval = false;
   /** The one instant of the observation being folded, while {@link applyObservation} runs; absent otherwise. */
   private observationInstant: string | undefined;
+  /** Hook provenance that arrived before its call's row, by call id; stamped when the row opens. */
+  private readonly pendingPolicies = new Map<string, ToolPolicyEvent>();
 
   /**
    * Builds INTO `status`, by reference: its `messages`, `subAgentExecutions`
@@ -302,6 +305,9 @@ export class TranscriptBuilder {
           break;
         case "tool_started":
           this.handleToolStarted(scope, event);
+          break;
+        case "tool_policy":
+          this.handleToolPolicy(scope, event);
           break;
         case "tool_arg_delta":
           this.handleToolArgDelta(scope, event.callId, event.argsChunk);
@@ -531,14 +537,32 @@ export class TranscriptBuilder {
     // re-seeded on reinvocation (the runtime's wide seed) with the same source
     // carried through the interrupt.
     if (event.provenance !== undefined) {
-      tc.approvalPolicySource = toProtoPolicySource(event.provenance);
-      tc.policyEngineVersion = POLICY_ENGINE_VERSION;
+      stampProvenance(tc, event.provenance, event.policyHook);
     }
-
+    const pending = this.pendingPolicies.get(callId);
+    if (pending !== undefined) {
+      this.pendingPolicies.delete(callId);
+      stampProvenance(tc, pending.provenance, pending.policyHook);
+    }
 
     parentMsg.toolCalls.push(tc);
     scope.toolCalls.set(callId, tc);
 
+    this._dirty = true;
+  }
+
+  /**
+   * A hook's provenance for a call that runs (`ToolPolicyEvent`): stamped on
+   * the row now, or held until the row opens, so it outranks whatever its
+   * `tool_started` said in either order.
+   */
+  private handleToolPolicy(scope: Transcript, event: ToolPolicyEvent): void {
+    const existing = scope.toolCalls.get(event.callId);
+    if (existing === undefined) {
+      this.pendingPolicies.set(event.callId, event);
+      return;
+    }
+    stampProvenance(existing, event.provenance, event.policyHook);
     this._dirty = true;
   }
 
@@ -697,8 +721,7 @@ export class TranscriptBuilder {
     if (event.mcpServerSlug) tc.mcpServerSlug = event.mcpServerSlug;
     tc.toolKind = classifyTool(tc.name, tc.mcpServerSlug);
     if (event.provenance !== undefined) {
-      tc.approvalPolicySource = toProtoPolicySource(event.provenance);
-      tc.policyEngineVersion = POLICY_ENGINE_VERSION;
+      stampProvenance(tc, event.provenance, event.policyHook);
     }
     if (event.args && Object.keys(event.args).length > 0) {
       tc.args = rowArgs(event.args);
@@ -807,6 +830,17 @@ function rowArgs(args: Record<string, unknown>): JsonObject {
  * Cursor stamped `JSON.stringify(args)` unredacted. An empty preview (a
  * cycle in the args) leaves the field unset rather than failing the row.
  */
+/**
+ * A row's authorization provenance: the source, the engine version that
+ * decided it, and the deciding hook when a hook's answer is what the source
+ * records (empty otherwise, so a later stamp never leaves a stale hook).
+ */
+function stampProvenance(tc: ToolCall, source: PolicySource, policyHook: string | undefined): void {
+  tc.approvalPolicySource = toProtoPolicySource(source);
+  tc.policyEngineVersion = POLICY_ENGINE_VERSION;
+  tc.approvalPolicyHook = policyHook ?? "";
+}
+
 function stampArgsPreview(tc: ToolCall, args: Record<string, unknown>): void {
   const preview = buildElidedArgsPreview(args, SALIENT_ARG_FIELDS);
   if (preview) tc.argsPreview = preview;

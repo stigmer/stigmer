@@ -73,7 +73,7 @@ function openGate(overrides: Partial<DeepAgentGateState> = {}): DeepAgentGateSta
     leasedCategories: new Set(),
     globalBypass: false,
     unattended: false,
-    unattendedSkips: new Set(),
+    unattendedSkips: new Map(),
     ...overrides,
   };
 }

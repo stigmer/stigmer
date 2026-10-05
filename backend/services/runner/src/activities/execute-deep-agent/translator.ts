@@ -15,7 +15,13 @@
  *     read-side twin);
  *   - a call the agent's tool lists refused, from the tool-scope
  *     middleware's custom-stream event (`normalizeCustom`): a failure with
- *     no provenance, since the call never started;
+ *     no provenance, since the call never started; and a call a hook
+ *     refused, from the same event written by the approval gate, a failure
+ *     whose provenance names the hook;
+ *   - which hook decided a call that runs, from the gate's `tool_policy`
+ *     custom-stream event: a hook is a process, so its answer is the
+ *     gate's to report and never re-derived here; the builder stamps it on
+ *     the row in either order of arrival;
  *   - the SCOPE of every event — the root's transcript or one sub-agent's —
  *     from LangGraph's namespace grammar, and the sub-agent's own lifecycle
  *     (`sub_agent_started/finished/failed`) from deepagents' `task` tool
@@ -84,6 +90,7 @@ import type { ToolStartedEvent, TranscriptEvent } from "../../harness/transcript
 import { resolveApprovalProvenance, type PolicySource } from "../../shared/approval-policy.js";
 import type { DeepAgentGateState } from "./turn-setup.js";
 import { TOOL_REFUSED_EVENT } from "../../middleware/tool-scope.js";
+import { TOOL_POLICY_EVENT } from "../../middleware/approval-gate.js";
 
 const loggedUnknowns = new Set<string>();
 
@@ -108,7 +115,7 @@ export class DeepAgentTranslator {
   /** One raw event to its canonical events — `translate(raw)` is the one signature every harness's translator shares. */
   translate(raw: V3ProtocolEvent): TranscriptEvent[] {
     const namespace = raw.params.namespace;
-    if (raw.method === "custom") return this.refusal(normalize(raw), this.customScopeOf(namespace));
+    if (raw.method === "custom") return this.custom(normalize(raw), this.customScopeOf(namespace));
     const subAgentId = this.scopeOf(namespace);
     const out: TranscriptEvent[] = [];
     for (const event of normalize(raw)) {
@@ -179,16 +186,23 @@ export class DeepAgentTranslator {
   }
 
   /**
-   * A refused call's events (`normalizeCustom`), scoped like any other: never
-   * a sub-agent opening (the `task` call never ran), and at the root the
-   * server attribution alone — no provenance, since the call never reached
-   * the approval default.
+   * A custom-stream event's transcript events (`normalizeCustom`), scoped
+   * like any other. A refused call never opens a sub-agent (the `task` call
+   * never ran); at the root it gets the server attribution, and keeps the
+   * hook provenance a hook's refusal carries. Inside a sub-agent no row
+   * carries provenance (#1133), so a refusal drops it and a hook's
+   * `tool_policy` is not reported.
    */
-  private refusal(events: readonly TranscriptEvent[], subAgentId: string | undefined): TranscriptEvent[] {
-    return events.map((event) => {
-      if (subAgentId !== undefined) return { ...event, subAgentId };
-      if (event.kind !== "tool_started") return event;
-      return { ...event, mcpServerSlug: this.gate?.toolServerMap.get(event.name) ?? "" };
+  private custom(events: readonly TranscriptEvent[], subAgentId: string | undefined): TranscriptEvent[] {
+    return events.flatMap((event): TranscriptEvent[] => {
+      if (subAgentId !== undefined) {
+        if (event.kind === "tool_policy") return [];
+        if (event.kind !== "tool_started") return [{ ...event, subAgentId }];
+        const { provenance: _provenance, policyHook: _policyHook, ...unattributed } = event;
+        return [{ ...unattributed, subAgentId }];
+      }
+      if (event.kind !== "tool_started") return [event];
+      return [{ ...event, mcpServerSlug: this.gate?.toolServerMap.get(event.name) ?? "" }];
     });
   }
 
@@ -240,23 +254,43 @@ export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
 // ── Custom Channel ────────────────────────────────────────────────
 
 /**
- * The one custom-stream event this harness reads: the tool-scope
- * middleware's refusal of a call the agent's tool lists exclude
- * (`middleware/tool-scope.ts`). The call never ran, so the tools channel
- * says nothing of it; its row is opened here (the call as the model made
- * it, with no provenance and no approval fields) and fails at once with the
- * refusal's message. Any other custom event is not this harness's and is
- * ignored.
+ * The two custom-stream events this harness reads.
+ *
+ *  - A refusal (`TOOL_REFUSED_EVENT`): the tool-scope middleware's of a call
+ *    the agent's tool lists exclude (`middleware/tool-scope.ts`), or the
+ *    approval gate's of a call a hook denied. The call never ran, so the
+ *    tools channel says nothing of it; its row is opened here (the call as
+ *    the model made it, no approval fields, and the hook's provenance when a
+ *    hook refused) and fails at once with the refusal's message.
+ *  - A hook's decision on a call that runs (`TOOL_POLICY_EVENT`), as a
+ *    `tool_policy` event for the builder to stamp.
+ *
+ * Any other custom event is not this harness's and is ignored.
  */
 function normalizeCustom(event: V3ProtocolEvent): TranscriptEvent[] {
   const data = event.params.data as Record<string, unknown> | undefined;
-  if (!data || data.name !== TOOL_REFUSED_EVENT) return [];
+  if (!data) return [];
   const callId = typeof data.tool_call_id === "string" ? data.tool_call_id : "";
   if (!callId) return [];
+  const policyHook = typeof data.policy_hook === "string" ? data.policy_hook : "";
+
+  if (data.name === TOOL_POLICY_EVENT) {
+    const provenance = typeof data.policy_source === "string" ? (data.policy_source as PolicySource) : undefined;
+    return provenance === undefined ? [] : [{ kind: "tool_policy" as const, callId, provenance, policyHook }];
+  }
+  if (data.name !== TOOL_REFUSED_EVENT) return [];
   const name = typeof data.tool_name === "string" ? data.tool_name : "";
   const message = typeof data.message === "string" ? data.message : "";
+  const byHook = data.policy_source === "hook";
   return [
-    { kind: "tool_started" as const, callId, name, input: parseToolInput(data.input), mcpServerSlug: "" },
+    {
+      kind: "tool_started" as const,
+      callId,
+      name,
+      input: parseToolInput(data.input),
+      mcpServerSlug: "",
+      ...(byHook ? { provenance: "hook" as const, policyHook } : {}),
+    },
     { kind: "tool_error" as const, callId, message },
   ];
 }

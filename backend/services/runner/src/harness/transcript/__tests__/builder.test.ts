@@ -369,7 +369,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
     expect(row.args).toEqual({ command: "rm -rf build" });
     expect(row.argsPreview).toBe(JSON.stringify({ command: "rm -rf build" }));
     expect(row.approvalPolicySource).toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
-    expect(row.policyEngineVersion).toBe("default-1");
+    expect(row.policyEngineVersion).toBe("hooks-1");
     expect(row.toolKind).toBe(ToolKind.SHELL);
     expect(sb.awaitingApproval, "the fact the caller reads").toBe(true);
   });
@@ -771,9 +771,41 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
       { kind: "tool_started", callId: "b", name: "read_file", input: { path: "/x" }, mcpServerSlug: "" },
     ]);
     expect(rowOf(status, "a").approvalPolicySource).toBe(ApprovalPolicySource.APPROVAL_LEASE);
-    expect(rowOf(status, "a").policyEngineVersion).toBe("default-1");
+    expect(rowOf(status, "a").policyEngineVersion).toBe("hooks-1");
     expect(rowOf(status, "b").approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
     expect(rowOf(status, "b").policyEngineVersion).toBe("");
+  });
+
+  it("a hook's tool_policy outranks the started call's provenance when it arrives after the row", () => {
+    const { status } = feed(builder(), [
+      { kind: "tool_started", callId: "a", name: "execute", input: { command: "git push" }, mcpServerSlug: "", provenance: "builtin_category" },
+      { kind: "tool_policy", callId: "a", provenance: "hook", policyHook: "safety" },
+    ]);
+    expect(rowOf(status, "a").approvalPolicySource).toBe(ApprovalPolicySource.HOOK);
+    expect(rowOf(status, "a").approvalPolicyHook).toBe("safety");
+  });
+
+  it("a hook's tool_policy that arrives before the row is held and stamped when the row opens", () => {
+    const { status } = feed(builder(), [
+      { kind: "tool_policy", callId: "a", provenance: "approval_lease", policyHook: "" },
+      { kind: "tool_started", callId: "a", name: "execute", input: { command: "git push" }, mcpServerSlug: "", provenance: "builtin_category" },
+    ]);
+    expect(rowOf(status, "a").approvalPolicySource).toBe(ApprovalPolicySource.APPROVAL_LEASE);
+    expect(rowOf(status, "a").approvalPolicyHook).toBe("");
+  });
+
+  it("carries the asking hook on a proposed row, and a later stamp without one clears it", () => {
+    const { status } = feed(builder(), [
+      { kind: "approval_proposed", callId: "a", name: "execute", mcpServerSlug: "", message: "The safety plugin asks before Bash", provenance: "hook", policyHook: "safety" },
+    ]);
+    expect(rowOf(status, "a").approvalPolicySource).toBe(ApprovalPolicySource.HOOK);
+    expect(rowOf(status, "a").approvalPolicyHook).toBe("safety");
+
+    const restamped = feed(builder(), [
+      { kind: "tool_started", callId: "b", name: "execute", input: {}, mcpServerSlug: "", provenance: "hook", policyHook: "safety" },
+      { kind: "tool_policy", callId: "b", provenance: "auto_approve_all", policyHook: "" },
+    ]);
+    expect(rowOf(restamped.status, "b").approvalPolicyHook).toBe("");
   });
 });
 

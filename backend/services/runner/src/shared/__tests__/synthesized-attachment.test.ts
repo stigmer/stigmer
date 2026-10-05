@@ -34,6 +34,7 @@ const userServer: ResolvedMcpServer = {
   destructiveTools: [],
   discoveredToolNames: null,
   declaredEnvKeys: [],
+  pluginOrigin: null,
   discoveredCapabilitiesEmpty: false,
 };
 

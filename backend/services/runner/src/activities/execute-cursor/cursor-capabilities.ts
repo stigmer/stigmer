@@ -52,6 +52,7 @@ export const CURSOR_CAPABILITIES: HarnessCapabilities = {
   systemPrompt: false,
   subAgents: true,
   toolRestriction: false,
+  runsHooks: false,
   visionProfile: CURSOR_VISION_PROFILE,
   fileReview: CURSOR_FILE_REVIEW_IDENTITY,
 };

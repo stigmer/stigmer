@@ -285,6 +285,12 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         // structured output the paused turn resolved.
         return { kind: "return", value: completionSlim(lastAssistantText()) };
       }
+      case "hooks-refused": {
+        // The agent's hooks cannot run as written: refused with a sentence
+        // its owner can act on, never run without them.
+        console.warn(`${activityName} refused the turn: execution=${executionId}, ${settlement.message}`);
+        return settleWith(failedArm(settlement.message, "actionable"));
+      }
       default: {
         const exhaustive: never = settlement;
         throw new Error(`${activityName}: unknown resolution settlement ${String(exhaustive)}`);

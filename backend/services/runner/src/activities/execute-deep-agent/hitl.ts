@@ -186,7 +186,9 @@ function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt
  *   the skip message, or RUNNING when no tool events fired);
  * - `approval_policy_source = UNATTENDED_SKIP` — the resolution layer,
  *   overriding the gating-layer source stamped at tool-start (the
- *   AUTO_APPROVE_ALL precedent: layer-4 resolutions own the resolved call);
+ *   AUTO_APPROVE_ALL precedent: layer-4 resolutions own the resolved call),
+ *   with `approval_policy_hook` naming the hook whose ask was skipped, or
+ *   empty when the default asked;
  * - a result backfilled from {@link unattendedSkipMessage} when the stream
  *   delivered none, so the transcript row is never blank.
  *
@@ -199,7 +201,7 @@ function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt
  */
 export function reconcileUnattendedSkips(
   status: AgentExecutionStatus,
-  unattendedSkips: ReadonlySet<string> | undefined,
+  unattendedSkips: ReadonlyMap<string, string | null> | undefined,
 ): void {
   if (!unattendedSkips || unattendedSkips.size === 0) return;
 
@@ -209,6 +211,7 @@ export function reconcileUnattendedSkips(
         if (!unattendedSkips.has(tc.id)) continue;
         tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
         tc.approvalPolicySource = ApprovalPolicySource.UNATTENDED_SKIP;
+        tc.approvalPolicyHook = unattendedSkips.get(tc.id) ?? "";
         tc.policyEngineVersion = POLICY_ENGINE_VERSION;
         tc.isStreaming = false;
         if (!tc.result) tc.result = unattendedSkipMessage(tc.name);
@@ -230,6 +233,8 @@ export interface PendingInterrupt {
   readonly message: string;
   /** Gate provenance carried through the interrupt; undefined → UNSPECIFIED. */
   readonly policySource: PolicySource | undefined;
+  /** The plugin whose hook asked (`""` for the agent's own hooks block); undefined when no hook asked. */
+  readonly policyHook: string | undefined;
 }
 
 /**
@@ -252,6 +257,7 @@ export function detectPendingInterrupts(graphState: GraphStateSnapshot): Pending
           mcpServerSlug: (val?.mcp_server_slug as string) ?? "",
           message: (val?.message as string) ?? "",
           policySource: (val?.policy_source as PolicySource) || undefined,
+          policyHook: typeof val?.policy_hook === "string" ? val.policy_hook : undefined,
         };
       }),
   );
