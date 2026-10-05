@@ -1,0 +1,124 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Cleaning the build.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-delete",
+          "name": "shell",
+          "args": {
+            "command": "rm -rf build"
+          },
+          "status": "TOOL_CALL_FAILED",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "completedAt": "2026-01-01T00:00:05.000Z",
+          "error": "The safety plugin's hook refused this call: recursive deletes are not allowed",
+          "argsPreview": "{\"command\":\"rm -rf build\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
+          "policyEngineVersion": "hooks-1",
+          "approvalPolicyHook": "safety"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Listing the files.",
+      "timestamp": "2026-01-01T00:00:06.000Z",
+      "toolCalls": [
+        {
+          "id": "call-list",
+          "name": "shell",
+          "args": {
+            "command": "ls"
+          },
+          "result": "src\n",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:07.000Z",
+          "completedAt": "2026-01-01T00:00:09.000Z",
+          "argsPreview": "{\"command\":\"ls\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
+          "policyEngineVersion": "hooks-1",
+          "approvalPolicyHook": "safety"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Publishing.",
+      "timestamp": "2026-01-01T00:00:10.000Z",
+      "toolCalls": [
+        {
+          "id": "call-publish",
+          "name": "shell",
+          "args": {
+            "command": "echo publish",
+            "cwd": "",
+            "timeout": 30000
+          },
+          "result": "publish\n",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:11.000Z",
+          "completedAt": "2026-01-01T00:00:16.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "publishing needs a person",
+          "approvalRequestedAt": "2026-01-01T00:00:13.000Z",
+          "approvalDecidedAt": "2026-01-01T00:00:30.000Z",
+          "approvalAction": "APPROVAL_ACTION_APPROVE",
+          "argsPreview": "{\"command\":\"echo publish\",\"cwd\":\"\",\"timeout\":30000}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
+          "policyEngineVersion": "hooks-1",
+          "approvalPolicyHook": "safety"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Published.",
+      "timestamp": "2026-01-01T00:00:17.000Z"
+    }
+  ],
+  "phase": "EXECUTION_COMPLETED",
+  "startedAt": "2026-01-01T00:00:13.000Z",
+  "completedAt": "2026-01-01T00:00:19.000Z",
+  "streamingUsage": {
+    "inputTokens": "3100",
+    "outputTokens": "60",
+    "totalTokens": "3160",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.00334,
+    "model": "composer-2.5",
+    "observedAt": "2026-01-01T00:00:18.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedModelParams": "[{\"id\":\"fast\",\"value\":\"false\"},{\"id\":\"thinking\",\"value\":\"false\"}]",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "fileReviewEventStream": {
+    "executionId": "aex_hermetic_0001",
+    "events": [
+      {
+        "eventId": "aex_hermetic_0001:1:aex_hermetic_0001:1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "aex_hermetic_0001:1",
+        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "timestamp": "2026-01-01T00:00:13.000Z",
+        "actor": "runner",
+        "baselineCaptured": {
+          "changeSetId": "aex_hermetic_0001:1",
+          "turnId": "aex_hermetic_0001:1",
+          "harnessId": "cursor",
+          "baselineSnapshot": {
+            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
+          }
+        }
+      }
+    ]
+  },
+  "fileChangeProgress": {
+    "changeSetId": "aex_hermetic_0001:1",
+    "capturedAt": "2026-01-01T00:00:15.000Z"
+  }
+}

@@ -53,7 +53,7 @@ import {
   type TurnToolInventory,
 } from "../../shared/tool-lists.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
-import { ensureHitlDir, ensureHitlGateDir, getPlatformDir } from "../../shared/workspace/platform-dir.js";
+import { ensureHitlDir, getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import type { HookEvaluator } from "../../shared/hooks/evaluate.js";
 import { buildHookEvaluator, HookSetupError, hookPermissionMode } from "../../shared/hooks/setup.js";
 import { stigmerSymlinkPointsAt } from "../../shared/workspace/stigmer-link.js";
@@ -472,12 +472,11 @@ export async function installGate(
     }),
   );
   // The agent's hooks run inside the runner; the gate's script reaches them
-  // on a socket in the gate's directory (`hook-server.ts`), which closes with
+  // on a local socket the pointer names (`hook-server.ts`), which closes with
   // the gate. A person's refusal of a call this run binds over a hook's allow.
   const hookServer = hooks === null
     ? undefined
     : await startHookServer({
-        gateDir: await ensureHitlGateDir(primaryDir),
         evaluator: hooks.evaluator,
         refusals: approvalDecisions.size > 0
           ? buildPersonRefusals(rows.adjudicatedApprovals, approvalDecisions, rows.adjudicatedContentDigests)

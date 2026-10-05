@@ -11,17 +11,18 @@
  * a hook's pulses must reach so a long hook is not taken for a hung engine.
  * A separate process would need all of that written to disk.
  *
- * THE SOCKET. A Unix socket in the gate's directory (`hooks.sock`, mode
- * 0600), opened when the gate is installed for an agent with hooks and
- * closed with it. A request carries a per-turn random token, which the
- * script reads from the active-turn pointer; one without it is refused. The
- * agent's shell can read that pointer too, and all the token gains it is
- * running the agent's own hooks on calls it makes up: a real call's answer
- * is the script's to act on, and the script is not the shell's. Turns of a
- * workspace are serialized (`acquireWorkspaceTurnLock`), so one socket per
- * gate directory suffices; a socket a crashed turn left behind is removed
- * first. Requests are served independently: the evaluator keeps no per-call
- * state.
+ * THE SOCKET. A Unix socket (`hooks.sock`, mode 0600) in a directory of
+ * its own under the system's temporary directory, created for the turn
+ * (mode 0700) and removed with the server, which opens when the gate is
+ * installed for an agent with hooks and closes with it. Not in the gate's
+ * directory under the home directory: a socket's path has a short platform
+ * limit, and a home directory can be long. The script finds the socket
+ * through the active-turn pointer, and a request carries a per-turn random
+ * token from the same pointer; one without it is refused. The agent's shell
+ * can read that pointer too, and all the token gains it is running the
+ * agent's own hooks on calls it makes up: a real call's answer is the
+ * script's to act on, and the script is not the shell's. Requests are
+ * served independently: the evaluator keeps no per-call state.
  *
  * THE PROTOCOL. One JSON line in, one JSON line out. A `pre` request carries
  * the hook payload of a `preToolUse` (a built-in) or `beforeMCPExecution`
@@ -44,8 +45,9 @@
  */
 
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { chmod, rm } from "node:fs/promises";
+import { chmod, mkdtemp, rm } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { PolicySource } from "../../shared/approval-policy.js";
 import type { HookEvaluator, HookToolCall } from "../../shared/hooks/evaluate.js";
@@ -124,8 +126,6 @@ export interface HookServer {
 }
 
 export interface HookServerParams {
-  /** The workspace's gate directory, which holds the socket. */
-  readonly gateDir: string;
   readonly evaluator: HookEvaluator;
   /** The calls a person skipped or rejected this run, by identity token (`buildPersonRefusals`). */
   readonly refusals: ReadonlyMap<string, PersonRefusal>;
@@ -141,22 +141,30 @@ export class HookSocketPathError extends Error {
 
 /** Start serving the turn's hooks. */
 export async function startHookServer(params: HookServerParams): Promise<HookServer> {
-  const socketPath = join(params.gateDir, SOCKET_FILE);
-  if (Buffer.byteLength(socketPath) > MAX_SOCKET_PATH_BYTES) throw new HookSocketPathError(socketPath);
-  await rm(socketPath, { force: true });
+  const socketDir = await mkdtemp(join(tmpdir(), "stigmer-hooks-"));
+  const socketPath = join(socketDir, SOCKET_FILE);
+  if (Buffer.byteLength(socketPath) > MAX_SOCKET_PATH_BYTES) {
+    await rm(socketDir, { recursive: true, force: true });
+    throw new HookSocketPathError(socketPath);
+  }
 
   const token = randomBytes(32).toString("hex");
   const decisions = new HookDecisionLog();
   const handler = new HookRequestHandler(params.evaluator, params.refusals, decisions, token);
   const server = createServer((socket) => handler.serve(socket));
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(socketPath, () => {
-      server.off("error", reject);
-      resolve();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(socketPath, () => {
+        server.off("error", reject);
+        resolve();
+      });
     });
-  });
-  await chmod(socketPath, 0o600);
+    await chmod(socketPath, 0o600);
+  } catch (err) {
+    await rm(socketDir, { recursive: true, force: true });
+    throw err;
+  }
 
   let closed = false;
   return {
@@ -167,7 +175,7 @@ export async function startHookServer(params: HookServerParams): Promise<HookSer
       if (closed) return;
       closed = true;
       await closeServer(server);
-      await rm(socketPath, { force: true });
+      await rm(socketDir, { recursive: true, force: true });
     },
   };
 }
