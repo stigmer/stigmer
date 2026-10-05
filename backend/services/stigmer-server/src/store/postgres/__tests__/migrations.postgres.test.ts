@@ -263,6 +263,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         expect(names).toEqual([
           "bootstrap_state",
           "oauth_grant",
+          "organization_deletions",
           "pending_oauth_state",
           "resource_audit",
           "resource_list_keys",

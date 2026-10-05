@@ -10,13 +10,18 @@
  * Parent and child organizations are this domain's own (children.ts): the
  * create validates and claims a child's parent and external id and writes
  * no owner for it, the update keeps both, the delete refuses a parent
- * that still has children, and getByExternalId and listChildOrgs are
+ * that still has a live child, and getByExternalId and listChildOrgs are
  * ordinary annotated lanes on the parent (`can_manage_child_orgs`). The
  * composed OrganizationDirectory carries the two edition forks: find's
  * enumeration posture and findMyOrganizations' filtering (see
  * organization-directory.ts).
  *
- * Every chain opens with Authorize; create and delete run the shared
+ * Deleting is "mark, then purge" (deletion.ts, purge/): the delete answers
+ * once the organization is marked and its access revoked, the deleting
+ * rule (lifecycle.ts) makes it answer not-found from then on, and the
+ * purge removes what it owned, its row and its names in the background.
+ *
+ * Every chain opens with Authorize; create and the purge run the shared
  * tuple-lifecycle steps (CreateAuthorizationTuples, CleanupIamPolicies)
  * against the lifecycle compose.ts hands it: a composed
  * resourceAuthorizationLifecycle driver when a unit registers one, else,
@@ -71,14 +76,10 @@ import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import {
-  newDeleteResourceStep,
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
-import {
-  newDeleteSearchIndexStep,
-  newIndexSearchStep,
-} from "../../pipeline/steps/index-search.js";
+import { newIndexSearchStep } from "../../pipeline/steps/index-search.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
   SHOULD_CREATE_KEY,
@@ -88,10 +89,7 @@ import {
   newLoadTargetStep,
   TARGET_RESOURCE_KEY,
 } from "../../pipeline/steps/load-target.js";
-import {
-  newCleanupIamPoliciesStep,
-  newCreateAuthorizationTuplesStep,
-} from "../../pipeline/steps/authorization-tuples.js";
+import { newCreateAuthorizationTuplesStep } from "../../pipeline/steps/authorization-tuples.js";
 import { readListPage } from "../../pipeline/steps/list-page.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -107,7 +105,6 @@ import {
   newLinkChildOrganizationStep,
   newPreserveChildLinkStep,
   newRefuseDeletingParentStep,
-  newReleaseExternalIdStep,
   newValidateChildOrganizationStep,
   parentOrgOf,
   releaseExternalIdClaimAfterFailure,
@@ -119,12 +116,18 @@ import {
 } from "./limit.js";
 import { organizationSearchExtractor } from "./search-extractor.js";
 import {
+  newAcceptPurgeStep,
+  newMarkDeletingStep,
+  newRefuseParentDeletingStep,
+  unmarkAfterFailure,
+} from "./deletion.js";
+import {
   newClaimOrganizationSlugStep,
   newOrganizationNameResolver,
-  newRetireOrganizationSlugStep,
   newSettleOrganizationSlugStep,
   releaseSlugClaimAfterFailure,
 } from "./names.js";
+import type { OrganizationPurgeKick } from "./purge/runner.js";
 import {
   RENAMED_ORGANIZATION_KEY,
   newIndexOrganizationAfterRenameStep,
@@ -160,6 +163,8 @@ export interface OrganizationControllerDeps {
    * at 1, the delete chain also refuses to delete the one (limit.ts).
    */
   readonly orgLimit: number | undefined;
+  /** The purge runner the delete hands an accepted organization to (purge/runner.ts). */
+  readonly purge: OrganizationPurgeKick;
 }
 
 /** Registers both organization services on the router (routes stage). */
@@ -208,6 +213,10 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * external id is claimed the same way, right after (ClaimExternalId). When
  * the chain fails after a claim and the organization was never stored, the
  * claims are released so a retry can take them.
+ *
+ * RefuseParentDeleting follows Persist for a child: it re-reads its
+ * parent's deletion mark, and a parent that a concurrent delete marked
+ * takes the child with it (deletion.ts).
  *
  * A child has no creator owner: the creation event carries NONE
  * (childOwnerAttribution). LinkChildOrganization hands an edition that
@@ -276,6 +285,9 @@ async function createOrganization(
     .addStep(newClaimExternalIdStep(deps.store))
     .addStep(newLinkChildOrganizationStep(deps.authorizationLifecycle))
     .addStep(newPersistStep(deps.store))
+    // A child whose parent's delete marked it after ValidateChildOrganization
+    // read it is deleted with it (deletion.ts, stigmer#1917).
+    .addStep(newRefuseParentDeletingStep(deps.store, deps.purge))
     // The tuple steps run BEFORE the post-persist slot, so a unit's
     // post-persist work (a billing account) meets the organization's
     // authorization in place. No-ops with no driver composed.
@@ -428,32 +440,34 @@ async function apply(
 }
 
 /**
- * Delete — returns the deleted organization (gRPC audit-trail convention).
- *
- * Whatever outlives the row names the organization's id, which no later
- * organization can carry, so its slug is released once the row is gone and
- * a later organization of that slug sees nothing of this one. Everything
- * that grants on the organization still goes before its row, and a fault
- * stops the delete with the organization intact, so nothing it granted
- * outlives it. After the load:
+ * Delete — marks the organization, answers it as it stood (the gRPC
+ * audit-trail convention), and hands it to the purge, which removes
+ * everything it owned, then its row and its names (purge/runner.ts). From
+ * the mark on, every request naming the organization answers not-found
+ * (lifecycle.ts), this RPC's second call included. After the load:
  *
  *   0. under a declared limit of 1, RefuseDeletingSingleOrganization: the
- *      store's only organization is never deleted, refused before any
- *      write (limit.ts); and RefuseDeletingParent: an organization that
- *      still has children is not deleted (children.ts);
- *   1. the `org-delete:pre-delete` slot, where an edition refuses or
- *      removes the rows it keeps for the organization (empty in OSS);
- *   2. RevokeOrganizationPolicies, every policy row naming the
- *      organization, through the grant path, never caught;
- *   3. the row;
- *   4. RetireOrganizationSlug, every name the organization held released,
- *      best-effort (names.ts says why after the row), and a child's
- *      external id with them (ReleaseExternalId);
- *   5. CleanupIamPolicies, the lifecycle's post-delete event: best-effort
- *      like every delete chain's, it revokes whatever a concurrent write
- *      named the organization with after step 2, and runs a composed
- *      driver's post-delete companions;
- *   6. the search entry.
+ *      store's only live organization is never deleted (limit.ts); and
+ *      RefuseDeletingParent: an organization with a child that is not
+ *      being deleted is not deleted (children.ts). Both only read;
+ *   1. MarkDeleting: the organization is pending in the deletion table;
+ *   2. RefuseDeletingParent again, for a child whose create raced the
+ *      first check (deletion.ts says why both sides look);
+ *   3. the `org-delete:pre-delete` slot, where an edition refuses, or
+ *      removes what must not outlive the delete's answer (credentials,
+ *      trust configuration);
+ *   4. RevokeOrganizationPolicies, every policy row naming the
+ *      organization, through the grant path, so nobody holds a role in it
+ *      from the answer on;
+ *   5. AcceptPurge: the mark is the purge's, and the purge is kicked.
+ *
+ * Any refusal or fault after the mark and before the accept removes the
+ * mark (unmarkAfterFailure), leaving the organization in place as it was:
+ * nothing before the accept removes what a retry could not put back except
+ * the slot's and the revocation's own, which the next delete repeats.
+ * The organization's row, its search entry, its names (the slug is held
+ * until the purge finishes) and the lifecycle's post-delete event all run
+ * in the purge's final stage.
  */
 async function deleteOrganization(
   deps: OrganizationControllerDeps,
@@ -484,7 +498,10 @@ async function deleteOrganization(
       newRefuseDeletingSingleOrganizationStep<DeleteInput>(deps.store),
     );
   }
-  builder.addStep(newRefuseDeletingParentStep<DeleteInput>(deps.store));
+  builder
+    .addStep(newRefuseDeletingParentStep<DeleteInput>(deps.store))
+    .addStep(newMarkDeletingStep<DeleteInput>(deps.store))
+    .addStep(newRefuseDeletingParentStep<DeleteInput>(deps.store));
   // The pre-delete gate slot (see the doc comment above). No unit fills it
   // in OSS.
   for (const step of stepsForSlot<DeleteInput>(
@@ -493,19 +510,16 @@ async function deleteOrganization(
   )) {
     builder.addStep(step);
   }
-  await builder
+  const pipeline = builder
     .addStep(newRevokeOrganizationPoliciesStep<DeleteInput>(deps.grantPath))
-    .addStep(newDeleteResourceStep(deps.store))
-    .addStep(
-      newRetireOrganizationSlugStep<DeleteInput>(deps.store, deps.logger),
-    )
-    .addStep(newReleaseExternalIdStep<DeleteInput>(deps.store, deps.logger))
-    .addStep(
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
-    )
-    .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
-    .build()
-    .execute(reqCtx);
+    .addStep(newAcceptPurgeStep<DeleteInput>(deps.store, deps.purge))
+    .build();
+  try {
+    await pipeline.execute(reqCtx);
+  } catch (error) {
+    await unmarkAfterFailure(deps.store, deps.logger, reqCtx);
+    throw error;
+  }
 
   const deleted = reqCtx.get(EXISTING_RESOURCE_KEY);
   if (deleted === undefined) {
@@ -609,12 +623,23 @@ function newListAllOrganizationsStep(
         throw internalError(error, "failed to list organizations");
       }
 
+      let deleting: ReadonlySet<string>;
+      try {
+        deleting = await deletingOrganizationIds(store);
+      } catch (error) {
+        throw internalError(error, "failed to list organizations");
+      }
       const orgs: Organization[] = [];
       for (const bytes of data) {
+        let org: Organization;
         try {
-          orgs.push(fromBinary(OrganizationSchema, bytes));
+          org = fromBinary(OrganizationSchema, bytes);
         } catch {
           continue; // skip malformed rows, as Go does
+        }
+        // An organization being deleted no longer exists (lifecycle.ts).
+        if (!deleting.has(org.metadata?.id ?? "")) {
+          orgs.push(org);
         }
       }
 
@@ -659,12 +684,19 @@ function newListAllOrganizationsStep(
  * to the caller's authorized set instead (the multiTenant capability
  * fork): the directory answers ids, the controller loads
  * them, and ids whose rows are gone are skipped (grants can outlive
- * rows).
+ * rows). An organization being deleted is left out on every arm
+ * (lifecycle.ts).
  */
 async function findMyOrganizations(
   deps: OrganizationControllerDeps,
   ctx: HandlerContext,
 ): Promise<Organizations> {
+  let deleting: ReadonlySet<string>;
+  try {
+    deleting = await deletingOrganizationIds(deps.store);
+  } catch (error) {
+    throw internalError(error, "failed to list organizations");
+  }
   const directory = deps.organizationDirectory;
   if (directory !== undefined) {
     const authorized = await directory.listMyOrganizationIds(
@@ -673,6 +705,9 @@ async function findMyOrganizations(
     if (authorized !== ALL_ORGANIZATIONS) {
       const entries: Organization[] = [];
       for (const id of authorized) {
+        if (deleting.has(id)) {
+          continue;
+        }
         try {
           entries.push(
             await deps.store.getResource(
@@ -699,13 +734,24 @@ async function findMyOrganizations(
   }
   const entries: Organization[] = [];
   for (const bytes of data) {
+    let org: Organization;
     try {
-      entries.push(fromBinary(OrganizationSchema, bytes));
+      org = fromBinary(OrganizationSchema, bytes);
     } catch {
       continue;
     }
+    if (!deleting.has(org.metadata?.id ?? "")) {
+      entries.push(org);
+    }
   }
   return create(OrganizationsSchema, { entries });
+}
+
+/** The organizations being deleted (lifecycle.ts): the lists leave them out. */
+async function deletingOrganizationIds(
+  store: Store,
+): Promise<ReadonlySet<string>> {
+  return new Set((await store.organizationDeletions.list()).map((row) => row.org));
 }
 
 /**
@@ -773,6 +819,12 @@ async function listChildOrgs(
     .build()
     .execute(reqCtx);
 
+  let deleting: ReadonlySet<string>;
+  try {
+    deleting = await deletingOrganizationIds(deps.store);
+  } catch (error) {
+    throw internalError(error, "failed to list child organizations");
+  }
   const page = await readListPage({
     store: deps.store,
     declaration: organizationListIndex,
@@ -780,7 +832,9 @@ async function listChildOrgs(
     request: { pageSize: input.pageSize, pageToken: input.pageToken },
     fingerprint: input.org,
     decode: decodeOrganization,
-    keep: (child) => parentOrgOf(child) === input.org,
+    keep: (child) =>
+      parentOrgOf(child) === input.org &&
+      !deleting.has(child.metadata?.id ?? ""),
     scope: (rows) => Promise.resolve(rows),
     failure: "failed to list child organizations",
   });

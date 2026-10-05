@@ -146,6 +146,20 @@ export type { OrganizationDirectory } from "./extensions/organization-directory.
 // The child-organization lookups (ComposedServices.childOrganizations): a
 // composition's sign-in routing by external id and its billing roll-up.
 export type { ChildOrganizations } from "./extensions/child-organizations.js";
+// The organization purge point (extensions/organization-purge.ts): what a
+// unit removes when an organization is deleted, and what it keeps.
+export type {
+  OrganizationPurgeContext,
+  OrganizationPurgeContribution,
+  OrganizationPurgeProgress,
+  OrganizationPurgeStage,
+  OrganizationPurgeTarget,
+  RetainedRows,
+} from "./extensions/organization-purge.js";
+export type {
+  OrganizationDeletion,
+  OrganizationDeletionPhase,
+} from "./store/interface.js";
 export { ALL_ORGANIZATIONS } from "./extensions/organization-directory.js";
 // The license-status seam (drivers.licenseStatus): the provider an
 // Enterprise composition registers so getLicenseStatus answers from its

@@ -34,9 +34,15 @@
  *     (authorization/model/child-organizations.ts).
  *   - PreserveChildLink (update): `parent_org` and `external_id` stay as
  *     stored; a manifest carries both, so apply is idempotent.
- *   - RefuseDeletingParent (delete, before the pre-delete slot): an
- *     organization that still has children is not deleted
- *     (ORGANIZATION_HAS_CHILDREN).
+ *   - RefuseDeletingParent (delete, before and again after the deletion
+ *     mark): an organization that still has a child not being deleted is
+ *     not deleted (ORGANIZATION_HAS_CHILDREN). A parent whose children are
+ *     all being deleted may be; its purge waits for theirs (deletion.ts
+ *     says how the two checks and the create's re-read close the race).
+ *
+ * A child being deleted (lifecycle.ts) is no longer a child for any lane:
+ * the composition's lookups, the external-id lookup and the child list
+ * leave it out.
  *
  * A parent's children are read through the organization list index
  * (list-index.ts), never by decoding the kind. `newChildOrganizations`
@@ -233,7 +239,8 @@ async function findChildByExternalId(
   const child = await loadOrganization(store, entry.id);
   return child !== undefined &&
     parentOrgOf(child) === parentId &&
-    (child.spec?.externalId ?? "") === externalId
+    (child.spec?.externalId ?? "") === externalId &&
+    !(await store.organizationDeletions.isDeleting(entry.id))
     ? child
     : undefined;
 }
@@ -266,11 +273,26 @@ export function newChildOrganizations(store: Store): ChildOrganizations {
     findByExternalId: (parentId, externalId) =>
       findChildByExternalId(store, parentId, externalId),
     async listIds(parentId) {
-      return (await childrenOf(store, parentId)).map(
+      return (await liveChildrenOf(store, parentId)).map(
         (child) => child.metadata?.id ?? "",
       );
     },
   };
+}
+
+/** Every child of `parentId` that is not being deleted, newest first. */
+export async function liveChildrenOf(
+  store: Store,
+  parentId: string,
+): Promise<Organization[]> {
+  const children = await childrenOf(store, parentId);
+  if (children.length === 0) {
+    return children;
+  }
+  const deleting = new Set(
+    (await store.organizationDeletions.list()).map((row) => row.org),
+  );
+  return children.filter((child) => !deleting.has(child.metadata?.id ?? ""));
 }
 
 // =============================================================================
@@ -531,12 +553,12 @@ export function newPreserveChildLinkStep(): PipelineStep<
 // =============================================================================
 
 /**
- * RefuseDeletingParent — before the pre-delete slot: an organization that
- * still has children is not deleted. Its children are deleted first, each
- * by its parent's admins or its own owners. The check is not serialized
- * against a child create under the same organization running at the same
- * moment, which can store a child under a parent this delete then removes
- * (https://github.com/stigmer/stigmer/issues/1917).
+ * RefuseDeletingParent — before the deletion mark and again after it: an
+ * organization that still has a child not being deleted is not deleted.
+ * Its children are deleted first, each by its parent's admins or its own
+ * owners. The check after the mark sees a child whose create raced the
+ * first one; the create's own re-read of its parent covers the other order
+ * (deletion.ts, https://github.com/stigmer/stigmer/issues/1917).
  */
 export function newRefuseDeletingParentStep<Desc extends DescMessage>(
   store: Store,
@@ -554,16 +576,13 @@ export function newRefuseDeletingParentStep<Desc extends DescMessage>(
           "failed to delete organization",
         );
       }
-      let rows;
+      let live: Organization[];
       try {
-        rows = await store.queryResources(organizationListIndex, {
-          anyKey: [{ name: "parent_org", value: id }],
-          limit: 1,
-        });
+        live = await liveChildrenOf(store, id);
       } catch (error) {
         throw internalError(error, "failed to read the organization's child organizations");
       }
-      if (rows.length === 0) {
+      if (live.length === 0) {
         return;
       }
       throw failedPreconditionError(

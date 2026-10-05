@@ -57,8 +57,19 @@
  * that serves such a kind with a schema (`kindsWithoutRows`), so only kinds
  * the model never declares (and no check can allow) reach that arm.
  *
- * An unbound caller skips the rule entirely: no read, the inner driver's
- * answer byte for byte. A bound caller pays one primary-key read per
+ * The deleting rule's decision seat (domain/organization/lifecycle.ts)
+ * rides the same target resolution, for EVERY caller, bound or not: a
+ * target that is an organization being deleted, or a row whose
+ * `metadata.org` is one, answers `not-found` before anything else is
+ * asked, so a per-resource owner row the delete's revocation leaves
+ * cannot reach the row. It shares the memoised row read below, so a bound
+ * caller pays nothing more for it; an unbound caller's by-id check pays
+ * the target's row read and the memoised deletion read. The list read
+ * scope leaves such rows out, and the organization directory such
+ * organizations, for every caller.
+ *
+ * An unbound caller skips the binding rule entirely: no read for it, the
+ * inner driver's answer byte for byte. A bound caller pays one primary-key read per
  * distinct target per request: a target's organization is memoised for the
  * life of the caller object (the interceptor stamps one identity object
  * per request), so the Authorizer's signature carries nothing new.
@@ -107,6 +118,8 @@ import type {
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
 import { ALL_ORGANIZATIONS } from "../extensions/organization-directory.js";
 import type { RowAuthorizationFacts } from "../extensions/resource-authorization.js";
+import { NOTHING_DELETING } from "../domain/organization/lifecycle.js";
+import type { OrganizationLifecycle } from "../domain/organization/lifecycle.js";
 import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
 import { getKindMeta } from "../pipeline/apiresource-meta.js";
 import { rowAuthorizationFactsOf } from "../pipeline/steps/authorization-facts.js";
@@ -191,6 +204,22 @@ export interface CredentialBindingDeps {
   readonly platformClients: Pick<PlatformClientStore, "findById">;
   /** The declarations whose schemas decode a row; the built-in model unless a test says otherwise. */
   readonly model?: Model;
+  /** The deleting rule's predicate; nothing is deleting when absent (a test's binding). */
+  readonly lifecycle?: OrganizationLifecycle;
+}
+
+/**
+ * The binding as the composition root holds it: the seam's rule plus the
+ * deleting rule's decision seat, which shares the rule's memoised row
+ * read and so is not part of the seam a unit receives.
+ */
+export interface ComposedCredentialBinding extends CredentialBinding {
+  /**
+   * Whether the target is, or belongs to, an organization being deleted,
+   * for any caller. A missing row is not deleting (the inner driver
+   * answers it). Throws on a read fault.
+   */
+  deleting(caller: CallerIdentity, target: BindingTarget): Promise<boolean>;
 }
 
 /** What the rule reads from a target's row. */
@@ -204,8 +233,9 @@ const UNREADABLE = Symbol("unreadable");
 
 export function newCredentialBinding(
   deps: CredentialBindingDeps,
-): CredentialBinding {
+): ComposedCredentialBinding {
   const model = deps.model ?? builtInModel;
+  const lifecycle = deps.lifecycle ?? NOTHING_DELETING;
   const memo = new WeakMap<
     CallerIdentity,
     Map<string, Promise<TargetFacts | undefined | typeof UNREADABLE>>
@@ -413,8 +443,29 @@ export function newCredentialBinding(
     return "outside";
   }
 
+  async function deleting(
+    caller: CallerIdentity,
+    target: BindingTarget,
+  ): Promise<boolean> {
+    if (lifecycle === NOTHING_DELETING || target.id === "") {
+      return false;
+    }
+    if (target.kind === ApiResourceKind.organization) {
+      return lifecycle.isDeleting(caller, target.id);
+    }
+    if (!declaresKind(target.kind) || !belongsToAnOrganization(target.kind)) {
+      return false;
+    }
+    const found = await targetFacts(caller, target.kind, target.id);
+    if (found === undefined || found === UNREADABLE) {
+      return false;
+    }
+    return lifecycle.isDeleting(caller, found.facts.org);
+  }
+
   return {
     verdict,
+    deleting,
 
     admitsOrganization(caller, org) {
       const bound = boundOrgOf(caller);
@@ -465,19 +516,34 @@ export function newCredentialBinding(
   };
 }
 
-/** The Authorizer every chain calls, bound: an outside target is denied before the inner driver is asked. */
+/**
+ * The Authorizer every chain calls, bound: a target in an organization
+ * being deleted is not found, for any caller; an outside target is denied
+ * before the inner driver is asked.
+ */
 export function bindAuthorizer(
   inner: Authorizer,
-  binding: CredentialBinding,
+  binding: ComposedCredentialBinding,
 ): Authorizer {
   return {
     async authorize(caller, check): Promise<AuthzDecision> {
+      const target = targetOf(check);
+      try {
+        if (await binding.deleting(caller, target)) {
+          return { kind: "not-found" };
+        }
+      } catch (error) {
+        return {
+          kind: "unavailable",
+          cause: error instanceof Error ? error : new Error(String(error)),
+        };
+      }
       if (boundOrgOf(caller) === undefined) {
         return inner.authorize(caller, check);
       }
       let verdict: BindingVerdict;
       try {
-        verdict = await binding.verdict(caller, targetOf(check));
+        verdict = await binding.verdict(caller, target);
       } catch (error) {
         return {
           kind: "unavailable",
@@ -492,50 +558,112 @@ export function bindAuthorizer(
   };
 }
 
-/** The list read scope, bound: candidates outside are dropped before the inner scope sees them. */
+/**
+ * The list read scope, bound: candidates of an organization being deleted
+ * are dropped for every caller, and candidates outside a bound caller's
+ * organization, before the inner scope sees them. The deleting set is read
+ * once per call (the table holds only unfinished purges); when it is empty
+ * nothing else is read.
+ */
 export function bindListReadScope(
   inner: ListReadScope,
-  binding: CredentialBinding,
+  binding: ComposedCredentialBinding,
+  lifecycle: OrganizationLifecycle = NOTHING_DELETING,
 ): ListReadScope {
   return {
     async authorizedResourceIds(caller, kind) {
       const ids = await inner.authorizedResourceIds(caller, kind);
-      return binding.narrowIds(caller, kind, ids, CAN_VIEW);
+      const live = await withoutDeleting(caller, kind, ids);
+      return binding.narrowIds(caller, kind, live, CAN_VIEW);
     },
     async restrictListEntries(
       caller,
       kind,
       entries: ReadonlyArray<ListEntryMeta>,
     ) {
+      const deletingIds = await lifecycle.deletingIds();
+      const live =
+        deletingIds.size === 0
+          ? entries
+          : entries.filter(
+              (entry) =>
+                !deletingIds.has(
+                  kind === ApiResourceKind.organization ? entry.id : entry.org,
+                ),
+            );
       if (boundOrgOf(caller) === undefined) {
-        return inner.restrictListEntries(caller, kind, entries);
+        return inner.restrictListEntries(caller, kind, live);
       }
       const kept = await Promise.all(
-        entries.map((entry) => binding.keepsEntry(caller, kind, entry)),
+        live.map((entry) => binding.keepsEntry(caller, kind, entry)),
       );
       return inner.restrictListEntries(
         caller,
         kind,
-        entries.filter((_, index) => kept[index] === true),
+        live.filter((_, index) => kept[index] === true),
       );
     },
   };
+
+  async function withoutDeleting(
+    caller: CallerIdentity,
+    kind: ApiResourceKind,
+    ids: ReadonlySet<string>,
+  ): Promise<ReadonlySet<string>> {
+    const deletingIds = await lifecycle.deletingIds();
+    if (deletingIds.size === 0) {
+      return ids;
+    }
+    if (kind === ApiResourceKind.organization) {
+      return new Set([...ids].filter((id) => !deletingIds.has(id)));
+    }
+    const ordered = [...ids];
+    const live = new Set<string>();
+    for (let start = 0; start < ordered.length; start += NARROW_BATCH) {
+      const batch = ordered.slice(start, start + NARROW_BATCH);
+      const answers = await Promise.all(
+        batch.map((id) =>
+          binding.deleting(caller, { kind, id, permission: CAN_VIEW }),
+        ),
+      );
+      batch.forEach((id, index) => {
+        if (answers[index] !== true) {
+          live.add(id);
+        }
+      });
+    }
+    return live;
+  }
 }
 
-/** The organization directory, bound: a bound caller's organizations are its own, when the inner directory holds it. */
+/**
+ * The organization directory, bound: an organization being deleted is
+ * nobody's; a bound caller's organizations are its own, when the inner
+ * directory holds it. `ALL_ORGANIZATIONS` passes through, and the
+ * organization lanes leave deleting organizations out of what they list.
+ */
 export function bindOrganizationDirectory(
   inner: OrganizationDirectory,
+  lifecycle: OrganizationLifecycle = NOTHING_DELETING,
 ): OrganizationDirectory {
   const bound: OrganizationDirectory = {
     refusesEnumeration: inner.refusesEnumeration,
     async listMyOrganizationIds(caller) {
       const own = boundOrgOf(caller);
-      const ids = await inner.listMyOrganizationIds(caller);
+      const listed = await inner.listMyOrganizationIds(caller);
+      const deletingIds =
+        listed === ALL_ORGANIZATIONS
+          ? new Set<string>()
+          : await lifecycle.deletingIds();
+      const ids =
+        listed === ALL_ORGANIZATIONS || deletingIds.size === 0
+          ? listed
+          : listed.filter((id) => !deletingIds.has(id));
       if (own === undefined) {
         return ids;
       }
       if (ids === ALL_ORGANIZATIONS) {
-        return [own];
+        return (await lifecycle.isDeleting(caller, own)) ? [] : [own];
       }
       return ids.includes(own) ? [own] : [];
     },

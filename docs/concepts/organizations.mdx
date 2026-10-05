@@ -57,8 +57,8 @@ the id. Because every resource is filed under the id, an owner can rename an
 Organization and nothing moves: its agents, members and secrets stay where they
 are. The old slug keeps leading to the Organization for 30 days, and nobody else
 can take it meanwhile; after that it is free. A deleted Organization's slug is
-free at once, and an Organization made later under the same slug reaches nothing
-the deleted one owned.
+free once everything it owned has been removed, and an Organization made later
+under the same slug reaches nothing the deleted one owned.
 
 Renaming is its own operation, open to the Organization's owners: in the
 console, the Organization's settings; with the CLI, apply the Organization's
@@ -172,14 +172,46 @@ is created: the parent's admins grant its first members and owner.
 A child's people sign in through the parent's Identity Provider, whose
 `external_id_claim` names each token's child by its `external_id`, or with
 tokens a PlatformClient of the parent mints for that child. On Stigmer Cloud a
-child runs on its parent's plan. An Organization that still has children cannot
-be deleted.
+child runs on its parent's plan. An Organization can be deleted once every child
+it has is being deleted (see
+[Deleting an Organization](#deleting-an-organization)).
 
 <Callout type="info">
   For step-by-step instructions, see the [Child
   organizations](/docs/guides/authentication/federation/child-organizations)
   guide.
 </Callout>
+
+## Deleting an Organization
+
+An owner deletes an Organization from the CLI with
+`stigmer delete organization <slug>`. Deleting removes everything the
+Organization owned, in three steps:
+
+1. **At once.** The delete answers, and from that moment the Organization does
+   not exist for anyone. Its members, its API keys, its share links, its
+   Schedules and its Channels all get "not found", and nothing new can start
+   inside it. Every role anyone held in it is gone.
+2. **Within minutes.** In the background, Stigmer stops anything still running
+   (Schedules, runs, sandboxes), then removes every Agent, Session, Workflow,
+   file, Skill, MCP Server, Plugin, Environment and secret, Channel and its
+   conversations, and every permission that named the Organization. Where an
+   edition seals secrets with a key per Organization (Stigmer Cloud), that key
+   is destroyed too, so a copy of a secret in an old backup can no longer be
+   read.
+3. **When that finishes.** The Organization's slug is free for someone else, and
+   not before.
+
+Some records are kept on purpose, and each edition says which. Stigmer Cloud
+keeps billing records, because they are money, and the history of who was
+granted what, because it is the audit trail. Open source keeps nothing.
+
+A parent Organization can be deleted once every child it has is being deleted;
+its own removal finishes after theirs. While a child is not being deleted, the
+parent's delete is refused (`FAILED_PRECONDITION`, `ORGANIZATION_HAS_CHILDREN`).
+
+There is no restore window: once deleted, an Organization and what it owned do
+not come back. Open source holds one Organization and never deletes it.
 
 ## Cloud vs. local
 

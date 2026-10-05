@@ -673,10 +673,12 @@ on your Organization's invoice.
 
 ## Delete a child, or the parent
 
-Your Organization's admins may delete a child organization. An Organization that
-still has children cannot be deleted (`FAILED_PRECONDITION`,
-`ORGANIZATION_HAS_CHILDREN`): delete its children first. A deleted child's
-`externalId` is free for a new child.
+Your Organization's admins may delete a child organization. An Organization with
+a child that is not being deleted cannot be deleted (`FAILED_PRECONDITION`,
+`ORGANIZATION_HAS_CHILDREN`): delete its children first. Once every child is
+being deleted, the parent can be, and its removal finishes after theirs. A
+deleted child's `externalId` is free for a new child once its removal finishes
+([Deleting an Organization](/docs/concepts/organizations#deleting-an-organization)).
 
 ## Complete onboarding flow
 

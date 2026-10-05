@@ -391,6 +391,23 @@ PlatformClients mint for your product's users. It can be replaced at any
 restart: tokens minted in the last 15 minutes stop working and your backend
 mints new ones, as it does when a token expires.
 
+## After an Organization is deleted
+
+A server that holds more than one Organization can delete one (open source holds
+one and never deletes it). The delete answers at once, and the server then
+removes everything the Organization owned in the background, from the database
+and from the artifact store, and frees its slug last
+([Deleting an Organization](/docs/concepts/organizations#deleting-an-organization)).
+Some copies live outside what the server can reach, and each ages out on its own
+schedule:
+
+| Where                       | What may still hold the Organization's data       | When it goes                                                                                                                            |
+| --------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Database backups            | Every row the Organization had when it was copied | When you delete the backup. The stack seals secrets with one key, `STIGMER_ENCRYPTION_KEY`, so a backup's secrets stay readable with it |
+| Temporal's history          | The histories of the Organization's runs          | When the Temporal namespace's retention ends                                                                                            |
+| Logs                        | Ids and messages from the Organization's requests | When your log retention ends                                                                                                            |
+| An external artifact bucket | Nothing the server wrote                          | The server removes the Organization's files itself; files written to the bucket some other way are yours to remove                      |
+
 ## Uninstall
 
 <Tabs items={["Docker Compose", "Kubernetes"]} groupId="self-hosting-shape" persist>

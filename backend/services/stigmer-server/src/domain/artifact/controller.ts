@@ -59,7 +59,12 @@ import type { ApiResourceId } from "@stigmer/protos/ai/stigmer/commons/apiresour
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
-import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
+import { getKindName } from "../../pipeline/apiresource-meta.js";
+import {
+  internalError,
+  invalidArgumentError,
+  notFoundError,
+} from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -178,6 +183,7 @@ async function createArtifact(
   // refused with nothing uploaded (refuse-bound-elsewhere.ts).
   const org = await deriveOrgFromSource(deps, source);
   refuseBoundElsewhere(identity, org);
+  await refuseDeletingSourceOrganization(deps, org);
 
   try {
     await deps.artifactStorage.upload(contentHash, content, spec.contentType);
@@ -279,6 +285,32 @@ async function deriveOrgFromSource(
     }
   }
   return "";
+}
+
+/**
+ * An execution of an organization being deleted files no artifact
+ * (domain/organization/lifecycle.ts): the request names only the
+ * execution, so the deleting rule's interceptor cannot see the
+ * organization, and a late write from a run the purge is terminating would
+ * otherwise land after the purge removed the organization's artifacts.
+ * Refused before the upload with the copy a missing organization answers.
+ */
+async function refuseDeletingSourceOrganization(
+  deps: ArtifactControllerDeps,
+  org: string,
+): Promise<void> {
+  if (org === "") {
+    return;
+  }
+  let deleting: boolean;
+  try {
+    deleting = await deps.store.organizationDeletions.isDeleting(org);
+  } catch (error) {
+    throw internalError(error, "failed to read the artifact's organization");
+  }
+  if (deleting) {
+    throw notFoundError(getKindName(ApiResourceKind.organization), org);
+  }
 }
 
 /** Go computeExpiresAt: 30-day default; -1 permanent; <=0 falls back. */

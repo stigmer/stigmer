@@ -82,6 +82,12 @@ import { DECLARED_GATE_SLOTS } from "./gate-slots.js";
 import type { GateSlotName, ResolvedGateSteps } from "./gate-slots.js";
 import type { IdentityVerifier } from "./identity.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
+import type {
+  OrganizationPurgeContribution,
+  OrganizationPurgeStage,
+  ResolvedOrganizationPurge,
+  RetainedRows,
+} from "./organization-purge.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 import type { ResourceRowReader } from "./resource-row-reader.js";
 import type {
@@ -191,6 +197,13 @@ export interface ServerExtension {
   /** Temporal worker factories, appended to the manager's OSS factory list. */
   readonly workers?: ReadonlyArray<WorkerFactory>;
   /**
+   * What the unit removes when an organization is deleted, and what it
+   * keeps on purpose (extensions/organization-purge.ts carries the
+   * contract). Stages append in unit order; a stage name used twice is a
+   * boot throw naming both units.
+   */
+  readonly orgPurge?: OrganizationPurgeContribution;
+  /**
    * Receives the composition's own instances — the Authorizer, the list
    * read scope, the policy check, the tuple lifecycle and the in-process
    * transport — once, in unit order, at the end of `composeServer`
@@ -252,6 +265,8 @@ export interface ResolvedExtensions {
   >;
   /** The units' start hooks, in unit order. */
   readonly start: ReadonlyArray<ResolvedUnitHook<() => Promise<void>>>;
+  /** The units' purge stages and retentions, in unit order. */
+  readonly orgPurge: ResolvedOrganizationPurge;
 }
 
 /**
@@ -398,6 +413,9 @@ export function resolveExtensions(
   const onComposed: ResolvedUnitHook<(composed: ComposedServices) => void>[] =
     [];
   const start: ResolvedUnitHook<() => Promise<void>>[] = [];
+  const purgeStages: Array<{ unit: string; stage: OrganizationPurgeStage }> =
+    [];
+  const purgeRetains: Array<{ unit: string; retained: RetainedRows }> = [];
 
   let edition: ServerEdition | undefined;
   let editionDeclaredBy: string | undefined;
@@ -864,6 +882,33 @@ export function resolveExtensions(
     if (unit.start !== undefined) {
       start.push({ unit: unit.name, hook: unit.start });
     }
+    for (const stage of unit.orgPurge?.stages ?? []) {
+      if (stage.name === "") {
+        throw new Error(
+          `extension '${unit.name}' registers an organization purge stage with no name`,
+        );
+      }
+      const taken = purgeStages.find((held) => held.stage.name === stage.name);
+      if (taken !== undefined) {
+        throw new Error(
+          `organization purge stage '${stage.name}' is registered by both extension '${taken.unit}' and extension '${unit.name}' — stage names are unique`,
+        );
+      }
+      purgeStages.push({ unit: unit.name, stage });
+    }
+    for (const retained of unit.orgPurge?.retains ?? []) {
+      if ((retained.table === undefined) === (retained.kind === undefined)) {
+        throw new Error(
+          `extension '${unit.name}' declares a retention that names ${retained.table === undefined ? "neither a table nor a kind" : "both a table and a kind"} — name exactly one`,
+        );
+      }
+      if (retained.table === "" || retained.reason.trim() === "") {
+        throw new Error(
+          `extension '${unit.name}' declares a retention with no ${retained.table === "" ? "table" : "reason"} — every kept row says what it is and why`,
+        );
+      }
+      purgeRetains.push({ unit: unit.name, retained });
+    }
   }
 
   return {
@@ -910,5 +955,6 @@ export function resolveExtensions(
     workers,
     onComposed,
     start,
+    orgPurge: { stages: purgeStages, retains: purgeRetains },
   };
 }

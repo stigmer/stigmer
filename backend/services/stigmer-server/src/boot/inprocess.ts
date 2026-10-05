@@ -72,6 +72,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { ExecutionStatusWriter } from "../temporal/agentexecution/activities.js";
 import type { ScheduleExecutionCreator } from "../temporal/schedule/run-starter.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
+import type { SharedChainInterceptors } from "../pipeline/chain.js";
 import {
   createInProcessCallerInterceptor,
   encodeInProcessCaller,
@@ -187,6 +188,7 @@ export interface InProcessWiring {
 export function createInProcessClients(
   routes: (router: ConnectRouter) => void,
   logger: Logger,
+  shared: SharedChainInterceptors = {},
 ): InProcessWiring {
   // Position 1 of this chain is the in-process identity stamper, NOT the
   // serving chassis: every call through this transport
@@ -198,6 +200,8 @@ export function createInProcessClients(
       interceptors: buildInterceptorChain(
         logger,
         createInProcessCallerInterceptor(),
+        undefined,
+        shared,
       ),
     },
   });

@@ -81,9 +81,11 @@ export const SCHEMA_VERSION_12 = 12;
 export const SCHEMA_VERSION_13 = 13;
 /** v14: sessions name their agent directly; the agent instance rows removed. */
 export const SCHEMA_VERSION_14 = 14;
+/** v15: the organization deletion table (DDL only). */
+export const SCHEMA_VERSION_15 = 15;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_14;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_15;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -122,6 +124,7 @@ export function runMigrations(
     [SCHEMA_VERSION_12, migrateToV12],
     [SCHEMA_VERSION_13, migrateToV13],
     [SCHEMA_VERSION_14, migrateToV14],
+    [SCHEMA_VERSION_15, migrateToV15],
   ];
 
   for (const [version, migrate] of chain) {
@@ -719,4 +722,25 @@ function migrateToV14(db: DatabaseSync): void {
       RETIRED_INSTANCE_KIND,
     );
   }
+}
+
+/**
+ * v15: the organizations being deleted, one row each (interface.ts,
+ * OrganizationDeletionStore, says why the state is not on the
+ * organization's row). DDL only: no database before this version holds an
+ * organization being deleted, because a delete removed everything it
+ * removed in its own request.
+ */
+function migrateToV15(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE organization_deletions (
+      org TEXT NOT NULL PRIMARY KEY,
+      phase TEXT NOT NULL,
+      marked_at TEXT NOT NULL,
+      accepted_at TEXT NOT NULL DEFAULT '',
+      heartbeat_at TEXT NOT NULL DEFAULT '',
+      stage TEXT NOT NULL DEFAULT '',
+      last_error TEXT NOT NULL DEFAULT ''
+    ) WITHOUT ROWID;
+  `);
 }

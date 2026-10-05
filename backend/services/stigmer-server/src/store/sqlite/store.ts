@@ -54,6 +54,8 @@ import type {
   ResourceNameRenamed,
   ResourceNameStore,
   PendingOAuthState,
+  OrganizationDeletion,
+  OrganizationDeletionStore,
   PendingOAuthStateStore,
   RawResourceDocument,
   ScheduleRunRecord,
@@ -167,6 +169,7 @@ export class SqliteStore implements Store {
   readonly resourceNames: ResourceNameStore;
   readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
+  readonly organizationDeletions: OrganizationDeletionStore;
 
   private db: DatabaseSync | undefined;
   private readonly dbPath: string;
@@ -188,6 +191,9 @@ export class SqliteStore implements Store {
     this.resourceNames = new SqliteResourceNameStore(() => this.open());
     this.oauthGrants = new SqliteOAuthGrantStore(() => this.open());
     this.pendingOAuthStates = new SqlitePendingOAuthStateStore(() =>
+      this.open(),
+    );
+    this.organizationDeletions = new SqliteOrganizationDeletionStore(() =>
       this.open(),
     );
   }
@@ -1008,6 +1014,13 @@ export class SqliteStore implements Store {
     return row.max_seq;
   }
 
+  async deleteWorkflowExecutionEvents(executionId: string): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM workflow_execution_events WHERE execution_id = ?`)
+      .run(executionId);
+    return Number(result.changes);
+  }
+
   // ---------------------------------------------------------------------------
   // Schedule runs (fire ledger)
   // ---------------------------------------------------------------------------
@@ -1462,6 +1475,13 @@ class SqliteSignalDedupeStore implements SignalDedupeStore {
     db.prepare(
       `DELETE FROM signal_dedupe WHERE id = ? AND status = 'CLAIMED'`,
     ).run(id);
+  }
+
+  async deleteByOrg(org: string): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM signal_dedupe WHERE org = ?`)
+      .run(org);
+    return Number(result.changes);
   }
 
   private loadRecord(
@@ -1963,6 +1983,13 @@ class SqliteOAuthGrantStore implements OAuthGrantStore {
       .run(resourceId, orgId);
     return Number(result.changes);
   }
+
+  async deleteByOrg(orgId: string): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM oauth_grant WHERE org_id = ?`)
+      .run(orgId);
+    return Number(result.changes);
+  }
 }
 
 // =============================================================================
@@ -2080,4 +2107,129 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
       .run(cutoff);
     return Number(result.changes);
   }
+
+  async deleteByOrg(org: string): Promise<number> {
+    const result = this.open()
+      .prepare(`DELETE FROM pending_oauth_state WHERE org = ?`)
+      .run(org);
+    return Number(result.changes);
+  }
+}
+
+// =============================================================================
+// Organization deletions (interface.ts, OrganizationDeletionStore)
+// =============================================================================
+
+const ORGANIZATION_DELETION_COLUMNS =
+  "org, phase, marked_at, accepted_at, heartbeat_at, stage, last_error";
+
+interface OrganizationDeletionRow {
+  org: string;
+  phase: string;
+  marked_at: string;
+  accepted_at: string;
+  heartbeat_at: string;
+  stage: string;
+  last_error: string;
+}
+
+class SqliteOrganizationDeletionStore implements OrganizationDeletionStore {
+  constructor(private readonly open: () => DatabaseSync) {}
+
+  async mark(org: string, now: string): Promise<boolean> {
+    const result = this.open()
+      .prepare(
+        `INSERT OR IGNORE INTO organization_deletions (org, phase, marked_at)
+         VALUES (?, 'pending', ?)`,
+      )
+      .run(org, now);
+    return Number(result.changes) === 1;
+  }
+
+  async accept(org: string, now: string): Promise<boolean> {
+    const result = this.open()
+      .prepare(
+        `UPDATE organization_deletions SET phase = 'accepted', accepted_at = ?
+         WHERE org = ? AND phase = 'pending'`,
+      )
+      .run(now, org);
+    return Number(result.changes) === 1;
+  }
+
+  async unmark(org: string): Promise<boolean> {
+    const result = this.open()
+      .prepare(
+        `DELETE FROM organization_deletions WHERE org = ? AND phase = 'pending'`,
+      )
+      .run(org);
+    return Number(result.changes) === 1;
+  }
+
+  async isDeleting(org: string): Promise<boolean> {
+    const row = this.open()
+      .prepare(`SELECT 1 AS present FROM organization_deletions WHERE org = ?`)
+      .get(org);
+    return row !== undefined;
+  }
+
+  async get(org: string): Promise<OrganizationDeletion | undefined> {
+    const row = this.open()
+      .prepare(
+        `SELECT ${ORGANIZATION_DELETION_COLUMNS} FROM organization_deletions WHERE org = ?`,
+      )
+      .get(org) as OrganizationDeletionRow | undefined;
+    return row === undefined ? undefined : organizationDeletionOf(row);
+  }
+
+  async list(): Promise<OrganizationDeletion[]> {
+    const rows = this.open()
+      .prepare(
+        `SELECT ${ORGANIZATION_DELETION_COLUMNS} FROM organization_deletions ORDER BY org`,
+      )
+      .all() as unknown as OrganizationDeletionRow[];
+    return rows.map(organizationDeletionOf);
+  }
+
+  async heartbeat(org: string, stage: string, now: string): Promise<void> {
+    this.open()
+      .prepare(
+        `UPDATE organization_deletions SET heartbeat_at = ?, stage = ?, last_error = ''
+         WHERE org = ? AND phase = 'accepted'`,
+      )
+      .run(now, stage, org);
+  }
+
+  async recordError(
+    org: string,
+    stage: string,
+    message: string,
+    now: string,
+  ): Promise<void> {
+    this.open()
+      .prepare(
+        `UPDATE organization_deletions SET heartbeat_at = ?, stage = ?, last_error = ?
+         WHERE org = ? AND phase = 'accepted'`,
+      )
+      .run(now, stage, message, org);
+  }
+
+  async release(org: string): Promise<void> {
+    this.open()
+      .prepare(`DELETE FROM organization_deletions WHERE org = ?`)
+      .run(org);
+  }
+}
+
+function organizationDeletionOf(
+  row: OrganizationDeletionRow,
+): OrganizationDeletion {
+  return {
+    org: row.org,
+    phase: row.phase === "accepted" ? "accepted" : "pending",
+    markedAt: row.marked_at,
+    acceptedAt: row.accepted_at,
+    heartbeatAt: row.heartbeat_at,
+    stage: row.stage,
+    lastError: row.last_error,
+  };
 }

@@ -87,6 +87,14 @@ class OrganizationCommandControllerServicer(object):
         - ORGANIZATION_PARENT_IS_CHILD — child organizations are one level
         deep. Metadata: parent_org.
 
+        A parent being deleted does not exist: naming it answers NOT_FOUND. A
+        create that races its parent's delete, and loses, is refused with
+        FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+        "stigmer.ai"); the child it had stored is deleted with its parent:
+
+        - ORGANIZATION_PARENT_DELETING — the parent organization is being
+        deleted. Metadata: parent_org.
+
         On Stigmer Cloud, creating a child organization is a plan feature of its
         parent. A parent whose plan lacks it is refused with
         FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
@@ -134,9 +142,21 @@ class OrganizationCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """Delete an organization. Its slug is released once the organization is
-        gone: a later organization may take it, and sees nothing the deleted one
-        owned, because every resource names its organization by id.
+        """Delete an organization, and everything it owned.
+
+        The delete answers the organization as it stood. From that answer on,
+        the organization does not exist: every request that names it, or one
+        of its resources, answers NOT_FOUND, a second delete included, and
+        nothing new can start inside it. A purge then removes, in the
+        background, everything the organization owned: its agents, sessions,
+        workflows, runs and their files, skills, MCP servers, plugins,
+        environments and their secrets, sandboxes, channels and their
+        conversations, and every permission naming it or its resources. Its
+        slug stays held until the purge finishes, then is released: a later
+        organization may take it, and sees nothing the deleted one owned. An
+        edition may keep some records on purpose and says which (Stigmer Cloud
+        keeps financial records and the permission history). There is no
+        restore.
 
         A server that holds one organization (GetServerInfoOutput.single_org's
         composition) refuses to delete it with FAILED_PRECONDITION carrying a
@@ -146,12 +166,15 @@ class OrganizationCommandControllerServicer(object):
         - ORGANIZATION_IS_SINGLE — the server's only organization cannot be
         deleted. Metadata: org.
 
-        An organization that still has child organizations is refused with
-        FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
-        "stigmer.ai"), before anything is written:
+        An organization with a child organization that is not being deleted is
+        refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"), with the organization in place:
 
         - ORGANIZATION_HAS_CHILDREN — delete its child organizations first.
         Metadata: org.
+
+        A parent whose children are all being deleted may be deleted; its purge
+        finishes after theirs.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

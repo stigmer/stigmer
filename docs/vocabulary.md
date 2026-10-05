@@ -594,6 +594,22 @@ together; nothing outside it sees them.
 
 ---
 
+#### Purge
+
+The background removal of everything a deleted Organization owned, after its
+delete has answered.
+
+- **User-facing words**: say "deleting" while it runs and "deleted" once it is
+  done ("Acme is being deleted"). "Purge" is the operator's and the developer's
+  word, for docs that explain what happens behind a delete.
+- **What it is**: deleting an Organization answers at once, and from then on the
+  Organization answers "not found" to everyone. The purge stops what is still
+  running, removes every resource the Organization owned, destroys its keys
+  where the edition keeps keys per Organization, and frees its slug last.
+- **What it is not**: a restore window. Nothing a purge removes comes back.
+
+---
+
 #### "Platform" (the word)
 
 "Platform" has meant several things in the API and docs. Use it for one of them

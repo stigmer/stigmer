@@ -1,28 +1,33 @@
 /**
- * Pins the organization delete's order through a composed server in the
- * trusted-local posture: everything that grants on the organization goes
- * before its row, a fault stops the delete with the organization in place,
- * and the organization's names are released once its row is gone. Every
- * row names the organization by its minted id, which no later organization
- * carries, so nothing a deleted organization left behind passes to a later
- * holder of its slug.
+ * Pins the organization delete through a composed server in the
+ * trusted-local posture: the delete marks the organization and revokes
+ * everything that grants on it, and answers; the purge then removes its row
+ * and, last, its names. Every row names the organization by its minted id,
+ * which no later organization carries, so nothing a deleted organization
+ * left behind passes to a later holder of its slug.
  *
  *   - the `org-delete:pre-delete` slot runs with the organization loaded
  *     and still stored, and its rows still in place;
+ *   - from the answer on, the organization answers not-found, a second
+ *     delete included, while its row and its name are still held: the slug
+ *     cannot be taken until the purge finishes, and then it can;
  *   - a slot step's refusal answers its own code and copy, and leaves the
- *     organization, its rows and its name;
- *   - the organization's policy rows are revoked before its row, as
+ *     organization, its rows and its name, unmarked;
+ *   - the organization's policy rows are revoked before the answer, as
  *     principal and as resource: a revocation fault answers Internal with
- *     fixed copy, leaves the organization and its owner row, and a retry
- *     completes the delete;
- *   - a fault releasing the names after the row is gone is logged and the
- *     delete succeeds; the name then leads to no organization;
- *   - a create of a deleted organization's slug makes a new organization,
- *     which no row of the old one names.
+ *     fixed copy, leaves the organization and its owner row, unmarked, and
+ *     a retry completes the delete;
+ *   - a fault releasing the names in the purge is logged and the purge
+ *     finishes; the name then leads to no organization;
+ *   - a create of a deleted organization's slug once the purge finished
+ *     makes a new organization, which no row of the old one names.
  *
  * The policy store is the library's in-memory double, composed as the
  * IamPolicy store driver so a test can make one row's delete fault; the
- * grant path, the role lifecycle and the chain are the library's own.
+ * grant path, the role lifecycle, the chain and the purge are the
+ * library's own. The test unit's purge stage holds an organization the
+ * test names until it lets go, so the arms can look between the delete's
+ * answer and the purge's end.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -53,6 +58,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import type { GateSlotName } from "../../../extensions/gate-slots.js";
+import type { OrganizationPurgeStage } from "../../../extensions/organization-purge.js";
 import type { ServerExtension } from "../../../extensions/registry.js";
 import type { PipelineStep } from "../../../pipeline/pipeline.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
@@ -116,12 +122,21 @@ describe("organization delete (composed server, trusted-local posture)", () => {
       }
     },
   };
+  /** Organizations the purge holds, between the delete's answer and the purge's end. */
+  const held = new Set<string>();
+  const holdStage: OrganizationPurgeStage = {
+    name: "test-hold",
+    async run(context) {
+      return held.has(context.org.id) ? { more: true, wait: true } : { more: false };
+    },
+  };
   const unit: ServerExtension = {
     name: "fake-org-delete",
     gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
       ["org-delete:pre-delete", [slotStep]],
     ]),
     drivers: { iamPolicyStore: faultablePolicies },
+    orgPurge: { stages: [holdStage] },
   };
 
   let dir: string;
@@ -163,6 +178,15 @@ describe("organization delete (composed server, trusted-local posture)", () => {
       }),
     );
     return id;
+  }
+
+  /** Lets the purge of `id` finish, and runs a pass until it has. */
+  async function purged(id: string): Promise<void> {
+    held.delete(id);
+    await vi.waitFor(async () => {
+      await server.organizationPurge.runPass();
+      expect(await server.store.organizationDeletions.isDeleting(id)).toBe(false);
+    });
   }
 
   const nameOf = (slug: string) =>
@@ -208,19 +232,52 @@ describe("organization delete (composed server, trusted-local posture)", () => {
     faultingDelete = undefined;
   });
 
-  it("runs the slot with the organization and its rows in place, then removes every row naming it", async () => {
+  it("runs the slot with the organization and its rows in place, revokes every row naming it, and answers", async () => {
     const id = await organizationWithRows("delete-clean");
     expect(rowsNaming(id)).toHaveLength(3);
+    held.add(id);
 
     await organizations.delete({ value: "delete-clean" });
 
     expect(seenBySlot.get(id)).toEqual({ loaded: id, rowsNaming: 3 });
     expect(rowsNaming(id)).toEqual([]);
-    expect(await nameOf("delete-clean")).toBeUndefined();
     const gone = await grpcError(() =>
       organizationQuery.get({ value: "delete-clean" }),
     );
     expect(gone.code).toBe(Code.NotFound);
+    expect(gone.rawMessage).toBe(`Organization not found: ${id}`);
+    const again = await grpcError(() =>
+      organizations.delete({ value: "delete-clean" }),
+    );
+    expect(again.code, "a second delete").toBe(Code.NotFound);
+
+    await purged(id);
+    expect(await nameOf("delete-clean")).toBeUndefined();
+  });
+
+  it("holds the slug while the purge runs and frees it when the purge finishes", async () => {
+    const id = await organizationWithRows("delete-held");
+    held.add(id);
+    await organizations.delete({ value: "delete-held" });
+
+    expect((await nameOf("delete-held"))?.id).toBe(id);
+    const taken = await grpcError(() =>
+      organizations.create({
+        apiVersion: "tenancy.stigmer.ai/v1",
+        kind: "Organization",
+        metadata: { name: "delete-held", slug: "delete-held", org: "" },
+      }),
+    );
+    expect(taken.code).toBe(Code.AlreadyExists);
+
+    await purged(id);
+    expect(await nameOf("delete-held")).toBeUndefined();
+    const reborn = await organizations.create({
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: { name: "delete-held", slug: "delete-held", org: "" },
+    });
+    expect(reborn.metadata?.id).not.toBe(id);
   });
 
   it("a slot step's refusal answers its own copy and leaves the organization, its rows and its name", async () => {
@@ -239,15 +296,18 @@ describe("organization delete (composed server, trusted-local posture)", () => {
     ).toBe(id);
     expect(rowsNaming(id)).toHaveLength(3);
     expect((await nameOf(REFUSED_SLUG))?.id).toBe(id);
+    expect(await server.store.organizationDeletions.isDeleting(id)).toBe(false);
   });
 
-  it("a fault releasing the names after the row is gone is logged, and the delete succeeds", async () => {
+  it("a fault releasing the names in the purge is logged, and the purge finishes", async () => {
     const id = await organizationWithRows("delete-release-faults");
+    held.add(id);
+    await organizations.delete({ value: "delete-release-faults" });
     const release = vi
       .spyOn(server.store.resourceNames, "release")
       .mockRejectedValueOnce(new Error("name table unavailable"));
     try {
-      await organizations.delete({ value: "delete-release-faults" });
+      await purged(id);
     } finally {
       release.mockRestore();
     }
@@ -279,6 +339,7 @@ describe("organization delete (composed server, trusted-local posture)", () => {
     expect(
       (await organizationQuery.get({ value: "delete-faults" })).metadata?.id,
     ).toBe(id);
+    expect(await server.store.organizationDeletions.isDeleting(id)).toBe(false);
     // The agent's scope link went first; the revocation stopped at the
     // member row, before the owner row the retry needs.
     expect(
@@ -290,11 +351,13 @@ describe("organization delete (composed server, trusted-local posture)", () => {
     faultingDelete = undefined;
     await organizations.delete({ value: "delete-faults" });
     expect(rowsNaming(id)).toEqual([]);
+    await purged(id);
   });
 
   it("a create of a deleted organization's slug makes a new organization that no old row names", async () => {
     const before = await organizationWithRows("delete-reborn");
     await organizations.delete({ value: "delete-reborn" });
+    await purged(before);
 
     const reborn = await organizations.create({
       apiVersion: "tenancy.stigmer.ai/v1",
