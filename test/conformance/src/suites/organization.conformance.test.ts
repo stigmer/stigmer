@@ -4,7 +4,8 @@
 // Drives OrganizationCommandController + OrganizationQueryController through the
 // raw proto stubs. Covers CRUD round-trips, list pagination, and the
 // capability-gated RPCs that differ between local OSS and cloud
-// (findMyOrganizations filtering, getByExternalOrgId availability). An
+// (findMyOrganizations filtering). Child organizations are
+// child-organizations.conformance.test.ts's. An
 // organization's permanent id, its renamable slug and what a later holder of
 // a released slug can reach are organization-identity.conformance.test.ts's.
 import { Code } from "@connectrpc/connect";
@@ -193,37 +194,6 @@ describe("Organization conformance", () => {
       () => outsider.organizationQuery.get({ value: id }),
       Code.PermissionDenied,
       "outsider get on a foreign org",
-    );
-  });
-
-  it.skipIf(capabilities.externalOrgLookup)("[rpc:OrganizationQueryController.getByExternalOrgId] getByExternalOrgId is unavailable locally (Unimplemented)", async () => {
-    await expectGrpcCode(
-      () =>
-        clients.organizationQuery.getByExternalOrgId({
-          externalOrgId: "ext-123",
-          identityProviderRef: { org: "acme", slug: "idp-test" },
-        }),
-      Code.Unimplemented,
-      "getByExternalOrgId",
-    );
-  });
-
-  it.skipIf(!capabilities.externalOrgLookup)("getByExternalOrgId answers NotFound for an unknown identity provider when implemented", async () => {
-    const { org } = await target.provisionTenancy();
-
-    // Minimum-viable contract for the implemented RPC: the lookup pipeline is
-    // reachable (not Unimplemented) and an unknown IdentityProvider reference
-    // is NotFound. The IdP-backed happy path (platform-managed org resolved by
-    // real external coordinates) needs full IdentityProvider provisioning and
-    // is deferred with the rest of the federation surface.
-    await expectGrpcCode(
-      () =>
-        clients.organizationQuery.getByExternalOrgId({
-          externalOrgId: "ext-123",
-          identityProviderRef: { org, slug: "idp-does-not-exist" },
-        }),
-      Code.NotFound,
-      "getByExternalOrgId with unknown identity provider",
     );
   });
 

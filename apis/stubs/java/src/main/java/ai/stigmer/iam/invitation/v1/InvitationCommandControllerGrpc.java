@@ -182,7 +182,8 @@ public final class InvitationCommandControllerGrpc {
      * constructed as: https://&lt;host&gt;/invite/&lt;token&gt;
      * The specified role must be in the organization's grantable_roles, and
      * only an owner of the organization may create an invitation for owner.
-     * Platform-managed organizations cannot create invitations.
+     * A parent organization's admins may invite people into its child
+     * organizations.
      * </pre>
      */
     default void create(ai.stigmer.iam.invitation.v1.Invitation request,
@@ -266,7 +267,8 @@ public final class InvitationCommandControllerGrpc {
      * constructed as: https://&lt;host&gt;/invite/&lt;token&gt;
      * The specified role must be in the organization's grantable_roles, and
      * only an owner of the organization may create an invitation for owner.
-     * Platform-managed organizations cannot create invitations.
+     * A parent organization's admins may invite people into its child
+     * organizations.
      * </pre>
      */
     public void create(ai.stigmer.iam.invitation.v1.Invitation request,
@@ -339,7 +341,8 @@ public final class InvitationCommandControllerGrpc {
      * constructed as: https://&lt;host&gt;/invite/&lt;token&gt;
      * The specified role must be in the organization's grantable_roles, and
      * only an owner of the organization may create an invitation for owner.
-     * Platform-managed organizations cannot create invitations.
+     * A parent organization's admins may invite people into its child
+     * organizations.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitation create(ai.stigmer.iam.invitation.v1.Invitation request) throws io.grpc.StatusException {
@@ -409,7 +412,8 @@ public final class InvitationCommandControllerGrpc {
      * constructed as: https://&lt;host&gt;/invite/&lt;token&gt;
      * The specified role must be in the organization's grantable_roles, and
      * only an owner of the organization may create an invitation for owner.
-     * Platform-managed organizations cannot create invitations.
+     * A parent organization's admins may invite people into its child
+     * organizations.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitation create(ai.stigmer.iam.invitation.v1.Invitation request) {
@@ -479,7 +483,8 @@ public final class InvitationCommandControllerGrpc {
      * constructed as: https://&lt;host&gt;/invite/&lt;token&gt;
      * The specified role must be in the organization's grantable_roles, and
      * only an owner of the organization may create an invitation for owner.
-     * Platform-managed organizations cannot create invitations.
+     * A parent organization's admins may invite people into its child
+     * organizations.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.invitation.v1.Invitation> create(

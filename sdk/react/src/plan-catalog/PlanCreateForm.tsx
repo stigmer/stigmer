@@ -17,7 +17,7 @@ const PLAN_FEATURES: readonly NamedFeature[] = [
   Feature.channels,
   Feature.sharing,
   Feature.teams,
-  Feature.managed_organizations,
+  Feature.child_orgs,
   Feature.byo_provider_keys,
   Feature.sso_enforcement,
 ];
@@ -32,7 +32,7 @@ export interface PlanCreateFormProps {
 
 /**
  * Adds a subscription plan to the catalog: its name and handle, its
- * monthly minimum and usage share, its features, and the managed
+ * monthly minimum and usage share, its features, and the child
  * organizations it includes. The form states before submitting that a
  * plan's terms are final: a change of terms is a new plan, and the old
  * one is retired.
@@ -119,16 +119,16 @@ export function PlanCreateForm({ onCreated, onCancel }: PlanCreateFormProps) {
         ))}
       </fieldset>
 
-      {draft.features.includes(Feature.managed_organizations) && (
+      {draft.features.includes(Feature.child_orgs) && (
         <div className="stg:grid stg:gap-3 stg:sm:grid-cols-2">
-          <Field label="Managed organizations included (empty: unlimited)">
+          <Field label="Child organizations included (empty: unlimited)">
             <input
               className={INPUT_CLASSES}
               inputMode="numeric"
-              value={draft.includedManagedOrganizations}
-              onChange={(e) => set("includedManagedOrganizations", e.target.value)}
+              value={draft.includedChildOrgs}
+              onChange={(e) => set("includedChildOrgs", e.target.value)}
             />
-            {fieldError("includedManagedOrganizations")}
+            {fieldError("includedChildOrgs")}
           </Field>
           <Field label="Each one beyond (USD/month)">
             <input

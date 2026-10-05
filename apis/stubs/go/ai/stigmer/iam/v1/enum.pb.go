@@ -139,6 +139,13 @@ const (
 	// without a purchase: BillingCommandController.adjustCredits and
 	// grantCredits, checked on the static platform target.
 	IamPermission_can_manage_credits IamPermission = 46
+	// Organization-level permission to create, find and list the
+	// organization's child organizations: OrganizationCommandController.create
+	// with spec.parent_org naming it, getByExternalId and listChildOrgs.
+	IamPermission_can_manage_child_orgs IamPermission = 49
+	// Organization-level permission to read the organization itself (its
+	// name, slug, description and preferences): OrganizationQueryController.get.
+	IamPermission_can_view_settings IamPermission = 50
 )
 
 // Enum value maps for IamPermission.
@@ -182,6 +189,8 @@ var (
 		43: "can_create_mcp_server",
 		45: "can_create_team",
 		46: "can_manage_credits",
+		49: "can_manage_child_orgs",
+		50: "can_view_settings",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                 0,
@@ -222,6 +231,8 @@ var (
 		"can_create_mcp_server":       43,
 		"can_create_team":             45,
 		"can_manage_credits":          46,
+		"can_manage_child_orgs":       49,
+		"can_view_settings":           50,
 	}
 )
 
@@ -338,7 +349,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xb8\t\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xea\t\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -378,7 +389,9 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x11can_issue_license\x10*\x12\x19\n" +
 	"\x15can_create_mcp_server\x10+\x12\x13\n" +
 	"\x0fcan_create_team\x10-\x12\x16\n" +
-	"\x12can_manage_credits\x10.\"\x04\b\x0e\x10\x0e\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\x12can_manage_credits\x10.\x12\x19\n" +
+	"\x15can_manage_child_orgs\x101\x12\x15\n" +
+	"\x11can_view_settings\x102\"\x04\b\x0e\x10\x0e\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
 	"\"\x04\b'\x10'\"\x04\b,\x10,*\x13can_create_instance*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x19can_create_agent_instance*n\n" +
 	"\aIamRole\x12\x18\n" +

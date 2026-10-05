@@ -55,23 +55,23 @@ describe("supportsVisibility", () => {
     }
   });
 
-  it("a blueprint kind holds org and platform", () => {
+  it("a blueprint kind holds org and child_orgs", () => {
     expect(supportsVisibility(ApiResourceKind.agent, V.visibility_org)).toBe(
       true,
     );
     expect(
-      supportsVisibility(ApiResourceKind.agent, V.visibility_platform),
+      supportsVisibility(ApiResourceKind.agent, V.visibility_child_orgs),
     ).toBe(true);
   });
 
-  it("an instance kind holds org but never platform (tenant isolation)", () => {
+  it("an instance kind holds org but never child_orgs (tenant isolation)", () => {
     expect(
       supportsVisibility(ApiResourceKind.workflow_instance, V.visibility_org),
     ).toBe(true);
     expect(
       supportsVisibility(
         ApiResourceKind.workflow_instance,
-        V.visibility_platform,
+        V.visibility_child_orgs,
       ),
     ).toBe(false);
   });
@@ -81,7 +81,7 @@ describe("supportsVisibility", () => {
       supportsVisibility(ApiResourceKind.environment, V.visibility_org),
     ).toBe(true);
     expect(
-      supportsVisibility(ApiResourceKind.environment, V.visibility_platform),
+      supportsVisibility(ApiResourceKind.environment, V.visibility_child_orgs),
     ).toBe(false);
   });
 
@@ -90,7 +90,7 @@ describe("supportsVisibility", () => {
       false,
     );
     expect(
-      supportsVisibility(ApiResourceKind.session, V.visibility_platform),
+      supportsVisibility(ApiResourceKind.session, V.visibility_child_orgs),
     ).toBe(false);
   });
 });
@@ -98,7 +98,7 @@ describe("supportsVisibility", () => {
 describe("supportedVisibilityLevels (the copy fragment)", () => {
   it("names the levels that remain, private first, never the retired one", () => {
     expect(supportedVisibilityLevels(ApiResourceKind.agent)).toBe(
-      "visibility_private, visibility_org, visibility_platform",
+      "visibility_private, visibility_org, visibility_child_orgs",
     );
     expect(supportedVisibilityLevels(ApiResourceKind.workflow_instance)).toBe(
       "visibility_private, visibility_org",

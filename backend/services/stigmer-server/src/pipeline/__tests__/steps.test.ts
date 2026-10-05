@@ -575,7 +575,7 @@ describe("ValidateProto", () => {
 describe("ValidateVisibility", () => {
   it("rejects an unsupported level with the cloud-identical copy", async () => {
     const input = org();
-    input.metadata!.visibility = ApiResourceVisibility.visibility_platform;
+    input.metadata!.visibility = ApiResourceVisibility.visibility_child_orgs;
     const ctx = orgCtx(input);
     const error = await Promise.resolve()
       .then(() =>
@@ -584,7 +584,7 @@ describe("ValidateVisibility", () => {
       .catch((e: unknown) => e);
     expect((error as ConnectError).code).toBe(Code.InvalidArgument);
     expect((error as ConnectError).rawMessage).toContain(
-      "organization resources cannot be set to visibility_platform",
+      "organization resources cannot be set to visibility_child_orgs",
     );
     expect((error as ConnectError).rawMessage).toContain(
       "Supported visibility levels:",

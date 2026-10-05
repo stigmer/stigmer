@@ -36,6 +36,7 @@ import type { Transport } from "@connectrpc/connect";
 
 import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { Authorizer } from "./authorizer.js";
+import type { ChildOrganizations } from "./child-organizations.js";
 import type { CredentialBinding } from "./credential-binding.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
@@ -52,6 +53,12 @@ export interface ComposedServices {
    * above are already bound with it.
    */
   readonly credentialBinding: CredentialBinding;
+  /**
+   * The child-organization lookups (extensions/child-organizations.ts):
+   * for a unit's sign-in routing and billing roll-up, which read a
+   * parent's children without asking the Authorizer.
+   */
+  readonly childOrganizations: ChildOrganizations;
   /**
    * "Is this policy effectively held": the registered engine's `check`, or
    * under open source's own authorization the evaluator's

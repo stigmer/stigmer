@@ -9,14 +9,21 @@
  * on open source (stigmer#1495).
  *
  * The gate itself is PermissionGate's to test; here it is stubbed to record
- * the relation it was asked for and render its fallback, so the assertion is
- * about which question the control asks, per kind, and nothing else.
+ * the relation it was asked for and render both its fallback and its
+ * children, so the assertions are about which question the control asks,
+ * per kind, and which levels it offers.
+ *
+ * It also pins the gate on the child-organizations level: offered for a
+ * blueprint only when the server holds more than one organization and the
+ * owning organization is not itself a child.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ResourceVisibilityControl } from "../ResourceVisibilityControl";
+import type { VisibilityLevelOption } from "../visibilityLevels";
 import type { VisibilityResourceKind } from "../useUpdateVisibility";
 
 vi.mock("../../iam-policy/PermissionGate", () => ({
@@ -24,6 +31,7 @@ vi.mock("../../iam-policy/PermissionGate", () => ({
     relation,
     resource,
     fallback,
+    children,
   }: {
     relation: string;
     resource: { kind: string; id: string };
@@ -32,20 +40,56 @@ vi.mock("../../iam-policy/PermissionGate", () => ({
   }) => (
     <div data-testid="gate" data-relation={relation} data-kind={resource.kind}>
       {fallback}
+      {children}
     </div>
   ),
 }));
+
+vi.mock("../VisibilitySelector", () => ({
+  VisibilityBadge: () => <span data-testid="badge" />,
+  VisibilitySelector: ({
+    options,
+  }: {
+    options: readonly VisibilityLevelOption[];
+  }) => (
+    <ul data-testid="levels">
+      {options.map((option) => (
+        <li key={option.value}>{option.label}</li>
+      ))}
+    </ul>
+  ),
+}));
+
+const state: {
+  singleOrg: boolean | undefined;
+  owner: Organization | null;
+  ownerLookups: Array<string | null>;
+} = { singleOrg: false, owner: null, ownerLookups: [] };
+
+vi.mock("../../server-info", () => ({
+  useSingleOrg: () => state.singleOrg,
+}));
+
+vi.mock("../../organization/useOrganization", () => ({
+  useOrganization: (id: string | null) => {
+    state.ownerLookups.push(id);
+    return { organization: id === null ? null : state.owner };
+  },
+}));
+
+function organization(parentOrg: string): Organization {
+  return { spec: { parentOrg } } as unknown as Organization;
+}
 
 vi.mock("../useUpdateVisibility", () => ({
   useUpdateVisibility: () => ({ updateVisibility: vi.fn(), isPending: false }),
 }));
 
-vi.mock("../../identity-provider/useSsoProvider", () => ({
-  useSsoProvider: () => ({ ssoProvider: null }),
-}));
-
 afterEach(() => {
   cleanup();
+  state.singleOrg = false;
+  state.owner = null;
+  state.ownerLookups = [];
 });
 
 const KINDS: ReadonlyArray<[VisibilityResourceKind, string]> = [
@@ -74,4 +118,49 @@ describe("ResourceVisibilityControl", () => {
       expect(gate.getAttribute("data-kind")).toBe(fgaKind);
     },
   );
+});
+
+describe("ResourceVisibilityControl's child-organizations level", () => {
+  function offered(kind: VisibilityResourceKind = "agent"): string[] {
+    render(
+      <ResourceVisibilityControl
+        kind={kind}
+        resourceId="res_1"
+        visibility={ApiResourceVisibility.visibility_org}
+        org="org_parent"
+      />,
+    );
+    return Array.from(
+      screen.getByTestId("levels").querySelectorAll("li"),
+      (item) => item.textContent ?? "",
+    );
+  }
+
+  it("is offered on a blueprint whose organization is not a child, on a server of many organizations", () => {
+    state.owner = organization("");
+    expect(offered()).toEqual(["Private", "Organization", "Child organizations"]);
+    expect(state.ownerLookups).toContain("org_parent");
+  });
+
+  it("is not offered when the owning organization is itself a child", () => {
+    state.owner = organization("org_planton");
+    expect(offered()).toEqual(["Private", "Organization"]);
+  });
+
+  it("is not offered on a single-organization server, which never reads the organization", () => {
+    state.singleOrg = true;
+    state.owner = organization("");
+    expect(offered()).toEqual(["Private", "Organization"]);
+    expect(state.ownerLookups.every((id) => id === null)).toBe(true);
+  });
+
+  it("is not offered while the owning organization is unknown", () => {
+    state.owner = null;
+    expect(offered()).toEqual(["Private", "Organization"]);
+  });
+
+  it("is never offered on an instance", () => {
+    state.owner = organization("");
+    expect(offered("workflowInstance")).toEqual(["Private", "Organization"]);
+  });
 });

@@ -165,13 +165,13 @@ describe("relations and kinds the model does not declare", () => {
     ).rejects.toMatchObject({ reason: "undeclared-target-kind" });
   });
 
-  it("a declared kind reached through a hop with no tuple on it yields nothing — `agent.platform_viewer` walks `identity_provider#platform_user`", async () => {
-    const platform = newInMemoryTupleSource([
+  it("a declared kind reached through a hop with no tuple on it yields nothing — `agent.child_org_viewer` walks `organization#child_org_viewer`, and acme has no child", async () => {
+    const shared = newInMemoryTupleSource([
       tuple("agent:p#organization@organization:acme"),
-      tuple("agent:p#platform_viewer@identity_provider:idp#platform_user"),
+      tuple("agent:p#child_org_viewer@organization:acme#child_org_viewer"),
     ]);
     expect(
-      await allowed(platform, "agent:p", "can_view", person("ida_zed")),
+      await allowed(shared, "agent:p", "can_view", person("ida_zed")),
     ).toBe(false);
   });
 
@@ -214,7 +214,7 @@ describe("the walk itself", () => {
         return inner.tuplesOf(object, relation);
       },
     };
-    // can_view → viewer → this | owner | platform_viewer; owner → this | admin from organization;
+    // can_view → viewer → this | owner | editor | child_org_viewer; owner → this | admin from organization;
     // organization.admin → this | owner; organization.owner → this (root: true).
     expect(
       await allowed(counting, "agent:a", "can_view", person("ida_root")),
@@ -223,8 +223,8 @@ describe("the walk itself", () => {
     expect(asked.length, `each pair asked once: ${asked.join(", ")}`).toBe(
       distinct.size,
     );
-    // The platform_viewer arm sits AFTER owner in the union and is never reached.
-    expect(asked).not.toContain("agent:a#platform_viewer");
+    // The child_org_viewer arm sits AFTER owner in the union and is never reached.
+    expect(asked).not.toContain("agent:a#child_org_viewer");
   });
 
   it("bounds the resolution at OpenFGA's own limit and reports the overrun as a fault", async () => {

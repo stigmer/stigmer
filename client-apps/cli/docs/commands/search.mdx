@@ -2,8 +2,8 @@ Search for resources matching a text query.
 
 `stigmer search` performs a full-text search across resource names,
 descriptions, and tags. Results are sorted by relevance score and cover the
-resources you can read: your organization's, and the platform-visible ones
-shared with it.
+resources you can read: your organization's, and, in a child organization, the
+ones its parent shares with its child organizations.
 
 {/* AUTO_USAGE */}
 
@@ -24,15 +24,15 @@ stigmer search workflows "data" --output json
 
 ### Supported resource types
 
-| Type | Aliases |
-|------|---------|
-| Agent | `agents`, `agent`, `agt` |
+| Type     | Aliases                       |
+| -------- | ----------------------------- |
+| Agent    | `agents`, `agent`, `agt`      |
 | Workflow | `workflows`, `workflow`, `wf` |
 
 ### Pagination
 
-Results are paginated by default (20 per page). Use `--page` and
-`--page-size` to navigate through large result sets:
+Results are paginated by default (20 per page). Use `--page` and `--page-size`
+to navigate through large result sets:
 
 ```bash
 # Page 2 with 50 results per page
@@ -63,11 +63,11 @@ stigmer search agents "deploy" --output json | jq '.[].metadata.name'
 
 ## Related commands
 
-| Command | Description |
-|---------|-------------|
+| Command                  | Description                             |
+| ------------------------ | --------------------------------------- |
 | [`stigmer list`](./list) | List all resources of a type (no query) |
-| [`stigmer get`](./get) | Get a specific resource by reference |
-| [`stigmer run`](./run) | Execute an agent or workflow |
+| [`stigmer get`](./get)   | Get a specific resource by reference    |
+| [`stigmer run`](./run)   | Execute an agent or workflow            |
 
 ## See also
 

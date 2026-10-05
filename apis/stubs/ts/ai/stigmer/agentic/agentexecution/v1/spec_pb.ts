@@ -111,7 +111,9 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * A lane that composes the turn for a surface (a schedule, a workflow
    * step) writes that surface's saved settings here. On a lane where the
    * caller is a visitor (the hosted edition's shared-agent guests and
-   * channel senders), the surface's saved settings replace this field.
+   * channel senders), the surface's saved settings replace this field; the
+   * per-message intents below are the edition's to allow or clear for a
+   * visitor, not replaced with this field.
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18;
    */

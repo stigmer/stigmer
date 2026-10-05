@@ -183,8 +183,8 @@ public interface SearchResultOrBuilder extends
    *
    * - visibility_private: the owner and explicit grants
    * - visibility_org: every member of the owning organization
-   * - visibility_platform: members of the organizations linked by the
-   * owning organization's identity provider
+   * - visibility_child_orgs: everyone in the owning organization's child
+   * organizations
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 8 [json_name = "visibility"];</code>
@@ -197,8 +197,8 @@ public interface SearchResultOrBuilder extends
    *
    * - visibility_private: the owner and explicit grants
    * - visibility_org: every member of the owning organization
-   * - visibility_platform: members of the organizations linked by the
-   * owning organization's identity provider
+   * - visibility_child_orgs: everyone in the owning organization's child
+   * organizations
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 8 [json_name = "visibility"];</code>

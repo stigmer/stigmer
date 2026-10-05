@@ -7,17 +7,14 @@
  * Proven by organization.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/organization.test.ts.
  *
- * getByExternalOrgId is implemented ONLY when the composed
- * OrganizationDirectory provides the lookup. It answers
- * only a caller who may view the identity provider the request names,
- * and resolves the external id within that provider alone (see the
- * handler); with no
- * directory the method stays absent from the partial service
- * implementation and ConnectRPC answers Unimplemented (the SDK
- * capability-probes this and must see UNIMPLEMENTED, not NotFound;
- * conformance pins it via externalOrgLookup=false). The directory also
- * carries the other two edition forks: find's enumeration posture and
- * findMyOrganizations' filtering (see organization-directory.ts).
+ * Parent and child organizations are this domain's own (children.ts): the
+ * create validates and claims a child's parent and external id and writes
+ * no owner for it, the update keeps both, the delete refuses a parent
+ * that still has children, and getByExternalId and listChildOrgs are
+ * ordinary annotated lanes on the parent (`can_manage_child_orgs`). The
+ * composed OrganizationDirectory carries the two edition forks: find's
+ * enumeration posture and findMyOrganizations' filtering (see
+ * organization-directory.ts).
  *
  * Every chain opens with Authorize; create and delete run the shared
  * tuple-lifecycle steps (CreateAuthorizationTuples, CleanupIamPolicies)
@@ -40,13 +37,15 @@ import type {
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import {
+  ChildOrgListSchema,
   OrganizationListSchema,
   OrganizationsSchema,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import type {
+  ChildOrgList,
+  ListChildOrgsInput,
   OrganizationExternalLookup,
   OrganizationId,
   OrganizationList,
@@ -62,19 +61,12 @@ import type { OrganizationDirectory } from "../../extensions/organization-direct
 import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
-import {
-  internalError,
-  invalidArgumentError,
-  notFoundError,
-} from "../../pipeline/errors.js";
+import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import {
-  authorizeResolvedResource,
-  newAuthorizeStep,
-} from "../../pipeline/steps/authorize.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
@@ -100,12 +92,27 @@ import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
+import { readListPage } from "../../pipeline/steps/list-page.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import {
+  childOwnerAttribution,
+  decodeOrganization,
+  getChildByExternalId,
+  newClaimExternalIdStep,
+  newLinkChildOrganizationStep,
+  newPreserveChildLinkStep,
+  newRefuseDeletingParentStep,
+  newReleaseExternalIdStep,
+  newValidateChildOrganizationStep,
+  parentOrgOf,
+  releaseExternalIdClaimAfterFailure,
+} from "./children.js";
+import { organizationListIndex } from "./list-index.js";
 import {
   newOrganizationLimitStep,
   newRefuseDeletingSingleOrganizationStep,
@@ -167,26 +174,12 @@ export function registerOrganizationServices(
     rename: (input, ctx) => rename(deps, input, ctx),
     delete: (orgId, ctx) => deleteOrganization(deps, orgId, ctx),
   });
-  // getByExternalOrgId registers ONLY when the composed directory carries
-  // the lookup; otherwise the method stays absent from the
-  // partial implementation and ConnectRPC answers Unimplemented (the
-  // capability-probed pin; see the module header).
-  const externalLookup =
-    deps.organizationDirectory?.lookupExternalOrganization?.bind(
-      deps.organizationDirectory,
-    );
   router.service(OrganizationQueryController, {
     get: (orgId, ctx) => get(deps, orgId, ctx),
     find: (req, ctx) => find(deps, req, ctx),
     findMyOrganizations: (_, ctx) => findMyOrganizations(deps, ctx),
-    ...(externalLookup === undefined
-      ? {}
-      : {
-          getByExternalOrgId: (
-            lookup: OrganizationExternalLookup,
-            ctx: HandlerContext,
-          ) => getByExternalOrgId(deps, externalLookup, lookup, ctx),
-        }),
+    getByExternalId: (lookup, ctx) => getByExternalId(deps, lookup, ctx),
+    listChildOrgs: (input, ctx) => listChildOrgs(deps, input, ctx),
   });
 }
 
@@ -204,15 +197,24 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * The pre-side-effect gate slot splices before Persist, after the last pure
  * step, the session chain's position: every step above it only reads, so a
  * refusal there leaves no organization behind. It is where a unit refuses
- * an organization it does not admit. The composition's organization count
- * runs at the same seat, just before the slot, as this chain's own
- * OrganizationLimit step (limit.ts).
+ * an organization it does not admit. Two of the chain's own rules run at
+ * the same seat, just before the slot: ValidateChildOrganization, for a
+ * create that names a parent (children.ts), and the composition's
+ * organization count, OrganizationLimit (limit.ts).
  *
  * ClaimOrganizationSlug follows the slot, immediately before Persist: the
  * slug is claimed in the name table atomically for the minted id, so of two
- * concurrent creates of one slug exactly one proceeds (names.ts). When the
- * chain fails after the claim and the organization was never stored, the
- * claim is released so a retry can take the slug.
+ * concurrent creates of one slug exactly one proceeds (names.ts). A child's
+ * external id is claimed the same way, right after (ClaimExternalId). When
+ * the chain fails after a claim and the organization was never stored, the
+ * claims are released so a retry can take them.
+ *
+ * A child has no creator owner: the creation event carries NONE
+ * (childOwnerAttribution). LinkChildOrganization hands an edition that
+ * stores tuples the parent and child edges just before Persist, after the
+ * claims: a link that fails stores nothing, and a failure after Persist
+ * leaves a child its parent's admins already manage, so a retry (apply)
+ * converges through the update arm.
  *
  * The post-persist gate slot splices after Persist, before IndexSearch —
  * the verified Java OrganizationCreateHandler ordering (FGA tuple
@@ -249,7 +251,8 @@ async function createOrganization(
     .addStep(newValidateVisibilityStep())
     .addStep(newCheckOrgDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
-    .addStep(newGuardReservedLabelsStep(deps.authorizer));
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newValidateChildOrganizationStep(deps.store, deps.authorizer));
   // The composition's organization count, at the slot's seat and before its
   // steps: the chain's own rule, not a unit's (limit.ts).
   if (deps.orgLimit !== undefined) {
@@ -270,14 +273,17 @@ async function createOrganization(
   }
   builder
     .addStep(newClaimOrganizationSlugStep(deps.store))
+    .addStep(newClaimExternalIdStep(deps.store))
+    .addStep(newLinkChildOrganizationStep(deps.authorizationLifecycle))
     .addStep(newPersistStep(deps.store))
-    // The tuple step runs BEFORE the post-persist slot — the verified
-    // Java order (createAuthorizationTuples → linkManagedOrgToIdentityProvider
-    // → provisionBillingAccount). No-op with no driver composed.
+    // The tuple steps run BEFORE the post-persist slot, so a unit's
+    // post-persist work (a billing account) meets the organization's
+    // authorization in place. No-ops with no driver composed.
     .addStep(
       newCreateAuthorizationTuplesStep(
         deps.authorizationLifecycle,
         deps.logger,
+        childOwnerAttribution,
       ),
     );
   // The post-persist gate slot (see the doc comment above for the
@@ -297,6 +303,7 @@ async function createOrganization(
     await pipeline.execute(reqCtx);
   } catch (error) {
     await releaseSlugClaimAfterFailure(deps.store, deps.logger, reqCtx);
+    await releaseExternalIdClaimAfterFailure(deps.store, deps.logger, reqCtx);
     throw error;
   }
   return reqCtx.newState;
@@ -328,6 +335,7 @@ async function update(
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingOrganizationStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newPreserveChildLinkStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newPersistStep(deps.store))
     .addStep(newSettleOrganizationSlugStep(deps.store, deps.logger))
@@ -431,14 +439,16 @@ async function apply(
  *
  *   0. under a declared limit of 1, RefuseDeletingSingleOrganization: the
  *      store's only organization is never deleted, refused before any
- *      write (limit.ts);
+ *      write (limit.ts); and RefuseDeletingParent: an organization that
+ *      still has children is not deleted (children.ts);
  *   1. the `org-delete:pre-delete` slot, where an edition refuses or
  *      removes the rows it keeps for the organization (empty in OSS);
  *   2. RevokeOrganizationPolicies, every policy row naming the
  *      organization, through the grant path, never caught;
  *   3. the row;
  *   4. RetireOrganizationSlug, every name the organization held released,
- *      best-effort (names.ts says why after the row);
+ *      best-effort (names.ts says why after the row), and a child's
+ *      external id with them (ReleaseExternalId);
  *   5. CleanupIamPolicies, the lifecycle's post-delete event: best-effort
  *      like every delete chain's, it revokes whatever a concurrent write
  *      named the organization with after step 2, and runs a composed
@@ -474,6 +484,7 @@ async function deleteOrganization(
       newRefuseDeletingSingleOrganizationStep<DeleteInput>(deps.store),
     );
   }
+  builder.addStep(newRefuseDeletingParentStep<DeleteInput>(deps.store));
   // The pre-delete gate slot (see the doc comment above). No unit fills it
   // in OSS.
   for (const step of stepsForSlot<DeleteInput>(
@@ -488,6 +499,7 @@ async function deleteOrganization(
     .addStep(
       newRetireOrganizationSlugStep<DeleteInput>(deps.store, deps.logger),
     )
+    .addStep(newReleaseExternalIdStep<DeleteInput>(deps.store, deps.logger))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )
@@ -697,38 +709,29 @@ async function findMyOrganizations(
 }
 
 /**
- * GetByExternalOrgId — registered only with a directory lookup composed.
- * The chain stays controller-owned: Authorize (a no-op for
- * this skip-annotated method) → validate → the directory resolves the
- * named identity provider and the external id within it → `can_view` on
- * that provider → LoadTarget-shaped store read.
- *
- * The contract's check is the provider's, so it runs here, on the id the
- * directory resolved mid-chain (`authorizeResolvedResource`, the pattern
- * for skip lanes the annotation cannot express), and before the answer
- * says whether a mapping exists: a caller who may not view the provider
- * learns nothing about its tenants. Every miss arm (no such provider, no
- * mapping, mapped row gone) answers the same NotFound, so an external
- * caller cannot tell a stale mapping from a missing org.
+ * GetByExternalId — an ordinary annotated lane: Authorize asks
+ * `can_manage_child_orgs` on `parent_org` (the edge resolver has turned a
+ * slug into its id), then the name table answers the child that holds
+ * the external id among that parent's children. Every miss (no claim, a
+ * claim whose child is gone or never stored) is the same NotFound.
  */
-async function getByExternalOrgId(
+async function getByExternalId(
   deps: OrganizationControllerDeps,
-  lookup: NonNullable<OrganizationDirectory["lookupExternalOrganization"]>,
   input: OrganizationExternalLookup,
   ctx: HandlerContext,
 ): Promise<Organization> {
+  type LookupDesc =
+    typeof OrganizationQueryController.method.getByExternalId.input;
   const reqCtx = new RequestContext(
-    OrganizationQueryController.method.getByExternalOrgId.input,
+    OrganizationQueryController.method.getByExternalId.input,
     input,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<
-    typeof OrganizationQueryController.method.getByExternalOrgId.input
-  >("organization-get-by-external-org-id", deps.logger)
+  await newPipeline<LookupDesc>("organization-get-by-external-id", deps.logger)
     .addStep(
       newAuthorizeStep(
-        OrganizationQueryController.method.getByExternalOrgId,
+        OrganizationQueryController.method.getByExternalId,
         deps.authorizer,
       ),
     )
@@ -736,46 +739,53 @@ async function getByExternalOrgId(
     .build()
     .execute(reqCtx);
 
-  if (input.externalOrgId === "") {
-    throw invalidArgumentError("external_org_id is required");
-  }
-  const found = await lookup(
-    {
-      org: input.identityProviderRef?.org ?? "",
-      slug: input.identityProviderRef?.slug ?? "",
-    },
-    input.externalOrgId,
-  );
-  if (found.kind === "no-identity-provider") {
-    throw notFoundError("Organization", input.externalOrgId);
-  }
-  await authorizeResolvedResource(
-    deps.authorizer,
-    reqCtx.callerIdentity,
-    {
-      permission: IamPermission.can_view,
-      resourceKind: ApiResourceKind.identity_provider,
-      resourceId: found.identityProviderId,
-    },
-    EXTERNAL_LOOKUP_DENIED_MESSAGE,
-  );
-  const orgId = found.organizationId;
-  if (orgId === undefined) {
-    throw notFoundError("Organization", input.externalOrgId);
-  }
-  try {
-    return await deps.store.getResource(
-      ApiResourceKind.organization,
-      orgId,
-      OrganizationSchema,
-    );
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      throw notFoundError("Organization", input.externalOrgId);
-    }
-    throw internalError(error, "failed to load organization");
-  }
+  return getChildByExternalId(deps.store, input.parentOrg, input.externalId);
 }
 
-/** The lookup's deny copy: the provider's own `get` annotation's words. */
-const EXTERNAL_LOOKUP_DENIED_MESSAGE = "unauthorized to view identity provider";
+/**
+ * ListChildOrgs — Authorize asks `can_manage_child_orgs` on `org`, then
+ * the organization list index pages the parent's children newest first
+ * (pipeline/steps/list-page.ts). No per-row read scope runs: the parent's
+ * managers manage every child, and hold no `can_view` on any of them, so
+ * the scope would hide them all.
+ */
+async function listChildOrgs(
+  deps: OrganizationControllerDeps,
+  input: ListChildOrgsInput,
+  ctx: HandlerContext,
+): Promise<ChildOrgList> {
+  type ListDesc =
+    typeof OrganizationQueryController.method.listChildOrgs.input;
+  const reqCtx = new RequestContext(
+    OrganizationQueryController.method.listChildOrgs.input,
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<ListDesc>("organization-list-child-orgs", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        OrganizationQueryController.method.listChildOrgs,
+        deps.authorizer,
+      ),
+    )
+    .addStep(newValidateProtoStep())
+    .build()
+    .execute(reqCtx);
+
+  const page = await readListPage({
+    store: deps.store,
+    declaration: organizationListIndex,
+    query: { anyKey: [{ name: "parent_org", value: input.org }] },
+    request: { pageSize: input.pageSize, pageToken: input.pageToken },
+    fingerprint: input.org,
+    decode: decodeOrganization,
+    keep: (child) => parentOrgOf(child) === input.org,
+    scope: (rows) => Promise.resolve(rows),
+    failure: "failed to list child organizations",
+  });
+  return create(ChildOrgListSchema, {
+    entries: page.entries,
+    nextPageToken: page.nextPageToken,
+  });
+}

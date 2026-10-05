@@ -186,7 +186,7 @@ func (x *ListProviderKeysInput) GetOrg() string {
 type ListProviderKeysOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// One row per provider the organization is served on its own or its
-	// integrator's key, in provider order.
+	// parent organization's key, in provider order.
 	Keys          []*ProviderKey `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

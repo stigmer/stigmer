@@ -36,7 +36,7 @@ class ProviderKeyQueryControllerServicer(object):
 
     def list(self, request, context):
         """List the keys that serve the organization, its own and any it inherits
-        from its integrator, without their secrets.
+        from its parent organization, without their secrets.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

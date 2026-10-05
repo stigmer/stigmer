@@ -128,5 +128,5 @@ Visibility controls who can access an API resource.
 | `visibility_private` | Only the owner, explicitly granted principals, and — for blueprint kinds in the cloud edition — org admins can access. |
 | `visibility_public` | Retired. |
 | `visibility_org` | Everyone in the owning organization can access (read) this resource — all org roles including read-only viewers (the role SSO auto-provisioning grants by default). |
-| `visibility_platform` | All members of all organizations managed by the owning org's IdentityProvider can access (read and execute) this resource. |
+| `visibility_child_orgs` | Everyone in every child organization of the owning organization can read and run this resource: the shared catalog an organization offers the organizations under it (spec.parent_org). |
 

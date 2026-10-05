@@ -385,9 +385,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object inheritedFromOrg_ = "";
   /**
    * <pre>
-   * Set when the row is the integrator organization's key, serving this
-   * managed organization because it holds none of its own for the provider.
-   * Such a row is read-only here; it is managed on the integrator.
+   * Set when the row is the parent organization's key, serving this child
+   * organization because it holds none of its own for the provider. Such a
+   * row is read-only here; it is managed on the parent.
    * </pre>
    *
    * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
@@ -408,9 +408,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Set when the row is the integrator organization's key, serving this
-   * managed organization because it holds none of its own for the provider.
-   * Such a row is read-only here; it is managed on the integrator.
+   * Set when the row is the parent organization's key, serving this child
+   * organization because it holds none of its own for the provider. Such a
+   * row is read-only here; it is managed on the parent.
    * </pre>
    *
    * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
@@ -1850,9 +1850,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object inheritedFromOrg_ = "";
     /**
      * <pre>
-     * Set when the row is the integrator organization's key, serving this
-     * managed organization because it holds none of its own for the provider.
-     * Such a row is read-only here; it is managed on the integrator.
+     * Set when the row is the parent organization's key, serving this child
+     * organization because it holds none of its own for the provider. Such a
+     * row is read-only here; it is managed on the parent.
      * </pre>
      *
      * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
@@ -1872,9 +1872,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when the row is the integrator organization's key, serving this
-     * managed organization because it holds none of its own for the provider.
-     * Such a row is read-only here; it is managed on the integrator.
+     * Set when the row is the parent organization's key, serving this child
+     * organization because it holds none of its own for the provider. Such a
+     * row is read-only here; it is managed on the parent.
      * </pre>
      *
      * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
@@ -1895,9 +1895,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when the row is the integrator organization's key, serving this
-     * managed organization because it holds none of its own for the provider.
-     * Such a row is read-only here; it is managed on the integrator.
+     * Set when the row is the parent organization's key, serving this child
+     * organization because it holds none of its own for the provider. Such a
+     * row is read-only here; it is managed on the parent.
      * </pre>
      *
      * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
@@ -1914,9 +1914,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when the row is the integrator organization's key, serving this
-     * managed organization because it holds none of its own for the provider.
-     * Such a row is read-only here; it is managed on the integrator.
+     * Set when the row is the parent organization's key, serving this child
+     * organization because it holds none of its own for the provider. Such a
+     * row is read-only here; it is managed on the parent.
      * </pre>
      *
      * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
@@ -1930,9 +1930,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when the row is the integrator organization's key, serving this
-     * managed organization because it holds none of its own for the provider.
-     * Such a row is read-only here; it is managed on the integrator.
+     * Set when the row is the parent organization's key, serving this child
+     * organization because it holds none of its own for the provider. Such a
+     * row is read-only here; it is managed on the parent.
      * </pre>
      *
      * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>

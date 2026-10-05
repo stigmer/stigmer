@@ -7,8 +7,8 @@ package ai.stigmer.tenancy.organization.v1;
 
 /**
  * <pre>
- * Input for looking up a platform-managed organization by its external platform coordinates.
- * Used by integrating platforms to find the Stigmer organization mapped to their own org.
+ * Input for finding a child organization by the identifier its parent keeps
+ * for it.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup}
@@ -33,7 +33,8 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private OrganizationExternalLookup() {
-    externalOrgId_ = "";
+    externalId_ = "";
+    parentOrg_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -54,86 +55,94 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup.class, ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup.Builder.class);
   }
 
-  private int bitField0_;
-  public static final int IDENTITY_PROVIDER_REF_FIELD_NUMBER = 1;
-  private ai.stigmer.commons.apiresource.ApiResourceReference identityProviderRef_;
-  /**
-   * <pre>
-   * Reference to the IdentityProvider (org + slug) that manages this organization.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-   * @return Whether the identityProviderRef field is set.
-   */
-  @java.lang.Override
-  public boolean hasIdentityProviderRef() {
-    return ((bitField0_ & 0x00000001) != 0);
-  }
-  /**
-   * <pre>
-   * Reference to the IdentityProvider (org + slug) that manages this organization.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-   * @return The identityProviderRef.
-   */
-  @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef() {
-    return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
-  }
-  /**
-   * <pre>
-   * Reference to the IdentityProvider (org + slug) that manages this organization.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder() {
-    return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
-  }
-
-  public static final int EXTERNAL_ORG_ID_FIELD_NUMBER = 2;
+  public static final int EXTERNAL_ID_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object externalOrgId_ = "";
+  private volatile java.lang.Object externalId_ = "";
   /**
    * <pre>
-   * The external platform's organization identifier.
+   * The child's external_id: the parent's own identifier for it.
    * </pre>
    *
-   * <code>string external_org_id = 2 [json_name = "externalOrgId", (.buf.validate.field) = { ... }</code>
-   * @return The externalOrgId.
+   * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+   * @return The externalId.
    */
   @java.lang.Override
-  public java.lang.String getExternalOrgId() {
-    java.lang.Object ref = externalOrgId_;
+  public java.lang.String getExternalId() {
+    java.lang.Object ref = externalId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      externalOrgId_ = s;
+      externalId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * The external platform's organization identifier.
+   * The child's external_id: the parent's own identifier for it.
    * </pre>
    *
-   * <code>string external_org_id = 2 [json_name = "externalOrgId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for externalOrgId.
+   * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for externalId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getExternalOrgIdBytes() {
-    java.lang.Object ref = externalOrgId_;
+      getExternalIdBytes() {
+    java.lang.Object ref = externalId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      externalOrgId_ = b;
+      externalId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int PARENT_ORG_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object parentOrg_ = "";
+  /**
+   * <pre>
+   * The parent organization, by id or slug.
+   * </pre>
+   *
+   * <code>string parent_org = 3 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+   * @return The parentOrg.
+   */
+  @java.lang.Override
+  public java.lang.String getParentOrg() {
+    java.lang.Object ref = parentOrg_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      parentOrg_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The parent organization, by id or slug.
+   * </pre>
+   *
+   * <code>string parent_org = 3 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for parentOrg.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getParentOrgBytes() {
+    java.lang.Object ref = parentOrg_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      parentOrg_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -154,11 +163,11 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(1, getIdentityProviderRef());
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, externalId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalOrgId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, externalOrgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(parentOrg_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, parentOrg_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -169,12 +178,11 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (((bitField0_ & 0x00000001) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(1, getIdentityProviderRef());
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, externalId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalOrgId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, externalOrgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(parentOrg_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, parentOrg_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -191,13 +199,10 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup other = (ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup) obj;
 
-    if (hasIdentityProviderRef() != other.hasIdentityProviderRef()) return false;
-    if (hasIdentityProviderRef()) {
-      if (!getIdentityProviderRef()
-          .equals(other.getIdentityProviderRef())) return false;
-    }
-    if (!getExternalOrgId()
-        .equals(other.getExternalOrgId())) return false;
+    if (!getExternalId()
+        .equals(other.getExternalId())) return false;
+    if (!getParentOrg()
+        .equals(other.getParentOrg())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -209,12 +214,10 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    if (hasIdentityProviderRef()) {
-      hash = (37 * hash) + IDENTITY_PROVIDER_REF_FIELD_NUMBER;
-      hash = (53 * hash) + getIdentityProviderRef().hashCode();
-    }
-    hash = (37 * hash) + EXTERNAL_ORG_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getExternalOrgId().hashCode();
+    hash = (37 * hash) + EXTERNAL_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getExternalId().hashCode();
+    hash = (37 * hash) + PARENT_ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getParentOrg().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -314,8 +317,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Input for looking up a platform-managed organization by its external platform coordinates.
-   * Used by integrating platforms to find the Stigmer organization mapped to their own org.
+   * Input for finding a child organization by the identifier its parent keeps
+   * for it.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup}
@@ -339,30 +342,20 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup.newBuilder()
     private Builder() {
-      maybeForceBuilderInitialization();
+
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-      maybeForceBuilderInitialization();
-    }
-    private void maybeForceBuilderInitialization() {
-      if (com.google.protobuf.GeneratedMessage
-              .alwaysUseFieldBuilders) {
-        internalGetIdentityProviderRefFieldBuilder();
-      }
+
     }
     @java.lang.Override
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      identityProviderRef_ = null;
-      if (identityProviderRefBuilder_ != null) {
-        identityProviderRefBuilder_.dispose();
-        identityProviderRefBuilder_ = null;
-      }
-      externalOrgId_ = "";
+      externalId_ = "";
+      parentOrg_ = "";
       return this;
     }
 
@@ -396,17 +389,12 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartial0(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup result) {
       int from_bitField0_ = bitField0_;
-      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.identityProviderRef_ = identityProviderRefBuilder_ == null
-            ? identityProviderRef_
-            : identityProviderRefBuilder_.build();
-        to_bitField0_ |= 0x00000001;
+        result.externalId_ = externalId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.externalOrgId_ = externalOrgId_;
+        result.parentOrg_ = parentOrg_;
       }
-      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -421,11 +409,13 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup other) {
       if (other == ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup.getDefaultInstance()) return this;
-      if (other.hasIdentityProviderRef()) {
-        mergeIdentityProviderRef(other.getIdentityProviderRef());
+      if (!other.getExternalId().isEmpty()) {
+        externalId_ = other.externalId_;
+        bitField0_ |= 0x00000001;
+        onChanged();
       }
-      if (!other.getExternalOrgId().isEmpty()) {
-        externalOrgId_ = other.externalOrgId_;
+      if (!other.getParentOrg().isEmpty()) {
+        parentOrg_ = other.parentOrg_;
         bitField0_ |= 0x00000002;
         onChanged();
       }
@@ -455,18 +445,16 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 10: {
-              input.readMessage(
-                  internalGetIdentityProviderRefFieldBuilder().getBuilder(),
-                  extensionRegistry);
+            case 18: {
+              externalId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
-            } // case 10
-            case 18: {
-              externalOrgId_ = input.readStringRequireUtf8();
+            } // case 18
+            case 26: {
+              parentOrg_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000002;
               break;
-            } // case 18
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -484,179 +472,22 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private ai.stigmer.commons.apiresource.ApiResourceReference identityProviderRef_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> identityProviderRefBuilder_;
+    private java.lang.Object externalId_ = "";
     /**
      * <pre>
-     * Reference to the IdentityProvider (org + slug) that manages this organization.
+     * The child's external_id: the parent's own identifier for it.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-     * @return Whether the identityProviderRef field is set.
+     * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+     * @return The externalId.
      */
-    public boolean hasIdentityProviderRef() {
-      return ((bitField0_ & 0x00000001) != 0);
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider (org + slug) that manages this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-     * @return The identityProviderRef.
-     */
-    public ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef() {
-      if (identityProviderRefBuilder_ == null) {
-        return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
-      } else {
-        return identityProviderRefBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider (org + slug) that manages this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setIdentityProviderRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (identityProviderRefBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        identityProviderRef_ = value;
-      } else {
-        identityProviderRefBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider (org + slug) that manages this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setIdentityProviderRef(
-        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (identityProviderRefBuilder_ == null) {
-        identityProviderRef_ = builderForValue.build();
-      } else {
-        identityProviderRefBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider (org + slug) that manages this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder mergeIdentityProviderRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (identityProviderRefBuilder_ == null) {
-        if (((bitField0_ & 0x00000001) != 0) &&
-          identityProviderRef_ != null &&
-          identityProviderRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
-          getIdentityProviderRefBuilder().mergeFrom(value);
-        } else {
-          identityProviderRef_ = value;
-        }
-      } else {
-        identityProviderRefBuilder_.mergeFrom(value);
-      }
-      if (identityProviderRef_ != null) {
-        bitField0_ |= 0x00000001;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider (org + slug) that manages this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder clearIdentityProviderRef() {
-      bitField0_ = (bitField0_ & ~0x00000001);
-      identityProviderRef_ = null;
-      if (identityProviderRefBuilder_ != null) {
-        identityProviderRefBuilder_.dispose();
-        identityProviderRefBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider (org + slug) that manages this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getIdentityProviderRefBuilder() {
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return internalGetIdentityProviderRefFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider (org + slug) that manages this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder() {
-      if (identityProviderRefBuilder_ != null) {
-        return identityProviderRefBuilder_.getMessageOrBuilder();
-      } else {
-        return identityProviderRef_ == null ?
-            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
-      }
-    }
-    /**
-     * <pre>
-     * Reference to the IdentityProvider (org + slug) that manages this organization.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [json_name = "identityProviderRef", (.buf.validate.field) = { ... }</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-        internalGetIdentityProviderRefFieldBuilder() {
-      if (identityProviderRefBuilder_ == null) {
-        identityProviderRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
-                getIdentityProviderRef(),
-                getParentForChildren(),
-                isClean());
-        identityProviderRef_ = null;
-      }
-      return identityProviderRefBuilder_;
-    }
-
-    private java.lang.Object externalOrgId_ = "";
-    /**
-     * <pre>
-     * The external platform's organization identifier.
-     * </pre>
-     *
-     * <code>string external_org_id = 2 [json_name = "externalOrgId", (.buf.validate.field) = { ... }</code>
-     * @return The externalOrgId.
-     */
-    public java.lang.String getExternalOrgId() {
-      java.lang.Object ref = externalOrgId_;
+    public java.lang.String getExternalId() {
+      java.lang.Object ref = externalId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        externalOrgId_ = s;
+        externalId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -664,20 +495,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The external platform's organization identifier.
+     * The child's external_id: the parent's own identifier for it.
      * </pre>
      *
-     * <code>string external_org_id = 2 [json_name = "externalOrgId", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for externalOrgId.
+     * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for externalId.
      */
     public com.google.protobuf.ByteString
-        getExternalOrgIdBytes() {
-      java.lang.Object ref = externalOrgId_;
+        getExternalIdBytes() {
+      java.lang.Object ref = externalId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        externalOrgId_ = b;
+        externalId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -685,49 +516,141 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The external platform's organization identifier.
+     * The child's external_id: the parent's own identifier for it.
      * </pre>
      *
-     * <code>string external_org_id = 2 [json_name = "externalOrgId", (.buf.validate.field) = { ... }</code>
-     * @param value The externalOrgId to set.
+     * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+     * @param value The externalId to set.
      * @return This builder for chaining.
      */
-    public Builder setExternalOrgId(
+    public Builder setExternalId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      externalOrgId_ = value;
+      externalId_ = value;
+      bitField0_ |= 0x00000001;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The child's external_id: the parent's own identifier for it.
+     * </pre>
+     *
+     * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearExternalId() {
+      externalId_ = getDefaultInstance().getExternalId();
+      bitField0_ = (bitField0_ & ~0x00000001);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The child's external_id: the parent's own identifier for it.
+     * </pre>
+     *
+     * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for externalId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setExternalIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      externalId_ = value;
+      bitField0_ |= 0x00000001;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object parentOrg_ = "";
+    /**
+     * <pre>
+     * The parent organization, by id or slug.
+     * </pre>
+     *
+     * <code>string parent_org = 3 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+     * @return The parentOrg.
+     */
+    public java.lang.String getParentOrg() {
+      java.lang.Object ref = parentOrg_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        parentOrg_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The parent organization, by id or slug.
+     * </pre>
+     *
+     * <code>string parent_org = 3 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for parentOrg.
+     */
+    public com.google.protobuf.ByteString
+        getParentOrgBytes() {
+      java.lang.Object ref = parentOrg_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        parentOrg_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The parent organization, by id or slug.
+     * </pre>
+     *
+     * <code>string parent_org = 3 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+     * @param value The parentOrg to set.
+     * @return This builder for chaining.
+     */
+    public Builder setParentOrg(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      parentOrg_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The external platform's organization identifier.
+     * The parent organization, by id or slug.
      * </pre>
      *
-     * <code>string external_org_id = 2 [json_name = "externalOrgId", (.buf.validate.field) = { ... }</code>
+     * <code>string parent_org = 3 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearExternalOrgId() {
-      externalOrgId_ = getDefaultInstance().getExternalOrgId();
+    public Builder clearParentOrg() {
+      parentOrg_ = getDefaultInstance().getParentOrg();
       bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The external platform's organization identifier.
+     * The parent organization, by id or slug.
      * </pre>
      *
-     * <code>string external_org_id = 2 [json_name = "externalOrgId", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for externalOrgId to set.
+     * <code>string parent_org = 3 [json_name = "parentOrg", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for parentOrg to set.
      * @return This builder for chaining.
      */
-    public Builder setExternalOrgIdBytes(
+    public Builder setParentOrgBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      externalOrgId_ = value;
+      parentOrg_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;

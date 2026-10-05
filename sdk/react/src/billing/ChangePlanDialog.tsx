@@ -205,7 +205,7 @@ function confirmLabel(move: PlanMove): string {
   }
 }
 
-/** "Teams", "Teams and Managed organizations", "A, B and C". */
+/** "Teams", "Teams and Child organizations", "A, B and C". */
 /**
  * What still works after a switch that gives features up. Everything built
  * keeps working, except an organization's own provider keys: they are kept

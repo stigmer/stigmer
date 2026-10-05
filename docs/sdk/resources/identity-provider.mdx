@@ -256,7 +256,7 @@ const identityProvider = await stigmer.identityProvider.apply({
   userinfoEndpoint: "...",
   isSsoProvider: false,
   oidcClientId: "...",
-  tenantOrgClaim: "...",
+  externalIdClaim: "...",
   createAccountsOnSignIn: false,
   signInRole: "...",
 });
@@ -276,7 +276,7 @@ identityProvider, err := client.IdentityProvider.Apply(ctx, &stigmer.IdentityPro
   UserinfoEndpoint:       "...",
   IsSsoProvider:          false,
   OidcClientId:           "...",
-  TenantOrgClaim:         "...",
+  ExternalIdClaim:        "...",
   CreateAccountsOnSignIn: false,
   SignInRole:             "...",
 })
@@ -296,7 +296,7 @@ identity_provider = client.identity_providers.apply(IdentityProviderInput(
     userinfo_endpoint="...",
     is_sso_provider=False,
     oidc_client_id="...",
-    tenant_org_claim="...",
+    external_id_claim="...",
     create_accounts_on_sign_in=False,
     sign_in_role="...",
 ))
@@ -316,7 +316,7 @@ IdentityProvider identityProvider = client.identityProviders().apply(IdentityPro
     .userinfoEndpoint("...")
     .isSsoProvider(false)
     .oidcClientId("...")
-    .tenantOrgClaim("...")
+    .externalIdClaim("...")
     .createAccountsOnSignIn(false)
     .signInRole("...")
     .build());
@@ -349,7 +349,7 @@ const identityProvider = await stigmer.identityProvider.create({
   userinfoEndpoint: "...",
   isSsoProvider: false,
   oidcClientId: "...",
-  tenantOrgClaim: "...",
+  externalIdClaim: "...",
   createAccountsOnSignIn: false,
   signInRole: "...",
 });
@@ -369,7 +369,7 @@ identityProvider, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityPr
   UserinfoEndpoint:       "...",
   IsSsoProvider:          false,
   OidcClientId:           "...",
-  TenantOrgClaim:         "...",
+  ExternalIdClaim:        "...",
   CreateAccountsOnSignIn: false,
   SignInRole:             "...",
 })
@@ -389,7 +389,7 @@ identity_provider = client.identity_providers.create(IdentityProviderInput(
     userinfo_endpoint="...",
     is_sso_provider=False,
     oidc_client_id="...",
-    tenant_org_claim="...",
+    external_id_claim="...",
     create_accounts_on_sign_in=False,
     sign_in_role="...",
 ))
@@ -409,7 +409,7 @@ IdentityProvider identityProvider = client.identityProviders().create(IdentityPr
     .userinfoEndpoint("...")
     .isSsoProvider(false)
     .oidcClientId("...")
-    .tenantOrgClaim("...")
+    .externalIdClaim("...")
     .createAccountsOnSignIn(false)
     .signInRole("...")
     .build());
@@ -440,7 +440,7 @@ const identityProvider = await stigmer.identityProvider.update({
   userinfoEndpoint: "...",
   isSsoProvider: false,
   oidcClientId: "...",
-  tenantOrgClaim: "...",
+  externalIdClaim: "...",
   createAccountsOnSignIn: false,
   signInRole: "...",
 });
@@ -460,7 +460,7 @@ identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityPr
   UserinfoEndpoint:       "...",
   IsSsoProvider:          false,
   OidcClientId:           "...",
-  TenantOrgClaim:         "...",
+  ExternalIdClaim:        "...",
   CreateAccountsOnSignIn: false,
   SignInRole:             "...",
 })
@@ -480,7 +480,7 @@ identity_provider = client.identity_providers.update(IdentityProviderInput(
     userinfo_endpoint="...",
     is_sso_provider=False,
     oidc_client_id="...",
-    tenant_org_claim="...",
+    external_id_claim="...",
     create_accounts_on_sign_in=False,
     sign_in_role="...",
 ))
@@ -500,7 +500,7 @@ IdentityProvider identityProvider = client.identityProviders().update(IdentityPr
     .userinfoEndpoint("...")
     .isSsoProvider(false)
     .oidcClientId("...")
-    .tenantOrgClaim("...")
+    .externalIdClaim("...")
     .createAccountsOnSignIn(false)
     .signInRole("...")
     .build());
@@ -516,7 +516,7 @@ IdentityProvider identityProvider = client.identityProviders().update(IdentityPr
 
 Delete an identity provider.
 
-Deletion is blocked if any platform-managed organizations reference this identity provider. The federated accounts the provider vouches for are deleted with it, with every role they hold, so a provider created again under the same slug inherits none of them.
+The federated accounts the provider vouches for are deleted with it, with every role they hold, so a provider created again under the same slug inherits none of them.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -574,9 +574,9 @@ Input for creating or updating an Identity Provider.
     userinfoEndpoint: { type: "string", description: "OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account." },
     isSsoProvider: { type: "boolean", description: "Whether this identity provider serves as the SSO login provider for its owning organization." },
     oidcClientId: { type: "string", description: "OIDC client identifier for browser-based SSO login." },
-    tenantOrgClaim: { type: "string", description: "Name of the JWT claim that names the organization a token works in." },
+    externalIdClaim: { type: "string", description: "Name of the JWT claim that names the child organization a token works in, by the identifier the provider's organization keeps for it." },
     createAccountsOnSignIn: { type: "boolean", description: "Whether Stigmer creates a federated identity account the first time a valid token arrives for a sub claim it has no account for." },
-    signInRole: { type: "IamRole", description: "The role an account receives the first time it signs in to an organization through this provider: the organization its token is bound to (tenant_org_claim's, or the provider's own).", typeDescriptionLink: "#iamrole" },
+    signInRole: { type: "IamRole", description: "The role an account receives the first time it signs in to an organization through this provider: the organization its token is bound to (external_id_claim's, or the provider's own).", typeDescriptionLink: "#iamrole" },
   }}
 />
 

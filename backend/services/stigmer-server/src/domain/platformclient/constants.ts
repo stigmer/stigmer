@@ -77,7 +77,7 @@ export const EXPIRED_CLIENT_SECRET_MESSAGE =
   "PlatformClient secret has expired. Rotating the secret does not extend it; the client's owner must set a later expires_at or set never_expires.";
 
 export function organizationMismatchMessage(owningOrg: string): string {
-  return `org must be empty or the PlatformClient's owning organization ('${owningOrg}'); cross-organization minting is not supported`;
+  return `org must be empty, the PlatformClient's owning organization ('${owningOrg}'), or one of its child organizations`;
 }
 
 export function noAccountMessage(externalUserId: string, org: string): string {
@@ -123,7 +123,7 @@ export const TOKEN_NAMES_NO_CLIENT_MESSAGE =
   "platform token names no platform client";
 
 export const TOKEN_ORGANIZATION_MISMATCH_MESSAGE =
-  "platform token does not name its platform client's organization";
+  "platform token does not name its platform client's organization or one of its child organizations";
 
 export const DELETED_CLIENT_MESSAGE =
   "The platform client that minted this token has been deleted, so the token is no longer accepted. Mint a new user token from an active platform client.";

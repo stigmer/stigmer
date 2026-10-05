@@ -386,7 +386,7 @@ describe("Agent conformance — plain-update visibility door (stigmer#573)", () 
         org,
         // The stigmer#573 bypass shape: an explicitly carried level on a
         // plain update. Must be ignored like the slug/org mutations above.
-        visibility: ApiResourceVisibility.visibility_platform,
+        visibility: ApiResourceVisibility.visibility_child_orgs,
       },
       spec: makeAgentSpec({ description: "updated alongside a carried level" }),
     });

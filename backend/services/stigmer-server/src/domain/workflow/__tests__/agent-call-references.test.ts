@@ -9,11 +9,12 @@
  * skipped rather than double-reported; the step over a real store
  * answering the rule's verdicts — a missing agent with the rule's copy,
  * another organization's org-visible agent with the one
- * cross-organization sentence, a platform-visible one admitted, the floor
- * for a literal, the floor capped at org for a bare slug, a run-time value
- * saved with no agent behind it; and the workflow's escalation door
- * applying the same cap when a workflow calling a bare slug is raised to
- * platform.
+ * cross-organization sentence, the parent's agent shared with its child
+ * organizations admitted and another parent's refused, the floor for a
+ * literal, the floor capped at org for a bare slug, a run-time value saved
+ * with no agent behind it; and the workflow's escalation door applying
+ * the same cap when a workflow calling a bare slug is raised to
+ * child_orgs.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -29,6 +30,7 @@ import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -263,12 +265,30 @@ describe("ValidateAgentCallReferences over a store", () => {
     ).toBeUndefined();
   });
 
-  it("another organization's agent is admitted only at platform visibility, with the one sentence otherwise", async () => {
-    await seedAgent("agt_shared", "globex", "shared", V.visibility_platform);
+  it("another organization's agent is admitted only when acme's parent shares it with its children, with the one sentence otherwise", async () => {
+    await store.saveResource(
+      ApiResourceKind.organization,
+      "acme",
+      OrganizationSchema,
+      create(OrganizationSchema, {
+        metadata: { id: "acme", name: "Acme", slug: "acme" },
+        spec: { parentOrg: "globex" },
+      }),
+    );
+    await seedAgent("agt_shared", "globex", "shared", V.visibility_child_orgs);
     await seedAgent("agt_internal", "globex", "internal", V.visibility_org);
+    await seedAgent("agt_rival", "initech", "shared", V.visibility_child_orgs);
     expect(
       await run(workflowCalling(V.visibility_org, "globex/shared")),
     ).toBeUndefined();
+    const rival = await run(workflowCalling(V.visibility_org, "initech/shared"));
+    expect((rival as ConnectError).rawMessage).toBe(
+      notAvailableReferenceMessage(AGENT, {
+        kind: ApiResourceKind.agent,
+        org: "initech",
+        slug: "shared",
+      }),
+    );
     const error = await run(
       workflowCalling(V.visibility_org, "globex/internal"),
     );
@@ -290,22 +310,22 @@ describe("ValidateAgentCallReferences over a store", () => {
     );
   });
 
-  it("a platform-visible workflow may call its organization's org-visible agent by bare slug, never by literal, and never a private one", async () => {
+  it("a workflow shared with child organizations may call its organization's org-visible agent by bare slug, never by literal, and never a private one", async () => {
     await seedAgent("agt_team", "acme", "team", V.visibility_org);
     await seedAgent("agt_mine", "acme", "mine", V.visibility_private);
     expect(
-      await run(workflowCalling(V.visibility_platform, "team")),
+      await run(workflowCalling(V.visibility_child_orgs, "team")),
     ).toBeUndefined();
     // The literal names a fixed row that every organization's runs read.
     const literal = await run(
-      workflowCalling(V.visibility_platform, "acme/team"),
+      workflowCalling(V.visibility_child_orgs, "acme/team"),
     );
     expect((literal as ConnectError).rawMessage).toContain(
-      "referenced agent 'acme/team' is visibility_org while this resource is visibility_platform",
+      "referenced agent 'acme/team' is visibility_org while this resource is visibility_child_orgs",
     );
-    const below = await run(workflowCalling(V.visibility_platform, "mine"));
+    const below = await run(workflowCalling(V.visibility_child_orgs, "mine"));
     expect((below as ConnectError).rawMessage).toContain(
-      "referenced agent 'acme/mine' is visibility_private while this resource is visibility_platform",
+      "referenced agent 'acme/mine' is visibility_private while this resource is visibility_child_orgs",
     );
   });
 
@@ -313,7 +333,7 @@ describe("ValidateAgentCallReferences over a store", () => {
     for (const visibility of [
       V.visibility_private,
       V.visibility_org,
-      V.visibility_platform,
+      V.visibility_child_orgs,
     ]) {
       expect(
         await run(workflowCalling(visibility, ...RUN_TIME_VALUES)),
@@ -353,18 +373,18 @@ describe("ValidateAgentCallReferences over a store", () => {
       }
     }
 
-    it("raising a workflow that calls a bare slug to platform asks the capped floor", async () => {
+    it("raising a workflow that calls a bare slug to child_orgs asks the capped floor", async () => {
       await seedAgent("agt_team", "acme", "team", V.visibility_org);
       await seedAgent("agt_mine", "acme", "mine", V.visibility_private);
       expect(
         await escalate(
           workflowCalling(V.visibility_org, "team"),
-          V.visibility_platform,
+          V.visibility_child_orgs,
         ),
       ).toBeUndefined();
       const error = await escalate(
         workflowCalling(V.visibility_private, "mine"),
-        V.visibility_platform,
+        V.visibility_child_orgs,
       );
       expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
       expect((error as ConnectError).rawMessage).toBe(
@@ -372,7 +392,7 @@ describe("ValidateAgentCallReferences over a store", () => {
           AGENT,
           { kind: ApiResourceKind.agent, org: "acme", slug: "mine" },
           V.visibility_private,
-          V.visibility_platform,
+          V.visibility_child_orgs,
         ),
       );
     });

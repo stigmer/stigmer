@@ -103,23 +103,24 @@ on the Identity Provider's provisioning mode:
   [Provision federated accounts](/docs/guides/authentication/federation/provision-federated-accounts)).
 
 **Step 7b: Bind the token.** Stigmer binds the token to one Organization: the
-tenant Organization its `tenantOrgClaim` claim names when the Identity Provider
+child organization its `externalIdClaim` claim names when the Identity Provider
 sets one, otherwise the Identity Provider's own Organization. With
-`tenantOrgClaim`, Stigmer reads the claim on every token, returning users
-included, and refuses a token that lacks it or names an unknown Organization
-with `401 Unauthorized`. The first time an account signs in to its bound
-Organization, Stigmer grants the Identity Provider's `signInRole` there, when
-one is set.
+`externalIdClaim`, Stigmer reads the claim on every token, returning users
+included, and refuses a token that lacks it or names no child of the Identity
+Provider's Organization with `401 Unauthorized`. The first time an account signs
+in to its bound Organization, Stigmer grants the Identity Provider's
+`signInRole` there, when one is set.
 
 **Step 8--9: Check authorization.** Stigmer checks whether the resolved Identity
 Account has an IAM Policy granting it the required permission on the target
 resource. If no matching policy exists, the request fails with `403 Forbidden`.
 A target outside the token's bound Organization also fails with `403 Forbidden`,
 whatever roles the user holds there, unless it belongs to no Organization (the
-user's own account and API keys) or is a blueprint shared at Platform visibility
-that the request reads or runs. With a `signInRole`, the grant at the first
-sign-in creates the IAM Policy, so step 8 succeeds for the bound Organization.
-With manual provisioning, your backend must create IAM Policies explicitly.
+user's own account and API keys) or is a blueprint the bound Organization's
+parent shares with its child organizations, which the request reads or runs.
+With a `signInRole`, the grant at the first sign-in creates the IAM Policy, so
+step 8 succeeds for the bound Organization. With manual provisioning, your
+backend must create IAM Policies explicitly.
 
 **Step 10: Response.** The request proceeds normally and the response is
 returned.
@@ -144,20 +145,20 @@ so you can diagnose issues:
 
 | Error              | Meaning                                      | Common cause                                                                                                            |
 | ------------------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `401 Unauthorized` | Token validation failed                      | Wrong issuer, wrong audience, expired token, unknown `sub`, missing or unknown tenant claim                             |
+| `401 Unauthorized` | Token validation failed                      | Wrong issuer, wrong audience, expired token, unknown `sub`, missing or unknown external id claim                        |
 | `403 Forbidden`    | Token is valid but the user lacks permission | No IAM Policy grants the required relation on the resource, or the resource is in another Organization than the token's |
 
 ### Distinguishing 401 causes
 
 A `401` can mean different things. Here's how to narrow it down:
 
-| Scenario                                     | What happened                                                                                                                                               | Fix                                                                                                                                                                       |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No Identity Provider matches `iss` and `aud` | Stigmer routes a token by its issuer and audience together, and no provider registered this pair                                                            | Check that `iss` is one of your Identity Provider's `allowed_issuers`, and configure your auth provider to put its `expected_audience` in `aud`                           |
-| Signature verification failed                | JWKS keys don't match the signing key                                                                                                                       | Verify `jwks_uri` points to the correct endpoint                                                                                                                          |
-| Token expired                                | The `exp` claim is in the past                                                                                                                              | Issue a fresh token                                                                                                                                                       |
-| No federated account for this `sub`          | Account wasn't provisioned (manual provisioning IdPs only)                                                                                                  | Set `createAccountsOnSignIn` on the Identity Provider, or call `createFederatedAccount` before the user authenticates. JIT and SSO IdPs provision accounts automatically. |
-| Tenant claim missing or unknown              | The Identity Provider sets `tenantOrgClaim`, and the token lacks the claim, carries a non-string value, or names no tenant Organization under this provider | Put the claim in every token, and create the tenant Organization with that `externalOrgId`. Stigmer checks it on every sign-in, not only the first                        |
+| Scenario                                     | What happened                                                                                                                                             | Fix                                                                                                                                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No Identity Provider matches `iss` and `aud` | Stigmer routes a token by its issuer and audience together, and no provider registered this pair                                                          | Check that `iss` is one of your Identity Provider's `allowed_issuers`, and configure your auth provider to put its `expected_audience` in `aud`                           |
+| Signature verification failed                | JWKS keys don't match the signing key                                                                                                                     | Verify `jwks_uri` points to the correct endpoint                                                                                                                          |
+| Token expired                                | The `exp` claim is in the past                                                                                                                            | Issue a fresh token                                                                                                                                                       |
+| No federated account for this `sub`          | Account wasn't provisioned (manual provisioning IdPs only)                                                                                                | Set `createAccountsOnSignIn` on the Identity Provider, or call `createFederatedAccount` before the user authenticates. JIT and SSO IdPs provision accounts automatically. |
+| External id claim missing or unknown         | The Identity Provider sets `externalIdClaim`, and the token lacks the claim, carries a non-string value, or names no child of the provider's Organization | Put the claim in every token, and create the child organization with that `externalId`. Stigmer checks it on every sign-in, not only the first                            |
 
 ## Calling the API from your app
 
@@ -227,9 +228,9 @@ Session session = client.sessions().create(SessionInput.builder()
 
 ## SSO login flow
 
-The flow above describes platform-managed federation, where your app calls the
-Stigmer API with a JWT. Self-managed SSO uses a different path: the user signs
-in to the Stigmer web console through their Organization's Identity Provider.
+The flow above describes platform federation, where your app calls the Stigmer
+API with a JWT. Console SSO uses a different path: the user signs in to the
+Stigmer web console through their Organization's Identity Provider.
 
 {/* vale off */}
 
@@ -330,8 +331,8 @@ role from setting `signInRole` later; grant it with an IAM Policy.
 
 A `403` can also mean the request targets another Organization than the one the
 token is bound to. A token works only in the Identity Provider's Organization,
-or in the tenant its `tenantOrgClaim` claim names. Check the claim's value
-against the target Organization's `externalOrgId`.
+or in the child organization its `externalIdClaim` claim names. Check the
+claim's value against the target child organization's `externalId`.
 
 </Step>
 <Step>
@@ -371,12 +372,12 @@ authorization, and processes the request.
 
 ## What's next
 
-- **Multi-tenant platforms** --- If your platform serves multiple customers, see
-  [Multi-tenant platform setup](/docs/guides/authentication/federation/multi-tenant-setup)
-  for creating tenant Organizations. `tenantOrgClaim` binds each token to the
-  tenant Organization it names.
-- **Self-managed SSO** --- If your Organization is self-managed and you want
-  team members to sign in through your Identity Provider, see
+- **Child organizations** --- If your platform serves multiple customers, see
+  [Child organizations](/docs/guides/authentication/federation/child-organizations)
+  for creating one child organization per customer. `externalIdClaim` binds each
+  token to the child organization it names.
+- **Console SSO** --- If you want your team members to sign in through your
+  Identity Provider, see
   [Set up SSO](/docs/guides/authentication/federation/sso-login).
 - **API reference** ---
   [IdentityProvider](/docs/sdk/resources/identity-provider),

@@ -17,7 +17,7 @@ class Feature(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     channels: _ClassVar[Feature]
     sharing: _ClassVar[Feature]
     teams: _ClassVar[Feature]
-    managed_organizations: _ClassVar[Feature]
+    child_orgs: _ClassVar[Feature]
 feature_unspecified: Feature
 sso_enforcement: Feature
 platform_client: Feature
@@ -25,7 +25,7 @@ byo_provider_keys: Feature
 channels: Feature
 sharing: Feature
 teams: Feature
-managed_organizations: Feature
+child_orgs: Feature
 
 class Entitlements(_message.Message):
     __slots__ = ("limits", "features")
@@ -36,17 +36,17 @@ class Entitlements(_message.Message):
     def __init__(self, limits: _Optional[_Union[EntitlementLimits, _Mapping]] = ..., features: _Optional[_Iterable[_Union[Feature, str]]] = ...) -> None: ...
 
 class EntitlementLimits(_message.Message):
-    __slots__ = ("max_orgs", "max_users", "included_managed_organizations", "max_active_session_sandboxes", "max_active_workflow_sandboxes", "archived_workspace_retention_days")
+    __slots__ = ("max_orgs", "max_users", "included_child_orgs", "max_active_session_sandboxes", "max_active_workflow_sandboxes", "archived_workspace_retention_days")
     MAX_ORGS_FIELD_NUMBER: _ClassVar[int]
     MAX_USERS_FIELD_NUMBER: _ClassVar[int]
-    INCLUDED_MANAGED_ORGANIZATIONS_FIELD_NUMBER: _ClassVar[int]
+    INCLUDED_CHILD_ORGS_FIELD_NUMBER: _ClassVar[int]
     MAX_ACTIVE_SESSION_SANDBOXES_FIELD_NUMBER: _ClassVar[int]
     MAX_ACTIVE_WORKFLOW_SANDBOXES_FIELD_NUMBER: _ClassVar[int]
     ARCHIVED_WORKSPACE_RETENTION_DAYS_FIELD_NUMBER: _ClassVar[int]
     max_orgs: int
     max_users: int
-    included_managed_organizations: int
+    included_child_orgs: int
     max_active_session_sandboxes: int
     max_active_workflow_sandboxes: int
     archived_workspace_retention_days: int
-    def __init__(self, max_orgs: _Optional[int] = ..., max_users: _Optional[int] = ..., included_managed_organizations: _Optional[int] = ..., max_active_session_sandboxes: _Optional[int] = ..., max_active_workflow_sandboxes: _Optional[int] = ..., archived_workspace_retention_days: _Optional[int] = ...) -> None: ...
+    def __init__(self, max_orgs: _Optional[int] = ..., max_users: _Optional[int] = ..., included_child_orgs: _Optional[int] = ..., max_active_session_sandboxes: _Optional[int] = ..., max_active_workflow_sandboxes: _Optional[int] = ..., archived_workspace_retention_days: _Optional[int] = ...) -> None: ...

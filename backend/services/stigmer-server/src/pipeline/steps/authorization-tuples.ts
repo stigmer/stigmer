@@ -127,9 +127,9 @@ import { metadataOf, parentIdOf } from "./shapes.js";
  * validation).
  *
  * The org floor: kinds flagged defaults_to_org_visibility (blueprints —
- * shared org assets) keep the org-viewer shape at the platform level, so
- * sharing a blueprint beyond the org never hides it from its own org's
- * catalog.
+ * shared org assets) keep the org-viewer shape at the child-organizations
+ * level, so sharing a blueprint with the organization's children never
+ * hides it from its own org's catalog.
  *
  * The retired public level has no shape here. No stored row holds it once
  * the store migration has run, so no transition FROM it reaches this
@@ -151,9 +151,9 @@ export function visibilityShapesFor(
         shapes.add("org-viewer");
       }
       break;
-    case ApiResourceVisibility.visibility_platform:
-      if (config?.supportsPlatform === true) {
-        shapes.add("platform-viewer");
+    case ApiResourceVisibility.visibility_child_orgs:
+      if (config?.supportsChildOrgs === true) {
+        shapes.add("child-org-viewer");
         if (orgFloor) {
           shapes.add("org-viewer");
         }
@@ -316,6 +316,7 @@ export function resolveResourceCreatedEvent(
   resource: Message,
   caller: CallerIdentity,
   logger: Logger,
+  ownerAttributionOf?: OwnerAttributionOf,
 ): ResourceCreatedEvent | undefined {
   const config = getKindMeta(kind).authorization;
   if (
@@ -337,7 +338,7 @@ export function resolveResourceCreatedEvent(
     resourceId: metadata.id,
     orgId: metadata.org,
     caller,
-    ownerAttribution: config.ownerType,
+    ownerAttribution: ownerAttributionOf?.(resource) ?? config.ownerType,
     requiresCreatorTuple: config.requiresCreatorTuple,
     parentLinks: resolveParentLinks(
       kind,
@@ -353,12 +354,25 @@ export function resolveResourceCreatedEvent(
 }
 
 /**
+ * A chain's own word on who owns the row it created, where the kind's
+ * configured owner_type is not the whole answer: undefined keeps the
+ * configured attribution. The organization chain uses it for a child
+ * organization, which nobody owns (its parent's admins manage it), so
+ * the event carries NONE and neither the built-in role lifecycle nor a
+ * tuple driver makes its creator owner.
+ */
+export type OwnerAttributionOf = (
+  resource: Message,
+) => OwnerAttributionType | undefined;
+
+/**
  * CreateAuthorizationTuples — post-persist in every create chain (apply
  * delegates to create, so the apply lane is covered by construction).
  */
 export function newCreateAuthorizationTuplesStep<Desc extends DescMessage>(
   lifecycle: ResourceAuthorizationLifecycle | undefined,
   logger: Logger,
+  ownerAttributionOf?: OwnerAttributionOf,
 ): PipelineStep<Desc> {
   return {
     name: "CreateAuthorizationTuples",
@@ -371,6 +385,7 @@ export function newCreateAuthorizationTuplesStep<Desc extends DescMessage>(
         ctx.newState,
         ctx.callerIdentity,
         logger,
+        ownerAttributionOf,
       );
       if (event === undefined) {
         return;

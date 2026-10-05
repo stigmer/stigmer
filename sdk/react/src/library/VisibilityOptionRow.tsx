@@ -142,7 +142,7 @@ export const SELECTED_STYLES: Record<VisibilityTone, string> = {
   private:
     "stg:bg-amber-50 stg:text-amber-800 stg:dark:bg-amber-900/30 stg:dark:text-amber-300",
   org: "stg:bg-blue-100 stg:text-blue-800 stg:dark:bg-blue-900/40 stg:dark:text-blue-300",
-  platform:
+  childOrgs:
     "stg:bg-violet-100 stg:text-violet-800 stg:dark:bg-violet-900/40 stg:dark:text-violet-300",
   public:
     "stg:bg-emerald-100 stg:text-emerald-800 stg:dark:bg-emerald-900/40 stg:dark:text-emerald-300",
@@ -172,7 +172,7 @@ export const PROMPT_STYLES: Record<
     cancel:
       "stg:text-blue-700 stg:hover:text-blue-900 stg:dark:text-blue-300 stg:dark:hover:text-blue-100",
   },
-  platform: {
+  childOrgs: {
     container:
       "stg:border-violet-200 stg:bg-violet-50 stg:dark:border-violet-800/50 stg:dark:bg-violet-950/30",
     text: "stg:text-violet-800 stg:dark:text-violet-200",
@@ -207,7 +207,7 @@ export function VisibilityIcon({
   switch (tone) {
     case "org":
       return <UsersIcon className={className} />;
-    case "platform":
+    case "childOrgs":
       return <BuildingsIcon className={className} />;
     case "public":
       return <GlobeIcon className={className} />;

@@ -38,7 +38,8 @@ type InvitationCommandControllerClient interface {
 	//
 	// The specified role must be in the organization's grantable_roles, and
 	// only an owner of the organization may create an invitation for owner.
-	// Platform-managed organizations cannot create invitations.
+	// A parent organization's admins may invite people into its child
+	// organizations.
 	Create(ctx context.Context, in *Invitation, opts ...grpc.CallOption) (*Invitation, error)
 	// Revoke an active invitation, preventing further redemptions.
 	//
@@ -115,7 +116,8 @@ type InvitationCommandControllerServer interface {
 	//
 	// The specified role must be in the organization's grantable_roles, and
 	// only an owner of the organization may create an invitation for owner.
-	// Platform-managed organizations cannot create invitations.
+	// A parent organization's admins may invite people into its child
+	// organizations.
 	Create(context.Context, *Invitation) (*Invitation, error)
 	// Revoke an active invitation, preventing further redemptions.
 	//

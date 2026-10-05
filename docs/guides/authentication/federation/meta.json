@@ -7,6 +7,6 @@
     "grant-access",
     "authentication-flow",
     "sso-login",
-    "multi-tenant-setup"
+    "child-organizations"
   ]
 }

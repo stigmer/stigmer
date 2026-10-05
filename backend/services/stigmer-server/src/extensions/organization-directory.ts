@@ -1,5 +1,5 @@
 /**
- * The organization-directory extension point. Three organization query behaviors
+ * The organization-directory extension point. Two organization query behaviors
  * fork between editions — the forks are named vocabulary as the
  * conformance capability flags, and this port is their ONE seam:
  *
@@ -12,13 +12,6 @@
  *   - `findMyOrganizations` (capability `multiTenant`): the trusted-local
  *     laptop answers ALL organizations (single-user semantics); the cloud
  *     and the built-in directory filter to what the caller may view.
- *   - `getByExternalOrgId` (capability `externalOrgLookup`): deliberately
- *     absent from the OSS partial registration (UNIMPLEMENTED by
- *     construction); the cloud resolves external IdP org ids. The lookup
- *     is scoped to the identity provider the request names: the directory
- *     resolves that provider and the external id within it, and the
- *     controller answers only a caller who may view the provider, so one
- *     integrator's tenant ids never answer another's organizations.
  *
  * No directory composed = the trusted-local behavior, byte-identical; the
  * built-in directory (authorization/organization-directory.ts) composes
@@ -49,35 +42,4 @@ export interface OrganizationDirectory {
   listMyOrganizationIds(
     caller: CallerIdentity,
   ): Promise<ReadonlyArray<string> | typeof ALL_ORGANIZATIONS>;
-  /**
-   * Resolves the identity provider a lookup names, and the external IdP
-   * organization id within that provider alone. When this method is
-   * present, the controller registers `getByExternalOrgId` (its chain,
-   * the provider's authorization included, stays controller-owned); when
-   * absent, the RPC stays unregistered and answers UNIMPLEMENTED.
-   */
-  lookupExternalOrganization?(
-    identityProviderRef: IdentityProviderRef,
-    externalOrgId: string,
-  ): Promise<ExternalOrganizationLookup>;
 }
-
-/** The identity provider a lookup names: its organization and its slug. */
-export interface IdentityProviderRef {
-  readonly org: string;
-  readonly slug: string;
-}
-
-/**
- * What a directory found for a lookup: no such identity provider, or the
- * provider's id with the organization its external id maps to under it
- * (undefined = no mapping). The controller authorizes on the provider's
- * id before it reveals whether a mapping exists.
- */
-export type ExternalOrganizationLookup =
-  | { readonly kind: "no-identity-provider" }
-  | {
-      readonly kind: "resolved";
-      readonly identityProviderId: string;
-      readonly organizationId: string | undefined;
-    };

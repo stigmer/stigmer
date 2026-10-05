@@ -17,24 +17,26 @@ User ──► Organization ──► Members ──► Resources (Agents, Workf
 | Concept | Description |
 |---|---|
 | **Organization** | The root namespace for all resources. Created once, referenced everywhere. |
-| **Member** | A user granted access to an organization via the IAM subsystem. The creator automatically becomes the owner. |
+| **Member** | A user granted access to an organization via the IAM subsystem. The creator automatically becomes the owner (a child organization's parent admins grant its first members instead). |
 | **Resources** | Agents, workflows, MCP servers, skills, sessions, and executions all live under an organization. |
 
-## Management Modes
+## Parent and Child Organizations
 
-Organizations have two management modes, set at creation time and **immutable** thereafter:
+An organization may name a parent organization in `spec.parent_org`: it is then a **child organization**, such as the organization an integrator runs for one of its customers. Child organizations are one level deep, and both `spec.parent_org` and the parent's own identifier for the child, `spec.external_id`, are fixed at creation.
 
-| Mode | Description |
+| Who | What they can do in a child organization |
 |---|---|
-| `self_managed` | Default. Created and operated directly by users via the Stigmer UI, CLI, or API. |
-| `platform_managed` | Created programmatically by an external platform (e.g., Planton) via an IdentityProvider. The platform manages the org on behalf of its users. |
+| The parent's admins | Manage it: rename it, edit its settings, manage its members and access, see its bill, delete it. They read none of its agents, sessions or files. To look inside, one adds themselves as a member, which the child's member list and access history show. |
+| The child's own members | Everything their role in the child allows, plus read and run what the parent shares with its child organizations (`visibility_child_orgs`). |
+
+A child has no creator owner: the parent's admins grant its first members and its owner. A parent that still has children cannot be deleted. The parent finds a child by its external id (`getByExternalId`) and lists its children (`listChildOrgs`); a sign-in through the parent's identity provider whose `external_id_claim` carries a child's external id lands in that child.
 
 ## Documentation Index
 
 | Document | Description |
 |---|---|
 | [organization-resource-guide.md](organization-resource-guide.md) | Core YAML schema reference — metadata, spec fields, status, and CLI commands |
-| [examples.md](examples.md) | Complete YAML examples from minimal self-managed to platform-managed |
+| [examples.md](examples.md) | Complete YAML examples, from a minimal organization to a child organization |
 | [validation-checklist.md](validation-checklist.md) | Pre-apply checklist and common pitfalls |
 
 ## CLI Quick Reference

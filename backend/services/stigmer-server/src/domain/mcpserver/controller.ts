@@ -105,6 +105,8 @@ import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import {
+  newRefuseChildOrgsVisibilityInChildStep,
+  newRefuseChildOrgsVisibilityInChildUpdateStep,
   newValidateVisibilityStep,
   newValidateVisibilityUpdateStep,
 } from "../../pipeline/steps/validate-visibility.js";
@@ -238,6 +240,7 @@ async function createMcpServer(
     )
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
+    .addStep(newRefuseChildOrgsVisibilityInChildStep(deps.store))
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
@@ -465,6 +468,7 @@ async function updateVisibility(
       newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_MCP_SERVER_KEY),
     )
     .addStep(newValidateVisibilityUpdateStep())
+    .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_MCP_SERVER_KEY))
     .addStep(newSetMcpServerVisibilityStep())
     .addStep(newPersistMcpServerForVisibilityUpdateStep(deps.store))
     .addStep(

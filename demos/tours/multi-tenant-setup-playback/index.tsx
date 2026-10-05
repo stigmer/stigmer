@@ -58,7 +58,7 @@ export function renderStep(data: MultiTenantSetupStep): ReactNode {
                 id: "alpha",
                 cells: {
                   name: "Tenant Alpha",
-                  id: "acme-tenant-alpha-id",
+                  id: "cust-4411",
                   status: <StatusBadge label="Provisioning..." variant="warning" />,
                 },
               },
@@ -66,7 +66,7 @@ export function renderStep(data: MultiTenantSetupStep): ReactNode {
                 id: "globex",
                 cells: {
                   name: "Globex Corp",
-                  id: "acme-globex-corp-id",
+                  id: "cust-4412",
                   status: <StatusBadge label="Active" variant="success" />,
                 },
               },
@@ -74,7 +74,7 @@ export function renderStep(data: MultiTenantSetupStep): ReactNode {
                 id: "initech",
                 cells: {
                   name: "Initech",
-                  id: "acme-initech-id",
+                  id: "cust-4413",
                   status: <StatusBadge label="Active" variant="success" />,
                 },
               },

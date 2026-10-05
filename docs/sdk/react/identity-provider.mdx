@@ -56,9 +56,6 @@ Deletes an identity provider by its resource ID. Returns the deleted
 `IdentityProvider` on success so callers can confirm which
 provider was removed.
 
-Deletion is blocked by the backend if any platform-managed
-organizations still reference this identity provider.
-
 **Signature**
 
 ```tsx
@@ -346,7 +343,7 @@ may edit the provider (`can_edit`).
 
 In **edit mode**, fields become editable inputs. The SSO toggle,
 OIDC client ID and sign-in settings (account creation, sign-in role,
-tenant org claim) are editable. "Save" submits the update via
+customer id claim) are editable. "Save" submits the update via
 [`useUpdateIdentityProvider`](#useupdateidentityprovider); "Cancel" discards changes and
 returns to view mode.
 
@@ -424,7 +421,7 @@ Guides the user through three steps:
    tenant name) plus the IdP display name and expected audience
 3. **Review** — verify auto-populated OIDC configuration, optionally
    enable SSO, set what a sign-in does (account creation, sign-in role,
-   tenant org claim), and submit
+   customer id claim), and submit
 
 For known presets, URLs are constructed from deterministic templates
 (no network call). For "Custom OIDC", the wizard attempts OIDC

@@ -175,7 +175,9 @@ public interface AgentExecutionSpecOrBuilder extends
    * A lane that composes the turn for a surface (a schedule, a workflow
    * step) writes that surface's saved settings here. On a lane where the
    * caller is a visitor (the hosted edition's shared-agent guests and
-   * channel senders), the surface's saved settings replace this field.
+   * channel senders), the surface's saved settings replace this field; the
+   * per-message intents below are the edition's to allow or clear for a
+   * visitor, not replaced with this field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
@@ -203,7 +205,9 @@ public interface AgentExecutionSpecOrBuilder extends
    * A lane that composes the turn for a surface (a schedule, a workflow
    * step) writes that surface's saved settings here. On a lane where the
    * caller is a visitor (the hosted edition's shared-agent guests and
-   * channel senders), the surface's saved settings replace this field.
+   * channel senders), the surface's saved settings replace this field; the
+   * per-message intents below are the edition's to allow or clear for a
+   * visitor, not replaced with this field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>
@@ -231,7 +235,9 @@ public interface AgentExecutionSpecOrBuilder extends
    * A lane that composes the turn for a surface (a schedule, a workflow
    * step) writes that surface's saved settings here. On a lane where the
    * caller is a visitor (the hosted edition's shared-agent guests and
-   * channel senders), the surface's saved settings replace this field.
+   * channel senders), the surface's saved settings replace this field; the
+   * per-message intents below are the edition's to allow or clear for a
+   * visitor, not replaced with this field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 18 [json_name = "runConfig"];</code>

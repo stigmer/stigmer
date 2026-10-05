@@ -35,6 +35,9 @@ function recordingPanel(panel: string) {
 
 vi.mock("../../organization/OrgPreferencesPanel.js", () => ({ OrgPreferencesPanel: recordingPanel("preferences") }));
 vi.mock("../../organization/OrgProfilePanel.js", () => ({ OrgProfilePanel: recordingPanel("profile") }));
+// The profile section's child-organization list asks the server on its own;
+// this suite is about which organization each section hands its panels.
+vi.mock("../../organization/ChildOrganizationsList.js", () => ({ ChildOrganizationsList: () => null }));
 vi.mock("../../usage/OrgUsagePanel.js", () => ({ OrgUsagePanel: recordingPanel("usage") }));
 
 import { OrgPreferencesSection } from "../OrgPreferencesSection";

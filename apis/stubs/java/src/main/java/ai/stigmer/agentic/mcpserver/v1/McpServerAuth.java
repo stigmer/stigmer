@@ -73,7 +73,7 @@ private static final long serialVersionUID = 0L;
    * perform the OAuth authorization code flow with the vendor on behalf of
    * the user. The OAuthApp must belong to the same organization as the
    * McpServer: an OAuth app holds vendor credentials and is never
-   * platform-visible, so no cross-organization reference to one is
+   * shared with child organizations, so no cross-organization reference to one is
    * accepted.
    * </pre>
    *
@@ -97,7 +97,7 @@ private static final long serialVersionUID = 0L;
    * perform the OAuth authorization code flow with the vendor on behalf of
    * the user. The OAuthApp must belong to the same organization as the
    * McpServer: an OAuth app holds vendor credentials and is never
-   * platform-visible, so no cross-organization reference to one is
+   * shared with child organizations, so no cross-organization reference to one is
    * accepted.
    * </pre>
    *
@@ -121,7 +121,7 @@ private static final long serialVersionUID = 0L;
    * perform the OAuth authorization code flow with the vendor on behalf of
    * the user. The OAuthApp must belong to the same organization as the
    * McpServer: an OAuth app holds vendor credentials and is never
-   * platform-visible, so no cross-organization reference to one is
+   * shared with child organizations, so no cross-organization reference to one is
    * accepted.
    * </pre>
    *
@@ -878,7 +878,7 @@ private static final long serialVersionUID = 0L;
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
      * McpServer: an OAuth app holds vendor credentials and is never
-     * platform-visible, so no cross-organization reference to one is
+     * shared with child organizations, so no cross-organization reference to one is
      * accepted.
      * </pre>
      *
@@ -901,7 +901,7 @@ private static final long serialVersionUID = 0L;
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
      * McpServer: an OAuth app holds vendor credentials and is never
-     * platform-visible, so no cross-organization reference to one is
+     * shared with child organizations, so no cross-organization reference to one is
      * accepted.
      * </pre>
      *
@@ -928,7 +928,7 @@ private static final long serialVersionUID = 0L;
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
      * McpServer: an OAuth app holds vendor credentials and is never
-     * platform-visible, so no cross-organization reference to one is
+     * shared with child organizations, so no cross-organization reference to one is
      * accepted.
      * </pre>
      *
@@ -960,7 +960,7 @@ private static final long serialVersionUID = 0L;
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
      * McpServer: an OAuth app holds vendor credentials and is never
-     * platform-visible, so no cross-organization reference to one is
+     * shared with child organizations, so no cross-organization reference to one is
      * accepted.
      * </pre>
      *
@@ -990,7 +990,7 @@ private static final long serialVersionUID = 0L;
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
      * McpServer: an OAuth app holds vendor credentials and is never
-     * platform-visible, so no cross-organization reference to one is
+     * shared with child organizations, so no cross-organization reference to one is
      * accepted.
      * </pre>
      *
@@ -1027,7 +1027,7 @@ private static final long serialVersionUID = 0L;
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
      * McpServer: an OAuth app holds vendor credentials and is never
-     * platform-visible, so no cross-organization reference to one is
+     * shared with child organizations, so no cross-organization reference to one is
      * accepted.
      * </pre>
      *
@@ -1056,7 +1056,7 @@ private static final long serialVersionUID = 0L;
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
      * McpServer: an OAuth app holds vendor credentials and is never
-     * platform-visible, so no cross-organization reference to one is
+     * shared with child organizations, so no cross-organization reference to one is
      * accepted.
      * </pre>
      *
@@ -1080,7 +1080,7 @@ private static final long serialVersionUID = 0L;
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
      * McpServer: an OAuth app holds vendor credentials and is never
-     * platform-visible, so no cross-organization reference to one is
+     * shared with child organizations, so no cross-organization reference to one is
      * accepted.
      * </pre>
      *
@@ -1107,7 +1107,7 @@ private static final long serialVersionUID = 0L;
      * perform the OAuth authorization code flow with the vendor on behalf of
      * the user. The OAuthApp must belong to the same organization as the
      * McpServer: an OAuth app holds vendor credentials and is never
-     * platform-visible, so no cross-organization reference to one is
+     * shared with child organizations, so no cross-organization reference to one is
      * accepted.
      * </pre>
      *

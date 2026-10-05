@@ -7,8 +7,10 @@
  *     cloud's liveness copy, lets a store fault propagate (never a
  *     revocation), and stamps the account from `sub` as a `user` with the
  *     minting client it verified, for the audit actor (#1256), bound to
- *     the organization its `org` claim names; a token whose `org` claim is
- *     missing, empty or not its client's organization is refused;
+ *     the organization its `org` claim names, the client's own or one of
+ *     its child organizations; a token whose `org` claim is missing, empty,
+ *     or names neither (an unrelated organization, another parent's child,
+ *     an organization that does not exist) is refused;
  *   - the guard reads no client for a request without an Origin, passes an
  *     open allowlist and a listed origin case-insensitively, refuses an
  *     unlisted origin and the opaque "null" with the cloud's copy, and
@@ -23,11 +25,14 @@ import { describe, expect, it, vi } from "vitest";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientQueryController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/query_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { signPlatformToken } from "../../../platformtoken/envelope.js";
 import { platformTokenKeyRingFromPem } from "../../../platformtoken/key-ring.js";
+import { ResourceNotFoundError } from "../../../store/interface.js";
+import type { Store } from "../../../store/interface.js";
 import type { SigningPlatformTokenKeyRing } from "../../../platformtoken/key-ring.js";
 import {
   DELETED_CLIENT_MESSAGE,
@@ -55,6 +60,23 @@ function client(allowedOrigins: string[] = []): PlatformClient {
     spec: { clientId: "stgm_cid_x", allowedOrigins },
   });
 }
+
+/** acme's child, an unrelated organization and another parent's child; anything else is absent. */
+const PARENTS = new Map([
+  ["org_acmecust", "acme"],
+  ["globex", ""],
+  ["org_rivalcust", "rival"],
+]);
+
+const organizations: Pick<Store, "getResource"> = {
+  getResource: (async (_kind: unknown, id: string) => {
+    const parentOrg = PARENTS.get(id);
+    if (parentOrg === undefined) {
+      throw new ResourceNotFoundError(`organization ${id}`);
+    }
+    return create(OrganizationSchema, { metadata: { id }, spec: { parentOrg } });
+  }) as Store["getResource"],
+};
 
 function storeOf(found: PlatformClient | undefined) {
   return { findById: vi.fn(async () => found) };
@@ -96,6 +118,7 @@ describe("the PlatformClient user-token verifier", () => {
     const identity = await newPlatformClientTokenVerifier({
       keys: ring,
       clients: storeOf(client()),
+      store: organizations,
     }).verify(token);
     expect(identity).toEqual({
       identityId: "ida_pat",
@@ -109,10 +132,21 @@ describe("the PlatformClient user-token verifier", () => {
     });
   });
 
-  it("refuses a token whose org claim is missing, empty or another organization's", async () => {
+  it("binds a token whose org claim names a child of its client's organization to that child", async () => {
+    const token = userToken({ org: "org_acmecust" });
+    const identity = await newPlatformClientTokenVerifier({
+      keys: ring,
+      clients: storeOf(client()),
+      store: organizations,
+    }).verify(token);
+    expect(identity?.boundOrg).toBe("org_acmecust");
+  });
+
+  it("refuses a token whose org claim is missing, empty, another organization's, another parent's child or no organization at all", async () => {
     const verifier = newPlatformClientTokenVerifier({
       keys: ring,
       clients: storeOf(client()),
+      store: organizations,
     });
     const unsigned = signPlatformToken(ring, {
       sub: "ida_pat",
@@ -122,6 +156,8 @@ describe("the PlatformClient user-token verifier", () => {
       unsigned,
       userToken({ org: "" }),
       userToken({ org: "globex" }),
+      userToken({ org: "org_rivalcust" }),
+      userToken({ org: "org_nosuchorganization" }),
     ]) {
       const refused = await refusal(verifier.verify(token));
       expect(refused.code).toBe(Code.Unauthenticated);
@@ -133,6 +169,7 @@ describe("the PlatformClient user-token verifier", () => {
     const verifier = newPlatformClientTokenVerifier({
       keys: ring,
       clients: storeOf(client()),
+      store: organizations,
     });
     expect(await verifier.verify("stk_api_key")).toBeNull();
     expect(
@@ -145,6 +182,7 @@ describe("the PlatformClient user-token verifier", () => {
       newPlatformClientTokenVerifier({
         keys: ring,
         clients: storeOf(undefined),
+        store: organizations,
       }).verify(userToken()),
     );
     expect(gone.code).toBe(Code.Unauthenticated);
@@ -154,6 +192,7 @@ describe("the PlatformClient user-token verifier", () => {
       newPlatformClientTokenVerifier({
         keys: ring,
         clients: storeOf(client()),
+        store: organizations,
       }).verify(signPlatformToken(ring, { sub: "ida_pat" }).token),
     );
     expect(unnamed.code).toBe(Code.Unauthenticated);
@@ -166,7 +205,11 @@ describe("the PlatformClient user-token verifier", () => {
       }),
     };
     await expect(
-      newPlatformClientTokenVerifier({ keys: ring, clients: failing }).verify(
+      newPlatformClientTokenVerifier({
+        keys: ring,
+        clients: failing,
+        store: organizations,
+      }).verify(
         userToken(),
       ),
     ).rejects.toThrow("database down");

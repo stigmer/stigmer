@@ -19,9 +19,9 @@
 // type, and for the task nested in a for_each.
 //
 // The agent_call reference arm pins the reference rule over the `agent`
-// string at write, in both editions: another organization's agent only at
-// platform visibility, refused otherwise with the one cross-organization
-// sentence; a value holding a runtime expression saved untouched with no
+// string at write, in both editions: another organization's agent only when
+// it is the workflow organization's parent's, shared with its child
+// organizations, refused otherwise with the one cross-organization sentence; a value holding a runtime expression saved untouched with no
 // agent behind it, because it names its agent only when the task runs; and
 // a bare slug judged in the workflow's own organization with its floor
 // capped at org, at the spec door and at the escalation door, while a
@@ -50,7 +50,7 @@ import {
   makeWorkflowSpec,
 } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
-import { organizationSlug } from "../support/organizations";
+import { createChildOrganization, organizationSlug } from "../support/organizations";
 
 let target: TargetProfile;
 // Read at collection time so an edition without a capability reports its cases
@@ -744,7 +744,7 @@ describe("Workflow conformance — updateVisibility", () => {
     );
     expect(err.message, "both editions emit the same rejection text").toContain(
       "workflow resources cannot be set to visibility_public. " +
-        "Supported visibility levels: visibility_private, visibility_org, visibility_platform.",
+        "Supported visibility levels: visibility_private, visibility_org, visibility_child_orgs.",
     );
 
     const stored = await clients.workflowQuery.get({ value: created.metadata!.id });
@@ -790,10 +790,11 @@ describe("Workflow conformance — agent_call references at write", () => {
     "a resource may not be more visible than the agents it runs with. " +
     "Widen the referenced resource's visibility or narrow this one.";
 
-  it("[rpc:WorkflowCommandController.apply] another organization's agent is admitted at platform visibility and refused otherwise with one sentence", async () => {
-    const { org } = await target.provisionTenancy();
+  it("[rpc:WorkflowCommandController.apply] the parent organization's agent is admitted when it shares it with its children, and refused otherwise with one sentence", async () => {
     const { org: otherOrg } = await target.provisionTenancy();
-    const shared = await createAgent(otherOrg, ApiResourceVisibility.visibility_platform);
+    const { id: org } = await createChildOrganization(clients.organizationCommand, otherOrg, "the workflow's organization");
+    fixtures.defer(() => clients.organizationCommand.delete({ value: org }));
+    const shared = await createAgent(otherOrg, ApiResourceVisibility.visibility_child_orgs);
     const internal = await createAgent(otherOrg);
 
     const admitted = await applyCalling(org, uniqueName("wf"), `${otherOrg}/${shared.metadata!.slug}`);
@@ -806,7 +807,7 @@ describe("Workflow conformance — agent_call references at write", () => {
     );
     expect(refused.rawMessage).toBe(
       `referenced agent '${internal.metadata!.slug}' of another organization is not available to this organization; ` +
-        "another organization's resource can be referenced only when that organization shares it at platform visibility.",
+        "another organization's resource can be referenced only when it is this organization's parent and shares it with its child organizations.",
     );
   });
 
@@ -829,22 +830,22 @@ describe("Workflow conformance — agent_call references at write", () => {
     const created = await applyCalling(org, name, slug);
     const raised = await clients.workflowCommand.updateVisibility({
       resourceId: created.metadata!.id,
-      visibility: ApiResourceVisibility.visibility_platform,
+      visibility: ApiResourceVisibility.visibility_child_orgs,
     });
-    expect(raised.metadata?.visibility).toBe(ApiResourceVisibility.visibility_platform);
+    expect(raised.metadata?.visibility).toBe(ApiResourceVisibility.visibility_child_orgs);
 
-    // The spec door: re-applied at platform visibility, the bare slug still passes...
+    // The spec door: re-applied shared with child organizations, the bare slug still passes...
     const reapplied = await applyCalling(org, name, slug, false);
-    expect(reapplied.metadata?.visibility).toBe(ApiResourceVisibility.visibility_platform);
+    expect(reapplied.metadata?.visibility).toBe(ApiResourceVisibility.visibility_child_orgs);
 
     // ...and a literal naming the same agent is a fixed row every organization's runs read.
     const literal = await expectGrpcCode(
       () => applyCalling(org, name, `${org}/${slug}`, false),
       Code.FailedPrecondition,
-      "a platform-visible workflow calling an org-visible agent by literal",
+      "a workflow shared with child organizations calling an org-visible agent by literal",
     );
     expect(literal.rawMessage).toBe(
-      floorSentence(await organizationSlug(clients.organizationQuery, org), slug, "visibility_org", "visibility_platform"),
+      floorSentence(await organizationSlug(clients.organizationQuery, org), slug, "visibility_org", "visibility_child_orgs"),
     );
 
     // The cap is org, not a pass: a private agent stays below it.
@@ -852,10 +853,10 @@ describe("Workflow conformance — agent_call references at write", () => {
     const privateCall = await expectGrpcCode(
       () => applyCalling(org, name, mine.metadata!.slug, false),
       Code.FailedPrecondition,
-      "a platform-visible workflow calling a private agent by bare slug",
+      "a workflow shared with child organizations calling a private agent by bare slug",
     );
     expect(privateCall.rawMessage).toBe(
-      floorSentence(await organizationSlug(clients.organizationQuery, org), mine.metadata!.slug, "visibility_private", "visibility_platform"),
+      floorSentence(await organizationSlug(clients.organizationQuery, org), mine.metadata!.slug, "visibility_private", "visibility_child_orgs"),
     );
   });
 });

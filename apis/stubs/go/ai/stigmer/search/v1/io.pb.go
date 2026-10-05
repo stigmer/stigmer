@@ -278,8 +278,8 @@ type SearchResult struct {
 	//
 	//   - visibility_private: the owner and explicit grants
 	//   - visibility_org: every member of the owning organization
-	//   - visibility_platform: members of the organizations linked by the
-	//     owning organization's identity provider
+	//   - visibility_child_orgs: everyone in the owning organization's child
+	//     organizations
 	Visibility apiresource.ApiResourceVisibility `protobuf:"varint,8,opt,name=visibility,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceVisibility" json:"visibility,omitempty"`
 	// User-provided tags for categorization and filtering.
 	Tags []string `protobuf:"bytes,9,rep,name=tags,proto3" json:"tags,omitempty"`

@@ -44,7 +44,7 @@ type WizardStep = "pick" | "configure" | "review" | "success";
  *    tenant name) plus the IdP display name and expected audience
  * 3. **Review** — verify auto-populated OIDC configuration, optionally
  *    enable SSO, set what a sign-in does (account creation, sign-in role,
- *    tenant org claim), and submit
+ *    customer id claim), and submit
  *
  * For known presets, URLs are constructed from deterministic templates
  * (no network call). For "Custom OIDC", the wizard attempts OIDC
@@ -612,7 +612,7 @@ function SuccessStep({
   const createsAccounts = isSso || signIn.createAccounts;
   const grantsRole = signIn.signInRole !== IamRole.iam_role_unspecified;
   const roleName = IamRole[signIn.signInRole];
-  const claim = signIn.tenantOrgClaim.trim();
+  const claim = signIn.externalIdClaim.trim();
 
   return (
     <div className="stg:space-y-4">
@@ -654,9 +654,10 @@ function SuccessStep({
         <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           {claim ? (
             <>
-              Each token is bound to the organization its{" "}
+              Each token is bound to the child organization whose external id
+              its{" "}
               <span className="stg:font-mono stg:text-foreground">{claim}</span>{" "}
-              claim names, and works there only.
+              claim carries, and works there only.
             </>
           ) : (
             "Tokens from this provider work in this organization only."

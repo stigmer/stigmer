@@ -261,10 +261,12 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| OrganizationCommandController.apply | `metadata.org`, `spec.identity_provider_ref.org` |
-| OrganizationCommandController.create | `metadata.org`, `spec.identity_provider_ref.org` |
+| OrganizationCommandController.apply | `metadata.org`, `spec.parent_org` |
+| OrganizationCommandController.create | `metadata.org`, `spec.parent_org` |
 | OrganizationCommandController.delete | `value (annotation)` |
 | OrganizationCommandController.rename | `resource_id (annotation)` |
-| OrganizationCommandController.update | `metadata.org`, `spec.identity_provider_ref.org`, `metadata.id (annotation)` |
+| OrganizationCommandController.update | `metadata.org`, `spec.parent_org`, `metadata.id (annotation)` |
 | OrganizationQueryController.find | `org` |
 | OrganizationQueryController.get | `value (annotation)` |
+| OrganizationQueryController.getByExternalId | `parent_org` |
+| OrganizationQueryController.listChildOrgs | `org` |

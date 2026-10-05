@@ -35,7 +35,7 @@ export interface InstanceVisibilitySelectorProps {
 /**
  * Visibility selector for instances (WorkflowInstance):
  * {@link VisibilitySelector} preconfigured with the instance level set
- * (Private / Organization — platform is excluded by design to preserve
+ * (Private / Organization — child organizations are excluded by design to preserve
  * tenant isolation).
  *
  * For workflow instances, ORG visibility has cascading effects: all org

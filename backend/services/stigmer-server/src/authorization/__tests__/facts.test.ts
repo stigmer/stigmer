@@ -50,7 +50,7 @@ describe("rowFactsOf against the tuple lifecycle's own resolution", () => {
     for (const visibility of [
       ApiResourceVisibility.visibility_private,
       ApiResourceVisibility.visibility_org,
-      ApiResourceVisibility.visibility_platform,
+      ApiResourceVisibility.visibility_child_orgs,
     ]) {
       it(`${declaration.type} at ${ApiResourceVisibility[visibility]}: the same parent links and visibility shapes`, () => {
         const row = fixtureRow(declaration, {
@@ -127,7 +127,7 @@ describe("a list candidate against the loaded row — the facts' two producers",
     for (const visibility of [
       ApiResourceVisibility.visibility_private,
       ApiResourceVisibility.visibility_org,
-      ApiResourceVisibility.visibility_platform,
+      ApiResourceVisibility.visibility_child_orgs,
     ]) {
       it(`${declaration.type} at ${ApiResourceVisibility[visibility]}: the candidate the helper builds carries the facts the driver derives from`, async () => {
         const row = fixtureRow(declaration, {

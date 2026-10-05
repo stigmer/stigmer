@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/subscription/v1/io.proto.
  */
 export const file_ai_stigmer_billing_subscription_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIjEKGkdldFN1YnNjcmlwdGlvbkZvck9yZ0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBIisKFEdldEVudGl0bGVtZW50c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIj8KD0NoYW5nZVBsYW5JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiLgoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEiLQoWR2V0UGVyaW9kRXN0aW1hdGVJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASLHAgoOUGVyaW9kRXN0aW1hdGUSDwoHcGxhbl9pZBgBIAEoCRIwCgxwZXJpb2Rfc3RhcnQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnBlcmlvZF9lbmQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhwKFHByb3ZpZGVyX2Nvc3RfbWljcm9zGAQgASgDEiMKG2NvbW1pc3Npb25fY29sbGVjdGVkX21pY3JvcxgFIAEoAxIiChptYW5hZ2VkX29yZ2FuaXphdGlvbl9jb3VudBgGIAEoBRJFCgVsaW5lcxgHIAMoCzI2LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lEhQKDHRvdGFsX21pY3JvcxgIIAEoAyJ1ChJQZXJpb2RFc3RpbWF0ZUxpbmUSSAoEa2luZBgBIAEoDjI6LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lS2luZBIVCg1hbW91bnRfbWljcm9zGAIgASgDKn8KFlBlcmlvZEVzdGltYXRlTGluZUtpbmQSKQolcGVyaW9kX2VzdGltYXRlX2xpbmVfa2luZF91bnNwZWNpZmllZBAAEggKBHBsYW4QARIVChFjb21taXNzaW9uX2NyZWRpdBACEhkKFW1hbmFnZWRfb3JnYW5pemF0aW9ucxADYgZwcm90bzM", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIjEKGkdldFN1YnNjcmlwdGlvbkZvck9yZ0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBIisKFEdldEVudGl0bGVtZW50c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIj8KD0NoYW5nZVBsYW5JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiLgoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEiLQoWR2V0UGVyaW9kRXN0aW1hdGVJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASK8AgoOUGVyaW9kRXN0aW1hdGUSDwoHcGxhbl9pZBgBIAEoCRIwCgxwZXJpb2Rfc3RhcnQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnBlcmlvZF9lbmQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhwKFHByb3ZpZGVyX2Nvc3RfbWljcm9zGAQgASgDEiMKG2NvbW1pc3Npb25fY29sbGVjdGVkX21pY3JvcxgFIAEoAxIXCg9jaGlsZF9vcmdfY291bnQYBiABKAUSRQoFbGluZXMYByADKAsyNi5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLlBlcmlvZEVzdGltYXRlTGluZRIUCgx0b3RhbF9taWNyb3MYCCABKAMidQoSUGVyaW9kRXN0aW1hdGVMaW5lEkgKBGtpbmQYASABKA4yOi5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLlBlcmlvZEVzdGltYXRlTGluZUtpbmQSFQoNYW1vdW50X21pY3JvcxgCIAEoAyp0ChZQZXJpb2RFc3RpbWF0ZUxpbmVLaW5kEikKJXBlcmlvZF9lc3RpbWF0ZV9saW5lX2tpbmRfdW5zcGVjaWZpZWQQABIICgRwbGFuEAESFQoRY29tbWlzc2lvbl9jcmVkaXQQAhIOCgpjaGlsZF9vcmdzEANiBnByb3RvMw", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * GetSubscriptionForOrgInput names the organization whose
@@ -197,7 +197,7 @@ export type PeriodEstimate = Message<"ai.stigmer.billing.subscription.v1.PeriodE
 
   /**
    * What the period's usage has cost in provider charges so far, across
-   * the organization and the managed organizations it pays for.
+   * the organization and the child organizations it pays for.
    *
    * @generated from field: int64 provider_cost_micros = 4;
    */
@@ -212,11 +212,11 @@ export type PeriodEstimate = Message<"ai.stigmer.billing.subscription.v1.PeriodE
   commissionCollectedMicros: bigint;
 
   /**
-   * The managed organizations counted against the plan this period.
+   * The child organizations counted against the plan this period.
    *
-   * @generated from field: int32 managed_organization_count = 6;
+   * @generated from field: int32 child_org_count = 6;
    */
-  managedOrganizationCount: number;
+  childOrgCount: number;
 
   /**
    * The invoice's lines in the order they print, zero lines omitted.
@@ -297,12 +297,12 @@ export enum PeriodEstimateLineKind {
   commission_credit = 2,
 
   /**
-   * The managed organizations beyond those the plan includes, at the
+   * The child organizations beyond those the plan includes, at the
    * plan's fee for each.
    *
-   * @generated from enum value: managed_organizations = 3;
+   * @generated from enum value: child_orgs = 3;
    */
-  managed_organizations = 3,
+  child_orgs = 3,
 }
 
 /**

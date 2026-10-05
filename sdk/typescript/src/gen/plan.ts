@@ -82,7 +82,7 @@ export interface EntitlementsInput {
 export interface EntitlementLimitsInput {
   maxOrgs?: number;
   maxUsers?: number;
-  includedManagedOrganizations?: number;
+  includedChildOrgs?: number;
   maxActiveSessionSandboxes?: number;
   maxActiveWorkflowSandboxes?: number;
   archivedWorkspaceRetentionDays?: number;
@@ -100,7 +100,7 @@ function buildEntitlementLimitsProto(input: EntitlementLimitsInput) {
   return Object.assign(create(EntitlementLimitsSchema), stripUndefined({
     maxOrgs: input.maxOrgs,
     maxUsers: input.maxUsers,
-    includedManagedOrganizations: input.includedManagedOrganizations,
+    includedChildOrgs: input.includedChildOrgs,
     maxActiveSessionSandboxes: input.maxActiveSessionSandboxes,
     maxActiveWorkflowSandboxes: input.maxActiveWorkflowSandboxes,
     archivedWorkspaceRetentionDays: input.archivedWorkspaceRetentionDays,

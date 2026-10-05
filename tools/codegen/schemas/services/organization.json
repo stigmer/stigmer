@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Create an organization.\n\n The server mints the organization's id (org_\u003culid\u003e); metadata.org must be\n empty, because an organization belongs to no organization (one that names\n the organization itself, by its own id or slug, is cleared). A slug held by\n another organization is refused with ALREADY_EXISTS; a slug another\n organization was renamed away from, and which still resolves to it, is\n refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ORGANIZATION_SLUG_RESERVED — another organization held the slug\n     until a recent rename, and it still resolves there; or an\n     organization from an earlier release was filed under it, which keeps\n     it reserved for good, deleted or not. Metadata: slug.\n\n On Stigmer Cloud, creating a platform-managed organization is a plan\n feature of its integrator. An integrator whose plan lacks it is refused\n with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not\n     include the feature. Metadata: feature (\"managed_organizations\"),\n     org (the integrator organization).\n\n A server composed to hold a limited number of organizations (the\n open-source edition holds one, which it makes the first time it\n starts) refuses a create once it holds that many, with\n FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"), before anything is written:\n\n   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations\n     as it is composed to. Metadata: limit."
+          "description": "Create an organization.\n\n The server mints the organization's id (org_\u003culid\u003e); metadata.org must be\n empty, because an organization belongs to no organization (one that names\n the organization itself, by its own id or slug, is cleared). A slug held by\n another organization is refused with ALREADY_EXISTS; a slug another\n organization was renamed away from, and which still resolves to it, is\n refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ORGANIZATION_SLUG_RESERVED — another organization held the slug\n     until a recent rename, and it still resolves there; or an\n     organization from an earlier release was filed under it, which keeps\n     it reserved for good, deleted or not. Metadata: slug.\n\n A child organization names its parent in spec.parent_org, and may carry\n the parent's own identifier for it in spec.external_id. Creating one\n needs can_manage_child_orgs on the parent; a parent the caller may not\n manage is refused as if it did not exist (PERMISSION_DENIED either\n way). An external_id another child of the same parent holds is refused\n with ALREADY_EXISTS. Nobody owns a new child: the parent's admins\n manage it, and grant its first members and owner. A parent that is\n itself a child is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - ORGANIZATION_PARENT_IS_CHILD — child organizations are one level\n     deep. Metadata: parent_org.\n\n On Stigmer Cloud, creating a child organization is a plan feature of its\n parent. A parent whose plan lacks it is refused with\n FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the parent organization's plan does not\n     include the feature. Metadata: feature (\"child_orgs\"), org (the\n     parent organization).\n\n A server composed to hold a limited number of organizations (the\n open-source edition holds one, which it makes the first time it\n starts) refuses a create once it holds that many, with\n FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"), before anything is written:\n\n   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations\n     as it is composed to. Metadata: limit."
         },
         {
           "name": "Update",
@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationId",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Delete an organization. Its slug is released once the organization is\n gone: a later organization may take it, and sees nothing the deleted one\n owned, because every resource names its organization by id.\n\n A server that holds one organization (GetServerInfoOutput.single_org's\n composition) refuses to delete it with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - ORGANIZATION_IS_SINGLE — the server's only organization cannot be\n     deleted. Metadata: org."
+          "description": "Delete an organization. Its slug is released once the organization is\n gone: a later organization may take it, and sees nothing the deleted one\n owned, because every resource names its organization by id.\n\n A server that holds one organization (GetServerInfoOutput.single_org's\n composition) refuses to delete it with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - ORGANIZATION_IS_SINGLE — the server's only organization cannot be\n     deleted. Metadata: org.\n\n An organization that still has child organizations is refused with\n FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"), before anything is written:\n\n   - ORGANIZATION_HAS_CHILDREN — delete its child organizations first.\n     Metadata: org."
         }
       ]
     },
@@ -80,12 +80,20 @@
           "description": "Find organizations the authenticated user is a member of.\n Returns only organizations the caller has access to."
         },
         {
-          "name": "GetByExternalOrgId",
+          "name": "GetByExternalId",
           "inputType": "OrganizationExternalLookup",
           "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Look up a platform-managed organization by its external platform coordinates.\n Returns the Stigmer organization mapped to the given IdentityProvider + external org ID."
+          "description": "Find a child organization by the identifier its parent keeps for it\n (external_id). An organization that is not a child of parent_org, or no\n child with that identifier, answers NotFound."
+        },
+        {
+          "name": "ListChildOrgs",
+          "inputType": "ListChildOrgsInput",
+          "inputFullType": "ai.stigmer.tenancy.organization.v1.ListChildOrgsInput",
+          "outputType": "ChildOrgList",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.ChildOrgList",
+          "description": "List an organization's child organizations, newest first."
         }
       ]
     }
@@ -246,36 +254,114 @@
     },
     {
       "name": "OrganizationExternalLookup",
-      "description": "Input for looking up a platform-managed organization by its external platform coordinates.\n Used by integrating platforms to find the Stigmer organization mapped to their own org.",
+      "description": "Input for finding a child organization by the identifier its parent keeps\n for it.",
       "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup",
       "protoFile": "apis/ai/stigmer/tenancy/organization/v1/io.proto",
       "fields": [
         {
-          "name": "IdentityProviderRef",
-          "jsonName": "identityProviderRef",
-          "protoField": "identity_provider_ref",
-          "type": {
-            "kind": "message",
-            "messageType": "ApiResourceReference"
-          },
-          "description": "Reference to the IdentityProvider (org + slug) that manages this organization.",
-          "required": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "ExternalOrgId",
-          "jsonName": "externalOrgId",
-          "protoField": "external_org_id",
+          "name": "ExternalId",
+          "jsonName": "externalId",
+          "protoField": "external_id",
           "type": {
             "kind": "string"
           },
-          "description": "The external platform's organization identifier.",
+          "description": "The child's external_id: the parent's own identifier for it.",
           "required": false,
           "validation": {
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 256
           }
+        },
+        {
+          "name": "ParentOrg",
+          "jsonName": "parentOrg",
+          "protoField": "parent_org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The parent organization, by id or slug.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListChildOrgsInput",
+      "description": "Input for listing an organization's child organizations, newest first.",
+      "protoType": "ai.stigmer.tenancy.organization.v1.ListChildOrgsInput",
+      "protoFile": "apis/ai/stigmer/tenancy/organization/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The parent organization, by id or slug.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most children to return; 0 returns every child and no token. A\n positive size is capped at 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
+        }
+      ]
+    },
+    {
+      "name": "ChildOrgList",
+      "description": "One page of an organization's child organizations.",
+      "protoType": "ai.stigmer.tenancy.organization.v1.ChildOrgList",
+      "protoFile": "apis/ai/stigmer/tenancy/organization/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Organization"
+            }
+          },
+          "description": "The children in this page, newest first.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more children may follow: pass it as page_token to continue.",
+          "required": false
         }
       ]
     }
@@ -283,7 +369,7 @@
   "enumTypes": [
     {
       "name": "ApiResourceVisibility",
-      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in the organizations linked to it by\n one identity provider, can read the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n   (all members of all organizations managed by the owning org's\n   IdentityProvider)\n - PUBLIC: retired; see the value's own comment.",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
       "values": [
         {
@@ -294,7 +380,7 @@
         {
           "name": "visibility_public",
           "number": 2,
-          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, between organizations linked by one identity\n provider, through visibility_platform."
+          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, from a parent organization to its children,\n through visibility_child_orgs."
         },
         {
           "name": "visibility_org",
@@ -302,188 +388,9 @@
           "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: everyone in the org sees all executions via inheritance\n once the instance opts in."
         },
         {
-          "name": "visibility_platform",
+          "name": "visibility_child_orgs",
           "number": 4,
-          "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
-        }
-      ]
-    },
-    {
-      "name": "ManagementMode",
-      "description": "ManagementMode defines how an organization is operated.",
-      "protoType": "ai.stigmer.tenancy.organization.v1.ManagementMode",
-      "values": [
-        {
-          "name": "self_managed",
-          "number": 1,
-          "description": "Organization created and operated directly by users via Stigmer UI, CLI, or API."
-        },
-        {
-          "name": "platform_managed",
-          "number": 2,
-          "description": "Organization created programmatically by an external platform via an IdentityProvider."
-        }
-      ]
-    },
-    {
-      "name": "ApiResourceKind",
-      "description": "API resource kinds for Stigmer.",
-      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
-      "values": [
-        {
-          "name": "api_resource_version",
-          "number": 1,
-          "description": "Immutable version record tracking changes to an API resource."
-        },
-        {
-          "name": "iam_policy",
-          "number": 10,
-          "description": "Role-based access control policy for granting permissions on resources."
-        },
-        {
-          "name": "identity_account",
-          "number": 11,
-          "description": "User account in the identity system."
-        },
-        {
-          "name": "api_key",
-          "number": 12,
-          "description": "Credential for programmatic API access."
-        },
-        {
-          "name": "invitation",
-          "number": 20,
-          "description": "Shareable link for joining an organization with a configurable role."
-        },
-        {
-          "name": "identity_provider",
-          "number": 21,
-          "description": "External identity provider for federated authentication."
-        },
-        {
-          "name": "oauth_app",
-          "number": 22,
-          "description": "Registered OAuth application with an external vendor for outbound authentication."
-        },
-        {
-          "name": "platform_client",
-          "number": 23,
-          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
-        },
-        {
-          "name": "team",
-          "number": 24,
-          "description": "Named group of an organization's people that access is shared with as one."
-        },
-        {
-          "name": "organization",
-          "number": 30,
-          "description": "The boundary that holds people, Agents, Workflows, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
-        },
-        {
-          "name": "platform",
-          "number": 31,
-          "description": "Singleton platform instance representing the Stigmer deployment."
-        },
-        {
-          "name": "agent",
-          "number": 40,
-          "description": "AI assistant with instructions, tools, skills, and a delegation model."
-        },
-        {
-          "name": "agent_execution",
-          "number": 41,
-          "description": "Single run of an agent within a session, tracking tool calls and responses."
-        },
-        {
-          "name": "session",
-          "number": 42,
-          "description": "Conversation thread between a user and an agent."
-        },
-        {
-          "name": "skill",
-          "number": 43,
-          "description": "Knowledge resource that provides domain-specific context to an agent."
-        },
-        {
-          "name": "mcp_server",
-          "number": 44,
-          "description": "External tool server connected via the Model Context Protocol."
-        },
-        {
-          "name": "agent_share",
-          "number": 46,
-          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
-        },
-        {
-          "name": "agent_channel",
-          "number": 47,
-          "description": "Connection binding an agent to an external messaging platform workspace."
-        },
-        {
-          "name": "channel_app",
-          "number": 48,
-          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
-        },
-        {
-          "name": "workflow",
-          "number": 50,
-          "description": "Multi-step orchestration defining how agents collaborate on a task."
-        },
-        {
-          "name": "workflow_instance",
-          "number": 51,
-          "description": "Configured deployment of a workflow with environment-specific bindings."
-        },
-        {
-          "name": "workflow_execution",
-          "number": 52,
-          "description": "Single run of a workflow instance, tracking step progress and outcomes."
-        },
-        {
-          "name": "environment",
-          "number": 53,
-          "description": "Named set of variables and secrets for agent and workflow execution."
-        },
-        {
-          "name": "artifact",
-          "number": 55,
-          "description": "Persisted blob produced during workflow or agent execution."
-        },
-        {
-          "name": "execution_context",
-          "number": 54,
-          "description": "User-owned runtime context for managing execution state."
-        },
-        {
-          "name": "schedule",
-          "number": 56,
-          "description": "Recurring trigger that runs an agent on a cron schedule."
-        },
-        {
-          "name": "memory",
-          "number": 57,
-          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
-        },
-        {
-          "name": "plugin",
-          "number": 58,
-          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers, an agent and workflows, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
-        },
-        {
-          "name": "plan",
-          "number": 70,
-          "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
-        },
-        {
-          "name": "subscription",
-          "number": 71,
-          "description": "An organization's binding to a Plan; at most one active per organization.\n\n System-created: the payment system drives its lifecycle, so it has no\n owner and grants no roles. Its reads and writes authorize on the\n organization through the billing permissions."
-        },
-        {
-          "name": "license",
-          "number": 72,
-          "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, executions and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     }

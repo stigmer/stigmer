@@ -11,9 +11,9 @@
  *   - a duplicate slug is refused globally, and a create that names an
  *     organization of its own (a non-empty metadata.org) is refused, since
  *     an organization belongs to none;
- *   - the byte-pinned AlreadyExists copy;
- *   - getByExternalOrgId answers Unimplemented from the PARTIAL service
- *     registration (validated here before conformance relies on it).
+ *   - the byte-pinned AlreadyExists copy.
+ *
+ * Child organizations are pinned beside it, in children.test.ts.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -193,13 +193,4 @@ describe("organization query surface", () => {
     expect(page.totalPages).toBe(Math.ceil(all.entries.length / 2));
   });
 
-  it("getByExternalOrgId answers Unimplemented from the partial registration", async () => {
-    const error = await grpcCode(() =>
-      query.getByExternalOrgId({
-        externalOrgId: "ext-123",
-        identityProviderRef: { org: "acme", slug: "idp-test" },
-      }),
-    );
-    expect(error.code).toBe(Code.Unimplemented);
-  });
 });

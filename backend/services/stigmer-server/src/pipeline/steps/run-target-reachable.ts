@@ -28,7 +28,7 @@ import { metadataOf } from "./shapes.js";
 export function runTargetUnreachableMessage(target: RunTarget): string {
   return (
     `a run uses only what its own organization can read: ${getKindName(target.resourceKind)} ` +
-    `${target.resourceId} belongs to another organization and is not shared at platform visibility`
+    `${target.resourceId} belongs to another organization and is not one its parent shares with child organizations`
   );
 }
 

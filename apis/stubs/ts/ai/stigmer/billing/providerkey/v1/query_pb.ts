@@ -26,7 +26,7 @@ export const file_ai_stigmer_billing_providerkey_v1_query: GenFile = /*@__PURE__
 export const ProviderKeyQueryController: GenService<{
   /**
    * List the keys that serve the organization, its own and any it inherits
-   * from its integrator, without their secrets.
+   * from its parent organization, without their secrets.
    *
    * @generated from rpc ai.stigmer.billing.providerkey.v1.ProviderKeyQueryController.list
    */

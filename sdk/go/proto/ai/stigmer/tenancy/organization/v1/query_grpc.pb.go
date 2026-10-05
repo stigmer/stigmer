@@ -24,7 +24,8 @@ const (
 	OrganizationQueryController_Get_FullMethodName                 = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get"
 	OrganizationQueryController_Find_FullMethodName                = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/find"
 	OrganizationQueryController_FindMyOrganizations_FullMethodName = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations"
-	OrganizationQueryController_GetByExternalOrgId_FullMethodName  = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/getByExternalOrgId"
+	OrganizationQueryController_GetByExternalId_FullMethodName     = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/getByExternalId"
+	OrganizationQueryController_ListChildOrgs_FullMethodName       = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listChildOrgs"
 )
 
 // OrganizationQueryControllerClient is the client API for OrganizationQueryController service.
@@ -40,9 +41,12 @@ type OrganizationQueryControllerClient interface {
 	// Find organizations the authenticated user is a member of.
 	// Returns only organizations the caller has access to.
 	FindMyOrganizations(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Organizations, error)
-	// Look up a platform-managed organization by its external platform coordinates.
-	// Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
-	GetByExternalOrgId(ctx context.Context, in *OrganizationExternalLookup, opts ...grpc.CallOption) (*Organization, error)
+	// Find a child organization by the identifier its parent keeps for it
+	// (external_id). An organization that is not a child of parent_org, or no
+	// child with that identifier, answers NotFound.
+	GetByExternalId(ctx context.Context, in *OrganizationExternalLookup, opts ...grpc.CallOption) (*Organization, error)
+	// List an organization's child organizations, newest first.
+	ListChildOrgs(ctx context.Context, in *ListChildOrgsInput, opts ...grpc.CallOption) (*ChildOrgList, error)
 }
 
 type organizationQueryControllerClient struct {
@@ -83,10 +87,20 @@ func (c *organizationQueryControllerClient) FindMyOrganizations(ctx context.Cont
 	return out, nil
 }
 
-func (c *organizationQueryControllerClient) GetByExternalOrgId(ctx context.Context, in *OrganizationExternalLookup, opts ...grpc.CallOption) (*Organization, error) {
+func (c *organizationQueryControllerClient) GetByExternalId(ctx context.Context, in *OrganizationExternalLookup, opts ...grpc.CallOption) (*Organization, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Organization)
-	err := c.cc.Invoke(ctx, OrganizationQueryController_GetByExternalOrgId_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, OrganizationQueryController_GetByExternalId_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *organizationQueryControllerClient) ListChildOrgs(ctx context.Context, in *ListChildOrgsInput, opts ...grpc.CallOption) (*ChildOrgList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChildOrgList)
+	err := c.cc.Invoke(ctx, OrganizationQueryController_ListChildOrgs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -106,9 +120,12 @@ type OrganizationQueryControllerServer interface {
 	// Find organizations the authenticated user is a member of.
 	// Returns only organizations the caller has access to.
 	FindMyOrganizations(context.Context, *emptypb.Empty) (*Organizations, error)
-	// Look up a platform-managed organization by its external platform coordinates.
-	// Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
-	GetByExternalOrgId(context.Context, *OrganizationExternalLookup) (*Organization, error)
+	// Find a child organization by the identifier its parent keeps for it
+	// (external_id). An organization that is not a child of parent_org, or no
+	// child with that identifier, answers NotFound.
+	GetByExternalId(context.Context, *OrganizationExternalLookup) (*Organization, error)
+	// List an organization's child organizations, newest first.
+	ListChildOrgs(context.Context, *ListChildOrgsInput) (*ChildOrgList, error)
 }
 
 // UnimplementedOrganizationQueryControllerServer should be embedded to have
@@ -127,8 +144,11 @@ func (UnimplementedOrganizationQueryControllerServer) Find(context.Context, *api
 func (UnimplementedOrganizationQueryControllerServer) FindMyOrganizations(context.Context, *emptypb.Empty) (*Organizations, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindMyOrganizations not implemented")
 }
-func (UnimplementedOrganizationQueryControllerServer) GetByExternalOrgId(context.Context, *OrganizationExternalLookup) (*Organization, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetByExternalOrgId not implemented")
+func (UnimplementedOrganizationQueryControllerServer) GetByExternalId(context.Context, *OrganizationExternalLookup) (*Organization, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByExternalId not implemented")
+}
+func (UnimplementedOrganizationQueryControllerServer) ListChildOrgs(context.Context, *ListChildOrgsInput) (*ChildOrgList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListChildOrgs not implemented")
 }
 func (UnimplementedOrganizationQueryControllerServer) testEmbeddedByValue() {}
 
@@ -204,20 +224,38 @@ func _OrganizationQueryController_FindMyOrganizations_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OrganizationQueryController_GetByExternalOrgId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _OrganizationQueryController_GetByExternalId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(OrganizationExternalLookup)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(OrganizationQueryControllerServer).GetByExternalOrgId(ctx, in)
+		return srv.(OrganizationQueryControllerServer).GetByExternalId(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: OrganizationQueryController_GetByExternalOrgId_FullMethodName,
+		FullMethod: OrganizationQueryController_GetByExternalId_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrganizationQueryControllerServer).GetByExternalOrgId(ctx, req.(*OrganizationExternalLookup))
+		return srv.(OrganizationQueryControllerServer).GetByExternalId(ctx, req.(*OrganizationExternalLookup))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrganizationQueryController_ListChildOrgs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListChildOrgsInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrganizationQueryControllerServer).ListChildOrgs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrganizationQueryController_ListChildOrgs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrganizationQueryControllerServer).ListChildOrgs(ctx, req.(*ListChildOrgsInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -242,8 +280,12 @@ var OrganizationQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OrganizationQueryController_FindMyOrganizations_Handler,
 		},
 		{
-			MethodName: "getByExternalOrgId",
-			Handler:    _OrganizationQueryController_GetByExternalOrgId_Handler,
+			MethodName: "getByExternalId",
+			Handler:    _OrganizationQueryController_GetByExternalId_Handler,
+		},
+		{
+			MethodName: "listChildOrgs",
+			Handler:    _OrganizationQueryController_ListChildOrgs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

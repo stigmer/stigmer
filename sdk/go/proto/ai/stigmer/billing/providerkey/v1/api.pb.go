@@ -54,9 +54,9 @@ type ProviderKey struct {
 	// provider keys: the key is kept and can be removed, but the proxy serves
 	// the organization on the platform's key, metered, until the plan does.
 	InUse bool `protobuf:"varint,8,opt,name=in_use,json=inUse,proto3" json:"in_use,omitempty"`
-	// Set when the row is the integrator organization's key, serving this
-	// managed organization because it holds none of its own for the provider.
-	// Such a row is read-only here; it is managed on the integrator.
+	// Set when the row is the parent organization's key, serving this child
+	// organization because it holds none of its own for the provider. Such a
+	// row is read-only here; it is managed on the parent.
 	InheritedFromOrg string `protobuf:"bytes,9,opt,name=inherited_from_org,json=inheritedFromOrg,proto3" json:"inherited_from_org,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache

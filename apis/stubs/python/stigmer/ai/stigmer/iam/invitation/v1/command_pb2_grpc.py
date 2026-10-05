@@ -46,7 +46,8 @@ class InvitationCommandControllerServicer(object):
 
         The specified role must be in the organization's grantable_roles, and
         only an owner of the organization may create an invitation for owner.
-        Platform-managed organizations cannot create invitations.
+        A parent organization's admins may invite people into its child
+        organizations.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

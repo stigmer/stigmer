@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/commons/apiresource/enum.proto.
  */
 export const file_ai_stigmer_commons_apiresource_enum: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvZW51bS5wcm90bxIeYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlKnYKFEFwaVJlc291cmNlRXZlbnRUeXBlEg8KC3Vuc3BlY2lmaWVkEAASCwoHY3JlYXRlZBABEgsKB3VwZGF0ZWQQAhILCgdkZWxldGVkEAMSCwoHcmVuYW1lZBAEEhkKFXN0YWNrX291dHB1dHNfdXBkYXRlZBAFKowBCh1BcGlSZXNvdXJjZVN0YXRlT3BlcmF0aW9uVHlwZRIxCi1hcGlfcmVzb3VyY2Vfc3RhdGVfb3BlcmF0aW9uX3R5cGVfdW5zcGVjaWZpZWQQABIKCgZjcmVhdGUQARIKCgZ1cGRhdGUQAhIKCgZkZWxldGUQAxIICgRyZWFkEAQSCgoGc3RyZWFtEAUqnAEKFUFwaVJlc291cmNlVmlzaWJpbGl0eRInCiNhcGlfcmVzb3VyY2VfdmlzaWJpbGl0eV91bnNwZWNpZmllZBAAEhYKEnZpc2liaWxpdHlfcHJpdmF0ZRABEhUKEXZpc2liaWxpdHlfcHVibGljEAISEgoOdmlzaWJpbGl0eV9vcmcQAxIXChN2aXNpYmlsaXR5X3BsYXRmb3JtEARiBnByb3RvMw");
+  fileDesc("CilhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvZW51bS5wcm90bxIeYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlKnYKFEFwaVJlc291cmNlRXZlbnRUeXBlEg8KC3Vuc3BlY2lmaWVkEAASCwoHY3JlYXRlZBABEgsKB3VwZGF0ZWQQAhILCgdkZWxldGVkEAMSCwoHcmVuYW1lZBAEEhkKFXN0YWNrX291dHB1dHNfdXBkYXRlZBAFKowBCh1BcGlSZXNvdXJjZVN0YXRlT3BlcmF0aW9uVHlwZRIxCi1hcGlfcmVzb3VyY2Vfc3RhdGVfb3BlcmF0aW9uX3R5cGVfdW5zcGVjaWZpZWQQABIKCgZjcmVhdGUQARIKCgZ1cGRhdGUQAhIKCgZkZWxldGUQAxIICgRyZWFkEAQSCgoGc3RyZWFtEAUqngEKFUFwaVJlc291cmNlVmlzaWJpbGl0eRInCiNhcGlfcmVzb3VyY2VfdmlzaWJpbGl0eV91bnNwZWNpZmllZBAAEhYKEnZpc2liaWxpdHlfcHJpdmF0ZRABEhUKEXZpc2liaWxpdHlfcHVibGljEAISEgoOdmlzaWJpbGl0eV9vcmcQAxIZChV2aXNpYmlsaXR5X2NoaWxkX29yZ3MQBGIGcHJvdG8z");
 
 /**
  * Event types produced by command controller RPCs across all API resources.
@@ -131,8 +131,8 @@ export const ApiResourceStateOperationTypeSchema: GenEnum<ApiResourceStateOperat
  * - Visibility: Who can access/use the resource
  *
  * All resources belong to an organization. Visibility determines which
- * users, inside that organization or in the organizations linked to it by
- * one identity provider, can read the resource. No level reaches every
+ * users, inside that organization or in its child organizations, can read
+ * the resource. No level reaches every
  * account on the server.
  *
  * The visibility levels map to FGA tuples:
@@ -140,9 +140,8 @@ export const ApiResourceStateOperationTypeSchema: GenEnum<ApiResourceStateOperat
  * - ORG: resource#viewer@organization:<org>#viewer tuple (everyone in the
  *   org — the org role hierarchy flows downward, so owners, admins, members
  *   AND read-only viewers all satisfy the organization#viewer userset)
- * - PLATFORM: resource#platform_viewer@identity_provider:<idp>#platform_user
- *   (all members of all organizations managed by the owning org's
- *   IdentityProvider)
+ * - CHILD_ORGS: resource#child_org_viewer@organization:<org>#child_org_viewer
+ *   (everyone in every child organization of the owning organization)
  * - PUBLIC: retired; see the value's own comment.
  *
  * @generated from enum ai.stigmer.commons.apiresource.ApiResourceVisibility
@@ -177,8 +176,8 @@ export enum ApiResourceVisibility {
    * server; it is refused at create and at updateVisibility for every kind,
    * and every stored row that held it has been moved to visibility_org.
    * Sharing across organizations happens through plugins (a copy is
-   * installed and owned) or, between organizations linked by one identity
-   * provider, through visibility_platform.
+   * installed and owned) or, from a parent organization to its children,
+   * through visibility_child_orgs.
    *
    * @generated from enum value: visibility_public = 2;
    */
@@ -208,30 +207,21 @@ export enum ApiResourceVisibility {
   visibility_org = 3,
 
   /**
-   * All members of all organizations managed by the owning org's
-   * IdentityProvider can access (read and execute) this resource.
+   * Everyone in every child organization of the owning organization can
+   * read and run this resource: the shared catalog an organization offers
+   * the organizations under it (spec.parent_org). Child organizations
+   * created later gain access automatically, and no other organization
+   * does. Instances, sessions, executions and environments are never shared
+   * this way: each child runs the shared blueprint inside its own boundary.
    *
-   * "Platform" here means an external platform that operates Stigmer orgs
-   * on behalf of its own customers (see ManagementMode.platform_managed) —
-   * NOT the Stigmer platform singleton used by
-   * AUTHORIZATION_SCOPE_TYPE_PLATFORM.
+   * Only valid for blueprint kinds with supports_child_orgs: true, and only
+   * in an organization that is not itself a child.
    *
-   * This is the "private catalog" primitive for multi-tenant consumers:
-   * a platform (e.g. Planton) authors blueprints (agents, skills, MCP
-   * servers, workflows) in its own org and shares them with every child
-   * org it manages, without exposing them publicly. Child orgs created
-   * later gain access automatically. Instances, sessions, executions and
-   * environments are never platform-visible — each child org instantiates
-   * the shared blueprint inside its own tenant boundary.
+   * FGA tuple: resource#child_org_viewer@organization:<org>#child_org_viewer
    *
-   * Only valid for blueprint kinds with supports_platform: true, and only
-   * when the owning org owns at least one IdentityProvider.
-   *
-   * FGA tuple: resource#platform_viewer@identity_provider:<idp>#platform_user
-   *
-   * @generated from enum value: visibility_platform = 4;
+   * @generated from enum value: visibility_child_orgs = 4;
    */
-  visibility_platform = 4,
+  visibility_child_orgs = 4,
 }
 
 /**

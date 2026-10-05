@@ -52,7 +52,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters. |
 | `metadata.id` | No | System-generated unique identifier. Never set by users. |
 | `metadata.org` | Recommended | Organization that owns this agent. Set automatically from `context.org` if omitted during apply. Format: lowercase alphanumeric with hyphens (e.g., `acme-corp`). |
-| `metadata.visibility` | No | Access control. `visibility_org` (default): every member of the owning organization can read. `visibility_private`: the creator and anyone granted access directly. `visibility_platform`: every organization the owning organization manages through its identity provider. Nothing is readable outside the organization otherwise; another organization's agent reaches yours as a plugin you install. |
+| `metadata.visibility` | No | Access control. `visibility_org` (default): every member of the owning organization can read. `visibility_private`: the creator and anyone granted access directly. `visibility_child_orgs`: everyone in the owning organization's child organizations. Nothing is readable outside the organization otherwise; another organization's agent reaches yours as a plugin you install. |
 | `metadata.labels` | No | Key-value pairs for organization and filtering (e.g., `team: engineering`). |
 | `metadata.annotations` | No | Key-value pairs for additional metadata not used for filtering (e.g., `docs-url: "https://..."`). |
 | `metadata.tags` | No | String array for categorization and search (e.g., `["code-review", "security"]`). |
@@ -75,11 +75,11 @@ metadata:
   org: acme-corp
   visibility: visibility_private
 
-# Platform agent — every organization acme-cloud manages through its identity provider
+# Shared agent — everyone in acme-cloud's child organizations
 metadata:
   name: onboarding-assistant
   org: acme-cloud
-  visibility: visibility_platform
+  visibility: visibility_child_orgs
 ```
 
 ### Organization

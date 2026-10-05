@@ -49,7 +49,8 @@ Organization organization = client.organizations().get("org_01j5q3k7m8r2s4tnz2hf
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get an organization by ID. |
-| [`getByExternalOrgId`](#getbyexternalorgid) | Look up a platform-managed organization by its external platform coordinates. |
+| [`getByExternalId`](#getbyexternalid) | Find a child organization by the identifier its parent keeps for it (external_id). |
+| [`listChildOrgs`](#listchildorgs) | List an organization's child organizations, newest first. |
 | [`find`](#find) | List organizations with pagination and filtering. |
 | [`findMyOrganizations`](#findmyorganizations) | Find organizations the authenticated user is a member of. |
 | [`apply`](#apply) | Create or update an organization. |
@@ -93,40 +94,40 @@ Organization organization = client.organizations().get(id);
 
 **Returns**: [`Organization`](#organization)
 
-### getByExternalOrgId
+### getByExternalId
 
-Look up a platform-managed organization by its external platform coordinates. Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+Find a child organization by the identifier its parent keeps for it (external_id). An organization that is not a child of parent_org, or no child with that identifier, answers NotFound.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const organization = await stigmer.organization.getByExternalOrgId({
-  identityProviderRef: {},
-  externalOrgId: "...",
+const organization = await stigmer.organization.getByExternalId({
+  externalId: "...",
+  parentOrg: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-organization, err := client.Organization.GetByExternalOrgId(ctx, &stigmer.OrganizationExternalLookup{
-  IdentityProviderRef: &stigmer.ResourceRef{},
-  ExternalOrgId:       "...",
+organization, err := client.Organization.GetByExternalId(ctx, &stigmer.OrganizationExternalLookup{
+  ExternalId: "...",
+  ParentOrg:  "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organizations.get_by_external_org_id(OrganizationExternalLookup(
-    identity_provider_ref=None,
-    external_org_id="...",
+organization = client.organizations.get_by_external_id(OrganizationExternalLookup(
+    external_id="...",
+    parent_org="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organizations().getByExternalOrgId(OrganizationExternalLookup.builder()
-    .identityProviderRef(null)
-    .externalOrgId("...")
+Organization organization = client.organizations().getByExternalId(OrganizationExternalLookup.builder()
+    .externalId("...")
+    .parentOrg("...")
     .build());
 ```
 </Tab>
@@ -135,6 +136,53 @@ Organization organization = client.organizations().getByExternalOrgId(Organizati
 **Parameters**: [`OrganizationExternalLookup`](#organizationexternallookup)
 
 **Returns**: [`Organization`](#organization)
+
+### listChildOrgs
+
+List an organization's child organizations, newest first.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.organization.listChildOrgs({
+  org: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Organization.ListChildOrgs(ctx, &stigmer.ListChildOrgsInput{
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.organizations.list_child_orgs(ListChildOrgsInput(
+    org="...",
+    page_size=0,
+    page_token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ChildOrgList result = client.organizations().listChildOrgs(ListChildOrgsInput.builder()
+    .org("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListChildOrgsInput`](#listchildorgsinput)
+
+**Returns**: [`ChildOrgList`](#childorglist)
 
 ### find
 
@@ -235,27 +283,25 @@ const organization = await stigmer.organization.apply({
   labels: {},
   description: "...",
   logoUrl: "...",
-  managementMode: "...",
-  identityProviderRef: {},
-  externalOrgId: "...",
+  externalId: "...",
   isPersonal: false,
   preferences: {},
+  parentOrg: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 organization, err := client.Organization.Apply(ctx, &stigmer.OrganizationInput{
-  Name:                "my-organization",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  LogoUrl:             "...",
-  ManagementMode:      "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
-  ExternalOrgId:       "...",
-  IsPersonal:          false,
-  Preferences:         &stigmer.OrganizationPreferencesInput{},
+  Name:        "my-organization",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  LogoUrl:     "...",
+  ExternalId:  "...",
+  IsPersonal:  false,
+  Preferences: &stigmer.OrganizationPreferencesInput{},
+  ParentOrg:   "...",
 })
 ```
 </Tab>
@@ -267,11 +313,10 @@ organization = client.organizations.apply(OrganizationInput(
     labels={},
     description="...",
     logo_url="...",
-    management_mode="...",
-    identity_provider_ref=None,
-    external_org_id="...",
+    external_id="...",
     is_personal=False,
     preferences=None,
+    parent_org="...",
 ))
 ```
 </Tab>
@@ -283,11 +328,10 @@ Organization organization = client.organizations().apply(OrganizationInput.build
     .labels(Map.of())
     .description("...")
     .logoUrl("...")
-    .managementMode("...")
-    .identityProviderRef(null)
-    .externalOrgId("...")
+    .externalId("...")
     .isPersonal(false)
     .preferences(null)
+    .parentOrg("...")
     .build());
 ```
 </Tab>
@@ -305,9 +349,13 @@ The server mints the organization's id (org_&lt;ulid&gt;); metadata.org must be 
 
 - ORGANIZATION_SLUG_RESERVED — another organization held the slug until a recent rename, and it still resolves there; or an organization from an earlier release was filed under it, which keeps it reserved for good, deleted or not. Metadata: slug.
 
-On Stigmer Cloud, creating a platform-managed organization is a plan feature of its integrator. An integrator whose plan lacks it is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+A child organization names its parent in spec.parent_org, and may carry the parent's own identifier for it in spec.external_id. Creating one needs can_manage_child_orgs on the parent; a parent the caller may not manage is refused as if it did not exist (PERMISSION_DENIED either way). An external_id another child of the same parent holds is refused with ALREADY_EXISTS. Nobody owns a new child: the parent's admins manage it, and grant its first members and owner. A parent that is itself a child is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
 
-- PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not include the feature. Metadata: feature ("managed_organizations"), org (the integrator organization).
+- ORGANIZATION_PARENT_IS_CHILD — child organizations are one level deep. Metadata: parent_org.
+
+On Stigmer Cloud, creating a child organization is a plan feature of its parent. A parent whose plan lacks it is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- PLAN_UPGRADE_REQUIRED — the parent organization's plan does not include the feature. Metadata: feature ("child_orgs"), org (the parent organization).
 
 A server composed to hold a limited number of organizations (the open-source edition holds one, which it makes the first time it starts) refuses a create once it holds that many, with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
 
@@ -322,27 +370,25 @@ const organization = await stigmer.organization.create({
   labels: {},
   description: "...",
   logoUrl: "...",
-  managementMode: "...",
-  identityProviderRef: {},
-  externalOrgId: "...",
+  externalId: "...",
   isPersonal: false,
   preferences: {},
+  parentOrg: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 organization, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
-  Name:                "my-organization",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  LogoUrl:             "...",
-  ManagementMode:      "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
-  ExternalOrgId:       "...",
-  IsPersonal:          false,
-  Preferences:         &stigmer.OrganizationPreferencesInput{},
+  Name:        "my-organization",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  LogoUrl:     "...",
+  ExternalId:  "...",
+  IsPersonal:  false,
+  Preferences: &stigmer.OrganizationPreferencesInput{},
+  ParentOrg:   "...",
 })
 ```
 </Tab>
@@ -354,11 +400,10 @@ organization = client.organizations.create(OrganizationInput(
     labels={},
     description="...",
     logo_url="...",
-    management_mode="...",
-    identity_provider_ref=None,
-    external_org_id="...",
+    external_id="...",
     is_personal=False,
     preferences=None,
+    parent_org="...",
 ))
 ```
 </Tab>
@@ -370,11 +415,10 @@ Organization organization = client.organizations().create(OrganizationInput.buil
     .labels(Map.of())
     .description("...")
     .logoUrl("...")
-    .managementMode("...")
-    .identityProviderRef(null)
-    .externalOrgId("...")
+    .externalId("...")
     .isPersonal(false)
     .preferences(null)
+    .parentOrg("...")
     .build());
 ```
 </Tab>
@@ -399,27 +443,25 @@ const organization = await stigmer.organization.update({
   labels: {},
   description: "...",
   logoUrl: "...",
-  managementMode: "...",
-  identityProviderRef: {},
-  externalOrgId: "...",
+  externalId: "...",
   isPersonal: false,
   preferences: {},
+  parentOrg: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 organization, err := client.Organization.Update(ctx, &stigmer.OrganizationInput{
-  Name:                "my-organization",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  LogoUrl:             "...",
-  ManagementMode:      "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
-  ExternalOrgId:       "...",
-  IsPersonal:          false,
-  Preferences:         &stigmer.OrganizationPreferencesInput{},
+  Name:        "my-organization",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  LogoUrl:     "...",
+  ExternalId:  "...",
+  IsPersonal:  false,
+  Preferences: &stigmer.OrganizationPreferencesInput{},
+  ParentOrg:   "...",
 })
 ```
 </Tab>
@@ -431,11 +473,10 @@ organization = client.organizations.update(OrganizationInput(
     labels={},
     description="...",
     logo_url="...",
-    management_mode="...",
-    identity_provider_ref=None,
-    external_org_id="...",
+    external_id="...",
     is_personal=False,
     preferences=None,
+    parent_org="...",
 ))
 ```
 </Tab>
@@ -447,11 +488,10 @@ Organization organization = client.organizations().update(OrganizationInput.buil
     .labels(Map.of())
     .description("...")
     .logoUrl("...")
-    .managementMode("...")
-    .identityProviderRef(null)
-    .externalOrgId("...")
+    .externalId("...")
     .isPersonal(false)
     .preferences(null)
+    .parentOrg("...")
     .build());
 ```
 </Tab>
@@ -468,6 +508,10 @@ Delete an organization. Its slug is released once the organization is gone: a la
 A server that holds one organization (GetServerInfoOutput.single_org's composition) refuses to delete it with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
 
 - ORGANIZATION_IS_SINGLE — the server's only organization cannot be deleted. Metadata: org.
+
+An organization that still has child organizations is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
+
+- ORGANIZATION_HAS_CHILDREN — delete its child organizations first. Metadata: org.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -558,24 +602,10 @@ Input for creating or updating an Organization.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     description: { type: "string", description: "Human-readable description of the organization." },
     logoUrl: { type: "string", description: "Public URL for the organization logo." },
-    managementMode: { type: "ManagementMode", description: "How this organization is operated.", typeDescriptionLink: "#managementmode" },
-    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that authenticates requests for this organization.", typeDescriptionLink: "#resourceref" },
-    externalOrgId: { type: "string", description: "External platform's organization identifier for reverse mapping." },
+    externalId: { type: "string", description: "The parent's own identifier for this organization, such as the customer id an integrator keeps for it (\"cust-4411\")." },
     isPersonal: { type: "boolean", description: "Whether this is a personal organization, auto-created during identity provisioning." },
     preferences: { type: "OrganizationPreferencesInput", description: "Standing preferences declared by the organization.", typeDescriptionLink: "#organizationpreferencesinput" },
-  }}
-/>
-
-### ResourceRef
-
-Generic reference to any API resource by org and slug.
-
-<TypeTable
-  type={{
-    org: { type: "string", description: "Organization that owns the referenced resource, by slug or id." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
-    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
-    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+    parentOrg: { type: "string", description: "The organization this one is a child of, by id or slug; empty for an organization that has no parent." },
   }}
 />
 
@@ -638,12 +668,35 @@ List of organizations.
 
 ### OrganizationExternalLookup
 
-Input for looking up a platform-managed organization by its external platform coordinates.
+Input for finding a child organization by the identifier its parent keeps for it.
 
 <TypeTable
   type={{
-    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider (org + slug) that manages this organization.", typeDescriptionLink: "#resourceref", required: true },
-    externalOrgId: { type: "string", description: "The external platform's organization identifier." },
+    externalId: { type: "string", description: "The child's external_id: the parent's own identifier for it." },
+    parentOrg: { type: "string", description: "The parent organization, by id or slug." },
+  }}
+/>
+
+### ListChildOrgsInput
+
+Input for listing an organization's child organizations, newest first.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "The parent organization, by id or slug." },
+    pageSize: { type: "number", description: "The most children to return; 0 returns every child and no token." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list." },
+  }}
+/>
+
+### ChildOrgList
+
+One page of an organization's child organizations.
+
+<TypeTable
+  type={{
+    entries: { type: "OrganizationInput[]", description: "The children in this page, newest first.", typeDescriptionLink: "#organizationinput" },
+    nextPageToken: { type: "string", description: "Set when more children may follow: pass it as page_token to continue." },
   }}
 />
 
@@ -660,13 +713,4 @@ Organization is the top-level container for all Stigmer resources.
     status: { type: "OrganizationStatus", description: "System-managed state. See `OrganizationStatus`." },
   }}
 />
-
-### ManagementMode
-
-ManagementMode defines how an organization is operated.
-
-| Value | Description |
-|-------|-------------|
-| `self_managed` | Organization created and operated directly by users via Stigmer UI, CLI, or API. |
-| `platform_managed` | Organization created programmatically by an external platform via an IdentityProvider. |
 

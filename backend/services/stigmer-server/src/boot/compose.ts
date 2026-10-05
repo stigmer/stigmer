@@ -124,6 +124,7 @@ import { newPlatformClientOriginGuard } from "../domain/platformclient/origin-gu
 import { newResourcePlatformClientStore } from "../domain/platformclient/resource-store.js";
 import { registerPlatformClientTokenService } from "../domain/platformclient/token-controller.js";
 import { newPlatformClientTokenVerifier } from "../domain/platformclient/verifier.js";
+import { newChildOrganizations } from "../domain/organization/children.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
 import { registerMcpServerServices } from "../domain/mcpserver/controller.js";
 import { registerPlatformServices } from "../domain/platform/controller.js";
@@ -1549,6 +1550,7 @@ export async function composeServer(
     registerPlatformClientTokenService(router, {
       mint: {
         clients: platformClients,
+        store,
         accounts: identityAccounts,
         createAccount: createIdentityAccount,
         grantPath: iamPolicyGrantPath,
@@ -1910,6 +1912,7 @@ export async function composeServer(
           newPlatformClientTokenVerifier({
             keys: platformTokenKeys,
             clients: platformClients,
+            store,
           }),
         ]
       : []),
@@ -2030,6 +2033,7 @@ export async function composeServer(
     authorizer,
     listReadScope,
     credentialBinding,
+    childOrganizations: newChildOrganizations(store),
     authorizationQueries:
       extensions.drivers.authorizationQueries ??
       (authorizationPosture === "built-in"

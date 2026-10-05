@@ -45,7 +45,8 @@ message SessionSpec {
   // again.
   //
   // @internal
-  // Another organization's agent is accepted only at platform visibility
+  // Another organization's agent is accepted only when it is this
+  // organization's parent's, shared at visibility_child_orgs
   // (the reference rule). The resolved id beside the reference is what
   // every turn reads, by point read, so a slug deleted and taken by another
   // agent never redirects a live conversation (the share's pin).

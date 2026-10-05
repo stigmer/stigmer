@@ -8,7 +8,6 @@ package organizationv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -170,14 +169,14 @@ func (x *OrganizationId) GetValue() string {
 	return ""
 }
 
-// Input for looking up a platform-managed organization by its external platform coordinates.
-// Used by integrating platforms to find the Stigmer organization mapped to their own org.
+// Input for finding a child organization by the identifier its parent keeps
+// for it.
 type OrganizationExternalLookup struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Reference to the IdentityProvider (org + slug) that manages this organization.
-	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
-	// The external platform's organization identifier.
-	ExternalOrgId string `protobuf:"bytes,2,opt,name=external_org_id,json=externalOrgId,proto3" json:"external_org_id,omitempty"`
+	// The child's external_id: the parent's own identifier for it.
+	ExternalId string `protobuf:"bytes,2,opt,name=external_id,json=externalId,proto3" json:"external_id,omitempty"`
+	// The parent organization, by id or slug.
+	ParentOrg     string `protobuf:"bytes,3,opt,name=parent_org,json=parentOrg,proto3" json:"parent_org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -212,16 +211,136 @@ func (*OrganizationExternalLookup) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *OrganizationExternalLookup) GetIdentityProviderRef() *apiresource.ApiResourceReference {
+func (x *OrganizationExternalLookup) GetExternalId() string {
 	if x != nil {
-		return x.IdentityProviderRef
+		return x.ExternalId
+	}
+	return ""
+}
+
+func (x *OrganizationExternalLookup) GetParentOrg() string {
+	if x != nil {
+		return x.ParentOrg
+	}
+	return ""
+}
+
+// Input for listing an organization's child organizations, newest first.
+type ListChildOrgsInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The parent organization, by id or slug.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The most children to return; 0 returns every child and no token. A
+	// positive size is capped at 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListChildOrgsInput) Reset() {
+	*x = ListChildOrgsInput{}
+	mi := &file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListChildOrgsInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListChildOrgsInput) ProtoMessage() {}
+
+func (x *ListChildOrgsInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListChildOrgsInput.ProtoReflect.Descriptor instead.
+func (*ListChildOrgsInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ListChildOrgsInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *ListChildOrgsInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListChildOrgsInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+// One page of an organization's child organizations.
+type ChildOrgList struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The children in this page, newest first.
+	Entries []*Organization `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more children may follow: pass it as page_token to continue.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChildOrgList) Reset() {
+	*x = ChildOrgList{}
+	mi := &file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChildOrgList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChildOrgList) ProtoMessage() {}
+
+func (x *ChildOrgList) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChildOrgList.ProtoReflect.Descriptor instead.
+func (*ChildOrgList) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ChildOrgList) GetEntries() []*Organization {
+	if x != nil {
+		return x.Entries
 	}
 	return nil
 }
 
-func (x *OrganizationExternalLookup) GetExternalOrgId() string {
+func (x *ChildOrgList) GetNextPageToken() string {
 	if x != nil {
-		return x.ExternalOrgId
+		return x.NextPageToken
 	}
 	return ""
 }
@@ -230,7 +349,7 @@ var File_ai_stigmer_tenancy_organization_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/tenancy/organization/v1/io.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"[\n" +
+	"+ai/stigmer/tenancy/organization/v1/io.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"[\n" +
 	"\rOrganizations\x12J\n" +
 	"\aentries\x18\x01 \x03(\v20.ai.stigmer.tenancy.organization.v1.OrganizationR\aentries\"\x7f\n" +
 	"\x10OrganizationList\x12\x1f\n" +
@@ -238,10 +357,21 @@ const file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc = "" +
 	"totalPages\x12J\n" +
 	"\aentries\x18\x02 \x03(\v20.ai.stigmer.tenancy.organization.v1.OrganizationR\aentries\"1\n" +
 	"\x0eOrganizationId\x12\x1f\n" +
-	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"\xbf\x01\n" +
-	"\x1aOrganizationExternalLookup\x12p\n" +
-	"\x15identity_provider_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x06\xbaH\x03\xc8\x01\x01R\x13identityProviderRef\x12/\n" +
-	"\x0fexternal_org_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\rexternalOrgIdB\xba\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"\x90\x01\n" +
+	"\x1aOrganizationExternalLookup\x12+\n" +
+	"\vexternal_id\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\n" +
+	"externalId\x12(\n" +
+	"\n" +
+	"parent_org\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\tparentOrgJ\x04\b\x01\x10\x02R\x15identity_provider_ref\"\x80\x01\n" +
+	"\x12ListChildOrgsInput\x12\x1b\n" +
+	"\x03org\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x82\x01\n" +
+	"\fChildOrgList\x12J\n" +
+	"\aentries\x18\x01 \x03(\v20.ai.stigmer.tenancy.organization.v1.OrganizationR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xba\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\aIoProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (
@@ -256,19 +386,20 @@ func file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_tenancy_organization_v1_io_proto_goTypes = []any{
-	(*Organizations)(nil),                    // 0: ai.stigmer.tenancy.organization.v1.Organizations
-	(*OrganizationList)(nil),                 // 1: ai.stigmer.tenancy.organization.v1.OrganizationList
-	(*OrganizationId)(nil),                   // 2: ai.stigmer.tenancy.organization.v1.OrganizationId
-	(*OrganizationExternalLookup)(nil),       // 3: ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup
-	(*Organization)(nil),                     // 4: ai.stigmer.tenancy.organization.v1.Organization
-	(*apiresource.ApiResourceReference)(nil), // 5: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*Organizations)(nil),              // 0: ai.stigmer.tenancy.organization.v1.Organizations
+	(*OrganizationList)(nil),           // 1: ai.stigmer.tenancy.organization.v1.OrganizationList
+	(*OrganizationId)(nil),             // 2: ai.stigmer.tenancy.organization.v1.OrganizationId
+	(*OrganizationExternalLookup)(nil), // 3: ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup
+	(*ListChildOrgsInput)(nil),         // 4: ai.stigmer.tenancy.organization.v1.ListChildOrgsInput
+	(*ChildOrgList)(nil),               // 5: ai.stigmer.tenancy.organization.v1.ChildOrgList
+	(*Organization)(nil),               // 6: ai.stigmer.tenancy.organization.v1.Organization
 }
 var file_ai_stigmer_tenancy_organization_v1_io_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.tenancy.organization.v1.Organizations.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
-	4, // 1: ai.stigmer.tenancy.organization.v1.OrganizationList.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
-	5, // 2: ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	6, // 0: ai.stigmer.tenancy.organization.v1.Organizations.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
+	6, // 1: ai.stigmer.tenancy.organization.v1.OrganizationList.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
+	6, // 2: ai.stigmer.tenancy.organization.v1.ChildOrgList.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -288,7 +419,7 @@ func file_ai_stigmer_tenancy_organization_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc), len(file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

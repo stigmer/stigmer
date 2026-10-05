@@ -13,7 +13,7 @@
 #   vera  - acme viewer-role member
 #   vince - acme member with a direct viewer grant on `sso`
 #   zara  - admin of the unrelated organization other
-#   tina  - member of organization tenant, which `sso` operates
+#   tina  - member of organization tenant, a child of acme
 #
 # Provider `sso` carries its creation tuple, the organization link. Provider
 # `unowned` carries the same single link and never had a creator recorded:
@@ -43,7 +43,8 @@ tuples:
   - {user: identity_account:tina, relation: affiliated, object: organization:tenant}
   - {user: organization:acme, relation: organization, object: identity_provider:sso}
   - {user: identity_account:vince, relation: viewer, object: identity_provider:sso}
-  - {user: organization:tenant, relation: managed_org, object: identity_provider:sso}
+  - {user: organization:acme, relation: parent_org, object: organization:tenant}
+  - {user: organization:tenant, relation: child_org, object: organization:acme}
   - {user: organization:acme, relation: organization, object: identity_provider:unowned}
 tests:
   - name: every org admin manages the provider, its creator through the same role
@@ -91,14 +92,11 @@ tests:
       - user: identity_account:zara
         object: identity_provider:sso
         assertions: {owner: false, can_view: false, can_edit: false, can_delete: false}
-  - name: managed organizations reach platform_user and nothing else
+  - name: a child organization's people reach nothing on the parent's provider
     check:
       - user: identity_account:tina
         object: identity_provider:sso
-        assertions: {platform_user: true, can_view: false, can_edit: false}
-      - user: identity_account:dave
-        object: identity_provider:sso
-        assertions: {platform_user: false}
+        assertions: {owner: false, can_view: false, can_edit: false}
   - name: a provider with no tuples is managed by nobody
     check:
       - user: identity_account:ana

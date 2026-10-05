@@ -15,7 +15,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // Served by the cloud composition only.
 service ProviderKeyQueryController {
   // List the keys that serve the organization, its own and any it inherits
-  // from its integrator, without their secrets.
+  // from its parent organization, without their secrets.
   rpc list(ListProviderKeysInput) returns (ListProviderKeysOutput) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_billing;

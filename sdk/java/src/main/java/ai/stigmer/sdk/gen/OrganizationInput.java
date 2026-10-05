@@ -4,7 +4,6 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
-import ai.stigmer.tenancy.organization.v1.ManagementMode;
 import ai.stigmer.tenancy.organization.v1.Organization;
 import ai.stigmer.tenancy.organization.v1.OrganizationPreferences;
 import ai.stigmer.tenancy.organization.v1.OrganizationSpec;
@@ -19,11 +18,10 @@ public final class OrganizationInput {
     private final ApiResourceVisibility visibility;
     private final String description;
     private final String logoUrl;
-    private final ManagementMode managementMode;
-    private final ResourceRef identityProviderRef;
-    private final String externalOrgId;
+    private final String externalId;
     private final boolean isPersonal;
     private final OrganizationPreferencesInput preferences;
+    private final String parentOrg;
 
     private OrganizationInput(Builder builder) {
         this.id = builder.id;
@@ -34,11 +32,10 @@ public final class OrganizationInput {
         this.visibility = builder.visibility;
         this.description = builder.description;
         this.logoUrl = builder.logoUrl;
-        this.managementMode = builder.managementMode;
-        this.identityProviderRef = builder.identityProviderRef;
-        this.externalOrgId = builder.externalOrgId;
+        this.externalId = builder.externalId;
         this.isPersonal = builder.isPersonal;
         this.preferences = builder.preferences;
+        this.parentOrg = builder.parentOrg;
     }
 
     Organization toProto() {
@@ -49,18 +46,15 @@ public final class OrganizationInput {
         if (this.logoUrl != null) {
             spec.setLogoUrl(this.logoUrl);
         }
-        if (this.managementMode != null) {
-            spec.setManagementMode(this.managementMode);
-        }
-        if (this.identityProviderRef != null && this.identityProviderRef.hasIdentifier()) {
-            spec.setIdentityProviderRef(this.identityProviderRef.toProto());
-        }
-        if (this.externalOrgId != null) {
-            spec.setExternalOrgId(this.externalOrgId);
+        if (this.externalId != null) {
+            spec.setExternalId(this.externalId);
         }
         spec.setIsPersonal(this.isPersonal);
         if (this.preferences != null) {
             spec.setPreferences(this.preferences.toProto());
+        }
+        if (this.parentOrg != null) {
+            spec.setParentOrg(this.parentOrg);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -98,11 +92,10 @@ public final class OrganizationInput {
         private ApiResourceVisibility visibility;
         private String description;
         private String logoUrl;
-        private ManagementMode managementMode;
-        private ResourceRef identityProviderRef;
-        private String externalOrgId;
+        private String externalId;
         private boolean isPersonal;
         private OrganizationPreferencesInput preferences;
+        private String parentOrg;
 
         private Builder() {}
 
@@ -119,11 +112,10 @@ public final class OrganizationInput {
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder logoUrl(String logoUrl) { this.logoUrl = logoUrl; return this; }
-        public Builder managementMode(ManagementMode managementMode) { this.managementMode = managementMode; return this; }
-        public Builder identityProviderRef(ResourceRef identityProviderRef) { this.identityProviderRef = identityProviderRef; return this; }
-        public Builder externalOrgId(String externalOrgId) { this.externalOrgId = externalOrgId; return this; }
+        public Builder externalId(String externalId) { this.externalId = externalId; return this; }
         public Builder isPersonal(boolean isPersonal) { this.isPersonal = isPersonal; return this; }
         public Builder preferences(OrganizationPreferencesInput preferences) { this.preferences = preferences; return this; }
+        public Builder parentOrg(String parentOrg) { this.parentOrg = parentOrg; return this; }
 
         public OrganizationInput build() { return new OrganizationInput(this); }
     }

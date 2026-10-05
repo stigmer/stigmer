@@ -67,7 +67,7 @@ Browser (React SDK)                     Stigmer API
         |                                    |
 ```
 
-Every user token a PlatformClient mints carries an `org` claim naming the client's owning organization, and works in that organization only, whatever roles the user holds elsewhere. A request into another organization is refused `PERMISSION_DENIED`; the token can still reach what belongs to no organization (the user's own account and API keys) and read and run blueprints shared at platform visibility. A token whose `org` claim is missing or is not its client's organization is refused `UNAUTHENTICATED`.
+Every user token a PlatformClient mints carries an `org` claim naming the organization it is for: the client's owning organization, or, when the mint request's `org` names one, a child organization of it. The token works in that organization only, whatever roles the user holds elsewhere, and the user's account is that organization's own (`stgm_pc|<org>|<user_id>`). A request into another organization is refused `PERMISSION_DENIED`; the token can still reach what belongs to no organization (the user's own account and API keys) and read and run what the organization's parent shares with its child organizations. A token whose `org` claim is missing, or names neither its client's organization nor a child of it, is refused `UNAUTHENTICATED`.
 
 ## JIT Provisioning
 
@@ -584,7 +584,7 @@ The platform builder's backend calls this RPC with its PlatformClient credential
 
 The returned JWT can be used by the React SDK (via StigmerProvider's getAccessToken callback) to authenticate API calls from the browser.
 
-Authentication flow: 1. Validate client_id + client_secret against stored hash 2. Resolve the identity account for user_id; on first use, create it when create_accounts_on_sign_in is set (and grant sign_in_role when one is set) 3. Sign a JWT with the server's platform-token key containing the user's identity and the client's owning organization, which binds the token: it works in that organization only
+Authentication flow: 1. Validate client_id + client_secret against stored hash 2. Resolve the identity account for user_id; on first use, create it when create_accounts_on_sign_in is set (and grant sign_in_role when one is set) 3. Sign a JWT with the server's platform-token key containing the user's identity and the organization the token is for (org: the client's owning organization, or one of its child organizations), which binds the token: it works in that organization only
 
 Error scenarios: - UNAUTHENTICATED: Invalid client_id or client_secret - FAILED_PRECONDITION: user_id does not exist and create_accounts_on_sign_in is false, the PlatformClient secret has expired, or the server does not authenticate its callers - INTERNAL: Account provisioning could not be completed. No partial account is left behind, so the request is safe to retry: a retry completes the provisioning.
 
@@ -761,7 +761,7 @@ MintUserTokenRequest contains the credentials and user identity needed to mint a
     userId: { type: "string", description: "Platform's stable user identifier for the end user." },
     userEmail: { type: "string", description: "User's email address, asserted by the platform." },
     userName: { type: "string", description: "User's display name, asserted by the platform." },
-    org: { type: "string", description: "Optional confirmation of the organization the token is scoped to." },
+    org: { type: "string", description: "The organization the token is for, by id or slug: the PlatformClient's owning organization (metadata.org), or one of that organization's child organizations." },
   }}
 />
 

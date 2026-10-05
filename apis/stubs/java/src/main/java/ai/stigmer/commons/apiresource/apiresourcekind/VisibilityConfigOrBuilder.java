@@ -12,17 +12,18 @@ public interface VisibilityConfigOrBuilder extends
 
   /**
    * <pre>
-   * Whether resources of this kind can be set to visibility_platform.
-   * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+   * Whether resources of this kind can be set to visibility_child_orgs.
+   * FGA tuple: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
    *
-   * Reserved for blueprint kinds (agent, skill, workflow, mcp_server).
-   * Instance kinds are deliberately excluded to preserve tenant isolation.
+   * Reserved for blueprint kinds (agent, skill, workflow, mcp_server,
+   * plugin). Instance kinds are deliberately excluded to preserve tenant
+   * isolation.
    * </pre>
    *
-   * <code>bool supports_platform = 2 [json_name = "supportsPlatform"];</code>
-   * @return The supportsPlatform.
+   * <code>bool supports_child_orgs = 2 [json_name = "supportsChildOrgs"];</code>
+   * @return The supportsChildOrgs.
    */
-  boolean getSupportsPlatform();
+  boolean getSupportsChildOrgs();
 
   /**
    * <pre>

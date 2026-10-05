@@ -61,10 +61,10 @@ skill_refs:
 
 ### Absolute References
 
-Set `org` explicitly when referencing a resource in a different organization. The server accepts it only when that organization is a platform sharing the resource with yours at `visibility_platform`; any other cross-organization reference is refused at write, and a missing target is refused with the same sentence (the rule never says whether another organization's slug exists). To use another organization's skill or server otherwise, install the plugin that carries it and reference your own copy.
+Set `org` explicitly when referencing a resource in a different organization. The server accepts it only when that organization is your organization's parent and shares the resource with its children at `visibility_child_orgs`; any other cross-organization reference is refused at write, and a missing target is refused with the same sentence (the rule never says whether another organization's slug exists). To use another organization's skill or server otherwise, install the plugin that carries it and reference your own copy.
 
 ```yaml
-# Absolute — a skill the platform organization shares with the organizations it manages
+# Absolute — a skill the parent organization shares with its child organizations
 skill_refs:
   - org: acme-cloud
     kind: skill

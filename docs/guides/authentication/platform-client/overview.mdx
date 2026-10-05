@@ -52,7 +52,9 @@ sequenceDiagram
 2. Your backend calls `mintUserToken` with PlatformClient credentials + user
    identity.
 3. Stigmer returns a signed JWT scoped to that user and bound to the
-   PlatformClient's Organization: the token works in that Organization only.
+   PlatformClient's Organization, or to the
+   [child organization](/docs/guides/authentication/federation/child-organizations)
+   the call names in `org`: the token works in that Organization only.
 4. Your frontend passes the token to `StigmerProvider` via `getAccessToken`.
 
 <ScenarEmbed
@@ -220,14 +222,15 @@ exists keeps the roles and profile it has: changing the settings later, or
 passing a different email or name in a later mint, does not update it.
 
 Identity resolution is **org-scoped**: the same `user_id` presented via any
-PlatformClient in your organization resolves to a single Stigmer identity. If
-you have separate PlatformClients for your dashboard, mobile app, and admin
-tool, a user who signs in through any of them shares one identity account and
-one set of permissions. Use a consistent, stable identifier across all your apps
-(for example, your Auth0 `sub`, Clerk user ID, or database primary key). Stigmer
-still records which PlatformClient each change came through: a resource a user
-creates or updates names the PlatformClient on its audit, beside the shared
-account.
+PlatformClient in your organization resolves to a single Stigmer identity. A
+token minted into one of your child organizations resolves in that child, so the
+same `user_id` there is a separate identity. If you have separate
+PlatformClients for your dashboard, mobile app, and admin tool, a user who signs
+in through any of them shares one identity account and one set of permissions.
+Use a consistent, stable identifier across all your apps (for example, your
+Auth0 `sub`, Clerk user ID, or database primary key). Stigmer still records
+which PlatformClient each change came through: a resource a user creates or
+updates names the PlatformClient on its audit, beside the shared account.
 
 ## Give embedded assistants their credentials
 
@@ -257,17 +260,17 @@ their own Environments, not the PlatformClient's.
 
 All SDKs return structured errors with actionable messages:
 
-| Error code            | When                                                                                                 | What to do                                                                                                     |
-| --------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `UNAUTHENTICATED`     | Invalid `client_id` or `client_secret`                                                               | Verify `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET`. If rotated, the previous secret is invalid.            |
-| `FAILED_PRECONDITION` | User doesn't exist, automatic account creation off                                                   | Enable `create_accounts_on_sign_in` or pre-create the account.                                                 |
-| `FAILED_PRECONDITION` | Client secret expired                                                                                | Extend or clear the PlatformClient's expiry in the Console; rotating alone does not extend it.                 |
-| `FAILED_PRECONDITION` | The server trusts every request                                                                      | Configure sign-in on the server (`STIGMER_OIDC_ISSUER`).                                                       |
-| `INVALID_ARGUMENT`    | `org` names an Organization other than the PlatformClient's                                          | Leave `org` empty, or pass the PlatformClient's own Organization.                                              |
-| `UNAUTHENTICATED`     | An API call bearing a token whose PlatformClient was deleted                                         | Mint a new token from an active PlatformClient.                                                                |
-| `UNAUTHENTICATED`     | An API call bearing a token whose `org` claim is missing or is not its PlatformClient's Organization | Use a token `mintUserToken` returned, unchanged.                                                               |
-| `PERMISSION_DENIED`   | An API call bearing the minted token targets another Organization than the PlatformClient's          | Minted tokens work in the PlatformClient's Organization only. Use a PlatformClient of the target Organization. |
-| `PERMISSION_DENIED`   | A browser API call bearing the minted token came from an origin not in `allowed_origins`             | Add the requesting origin to the PlatformClient's `allowed_origins`.                                           |
+| Error code            | When                                                                                                                           | What to do                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `UNAUTHENTICATED`     | Invalid `client_id` or `client_secret`                                                                                         | Verify `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET`. If rotated, the previous secret is invalid. |
+| `FAILED_PRECONDITION` | User doesn't exist, automatic account creation off                                                                             | Enable `create_accounts_on_sign_in` or pre-create the account.                                      |
+| `FAILED_PRECONDITION` | Client secret expired                                                                                                          | Extend or clear the PlatformClient's expiry in the Console; rotating alone does not extend it.      |
+| `FAILED_PRECONDITION` | The server trusts every request                                                                                                | Configure sign-in on the server (`STIGMER_OIDC_ISSUER`).                                            |
+| `INVALID_ARGUMENT`    | `org` names an Organization that is neither the PlatformClient's nor one of its children                                       | Leave `org` empty, or pass the PlatformClient's own Organization or one of its child organizations. |
+| `UNAUTHENTICATED`     | An API call bearing a token whose PlatformClient was deleted                                                                   | Mint a new token from an active PlatformClient.                                                     |
+| `UNAUTHENTICATED`     | An API call bearing a token whose `org` claim is missing, or names neither its PlatformClient's Organization nor a child of it | Use a token `mintUserToken` returned, unchanged.                                                    |
+| `PERMISSION_DENIED`   | An API call bearing the minted token targets another Organization than the one it was minted for                               | Minted tokens work in one Organization only. Mint a token for the target Organization.              |
+| `PERMISSION_DENIED`   | A browser API call bearing the minted token came from an origin not in `allowed_origins`                                       | Add the requesting origin to the PlatformClient's `allowed_origins`.                                |
 
 ## Security notes
 
@@ -341,11 +344,13 @@ app's origin (for example, `https://app.example.com`) in the Console.
 
 ### Check the target Organization
 
-A minted token works only in the PlatformClient's own Organization, whatever
-roles the user holds elsewhere. `PERMISSION_DENIED` on a call that names another
+A minted token works only in the Organization it was minted for (the
+PlatformClient's own, or one of its child organizations), whatever roles the
+user holds elsewhere. `PERMISSION_DENIED` on a call that names another
 Organization's resource means the token is bound elsewhere. The token can still
-reach the user's own account and API keys, and read and run Agents, Skills,
-Workflows, MCP Servers and Plugins shared at Platform visibility.
+reach the user's own account and API keys, and, in a child organization, read
+and run the Agents, Skills, Workflows, MCP Servers and Plugins its parent shares
+with its children.
 
 </Step>
 </Steps>

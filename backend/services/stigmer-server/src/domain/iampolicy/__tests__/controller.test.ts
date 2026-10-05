@@ -226,7 +226,7 @@ function stubCredentialBinding(
       const bound = boundOrgOf(caller);
       return bound === undefined || bound === org;
     },
-    keepsEntry: () => true,
+    keepsEntry: () => Promise.resolve(true),
     narrowIds(caller, _kind, ids) {
       if (fault !== undefined) {
         return Promise.reject(fault);

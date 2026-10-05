@@ -1,5 +1,5 @@
 // The plan form's draft: dollars become exact micros and a percent basis
-// points, the first wrong field is named, managed organizations are asked
+// points, the first wrong field is named, child organizations are asked
 // only of a plan that admits them, and features are deduplicated in
 // contract order.
 
@@ -43,16 +43,16 @@ describe("planInputFromDraft", () => {
     });
   });
 
-  it("carries the included managed organizations and their fee only for a plan that admits them", () => {
+  it("carries the included child organizations and their fee only for a plan that admits them", () => {
     const result = planInputFromDraft({
       ...draft,
-      features: [Feature.managed_organizations],
-      includedManagedOrganizations: "5",
+      features: [Feature.child_orgs],
+      includedChildOrgs: "5",
       perExtraOrganizationUsd: "25",
     });
-    expect(result.ok && result.input.entitlements.limits).toEqual({ includedManagedOrganizations: 5 });
+    expect(result.ok && result.input.entitlements.limits).toEqual({ includedChildOrgs: 5 });
     expect(result.ok && result.input.terms?.perExtraOrgMicros).toBe(25_000_000n);
-    const ignored = planInputFromDraft({ ...draft, includedManagedOrganizations: "5" });
+    const ignored = planInputFromDraft({ ...draft, includedChildOrgs: "5" });
     expect(ignored.ok && ignored.input.entitlements.limits).toBeUndefined();
   });
 
@@ -64,7 +64,7 @@ describe("planInputFromDraft", () => {
       field: "monthlyMinimumUsd",
     });
     expect(
-      planInputFromDraft({ ...draft, features: [Feature.managed_organizations], includedManagedOrganizations: "2.5" }),
-    ).toMatchObject({ ok: false, field: "includedManagedOrganizations" });
+      planInputFromDraft({ ...draft, features: [Feature.child_orgs], includedChildOrgs: "2.5" }),
+    ).toMatchObject({ ok: false, field: "includedChildOrgs" });
   });
 });

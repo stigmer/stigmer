@@ -464,11 +464,11 @@ is checked at a different moment:
 
 - **`org/slug`** names that Organization's Agent. Stigmer checks it when you
   save the Workflow: the Agent must exist, another Organization's Agent must be
-  shared at `visibility_platform`, and the Workflow may not be more visible than
-  the Agent.
+  your Organization's parent's and shared at `visibility_child_orgs`, and the
+  Workflow may not be more visible than the Agent.
 - **A bare `slug`** names an Agent of the Organization the Workflow runs in.
-  That is usually your own, but a Workflow shared at `visibility_platform` runs
-  in each Organization that uses it, and each run calls that Organization's
+  That is usually your own, but a Workflow shared at `visibility_child_orgs`
+  runs in each Organization that uses it, and each run calls that Organization's
   Agent. When you save, Stigmer checks the slug against your Organization: the
   Agent must exist there, and a Workflow visible to the whole Organization or
   wider needs an Agent at `visibility_org` or wider.
@@ -478,8 +478,8 @@ is checked at a different moment:
   runs, the value resolves to `slug` or `org/slug` and the Agent is read as the
   person who ran the Workflow, through a credential that works in the run's
   Organization only. If that person cannot view the Agent, or it belongs to
-  another Organization and is not shared at `visibility_platform`, the task
-  fails before the Agent starts.
+  another Organization and is not one the run's parent Organization shares at
+  `visibility_child_orgs`, the task fails before the Agent starts.
 
 A Workflow that names an Agent nobody has applied yet is refused when saved. The
 refusal names the task and the reference.

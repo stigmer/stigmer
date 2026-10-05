@@ -89,9 +89,9 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
   inUse: boolean;
 
   /**
-   * Set when the row is the integrator organization's key, serving this
-   * managed organization because it holds none of its own for the provider.
-   * Such a row is read-only here; it is managed on the integrator.
+   * Set when the row is the parent organization's key, serving this child
+   * organization because it holds none of its own for the provider. Such a
+   * row is read-only here; it is managed on the parent.
    *
    * @generated from field: string inherited_from_org = 9;
    */

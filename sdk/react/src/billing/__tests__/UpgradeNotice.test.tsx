@@ -20,8 +20,8 @@ describe("planUpgradeFeature", () => {
       Feature.teams,
     );
     expect(
-      planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "managed_organizations", org: "p" })),
-    ).toBe(Feature.managed_organizations);
+      planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "child_orgs", org: "p" })),
+    ).toBe(Feature.child_orgs);
     expect(
       planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "byo_provider_keys", org: "acme" })),
     ).toBe(Feature.byo_provider_keys);

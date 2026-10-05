@@ -227,12 +227,12 @@ describe("Environment conformance — visibility level validation", () => {
       () =>
         clients.environmentCommand.updateVisibility({
           resourceId: created.metadata!.id,
-          visibility: ApiResourceVisibility.visibility_platform,
+          visibility: ApiResourceVisibility.visibility_child_orgs,
         }),
       Code.InvalidArgument,
       "update environment visibility to platform",
     );
-    expect(err.message).toContain("cannot be set to visibility_platform");
+    expect(err.message).toContain("cannot be set to visibility_child_orgs");
 
     const stored = await clients.environmentQuery.get({ value: created.metadata!.id });
     expect(stored.metadata?.visibility, "the rejected update must not change the stored level").toBe(

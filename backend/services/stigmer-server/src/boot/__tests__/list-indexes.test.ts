@@ -35,6 +35,10 @@ const PINNED: Readonly<
     revision: 1,
     fingerprint: "memory{subject=field:spec.subject_identity_account_id}",
   },
+  organization: {
+    revision: 1,
+    fingerprint: "organization{parent_org=field:spec.parent_org}",
+  },
   session: {
     revision: 2,
     fingerprint:

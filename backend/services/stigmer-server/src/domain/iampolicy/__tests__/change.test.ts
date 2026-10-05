@@ -28,8 +28,8 @@ describe("grantsAccess", () => {
       true,
     ],
     [
-      "an identity provider's platform users",
-      { kind: "identity_provider", id: "idp_1", relation: "platform_user" },
+      "an organization's child organizations' people",
+      { kind: "organization", id: "acme", relation: "child_org_viewer" },
       true,
     ],
     ["a parent organization", { kind: "organization", id: "acme" }, false],
