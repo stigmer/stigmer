@@ -126,7 +126,8 @@ message HookSource {
     // @internal
     // Resolved at turn start like a skill reference: the reference's version
     // when set, else the installed version. Another organization's plugin is
-    // accepted only at platform visibility (the reference rule).
+    // accepted only from this organization's parent, shared with its child
+    // organizations (the reference rule).
     ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [
       (ai.stigmer.commons.apiresource.reference_kind) = plugin,
       (buf.validate.field).cel = {
