@@ -10,7 +10,10 @@
  *   - the interceptor refuses a request naming a deleting organization with
  *     the Authorize step's not-found copy, in any field the contract spells
  *     as an organization, passes one that names a live one, and reads
- *     nothing for a request that names none.
+ *     nothing for a request that names none;
+ *   - it admits the purge's own in-process requests (a composition removing
+ *     what it keeps through an RPC that names the organization), and no
+ *     other internal caller's.
  */
 import { create } from "@bufbuild/protobuf";
 import type { UnaryRequest, UnaryResponse } from "@connectrpc/connect";
@@ -24,9 +27,14 @@ import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/
 import { OrganizationIdSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 
 import type { OrganizationDeletion } from "../../../store/interface.js";
-import { callerIdentityKey } from "../../../pipeline/interceptors/auth.js";
+import type { CallerIdentity } from "../../../extensions/identity.js";
+import {
+  callerIdentityKey,
+  serverActingFor,
+} from "../../../pipeline/interceptors/auth.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import {
+  PURGE_ACTOR,
   createDeletingOrganizationInterceptor,
   newOrganizationLifecycle,
 } from "../lifecycle.js";
@@ -108,9 +116,10 @@ describe("the deleting interceptor", () => {
   function request(
     method: UnaryRequest["method"],
     message: UnaryRequest["message"],
+    caller: CallerIdentity = testCallerIdentity(),
   ): UnaryRequest {
     const contextValues = createContextValues();
-    contextValues.set(callerIdentityKey, testCallerIdentity());
+    contextValues.set(callerIdentityKey, caller);
     return {
       stream: false,
       service: method.parent,
@@ -155,6 +164,27 @@ describe("the deleting interceptor", () => {
       create(AgentSchema, { metadata: { org: LIVE, name: "a" } }),
     );
     await expect(intercept(live)).resolves.toBeDefined();
+  });
+
+  it("admits the purge's own in-process requests, and no other internal caller's", async () => {
+    const table = deletionTable([DELETING]);
+    const intercept = createDeletingOrganizationInterceptor(
+      newOrganizationLifecycle(table.store),
+    )(next as never);
+    const naming = (caller: CallerIdentity) =>
+      request(
+        OrganizationQueryController.method.get,
+        create(OrganizationIdSchema, { value: DELETING }),
+        caller,
+      );
+    await expect(intercept(naming(serverActingFor(PURGE_ACTOR)))).resolves.toBeDefined();
+    await expect(intercept(naming(serverActingFor("system")))).rejects.toThrow(
+      `Organization not found: ${DELETING}`,
+    );
+    await expect(
+      intercept(naming({ ...testCallerIdentity(), identityId: PURGE_ACTOR })),
+      "a person named like the purge is not the purge",
+    ).rejects.toThrow(`Organization not found: ${DELETING}`);
   });
 
   it("reads nothing for a request that names no organization", async () => {

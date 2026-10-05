@@ -32,6 +32,13 @@
  * organization and skips the Authorizer, so it is not refused: it cannot
  * start anything new, and the purge ends what it serves.
  *
+ * The purge itself is the one caller the interceptor admits: a request on
+ * the in-process lane whose caller is the purge's own actor
+ * (`PURGE_ACTOR`, an `internal` caller only the in-process chain can mint,
+ * so no wire request can present it). A composition's lifecycle or stage
+ * removes what it keeps through in-process RPCs that name the
+ * organization (its policy cleanup, for one), acting for the purge.
+ *
  * Cost. `isDeleting` is one primary-key read, memoised per request scope
  * (the caller identity the chain stamps once per request), so a request
  * naming one organization pays one read whichever seats ask.
@@ -51,6 +58,9 @@ import { notFoundError } from "../../pipeline/errors.js";
 import { callerIdentityKey } from "../../pipeline/interceptors/auth.js";
 import { organizationValuesOf } from "../../pipeline/interceptors/organization-names.js";
 import type { OrganizationDeletionStore } from "../../store/interface.js";
+
+/** The principal the purge acts for (purge/runner.ts): the deletion itself. */
+export const PURGE_ACTOR = "organization-purge";
 
 /** The predicate every seat asks. */
 export interface OrganizationLifecycle {
@@ -122,6 +132,12 @@ export function createDeletingOrganizationInterceptor(
       return next(request);
     }
     const scope = request.contextValues.get(callerIdentityKey);
+    if (
+      scope?.callerClass === "internal" &&
+      scope.identityId === PURGE_ACTOR
+    ) {
+      return next(request);
+    }
     for (const org of new Set(values)) {
       if (await lifecycle.isDeleting(scope, org)) {
         throw notFoundError(kindName, org);

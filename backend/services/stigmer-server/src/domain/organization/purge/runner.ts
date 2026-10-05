@@ -48,6 +48,7 @@ import type {
   OrganizationPurgeTarget,
 } from "../../../extensions/organization-purge.js";
 import { serverActingFor } from "../../../pipeline/interceptors/auth.js";
+import { PURGE_ACTOR } from "../lifecycle.js";
 import type { OrganizationDeletion, Store } from "../../../store/interface.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 
@@ -71,8 +72,8 @@ export const RETRY_MAX_MS = 15 * 60 * 1000;
 /** The fixed copy a fault leaves on the deletion record; the cause is logged. */
 export const PURGE_FAULT_MESSAGE = "the purge stage failed; it will be retried";
 
-/** The principal the purge acts for: the deletion itself. */
-export const PURGE_ACTOR = "organization-purge";
+/** The principal the purge acts for (lifecycle.ts admits its own requests). */
+export { PURGE_ACTOR };
 
 export interface OrganizationPurgeRunnerDeps {
   readonly store: Store;
