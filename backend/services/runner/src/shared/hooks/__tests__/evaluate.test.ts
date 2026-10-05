@@ -452,7 +452,6 @@ describe("both formats on one call", () => {
       [{ source: plugin("audit"), format: "cursor", groups: [cursorGroup("postToolUse", "", "cursor-post"), cursorGroup("afterMCPExecution", "", "cursor-post")] }],
       run,
     );
-    expect(hooks.runsAfterCalls).toBe(true);
     expect((await hooks.postToolUse({ id: "c", name: "create_issue", args: {}, serverSlug: "github" }, {}, "made")).additionalContext).toEqual([
       "reviewed",
       "reviewed",
@@ -469,7 +468,6 @@ describe("both formats on one call", () => {
       scripted({}).run,
     );
     expect(hooks.longestTimeoutSeconds).toBe(60);
-    expect(hooks.runsAfterCalls).toBe(false);
     expect(hooks.hookSet.all).toHaveLength(2);
   });
 });

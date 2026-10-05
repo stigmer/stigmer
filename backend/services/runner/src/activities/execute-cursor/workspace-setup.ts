@@ -97,23 +97,26 @@ interface HookRegistration {
   scriptPath: string;
 }
 
-/** Hook timeout (seconds) for an agent with no hooks — each script is a quick local decision. */
-const HOOK_TIMEOUT_SECONDS = 10;
+/**
+ * The longest one of an agent's hooks may run on this engine, in seconds.
+ * `@cursor/sdk` reads `.cursor/hooks.json` once and keeps it (for the
+ * process, and for a parked agent's executor), so the gate's registration
+ * is the same for every turn: its timeout cannot follow the agent's hooks.
+ * An agent with a longer hook is refused (`turn-setup.ts` `prepareHooks`).
+ */
+export const MAX_HOOK_TIMEOUT_SECONDS = 3600;
 
 /**
- * What the gate's own work adds to the longest hook an agent has: the
- * script's identity and capture steps around the hook server's answer.
+ * The gate script's timeout: the longest hook, plus the script's own
+ * identity and capture steps around the hook server's answer. A script
+ * that hangs without a hook running is the stall watchdog's to end.
  */
-const HOOK_TIMEOUT_MARGIN_SECONDS = 30;
+const GATE_TIMEOUT_SECONDS = MAX_HOOK_TIMEOUT_SECONDS + 30;
 
-/** The agent's hooks as the gate installs them: where they are served, and how long the longest may run. */
+/** The agent's hooks as the gate installs them: where they are served. */
 export interface GateHooks {
   readonly socketPath: string;
   readonly token: string;
-  /** The longest any one handler may run, in seconds. */
-  readonly longestTimeoutSeconds: number;
-  /** Whether any of them runs after a call, so `postToolUse` is registered. */
-  readonly afterCalls: boolean;
 }
 
 /**
@@ -185,20 +188,21 @@ export async function installHitlGate(params: {
     runnerPid,
     hooks,
   );
-  // One script, three events: preToolUse gates built-ins; beforeMCPExecution
+  // One script, four events: preToolUse gates built-ins; beforeMCPExecution
   // is the only event Cursor enforces for MCP tools; subagentStart answers the
   // agent's sub-agent types where the runtime fires it (a second line; see
-  // SUBAGENT_START_EVENT). The script branches internally on hook_event_name
-  // so MCP is gated in exactly one place.
+  // SUBAGENT_START_EVENT); postToolUse hands back what the agent's hooks say
+  // after a call. The script branches internally on hook_event_name so MCP is
+  // gated in exactly one place. The registration is the same for every turn
+  // (see MAX_HOOK_TIMEOUT_SECONDS): a turn whose agent has no hooks answers
+  // postToolUse with nothing, at once.
   const registrations: HookRegistration[] = [
     { event: PRE_TOOL_USE_EVENT, scriptPath: approvalScriptPath },
     { event: BEFORE_MCP_EVENT, scriptPath: approvalScriptPath },
     { event: SUBAGENT_START_EVENT, scriptPath: approvalScriptPath },
-    ...(hooks?.afterCalls ? [{ event: POST_TOOL_USE_EVENT, scriptPath: approvalScriptPath }] : []),
+    { event: POST_TOOL_USE_EVENT, scriptPath: approvalScriptPath },
   ];
-  // A hook may run as long as its own timeout; Cursor must not cut the
-  // script short while the hook server is still answering.
-  const timeoutSeconds = hooks ? hooks.longestTimeoutSeconds + HOOK_TIMEOUT_MARGIN_SECONDS : HOOK_TIMEOUT_SECONDS;
+  const timeoutSeconds = GATE_TIMEOUT_SECONDS;
   let hooksJsonPath: string;
   let rule: WorkspaceFileSnapshot;
   try {
@@ -492,7 +496,7 @@ function gateHooks(registrations: HookRegistration[], timeoutSeconds: number): R
 export function buildMergedConfig(
   originalRaw: string | null,
   registrations: HookRegistration[],
-  timeoutSeconds = HOOK_TIMEOUT_SECONDS,
+  timeoutSeconds = GATE_TIMEOUT_SECONDS,
 ): { merged: string; restoreTo: string | null } {
   const ours = gateHooks(registrations, timeoutSeconds);
   const standalone = JSON.stringify({ version: 1, hooks: ours }, null, 2);

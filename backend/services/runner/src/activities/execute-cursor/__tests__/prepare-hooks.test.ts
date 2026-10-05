@@ -72,13 +72,20 @@ describe("installGate", () => {
     const input = inputWith([preToolUse("Bash", "true")], dir);
     const s = { stopSignal: new AbortController().signal, recordActivity: vi.fn() };
     const hooks = await prepareHooks(input, s, config, { agentMode: "local" });
-    const before = new Set(readdirSync(tmpdir()).filter((name) => name.startsWith("stigmer-hooks-")));
+    // A temporary directory of the test's own: other suites' hook servers come and go in the shared one.
+    const ownTmp = mkdtempSync(join(tmpdir(), "prepare-hooks-tmp-"));
+    const realTmp = process.env["TMPDIR"];
+    process.env["TMPDIR"] = ownTmp;
+    onTestFinished(() => {
+      if (realTmp === undefined) delete process.env["TMPDIR"];
+      else process.env["TMPDIR"] = realTmp;
+      rmSync(ownTmp, { recursive: true, force: true });
+    });
     const sink = { ...s, setupTiming: { mark: vi.fn() }, bindCasObservations: vi.fn() } as unknown as TurnSink;
     await expect(
       installGate(input, sink, { isReinvocation: false, adjudicatedApprovals: [], adjudicatedContentDigests: new Map(), adjudicatedHookAsks: new Set() }, newTurnStreamState(), hooks),
     ).rejects.toThrow();
-    const after = readdirSync(tmpdir()).filter((name) => name.startsWith("stigmer-hooks-") && !before.has(name));
-    expect(after, "no hook server's directory is left behind").toEqual([]);
+    expect(readdirSync(ownTmp).filter((name) => name.startsWith("stigmer-hooks-")), "no hook server's directory is left behind").toEqual([]);
     expect(existsSync(join(dir, ".cursor"))).toBe(true);
   });
 });

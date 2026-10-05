@@ -244,6 +244,12 @@ function cursorListingRow(globOf: (args: Args) => unknown, toNativeArgs: (glob: 
   };
 }
 
+/** The fields of Cursor's Write that each of this engine's file tools does not take. */
+const WRITE_FIELDS_NOT_TAKEN: ReadonlyMap<string, ReadonlySet<string>> = new Map([
+  ["edit_file", new Set(["content"])],
+  ["write_file", new Set(["old_string", "new_string", "replace_all"])],
+]);
+
 /** The native tools Cursor's hooks have a name for, by their bound names. */
 const CURSOR_ROWS: ReadonlyMap<string, Row> = new Map<string, Row>([
   ["read_file", pathRow("Read", "file_path")],
@@ -319,6 +325,10 @@ export class NativeToolViews implements HookToolViews {
     // Cursor lays a rewrite over the call's own arguments, so a Cursor-format
     // hook names only what it changes; Claude Code's replaces the input whole.
     if (this.ctx.toolServerMap.has(call.name)) return format === "cursor" ? { ...call.args, ...rewrite } : { ...rewrite };
+    // Cursor's Write is both a create and an edit; this engine's are two
+    // tools, and each ignores the other's fields.
+    const foreign = format === "cursor" ? Object.keys(rewrite).filter((key) => WRITE_FIELDS_NOT_TAKEN.get(call.name)?.has(key)) : [];
+    if (foreign.length > 0) return `the hook rewrote ${foreign.join(", ")}, which this engine's ${call.name} does not take`;
     const input = format === "cursor" ? { ...this.cursorViewOf(call)?.cursor.toolInput, ...rewrite } : rewrite;
     if (format === "cursor" && call.name === "execute") {
       const cwd = input["cwd"];

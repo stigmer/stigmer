@@ -22,6 +22,7 @@ import {
   statSync,
   chmodSync,
   symlinkSync,
+  lstatSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -30,6 +31,7 @@ import {
   installHitlGate,
   removeHitlGate,
   buildMergedConfig,
+  MAX_HOOK_TIMEOUT_SECONDS,
 } from "../workspace-setup.js";
 import {
   claudeSettingsWithHooks,
@@ -134,7 +136,7 @@ describe("buildMergedConfig", () => {
 
     // Only the gate's entry runs this turn, on every event: the repository's
     // preToolUse and postToolUse hooks are set aside...
-    expect(parsed.hooks).toEqual({ preToolUse: [{ command: script, timeout: 10, failClosed: true }] });
+    expect(parsed.hooks).toEqual({ preToolUse: [{ command: script, timeout: MAX_HOOK_TIMEOUT_SECONDS + 30, failClosed: true }] });
     // ...and every other field of the file is kept.
     expect(parsed.note).toBe("the repository's own field");
     // Restore is byte-identical to the user's original.
@@ -327,25 +329,33 @@ describe("installHitlGate / removeHitlGate", () => {
     const handle = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid });
     const during = JSON.parse(readFileSync(join(cursorDir, "hooks.json"), "utf-8"));
     const script = join(gateDir, "stigmer-approval.sh");
-    expect(Object.keys(during.hooks).sort()).toEqual(["beforeMCPExecution", "preToolUse", "subagentStart"]);
+    expect(Object.keys(during.hooks).sort()).toEqual(["beforeMCPExecution", "postToolUse", "preToolUse", "subagentStart"]);
     expect(during.hooks.preToolUse.map((e: any) => e.command)).toEqual([script]);
 
     await removeHitlGate(handle);
     expect(readFileSync(join(cursorDir, "hooks.json"), "utf-8")).toBe(userConfig);
   });
 
-  it("registers postToolUse and a timeout over the longest hook, and points the script at the hook server", async () => {
+  it("registers the same entries and timeout for every turn, hooks or none, and points the script at the hook server", async () => {
+    // The SDK keeps the first registration it reads (for the process, and for
+    // a parked agent's executor), so an agent that gains hooks between turns
+    // must find them registered already.
     const { workspaceRoot, hitlDir, gateDir } = dirs();
+    const hooksJson = join(workspaceRoot, ".cursor", "hooks.json");
+    const bare = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid });
+    const withoutHooks = readFileSync(hooksJson, "utf-8");
+    await removeHitlGate(bare);
     const handle = await installHitlGate({
       workspaceRoot,
       hitlDir,
       approvalState,
       runnerPid: process.pid,
-      hooks: { socketPath: join(gateDir, "hooks.sock"), token: "t0k3n", longestTimeoutSeconds: 600, afterCalls: true },
+      hooks: { socketPath: join(gateDir, "hooks.sock"), token: "t0k3n" },
     });
-    const during = JSON.parse(readFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "utf-8"));
+    expect(readFileSync(hooksJson, "utf-8"), "byte for byte the same registration").toBe(withoutHooks);
+    const during = JSON.parse(withoutHooks);
     expect(Object.keys(during.hooks).sort()).toEqual(["beforeMCPExecution", "postToolUse", "preToolUse", "subagentStart"]);
-    expect(during.hooks.preToolUse[0].timeout).toBe(630);
+    expect(during.hooks.preToolUse[0].timeout).toBe(MAX_HOOK_TIMEOUT_SECONDS + 30);
     const pointer = JSON.parse(readFileSync(join(gateDir, "active.json"), "utf-8"));
     expect(pointer).toMatchObject({ hookSocket: join(gateDir, "hooks.sock"), hookToken: "t0k3n" });
     await removeHitlGate(handle);
@@ -647,6 +657,36 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     await removeHitlGate(handle);
     expect(existsSync(settings), "the deletion is the agent's, for the review to show").toBe(false);
     expect(existsSync(join(workspaceRoot, ".cursor", "hooks.json")), "the repository had none").toBe(false);
+  });
+
+  it("puts .cursor/hooks.json back over a link the agent put in its place, or in .cursor's, never writing through it", async () => {
+    const { workspaceRoot, hitlDir } = workspace();
+    const folders = workspaceFolders([workspaceRoot], []);
+    const cursorDir = join(workspaceRoot, ".cursor");
+    const hooksJson = join(cursorDir, "hooks.json");
+    mkdirSync(cursorDir, { recursive: true });
+    const original = JSON.stringify({ version: 1, hooks: { preToolUse: [{ command: "./mine.sh" }] } });
+    writeFileSync(hooksJson, original, "utf-8");
+    const elsewhere = mkdtempSync(join(tmpdir(), "elsewhere-"));
+    tempDirs.push(elsewhere);
+    writeFileSync(join(elsewhere, "hooks.json"), "theirs", "utf-8");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const fileLink = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+      rmSync(hooksJson);
+      symlinkSync(join(elsewhere, "hooks.json"), hooksJson);
+      await removeHitlGate(fileLink);
+      expect([lstatSync(hooksJson).isSymbolicLink(), readFileSync(hooksJson, "utf-8")]).toEqual([false, original]);
+
+      const dirLink = await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid, folders });
+      rmSync(cursorDir, { recursive: true });
+      symlinkSync(elsewhere, cursorDir);
+      await removeHitlGate(dirLink);
+      expect([lstatSync(cursorDir).isSymbolicLink(), readFileSync(hooksJson, "utf-8")]).toEqual([false, original]);
+    } finally {
+      warn.mockRestore();
+    }
+    expect(readFileSync(join(elsewhere, "hooks.json"), "utf-8"), "the file a link reached is not written").toBe("theirs");
   });
 
   it("puts the set-aside files back when setting one aside fails partway", async () => {

@@ -288,6 +288,10 @@ interface Snapshot {
 }
 
 async function restoreOne(rewrite: WorkspaceFileRewrite): Promise<void> {
+  if (rewrite.kind === "cursor-hooks") {
+    await restoreGateFile(rewrite);
+    return;
+  }
   // A link put in the file's place, or its directory's, during the turn
   // reaches a file the folder does not hold: never written through.
   if ((await isLink(rewrite.path)) || (await isLink(dirname(rewrite.path)))) {
@@ -295,13 +299,6 @@ async function restoreOne(rewrite: WorkspaceFileRewrite): Promise<void> {
     return;
   }
   const current = await readOrNull(rewrite.path);
-  if (rewrite.kind === "cursor-hooks") {
-    if (current !== rewrite.written && current !== rewrite.original) {
-      console.warn(`[workspace hooks] ${rewrite.path} was changed during the turn; it is outside the turn's review, so its original returns`);
-    }
-    await putBack(rewrite);
-    return;
-  }
   if (current === null) {
     // The agent deleted it: its edit, kept for the turn's review to show.
     if (rewrite.original !== null) console.log(`[workspace hooks] ${rewrite.path} was deleted during the turn; the deletion is kept`);
@@ -333,6 +330,26 @@ function withOriginalHooks(edited: Record<string, unknown>, original: Record<str
   const editedHooks = edited["hooks"];
   if (!isObject(originalHooks) || !isObject(editedHooks)) return { ...edited, hooks: originalHooks };
   return { ...edited, hooks: mergedEntries(editedHooks, originalHooks) };
+}
+
+/**
+ * The gate's own `.cursor/hooks.json`: its original returns whatever the
+ * agent did to it, since the turn's review leaves it out. A link the agent
+ * put in its place, or in `.cursor`'s, is removed, never written through.
+ */
+async function restoreGateFile(rewrite: WorkspaceFileRewrite): Promise<void> {
+  const dir = dirname(rewrite.path);
+  const linked = (await isLink(dir)) || (await isLink(rewrite.path));
+  if (await isLink(dir)) {
+    await rm(dir, { force: true });
+    await mkdir(dir, { recursive: true });
+  }
+  if (await isLink(rewrite.path)) await rm(rewrite.path, { force: true });
+  const current = await readOrNull(rewrite.path);
+  if (linked || (current !== rewrite.written && current !== rewrite.original)) {
+    console.warn(`[workspace hooks] ${rewrite.path} was changed during the turn; it is outside the turn's review, so its original returns`);
+  }
+  await putBack(rewrite);
 }
 
 /** The original bytes back, or the file gone when there was none. */

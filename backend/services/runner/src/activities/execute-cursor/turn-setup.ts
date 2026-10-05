@@ -99,7 +99,7 @@ import { composeTurnRecoveryDigest } from "./turn-recovery.js";
 import type { TurnStreamState } from "./turn-stream.js";
 import { buildCursorSubAgentDefinitions, subAgentsInScope } from "./subagent-config.js";
 import { CursorUsagePricer } from "./usage-pricing.js";
-import { installHitlGate, removeHitlGate, type HitlGateHandle } from "./workspace-setup.js";
+import { installHitlGate, MAX_HOOK_TIMEOUT_SECONDS, removeHitlGate, type HitlGateHandle } from "./workspace-setup.js";
 
 /**
  * The runner config this harness reads per turn, as a named slice
@@ -346,6 +346,12 @@ export async function prepareHooks(
   if (mode.agentMode === "cloud") {
     throw new HookSetupError("The agent has hooks, which a cloud Cursor agent cannot run. Run the session locally or on the native engine.");
   }
+  if (evaluator.longestTimeoutSeconds > MAX_HOOK_TIMEOUT_SECONDS) {
+    throw new HookSetupError(
+      `One of the agent's hooks may run for ${evaluator.longestTimeoutSeconds} seconds, longer than the ${MAX_HOOK_TIMEOUT_SECONDS} the Cursor engine allows. ` +
+        "Lower its timeout, or run the session on the native engine.",
+    );
+  }
   const hiddenTools = toolsHiddenByHooks(evaluator.hookSet);
   if (hiddenTools.length > 0) {
     console.log(
@@ -501,8 +507,6 @@ export async function installGate(
             hooks: {
               socketPath: hookServer.socketPath,
               token: hookServer.token,
-              longestTimeoutSeconds: hooks.evaluator.longestTimeoutSeconds,
-              afterCalls: hooks.evaluator.runsAfterCalls,
             },
           }
         : {}),

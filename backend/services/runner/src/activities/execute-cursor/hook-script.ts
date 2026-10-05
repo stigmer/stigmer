@@ -19,8 +19,11 @@
  *                            runtime that does, never the guard: an
  *                            `Agent(type, …)` type list is refused at setup
  *                            (`turn-setup.ts` `checkToolScope`).
- *   - `postToolUse`        — registered only for an agent with hooks that run
- *                            after a call; hands the model what they say.
+ *   - `postToolUse`        — hands the model what the agent's hooks say after
+ *                            a call. Registered for every turn, as the others
+ *                            are (the SDK keeps the first registration it
+ *                            reads); a turn with no hooks answers it with
+ *                            nothing, at once.
  * The script branches on the payload's `hook_event_name`. An agent's own
  * hooks run inside the runner, which serves them to this script on a local
  * socket (`hook-server.ts`).
@@ -53,6 +56,10 @@
  *                       continues, no pause; carries the refusal and the
  *                       hook. An approval a hook asked for carries the hook
  *                       and its message too.
+ *   - "hook-unavailable" — the runner's hook server did not answer, so the
+ *                       agent's hooks could not be asked: the call is
+ *                       refused, no pause; unlike "fail-closed" the gate
+ *                       itself worked.
  * Only approval-kind records carry the captured tool_input: a secret write's
  * content must never be persisted, a capture-error's content is
  * UNCLASSIFIED (the staging error means secret classification may never have
@@ -113,14 +120,17 @@
  *     and no human is ever offered "approve" on one. The Node snippet only
  *     looks names up in the runner's tables; if it cannot run while the agent
  *     has lists, the call is denied (fail-closed).
- * 0b. postToolUse event → the hook server's answer (the agent's hooks' context)
+ * 0b. postToolUse event → the hook server's answer (the agent's hooks'
+ *     context); on a turn with no hook server, nothing, before the pointer
+ *     is even parsed
  * 1b. subagentStart event that survived 1a → allow (no approval arm applies)
  * 1h. The agent's hooks, when it has any (the hook server answers once per
  *     call; an MCP call on beforeMCPExecution): deny → record kind "hook",
  *     deny; ask → allow under autoApproveAll or an approved grant, record
  *     "unattended" under the unattended mode, else record "approval" (the
  *     hook's card); allow → the capture arms still run, then 1i; no decision
- *     → every arm below as without hooks; no answer → fail-closed deny
+ *     → every arm below as without hooks; no answer → record
+ *     "hook-unavailable", deny
  * 1i. After the capture arms, a hook's allow → allow, with its context and
  *     any rewrite it made
  * 1c. autoApproveAll (the pre-armed spec.auto_approve_all global bypass) →
@@ -542,6 +552,18 @@ INPUT=$(cat)
 
 NODE_BIN="${nodeBin}"
 ACTIVE_FILE="${activePointerPath}"
+
+# --- 0b, at once: after a call on a turn with no hooks ----------------------
+# postToolUse is registered for every turn; a turn whose pointer names no hook
+# server has nothing to add, so it answers before any Node or scope walk.
+case "$INPUT" in
+  *'"hook_event_name":"postToolUse"'*)
+    if [ ! -f "$ACTIVE_FILE" ] || ! grep -q '"hookSocket":"[^"]' "$ACTIVE_FILE" 2>/dev/null; then
+      echo '{}'
+      exit 0
+    fi
+    ;;
+esac
 # Baked workspace root for capture-mode's gitignore check (empty in unit tests
 # that don't exercise capture mode; the check then falls back to the path's dir).
 GIT_ROOT="${workspaceRoot}"

@@ -78,7 +78,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor engine: an agent's hooks 
       // "Trust this whole run": the default asks nothing, so only the hook decides.
       approvalState: buildApprovalState({ destructive: new Set(), leasedServers: new Set() }, true, new Set()),
       runnerPid: process.pid,
-      hooks: { socketPath: server.socketPath, token: server.token, longestTimeoutSeconds: 60, afterCalls: false },
+      hooks: { socketPath: server.socketPath, token: server.token },
       folders: workspaceFolders([workspaceRoot], []),
     });
 

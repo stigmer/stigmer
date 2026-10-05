@@ -1149,6 +1149,15 @@ d("generated approval hook: the agent's hooks", () => {
     expect(h.ledger().map((e) => e.kind), "the gate worked; the hooks could not be asked").toEqual(["hook-unavailable"]);
   });
 
+  it("answers a call after it ran with nothing, at once, on a turn with no hook server", () => {
+    const h = setup({});
+    const after = { hook_event_name: "postToolUse", tool_name: "Shell", tool_input: { command: "ls" }, tool_output: "{}" };
+    expect(h.decide(after).raw.trim()).toBe("{}");
+    expect(h.ledger()).toEqual([]);
+    rmSync(join(h.hitlDir, "active.json"), { force: true });
+    expect(h.decide(after).raw.trim(), "with no turn at all, too").toBe("{}");
+  });
+
   it("lets an MCP call's preToolUse firing pass to the event that names its server", () => {
     const h = setup({ hookServer: unreachable });
     expect(h.decide(hookMcpPreToolUse("search")).permission).toBe("allow");
