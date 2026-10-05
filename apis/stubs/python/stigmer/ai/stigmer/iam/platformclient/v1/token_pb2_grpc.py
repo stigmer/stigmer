@@ -85,8 +85,9 @@ class PlatformClientTokenControllerServicer(object):
         2. Resolve the identity account for user_id; on first use, create it when
         create_accounts_on_sign_in is set (and grant sign_in_role when one is set)
         3. Sign a JWT with the server's platform-token key containing the user's
-        identity and the client's owning organization, which binds the token:
-        it works in that organization only
+        identity and the organization the token is for (org: the client's
+        owning organization, or one of its child organizations), which binds
+        the token: it works in that organization only
 
         Error scenarios:
         - UNAUTHENTICATED: Invalid client_id or client_secret

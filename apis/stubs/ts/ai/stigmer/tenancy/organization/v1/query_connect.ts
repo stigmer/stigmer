@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { OrganizationExternalLookup, OrganizationId, OrganizationList, Organizations } from "./io_pbjs";
+import { ChildOrgList, ListChildOrgsInput, OrganizationExternalLookup, OrganizationId, OrganizationList, Organizations } from "./io_pbjs";
 import { Organization } from "./api_pbjs";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
 import { FindApiResourcesRequest } from "../../../commons/apiresource/io_pbjs";
@@ -51,15 +51,27 @@ export const OrganizationQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Look up a platform-managed organization by its external platform coordinates.
-     * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     * Find a child organization by the identifier its parent keeps for it
+     * (external_id). An organization that is not a child of parent_org, or no
+     * child with that identifier, answers NotFound.
      *
-     * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getByExternalOrgId
+     * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getByExternalId
      */
-    getByExternalOrgId: {
-      name: "getByExternalOrgId",
+    getByExternalId: {
+      name: "getByExternalId",
       I: OrganizationExternalLookup,
       O: Organization,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List an organization's child organizations, newest first.
+     *
+     * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.listChildOrgs
+     */
+    listChildOrgs: {
+      name: "listChildOrgs",
+      I: ListChildOrgsInput,
+      O: ChildOrgList,
       kind: MethodKind.Unary,
     },
   }

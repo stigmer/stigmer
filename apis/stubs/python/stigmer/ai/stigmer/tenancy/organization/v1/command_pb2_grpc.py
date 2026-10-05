@@ -74,14 +74,27 @@ class OrganizationCommandControllerServicer(object):
         organization from an earlier release was filed under it, which keeps
         it reserved for good, deleted or not. Metadata: slug.
 
-        On Stigmer Cloud, creating a platform-managed organization is a plan
-        feature of its integrator. An integrator whose plan lacks it is refused
-        with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+        A child organization names its parent in spec.parent_org, and may carry
+        the parent's own identifier for it in spec.external_id. Creating one
+        needs can_manage_child_orgs on the parent; a parent the caller may not
+        manage is refused as if it did not exist (PERMISSION_DENIED either
+        way). An external_id another child of the same parent holds is refused
+        with ALREADY_EXISTS. Nobody owns a new child: the parent's admins
+        manage it, and grant its first members and owner. A parent that is
+        itself a child is refused with FAILED_PRECONDITION carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+        - ORGANIZATION_PARENT_IS_CHILD — child organizations are one level
+        deep. Metadata: parent_org.
+
+        On Stigmer Cloud, creating a child organization is a plan feature of its
+        parent. A parent whose plan lacks it is refused with
+        FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
         "stigmer.ai"):
 
-        - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
-        include the feature. Metadata: feature ("managed_organizations"),
-        org (the integrator organization).
+        - PLAN_UPGRADE_REQUIRED — the parent organization's plan does not
+        include the feature. Metadata: feature ("child_orgs"), org (the
+        parent organization).
 
         A server composed to hold a limited number of organizations (the
         open-source edition holds one, which it makes the first time it
@@ -132,6 +145,13 @@ class OrganizationCommandControllerServicer(object):
 
         - ORGANIZATION_IS_SINGLE — the server's only organization cannot be
         deleted. Metadata: org.
+
+        An organization that still has child organizations is refused with
+        FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+        "stigmer.ai"), before anything is written:
+
+        - ORGANIZATION_HAS_CHILDREN — delete its child organizations first.
+        Metadata: org.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

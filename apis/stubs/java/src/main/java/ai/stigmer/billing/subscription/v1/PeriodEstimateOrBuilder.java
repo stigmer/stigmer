@@ -87,7 +87,7 @@ public interface PeriodEstimateOrBuilder extends
   /**
    * <pre>
    * What the period's usage has cost in provider charges so far, across
-   * the organization and the managed organizations it pays for.
+   * the organization and the child organizations it pays for.
    * </pre>
    *
    * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
@@ -108,13 +108,13 @@ public interface PeriodEstimateOrBuilder extends
 
   /**
    * <pre>
-   * The managed organizations counted against the plan this period.
+   * The child organizations counted against the plan this period.
    * </pre>
    *
-   * <code>int32 managed_organization_count = 6 [json_name = "managedOrganizationCount"];</code>
-   * @return The managedOrganizationCount.
+   * <code>int32 child_org_count = 6 [json_name = "childOrgCount"];</code>
+   * @return The childOrgCount.
    */
-  int getManagedOrganizationCount();
+  int getChildOrgCount();
 
   /**
    * <pre>

@@ -96,18 +96,18 @@ public enum Feature
   teams(6),
   /**
    * <pre>
-   * Creating platform-managed organizations under the tenant's identity
-   * provider, the organizations an integrator runs for its own customers.
-   * A plan lists it together with included_managed_organizations: the
-   * feature admits new managed organizations, and the limit is how many
-   * the plan includes before the per-organization fee. Without it, existing
-   * managed organizations keep working and no new one is admitted. It tiers
-   * the Cloud runtime and is not an edition gate; a license never lists it.
+   * Creating child organizations (spec.parent_org), the organizations an
+   * integrator runs for its own customers. A plan lists it together with
+   * included_child_orgs: the feature admits new child organizations, and
+   * the limit is how many the plan includes before the per-organization
+   * fee. Without it, existing children keep working and no new one is
+   * admitted. It tiers the Cloud runtime and is not an edition gate; a
+   * license never lists it.
    * </pre>
    *
-   * <code>managed_organizations = 7;</code>
+   * <code>child_orgs = 7;</code>
    */
-  managed_organizations(7),
+  child_orgs(7),
   UNRECOGNIZED(-1),
   ;
 
@@ -196,18 +196,18 @@ public enum Feature
   public static final int teams_VALUE = 6;
   /**
    * <pre>
-   * Creating platform-managed organizations under the tenant's identity
-   * provider, the organizations an integrator runs for its own customers.
-   * A plan lists it together with included_managed_organizations: the
-   * feature admits new managed organizations, and the limit is how many
-   * the plan includes before the per-organization fee. Without it, existing
-   * managed organizations keep working and no new one is admitted. It tiers
-   * the Cloud runtime and is not an edition gate; a license never lists it.
+   * Creating child organizations (spec.parent_org), the organizations an
+   * integrator runs for its own customers. A plan lists it together with
+   * included_child_orgs: the feature admits new child organizations, and
+   * the limit is how many the plan includes before the per-organization
+   * fee. Without it, existing children keep working and no new one is
+   * admitted. It tiers the Cloud runtime and is not an edition gate; a
+   * license never lists it.
    * </pre>
    *
-   * <code>managed_organizations = 7;</code>
+   * <code>child_orgs = 7;</code>
    */
-  public static final int managed_organizations_VALUE = 7;
+  public static final int child_orgs_VALUE = 7;
 
 
   public final int getNumber() {
@@ -241,7 +241,7 @@ public enum Feature
       case 4: return channels;
       case 5: return sharing;
       case 6: return teams;
-      case 7: return managed_organizations;
+      case 7: return child_orgs;
       default: return null;
     }
   }

@@ -43,21 +43,28 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ons/rpc/method_options.proto\032,ai/stigmer" +
       "/tenancy/organization/v1/api.proto\032+ai/s" +
       "tigmer/tenancy/organization/v1/io.proto\032" +
-      "\033google/protobuf/empty.proto2\271\004\n\033Organiz" +
+      "\033google/protobuf/empty.proto2\321\006\n\033Organiz" +
       "ationQueryController\022\237\001\n\003get\0222.ai.stigme" +
       "r.tenancy.organization.v1.OrganizationId" +
       "\0320.ai.stigmer.tenancy.organization.v1.Or" +
-      "ganization\"2\302\270\030.\010\001\020\036\"\005value*!unauthorize" +
+      "ganization\"2\302\270\030.\0102\020\036\"\005value*!unauthorize" +
       "d to view organization\022{\n\004find\0227.ai.stig" +
       "mer.commons.apiresource.FindApiResources" +
       "Request\0324.ai.stigmer.tenancy.organizatio" +
       "n.v1.OrganizationList\"\004\320\270\030\001\022f\n\023findMyOrg" +
       "anizations\022\026.google.protobuf.Empty\0321.ai." +
       "stigmer.tenancy.organization.v1.Organiza" +
-      "tions\"\004\320\270\030\001\022\214\001\n\022getByExternalOrgId\022>.ai." +
-      "stigmer.tenancy.organization.v1.Organiza" +
-      "tionExternalLookup\0320.ai.stigmer.tenancy." +
-      "organization.v1.Organization\"\004\320\270\030\001\032\004\240\377+\036" +
+      "tions\"\004\320\270\030\001\022\331\001\n\017getByExternalId\022>.ai.sti" +
+      "gmer.tenancy.organization.v1.Organizatio" +
+      "nExternalLookup\0320.ai.stigmer.tenancy.org" +
+      "anization.v1.Organization\"T\302\270\030P\0101\020\036\"\npar" +
+      "ent_org*>unauthorized to manage this org" +
+      "anization\'s child organizations\022\310\001\n\rlist" +
+      "ChildOrgs\0226.ai.stigmer.tenancy.organizat" +
+      "ion.v1.ListChildOrgsInput\0320.ai.stigmer.t" +
+      "enancy.organization.v1.ChildOrgList\"M\302\270\030" +
+      "I\0101\020\036\"\003org*>unauthorized to manage this " +
+      "organization\'s child organizations\032\004\240\377+\036" +
       "B\271\001B\nQueryProtoP\001\242\002\004ASTO\252\002\"Ai.Stigmer.Te" +
       "nancy.Organization.V1\312\002\"Ai\\Stigmer\\Tenan" +
       "cy\\Organization\\V1\342\002.Ai\\Stigmer\\Tenancy\\" +

@@ -268,8 +268,8 @@ public interface IdentityProviderSpecOrBuilder extends
    *
    * Constraints:
    * - At most one IdentityProvider per organization can be the SSO provider.
-   * - An IdP used for platform-managed organization delegation cannot also
-   * serve as an SSO provider (different trust models).
+   * - An SSO provider cannot set external_id_claim (different trust
+   * models: SSO signs people in to the provider's own organization).
    * </pre>
    *
    * <code>bool is_sso_provider = 7 [json_name = "isSsoProvider"];</code>
@@ -319,71 +319,75 @@ public interface IdentityProviderSpecOrBuilder extends
 
   /**
    * <pre>
-   * Name of the JWT claim that names the organization a token works in.
+   * Name of the JWT claim that names the child organization a token works
+   * in, by the identifier the provider's organization keeps for it.
    *
    * When set, Stigmer reads this claim from every token the provider vouches
-   * for and resolves it to a platform-managed organization:
+   * for and resolves it to one of the provider organization's children:
    *
    * 1. Read the claim value from the JWT (e.g., claim "org_id" yields
-   * value "tenant-123").
-   * 2. Look up the platform-managed organization where
-   * identity_provider_ref matches this IdP and external_org_id matches
-   * the claim value.
+   * value "cust-4411").
+   * 2. Find the child organization whose parent_org is the provider's
+   * organization and whose external_id is the claim value.
    * 3. Bind the token to that organization: it works there and nowhere
    * else, whatever roles the person holds in other organizations.
    *
    * When empty, every token is bound to the provider's own organization.
    *
-   * The platform pre-creates its tenant organizations with their
-   * external_org_id mappings. The first time an account signs in to a tenant,
-   * it receives sign_in_role there when one is set; a role an admin later
-   * removes stays removed.
+   * The parent creates its child organizations with their external_id
+   * first. The first time an account signs in to a child, it receives
+   * sign_in_role there when one is set; a role an admin later removes stays
+   * removed.
    *
    * The claim name is case-sensitive and must match the JWT payload key
    * exactly. A token that lacks the claim, carries a value that is not a
-   * string, or names no known platform-managed organization is refused as
-   * unauthenticated on every sign-in, returning or first; the refusal does not
-   * name the tenant. A first sign-in refused this way leaves no account.
+   * string, or names no child of the provider's organization is refused as
+   * unauthenticated on every sign-in, returning or first; the refusal does
+   * not name the value. A first sign-in refused this way leaves no account.
+   * A provider in a child organization cannot set it: a child has no
+   * children.
    * </pre>
    *
-   * <code>string tenant_org_claim = 12 [json_name = "tenantOrgClaim", (.buf.validate.field) = { ... }</code>
-   * @return The tenantOrgClaim.
+   * <code>string external_id_claim = 12 [json_name = "externalIdClaim", (.buf.validate.field) = { ... }</code>
+   * @return The externalIdClaim.
    */
-  java.lang.String getTenantOrgClaim();
+  java.lang.String getExternalIdClaim();
   /**
    * <pre>
-   * Name of the JWT claim that names the organization a token works in.
+   * Name of the JWT claim that names the child organization a token works
+   * in, by the identifier the provider's organization keeps for it.
    *
    * When set, Stigmer reads this claim from every token the provider vouches
-   * for and resolves it to a platform-managed organization:
+   * for and resolves it to one of the provider organization's children:
    *
    * 1. Read the claim value from the JWT (e.g., claim "org_id" yields
-   * value "tenant-123").
-   * 2. Look up the platform-managed organization where
-   * identity_provider_ref matches this IdP and external_org_id matches
-   * the claim value.
+   * value "cust-4411").
+   * 2. Find the child organization whose parent_org is the provider's
+   * organization and whose external_id is the claim value.
    * 3. Bind the token to that organization: it works there and nowhere
    * else, whatever roles the person holds in other organizations.
    *
    * When empty, every token is bound to the provider's own organization.
    *
-   * The platform pre-creates its tenant organizations with their
-   * external_org_id mappings. The first time an account signs in to a tenant,
-   * it receives sign_in_role there when one is set; a role an admin later
-   * removes stays removed.
+   * The parent creates its child organizations with their external_id
+   * first. The first time an account signs in to a child, it receives
+   * sign_in_role there when one is set; a role an admin later removes stays
+   * removed.
    *
    * The claim name is case-sensitive and must match the JWT payload key
    * exactly. A token that lacks the claim, carries a value that is not a
-   * string, or names no known platform-managed organization is refused as
-   * unauthenticated on every sign-in, returning or first; the refusal does not
-   * name the tenant. A first sign-in refused this way leaves no account.
+   * string, or names no child of the provider's organization is refused as
+   * unauthenticated on every sign-in, returning or first; the refusal does
+   * not name the value. A first sign-in refused this way leaves no account.
+   * A provider in a child organization cannot set it: a child has no
+   * children.
    * </pre>
    *
-   * <code>string tenant_org_claim = 12 [json_name = "tenantOrgClaim", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for tenantOrgClaim.
+   * <code>string external_id_claim = 12 [json_name = "externalIdClaim", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for externalIdClaim.
    */
   com.google.protobuf.ByteString
-      getTenantOrgClaimBytes();
+      getExternalIdClaimBytes();
 
   /**
    * <pre>
@@ -408,7 +412,7 @@ public interface IdentityProviderSpecOrBuilder extends
    * <pre>
    * The role an account receives the first time it signs in to an
    * organization through this provider: the organization its token is bound
-   * to (tenant_org_claim's, or the provider's own).
+   * to (external_id_claim's, or the provider's own).
    *
    * Granted once per account and organization. A role an admin later removes
    * is not granted again, and changing this setting does not reach accounts
@@ -426,7 +430,7 @@ public interface IdentityProviderSpecOrBuilder extends
    * <pre>
    * The role an account receives the first time it signs in to an
    * organization through this provider: the organization its token is bound
-   * to (tenant_org_claim's, or the provider's own).
+   * to (external_id_claim's, or the provider's own).
    *
    * Granted once per account and organization. A role an admin later removes
    * is not granted again, and changing this setting does not reach accounts

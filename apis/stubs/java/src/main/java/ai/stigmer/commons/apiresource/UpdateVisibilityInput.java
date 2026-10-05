@@ -18,14 +18,14 @@ package ai.stigmer.commons.apiresource;
  * old level is removed and the tuple for the new level is created:
  * - PRIVATE:  no visibility tuple (owner + explicit grants only)
  * - ORG:      resource#viewer&#64;organization:&lt;org&gt;#viewer
- * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+ * - CHILD_ORGS: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
  *
  * Not all resources support all visibility levels — the supported set is
  * declared per kind via VisibilityConfig in kind_meta:
  * - Blueprints (agent, workflow, skill, mcp_server, plugin):
- * PRIVATE, ORG, or PLATFORM
+ * PRIVATE, ORG, or CHILD_ORGS
  * - Instances (workflow_instance):
- * PRIVATE or ORG (never PLATFORM — tenant isolation)
+ * PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
  *
  * visibility_public is refused for every kind (INVALID_ARGUMENT naming the
  * supported levels); the level is retired.
@@ -335,14 +335,14 @@ private static final long serialVersionUID = 0L;
    * old level is removed and the tuple for the new level is created:
    * - PRIVATE:  no visibility tuple (owner + explicit grants only)
    * - ORG:      resource#viewer&#64;organization:&lt;org&gt;#viewer
-   * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+   * - CHILD_ORGS: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
    *
    * Not all resources support all visibility levels — the supported set is
    * declared per kind via VisibilityConfig in kind_meta:
    * - Blueprints (agent, workflow, skill, mcp_server, plugin):
-   * PRIVATE, ORG, or PLATFORM
+   * PRIVATE, ORG, or CHILD_ORGS
    * - Instances (workflow_instance):
-   * PRIVATE or ORG (never PLATFORM — tenant isolation)
+   * PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
    *
    * visibility_public is refused for every kind (INVALID_ARGUMENT naming the
    * supported levels); the level is retired.

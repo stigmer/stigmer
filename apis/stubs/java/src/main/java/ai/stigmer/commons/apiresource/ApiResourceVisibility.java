@@ -16,8 +16,8 @@ package ai.stigmer.commons.apiresource;
  * - Visibility: Who can access/use the resource
  *
  * All resources belong to an organization. Visibility determines which
- * users, inside that organization or in the organizations linked to it by
- * one identity provider, can read the resource. No level reaches every
+ * users, inside that organization or in its child organizations, can read
+ * the resource. No level reaches every
  * account on the server.
  *
  * The visibility levels map to FGA tuples:
@@ -25,9 +25,8 @@ package ai.stigmer.commons.apiresource;
  * - ORG: resource#viewer&#64;organization:&lt;org&gt;#viewer tuple (everyone in the
  * org — the org role hierarchy flows downward, so owners, admins, members
  * AND read-only viewers all satisfy the organization#viewer userset)
- * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
- * (all members of all organizations managed by the owning org's
- * IdentityProvider)
+ * - CHILD_ORGS: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
+ * (everyone in every child organization of the owning organization)
  * - PUBLIC: retired; see the value's own comment.
  * </pre>
  *
@@ -68,8 +67,8 @@ public enum ApiResourceVisibility
    * server; it is refused at create and at updateVisibility for every kind,
    * and every stored row that held it has been moved to visibility_org.
    * Sharing across organizations happens through plugins (a copy is
-   * installed and owned) or, between organizations linked by one identity
-   * provider, through visibility_platform.
+   * installed and owned) or, from a parent organization to its children,
+   * through visibility_child_orgs.
    * </pre>
    *
    * <code>visibility_public = 2;</code>
@@ -101,31 +100,22 @@ public enum ApiResourceVisibility
   visibility_org(3),
   /**
    * <pre>
-   * All members of all organizations managed by the owning org's
-   * IdentityProvider can access (read and execute) this resource.
+   * Everyone in every child organization of the owning organization can
+   * read and run this resource: the shared catalog an organization offers
+   * the organizations under it (spec.parent_org). Child organizations
+   * created later gain access automatically, and no other organization
+   * does. Instances, sessions, executions and environments are never shared
+   * this way: each child runs the shared blueprint inside its own boundary.
    *
-   * "Platform" here means an external platform that operates Stigmer orgs
-   * on behalf of its own customers (see ManagementMode.platform_managed) —
-   * NOT the Stigmer platform singleton used by
-   * AUTHORIZATION_SCOPE_TYPE_PLATFORM.
+   * Only valid for blueprint kinds with supports_child_orgs: true, and only
+   * in an organization that is not itself a child.
    *
-   * This is the "private catalog" primitive for multi-tenant consumers:
-   * a platform (e.g. Planton) authors blueprints (agents, skills, MCP
-   * servers, workflows) in its own org and shares them with every child
-   * org it manages, without exposing them publicly. Child orgs created
-   * later gain access automatically. Instances, sessions, executions and
-   * environments are never platform-visible — each child org instantiates
-   * the shared blueprint inside its own tenant boundary.
-   *
-   * Only valid for blueprint kinds with supports_platform: true, and only
-   * when the owning org owns at least one IdentityProvider.
-   *
-   * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+   * FGA tuple: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
    * </pre>
    *
-   * <code>visibility_platform = 4;</code>
+   * <code>visibility_child_orgs = 4;</code>
    */
-  visibility_platform(4),
+  visibility_child_orgs(4),
   UNRECOGNIZED(-1),
   ;
 
@@ -170,8 +160,8 @@ public enum ApiResourceVisibility
    * server; it is refused at create and at updateVisibility for every kind,
    * and every stored row that held it has been moved to visibility_org.
    * Sharing across organizations happens through plugins (a copy is
-   * installed and owned) or, between organizations linked by one identity
-   * provider, through visibility_platform.
+   * installed and owned) or, from a parent organization to its children,
+   * through visibility_child_orgs.
    * </pre>
    *
    * <code>visibility_public = 2;</code>
@@ -203,31 +193,22 @@ public enum ApiResourceVisibility
   public static final int visibility_org_VALUE = 3;
   /**
    * <pre>
-   * All members of all organizations managed by the owning org's
-   * IdentityProvider can access (read and execute) this resource.
+   * Everyone in every child organization of the owning organization can
+   * read and run this resource: the shared catalog an organization offers
+   * the organizations under it (spec.parent_org). Child organizations
+   * created later gain access automatically, and no other organization
+   * does. Instances, sessions, executions and environments are never shared
+   * this way: each child runs the shared blueprint inside its own boundary.
    *
-   * "Platform" here means an external platform that operates Stigmer orgs
-   * on behalf of its own customers (see ManagementMode.platform_managed) —
-   * NOT the Stigmer platform singleton used by
-   * AUTHORIZATION_SCOPE_TYPE_PLATFORM.
+   * Only valid for blueprint kinds with supports_child_orgs: true, and only
+   * in an organization that is not itself a child.
    *
-   * This is the "private catalog" primitive for multi-tenant consumers:
-   * a platform (e.g. Planton) authors blueprints (agents, skills, MCP
-   * servers, workflows) in its own org and shares them with every child
-   * org it manages, without exposing them publicly. Child orgs created
-   * later gain access automatically. Instances, sessions, executions and
-   * environments are never platform-visible — each child org instantiates
-   * the shared blueprint inside its own tenant boundary.
-   *
-   * Only valid for blueprint kinds with supports_platform: true, and only
-   * when the owning org owns at least one IdentityProvider.
-   *
-   * FGA tuple: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
+   * FGA tuple: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
    * </pre>
    *
-   * <code>visibility_platform = 4;</code>
+   * <code>visibility_child_orgs = 4;</code>
    */
-  public static final int visibility_platform_VALUE = 4;
+  public static final int visibility_child_orgs_VALUE = 4;
 
 
   public final int getNumber() {
@@ -258,7 +239,7 @@ public enum ApiResourceVisibility
       case 1: return visibility_private;
       case 2: return visibility_public;
       case 3: return visibility_org;
-      case 4: return visibility_platform;
+      case 4: return visibility_child_orgs;
       default: return null;
     }
   }

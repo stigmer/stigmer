@@ -1,4 +1,3 @@
-from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from ai.stigmer.tenancy.organization.v1 import api_pb2 as _api_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
@@ -30,9 +29,27 @@ class OrganizationId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class OrganizationExternalLookup(_message.Message):
-    __slots__ = ("identity_provider_ref", "external_org_id")
-    IDENTITY_PROVIDER_REF_FIELD_NUMBER: _ClassVar[int]
-    EXTERNAL_ORG_ID_FIELD_NUMBER: _ClassVar[int]
-    identity_provider_ref: _io_pb2.ApiResourceReference
-    external_org_id: str
-    def __init__(self, identity_provider_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., external_org_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("external_id", "parent_org")
+    EXTERNAL_ID_FIELD_NUMBER: _ClassVar[int]
+    PARENT_ORG_FIELD_NUMBER: _ClassVar[int]
+    external_id: str
+    parent_org: str
+    def __init__(self, external_id: _Optional[str] = ..., parent_org: _Optional[str] = ...) -> None: ...
+
+class ListChildOrgsInput(_message.Message):
+    __slots__ = ("org", "page_size", "page_token")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    page_size: int
+    page_token: str
+    def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+
+class ChildOrgList(_message.Message):
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Organization]
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Organization, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...

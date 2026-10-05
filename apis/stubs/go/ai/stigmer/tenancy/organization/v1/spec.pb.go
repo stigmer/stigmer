@@ -8,7 +8,6 @@ package organizationv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,16 +29,16 @@ type OrganizationSpec struct {
 	Description string `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
 	// Public URL for the organization logo.
 	LogoUrl string `protobuf:"bytes,2,opt,name=logo_url,json=logoUrl,proto3" json:"logo_url,omitempty"`
-	// How this organization is operated.
-	ManagementMode ManagementMode `protobuf:"varint,3,opt,name=management_mode,json=managementMode,proto3,enum=ai.stigmer.tenancy.organization.v1.ManagementMode" json:"management_mode,omitempty"`
-	// Reference to the IdentityProvider that authenticates requests for this organization.
-	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,4,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
-	// External platform's organization identifier for reverse mapping.
-	ExternalOrgId string `protobuf:"bytes,5,opt,name=external_org_id,json=externalOrgId,proto3" json:"external_org_id,omitempty"`
+	// The parent's own identifier for this organization, such as the
+	// customer id an integrator keeps for it ("cust-4411").
+	ExternalId string `protobuf:"bytes,5,opt,name=external_id,json=externalId,proto3" json:"external_id,omitempty"`
 	// Whether this is a personal organization, auto-created during identity provisioning.
 	IsPersonal bool `protobuf:"varint,6,opt,name=is_personal,json=isPersonal,proto3" json:"is_personal,omitempty"`
 	// Standing preferences declared by the organization.
-	Preferences   *OrganizationPreferences `protobuf:"bytes,7,opt,name=preferences,proto3" json:"preferences,omitempty"`
+	Preferences *OrganizationPreferences `protobuf:"bytes,7,opt,name=preferences,proto3" json:"preferences,omitempty"`
+	// The organization this one is a child of, by id or slug; empty for an
+	// organization that has no parent.
+	ParentOrg     string `protobuf:"bytes,8,opt,name=parent_org,json=parentOrg,proto3" json:"parent_org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -88,23 +87,9 @@ func (x *OrganizationSpec) GetLogoUrl() string {
 	return ""
 }
 
-func (x *OrganizationSpec) GetManagementMode() ManagementMode {
+func (x *OrganizationSpec) GetExternalId() string {
 	if x != nil {
-		return x.ManagementMode
-	}
-	return ManagementMode_management_mode_unspecified
-}
-
-func (x *OrganizationSpec) GetIdentityProviderRef() *apiresource.ApiResourceReference {
-	if x != nil {
-		return x.IdentityProviderRef
-	}
-	return nil
-}
-
-func (x *OrganizationSpec) GetExternalOrgId() string {
-	if x != nil {
-		return x.ExternalOrgId
+		return x.ExternalId
 	}
 	return ""
 }
@@ -121,6 +106,13 @@ func (x *OrganizationSpec) GetPreferences() *OrganizationPreferences {
 		return x.Preferences
 	}
 	return nil
+}
+
+func (x *OrganizationSpec) GetParentOrg() string {
+	if x != nil {
+		return x.ParentOrg
+	}
+	return ""
 }
 
 // OrganizationPreferences holds organization-declared defaults that apply to
@@ -186,16 +178,18 @@ var File_ai_stigmer_tenancy_organization_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a-ai/stigmer/tenancy/organization/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xd2\x03\n" +
+	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\x1bbuf/validate/validate.proto\"\x99\x04\n" +
 	"\x10OrganizationSpec\x12*\n" +
 	"\vdescription\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\vdescription\x12#\n" +
-	"\blogo_url\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\alogoUrl\x12[\n" +
-	"\x0fmanagement_mode\x18\x03 \x01(\x0e22.ai.stigmer.tenancy.organization.v1.ManagementModeR\x0emanagementMode\x12h\n" +
-	"\x15identity_provider_ref\x18\x04 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12&\n" +
-	"\x0fexternal_org_id\x18\x05 \x01(\tR\rexternalOrgId\x12\x1f\n" +
+	"\blogo_url\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\alogoUrl\x12)\n" +
+	"\vexternal_id\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\n" +
+	"externalId\x12\x1f\n" +
 	"\vis_personal\x18\x06 \x01(\bR\n" +
 	"isPersonal\x12]\n" +
-	"\vpreferences\x18\a \x01(\v2;.ai.stigmer.tenancy.organization.v1.OrganizationPreferencesR\vpreferences\"u\n" +
+	"\vpreferences\x18\a \x01(\v2;.ai.stigmer.tenancy.organization.v1.OrganizationPreferencesR\vpreferences\x12&\n" +
+	"\n" +
+	"parent_org\x18\b \x01(\tB\a\xbaH\x04r\x02\x18@R\tparentOrg:\xac\x01\xbaH\xa8\x01\x1a\xa5\x01\n" +
+	",organization.external_id_requires_parent_org\x12Dexternal_id is set only on a child organization: name its parent_org\x1a/this.external_id == '' || this.parent_org != ''J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\x0fmanagement_modeR\x15identity_provider_ref\"u\n" +
 	"\x17OrganizationPreferences\x123\n" +
 	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12%\n" +
 	"\x0ememory_enabled\x18\x02 \x01(\bR\rmemoryEnabledB\xbc\x02\n" +
@@ -215,20 +209,16 @@ func file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_tenancy_organization_v1_spec_proto_goTypes = []any{
-	(*OrganizationSpec)(nil),                 // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec
-	(*OrganizationPreferences)(nil),          // 1: ai.stigmer.tenancy.organization.v1.OrganizationPreferences
-	(ManagementMode)(0),                      // 2: ai.stigmer.tenancy.organization.v1.ManagementMode
-	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*OrganizationSpec)(nil),        // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec
+	(*OrganizationPreferences)(nil), // 1: ai.stigmer.tenancy.organization.v1.OrganizationPreferences
 }
 var file_ai_stigmer_tenancy_organization_v1_spec_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec.management_mode:type_name -> ai.stigmer.tenancy.organization.v1.ManagementMode
-	3, // 1: ai.stigmer.tenancy.organization.v1.OrganizationSpec.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	1, // 2: ai.stigmer.tenancy.organization.v1.OrganizationSpec.preferences:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPreferences
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	1, // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec.preferences:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPreferences
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_tenancy_organization_v1_spec_proto_init() }
@@ -236,7 +226,6 @@ func file_ai_stigmer_tenancy_organization_v1_spec_proto_init() {
 	if File_ai_stigmer_tenancy_organization_v1_spec_proto != nil {
 		return
 	}
-	file_ai_stigmer_tenancy_organization_v1_enum_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

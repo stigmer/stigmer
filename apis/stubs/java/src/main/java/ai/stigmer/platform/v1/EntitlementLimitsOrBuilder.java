@@ -14,7 +14,7 @@ public interface EntitlementLimitsOrBuilder extends
    * <pre>
    * The most organizations the customer may hold at once. Read by a license
    * (an Enterprise deployment counts its organizations against it) and by
-   * a subscription (a Business plan counts the managed organizations it
+   * a subscription (a Business plan counts the child organizations it
    * includes).
    * </pre>
    *
@@ -26,7 +26,7 @@ public interface EntitlementLimitsOrBuilder extends
    * <pre>
    * The most organizations the customer may hold at once. Read by a license
    * (an Enterprise deployment counts its organizations against it) and by
-   * a subscription (a Business plan counts the managed organizations it
+   * a subscription (a Business plan counts the child organizations it
    * includes).
    * </pre>
    *
@@ -58,34 +58,32 @@ public interface EntitlementLimitsOrBuilder extends
 
   /**
    * <pre>
-   * The platform-managed organizations a subscription includes before the
-   * per-organization fee applies. Read by a subscription only: an
-   * integrator's plan includes this many managed organizations, and the
-   * organizations resolve their own entitlements through the integrator's.
-   * Whether managed organizations are admitted at all is the
-   * managed_organizations feature, since absent here means "no limit" and
-   * zero is refused. A license ignores it.
+   * The child organizations a subscription includes before the
+   * per-organization fee applies. Read by a subscription only: a parent's
+   * plan includes this many child organizations, and the children resolve
+   * their own entitlements through the parent's. Whether child
+   * organizations are admitted at all is the child_orgs feature, since
+   * absent here means "no limit" and zero is refused. A license ignores it.
    * </pre>
    *
-   * <code>optional int32 included_managed_organizations = 3 [json_name = "includedManagedOrganizations", (.buf.validate.field) = { ... }</code>
-   * @return Whether the includedManagedOrganizations field is set.
+   * <code>optional int32 included_child_orgs = 3 [json_name = "includedChildOrgs", (.buf.validate.field) = { ... }</code>
+   * @return Whether the includedChildOrgs field is set.
    */
-  boolean hasIncludedManagedOrganizations();
+  boolean hasIncludedChildOrgs();
   /**
    * <pre>
-   * The platform-managed organizations a subscription includes before the
-   * per-organization fee applies. Read by a subscription only: an
-   * integrator's plan includes this many managed organizations, and the
-   * organizations resolve their own entitlements through the integrator's.
-   * Whether managed organizations are admitted at all is the
-   * managed_organizations feature, since absent here means "no limit" and
-   * zero is refused. A license ignores it.
+   * The child organizations a subscription includes before the
+   * per-organization fee applies. Read by a subscription only: a parent's
+   * plan includes this many child organizations, and the children resolve
+   * their own entitlements through the parent's. Whether child
+   * organizations are admitted at all is the child_orgs feature, since
+   * absent here means "no limit" and zero is refused. A license ignores it.
    * </pre>
    *
-   * <code>optional int32 included_managed_organizations = 3 [json_name = "includedManagedOrganizations", (.buf.validate.field) = { ... }</code>
-   * @return The includedManagedOrganizations.
+   * <code>optional int32 included_child_orgs = 3 [json_name = "includedChildOrgs", (.buf.validate.field) = { ... }</code>
+   * @return The includedChildOrgs.
    */
-  int getIncludedManagedOrganizations();
+  int getIncludedChildOrgs();
 
   /**
    * <pre>

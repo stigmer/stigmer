@@ -109,34 +109,65 @@ public final class OrganizationQueryControllerGrpc {
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup,
-      ai.stigmer.tenancy.organization.v1.Organization> getGetByExternalOrgIdMethod;
+      ai.stigmer.tenancy.organization.v1.Organization> getGetByExternalIdMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getByExternalOrgId",
+      fullMethodName = SERVICE_NAME + '/' + "getByExternalId",
       requestType = ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup.class,
       responseType = ai.stigmer.tenancy.organization.v1.Organization.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
   public static io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup,
-      ai.stigmer.tenancy.organization.v1.Organization> getGetByExternalOrgIdMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup, ai.stigmer.tenancy.organization.v1.Organization> getGetByExternalOrgIdMethod;
-    if ((getGetByExternalOrgIdMethod = OrganizationQueryControllerGrpc.getGetByExternalOrgIdMethod) == null) {
+      ai.stigmer.tenancy.organization.v1.Organization> getGetByExternalIdMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup, ai.stigmer.tenancy.organization.v1.Organization> getGetByExternalIdMethod;
+    if ((getGetByExternalIdMethod = OrganizationQueryControllerGrpc.getGetByExternalIdMethod) == null) {
       synchronized (OrganizationQueryControllerGrpc.class) {
-        if ((getGetByExternalOrgIdMethod = OrganizationQueryControllerGrpc.getGetByExternalOrgIdMethod) == null) {
-          OrganizationQueryControllerGrpc.getGetByExternalOrgIdMethod = getGetByExternalOrgIdMethod =
+        if ((getGetByExternalIdMethod = OrganizationQueryControllerGrpc.getGetByExternalIdMethod) == null) {
+          OrganizationQueryControllerGrpc.getGetByExternalIdMethod = getGetByExternalIdMethod =
               io.grpc.MethodDescriptor.<ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup, ai.stigmer.tenancy.organization.v1.Organization>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getByExternalOrgId"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getByExternalId"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.tenancy.organization.v1.Organization.getDefaultInstance()))
-              .setSchemaDescriptor(new OrganizationQueryControllerMethodDescriptorSupplier("getByExternalOrgId"))
+              .setSchemaDescriptor(new OrganizationQueryControllerMethodDescriptorSupplier("getByExternalId"))
               .build();
         }
       }
     }
-    return getGetByExternalOrgIdMethod;
+    return getGetByExternalIdMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.ListChildOrgsInput,
+      ai.stigmer.tenancy.organization.v1.ChildOrgList> getListChildOrgsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listChildOrgs",
+      requestType = ai.stigmer.tenancy.organization.v1.ListChildOrgsInput.class,
+      responseType = ai.stigmer.tenancy.organization.v1.ChildOrgList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.ListChildOrgsInput,
+      ai.stigmer.tenancy.organization.v1.ChildOrgList> getListChildOrgsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.ListChildOrgsInput, ai.stigmer.tenancy.organization.v1.ChildOrgList> getListChildOrgsMethod;
+    if ((getListChildOrgsMethod = OrganizationQueryControllerGrpc.getListChildOrgsMethod) == null) {
+      synchronized (OrganizationQueryControllerGrpc.class) {
+        if ((getListChildOrgsMethod = OrganizationQueryControllerGrpc.getListChildOrgsMethod) == null) {
+          OrganizationQueryControllerGrpc.getListChildOrgsMethod = getListChildOrgsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.tenancy.organization.v1.ListChildOrgsInput, ai.stigmer.tenancy.organization.v1.ChildOrgList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listChildOrgs"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.tenancy.organization.v1.ListChildOrgsInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.tenancy.organization.v1.ChildOrgList.getDefaultInstance()))
+              .setSchemaDescriptor(new OrganizationQueryControllerMethodDescriptorSupplier("listChildOrgs"))
+              .build();
+        }
+      }
+    }
+    return getListChildOrgsMethod;
   }
 
   /**
@@ -238,13 +269,24 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Look up a platform-managed organization by its external platform coordinates.
-     * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     * Find a child organization by the identifier its parent keeps for it
+     * (external_id). An organization that is not a child of parent_org, or no
+     * child with that identifier, answers NotFound.
      * </pre>
      */
-    default void getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request,
+    default void getByExternalId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request,
         io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByExternalOrgIdMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByExternalIdMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List an organization's child organizations, newest first.
+     * </pre>
+     */
+    default void listChildOrgs(ai.stigmer.tenancy.organization.v1.ListChildOrgsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.ChildOrgList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListChildOrgsMethod(), responseObserver);
     }
   }
 
@@ -317,14 +359,26 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Look up a platform-managed organization by its external platform coordinates.
-     * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     * Find a child organization by the identifier its parent keeps for it
+     * (external_id). An organization that is not a child of parent_org, or no
+     * child with that identifier, answers NotFound.
      * </pre>
      */
-    public void getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request,
+    public void getByExternalId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request,
         io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetByExternalOrgIdMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getGetByExternalIdMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List an organization's child organizations, newest first.
+     * </pre>
+     */
+    public void listChildOrgs(ai.stigmer.tenancy.organization.v1.ListChildOrgsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.ChildOrgList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListChildOrgsMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -380,13 +434,24 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Look up a platform-managed organization by its external platform coordinates.
-     * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     * Find a child organization by the identifier its parent keeps for it
+     * (external_id). An organization that is not a child of parent_org, or no
+     * child with that identifier, answers NotFound.
      * </pre>
      */
-    public ai.stigmer.tenancy.organization.v1.Organization getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request) throws io.grpc.StatusException {
+    public ai.stigmer.tenancy.organization.v1.Organization getByExternalId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetByExternalOrgIdMethod(), getCallOptions(), request);
+          getChannel(), getGetByExternalIdMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List an organization's child organizations, newest first.
+     * </pre>
+     */
+    public ai.stigmer.tenancy.organization.v1.ChildOrgList listChildOrgs(ai.stigmer.tenancy.organization.v1.ListChildOrgsInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListChildOrgsMethod(), getCallOptions(), request);
     }
   }
 
@@ -442,13 +507,24 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Look up a platform-managed organization by its external platform coordinates.
-     * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     * Find a child organization by the identifier its parent keeps for it
+     * (external_id). An organization that is not a child of parent_org, or no
+     * child with that identifier, answers NotFound.
      * </pre>
      */
-    public ai.stigmer.tenancy.organization.v1.Organization getByExternalOrgId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request) {
+    public ai.stigmer.tenancy.organization.v1.Organization getByExternalId(ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetByExternalOrgIdMethod(), getCallOptions(), request);
+          getChannel(), getGetByExternalIdMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List an organization's child organizations, newest first.
+     * </pre>
+     */
+    public ai.stigmer.tenancy.organization.v1.ChildOrgList listChildOrgs(ai.stigmer.tenancy.organization.v1.ListChildOrgsInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListChildOrgsMethod(), getCallOptions(), request);
     }
   }
 
@@ -507,21 +583,34 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Look up a platform-managed organization by its external platform coordinates.
-     * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     * Find a child organization by the identifier its parent keeps for it
+     * (external_id). An organization that is not a child of parent_org, or no
+     * child with that identifier, answers NotFound.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> getByExternalOrgId(
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> getByExternalId(
         ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetByExternalOrgIdMethod(), getCallOptions()), request);
+          getChannel().newCall(getGetByExternalIdMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * List an organization's child organizations, newest first.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.ChildOrgList> listChildOrgs(
+        ai.stigmer.tenancy.organization.v1.ListChildOrgsInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListChildOrgsMethod(), getCallOptions()), request);
     }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_FIND = 1;
   private static final int METHODID_FIND_MY_ORGANIZATIONS = 2;
-  private static final int METHODID_GET_BY_EXTERNAL_ORG_ID = 3;
+  private static final int METHODID_GET_BY_EXTERNAL_ID = 3;
+  private static final int METHODID_LIST_CHILD_ORGS = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -552,9 +641,13 @@ public final class OrganizationQueryControllerGrpc {
           serviceImpl.findMyOrganizations((com.google.protobuf.Empty) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organizations>) responseObserver);
           break;
-        case METHODID_GET_BY_EXTERNAL_ORG_ID:
-          serviceImpl.getByExternalOrgId((ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup) request,
+        case METHODID_GET_BY_EXTERNAL_ID:
+          serviceImpl.getByExternalId((ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization>) responseObserver);
+          break;
+        case METHODID_LIST_CHILD_ORGS:
+          serviceImpl.listChildOrgs((ai.stigmer.tenancy.organization.v1.ListChildOrgsInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.ChildOrgList>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -596,12 +689,19 @@ public final class OrganizationQueryControllerGrpc {
               ai.stigmer.tenancy.organization.v1.Organizations>(
                 service, METHODID_FIND_MY_ORGANIZATIONS)))
         .addMethod(
-          getGetByExternalOrgIdMethod(),
+          getGetByExternalIdMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
               ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup,
               ai.stigmer.tenancy.organization.v1.Organization>(
-                service, METHODID_GET_BY_EXTERNAL_ORG_ID)))
+                service, METHODID_GET_BY_EXTERNAL_ID)))
+        .addMethod(
+          getListChildOrgsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.tenancy.organization.v1.ListChildOrgsInput,
+              ai.stigmer.tenancy.organization.v1.ChildOrgList>(
+                service, METHODID_LIST_CHILD_ORGS)))
         .build();
   }
 
@@ -653,7 +753,8 @@ public final class OrganizationQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getFindMethod())
               .addMethod(getFindMyOrganizationsMethod())
-              .addMethod(getGetByExternalOrgIdMethod())
+              .addMethod(getGetByExternalIdMethod())
+              .addMethod(getListChildOrgsMethod())
               .build();
         }
       }

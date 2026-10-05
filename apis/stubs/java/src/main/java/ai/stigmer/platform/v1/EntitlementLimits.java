@@ -63,7 +63,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The most organizations the customer may hold at once. Read by a license
    * (an Enterprise deployment counts its organizations against it) and by
-   * a subscription (a Business plan counts the managed organizations it
+   * a subscription (a Business plan counts the child organizations it
    * includes).
    * </pre>
    *
@@ -78,7 +78,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The most organizations the customer may hold at once. Read by a license
    * (an Enterprise deployment counts its organizations against it) and by
-   * a subscription (a Business plan counts the managed organizations it
+   * a subscription (a Business plan counts the child organizations it
    * includes).
    * </pre>
    *
@@ -119,43 +119,41 @@ private static final long serialVersionUID = 0L;
     return maxUsers_;
   }
 
-  public static final int INCLUDED_MANAGED_ORGANIZATIONS_FIELD_NUMBER = 3;
-  private int includedManagedOrganizations_ = 0;
+  public static final int INCLUDED_CHILD_ORGS_FIELD_NUMBER = 3;
+  private int includedChildOrgs_ = 0;
   /**
    * <pre>
-   * The platform-managed organizations a subscription includes before the
-   * per-organization fee applies. Read by a subscription only: an
-   * integrator's plan includes this many managed organizations, and the
-   * organizations resolve their own entitlements through the integrator's.
-   * Whether managed organizations are admitted at all is the
-   * managed_organizations feature, since absent here means "no limit" and
-   * zero is refused. A license ignores it.
+   * The child organizations a subscription includes before the
+   * per-organization fee applies. Read by a subscription only: a parent's
+   * plan includes this many child organizations, and the children resolve
+   * their own entitlements through the parent's. Whether child
+   * organizations are admitted at all is the child_orgs feature, since
+   * absent here means "no limit" and zero is refused. A license ignores it.
    * </pre>
    *
-   * <code>optional int32 included_managed_organizations = 3 [json_name = "includedManagedOrganizations", (.buf.validate.field) = { ... }</code>
-   * @return Whether the includedManagedOrganizations field is set.
+   * <code>optional int32 included_child_orgs = 3 [json_name = "includedChildOrgs", (.buf.validate.field) = { ... }</code>
+   * @return Whether the includedChildOrgs field is set.
    */
   @java.lang.Override
-  public boolean hasIncludedManagedOrganizations() {
+  public boolean hasIncludedChildOrgs() {
     return ((bitField0_ & 0x00000004) != 0);
   }
   /**
    * <pre>
-   * The platform-managed organizations a subscription includes before the
-   * per-organization fee applies. Read by a subscription only: an
-   * integrator's plan includes this many managed organizations, and the
-   * organizations resolve their own entitlements through the integrator's.
-   * Whether managed organizations are admitted at all is the
-   * managed_organizations feature, since absent here means "no limit" and
-   * zero is refused. A license ignores it.
+   * The child organizations a subscription includes before the
+   * per-organization fee applies. Read by a subscription only: a parent's
+   * plan includes this many child organizations, and the children resolve
+   * their own entitlements through the parent's. Whether child
+   * organizations are admitted at all is the child_orgs feature, since
+   * absent here means "no limit" and zero is refused. A license ignores it.
    * </pre>
    *
-   * <code>optional int32 included_managed_organizations = 3 [json_name = "includedManagedOrganizations", (.buf.validate.field) = { ... }</code>
-   * @return The includedManagedOrganizations.
+   * <code>optional int32 included_child_orgs = 3 [json_name = "includedChildOrgs", (.buf.validate.field) = { ... }</code>
+   * @return The includedChildOrgs.
    */
   @java.lang.Override
-  public int getIncludedManagedOrganizations() {
-    return includedManagedOrganizations_;
+  public int getIncludedChildOrgs() {
+    return includedChildOrgs_;
   }
 
   public static final int MAX_ACTIVE_SESSION_SANDBOXES_FIELD_NUMBER = 4;
@@ -280,7 +278,7 @@ private static final long serialVersionUID = 0L;
       output.writeInt32(2, maxUsers_);
     }
     if (((bitField0_ & 0x00000004) != 0)) {
-      output.writeInt32(3, includedManagedOrganizations_);
+      output.writeInt32(3, includedChildOrgs_);
     }
     if (((bitField0_ & 0x00000008) != 0)) {
       output.writeInt32(4, maxActiveSessionSandboxes_);
@@ -310,7 +308,7 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(3, includedManagedOrganizations_);
+        .computeInt32Size(3, includedChildOrgs_);
     }
     if (((bitField0_ & 0x00000008) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -349,10 +347,10 @@ private static final long serialVersionUID = 0L;
       if (getMaxUsers()
           != other.getMaxUsers()) return false;
     }
-    if (hasIncludedManagedOrganizations() != other.hasIncludedManagedOrganizations()) return false;
-    if (hasIncludedManagedOrganizations()) {
-      if (getIncludedManagedOrganizations()
-          != other.getIncludedManagedOrganizations()) return false;
+    if (hasIncludedChildOrgs() != other.hasIncludedChildOrgs()) return false;
+    if (hasIncludedChildOrgs()) {
+      if (getIncludedChildOrgs()
+          != other.getIncludedChildOrgs()) return false;
     }
     if (hasMaxActiveSessionSandboxes() != other.hasMaxActiveSessionSandboxes()) return false;
     if (hasMaxActiveSessionSandboxes()) {
@@ -388,9 +386,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + MAX_USERS_FIELD_NUMBER;
       hash = (53 * hash) + getMaxUsers();
     }
-    if (hasIncludedManagedOrganizations()) {
-      hash = (37 * hash) + INCLUDED_MANAGED_ORGANIZATIONS_FIELD_NUMBER;
-      hash = (53 * hash) + getIncludedManagedOrganizations();
+    if (hasIncludedChildOrgs()) {
+      hash = (37 * hash) + INCLUDED_CHILD_ORGS_FIELD_NUMBER;
+      hash = (53 * hash) + getIncludedChildOrgs();
     }
     if (hasMaxActiveSessionSandboxes()) {
       hash = (37 * hash) + MAX_ACTIVE_SESSION_SANDBOXES_FIELD_NUMBER;
@@ -545,7 +543,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       maxOrgs_ = 0;
       maxUsers_ = 0;
-      includedManagedOrganizations_ = 0;
+      includedChildOrgs_ = 0;
       maxActiveSessionSandboxes_ = 0;
       maxActiveWorkflowSandboxes_ = 0;
       archivedWorkspaceRetentionDays_ = 0;
@@ -592,7 +590,7 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000002;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.includedManagedOrganizations_ = includedManagedOrganizations_;
+        result.includedChildOrgs_ = includedChildOrgs_;
         to_bitField0_ |= 0x00000004;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
@@ -628,8 +626,8 @@ private static final long serialVersionUID = 0L;
       if (other.hasMaxUsers()) {
         setMaxUsers(other.getMaxUsers());
       }
-      if (other.hasIncludedManagedOrganizations()) {
-        setIncludedManagedOrganizations(other.getIncludedManagedOrganizations());
+      if (other.hasIncludedChildOrgs()) {
+        setIncludedChildOrgs(other.getIncludedChildOrgs());
       }
       if (other.hasMaxActiveSessionSandboxes()) {
         setMaxActiveSessionSandboxes(other.getMaxActiveSessionSandboxes());
@@ -677,7 +675,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 16
             case 24: {
-              includedManagedOrganizations_ = input.readInt32();
+              includedChildOrgs_ = input.readInt32();
               bitField0_ |= 0x00000004;
               break;
             } // case 24
@@ -718,7 +716,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The most organizations the customer may hold at once. Read by a license
      * (an Enterprise deployment counts its organizations against it) and by
-     * a subscription (a Business plan counts the managed organizations it
+     * a subscription (a Business plan counts the child organizations it
      * includes).
      * </pre>
      *
@@ -733,7 +731,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The most organizations the customer may hold at once. Read by a license
      * (an Enterprise deployment counts its organizations against it) and by
-     * a subscription (a Business plan counts the managed organizations it
+     * a subscription (a Business plan counts the child organizations it
      * includes).
      * </pre>
      *
@@ -748,7 +746,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The most organizations the customer may hold at once. Read by a license
      * (an Enterprise deployment counts its organizations against it) and by
-     * a subscription (a Business plan counts the managed organizations it
+     * a subscription (a Business plan counts the child organizations it
      * includes).
      * </pre>
      *
@@ -767,7 +765,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The most organizations the customer may hold at once. Read by a license
      * (an Enterprise deployment counts its organizations against it) and by
-     * a subscription (a Business plan counts the managed organizations it
+     * a subscription (a Business plan counts the child organizations it
      * includes).
      * </pre>
      *
@@ -841,82 +839,78 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int includedManagedOrganizations_ ;
+    private int includedChildOrgs_ ;
     /**
      * <pre>
-     * The platform-managed organizations a subscription includes before the
-     * per-organization fee applies. Read by a subscription only: an
-     * integrator's plan includes this many managed organizations, and the
-     * organizations resolve their own entitlements through the integrator's.
-     * Whether managed organizations are admitted at all is the
-     * managed_organizations feature, since absent here means "no limit" and
-     * zero is refused. A license ignores it.
+     * The child organizations a subscription includes before the
+     * per-organization fee applies. Read by a subscription only: a parent's
+     * plan includes this many child organizations, and the children resolve
+     * their own entitlements through the parent's. Whether child
+     * organizations are admitted at all is the child_orgs feature, since
+     * absent here means "no limit" and zero is refused. A license ignores it.
      * </pre>
      *
-     * <code>optional int32 included_managed_organizations = 3 [json_name = "includedManagedOrganizations", (.buf.validate.field) = { ... }</code>
-     * @return Whether the includedManagedOrganizations field is set.
+     * <code>optional int32 included_child_orgs = 3 [json_name = "includedChildOrgs", (.buf.validate.field) = { ... }</code>
+     * @return Whether the includedChildOrgs field is set.
      */
     @java.lang.Override
-    public boolean hasIncludedManagedOrganizations() {
+    public boolean hasIncludedChildOrgs() {
       return ((bitField0_ & 0x00000004) != 0);
     }
     /**
      * <pre>
-     * The platform-managed organizations a subscription includes before the
-     * per-organization fee applies. Read by a subscription only: an
-     * integrator's plan includes this many managed organizations, and the
-     * organizations resolve their own entitlements through the integrator's.
-     * Whether managed organizations are admitted at all is the
-     * managed_organizations feature, since absent here means "no limit" and
-     * zero is refused. A license ignores it.
+     * The child organizations a subscription includes before the
+     * per-organization fee applies. Read by a subscription only: a parent's
+     * plan includes this many child organizations, and the children resolve
+     * their own entitlements through the parent's. Whether child
+     * organizations are admitted at all is the child_orgs feature, since
+     * absent here means "no limit" and zero is refused. A license ignores it.
      * </pre>
      *
-     * <code>optional int32 included_managed_organizations = 3 [json_name = "includedManagedOrganizations", (.buf.validate.field) = { ... }</code>
-     * @return The includedManagedOrganizations.
+     * <code>optional int32 included_child_orgs = 3 [json_name = "includedChildOrgs", (.buf.validate.field) = { ... }</code>
+     * @return The includedChildOrgs.
      */
     @java.lang.Override
-    public int getIncludedManagedOrganizations() {
-      return includedManagedOrganizations_;
+    public int getIncludedChildOrgs() {
+      return includedChildOrgs_;
     }
     /**
      * <pre>
-     * The platform-managed organizations a subscription includes before the
-     * per-organization fee applies. Read by a subscription only: an
-     * integrator's plan includes this many managed organizations, and the
-     * organizations resolve their own entitlements through the integrator's.
-     * Whether managed organizations are admitted at all is the
-     * managed_organizations feature, since absent here means "no limit" and
-     * zero is refused. A license ignores it.
+     * The child organizations a subscription includes before the
+     * per-organization fee applies. Read by a subscription only: a parent's
+     * plan includes this many child organizations, and the children resolve
+     * their own entitlements through the parent's. Whether child
+     * organizations are admitted at all is the child_orgs feature, since
+     * absent here means "no limit" and zero is refused. A license ignores it.
      * </pre>
      *
-     * <code>optional int32 included_managed_organizations = 3 [json_name = "includedManagedOrganizations", (.buf.validate.field) = { ... }</code>
-     * @param value The includedManagedOrganizations to set.
+     * <code>optional int32 included_child_orgs = 3 [json_name = "includedChildOrgs", (.buf.validate.field) = { ... }</code>
+     * @param value The includedChildOrgs to set.
      * @return This builder for chaining.
      */
-    public Builder setIncludedManagedOrganizations(int value) {
+    public Builder setIncludedChildOrgs(int value) {
 
-      includedManagedOrganizations_ = value;
+      includedChildOrgs_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The platform-managed organizations a subscription includes before the
-     * per-organization fee applies. Read by a subscription only: an
-     * integrator's plan includes this many managed organizations, and the
-     * organizations resolve their own entitlements through the integrator's.
-     * Whether managed organizations are admitted at all is the
-     * managed_organizations feature, since absent here means "no limit" and
-     * zero is refused. A license ignores it.
+     * The child organizations a subscription includes before the
+     * per-organization fee applies. Read by a subscription only: a parent's
+     * plan includes this many child organizations, and the children resolve
+     * their own entitlements through the parent's. Whether child
+     * organizations are admitted at all is the child_orgs feature, since
+     * absent here means "no limit" and zero is refused. A license ignores it.
      * </pre>
      *
-     * <code>optional int32 included_managed_organizations = 3 [json_name = "includedManagedOrganizations", (.buf.validate.field) = { ... }</code>
+     * <code>optional int32 included_child_orgs = 3 [json_name = "includedChildOrgs", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearIncludedManagedOrganizations() {
+    public Builder clearIncludedChildOrgs() {
       bitField0_ = (bitField0_ & ~0x00000004);
-      includedManagedOrganizations_ = 0;
+      includedChildOrgs_ = 0;
       onChanged();
       return this;
     }

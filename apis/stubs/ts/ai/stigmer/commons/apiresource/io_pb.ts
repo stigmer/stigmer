@@ -163,14 +163,14 @@ export const FindApiResourcesRequestSchema: GenMessage<FindApiResourcesRequest> 
  * old level is removed and the tuple for the new level is created:
  * - PRIVATE:  no visibility tuple (owner + explicit grants only)
  * - ORG:      resource#viewer@organization:<org>#viewer
- * - PLATFORM: resource#platform_viewer@identity_provider:<idp>#platform_user
+ * - CHILD_ORGS: resource#child_org_viewer@organization:<org>#child_org_viewer
  *
  * Not all resources support all visibility levels — the supported set is
  * declared per kind via VisibilityConfig in kind_meta:
  * - Blueprints (agent, workflow, skill, mcp_server, plugin):
- *     PRIVATE, ORG, or PLATFORM
+ *     PRIVATE, ORG, or CHILD_ORGS
  * - Instances (workflow_instance):
- *     PRIVATE or ORG (never PLATFORM — tenant isolation)
+ *     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
  *
  * visibility_public is refused for every kind (INVALID_ARGUMENT naming the
  * supported levels); the level is retired.
@@ -268,8 +268,9 @@ export type ApiResourceReference = Message<"ai.stigmer.commons.apiresource.ApiRe
    * always have org populated (absolute form, the id).
    *
    * Use empty org for same-org references (the common case).
-   * An explicit other org is accepted only when that organization is a
-   * platform that shares the resource with yours (visibility_platform).
+   * An explicit other org is accepted only when that organization is your
+   * organization's parent and shares the resource with its children
+   * (visibility_child_orgs).
    *
    * @generated from field: string org = 1;
    */

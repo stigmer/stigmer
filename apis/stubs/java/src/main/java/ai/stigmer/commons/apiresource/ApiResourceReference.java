@@ -82,8 +82,9 @@ private static final long serialVersionUID = 0L;
    * always have org populated (absolute form, the id).
    *
    * Use empty org for same-org references (the common case).
-   * An explicit other org is accepted only when that organization is a
-   * platform that shares the resource with yours (visibility_platform).
+   * An explicit other org is accepted only when that organization is your
+   * organization's parent and shares the resource with its children
+   * (visibility_child_orgs).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -116,8 +117,9 @@ private static final long serialVersionUID = 0L;
    * always have org populated (absolute form, the id).
    *
    * Use empty org for same-org references (the common case).
-   * An explicit other org is accepted only when that organization is a
-   * platform that shares the resource with yours (visibility_platform).
+   * An explicit other org is accepted only when that organization is your
+   * organization's parent and shares the resource with its children
+   * (visibility_child_orgs).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -684,8 +686,9 @@ private static final long serialVersionUID = 0L;
      * always have org populated (absolute form, the id).
      *
      * Use empty org for same-org references (the common case).
-     * An explicit other org is accepted only when that organization is a
-     * platform that shares the resource with yours (visibility_platform).
+     * An explicit other org is accepted only when that organization is your
+     * organization's parent and shares the resource with its children
+     * (visibility_child_orgs).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -717,8 +720,9 @@ private static final long serialVersionUID = 0L;
      * always have org populated (absolute form, the id).
      *
      * Use empty org for same-org references (the common case).
-     * An explicit other org is accepted only when that organization is a
-     * platform that shares the resource with yours (visibility_platform).
+     * An explicit other org is accepted only when that organization is your
+     * organization's parent and shares the resource with its children
+     * (visibility_child_orgs).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -751,8 +755,9 @@ private static final long serialVersionUID = 0L;
      * always have org populated (absolute form, the id).
      *
      * Use empty org for same-org references (the common case).
-     * An explicit other org is accepted only when that organization is a
-     * platform that shares the resource with yours (visibility_platform).
+     * An explicit other org is accepted only when that organization is your
+     * organization's parent and shares the resource with its children
+     * (visibility_child_orgs).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -781,8 +786,9 @@ private static final long serialVersionUID = 0L;
      * always have org populated (absolute form, the id).
      *
      * Use empty org for same-org references (the common case).
-     * An explicit other org is accepted only when that organization is a
-     * platform that shares the resource with yours (visibility_platform).
+     * An explicit other org is accepted only when that organization is your
+     * organization's parent and shares the resource with its children
+     * (visibility_child_orgs).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -808,8 +814,9 @@ private static final long serialVersionUID = 0L;
      * always have org populated (absolute form, the id).
      *
      * Use empty org for same-org references (the common case).
-     * An explicit other org is accepted only when that organization is a
-     * platform that shares the resource with yours (visibility_platform).
+     * An explicit other org is accepted only when that organization is your
+     * organization's parent and shares the resource with its children
+     * (visibility_child_orgs).
      * </pre>
      *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>

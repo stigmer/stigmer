@@ -227,6 +227,26 @@ enum IamPermission {
   // money reaching the platform is the platform's decision, and every
   // person owns an organization.
   can_manage_credits = 46;
+
+  // Organization-level permission to create, find and list the
+  // organization's child organizations: OrganizationCommandController.create
+  // with spec.parent_org naming it, getByExternalId and listChildOrgs.
+  //
+  // @internal
+  // Held by the organization's admins. Child organizations are one level
+  // deep, so a child's admins hold it on a child but can never use it: a
+  // child cannot have children.
+  can_manage_child_orgs = 49;
+
+  // Organization-level permission to read the organization itself (its
+  // name, slug, description and preferences): OrganizationQueryController.get.
+  //
+  // @internal
+  // Held by everyone who holds can_view (every role in the organization)
+  // and by the admins of its parent organization, who manage a child's
+  // settings, members, access and billing without holding can_view, so
+  // they read none of the child's resources, reports or lists.
+  can_view_settings = 50;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

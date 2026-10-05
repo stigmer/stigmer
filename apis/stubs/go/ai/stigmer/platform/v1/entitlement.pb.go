@@ -66,14 +66,14 @@ const (
 	// add a member. It is not an edition gate: an Enterprise deployment
 	// includes teams by the kind's tier, and a license never lists it.
 	Feature_teams Feature = 6
-	// Creating platform-managed organizations under the tenant's identity
-	// provider, the organizations an integrator runs for its own customers.
-	// A plan lists it together with included_managed_organizations: the
-	// feature admits new managed organizations, and the limit is how many
-	// the plan includes before the per-organization fee. Without it, existing
-	// managed organizations keep working and no new one is admitted. It tiers
-	// the Cloud runtime and is not an edition gate; a license never lists it.
-	Feature_managed_organizations Feature = 7
+	// Creating child organizations (spec.parent_org), the organizations an
+	// integrator runs for its own customers. A plan lists it together with
+	// included_child_orgs: the feature admits new child organizations, and
+	// the limit is how many the plan includes before the per-organization
+	// fee. Without it, existing children keep working and no new one is
+	// admitted. It tiers the Cloud runtime and is not an edition gate; a
+	// license never lists it.
+	Feature_child_orgs Feature = 7
 )
 
 // Enum value maps for Feature.
@@ -86,17 +86,17 @@ var (
 		4: "channels",
 		5: "sharing",
 		6: "teams",
-		7: "managed_organizations",
+		7: "child_orgs",
 	}
 	Feature_value = map[string]int32{
-		"feature_unspecified":   0,
-		"sso_enforcement":       1,
-		"platform_client":       2,
-		"byo_provider_keys":     3,
-		"channels":              4,
-		"sharing":               5,
-		"teams":                 6,
-		"managed_organizations": 7,
+		"feature_unspecified": 0,
+		"sso_enforcement":     1,
+		"platform_client":     2,
+		"byo_provider_keys":   3,
+		"channels":            4,
+		"sharing":             5,
+		"teams":               6,
+		"child_orgs":          7,
 	}
 )
 
@@ -201,20 +201,19 @@ type EntitlementLimits struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The most organizations the customer may hold at once. Read by a license
 	// (an Enterprise deployment counts its organizations against it) and by
-	// a subscription (a Business plan counts the managed organizations it
+	// a subscription (a Business plan counts the child organizations it
 	// includes).
 	MaxOrgs *int32 `protobuf:"varint,1,opt,name=max_orgs,json=maxOrgs,proto3,oneof" json:"max_orgs,omitempty"`
 	// The most identity accounts the customer may hold at once. Read by both
 	// instruments.
 	MaxUsers *int32 `protobuf:"varint,2,opt,name=max_users,json=maxUsers,proto3,oneof" json:"max_users,omitempty"`
-	// The platform-managed organizations a subscription includes before the
-	// per-organization fee applies. Read by a subscription only: an
-	// integrator's plan includes this many managed organizations, and the
-	// organizations resolve their own entitlements through the integrator's.
-	// Whether managed organizations are admitted at all is the
-	// managed_organizations feature, since absent here means "no limit" and
-	// zero is refused. A license ignores it.
-	IncludedManagedOrganizations *int32 `protobuf:"varint,3,opt,name=included_managed_organizations,json=includedManagedOrganizations,proto3,oneof" json:"included_managed_organizations,omitempty"`
+	// The child organizations a subscription includes before the
+	// per-organization fee applies. Read by a subscription only: a parent's
+	// plan includes this many child organizations, and the children resolve
+	// their own entitlements through the parent's. Whether child
+	// organizations are admitted at all is the child_orgs feature, since
+	// absent here means "no limit" and zero is refused. A license ignores it.
+	IncludedChildOrgs *int32 `protobuf:"varint,3,opt,name=included_child_orgs,json=includedChildOrgs,proto3,oneof" json:"included_child_orgs,omitempty"`
 	// The most session sandboxes an organization may hold provisioning or
 	// running at once. A session launch that would need a new sandbox past it
 	// is refused; a follow-up turn on a sandbox already running is not
@@ -279,9 +278,9 @@ func (x *EntitlementLimits) GetMaxUsers() int32 {
 	return 0
 }
 
-func (x *EntitlementLimits) GetIncludedManagedOrganizations() int32 {
-	if x != nil && x.IncludedManagedOrganizations != nil {
-		return *x.IncludedManagedOrganizations
+func (x *EntitlementLimits) GetIncludedChildOrgs() int32 {
+	if x != nil && x.IncludedChildOrgs != nil {
+		return *x.IncludedChildOrgs
 	}
 	return 0
 }
@@ -314,21 +313,21 @@ const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
 	"(ai/stigmer/platform/v1/entitlement.proto\x12\x16ai.stigmer.platform.v1\x1a\x1bbuf/validate/validate.proto\"\xa1\x01\n" +
 	"\fEntitlements\x12A\n" +
 	"\x06limits\x18\x01 \x01(\v2).ai.stigmer.platform.v1.EntitlementLimitsR\x06limits\x12N\n" +
-	"\bfeatures\x18\x02 \x03(\x0e2\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\bfeatures\"\xdb\x04\n" +
+	"\bfeatures\x18\x02 \x03(\x0e2\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\bfeatures\"\xba\x04\n" +
 	"\x11EntitlementLimits\x12'\n" +
 	"\bmax_orgs\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x00R\amaxOrgs\x88\x01\x01\x12)\n" +
-	"\tmax_users\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x01R\bmaxUsers\x88\x01\x01\x12R\n" +
-	"\x1eincluded_managed_organizations\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x02R\x1cincludedManagedOrganizations\x88\x01\x01\x12M\n" +
+	"\tmax_users\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x01R\bmaxUsers\x88\x01\x01\x12<\n" +
+	"\x13included_child_orgs\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x02R\x11includedChildOrgs\x88\x01\x01\x12M\n" +
 	"\x1cmax_active_session_sandboxes\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x03R\x19maxActiveSessionSandboxes\x88\x01\x01\x12O\n" +
 	"\x1dmax_active_workflow_sandboxes\x18\x05 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x04R\x1amaxActiveWorkflowSandboxes\x88\x01\x01\x12W\n" +
 	"!archived_workspace_retention_days\x18\x06 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x05R\x1earchivedWorkspaceRetentionDays\x88\x01\x01B\v\n" +
 	"\t_max_orgsB\f\n" +
 	"\n" +
-	"_max_usersB!\n" +
-	"\x1f_included_managed_organizationsB\x1f\n" +
+	"_max_usersB\x16\n" +
+	"\x14_included_child_orgsB\x1f\n" +
 	"\x1d_max_active_session_sandboxesB \n" +
 	"\x1e_max_active_workflow_sandboxesB$\n" +
-	"\"_archived_workspace_retention_days*\xa4\x01\n" +
+	"\"_archived_workspace_retention_days*\x99\x01\n" +
 	"\aFeature\x12\x17\n" +
 	"\x13feature_unspecified\x10\x00\x12\x13\n" +
 	"\x0fsso_enforcement\x10\x01\x12\x13\n" +
@@ -336,8 +335,9 @@ const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
 	"\x11byo_provider_keys\x10\x03\x12\f\n" +
 	"\bchannels\x10\x04\x12\v\n" +
 	"\asharing\x10\x05\x12\t\n" +
-	"\x05teams\x10\x06\x12\x19\n" +
-	"\x15managed_organizations\x10\aB\xf5\x01\n" +
+	"\x05teams\x10\x06\x12\x0e\n" +
+	"\n" +
+	"child_orgs\x10\aB\xf5\x01\n" +
 	"\x1acom.ai.stigmer.platform.v1B\x10EntitlementProtoP\x01ZJgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
 
 var (

@@ -43,6 +43,6 @@ message ListProviderKeysInput {
 
 message ListProviderKeysOutput {
   // One row per provider the organization is served on its own or its
-  // integrator's key, in provider order.
+  // parent organization's key, in provider order.
   repeated ProviderKey keys = 1;
 }

@@ -122,9 +122,9 @@ private static final long serialVersionUID = 0L;
   private long perExtraOrgMicros_ = 0L;
   /**
    * <pre>
-   * What a subscription plan bills per month for each platform-managed
-   * organization beyond the ones its entitlements include, in micro-USD.
-   * Absent when the plan includes no managed organizations.
+   * What a subscription plan bills per month for each child organization
+   * beyond the ones its entitlements include, in micro-USD. Absent when the
+   * plan includes no child organizations.
    * </pre>
    *
    * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
@@ -136,9 +136,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * What a subscription plan bills per month for each platform-managed
-   * organization beyond the ones its entitlements include, in micro-USD.
-   * Absent when the plan includes no managed organizations.
+   * What a subscription plan bills per month for each child organization
+   * beyond the ones its entitlements include, in micro-USD. Absent when the
+   * plan includes no child organizations.
    * </pre>
    *
    * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
@@ -703,9 +703,9 @@ private static final long serialVersionUID = 0L;
     private long perExtraOrgMicros_ ;
     /**
      * <pre>
-     * What a subscription plan bills per month for each platform-managed
-     * organization beyond the ones its entitlements include, in micro-USD.
-     * Absent when the plan includes no managed organizations.
+     * What a subscription plan bills per month for each child organization
+     * beyond the ones its entitlements include, in micro-USD. Absent when the
+     * plan includes no child organizations.
      * </pre>
      *
      * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
@@ -717,9 +717,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * What a subscription plan bills per month for each platform-managed
-     * organization beyond the ones its entitlements include, in micro-USD.
-     * Absent when the plan includes no managed organizations.
+     * What a subscription plan bills per month for each child organization
+     * beyond the ones its entitlements include, in micro-USD. Absent when the
+     * plan includes no child organizations.
      * </pre>
      *
      * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
@@ -731,9 +731,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * What a subscription plan bills per month for each platform-managed
-     * organization beyond the ones its entitlements include, in micro-USD.
-     * Absent when the plan includes no managed organizations.
+     * What a subscription plan bills per month for each child organization
+     * beyond the ones its entitlements include, in micro-USD. Absent when the
+     * plan includes no child organizations.
      * </pre>
      *
      * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
@@ -749,9 +749,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * What a subscription plan bills per month for each platform-managed
-     * organization beyond the ones its entitlements include, in micro-USD.
-     * Absent when the plan includes no managed organizations.
+     * What a subscription plan bills per month for each child organization
+     * beyond the ones its entitlements include, in micro-USD. Absent when the
+     * plan includes no child organizations.
      * </pre>
      *
      * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>

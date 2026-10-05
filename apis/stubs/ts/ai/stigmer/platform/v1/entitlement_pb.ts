@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/entitlement.proto.
  */
 export const file_ai_stigmer_platform_v1_entitlement: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL2VudGl0bGVtZW50LnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIo8BCgxFbnRpdGxlbWVudHMSOQoGbGltaXRzGAEgASgLMikuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnRpdGxlbWVudExpbWl0cxJECghmZWF0dXJlcxgCIAMoDjIfLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRmVhdHVyZUIRukgOkgELGAEiB4IBBBABIAAi0wMKEUVudGl0bGVtZW50TGltaXRzEh4KCG1heF9vcmdzGAEgASgFQge6SAQaAiAASACIAQESHwoJbWF4X3VzZXJzGAIgASgFQge6SAQaAiAASAGIAQESNAoeaW5jbHVkZWRfbWFuYWdlZF9vcmdhbml6YXRpb25zGAMgASgFQge6SAQaAiAASAKIAQESMgocbWF4X2FjdGl2ZV9zZXNzaW9uX3NhbmRib3hlcxgEIAEoBUIHukgEGgIgAEgDiAEBEjMKHW1heF9hY3RpdmVfd29ya2Zsb3dfc2FuZGJveGVzGAUgASgFQge6SAQaAiAASASIAQESNwohYXJjaGl2ZWRfd29ya3NwYWNlX3JldGVudGlvbl9kYXlzGAYgASgFQge6SAQaAiAASAWIAQFCCwoJX21heF9vcmdzQgwKCl9tYXhfdXNlcnNCIQofX2luY2x1ZGVkX21hbmFnZWRfb3JnYW5pemF0aW9uc0IfCh1fbWF4X2FjdGl2ZV9zZXNzaW9uX3NhbmRib3hlc0IgCh5fbWF4X2FjdGl2ZV93b3JrZmxvd19zYW5kYm94ZXNCJAoiX2FyY2hpdmVkX3dvcmtzcGFjZV9yZXRlbnRpb25fZGF5cyqkAQoHRmVhdHVyZRIXChNmZWF0dXJlX3Vuc3BlY2lmaWVkEAASEwoPc3NvX2VuZm9yY2VtZW50EAESEwoPcGxhdGZvcm1fY2xpZW50EAISFQoRYnlvX3Byb3ZpZGVyX2tleXMQAxIMCghjaGFubmVscxAEEgsKB3NoYXJpbmcQBRIJCgV0ZWFtcxAGEhkKFW1hbmFnZWRfb3JnYW5pemF0aW9ucxAHQhJCEEVudGl0bGVtZW50UHJvdG9iBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL2VudGl0bGVtZW50LnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIo8BCgxFbnRpdGxlbWVudHMSOQoGbGltaXRzGAEgASgLMikuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnRpdGxlbWVudExpbWl0cxJECghmZWF0dXJlcxgCIAMoDjIfLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRmVhdHVyZUIRukgOkgELGAEiB4IBBBABIAAivQMKEUVudGl0bGVtZW50TGltaXRzEh4KCG1heF9vcmdzGAEgASgFQge6SAQaAiAASACIAQESHwoJbWF4X3VzZXJzGAIgASgFQge6SAQaAiAASAGIAQESKQoTaW5jbHVkZWRfY2hpbGRfb3JncxgDIAEoBUIHukgEGgIgAEgCiAEBEjIKHG1heF9hY3RpdmVfc2Vzc2lvbl9zYW5kYm94ZXMYBCABKAVCB7pIBBoCIABIA4gBARIzCh1tYXhfYWN0aXZlX3dvcmtmbG93X3NhbmRib3hlcxgFIAEoBUIHukgEGgIgAEgEiAEBEjcKIWFyY2hpdmVkX3dvcmtzcGFjZV9yZXRlbnRpb25fZGF5cxgGIAEoBUIHukgEGgIgAEgFiAEBQgsKCV9tYXhfb3Jnc0IMCgpfbWF4X3VzZXJzQhYKFF9pbmNsdWRlZF9jaGlsZF9vcmdzQh8KHV9tYXhfYWN0aXZlX3Nlc3Npb25fc2FuZGJveGVzQiAKHl9tYXhfYWN0aXZlX3dvcmtmbG93X3NhbmRib3hlc0IkCiJfYXJjaGl2ZWRfd29ya3NwYWNlX3JldGVudGlvbl9kYXlzKpkBCgdGZWF0dXJlEhcKE2ZlYXR1cmVfdW5zcGVjaWZpZWQQABITCg9zc29fZW5mb3JjZW1lbnQQARITCg9wbGF0Zm9ybV9jbGllbnQQAhIVChFieW9fcHJvdmlkZXJfa2V5cxADEgwKCGNoYW5uZWxzEAQSCwoHc2hhcmluZxAFEgkKBXRlYW1zEAYSDgoKY2hpbGRfb3JncxAHQhJCEEVudGl0bGVtZW50UHJvdG9iBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * What an edition permits its customer: a set of limits and a set of features.
@@ -64,7 +64,7 @@ export type EntitlementLimits = Message<"ai.stigmer.platform.v1.EntitlementLimit
   /**
    * The most organizations the customer may hold at once. Read by a license
    * (an Enterprise deployment counts its organizations against it) and by
-   * a subscription (a Business plan counts the managed organizations it
+   * a subscription (a Business plan counts the child organizations it
    * includes).
    *
    * @generated from field: optional int32 max_orgs = 1;
@@ -80,17 +80,16 @@ export type EntitlementLimits = Message<"ai.stigmer.platform.v1.EntitlementLimit
   maxUsers?: number;
 
   /**
-   * The platform-managed organizations a subscription includes before the
-   * per-organization fee applies. Read by a subscription only: an
-   * integrator's plan includes this many managed organizations, and the
-   * organizations resolve their own entitlements through the integrator's.
-   * Whether managed organizations are admitted at all is the
-   * managed_organizations feature, since absent here means "no limit" and
-   * zero is refused. A license ignores it.
+   * The child organizations a subscription includes before the
+   * per-organization fee applies. Read by a subscription only: a parent's
+   * plan includes this many child organizations, and the children resolve
+   * their own entitlements through the parent's. Whether child
+   * organizations are admitted at all is the child_orgs feature, since
+   * absent here means "no limit" and zero is refused. A license ignores it.
    *
-   * @generated from field: optional int32 included_managed_organizations = 3;
+   * @generated from field: optional int32 included_child_orgs = 3;
    */
-  includedManagedOrganizations?: number;
+  includedChildOrgs?: number;
 
   /**
    * The most session sandboxes an organization may hold provisioning or
@@ -212,17 +211,17 @@ export enum Feature {
   teams = 6,
 
   /**
-   * Creating platform-managed organizations under the tenant's identity
-   * provider, the organizations an integrator runs for its own customers.
-   * A plan lists it together with included_managed_organizations: the
-   * feature admits new managed organizations, and the limit is how many
-   * the plan includes before the per-organization fee. Without it, existing
-   * managed organizations keep working and no new one is admitted. It tiers
-   * the Cloud runtime and is not an edition gate; a license never lists it.
+   * Creating child organizations (spec.parent_org), the organizations an
+   * integrator runs for its own customers. A plan lists it together with
+   * included_child_orgs: the feature admits new child organizations, and
+   * the limit is how many the plan includes before the per-organization
+   * fee. Without it, existing children keep working and no new one is
+   * admitted. It tiers the Cloud runtime and is not an edition gate; a
+   * license never lists it.
    *
-   * @generated from enum value: managed_organizations = 7;
+   * @generated from enum value: child_orgs = 7;
    */
-  managed_organizations = 7,
+  child_orgs = 7,
 }
 
 /**
