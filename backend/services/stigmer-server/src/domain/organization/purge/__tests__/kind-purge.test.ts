@@ -1,5 +1,5 @@
 /**
- * Pins the kind purge (../kind-purge.ts) and the three kind purges that
+ * Pins the kind purge (../kind-purge.ts) and the two kind purges that
  * remove more than their delete chain does, over a real SQLite store
  * opened with the server's list indexes.
  *
@@ -16,17 +16,15 @@
  *     key's bound organization) and one read through a port (`rows`);
  *   - the artifact purge removes the row for good and a blob only when no
  *     other artifact names it, and restores a blob another organization's
- *     create stored a row for while the purge was deleting it; the agent
- *     execution purge removes its attachments' blobs, only those the upload
- *     minted, never an object a creator named; the workflow execution purge
- *     its event log, before the row, so a fault leaves the row to retry.
+ *     create stored a row for while the purge was deleting it; the workflow
+ *     execution purge removes its event log, before the row, so a fault
+ *     leaves the row to retry.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
@@ -44,7 +42,6 @@ import { EXISTING_RESOURCE_KEY } from "../../../../pipeline/steps/load-existing.
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { newApiKeyPurge } from "../../../apikey/purge.js";
-import { newAgentExecutionPurge } from "../../../agentexecution/purge.js";
 import { newArtifactPurge } from "../../../artifact/purge.js";
 import { sessionListIndex } from "../../../session/list-index.js";
 import { newWorkflowExecutionPurge } from "../../../workflowexecution/purge.js";
@@ -326,41 +323,6 @@ describe("the artifact purge", () => {
     expect(await ids(ApiResourceKind.artifact)).toEqual(["art_b1"]);
     expect(store.deleted).toEqual(["hash-raced"]);
     expect(store.blobs.has("hash-raced"), "the other organization's artifact keeps its blob").toBe(true);
-  });
-});
-
-describe("the agent execution purge", () => {
-  const MINTED = "attachments/01K7Q6Z5X3V8M2N4P6R8T0W2Y4/report.pdf";
-  it("removes each attachment the upload minted with the row, and no object a creator named", async () => {
-    await fx.store.saveResource(
-      ApiResourceKind.agent_execution,
-      "aex_a1",
-      AgentExecutionSchema,
-      create(AgentExecutionSchema, {
-        metadata: { id: "aex_a1", org: ORG.id },
-        spec: {
-          attachments: [
-            { storageKey: MINTED },
-            // Keys a creator can send that name objects it does not own: an
-            // artifact's content hash, a skill or plugin archive, a path.
-            { storageKey: "3f2a9c" },
-            { storageKey: "skills/3f2a9c" },
-            { storageKey: "attachments/not-a-ulid/notes.txt" },
-            { storageKey: "attachments/01K7Q6Z5X3V8M2N4P6R8T0W2Y4/../../plugins/x" },
-            { storageKey: "attachments/01K7Q6Z5X3V8M2N4P6R8T0W2Y4/.." },
-          ],
-        },
-      }),
-    );
-    const store = blobStore([MINTED, "3f2a9c", "skills/3f2a9c"]);
-    const purge = newAgentExecutionPurge({
-      ...deps,
-      authorizationLifecycle: undefined,
-      artifactStorage: store.storage,
-    });
-    expect(await purge.purge(ORG, CALLER)).toEqual({ more: false });
-    expect(await ids(ApiResourceKind.agent_execution)).toEqual([]);
-    expect(store.deleted).toEqual([MINTED]);
   });
 });
 

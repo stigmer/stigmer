@@ -77,7 +77,7 @@ export interface CoreKindPurgeDeps extends KindPurgeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composition's one secret facade (sealed values' backing state). */
   readonly secretService: SecretService;
-  /** The artifact blob store (artifacts and attachments). */
+  /** The artifact blob store (an artifact purge deletes its unshared blobs). */
   readonly artifactStorage: Pick<
     ArtifactStorage,
     "delete" | "download" | "exists" | "upload"
