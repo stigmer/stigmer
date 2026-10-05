@@ -91,8 +91,7 @@
  */
 
 import { ToolMessage } from "@langchain/core/messages";
-import type { Command } from "@langchain/langgraph";
-import { interrupt } from "@langchain/langgraph";
+import { Command, interrupt } from "@langchain/langgraph";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
 import {
   type McpApprovalDefault,
@@ -572,8 +571,11 @@ function hookAskMessage(hook: string, toolName: string): string {
 /**
  * The call's result with the hooks' feedback appended: PreToolUse context
  * whatever the result, and, when the call succeeded, what PostToolUse hooks
- * hand back (their reasons for blocking, then their context). A result that
- * is not a tool message (a graph command) is returned as it is.
+ * hand back (their reasons for blocking, then their context). A tool that
+ * answers with a graph command (a sub-agent's `task`, a file write that
+ * updates state) carries its result as the command's tool message for this
+ * call, which gets the same feedback; a command with no such message is
+ * returned as it is.
  */
 async function withHookFeedback(
   result: ToolMessage | Command,
@@ -583,7 +585,34 @@ async function withHookFeedback(
   hooks: HookEvaluator | null,
   scope: HookCallScope,
 ): Promise<ToolMessage | Command> {
-  if (hooks === null || !(result instanceof ToolMessage)) return result;
+  if (hooks === null) return result;
+  const appendTo = (message: ToolMessage) => appendHookFeedback(message, call, serverSlug, pre, hooks, scope);
+  if (result instanceof ToolMessage) return appendTo(result);
+
+  const update = result.update;
+  const messages = update !== null && typeof update === "object" && !Array.isArray(update) ? (update as Record<string, unknown>)["messages"] : undefined;
+  if (!Array.isArray(messages)) return result;
+  const index = messages.findIndex((m) => m instanceof ToolMessage && m.tool_call_id === call.toolCall.id);
+  if (index === -1) return result;
+  const original = messages[index] as ToolMessage;
+  const appended = await appendTo(original);
+  if (appended === original) return result;
+  return new Command({
+    update: { ...(update as Record<string, unknown>), messages: messages.map((m, i) => (i === index ? appended : m)) },
+    ...(result.graph !== undefined ? { graph: result.graph } : {}),
+    ...(result.goto !== undefined ? { goto: result.goto } : {}),
+    ...(result.resume !== undefined ? { resume: result.resume } : {}),
+  });
+}
+
+async function appendHookFeedback(
+  result: ToolMessage,
+  call: ToolCallRequest,
+  serverSlug: string,
+  pre: PreToolUseOutcome,
+  hooks: HookEvaluator,
+  scope: HookCallScope,
+): Promise<ToolMessage> {
   const feedback = [...pre.additionalContext];
   if (result.status !== "error") {
     const post = await hooks.postToolUse(

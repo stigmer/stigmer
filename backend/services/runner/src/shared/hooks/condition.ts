@@ -9,8 +9,11 @@
  *    (`shell-commands.ts` splits it, nested substitutions and subshells
  *    included), with leading assignments and wrappers (`timeout`, `time`,
  *    `nice`, `nohup`, `stdbuf`, `command`, `builtin`, `noglob`, a bare
- *    `xargs`) also tried stripped. `*` is any text; a trailing ` *` (or the
- *    older `:*`) also matches the bare command, so `git *` matches `git`.
+ *    `xargs`) also tried stripped. `*` is any text; a trailing ` *` also
+ *    matches the bare command, so `git *` matches `git`, and the older `:*`
+ *    is a prefix. A word the shell would expand (`$x`, `$(…)`, an unquoted
+ *    glob) could be anything, so only the words before it decide: a command
+ *    they rule out does not match, and any other might.
  *  - `Read(path)` and `Edit(path)` are gitignore-style paths, matched
  *    against the real absolute path: `//abs` from the filesystem root, `~/p`
  *    from home, `/p` from the workspace root, `p` or `./p` from the
@@ -28,6 +31,10 @@
  * often costs a process and the hook still decides; skipping one would
  * silently drop a policy. Claude's own page says Bash rules are not a
  * security boundary; the hook's script is.
+ *
+ * Every `*` is matched by {@link wildcardMatch}, a linear scan, never a
+ * regular expression built from the rule: the text it reads is the model's,
+ * and a rule with many stars would otherwise backtrack over it.
  */
 
 import { join } from "node:path";
@@ -88,33 +95,53 @@ function bashMatches(spec: string, command: unknown): boolean {
   if (typeof command !== "string") return true;
   const commands = splitShellCommands(command);
   if (commands === null) return true;
-  const pattern = bashPattern(spec);
-  return commands.some((words) => commandForms(words).some((form) => pattern.test(form)));
+  const patterns = bashPatterns(spec);
+  return commands.some((words) => commandForms(words).some((form) => formMatches(patterns, form)));
 }
 
-/** A Bash specifier as an anchored expression over a command's words joined by single spaces. */
-function bashPattern(spec: string): RegExp {
-  let body = collapse(spec);
-  let open = false;
-  if (body.endsWith(":*")) {
-    body = body.slice(0, -2);
-    open = true;
-  } else if (body.endsWith(" *")) {
-    body = body.slice(0, -2);
-    open = true;
+/**
+ * A Bash specifier as the glob patterns a command's words, joined by single
+ * spaces, may match: `git push *` is `git push` or `git push *`; the older
+ * `npm run test:*` is the prefix `npm run test*`.
+ */
+function bashPatterns(spec: string): readonly string[] {
+  const body = collapse(spec);
+  if (body.endsWith(":*")) return [`${body.slice(0, -2)}*`];
+  if (body.endsWith(" *")) return [body.slice(0, -2), body];
+  return [body];
+}
+
+/**
+ * Whether one form of a command may match: by its whole text when every
+ * word is literal; otherwise by the words before the first one the shell
+ * would expand, which may expand to nothing or continue into anything.
+ */
+function formMatches(patterns: readonly string[], words: readonly ShellWord[]): boolean {
+  const open = words.findIndex((word) => !word.literal);
+  if (open === -1) {
+    const text = joinWords(words);
+    return patterns.some((pattern) => wildcardMatch(pattern, text));
   }
-  const source = body.split("*").map(escapeRegExp).join(".*");
-  return new RegExp(open ? `^${source}(?:[ :].*)?$` : `^${source}$`, "s");
+  const known = joinWords(words.slice(0, open));
+  return patterns.some((pattern) => wildcardMatch(pattern, known) || couldContinue(pattern, known === "" ? "" : `${known} `));
 }
 
-/** A simple command as text, and the same with its assignments and wrappers peeled off, one layer at a time. */
-function commandForms(words: ShellCommand): string[] {
-  const forms = [joinWords(words)];
+/** Whether some text that starts with `prefix` matches `pattern`. */
+function couldContinue(pattern: string, prefix: string): boolean {
+  const star = pattern.indexOf("*");
+  const literal = star === -1 ? pattern : pattern.slice(0, star);
+  if (literal.length >= prefix.length) return literal.startsWith(prefix);
+  return star !== -1 && prefix.startsWith(literal);
+}
+
+/** A simple command, and the same with its assignments and wrappers peeled off, one layer at a time. */
+function commandForms(words: ShellCommand): (readonly ShellWord[])[] {
+  const forms: (readonly ShellWord[])[] = [words];
   let rest: readonly ShellWord[] = words;
   for (let layer = 0; layer < 4; layer++) {
     const peeled = peel(rest);
     if (peeled.length === rest.length || peeled.length === 0) break;
-    forms.push(joinWords(peeled));
+    forms.push(peeled);
     rest = peeled;
   }
   return forms;
@@ -145,8 +172,34 @@ function collapse(text: string): string {
   return text.trim().replace(/\s+/g, " ");
 }
 
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/**
+ * Whether `text` matches `pattern`, where `*` is any run of characters and
+ * every other character is itself. A greedy scan that backtracks only to the
+ * last star, so its work is bounded by the two lengths' product.
+ */
+export function wildcardMatch(pattern: string, text: string): boolean {
+  let p = 0;
+  let t = 0;
+  let star = -1;
+  let resume = 0;
+  while (t < text.length) {
+    if (p < pattern.length && pattern[p] === "*") {
+      star = p;
+      resume = t;
+      p += 1;
+    } else if (p < pattern.length && pattern[p] === text[t]) {
+      p += 1;
+      t += 1;
+    } else if (star !== -1) {
+      p = star + 1;
+      resume += 1;
+      t = resume;
+    } else {
+      return false;
+    }
+  }
+  while (p < pattern.length && pattern[p] === "*") p += 1;
+  return p === pattern.length;
 }
 
 // ── Paths ─────────────────────────────────────────────────────────
@@ -199,11 +252,5 @@ function argumentMatches(spec: string, input: Record<string, unknown>): boolean 
   const value = input[spec.slice(0, colon).trim()];
   if (value === undefined || value === null) return false;
   if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") return true;
-  const source = spec
-    .slice(colon + 1)
-    .trim()
-    .split("*")
-    .map(escapeRegExp)
-    .join(".*");
-  return new RegExp(`^${source}$`, "s").test(String(value));
+  return wildcardMatch(spec.slice(colon + 1).trim(), String(value));
 }

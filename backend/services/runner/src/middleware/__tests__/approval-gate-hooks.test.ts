@@ -4,7 +4,8 @@
  * writes (a hook's refusal, and which hook decided a call that runs), the
  * card's payload for a hook's ask, the hook recorded beside an unattended
  * skip, a rewrite checked again against the secret block, and the hooks'
- * feedback appended to the result. `interrupt()` is mocked; the hooks are
+ * feedback appended to the result, a graph command's tool message included.
+ * `interrupt()` is mocked; the hooks are
  * the real evaluator over a scripted process runner.
  */
 
@@ -21,8 +22,8 @@ import { createApprovalGateMiddleware, HOOK_FEEDBACK_HEADING, TOOL_POLICY_EVENT,
 import { TOOL_REFUSED_EVENT } from "../tool-scope.js";
 import type { ToolCallRequest } from "../types.js";
 
-vi.mock("@langchain/langgraph", () => ({ interrupt: vi.fn() }));
-import { interrupt } from "@langchain/langgraph";
+vi.mock("@langchain/langgraph", async (importOriginal) => ({ ...(await importOriginal<object>()), interrupt: vi.fn() }));
+import { Command, interrupt } from "@langchain/langgraph";
 
 const mockedInterrupt = vi.mocked(interrupt);
 
@@ -191,6 +192,36 @@ describe("the gate's hooks", () => {
       }),
     ).wrapToolCall!(call("execute", SHELL_ARGS).request, handler)) as ToolMessage;
     expect(result.content).toBe(`pushed\n\n${HOOK_FEEDBACK_HEADING}\nthe branch is protected\n\nCI is red\n\nrerun CI`);
+  });
+
+  it("appends the feedback to a graph command's tool message for the call, keeping the rest of the command", async () => {
+    const other = new ToolMessage({ content: "other", tool_call_id: "call_0", name: "execute" });
+    const own = new ToolMessage({ content: "written", tool_call_id: "call_1", name: "write_file" });
+    const handler = vi.fn(async () => new Command({ update: { files: { "/a": "x" }, messages: [other, own] }, goto: "next" }));
+    const result = (await gate(
+      hooksAnswering(decide("allow"), { stdout: JSON.stringify({ decision: "block", reason: "lint failed" }) }),
+    ).wrapToolCall!(call("write_file", { file_path: "/a", content: "x" }).request, handler)) as Command;
+    expect(result).toBeInstanceOf(Command);
+    const update = result.update as { files: unknown; messages: ToolMessage[] };
+    expect(update.files).toEqual({ "/a": "x" });
+    expect(update.messages[0]).toBe(other);
+    expect(update.messages[1]!.content).toBe(`written\n\n${HOOK_FEEDBACK_HEADING}\nlint failed`);
+    expect(result.goto).toEqual(["next"]);
+  });
+
+  it("returns a graph command as it is when it holds no message for the call, or the hooks add nothing", async () => {
+    const elsewhere = new Command({ update: { messages: [new ToolMessage({ content: "x", tool_call_id: "call_0", name: "task" })] } });
+    const noMessages = new Command({ update: [["files", {}]] });
+    const quiet = new Command({ update: { messages: [new ToolMessage({ content: "x", tool_call_id: "call_1", name: "write_file" })] } });
+    for (const command of [elsewhere, noMessages]) {
+      const out = await gate(hooksAnswering(decide("allow"), { stdout: JSON.stringify({ decision: "block", reason: "r" }) })).wrapToolCall!(
+        call("write_file", { file_path: "/a", content: "x" }).request,
+        vi.fn(async () => command),
+      );
+      expect(out).toBe(command);
+    }
+    const out = await gate(hooksAnswering(decide("allow"))).wrapToolCall!(call("write_file", { file_path: "/a", content: "x" }).request, vi.fn(async () => quiet));
+    expect(out).toBe(quiet);
   });
 
   it("runs no PostToolUse hook on a failed call, but still hands back PreToolUse context", async () => {

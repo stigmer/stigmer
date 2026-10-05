@@ -8,11 +8,13 @@
  *  - `Read`/`Edit` paths, gitignore-style, against the real absolute path;
  *  - `WebFetch(domain:…)`, `Agent(type)`, `Tool(param:value)`, MCP rules;
  *  - the safety rule: whatever the matcher cannot be sure of matches, so the
- *    hook runs and decides.
+ *    hook runs and decides; a word the shell expands is such a thing, and
+ *    only the words before it can rule a command out;
+ *  - `*` is matched in linear time, whatever the rule and the input.
  */
 
 import { describe, expect, it } from "vitest";
-import { conditionMatches } from "../condition.js";
+import { conditionMatches, wildcardMatch } from "../condition.js";
 import { matcherMatches } from "../matcher.js";
 import { splitShellCommands } from "../shell-commands.js";
 import type { ToolView } from "../tool-view.js";
@@ -87,6 +89,19 @@ describe("conditionMatches: Bash rules (any subcommand)", () => {
     ["an unmatched bracket", "echo )"],
   ])("matches when it cannot parse %s, so the hook runs", (_what, command) => {
     expect(conditionMatches("Bash(git push *)", bash(command), CTX)).toBe(true);
+  });
+
+  it.each([
+    ["a variable as the command", "x=rm; $x -rf build", "Bash(rm *)", true],
+    ["a substitution as the command", "$(echo rm) -rf build", "Bash(rm *)", true],
+    ["a glob as the command", "r? -rf build", "Bash(rm *)", true],
+    ["a home path as the command", "~/bin/rm -rf build", "Bash(rm *)", true],
+    ["a variable after a matching prefix", "git push origin $BRANCH", "Bash(git push origin main)", true],
+    ["a variable that may expand to nothing", "rm $FLAGS", "Bash(rm)", true],
+    ["a variable after a prefix the rule rules out", "echo $HOME", "Bash(git push *)", false],
+    ["a variable after a wrong subcommand", "git status $X", "Bash(git push *)", false],
+  ])("judges %s by the words before it", (_what, command, rule, expected) => {
+    expect(conditionMatches(rule, bash(command), CTX)).toBe(expected);
   });
 
   it("matches a call with no command string", () => {
@@ -191,6 +206,29 @@ describe("conditionMatches: WebFetch, Agent, arguments, MCP", () => {
     expect(conditionMatches("mcp__github__create_issue", mcp, CTX)).toBe(true);
     expect(conditionMatches("mcp__github__close_issue", mcp, CTX)).toBe(false);
     expect(conditionMatches("mcp__gitlab", mcp, CTX)).toBe(false);
+  });
+});
+
+describe("wildcardMatch", () => {
+  it.each([
+    ["", "", true],
+    ["", "a", false],
+    ["*", "", true],
+    ["a*c", "abbbc", true],
+    ["a*c", "abbb", false],
+    ["*b*", "abc", true],
+    ["a**", "a", true],
+    ["a.c", "abc", false],
+    ["(x)", "(x)", true],
+  ])("%j on %j is %s", (pattern, text, expected) => {
+    expect(wildcardMatch(pattern, text)).toBe(expected);
+  });
+
+  it("answers a many-star rule over a long near-miss quickly", () => {
+    const started = performance.now();
+    expect(wildcardMatch("*a*a*a*a*a*a*a*a*b", "a".repeat(20_000))).toBe(false);
+    expect(conditionMatches(`Bash(${"x * ".repeat(12)}y)`, bash(`x ${"x ".repeat(5_000)}`), CTX)).toBe(false);
+    expect(performance.now() - started).toBeLessThan(2_000);
   });
 });
 
