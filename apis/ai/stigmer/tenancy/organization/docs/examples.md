@@ -4,7 +4,7 @@ Complete examples from minimal to full-featured. All examples use valid field va
 
 ## Minimal Organization
 
-The simplest possible organization — just a name. The slug is auto-generated from the name, management mode defaults to `self_managed`.
+The simplest possible organization — just a name. The slug is auto-generated from the name.
 
 ```yaml
 apiVersion: tenancy.stigmer.ai/v1
@@ -15,9 +15,9 @@ spec:
   description: "Acme engineering organization"
 ```
 
-## Self-Managed Organization (Full)
+## Organization (Full)
 
-A fully specified self-managed organization with all optional fields set.
+A fully specified organization with every optional field of a top-level organization set.
 
 ```yaml
 apiVersion: tenancy.stigmer.ai/v1
@@ -33,39 +33,33 @@ metadata:
 spec:
   description: "Acme Corp AI agents and automation platform"
   logo_url: "https://acme.com/assets/logo.svg"
-  management_mode: self_managed
 ```
 
 Key points:
 - `slug` is explicit and within the 2–15 character limit
-- `management_mode: self_managed` is the default and can be omitted
-- `identity_provider_ref` must be omitted for self-managed organizations
+- `parent_org` and `external_id` are omitted: this organization has no parent
 
-## Platform-Managed Organization
+## Child Organization
 
-An organization created and controlled by an external platform via an IdentityProvider. The platform authenticates users and manages membership on behalf of the organization.
+An organization created under a parent organization, here for one of the parent's customers. Creating it needs `can_manage_child_orgs` on the parent (the parent's admins).
 
 ```yaml
 apiVersion: tenancy.stigmer.ai/v1
 kind: Organization
 metadata:
-  name: Acme Planton
-  slug: acme-planton
+  name: Acme Corp
+  slug: acme-corp
 spec:
-  description: "Acme organization managed by Planton"
-  management_mode: platform_managed
-  identity_provider_ref:
-    org: stigmer
-    kind: identity_provider
-    slug: planton-idp
-  external_org_id: "planton-org-7a3f2c91"
+  description: "Acme's workspace, run by Planton"
+  parent_org: planton
+  external_id: "cust-4411"
 ```
 
 Key points:
-- `management_mode: platform_managed` is **immutable** — cannot be changed after creation
-- `identity_provider_ref` is required; it must reference an existing, active IdentityProvider
-- `external_org_id` lets the platform look up this Stigmer org using its own identifier, even if the Stigmer slug differs from the platform's original slug due to availability
-- The slug (`acme-planton`) may differ from the platform's slug for the same organization — `external_org_id` bridges the gap
+- `parent_org` names the parent by slug or id; the server stores its id. The parent may not itself be a child.
+- `external_id` is the parent's own identifier for the child, unique among the parent's children. The parent finds the child with `getByExternalId`, and a sign-in through the parent's identity provider whose `external_id_claim` carries `cust-4411` lands in this organization.
+- Both are fixed at creation: an update or apply keeps the stored values.
+- Nobody owns the new organization: the parent's admins manage it and grant its first members and owner.
 
 ## Organization with Labels for Environment Segregation
 
@@ -90,7 +84,7 @@ spec:
 
 Fields that are **mutable** after creation: `metadata.name`, `metadata.labels`, `metadata.annotations`, `spec.description`, `spec.logo_url`.
 
-Fields that are **immutable** after creation: `spec.management_mode`, `spec.identity_provider_ref`, `spec.external_org_id`.
+Fields that are **immutable** after creation: `spec.parent_org`, `spec.external_id` (an update or apply keeps the stored values).
 
 `metadata.slug` changes only through `rename` (owners only); an update or apply ignores a different slug. The organization's `metadata.id` (`org_…`) never changes, so a rename moves no agent, member or secret, and the old slug keeps leading to the organization for 30 days.
 
@@ -108,5 +102,4 @@ metadata:
 spec:
   description: "Acme Corp — AI agents for the engineering division"  # mutable
   logo_url: "https://acme.com/assets/logo-v2.svg"                   # mutable
-  management_mode: self_managed  # immutable; must match existing value
 ```

@@ -174,9 +174,9 @@ spec:
       tools: [mcp__kubernetes__get_pod_status]
 ```
 
-## Platform Agent
+## Agent Shared With Child Organizations
 
-An agent a platform organization shares with every organization it manages through its identity provider. Uses absolute references (explicit `org`) to the platform's own resources, which must be platform-visible too: an agent may not be more visible than what it references.
+An agent a parent organization shares with every one of its child organizations. Uses absolute references (explicit `org`) to the parent's own resources, which must be shared with child organizations too: an agent may not be more visible than what it references.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -184,7 +184,7 @@ kind: Agent
 metadata:
   name: web-search-assistant
   org: acme-cloud
-  visibility: visibility_platform
+  visibility: visibility_child_orgs
   labels:
     category: productivity
   tags:
@@ -213,8 +213,8 @@ spec:
       version: stable
 ```
 
-Key characteristics of platform agents:
-- `metadata.org` is set explicitly to the platform organization (`acme-cloud`), the one that operates the identity provider
-- `metadata.visibility` is `visibility_platform`; every referenced skill and MCP server carries the same level
-- Resource references use absolute `org` values naming the platform organization
+Key characteristics of an agent shared with child organizations:
+- `metadata.org` is set explicitly to the parent organization (`acme-cloud`)
+- `metadata.visibility` is `visibility_child_orgs`; every referenced skill and MCP server carries the same level
+- Resource references use absolute `org` values naming the parent organization
 - Skill version is pinned to `stable` for production reliability

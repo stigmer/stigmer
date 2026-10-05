@@ -225,18 +225,18 @@ git_provenance:
 
 ---
 
-## Cloud Mode: Platform Skill
+## Cloud Mode: A Skill Shared With Child Organizations
 
-A skill pushed to a platform organization and shared with every organization that platform manages through its identity provider.
+A skill pushed to a parent organization and shared with every one of its child organizations.
 
 ```bash
 # Push to a named org (cloud mode)
 stigmer push skill ./skills/web-scraper --org acme-cloud --tag stable
 ```
 
-Declare `visibility: platform` in the SKILL.md frontmatter, or apply the level after the push. By default a skill is `visibility_org`, readable by its own organization only.
+Declare `visibility: child-orgs` in the SKILL.md frontmatter, or apply the level after the push. By default a skill is `visibility_org`, readable by its own organization only.
 
-**Reference in an Agent from a managed organization:**
+**Reference in an Agent from a child organization:**
 ```yaml
 # An agent in acme-cloud referencing its own skill
 skill_refs:
@@ -245,7 +245,7 @@ skill_refs:
     slug: web-scraper
     version: stable
 
-# An agent in an organization acme-cloud manages, referencing the platform skill
+# An agent in a child organization of acme-cloud, referencing the shared skill
 skill_refs:
   - org: acme-cloud
     kind: skill
@@ -253,7 +253,7 @@ skill_refs:
     version: stable
 ```
 
-A cross-organization reference is accepted only toward a platform-visible skill; any other is refused at write. Write access (pushing new versions) always requires membership of the owning organization. An organization outside the platform uses the skill by installing the plugin that carries it.
+A cross-organization reference is accepted only toward a skill the writing organization's parent shares with its children; any other is refused at write. Write access (pushing new versions) always requires membership of the owning organization. Any other organization uses the skill by installing the plugin that carries it.
 
 ---
 

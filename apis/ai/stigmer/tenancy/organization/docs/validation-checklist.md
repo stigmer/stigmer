@@ -21,18 +21,12 @@ Run through this list before applying an Organization YAML with `stigmer org app
 - [ ] `metadata.slug` has no underscores or uppercase letters
 - [ ] `metadata.slug` is not another organization's slug, or one another organization was renamed away from in the last 30 days
 
-### Management Mode
+### Child Organization (only when `spec.parent_org` is set)
 
-- [ ] `spec.management_mode` is set intentionally — it is **immutable after creation**
-- [ ] For `platform_managed`: `spec.identity_provider_ref` is present and references an existing, active IdentityProvider
-- [ ] For `self_managed`: `spec.identity_provider_ref` is **absent** (must be empty)
-- [ ] For `platform_managed`: `spec.external_org_id` is set to the platform's own org identifier
-
-### Identity Provider Reference (platform_managed only)
-
-- [ ] `identity_provider_ref.org` is a valid organization slug
-- [ ] `identity_provider_ref.kind` is `identity_provider` (lowercase string)
-- [ ] `identity_provider_ref.slug` matches an existing IdentityProvider slug
+- [ ] `spec.parent_org` is set intentionally — it is **immutable after creation**
+- [ ] You manage the parent (`can_manage_child_orgs`: its admins), and the parent is not itself a child
+- [ ] `spec.external_id`, when set, is the parent's own identifier for the child and unused among the parent's children
+- [ ] `spec.external_id` is not set without `spec.parent_org`
 
 ### YAML Syntax
 
@@ -81,52 +75,32 @@ metadata:
   slug: acme-corp
 ```
 
-### Setting `identity_provider_ref` on a self-managed organization
+### Setting `external_id` without `parent_org`
 
-For `self_managed` organizations, `identity_provider_ref` must be absent. Setting it will cause a validation error.
+`external_id` is the parent's identifier for a child organization, so it is refused on an organization that names no parent.
 
 ```yaml
-# Wrong — self_managed cannot have identity_provider_ref
+# Wrong — external_id needs parent_org
 spec:
-  management_mode: self_managed
-  identity_provider_ref:
-    org: stigmer
-    kind: identity_provider
-    slug: planton-idp
+  external_id: "cust-4411"
 
 # Correct
 spec:
-  management_mode: self_managed
+  parent_org: planton
+  external_id: "cust-4411"
 ```
 
-### Omitting `identity_provider_ref` for a platform-managed organization
+### Naming a child organization as the parent
 
-When `management_mode` is `platform_managed`, the `identity_provider_ref` is required.
+Child organizations are one level deep. A create whose `parent_org` is itself a child is refused with `FAILED_PRECONDITION` carrying `ORGANIZATION_PARENT_IS_CHILD`.
 
-```yaml
-# Wrong — platform_managed requires identity_provider_ref
-spec:
-  management_mode: platform_managed
+### Reusing an external id
 
-# Correct
-spec:
-  management_mode: platform_managed
-  identity_provider_ref:
-    org: stigmer
-    kind: identity_provider
-    slug: planton-idp
-  external_org_id: "planton-org-12345"
-```
+An external id identifies one child among its parent's children. A second child of the same parent with the same `external_id` is refused with `ALREADY_EXISTS`; another parent may use the same value.
 
-### Attempting to change management_mode after creation
+### Trying to change `parent_org` or `external_id` after creation
 
-`management_mode` is immutable. Changing it in an `apply` or `update` call will fail.
-
-```bash
-# This will fail if the org was created as self_managed
-stigmer org apply org-now-platform-managed.yaml
-# Error: management_mode is immutable after creation
-```
+Both are fixed at creation. An `apply` or `update` that carries different values keeps the stored ones; a child is never moved to another parent.
 
 ### Attempting to change the slug after creation
 
@@ -142,42 +116,6 @@ metadata:
 
 Always use `stigmer org get <slug>` to confirm the existing slug before updating.
 
-### Using integers for `kind` in identity_provider_ref
-
-```yaml
-# Wrong
-identity_provider_ref:
-  kind: 50  # proto enum integer
-
-# Correct
-identity_provider_ref:
-  kind: identity_provider
-```
-
-### Missing `external_org_id` for platform_managed organizations
-
-While `external_org_id` has no proto-level validation enforcing presence, omitting it on a `platform_managed` organization makes reverse lookup impossible for the integrating platform.
-
-```yaml
-# Incomplete — platform cannot look up this org by its own identifier
-spec:
-  management_mode: platform_managed
-  identity_provider_ref:
-    org: stigmer
-    kind: identity_provider
-    slug: planton-idp
-  # external_org_id missing
-
-# Complete
-spec:
-  management_mode: platform_managed
-  identity_provider_ref:
-    org: stigmer
-    kind: identity_provider
-    slug: planton-idp
-  external_org_id: "planton-org-7a3f2c91"
-```
-
 ### Deleting an organization without accounting for what it holds
 
 Deleting an organization is irreversible. Its members lose access to
@@ -190,6 +128,10 @@ On a server that holds one organization, the open-source edition, that
 organization cannot be deleted at all: the delete is refused with
 `ORGANIZATION_IS_SINGLE` before anything is written. The same server refuses
 a second organization with `ORGANIZATION_LIMIT_REACHED`.
+
+An organization that still has child organizations cannot be deleted
+either: the delete is refused with `ORGANIZATION_HAS_CHILDREN` until every
+child is deleted.
 
 ```bash
 # Verify contents before deleting

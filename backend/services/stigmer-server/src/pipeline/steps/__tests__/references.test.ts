@@ -8,8 +8,10 @@
  * a relative reference's floor is capped at org and its target must still
  * exist in the resource's organization, a version on a reference is never
  * the rule's to judge (an agent's included), a cross-organization target
- * is admitted only at platform visibility with
- * ONE sentence whether it is missing or merely not shared; the MCP-server
+ * is admitted only when the writer's own parent shares it with its child
+ * organizations, with ONE sentence whether it is missing, merely not
+ * shared, or another parent's (the writer's parent read from its
+ * organization's row, only when a reference crosses organizations); the MCP-server
  * copy that predates the rule is byte-identical and its siblings take its
  * shape; the walk reads a reference's kind from its field, not from the
  * message; the step over a real store loads each referenced kind once,
@@ -45,6 +47,7 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
@@ -187,8 +190,10 @@ function targetsOf(
     slug: string;
     visibility: ApiResourceVisibility;
   }>,
+  writerParentOrg = "",
 ): ReferenceTargets {
   return {
+    writerParentOrg,
     visibilityOf(ref) {
       return rows.find(
         (row) =>
@@ -255,7 +260,13 @@ describe("checkReference", () => {
       kind: K.skill,
       org: "globex",
       slug: "shared",
-      visibility: V.visibility_platform,
+      visibility: V.visibility_child_orgs,
+    },
+    {
+      kind: K.skill,
+      org: "initech",
+      slug: "shared",
+      visibility: V.visibility_child_orgs,
     },
     {
       kind: K.skill,
@@ -269,7 +280,7 @@ describe("checkReference", () => {
       slug: "theirs",
       visibility: V.visibility_org,
     },
-  ]);
+  ], "globex");
 
   it("(i) a reference with no organization is refused before anything is looked up", () => {
     expect(
@@ -344,17 +355,17 @@ describe("checkReference", () => {
         ref(K.skill, "acme", "my-skill"),
       ),
     ).toEqual({ kind: "ok" });
-    // A platform-visible resource needs platform-visible dependencies.
+    // A resource shared with child organizations needs dependencies shared as widely.
     expect(
       checkReference(
         targets,
-        { org: "acme", visibility: V.visibility_platform },
+        { org: "acme", visibility: V.visibility_child_orgs },
         ref(K.mcp_server, "acme", "github"),
       ),
     ).toEqual({ kind: "below-floor", targetVisibility: V.visibility_org });
   });
 
-  it("(ii) a relative reference's floor is capped at org: a platform resource may run with its organization's org-visible target, never a private one, and the target must exist", () => {
+  it("(ii) a relative reference's floor is capped at org: a resource shared with child organizations may run with its organization's org-visible target, never a private one, and the target must exist", () => {
     const relative = (slug: string): SpecReference => ({
       ...ref(K.mcp_server, "acme", slug),
       resolvesIn: "running-organization",
@@ -365,7 +376,7 @@ describe("checkReference", () => {
     };
     const ACME_PLATFORM: ReferenceParent = {
       org: "acme",
-      visibility: V.visibility_platform,
+      visibility: V.visibility_child_orgs,
     };
     expect(checkReference(targets, ACME_PLATFORM, relative("github"))).toEqual({
       kind: "ok",
@@ -395,7 +406,7 @@ describe("checkReference", () => {
     ).toEqual({ kind: "ok" });
   });
 
-  it("(iii) another organization's target is admitted only at platform visibility, with one answer for missing and for not shared", () => {
+  it("(iii) another organization's target is admitted only when the writer's parent shares it with its children, with one answer for missing, not shared and another parent's", () => {
     expect(
       checkReference(targets, ACME_ORG, ref(K.skill, "globex", "shared")),
     ).toEqual({ kind: "ok" });
@@ -411,17 +422,36 @@ describe("checkReference", () => {
     );
     expect(notShared).toEqual({ kind: "not-available" });
     expect(missing).toEqual(notShared);
-    // A kind that is never platform-visible: every cross-organization reference to it.
+    // Shared with child organizations, but by another parent: acme is not initech's child.
+    expect(
+      checkReference(targets, ACME_ORG, ref(K.skill, "initech", "shared")),
+    ).toEqual({ kind: "not-available" });
+    // A writer with no parent reaches no other organization's shared row.
+    expect(
+      checkReference(
+        targetsOf([
+          {
+            kind: K.skill,
+            org: "globex",
+            slug: "shared",
+            visibility: V.visibility_child_orgs,
+          },
+        ]),
+        ACME_ORG,
+        ref(K.skill, "globex", "shared"),
+      ),
+    ).toEqual({ kind: "not-available" });
+    // A kind that is never shared with child organizations: every cross-organization reference to it.
     expect(
       checkReference(targets, ACME_ORG, ref(K.environment, "globex", "theirs")),
     ).toEqual({ kind: "not-available" });
   });
 
-  it("(iii) a platform-visible cross-organization target is not held to the floor — the level is the sharing organization's to set", () => {
+  it("(iii) the parent's shared target is not held to the floor — the level is the sharing organization's to set", () => {
     expect(
       checkReference(
         targets,
-        { org: "acme", visibility: V.visibility_platform },
+        { org: "acme", visibility: V.visibility_child_orgs },
         ref(K.skill, "globex", "shared"),
       ),
     ).toEqual({ kind: "ok" });
@@ -483,7 +513,7 @@ describe("the refusal copy", () => {
       notAvailableReferenceMessage(skill, ref(K.skill, "globex", "x")),
     ).toBe(
       "referenced skill 'x' of another organization is not available to this organization; " +
-        "another organization's resource can be referenced only when that organization shares it at platform visibility.",
+        "another organization's resource can be referenced only when it is this organization's parent and shares it with its child organizations.",
     );
     // The other organization is never named: a held name and one nobody
     // holds read the same.
@@ -824,17 +854,47 @@ describe("the step over a store", () => {
     });
   });
 
+  it("reads the writer's parent from its organization's row only when a reference crosses organizations", async () => {
+    await store.saveResource(
+      K.organization,
+      "acme",
+      OrganizationSchema,
+      create(OrganizationSchema, {
+        metadata: { id: "acme", name: "Acme", slug: "acme" },
+        spec: { parentOrg: "globex" },
+      }),
+    );
+    await seedSkill("skl_s", "globex", "shared", V.visibility_child_orgs);
+    const crossing = await loadReferenceTargets(
+      store,
+      [ref(K.skill, "globex", "shared")],
+      "acme",
+    );
+    expect(crossing.writerParentOrg).toBe("globex");
+    expect(
+      checkReference(crossing, ACME_ORG, ref(K.skill, "globex", "shared")),
+    ).toEqual({ kind: "ok" });
+    const local = await loadReferenceTargets(
+      store,
+      [ref(K.skill, "acme", "x")],
+      "acme",
+    );
+    expect(local.writerParentOrg).toBe("");
+  });
+
   it("the loaded targets are indexed by (org, slug): the same slug in another organization is another row", async () => {
     await seedSkill("skl_a", "acme", "shared-name", V.visibility_org);
-    await seedSkill("skl_g", "globex", "shared-name", V.visibility_platform);
-    const targets = await loadReferenceTargets(store, [
-      ref(K.skill, "acme", "shared-name"),
-    ]);
+    await seedSkill("skl_g", "globex", "shared-name", V.visibility_child_orgs);
+    const targets = await loadReferenceTargets(
+      store,
+      [ref(K.skill, "acme", "shared-name")],
+      "acme",
+    );
     expect(targets.visibilityOf(ref(K.skill, "acme", "shared-name"))).toBe(
       V.visibility_org,
     );
     expect(targets.visibilityOf(ref(K.skill, "globex", "shared-name"))).toBe(
-      V.visibility_platform,
+      V.visibility_child_orgs,
     );
     expect(targets.visibilityOf(ref(K.skill, "acme", "none"))).toBeUndefined();
   });

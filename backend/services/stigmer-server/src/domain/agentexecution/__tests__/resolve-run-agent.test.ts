@@ -186,7 +186,7 @@ async function stampNewConversation(
   if (recordTargets) {
     ctx.set(
       RESOLVED_REFERENCE_TARGETS_KEY,
-      await loadReferenceTargets(store, [ref]),
+      await loadReferenceTargets(store, [ref], "test-org"),
     );
   }
   await newResolveRunAgentStep(store, silentLogger, authorizer).execute(ctx);

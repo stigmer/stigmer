@@ -538,8 +538,9 @@ Invokes an AI agent as a task, delegating complex reasoning or tool use to a spe
   flow:
     then: publishReview
 
-# Agent call naming a platform organization's agent, with config overrides
-# (accepted only when acme-cloud shares the agent at visibility_platform)
+# Agent call naming the parent organization's agent, with config overrides
+# (accepted only when acme-cloud is this organization's parent and shares
+# the agent at visibility_child_orgs)
 - name: generateReport
   kind: agent_call
   task_config:

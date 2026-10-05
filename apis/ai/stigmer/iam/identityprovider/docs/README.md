@@ -28,7 +28,7 @@ User calls the API       ──►   Route the JWT by (iss, aud)
                           Check exp, nbf and sub
                                   │
                           Bind the token to one organization
-                          (tenant_org_claim's, or the provider's own;
+                          (external_id_claim's child, or the provider's own;
                           a missing or unknown claim is refused)
                                   │
                           Resolve the federated IdentityAccount
@@ -55,7 +55,7 @@ User calls the API       ──►   Route the JWT by (iss, aud)
 | **Expected audience** | The `aud` claim value every token must include. With the issuer, it routes a token to this provider, and it keeps tokens minted for other services out. |
 | **Provisioning** | Manual (the platform creates each account) or automatic (`create_accounts_on_sign_in`, which every SSO provider sets). Automatic creation happens on the first sign-in. |
 | **Sign-in role** | `sign_in_role`: the role an account receives the first time it signs in to an organization through this provider, once per account and organization. A role an admin removes stays removed. Unspecified grants nothing; owner is refused. Required for an SSO provider. |
-| **Binding** | Every token is bound to one organization and works there only: the platform-managed organization `tenant_org_claim` names (read on every token; a missing, non-string or unknown value is refused as unauthenticated), otherwise the provider's own. |
+| **Binding** | Every token is bound to one organization and works there only: the child organization of the provider's organization whose `external_id` the `external_id_claim` carries (read on every token; a missing, non-string or unknown value is refused as unauthenticated), otherwise the provider's own. |
 | **UserInfo endpoint** | OIDC UserInfo endpoint URL. Read only when Stigmer creates an account from a token that carries no email claim. |
 | **No secrets stored** | The spec contains only public validation configuration — no client secrets or private keys. |
 

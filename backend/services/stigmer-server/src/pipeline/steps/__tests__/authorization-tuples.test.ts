@@ -51,15 +51,15 @@ const caller: CallerIdentity = {
 const V = ApiResourceVisibility;
 
 describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
-  it("agent (blueprint with org floor): org / platform expansions", () => {
+  it("agent (blueprint with org floor): org / child_orgs expansions", () => {
     expect([
       ...visibilityShapesFor(ApiResourceKind.agent, V.visibility_org),
     ]).toEqual(["org-viewer"]);
     expect(
       [
-        ...visibilityShapesFor(ApiResourceKind.agent, V.visibility_platform),
+        ...visibilityShapesFor(ApiResourceKind.agent, V.visibility_child_orgs),
       ].sort(),
-    ).toEqual(["org-viewer", "platform-viewer"]);
+    ).toEqual(["child-org-viewer", "org-viewer"]);
     expect([
       ...visibilityShapesFor(ApiResourceKind.agent, V.visibility_private),
     ]).toEqual([]);
@@ -81,15 +81,15 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
       ...visibilityShapesFor(ApiResourceKind.session, V.visibility_org),
     ]).toEqual([]);
     expect([
-      ...visibilityShapesFor(ApiResourceKind.session, V.visibility_platform),
+      ...visibilityShapesFor(ApiResourceKind.session, V.visibility_child_orgs),
     ]).toEqual([]);
   });
 
-  it("workflow_instance supports org but never platform (tenant isolation)", () => {
+  it("workflow_instance supports org but never child_orgs (tenant isolation)", () => {
     expect([
       ...visibilityShapesFor(
         ApiResourceKind.workflow_instance,
-        V.visibility_platform,
+        V.visibility_child_orgs,
       ),
     ]).toEqual([]);
   });
@@ -125,15 +125,15 @@ describe("diffVisibilityShapes (the reconciler's transition matrix, re-pinned)",
     expect(diff.shapesToDelete).toEqual([]);
   });
 
-  it("unspecified→platform creates the platform shape + the org floor", () => {
+  it("unspecified→child_orgs creates the child-org shape + the org floor", () => {
     const diff = diffVisibilityShapes(
       agent,
       V.api_resource_visibility_unspecified,
-      V.visibility_platform,
+      V.visibility_child_orgs,
     );
     expect([...diff.shapesToCreate].sort()).toEqual([
+      "child-org-viewer",
       "org-viewer",
-      "platform-viewer",
     ]);
     expect(diff.shapesToDelete).toEqual([]);
   });
@@ -148,26 +148,26 @@ describe("diffVisibilityShapes (the reconciler's transition matrix, re-pinned)",
     expect(diff.shapesToDelete).toEqual(["org-viewer"]);
   });
 
-  it("platform→org deletes ONLY the platform shape — the shared org floor stays untouched", () => {
+  it("child_orgs→org deletes ONLY the child-org shape — the shared org floor stays untouched", () => {
     const diff = diffVisibilityShapes(
       agent,
-      V.visibility_platform,
+      V.visibility_child_orgs,
       V.visibility_org,
     );
     expect(diff.shapesToCreate).toEqual([]);
-    expect(diff.shapesToDelete).toEqual(["platform-viewer"]);
+    expect(diff.shapesToDelete).toEqual(["child-org-viewer"]);
   });
 
-  it("platform→private deletes both the family shape and the floor", () => {
+  it("child_orgs→private deletes both the child-org shape and the floor", () => {
     const diff = diffVisibilityShapes(
       agent,
-      V.visibility_platform,
+      V.visibility_child_orgs,
       V.visibility_private,
     );
     expect(diff.shapesToCreate).toEqual([]);
     expect([...diff.shapesToDelete].sort()).toEqual([
+      "child-org-viewer",
       "org-viewer",
-      "platform-viewer",
     ]);
   });
 });

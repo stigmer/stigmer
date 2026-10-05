@@ -91,6 +91,19 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
   });
 
+  it("a blueprint shared with child organizations adds the organization's CHILD_ORG_VIEWER userset beside the org floor", () => {
+    expect(
+      derivedFor("agent", {
+        visibility: ApiResourceVisibility.visibility_child_orgs,
+      }),
+    ).toEqual([
+      "agent:agent-1#organization@organization:acme",
+      "agent:agent-1#owner@identity_account:ida_carol",
+      "agent:agent-1#child_org_viewer@organization:acme#child_org_viewer",
+      "agent:agent-1#viewer@organization:acme#viewer",
+    ]);
+  });
+
   it("a row that still carries the retired public level derives no viewer tuple at all — no shape reaches every account, and the level's own org floor left with it", () => {
     expect(
       derivedFor("skill", {
@@ -172,7 +185,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
     expect(
       derivedFor("environment", {
-        visibility: ApiResourceVisibility.visibility_platform,
+        visibility: ApiResourceVisibility.visibility_child_orgs,
       }),
     ).toEqual([
       "environment:environment-1#organization@organization:acme",

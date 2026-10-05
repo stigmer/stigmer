@@ -10,16 +10,22 @@
  *     organization), an execution context (owner-only, decided by its
  *     row's organization), an owner-only kind and an unscoped one (inside);
  *   - a missing row reaches the inner driver, so not-found stays not-found;
- *   - the one admitted path and its limits: a blueprint at platform
- *     visibility for a read or run permission, a default instance of such
- *     a blueprint, and refusals for an org-visible blueprint, an edit
- *     permission and a non-default instance;
+ *   - the one admitted path and its limits: a blueprint the bound
+ *     organization's own parent shares at visibility_child_orgs, for a read
+ *     or run permission, a default instance of such a blueprint, and
+ *     refusals for an org-visible blueprint, another parent's shared
+ *     blueprint, a bound organization with no parent, an edit permission
+ *     and a non-default instance;
+ *   - a parent's children: a credential bound to the parent reaches a
+ *     child for the management permissions only, never a child's rows,
+ *     and another parent's child not at all;
  *   - a kind the model gives no schema is outside;
  *   - a target's row is read once per caller object, and a failed read is
  *     retried; a read fault answers `unavailable`, never a denial;
  *   - the rows of the two substitutable ports and a unit's reader are read
  *     there, never from the store;
- *   - the list scope drops candidates by their facts, the enumeration
+ *   - the list scope drops candidates by their facts (and, for a shared
+ *     blueprint, the bound organization's parent), the enumeration
  *     narrows by each id's row, and the directory answers the bound
  *     organization alone.
  */
@@ -55,8 +61,18 @@ import {
 import type { CredentialBindingDeps } from "../credential-binding.js";
 import { fixtureRow, storedDeclaration } from "./support.js";
 
+/** ALPHA is a child of BETA; GAMMA is another parent, with its own child. */
 const ALPHA = "org_alpha";
 const BETA = "org_beta";
+const GAMMA = "org_gamma";
+
+/** The organization rows the parent rules read. */
+const ORGANIZATIONS = [
+  row("organization", ALPHA, "", { spec: { parentOrg: BETA } }),
+  row("organization", BETA, ""),
+  row("organization", GAMMA, ""),
+  row("organization", "org_gamma_child", "", { spec: { parentOrg: GAMMA } }),
+];
 
 const unbound: CallerIdentity = {
   identityId: "ida_alice",
@@ -247,7 +263,7 @@ describe("the rule, for a caller bound to one organization", () => {
     expect(await verdictOf("ectx_a")).toBe("inside");
     expect(await verdictOf("ectx_b")).toBe("outside");
     expect(
-      binding.keepsEntry(
+      await binding.keepsEntry(
         caller,
         ApiResourceKind.execution_context,
         entry("ectx_b", BETA),
@@ -310,10 +326,11 @@ describe("the rule, for a caller bound to one organization", () => {
     ).toBe("outside");
   });
 
-  it("admits a blueprint shared at platform visibility for reading and running only", async () => {
+  it("admits a blueprint the bound organization's parent shares with its children, for reading and running only", async () => {
     const f = fixture([
+      ...ORGANIZATIONS,
       row("agent", "agt_shared", BETA, {
-        visibility: ApiResourceVisibility.visibility_platform,
+        visibility: ApiResourceVisibility.visibility_child_orgs,
       }),
       row("skill", "skl_org", BETA),
     ]);
@@ -349,10 +366,107 @@ describe("the rule, for a caller bound to one organization", () => {
     ).toBe("outside");
   });
 
-  it("admits connecting to an MCP server shared at platform visibility, never editing it", async () => {
+  it("refuses what another parent shares with its children, and everything shared to a credential whose organization has no parent", async () => {
     const f = fixture([
+      ...ORGANIZATIONS,
+      row("agent", "agt_gamma_shared", GAMMA, {
+        visibility: ApiResourceVisibility.visibility_child_orgs,
+      }),
+      row("agent", "agt_beta_shared", BETA, {
+        visibility: ApiResourceVisibility.visibility_child_orgs,
+      }),
+    ]);
+    const binding = newCredentialBinding(f.deps);
+    expect(
+      await binding.verdict(boundTo(ALPHA), {
+        kind: ApiResourceKind.agent,
+        id: "agt_gamma_shared",
+        permission: VIEW,
+      }),
+    ).toBe("outside");
+    // GAMMA has no parent, so BETA's shared agent is not GAMMA's to reach.
+    expect(
+      await binding.verdict(boundTo(GAMMA), {
+        kind: ApiResourceKind.agent,
+        id: "agt_beta_shared",
+        permission: EXECUTE,
+      }),
+    ).toBe("outside");
+  });
+
+  it("lets a credential bound to a parent manage its children's settings, members, access and billing, and read none of their rows", async () => {
+    const f = fixture([
+      ...ORGANIZATIONS,
+      row("session", "ses_child", ALPHA),
+      row("agent", "agt_child", ALPHA),
+    ]);
+    const binding = newCredentialBinding(f.deps);
+    const caller = boundTo(BETA);
+    const onChild = (permission: IamPermission, id = ALPHA) =>
+      binding.verdict(caller, {
+        kind: ApiResourceKind.organization,
+        id,
+        permission: IamPermission[permission],
+      });
+    for (const permission of [
+      IamPermission.can_view_settings,
+      IamPermission.can_edit,
+      IamPermission.can_delete,
+      IamPermission.can_grant_access,
+      IamPermission.can_view_access,
+      IamPermission.can_assign_roles,
+      IamPermission.can_view_billing,
+    ]) {
+      expect(await onChild(permission), IamPermission[permission]).toBe(
+        "inside",
+      );
+    }
+    for (const permission of [
+      IamPermission.can_view,
+      IamPermission.can_manage_billing,
+      IamPermission.can_create_agent,
+      IamPermission.can_create_session,
+      IamPermission.can_manage_child_orgs,
+    ]) {
+      expect(await onChild(permission), IamPermission[permission]).toBe(
+        "outside",
+      );
+    }
+    // Another parent's child, and an organization that does not exist.
+    expect(await onChild(IamPermission.can_edit, "org_gamma_child")).toBe(
+      "outside",
+    );
+    expect(await onChild(IamPermission.can_edit, "org_gone")).toBe("missing");
+    // The child's rows stay outside.
+    expect(
+      await binding.verdict(caller, {
+        kind: ApiResourceKind.session,
+        id: "ses_child",
+        permission: VIEW,
+      }),
+    ).toBe("outside");
+    expect(
+      await binding.verdict(caller, {
+        kind: ApiResourceKind.agent,
+        id: "agt_child",
+        permission: EXECUTE,
+      }),
+    ).toBe("outside");
+    // A child-bound credential does not manage its parent.
+    expect(
+      await binding.verdict(boundTo(ALPHA), {
+        kind: ApiResourceKind.organization,
+        id: BETA,
+        permission: IamPermission[IamPermission.can_edit],
+      }),
+    ).toBe("outside");
+  });
+
+  it("admits connecting to an MCP server the parent shares with its children, never editing it", async () => {
+    const f = fixture([
+      ...ORGANIZATIONS,
       row("mcp_server", "mcps_shared", BETA, {
-        visibility: ApiResourceVisibility.visibility_platform,
+        visibility: ApiResourceVisibility.visibility_child_orgs,
       }),
     ]);
     const binding = newCredentialBinding(f.deps);
@@ -370,8 +484,9 @@ describe("the rule, for a caller bound to one organization", () => {
 
   it("admits the default instance of a shared blueprint, and no other instance", async () => {
     const f = fixture([
+      ...ORGANIZATIONS,
       row("workflow", "wfl_shared", BETA, {
-        visibility: ApiResourceVisibility.visibility_platform,
+        visibility: ApiResourceVisibility.visibility_child_orgs,
         status: { defaultInstanceId: "wfi_default" },
       }),
       row("workflow_instance", "wfi_default", BETA, {
@@ -420,31 +535,35 @@ describe("the rule, for a caller bound to one organization", () => {
     }
   });
 
-  it("keeps list candidates by their facts: every one for an unbound caller, the organization by id, and kinds no organization owns", () => {
+  it("keeps list candidates by their facts: every one for an unbound caller, the organization by id, and kinds no organization owns", async () => {
     const binding = newCredentialBinding(fixture([]).deps);
     const candidate = entry("x", BETA);
-    expect(binding.keepsEntry(unbound, ApiResourceKind.agent, candidate)).toBe(
-      true,
-    );
     expect(
-      binding.keepsEntry(
+      await binding.keepsEntry(unbound, ApiResourceKind.agent, candidate),
+    ).toBe(true);
+    expect(
+      await binding.keepsEntry(
         boundTo(ALPHA),
         ApiResourceKind.organization,
         entry(ALPHA, ""),
       ),
     ).toBe(true);
     expect(
-      binding.keepsEntry(
+      await binding.keepsEntry(
         boundTo(ALPHA),
         ApiResourceKind.organization,
         entry(BETA, ""),
       ),
     ).toBe(false);
     expect(
-      binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.api_key, candidate),
+      await binding.keepsEntry(
+        boundTo(ALPHA),
+        ApiResourceKind.api_key,
+        candidate,
+      ),
     ).toBe(true);
     expect(
-      binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.agent, candidate),
+      await binding.keepsEntry(boundTo(ALPHA), ApiResourceKind.agent, candidate),
     ).toBe(false);
   });
 
@@ -599,7 +718,9 @@ describe("bindListReadScope", () => {
     return {
       offered,
       authorizedResourceIds: () =>
-        Promise.resolve(new Set(["agt_a", "agt_b", "agt_shared"])),
+        Promise.resolve(
+          new Set(["agt_a", "agt_b", "agt_shared", "agt_gamma_shared"]),
+        ),
       restrictListEntries(_caller, _kind, entries) {
         offered.push(entries.map((e) => e.id));
         return Promise.resolve(new Set(entries.map((e) => e.id)));
@@ -607,10 +728,14 @@ describe("bindListReadScope", () => {
     };
   }
   const f = fixture([
+    ...ORGANIZATIONS,
     row("agent", "agt_a", ALPHA),
     row("agent", "agt_b", BETA),
     row("agent", "agt_shared", BETA, {
-      visibility: ApiResourceVisibility.visibility_platform,
+      visibility: ApiResourceVisibility.visibility_child_orgs,
+    }),
+    row("agent", "agt_gamma_shared", GAMMA, {
+      visibility: ApiResourceVisibility.visibility_child_orgs,
     }),
   ]);
 
@@ -624,7 +749,7 @@ describe("bindListReadScope", () => {
     expect(inner.offered).toEqual([["agt_a", "agt_b"]]);
   });
 
-  it("drops a bound caller's candidates outside its organization, keeping shared blueprints for the inner scope", async () => {
+  it("drops a bound caller's candidates outside its organization, keeping its parent's shared blueprints for the inner scope, with one read of its organization", async () => {
     const inner = recordingScope();
     const scope = bindListReadScope(inner, newCredentialBinding(f.deps));
     const before = f.reads.length;
@@ -634,11 +759,18 @@ describe("bindListReadScope", () => {
       [
         entry("agt_a", ALPHA),
         entry("agt_b", BETA),
-        entry("agt_shared", BETA, ApiResourceVisibility.visibility_platform),
+        entry("agt_shared", BETA, ApiResourceVisibility.visibility_child_orgs),
+        entry(
+          "agt_gamma_shared",
+          GAMMA,
+          ApiResourceVisibility.visibility_child_orgs,
+        ),
       ],
     );
     expect([...kept]).toEqual(["agt_a", "agt_shared"]);
-    expect(f.reads).toHaveLength(before);
+    expect(f.reads.slice(before)).toEqual([
+      `${ApiResourceKind.organization}:${ALPHA}`,
+    ]);
   });
 
   it("narrows an enumeration larger than one read batch, keeping every id inside", async () => {
@@ -673,7 +805,7 @@ describe("bindListReadScope", () => {
     ]).toEqual(["agt_a", "agt_shared"]);
     expect(
       (await scope.authorizedResourceIds(unbound, ApiResourceKind.agent)).size,
-    ).toBe(3);
+    ).toBe(4);
   });
 });
 
@@ -691,7 +823,6 @@ describe("bindOrganizationDirectory", () => {
     const bound = bindOrganizationDirectory(directory([ALPHA, BETA]));
     expect(await bound.listMyOrganizationIds(unbound)).toEqual([ALPHA, BETA]);
     expect(bound.refusesEnumeration).toBe(true);
-    expect(bound.lookupExternalOrganization).toBeUndefined();
   });
 
   it("answers a bound caller with its own organization alone, when the inner directory holds it", async () => {

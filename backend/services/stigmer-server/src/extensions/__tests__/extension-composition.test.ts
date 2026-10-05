@@ -62,6 +62,7 @@ import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import {
   PlatformQueryController,
@@ -89,6 +90,7 @@ import type { AuthzCheck } from "../authorizer.js";
 import type { GateSlotName } from "../gate-slots.js";
 import type { OrganizationDirectory } from "../organization-directory.js";
 import type {
+  ChildOrganizationLinkedEvent,
   ExecutionVisibilityChangedEvent,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
@@ -1172,6 +1174,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
   const createdEvents: ResourceCreatedEvent[] = [];
   const deletedEvents: ResourceDeletedEvent[] = [];
   const visibilityEvents: VisibilityChangedEvent[] = [];
+  const childLinkEvents: ChildOrganizationLinkedEvent[] = [];
   const executionVisibilityEvents: ExecutionVisibilityChangedEvent[] = [];
   let failCreates = false;
   let failDeletes = false;
@@ -1200,6 +1203,9 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       }
       executionVisibilityEvents.push(event);
     },
+    async onChildOrganizationLinked(event): Promise<void> {
+      childLinkEvents.push(event);
+    },
   };
 
   // The directory answers are test-mutable so each case can stage its
@@ -1209,39 +1215,23 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
   // over the port name the organization by slug; every value the server
   // stores or hands a driver carries this id, so the expectations do too.
   let seededOrgId = "";
-  // Providers by `org/slug` → id, and mappings by `providerId:externalId`:
-  // the directory scopes every lookup to the provider the request names.
-  // A request's reference names the organization by slug and the serving
-  // chain resolves it, so the directory sees the id; the first case fills
-  // this map once the id is minted.
-  const providers = new Map<string, string>();
-  const externalOrgMap = new Map<string, string>();
   const fakeDirectory: OrganizationDirectory = {
     refusesEnumeration: true,
     listMyOrganizationIds: async () => [...myOrgIds],
-    lookupExternalOrganization: async (ref, externalOrgId) => {
-      const providerId = providers.get(`${ref.org}/${ref.slug}`);
-      return providerId === undefined
-        ? { kind: "no-identity-provider" }
-        : {
-            kind: "resolved",
-            identityProviderId: providerId,
-            organizationId: externalOrgMap.get(`${providerId}:${externalOrgId}`),
-          };
-    },
   };
-  // Every check is allowed except viewing the providers named here, so the
-  // lookup's own authorization is the one refusal the suite can see.
-  const deniedProviders = new Set<string>(["idp_hidden"]);
-  const lookupChecks: AuthzCheck[] = [];
+  // Every check is allowed except managing the children of the parents
+  // named here, so the child lanes' own authorization is the one refusal
+  // the suite can see.
+  const deniedParents = new Set<string>();
+  const childChecks: AuthzCheck[] = [];
 
   const iamExtension: ServerExtension = {
     name: "fake-iam",
     authorizer: {
       authorize: (_caller, check) => {
-        if (check.resourceKind === ApiResourceKind.identity_provider) {
-          lookupChecks.push(check);
-          if (deniedProviders.has(check.resourceId)) {
+        if (check.permission === IamPermission.can_manage_child_orgs) {
+          childChecks.push(check);
+          if (deniedParents.has(check.resourceId)) {
             return Promise.resolve({ kind: "deny", reason: "" });
           }
         }
@@ -1299,11 +1289,8 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     expect(seededOrgId).toMatch(/^org_[0-9a-z]{26}$/);
     expect(org.metadata?.slug).toBe("seededorg");
     myOrgIds.push(seededOrgId);
-    providers.set(`${seededOrgId}/test-idp`, "idp_viewable");
-    providers.set(`${seededOrgId}/other-idp`, "idp_other");
-    providers.set(`${seededOrgId}/hidden-idp`, "idp_hidden");
-    externalOrgMap.set("idp_viewable:ext-org-42", org.metadata?.id ?? "");
-    externalOrgMap.set("idp_hidden:ext-org-42", org.metadata?.id ?? "");
+    expect(event.ownerAttribution).toBe(OwnerAttributionType.DIRECT);
+    expect(childLinkEvents).toEqual([]);
   });
 
   it("agent create fires one creation event, the agent's, with its organization link and visibility shape", async () => {
@@ -1616,52 +1603,83 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     expect(mine.entries.map((org) => org.metadata?.id)).toEqual(myOrgIds);
   });
 
-  it("getByExternalOrgId resolves a mapping under the named provider for a caller who may view it", async () => {
-    const query = createClient(OrganizationQueryController, portTransport);
-    lookupChecks.length = 0;
-    const org = await query.getByExternalOrgId({
-      identityProviderRef: { org: "seededorg", slug: "test-idp" },
-      externalOrgId: "ext-org-42",
-    });
-    expect(org.metadata?.id).toBe(myOrgIds[0]);
-    expect(lookupChecks).toEqual([
+  it("a child organization's create fires its creation event with NO owner, then links it to its parent", async () => {
+    const command = createClient(OrganizationCommandController, portTransport);
+    createdEvents.length = 0;
+    childLinkEvents.length = 0;
+    childChecks.length = 0;
+    const child = await command.create(
+      create(OrganizationSchema, {
+        apiVersion: "tenancy.stigmer.ai/v1",
+        kind: "Organization",
+        metadata: { name: "Seeded Child", slug: "seededchild" },
+        spec: { parentOrg: "seededorg", externalId: "cust-42" },
+      }),
+    );
+    expect(child.spec?.parentOrg).toBe(seededOrgId);
+    expect(childChecks).toEqual([
       {
-        permission: IamPermission.can_view,
-        resourceKind: ApiResourceKind.identity_provider,
-        resourceId: "idp_viewable",
+        permission: IamPermission.can_manage_child_orgs,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: seededOrgId,
       },
+    ]);
+    expect(createdEvents.map((event) => event.ownerAttribution)).toEqual([
+      OwnerAttributionType.NONE,
+    ]);
+    expect(childLinkEvents).toEqual([
+      { childId: child.metadata?.id, parentId: seededOrgId },
     ]);
   });
 
-  it("getByExternalOrgId refuses a caller who may not view the named provider, before saying whether a mapping exists", async () => {
+  it("getByExternalId and listChildOrgs ask can_manage_child_orgs on the parent, and answer its child", async () => {
     const query = createClient(OrganizationQueryController, portTransport);
-    for (const externalOrgId of ["ext-org-42", "ext-org-unknown"]) {
-      const refused = await refusalOf(
-        query.getByExternalOrgId({
-          identityProviderRef: { org: "seededorg", slug: "hidden-idp" },
-          externalOrgId,
-        }),
-      );
-      expect(refused.code).toBe(Code.PermissionDenied);
-      expect(refused.rawMessage).toBe("unauthorized to view identity provider");
-    }
+    childChecks.length = 0;
+    const found = await query.getByExternalId({
+      parentOrg: "seededorg",
+      externalId: "cust-42",
+    });
+    expect(found.metadata?.slug).toBe("seededchild");
+    const listed = await query.listChildOrgs({ org: "seededorg" });
+    expect(listed.entries.map((org) => org.metadata?.slug)).toEqual([
+      "seededchild",
+    ]);
+    expect(childChecks.map((check) => check.resourceId)).toEqual([
+      seededOrgId,
+      seededOrgId,
+    ]);
   });
 
-  it("getByExternalOrgId answers one NotFound for an unknown provider, an unmapped id, and another provider's mapping", async () => {
+  it("a caller who may not manage the parent is refused on every child lane, before anything is said about its children", async () => {
     const query = createClient(OrganizationQueryController, portTransport);
-    for (const [slug, externalOrgId] of [
-      ["no-such-idp", "ext-org-42"],
-      ["test-idp", "ext-org-unknown"],
-      ["other-idp", "ext-org-42"],
-    ] as const) {
-      const missing = await refusalOf(
-        query.getByExternalOrgId({
-          identityProviderRef: { org: "seededorg", slug },
-          externalOrgId,
-        }),
+    const command = createClient(OrganizationCommandController, portTransport);
+    deniedParents.add(seededOrgId);
+    try {
+      for (const externalId of ["cust-42", "cust-unknown"]) {
+        const refused = await refusalOf(
+          query.getByExternalId({ parentOrg: "seededorg", externalId }),
+        );
+        expect(refused.code).toBe(Code.PermissionDenied);
+      }
+      expect(
+        (await refusalOf(query.listChildOrgs({ org: "seededorg" }))).code,
+      ).toBe(Code.PermissionDenied);
+      const create_ = await refusalOf(
+        command.create(
+          create(OrganizationSchema, {
+            apiVersion: "tenancy.stigmer.ai/v1",
+            kind: "Organization",
+            metadata: { name: "Refused Child", slug: "refusedchild" },
+            spec: { parentOrg: "seededorg" },
+          }),
+        ),
       );
-      expect(missing.code).toBe(Code.NotFound);
-      expect(missing.rawMessage).toBe(`Organization not found: ${externalOrgId}`);
+      expect(create_.code).toBe(Code.PermissionDenied);
+      expect(create_.rawMessage).toBe(
+        "unauthorized to manage this organization's child organizations",
+      );
+    } finally {
+      deniedParents.delete(seededOrgId);
     }
   });
 

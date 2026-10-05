@@ -88,8 +88,6 @@ The UserInfo endpoint must comply with OpenID Connect Core 1.0 §5.3 — it must
 
 For Auth0, the UserInfo endpoint is always `https://{tenant}.auth0.com/userinfo`.
 
-### Deleting a Provider With Active Federated Accounts
+### Deleting a Provider With Federated Accounts
 
-Deleting an IdentityProvider that still has platform-managed organizations referencing it is blocked. Reassign or remove those references before deletion.
-
-Deleting an IdentityProvider also deletes the federated accounts it vouches for, with every role they hold, and its tenant organization mappings. A provider created again under the same slug inherits none of them: nothing the old provider's users held carries over.
+Deleting an IdentityProvider deletes the federated accounts it vouches for, with every role they hold. Child organizations do not depend on the provider: they name their parent organization, and a new provider with the same `external_id_claim` routes their people again. A provider created again under the same slug inherits none of them: nothing the old provider's users held carries over.
