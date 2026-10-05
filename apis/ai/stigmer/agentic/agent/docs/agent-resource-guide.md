@@ -131,11 +131,13 @@ spec:
                 timeout_seconds: 30
 ```
 
-`condition` is Claude Code's `if`: a permission rule that narrows when the handler runs. A handler runs in `bash`, or without a shell when it has `args`; it reads the call as JSON on stdin and answers as a Claude Code hook does (exit code 2 refuses with stderr as the reason; JSON on stdout can allow, ask or deny).
+`condition` is Claude Code's `if`: a permission rule that narrows when the handler runs. Where the runner cannot be sure a condition matches (a command built from a variable or a substitution, behind a wrapper such as `timeout`, or named by path), the handler still runs and its refusal or ask counts, but its allow does not: the call falls to the default approval. A handler runs in `bash`, or without a shell when it has `args`; it reads the call as JSON on stdin and answers as a Claude Code hook does (exit code 2 refuses with stderr as the reason; JSON on stdout can allow, ask or deny).
 
 A script in the workspace, as above, is a convenience and not a boundary: the agent can edit its workspace, the script included. For a policy the agent must not be able to change, use a plugin: its hooks run from the plugin's installed files (`${CLAUDE_PLUGIN_ROOT}`), which the runner restores to the installed version before every hook run.
 
 Hooks are the agent author's policy. Whoever runs the agent runs its hooks, and a hook that lets a call run skips the approval the default would have asked of that person, as a hook that asks adds one. An agent shared with others carries its hooks to them, as it carries its tools and instructions.
+
+A hook is also code the agent's author chose, and it runs without asking anyone: in the workspace of whoever runs the agent, on every tool call it matches, with that person's run values (the variables the agent declares, their personal keys among them, and the workspace's git token), as an agent's local MCP servers do. Run a shared agent only when you trust its hooks.
 
 What holds:
 

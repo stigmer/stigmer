@@ -10,11 +10,13 @@
  *  - the safety rule: whatever the matcher cannot be sure of matches, so the
  *    hook runs and decides; a word the shell expands is such a thing, and
  *    only the words before it can rule a command out;
+ *  - a match the matcher cannot be sure of is `unsure`, apart from a sure
+ *    one, so the evaluator can refuse it an allow;
  *  - `*` is matched in linear time, whatever the rule and the input.
  */
 
 import { describe, expect, it } from "vitest";
-import { conditionMatches, wildcardMatch } from "../condition.js";
+import { conditionMatches, conditionVerdict, wildcardMatch } from "../condition.js";
 import { matcherMatches } from "../matcher.js";
 import { splitShellCommands } from "../shell-commands.js";
 import type { ToolView } from "../tool-view.js";
@@ -245,6 +247,33 @@ describe("conditionMatches: WebFetch, Agent, arguments, MCP", () => {
     expect(conditionMatches("mcp__github__create_issue", mcp, CTX)).toBe(true);
     expect(conditionMatches("mcp__github__close_issue", mcp, CTX)).toBe(false);
     expect(conditionMatches("mcp__gitlab", mcp, CTX)).toBe(false);
+  });
+});
+
+describe("conditionVerdict: sure, unsure, or no", () => {
+  it.each([
+    ["Bash(npm test *)", "npm test --watch", "match"],
+    ["Bash(npm test *)", "make && npm test", "match"],
+    ["Bash(git push *)", "git push origin $BRANCH", "match"],
+    ["Bash(npm test *)", "$(echo rm) -rf ~", "unsure"],
+    ["Bash(git push origin main)", "git push origin $BRANCH", "unsure"],
+    ["Bash(npm test *)", "timeout 60 npm test", "unsure"],
+    ["Bash(npm test *)", "PATH=/tmp/evil npm test", "unsure"],
+    ["Bash(npm test *)", "/tmp/evil/npm test", "unsure"],
+    ["Bash(npm test *)", "eval \"$CMD\"", "unsure"],
+    ["Bash(npm test *)", "ls -la", "no"],
+  ])("%s on %j is %s", (rule, command, expected) => {
+    expect(conditionVerdict(rule, bash(command), CTX)).toBe(expected);
+  });
+
+  it("reads the other unsure shapes as unsure, and a bare tool as a match", () => {
+    expect(conditionVerdict("not a rule(", bash("ls"), CTX)).toBe("unsure");
+    expect(conditionVerdict("Bash", bash("ls"), CTX)).toBe("match");
+    expect(conditionVerdict("Read(/src/**)", { toolName: "Grep", toolInput: { pattern: "x" } }, CTX)).toBe("unsure");
+    expect(conditionVerdict("Read(/src/**)", file("Read", "/ws/src/a.ts"), CTX)).toBe("match");
+    expect(conditionVerdict("WebFetch(domain:example.com)", { toolName: "WebFetch", toolInput: { url: "::" } }, CTX)).toBe("unsure");
+    expect(conditionVerdict("Agent(explore)", { toolName: "Agent", toolInput: {} }, CTX)).toBe("unsure");
+    expect(conditionVerdict("Grep(nested:x)", { toolName: "Grep", toolInput: { nested: {} } }, CTX)).toBe("unsure");
   });
 });
 

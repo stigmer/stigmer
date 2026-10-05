@@ -44,7 +44,7 @@ import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type { HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { hookLeaseKey } from "../approval-policy.js";
 import { parsePostToolUse, parsePreToolUse, type HookDecision, type PreToolUseAnswer } from "./answer.js";
-import { conditionMatches } from "./condition.js";
+import { conditionVerdict } from "./condition.js";
 import { USER_CONFIG_REFERENCE, type HookEntry, type HookEvent, type HookSet, type HookSource } from "./hook-set.js";
 import { matcherMatches } from "./matcher.js";
 import { DEFAULT_HOOK_TIMEOUT_SECONDS, runHookProcess, type HookProcessRunner, type HookRunResult } from "./run.js";
@@ -129,6 +129,19 @@ interface Answered extends PreToolUseAnswer {
   readonly leased: boolean;
 }
 
+/**
+ * A handler that ran because its `if` only might have matched keeps its
+ * refusal and its ask, but not its allow (nor the rewrite that came with
+ * it): an allow behind an unsure `if` would let a call its rule never names
+ * skip the default's approval (`condition.ts`).
+ */
+function withoutUnsureAllow(answer: PreToolUseAnswer, sure: boolean, source: HookSource): PreToolUseAnswer {
+  if (sure || answer.decision !== "allow") return answer;
+  console.warn(`[hooks] ${label(source)}: an allow is not honoured where its \`if\` only might match the call`);
+  const { decision: _allow, updatedInput: _rewrite, ...rest } = answer;
+  return rest;
+}
+
 export class HookEvaluator {
   private readonly run: HookProcessRunner;
 
@@ -148,8 +161,12 @@ export class HookEvaluator {
     if (runs.length === 0) return NO_PRE_TOOL_USE;
 
     const answers = await Promise.all(
-      runs.map(async ({ entry, handler }): Promise<Answered> => {
-        const answer = parsePreToolUse(await this.runOne(entry, handler, "PreToolUse", view, call, scope));
+      runs.map(async ({ entry, handler, sure }): Promise<Answered> => {
+        const answer = withoutUnsureAllow(
+          parsePreToolUse(await this.runOne(entry, handler, "PreToolUse", view, call, scope)),
+          sure,
+          entry.source,
+        );
         const leased = (answer.decision === "ask" || answer.decision === "defer")
           && this.deps.leases.has(hookLeaseKey(entry.source.plugin, call.serverSlug, call.name));
         return { ...answer, ...(leased ? { decision: "allow" as const } : {}), source: entry.source, leased };
@@ -178,16 +195,23 @@ export class HookEvaluator {
     };
   }
 
-  /** The handlers to run for this call, in source order. */
-  private matching(event: HookEvent, view: ToolView): { readonly entry: HookEntry; readonly handler: HookHandler }[] {
+  /**
+   * The handlers to run for this call, in source order, each with whether
+   * its `if` matched for sure (no `if` is a sure match).
+   */
+  private matching(
+    event: HookEvent,
+    view: ToolView,
+  ): { readonly entry: HookEntry; readonly handler: HookHandler; readonly sure: boolean }[] {
     const conditionContext = { workspaceRoot: this.deps.workspaceRoot, homeDir: this.deps.homeDir };
     return this.deps.set
       .forEvent(event)
       .filter((entry) => matcherMatches(entry.matcher, view.toolName))
       .flatMap((entry) =>
-        entry.handlers
-          .filter((handler) => handler.condition === "" || conditionMatches(handler.condition, view, conditionContext))
-          .map((handler) => ({ entry, handler })),
+        entry.handlers.flatMap((handler) => {
+          const verdict = handler.condition === "" ? "match" : conditionVerdict(handler.condition, view, conditionContext);
+          return verdict === "no" ? [] : [{ entry, handler, sure: verdict === "match" }];
+        }),
       );
   }
 

@@ -155,6 +155,23 @@ describe("how answers combine", () => {
     expect((await deny.preToolUse(READ, {})).updatedArgs).toBeUndefined();
   });
 
+  it("drops an allow, and its rewrite, from a handler whose `if` only might match; keeps its deny and a sure allow", async () => {
+    const unreadable = { ...SHELL, args: { command: "$(echo rm) -rf ~" } };
+    const rule = (command: string) => ({ command, condition: "Bash(npm test *)" });
+    const { run } = scripted({
+      allows: decide("allow", { updatedInput: { command: "true" } }),
+      denies: decide("deny", { permissionDecisionReason: "no" }),
+    });
+    const allowing = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "Bash", rule("allows"))] }], run);
+    const dropped = await allowing.preToolUse(unreadable, {});
+    expect(dropped.decision).toBeUndefined();
+    expect(dropped.updatedArgs).toBeUndefined();
+    expect((await allowing.preToolUse({ ...SHELL, args: { command: "npm test --watch" } }, {})).decision).toBe("allow");
+
+    const denying = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "Bash", rule("denies"))] }], run);
+    expect(await denying.preToolUse(unreadable, {})).toMatchObject({ decision: "deny", reason: "no" });
+  });
+
   it("names the hook whose rewrite runs when two hooks give the same answer", async () => {
     const { run } = scripted({ plain: decide("allow"), rewrites: decide("allow", { updatedInput: { file_path: "/ws/src/b.ts" } }) });
     const hooks = evaluator([

@@ -35,8 +35,11 @@
  * does not match (a shape it does not know, a command it cannot parse, a
  * search whose reach it cannot bound), the handler runs. Running a hook too
  * often costs a process and the hook still decides; skipping one would
- * silently drop a policy. Claude's own page says Bash rules are not a
- * security boundary; the hook's script is.
+ * silently drop a policy. Such a match is `unsure` ({@link conditionVerdict}),
+ * and the evaluator honours a refusal or an ask from it but not an allow: an
+ * allow behind an `if` that only might have matched would let a call the
+ * rule never names skip its approval. Claude's own page says Bash rules are
+ * not a security boundary; the hook's script is.
  *
  * Every `*` is matched by {@link wildcardMatch}, a linear scan, never a
  * regular expression built from the rule: the text it reads is the model's,
@@ -66,22 +69,43 @@ const PATH_RULE_TOOLS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
 /** Claude Code's older name for `Agent`. */
 const TOOL_ALIASES: ReadonlyMap<string, string> = new Map([["Task", "Agent"]]);
 
+/** How an `if` reads a call: it matches, it might (the matcher cannot be sure), or it does not. */
+export type ConditionVerdict = "match" | "unsure" | "no";
+
 /** Whether a handler with this `if` runs for this call. */
 export function conditionMatches(rule: string, view: ToolView, ctx: ConditionContext): boolean {
+  return conditionVerdict(rule, view, ctx) !== "no";
+}
+
+/** How a handler's `if` reads this call; an `unsure` handler runs, and its allow is not honoured. */
+export function conditionVerdict(rule: string, view: ToolView, ctx: ConditionContext): ConditionVerdict {
   const parsed = RULE.exec(rule.trim());
-  if (parsed === null) return true;
+  if (parsed === null) return "unsure";
   const tool = TOOL_ALIASES.get(parsed[1]!) ?? parsed[1]!;
   const spec = parsed[2]?.trim();
 
-  if (!toolMatches(tool, view.toolName)) return false;
-  if (spec === undefined || spec === "" || spec === "*") return true;
+  if (!toolMatches(tool, view.toolName)) return "no";
+  if (spec === undefined || spec === "" || spec === "*") return "match";
 
-  if (tool === "Bash") return bashMatches(spec, view.toolInput["command"]);
-  if (PATH_RULE_TOOLS.has(tool)) return pathMatches(spec, view, ctx);
-  if (tool === "WebFetch" && spec.startsWith("domain:")) return domainMatches(spec.slice("domain:".length), view.toolInput["url"]);
-  if (tool === "Agent") return agentMatches(spec, view.toolInput["subagent_type"]);
-  return argumentMatches(spec, view.toolInput);
+  if (tool === "Bash") return bashVerdict(spec, view.toolInput["command"]);
+  if (PATH_RULE_TOOLS.has(tool)) return pathVerdict(spec, view, ctx);
+  if (tool === "WebFetch" && spec.startsWith("domain:")) return domainVerdict(spec.slice("domain:".length), view.toolInput["url"]);
+  if (tool === "Agent") return agentVerdict(spec, view.toolInput["subagent_type"]);
+  return argumentVerdict(spec, view.toolInput);
 }
+
+/** The strongest of several readings: one sure match is a match. */
+function strongest(verdicts: Iterable<ConditionVerdict>): ConditionVerdict {
+  let best: ConditionVerdict = "no";
+  for (const verdict of verdicts) {
+    if (verdict === "match") return "match";
+    if (verdict === "unsure") best = "unsure";
+  }
+  return best;
+}
+
+const sure = (matched: boolean): ConditionVerdict => (matched ? "match" : "no");
+const atMostUnsure = (verdict: ConditionVerdict): ConditionVerdict => (verdict === "match" ? "unsure" : verdict);
 
 function toolMatches(tool: string, toolName: string): boolean {
   if (tool === toolName) return true;
@@ -103,15 +127,21 @@ const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
 /** How many forms of one simple command are tried, at most; past it the command matches. */
 const MAX_FORMS = 256;
 
-function bashMatches(spec: string, command: unknown): boolean {
-  if (typeof command !== "string") return true;
+function bashVerdict(spec: string, command: unknown): ConditionVerdict {
+  if (typeof command !== "string") return "unsure";
   const commands = splitShellCommands(command);
-  if (commands === null) return true;
+  if (commands === null) return "unsure";
   const patterns = bashPatterns(spec);
-  return commands.some((words) => {
-    const forms = commandForms(words);
-    return forms === null || forms.some((form) => formMatches(patterns, form));
-  });
+  return strongest(
+    commands.map((words) => {
+      const forms = commandForms(words);
+      if (forms === null) return "unsure";
+      // Only the command as written can match for sure: a peeled form is
+      // the matcher's reading of what runs, and an assignment (`PATH=…`) or
+      // a path can change which program that is.
+      return strongest(forms.map((form) => (form === words ? formVerdict(patterns, form) : atMostUnsure(formVerdict(patterns, form)))));
+    }),
+  );
 }
 
 /**
@@ -127,18 +157,22 @@ function bashPatterns(spec: string): readonly string[] {
 }
 
 /**
- * Whether one form of a command may match: by its whole text when every
- * word is literal; otherwise by the words before the first one the shell
- * would expand, which may expand to nothing or continue into anything.
+ * How one form of a command reads: by its whole text when every word is
+ * literal; otherwise by the words before the first one the shell would
+ * expand, which may expand to nothing or continue into anything. It is a
+ * sure match only when every continuation matches (the words before it
+ * already fill a pattern up to its trailing `*`).
  */
-function formMatches(patterns: readonly string[], words: readonly ShellWord[]): boolean {
+function formVerdict(patterns: readonly string[], words: readonly ShellWord[]): ConditionVerdict {
   const open = words.findIndex((word) => !word.literal);
   if (open === -1) {
     const text = joinWords(words);
-    return patterns.some((pattern) => wildcardMatch(pattern, text));
+    return sure(patterns.some((pattern) => wildcardMatch(pattern, text)));
   }
   const known = joinWords(words.slice(0, open));
-  return patterns.some((pattern) => wildcardMatch(pattern, known) || couldContinue(pattern, known === "" ? "" : `${known} `));
+  const prefix = known === "" ? "" : `${known} `;
+  if (patterns.some((pattern) => pattern.endsWith("*") && wildcardMatch(pattern, prefix))) return "match";
+  return patterns.some((pattern) => wildcardMatch(pattern, known) || couldContinue(pattern, prefix)) ? "unsure" : "no";
 }
 
 /** Whether some text that starts with `prefix` matches `pattern`. */
@@ -224,15 +258,15 @@ export function wildcardMatch(pattern: string, text: string): boolean {
 
 const FILE_PATH_TOOLS = new Set(["Read", "Edit", "Write", "NotebookEdit"]);
 
-function pathMatches(spec: string, view: ToolView, ctx: ConditionContext): boolean {
+function pathVerdict(spec: string, view: ToolView, ctx: ConditionContext): ConditionVerdict {
   // A search reads under a directory whose contents the rule cannot be
   // checked against without walking it: unsure, so the handler runs.
-  if (!FILE_PATH_TOOLS.has(view.toolName)) return true;
+  if (!FILE_PATH_TOOLS.has(view.toolName)) return "unsure";
   const target = view.toolInput["file_path"] ?? view.toolInput["notebook_path"];
-  if (typeof target !== "string") return true;
+  if (typeof target !== "string") return "unsure";
   const pattern = absolutePattern(spec, ctx);
   const isMatch = picomatch([pattern, `${pattern.replace(/\/+$/, "")}/**`], { dot: true });
-  return isMatch(target);
+  return sure(isMatch(target));
 }
 
 /** A gitignore-style rule path as an absolute glob. */
@@ -247,28 +281,28 @@ function absolutePattern(spec: string, ctx: ConditionContext): string {
 
 // ── The rest ──────────────────────────────────────────────────────
 
-function domainMatches(domain: string, url: unknown): boolean {
-  if (typeof url !== "string") return true;
+function domainVerdict(domain: string, url: unknown): ConditionVerdict {
+  if (typeof url !== "string") return "unsure";
   let host: string;
   try {
     host = new URL(url).hostname.toLowerCase();
   } catch {
-    return true;
+    return "unsure";
   }
   const want = domain.trim().toLowerCase();
-  return want.startsWith("*.") ? host.endsWith(want.slice(1)) : host === want;
+  return sure(want.startsWith("*.") ? host.endsWith(want.slice(1)) : host === want);
 }
 
-function agentMatches(spec: string, subagentType: unknown): boolean {
-  if (typeof subagentType !== "string" || subagentType === "") return true;
-  return spec.toLowerCase() === subagentType.toLowerCase();
+function agentVerdict(spec: string, subagentType: unknown): ConditionVerdict {
+  if (typeof subagentType !== "string" || subagentType === "") return "unsure";
+  return sure(spec.toLowerCase() === subagentType.toLowerCase());
 }
 
-function argumentMatches(spec: string, input: Record<string, unknown>): boolean {
+function argumentVerdict(spec: string, input: Record<string, unknown>): ConditionVerdict {
   const colon = spec.indexOf(":");
-  if (colon <= 0) return true;
+  if (colon <= 0) return "unsure";
   const value = input[spec.slice(0, colon).trim()];
-  if (value === undefined || value === null) return false;
-  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") return true;
-  return wildcardMatch(spec.slice(colon + 1).trim(), String(value));
+  if (value === undefined || value === null) return "no";
+  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") return "unsure";
+  return sure(wildcardMatch(spec.slice(colon + 1).trim(), String(value)));
 }
