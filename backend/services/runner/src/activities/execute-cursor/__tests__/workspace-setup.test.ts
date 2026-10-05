@@ -743,5 +743,16 @@ describe("workspace hook files: .claude settings and the turn's restore", () => 
     expect(readFileSync(running.settings, "utf-8"), "a running runner's turn keeps its set-aside").toBe('{"model":"x"}\n');
     expect(existsSync(running.snapshotPath)).toBe(true);
     await restoreAbandonedWorkspaceFiles(join(gatesRoot, "missing"), () => false);
+
+    // Where `ps` cannot say when a running process started, it is taken for the runner.
+    const unknown = await setAside("unknown-start", process.ppid, 1);
+    const realPath = process.env["PATH"];
+    process.env["PATH"] = gatesRoot;
+    try {
+      await restoreAbandonedWorkspaceFiles(gatesRoot, () => false);
+    } finally {
+      process.env["PATH"] = realPath;
+    }
+    expect(readFileSync(unknown.settings, "utf-8")).toBe('{"model":"x"}\n');
   });
 });
