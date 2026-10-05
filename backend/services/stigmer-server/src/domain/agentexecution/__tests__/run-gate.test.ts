@@ -161,13 +161,13 @@ type Target =
 
 function createInput(
   target: Target,
-  executionConfig?: { modelName?: string; thinkingMode?: ThinkingMode },
+  runConfig?: { modelName?: string; thinkingMode?: ThinkingMode },
 ) {
   return {
     apiVersion: API_VERSION,
     kind: "AgentExecution",
     metadata: { name: "run-gate-exec", org: ORG },
-    spec: { message: "hello", target, executionConfig },
+    spec: { message: "hello", target, runConfig },
   };
 }
 

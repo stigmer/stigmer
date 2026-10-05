@@ -3,7 +3,10 @@ instructions (system prompt), which MCP servers it can use, which Skills it has,
 optional Sub-Agents for delegation, and the tools it may and may never use, in
 Claude Code's names (`tools` and `disallowed_tools`, deny applied first). Its
 `hooks`, a plugin's or a block written in the agent in Claude Code's format, can
-refuse a tool call, ask a person first, or let it run.
+refuse a tool call, ask a person first, or let it run. Its `run_config` and
+`harness` are the run defaults a conversation on it starts with: the model and
+thinking a message or a surface may replace, and limits it may lower but never
+raise.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -27,4 +30,8 @@ spec:
     - plugin:
         kind: plugin
         slug: safety
+  harness: HARNESS_NATIVE
+  run_config:
+    model_name: claude-sonnet-4.5
+    max_cost_usd: 2
 ```

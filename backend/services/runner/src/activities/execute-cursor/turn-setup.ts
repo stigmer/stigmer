@@ -330,7 +330,7 @@ export async function prepareHooks(
     model: input.model.requested,
     workspaceRoot: primaryDir,
     permissionMode: hookPermissionMode(
-      input.execution.spec?.executionConfig?.interactionMode === InteractionMode.PLAN,
+      input.execution.spec?.interactionMode === InteractionMode.PLAN,
       input.mcp.leases.global,
     ),
     leases: input.mcp.leases.hooks,
@@ -763,8 +763,8 @@ export async function createFreshAgent(engine: CursorEngine): Promise<AgentResol
 export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: CursorEngine, rows: AdjudicatedRows): Promise<CursorPrompt> {
   const { executionId, blueprint, standing, attachments, workspace, approvalDecisions, appliedToolCallIds, structuredOutputSchema } = input;
   const spec = input.execution.spec!;
-  const interactionMode = spec.executionConfig?.interactionMode ?? InteractionMode.UNSPECIFIED;
-  const buildFromPlan = spec.executionConfig?.buildFromPlan ?? false;
+  const interactionMode = spec.interactionMode ?? InteractionMode.UNSPECIFIED;
+  const buildFromPlan = spec.buildFromPlan ?? false;
 
   const shared = (): Omit<BuildPromptInput, "resolution" | "recalledMemories" | "turnRecoveryDigest"> => ({
     approvalDecisions,

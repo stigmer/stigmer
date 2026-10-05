@@ -58,14 +58,25 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/spec.proto`.
 |---|---|---|---|
 | `message` | `string` | min_len: 1 (required) | The user input that triggers this execution. Each execution represents one user message and the agent's full response to it. |
 
-### Execution Config (`ExecutionConfig`)
-
-Optional overrides for this specific execution. When not specified, defaults are derived from the agent's configuration and the Model Registry.
+### Run Settings (`run_config`)
 
 | Field | Type | Description |
 |---|---|---|
-| `execution_config.model_name` | `string` | Override the LLM model for this run. Example: `"claude-sonnet-4.5"`, `"gpt-4o"`. |
-| `execution_config.context_management` | `ContextManagementConfig` | Override context window management behavior. See [context-management.md](context-management.md). |
+| `run_config` | `RunConfig` | What this message asks for: model, speed tier, thinking, and run limits. Every field is optional; an unset field falls to the agent's defaults, then to the operator's profile for the lane. See [RunConfig Fields](#runconfig-fields) for the fields and the rule. |
+
+Unlike a saved surface's settings, a message may set `service_tier` or `thinking_mode` without a model, to adjust the model a less specific layer chose (for example, thinking off for one message on an agent whose default turns it on). A lane that composes the turn for a surface (a schedule, a workflow step) writes that surface's saved `run_config` here; on a lane whose caller is a visitor (the hosted edition's shared-agent guests and channel senders), the surface's saved settings replace this field.
+
+### Per-Message Intents
+
+These apply to this message only and never carry over to the next one in the session. They are not settings, so no surface or agent saves them.
+
+| Field | Type | Description |
+|---|---|---|
+| `interaction_mode` | `InteractionMode` | `INTERACTION_MODE_AGENT` (default): full tool access. `INTERACTION_MODE_PLAN`: read-only analysis, no file mutations. |
+| `build_from_plan` | `bool` | Marks a "Build from plan" turn: the person approved a plan from an earlier Plan-mode turn and asked the agent to implement it. The runner injects the implement-plan directive, so `message` stays a short label. |
+| `structured_output_schema` | `google.protobuf.Struct` | JSON Schema the agent's output must conform to. The validated data returns to the parent workflow as `structured`. |
+
+No request sets an approval mode: it is a fact of the lane the turn came through, recorded on `status.approval_mode`. See [hitl-approvals.md](hitl-approvals.md#unattended-surfaces-channels-and-guest-shares).
 
 ### Runtime Environment
 
@@ -113,17 +124,27 @@ Files must be pre-uploaded via `uploadAttachment` RPC before creating the execut
 
 ---
 
-## Context Management Config (`ContextManagementConfig`)
+## RunConfig Fields
 
-Defined in `ai/stigmer/agentic/agentexecution/v1/spec.proto`.
+Defined in `ai/stigmer/agentic/agentexecution/v1/invocation.proto`. The same message is a message's request (`spec.run_config`), a surface's saved settings (a schedule's invocation, a channel, a share, a workflow `agent_call` step), an agent's defaults (`Agent.spec.run_config`, versioned with the agent), and the settings a turn ran with (`status.run_config`). Zero or empty means "not set at this layer".
 
-Controls automatic context summarization. Defaults are derived from the Model Registry for the configured model. See [context-management.md](context-management.md) for full documentation.
+| Field | Type | Description |
+|---|---|---|
+| `model_name` | `string` | The model, by its Model Registry id on the engine that runs it. Example: `"claude-sonnet-4.5"` (native), `"claude-sonnet-4-6"` (Cursor). |
+| `max_cost_usd` | `double` | Stop the message once its estimated cost reaches this many US dollars; the work done so far is kept and the turn ends `TERMINATED`. Per message: a follow-up or a resume after an approval starts a fresh count. |
+| `max_tool_rounds` | `int32` | Stop after this many model-to-tools rounds (clamped to 10–1000). Native harness only; sub-agent rounds are not counted. |
+| `service_tier` | `ServiceTier` | `SERVICE_TIER_STANDARD` (the default when no layer sets it) or `SERVICE_TIER_FAST`, valid only for a model with a fast pricing tier on its engine. |
+| `thinking_mode` | `ThinkingMode` | `THINKING_MODE_DISABLED` (the default when no layer sets it) or `THINKING_MODE_ENABLED`, valid only for a model the registry marks thinking-capable on its engine. |
+| `max_tool_result_chars` | `int32` | Truncate a single tool result longer than this many characters, with a marker asking the agent to request specific sections. 30,000 when no layer sets it. |
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `disable_summarization` | `bool` | `false` | When `true`, disables automatic context summarization entirely. Warning: execution may fail if context exceeds model limits. |
-| `custom_trigger_threshold` | `int32` | `0` (use model default) | Token count that triggers summarization. Must be greater than `custom_target_tokens` if both are set. |
-| `custom_target_tokens` | `int32` | `0` (use model default) | Target token count after summarization. Must be less than `custom_trigger_threshold` if both are set. |
+**How a turn's settings are resolved.** Once, at create, from three layers, most specific first: the message (or the surface it came through), the defaults of the agent version the turn runs, and the lane's operator profile.
+
+- **Choices** (`model_name`, `service_tier`, `thinking_mode`) come from the most specific layer that sets them. Tier and thinking come only from the model's layer or a more specific one, never from a layer whose model was replaced. With no model in any layer the engine decides (native: the registry default; Cursor: Auto).
+- **Limits** (`max_cost_usd`, `max_tool_rounds`, `max_tool_result_chars`) take the smallest value any layer sets: a message or a surface can lower an agent's cap, never raise it.
+- The agent's choices apply only on the engine its `harness` names; on a conversation running the other engine, the agent layer gives its limits alone.
+- Saved settings are self-contained: a surface or an agent that sets `SERVICE_TIER_FAST` or `THINKING_MODE_ENABLED` names its model. Only a message may set them alone.
+
+The proto comment on `RunConfig` is the normative rule. The user-facing explanation, with an agent example, is [Agents: Run settings](https://stigmer.ai/docs/concepts/agents#run-settings).
 
 ---
 
@@ -143,6 +164,8 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/api.proto`. All fields are syst
 | `agent_version_hash` | `string` | The agent version this turn ran, from its session. |
 | `declared_preferences` | `DeclaredPreferences` | The organization's and the person's standing context, snapshotted when the turn was created. |
 | `recalled_memories` | `RecalledMemories` | The confirmed memories recalled into this turn, snapshotted when it was created. |
+| `run_config` | `RunConfig` | The settings this turn runs with, resolved once at create from `spec.run_config` (or the surface's saved settings), the agent version's defaults and the lane's operator profile. An empty `model_name` means no layer named one and the engine chose. Server-only. |
+| `approval_mode` | `ApprovalMode` | `APPROVAL_MODE_INTERACTIVE` or `APPROVAL_MODE_UNATTENDED`, a fact of the lane: schedule fires and the hosted edition's shared-agent guest and channel turns are unattended; every other turn, a workflow step's included, is interactive. Server-only. |
 
 ### Messages
 
@@ -254,7 +277,7 @@ To calculate total execution cost, sum `status.usage` with `usage` from each ent
 
 | Field | Type | Description |
 |---|---|---|
-| `context_info` | `ContextInfo` | Context window utilization and summarization tracking. Updated progressively during streaming. See [context-management.md](context-management.md). |
+| `context_info` | `ContextInfo` | Context window utilization and summarization tracking: current token count, the model's context window, the summarization trigger and target (both from the model's Model Registry entry), and each summarization event. Updated progressively during streaming. |
 
 ### Artifacts
 

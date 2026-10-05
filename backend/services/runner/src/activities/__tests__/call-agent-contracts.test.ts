@@ -365,12 +365,13 @@ describe("CallAgent server contract compliance", () => {
 
   // -----------------------------------------------------------------------
   // Output schema propagation — verifies that output.schema from the
-  // workflow task config is set as executionConfig.structuredOutputSchema
-  // on the created AgentExecution. This is the exact failure mode from
-  // the daily-notification-plan production bug.
+  // workflow task config is set as the spec's top-level
+  // structuredOutputSchema on the created AgentExecution, beside the step's
+  // settings on spec.runConfig. This is the exact failure mode from the
+  // daily-notification-plan production bug.
   // -----------------------------------------------------------------------
 
-  describe("output.schema → executionConfig.structuredOutputSchema propagation", () => {
+  describe("output.schema → spec.structuredOutputSchema propagation", () => {
     const cohortSchema = {
       type: "object",
       required: ["executive_summary", "cohorts", "anomalies"],
@@ -408,13 +409,12 @@ describe("CallAgent server contract compliance", () => {
         output: { schema: cohortSchema, on_invalid: "ON_INVALID_FAIL" },
         run_config: { model_name: "claude-sonnet-4" },
       });
-      const execConfig = capturedCreateExecution.spec.executionConfig;
-      expect(execConfig).toBeDefined();
-      expect(execConfig.structuredOutputSchema).toBeDefined();
-      expect(execConfig.structuredOutputSchema.required).toEqual(
+      const spec = capturedCreateExecution.spec;
+      expect(spec.structuredOutputSchema).toBeDefined();
+      expect(spec.structuredOutputSchema.required).toEqual(
         ["executive_summary", "cohorts", "anomalies"],
       );
-      expect(execConfig.structuredOutputSchema.properties.cohorts.type).toBe("array");
+      expect(spec.structuredOutputSchema.properties.cohorts.type).toBe("array");
     });
 
     it("sets both modelName and structuredOutputSchema when both are present", async () => {
@@ -422,17 +422,17 @@ describe("CallAgent server contract compliance", () => {
         output: { schema: cohortSchema },
         run_config: { model_name: "claude-sonnet-4" },
       });
-      const execConfig = capturedCreateExecution.spec.executionConfig;
-      expect(execConfig.modelName).toBe("claude-sonnet-4");
-      expect(execConfig.structuredOutputSchema).toBeDefined();
-      expect(execConfig.structuredOutputSchema.required).toContain("executive_summary");
+      const spec = capturedCreateExecution.spec;
+      expect(spec.runConfig.modelName).toBe("claude-sonnet-4");
+      expect(spec.structuredOutputSchema).toBeDefined();
+      expect(spec.structuredOutputSchema.required).toContain("executive_summary");
     });
 
     it("preserves nested array/object schema structure through serialization", async () => {
       await exerciseCallAgent({
         output: { schema: cohortSchema },
       });
-      const schema = capturedCreateExecution.spec.executionConfig.structuredOutputSchema;
+      const schema = capturedCreateExecution.spec.structuredOutputSchema;
       expect(schema.properties.cohorts.items.required).toEqual(["name", "size", "action_needed"]);
       expect(schema.properties.anomalies.items.properties.severity.enum)
         .toEqual(["warning", "critical"]);
@@ -440,25 +440,25 @@ describe("CallAgent server contract compliance", () => {
 
     it("does not set structuredOutputSchema when output is absent", async () => {
       await exerciseCallAgent({ run_config: { model_name: "claude-sonnet-4" } });
-      const execConfig = capturedCreateExecution.spec.executionConfig;
-      expect(execConfig).toBeDefined();
-      expect(execConfig.modelName).toBe("claude-sonnet-4");
-      expect(execConfig.structuredOutputSchema).toBeUndefined();
+      const spec = capturedCreateExecution.spec;
+      expect(spec.runConfig.modelName).toBe("claude-sonnet-4");
+      expect(spec.structuredOutputSchema).toBeUndefined();
     });
 
-    it("does not set executionConfig at all when neither model nor schema is present", async () => {
+    it("sets neither runConfig nor structuredOutputSchema when the step has neither", async () => {
       await exerciseCallAgent({});
-      expect(capturedCreateExecution.spec.executionConfig).toBeUndefined();
+      expect(capturedCreateExecution.spec.runConfig).toBeUndefined();
+      expect(capturedCreateExecution.spec.structuredOutputSchema).toBeUndefined();
     });
 
     it("sets structuredOutputSchema even when model is absent", async () => {
       await exerciseCallAgent({
         output: { schema: { type: "object", properties: { summary: { type: "string" } } } },
       });
-      const execConfig = capturedCreateExecution.spec.executionConfig;
-      expect(execConfig).toBeDefined();
-      expect(execConfig.structuredOutputSchema).toBeDefined();
-      expect(execConfig.structuredOutputSchema.properties.summary.type).toBe("string");
+      const spec = capturedCreateExecution.spec;
+      expect(spec.runConfig).toBeUndefined();
+      expect(spec.structuredOutputSchema).toBeDefined();
+      expect(spec.structuredOutputSchema.properties.summary.type).toBe("string");
     });
 
     it("daily-notification-plan pattern: full schema with embedded expressions in message", async () => {
@@ -476,10 +476,9 @@ describe("CallAgent server contract compliance", () => {
       );
 
       const exec = capturedCreateExecution;
-      expect(exec.spec.executionConfig).toBeDefined();
-      expect(exec.spec.executionConfig.modelName).toBe("claude-sonnet-4");
-      expect(exec.spec.executionConfig.structuredOutputSchema).toBeDefined();
-      expect(exec.spec.executionConfig.structuredOutputSchema.required)
+      expect(exec.spec.runConfig.modelName).toBe("claude-sonnet-4");
+      expect(exec.spec.structuredOutputSchema).toBeDefined();
+      expect(exec.spec.structuredOutputSchema.required)
         .toEqual(["executive_summary", "cohorts", "anomalies"]);
       expect(exec.metadata.name).toMatch(
         /^aex-wf-wex_01test-analyze_player_data-[0-9a-f]{8}$/,

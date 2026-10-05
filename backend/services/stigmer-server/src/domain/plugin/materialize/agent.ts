@@ -69,13 +69,13 @@ import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import {
   AgentSpecSchema,
   HookSourceSchema,
-  McpServerUsageSchema,
   SubAgentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type {
   HookSource,
   SubAgent,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import { PluginWarningSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";

@@ -550,13 +550,13 @@ function parseAgentCallRunConfig(raw: unknown): AgentCallConfig["run_config"] {
   const obj = raw as Record<string, unknown>;
 
   const known = new Set([
-    "model_name", "max_cost_usd", "max_tool_rounds", "service_tier", "thinking_mode",
+    "model_name", "max_cost_usd", "max_tool_rounds", "max_tool_result_chars", "service_tier", "thinking_mode",
   ]);
   for (const key of Object.keys(obj)) {
     if (!known.has(key)) {
       throw new Error(
         `call:agent 'run_config' has unknown field '${key}' ` +
-        `(expected: model_name, max_cost_usd, max_tool_rounds, service_tier, thinking_mode)`,
+        `(expected: model_name, max_cost_usd, max_tool_rounds, max_tool_result_chars, service_tier, thinking_mode)`,
       );
     }
   }
@@ -573,6 +573,10 @@ function parseAgentCallRunConfig(raw: unknown): AgentCallConfig["run_config"] {
   if (maxToolRounds !== undefined && (typeof maxToolRounds !== "number" || maxToolRounds < 0)) {
     throw new Error("call:agent 'run_config.max_tool_rounds' must be a number >= 0");
   }
+  const maxToolResultChars = obj.max_tool_result_chars;
+  if (maxToolResultChars !== undefined && (typeof maxToolResultChars !== "number" || maxToolResultChars < 0)) {
+    throw new Error("call:agent 'run_config.max_tool_result_chars' must be a number >= 0");
+  }
   const serviceTier = parseServiceTier(obj.service_tier);
   const thinkingMode = parseThinkingMode(obj.thinking_mode);
 
@@ -580,6 +584,7 @@ function parseAgentCallRunConfig(raw: unknown): AgentCallConfig["run_config"] {
     model_name: modelName,
     max_cost_usd: maxCostUsd,
     max_tool_rounds: maxToolRounds,
+    max_tool_result_chars: maxToolResultChars,
     service_tier: serviceTier,
     thinking_mode: thinkingMode,
   };

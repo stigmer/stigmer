@@ -312,12 +312,12 @@ describe("create over the wire (engine gate)", () => {
           spec: {
             target: GATE_AGENT_CONVERSATION,
             message: "hello",
-            executionConfig: { serviceTier: ServiceTier.FAST },
+            runConfig: { serviceTier: ServiceTier.FAST },
           },
         }),
       Code.InvalidArgument,
     );
-    expect(err.rawMessage).toContain("requires execution_config.model_name");
+    expect(err.rawMessage).toContain("requires a model_name");
   });
 
   it("a forged server-owned harness_state_id in session_spec refuses at proto validation", async () => {

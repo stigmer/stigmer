@@ -2,7 +2,8 @@
  * Model-reference validation tests — pin the Go model_validation.go
  * behavior: harness-aware validity for agent_call/llm_call/eval, the
  * fail-closed tier/thinking variant-attribute rules (#357/#772, incl. the
- * no-model_name arms), the degrade postures (no registry, unknown
+ * no-model_name arms and thinking turned off on a model that always
+ * thinks), the degrade postures (no registry, unknown
  * harness), and the pinned refusal copy with did-you-mean.
  */
 import { create } from "@bufbuild/protobuf";
@@ -30,6 +31,11 @@ const STORE = new ModelRegistryStore({
       },
       { id: "anthropic/claude-4", harness: "native" },
       { id: "openai/gpt-6", harness: "native" },
+      {
+        id: "anthropic/claude-always-thinks",
+        harness: "native",
+        capabilities: { thinking: true, thinkingRequired: true },
+      },
     ],
   }),
   upstreamOrigin: "http://upstream.test",
@@ -181,6 +187,26 @@ describe("validateModelReferences", () => {
       "task 'bare' (agent_call): run_config.thinking_mode 'enabled' requires " +
         "run_config.model_name — thinking is a per-model capability",
     ]);
+  });
+
+  it("fails thinking turned off on a model that always thinks on the step's harness", () => {
+    const errors = validateModelReferences(
+      STORE,
+      spec([
+        {
+          name: "off",
+          kind: WorkflowTaskKind.agent_call,
+          taskConfig: {
+            agent: "x",
+            message: "m",
+            run_config: { model_name: "anthropic/claude-always-thinks", thinking_mode: "disabled" },
+          },
+        },
+      ]),
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("task 'off' (agent_call): run_config.thinking_mode 'disabled'");
+    expect(errors[0]).toContain("always thinks");
   });
 
   it("renders the capable-models suffix when the harness prices/declares alternatives", () => {

@@ -7,12 +7,38 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * RunConfig is the owner-settable model choice and run bounds.
+ * RunConfig is the settings message for every run: a model, a speed tier,
+ * thinking, and run bounds.
  *
- * Each field mirrors its ExecutionConfig namesake; zero/empty means
- * "inherit the surface's platform default". Embeddable on its own:
- * surfaces that derive agent and message elsewhere (a channel's
- * conversations, for example) carry just this message.
+ * The same message is a message's request (AgentExecutionSpec.run_config),
+ * a surface's saved settings (a schedule's invocation, a channel, a share, a
+ * workflow agent_call step), an agent author's defaults (AgentSpec.run_config,
+ * versioned with the agent), and the settings a turn ran with
+ * (AgentExecutionStatus.run_config). Zero or empty means "not set at this
+ * layer".
+ *
+ * The server resolves a turn's settings once, at create, from three layers,
+ * most specific first: the message (or the surface it came through), the
+ * agent's defaults, and the lane's operator profile.
+ *
+ * - Choices. model_name comes from the first layer that names one. When no
+ * layer names one, the model is left to the engine (the native engine's
+ * registry default; Cursor's Auto). service_tier and thinking_mode each
+ * come from the first layer, at or above the model's layer, that sets
+ * them: a less specific layer's tier or thinking was chosen for another
+ * model, so it never lands on this one. Without a model, tier and thinking
+ * come only from the message.
+ * - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take
+ * the smallest positive value any layer sets. An operator profile is a
+ * ceiling the message, the surface and the agent can lower but never
+ * raise.
+ * - The agent's choices apply only on the engine its defaults name
+ * (AgentSpec.harness). On a conversation running the other engine the
+ * agent layer gives its bounds alone.
+ *
+ * Saved settings are self-contained: a surface or an agent that sets
+ * service_tier FAST or thinking_mode ENABLED names the model it is for. Only a
+ * message may set them alone, to adjust the model it is given.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.RunConfig}
@@ -111,8 +137,21 @@ private static final long serialVersionUID = 0L;
   private double maxCostUsd_ = 0D;
   /**
    * <pre>
-   * Maximum estimated cost in USD per run. The surface's platform
-   * execution profile caps this value; the lower bound wins.
+   * Maximum estimated cost in USD per run.
+   *
+   * When the run's estimated spend reaches this limit, the run stops with a
+   * "send another message to continue" prompt and ends TERMINATED; the work
+   * done so far is kept. The limit is checked each time the engine reports
+   * its spend, so a run can end somewhat above it. The native harness
+   * reports after every model call, counts a sub-agent's spend toward the
+   * limit, and advises the agent to wrap up at about 80% of the budget; the
+   * Cursor harness gives no warning.
+   *
+   * 0 = not set at this layer. The budget is per message: a follow-up
+   * message, or a run resuming after an approval, starts a fresh count. The
+   * spend is the runner's estimate, reported on
+   * AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed
+   * amount.
    * </pre>
    *
    * <code>double max_cost_usd = 2 [json_name = "maxCostUsd", (.buf.validate.field) = { ... }</code>
@@ -127,8 +166,20 @@ private static final long serialVersionUID = 0L;
   private int maxToolRounds_ = 0;
   /**
    * <pre>
-   * Maximum model-to-tools reasoning cycles per run. The surface's
-   * platform execution profile caps this value; the lower bound wins.
+   * Maximum model-to-tools reasoning cycles per message.
+   *
+   * A round is one model response that proposes one or more tool calls,
+   * followed by their execution; parallel tool calls in one response are one
+   * round. When the limit is reached the run stops with a "send another
+   * message to continue" prompt, and the work done so far is kept. The agent
+   * is advised to wrap up at about 80% of the budget.
+   *
+   * 0 = not set at this layer; with no layer setting it the agent runs until
+   * the task completes or loop detection stops a repetitive pattern. When
+   * set, the valid range is 10–1000; values outside it are clamped to the
+   * nearest bound. The budget is per message: a follow-up message, or a run
+   * resuming after an approval, starts a fresh count. Sub-agent rounds are
+   * not counted, and the Cursor harness does not enforce this field.
    * </pre>
    *
    * <code>int32 max_tool_rounds = 3 [json_name = "maxToolRounds", (.buf.validate.field) = { ... }</code>
@@ -148,11 +199,11 @@ private static final long serialVersionUID = 0L;
    * In workflow YAML the shorthand spellings "standard"/"fast" are
    * accepted alongside the canonical enum names.
    *
-   * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
-   * surface's platform default, which itself resolves to STANDARD —
-   * never the provider account default. FAST requires model_name
-   * (here or from the platform profile) to name a model with a
-   * registry fast pricing variant; validated fail-closed at create.
+   * UNSPECIFIED is not set at this layer; with no layer setting it the run
+   * uses STANDARD, never the provider account default. FAST is valid only
+   * for a model whose registry entry declares a fast pricing variant on the
+   * engine that runs it; validated fail-closed on the resolved settings at
+   * create.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
@@ -168,11 +219,11 @@ private static final long serialVersionUID = 0L;
    * In workflow YAML the shorthand spellings "standard"/"fast" are
    * accepted alongside the canonical enum names.
    *
-   * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
-   * surface's platform default, which itself resolves to STANDARD —
-   * never the provider account default. FAST requires model_name
-   * (here or from the platform profile) to name a model with a
-   * registry fast pricing variant; validated fail-closed at create.
+   * UNSPECIFIED is not set at this layer; with no layer setting it the run
+   * uses STANDARD, never the provider account default. FAST is valid only
+   * for a model whose registry entry declares a fast pricing variant on the
+   * engine that runs it; validated fail-closed on the resolved settings at
+   * create.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
@@ -194,11 +245,10 @@ private static final long serialVersionUID = 0L;
    * In workflow YAML the shorthand spellings "disabled"/"enabled" are
    * accepted alongside the canonical enum names.
    *
-   * Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
-   * surface's platform default, which itself resolves to DISABLED —
-   * never the provider account default. ENABLED requires model_name
-   * (here or from the platform profile) to name a model whose registry
-   * entry declares the thinking capability; validated fail-closed at
+   * UNSPECIFIED is not set at this layer; with no layer setting it the run
+   * uses DISABLED, never the provider account default. ENABLED is valid only
+   * for a model whose registry entry declares the thinking capability on the
+   * engine that runs it; validated fail-closed on the resolved settings at
    * create. Combines freely with service_tier.
    * </pre>
    *
@@ -217,11 +267,10 @@ private static final long serialVersionUID = 0L;
    * In workflow YAML the shorthand spellings "disabled"/"enabled" are
    * accepted alongside the canonical enum names.
    *
-   * Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
-   * surface's platform default, which itself resolves to DISABLED —
-   * never the provider account default. ENABLED requires model_name
-   * (here or from the platform profile) to name a model whose registry
-   * entry declares the thinking capability; validated fail-closed at
+   * UNSPECIFIED is not set at this layer; with no layer setting it the run
+   * uses DISABLED, never the provider account default. ENABLED is valid only
+   * for a model whose registry entry declares the thinking capability on the
+   * engine that runs it; validated fail-closed on the resolved settings at
    * create. Combines freely with service_tier.
    * </pre>
    *
@@ -231,6 +280,28 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ThinkingMode getThinkingMode() {
     ai.stigmer.agentic.agentexecution.v1.ThinkingMode result = ai.stigmer.agentic.agentexecution.v1.ThinkingMode.forNumber(thinkingMode_);
     return result == null ? ai.stigmer.agentic.agentexecution.v1.ThinkingMode.UNRECOGNIZED : result;
+  }
+
+  public static final int MAX_TOOL_RESULT_CHARS_FIELD_NUMBER = 6;
+  private int maxToolResultChars_ = 0;
+  /**
+   * <pre>
+   * Maximum number of characters for a single tool result before truncation.
+   * When a tool result exceeds this limit, it is truncated and a marker is
+   * appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+   *
+   * 0 = not set at this layer; with no layer setting it the platform default
+   * applies (30,000 chars, about 7,500 tokens). Applies to all tool results
+   * (shell, read, write, MCP tools), except built-in tools that already
+   * manage their output size.
+   * </pre>
+   *
+   * <code>int32 max_tool_result_chars = 6 [json_name = "maxToolResultChars", (.buf.validate.field) = { ... }</code>
+   * @return The maxToolResultChars.
+   */
+  @java.lang.Override
+  public int getMaxToolResultChars() {
+    return maxToolResultChars_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -262,6 +333,9 @@ private static final long serialVersionUID = 0L;
     if (thinkingMode_ != ai.stigmer.agentic.agentexecution.v1.ThinkingMode.THINKING_MODE_UNSPECIFIED.getNumber()) {
       output.writeEnum(5, thinkingMode_);
     }
+    if (maxToolResultChars_ != 0) {
+      output.writeInt32(6, maxToolResultChars_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -290,6 +364,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(5, thinkingMode_);
     }
+    if (maxToolResultChars_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(6, maxToolResultChars_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -314,6 +392,8 @@ private static final long serialVersionUID = 0L;
         != other.getMaxToolRounds()) return false;
     if (serviceTier_ != other.serviceTier_) return false;
     if (thinkingMode_ != other.thinkingMode_) return false;
+    if (getMaxToolResultChars()
+        != other.getMaxToolResultChars()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -336,6 +416,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + serviceTier_;
     hash = (37 * hash) + THINKING_MODE_FIELD_NUMBER;
     hash = (53 * hash) + thinkingMode_;
+    hash = (37 * hash) + MAX_TOOL_RESULT_CHARS_FIELD_NUMBER;
+    hash = (53 * hash) + getMaxToolResultChars();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -435,12 +517,38 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * RunConfig is the owner-settable model choice and run bounds.
+   * RunConfig is the settings message for every run: a model, a speed tier,
+   * thinking, and run bounds.
    *
-   * Each field mirrors its ExecutionConfig namesake; zero/empty means
-   * "inherit the surface's platform default". Embeddable on its own:
-   * surfaces that derive agent and message elsewhere (a channel's
-   * conversations, for example) carry just this message.
+   * The same message is a message's request (AgentExecutionSpec.run_config),
+   * a surface's saved settings (a schedule's invocation, a channel, a share, a
+   * workflow agent_call step), an agent author's defaults (AgentSpec.run_config,
+   * versioned with the agent), and the settings a turn ran with
+   * (AgentExecutionStatus.run_config). Zero or empty means "not set at this
+   * layer".
+   *
+   * The server resolves a turn's settings once, at create, from three layers,
+   * most specific first: the message (or the surface it came through), the
+   * agent's defaults, and the lane's operator profile.
+   *
+   * - Choices. model_name comes from the first layer that names one. When no
+   * layer names one, the model is left to the engine (the native engine's
+   * registry default; Cursor's Auto). service_tier and thinking_mode each
+   * come from the first layer, at or above the model's layer, that sets
+   * them: a less specific layer's tier or thinking was chosen for another
+   * model, so it never lands on this one. Without a model, tier and thinking
+   * come only from the message.
+   * - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take
+   * the smallest positive value any layer sets. An operator profile is a
+   * ceiling the message, the surface and the agent can lower but never
+   * raise.
+   * - The agent's choices apply only on the engine its defaults name
+   * (AgentSpec.harness). On a conversation running the other engine the
+   * agent layer gives its bounds alone.
+   *
+   * Saved settings are self-contained: a surface or an agent that sets
+   * service_tier FAST or thinking_mode ENABLED names the model it is for. Only a
+   * message may set them alone, to adjust the model it is given.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.RunConfig}
@@ -481,6 +589,7 @@ private static final long serialVersionUID = 0L;
       maxToolRounds_ = 0;
       serviceTier_ = 0;
       thinkingMode_ = 0;
+      maxToolResultChars_ = 0;
       return this;
     }
 
@@ -529,6 +638,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.thinkingMode_ = thinkingMode_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.maxToolResultChars_ = maxToolResultChars_;
+      }
     }
 
     @java.lang.Override
@@ -559,6 +671,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.thinkingMode_ != 0) {
         setThinkingModeValue(other.getThinkingModeValue());
+      }
+      if (other.getMaxToolResultChars() != 0) {
+        setMaxToolResultChars(other.getMaxToolResultChars());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -611,6 +726,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 40
+            case 48: {
+              maxToolResultChars_ = input.readInt32();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -723,8 +843,21 @@ private static final long serialVersionUID = 0L;
     private double maxCostUsd_ ;
     /**
      * <pre>
-     * Maximum estimated cost in USD per run. The surface's platform
-     * execution profile caps this value; the lower bound wins.
+     * Maximum estimated cost in USD per run.
+     *
+     * When the run's estimated spend reaches this limit, the run stops with a
+     * "send another message to continue" prompt and ends TERMINATED; the work
+     * done so far is kept. The limit is checked each time the engine reports
+     * its spend, so a run can end somewhat above it. The native harness
+     * reports after every model call, counts a sub-agent's spend toward the
+     * limit, and advises the agent to wrap up at about 80% of the budget; the
+     * Cursor harness gives no warning.
+     *
+     * 0 = not set at this layer. The budget is per message: a follow-up
+     * message, or a run resuming after an approval, starts a fresh count. The
+     * spend is the runner's estimate, reported on
+     * AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed
+     * amount.
      * </pre>
      *
      * <code>double max_cost_usd = 2 [json_name = "maxCostUsd", (.buf.validate.field) = { ... }</code>
@@ -736,8 +869,21 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum estimated cost in USD per run. The surface's platform
-     * execution profile caps this value; the lower bound wins.
+     * Maximum estimated cost in USD per run.
+     *
+     * When the run's estimated spend reaches this limit, the run stops with a
+     * "send another message to continue" prompt and ends TERMINATED; the work
+     * done so far is kept. The limit is checked each time the engine reports
+     * its spend, so a run can end somewhat above it. The native harness
+     * reports after every model call, counts a sub-agent's spend toward the
+     * limit, and advises the agent to wrap up at about 80% of the budget; the
+     * Cursor harness gives no warning.
+     *
+     * 0 = not set at this layer. The budget is per message: a follow-up
+     * message, or a run resuming after an approval, starts a fresh count. The
+     * spend is the runner's estimate, reported on
+     * AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed
+     * amount.
      * </pre>
      *
      * <code>double max_cost_usd = 2 [json_name = "maxCostUsd", (.buf.validate.field) = { ... }</code>
@@ -753,8 +899,21 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum estimated cost in USD per run. The surface's platform
-     * execution profile caps this value; the lower bound wins.
+     * Maximum estimated cost in USD per run.
+     *
+     * When the run's estimated spend reaches this limit, the run stops with a
+     * "send another message to continue" prompt and ends TERMINATED; the work
+     * done so far is kept. The limit is checked each time the engine reports
+     * its spend, so a run can end somewhat above it. The native harness
+     * reports after every model call, counts a sub-agent's spend toward the
+     * limit, and advises the agent to wrap up at about 80% of the budget; the
+     * Cursor harness gives no warning.
+     *
+     * 0 = not set at this layer. The budget is per message: a follow-up
+     * message, or a run resuming after an approval, starts a fresh count. The
+     * spend is the runner's estimate, reported on
+     * AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed
+     * amount.
      * </pre>
      *
      * <code>double max_cost_usd = 2 [json_name = "maxCostUsd", (.buf.validate.field) = { ... }</code>
@@ -770,8 +929,20 @@ private static final long serialVersionUID = 0L;
     private int maxToolRounds_ ;
     /**
      * <pre>
-     * Maximum model-to-tools reasoning cycles per run. The surface's
-     * platform execution profile caps this value; the lower bound wins.
+     * Maximum model-to-tools reasoning cycles per message.
+     *
+     * A round is one model response that proposes one or more tool calls,
+     * followed by their execution; parallel tool calls in one response are one
+     * round. When the limit is reached the run stops with a "send another
+     * message to continue" prompt, and the work done so far is kept. The agent
+     * is advised to wrap up at about 80% of the budget.
+     *
+     * 0 = not set at this layer; with no layer setting it the agent runs until
+     * the task completes or loop detection stops a repetitive pattern. When
+     * set, the valid range is 10–1000; values outside it are clamped to the
+     * nearest bound. The budget is per message: a follow-up message, or a run
+     * resuming after an approval, starts a fresh count. Sub-agent rounds are
+     * not counted, and the Cursor harness does not enforce this field.
      * </pre>
      *
      * <code>int32 max_tool_rounds = 3 [json_name = "maxToolRounds", (.buf.validate.field) = { ... }</code>
@@ -783,8 +954,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum model-to-tools reasoning cycles per run. The surface's
-     * platform execution profile caps this value; the lower bound wins.
+     * Maximum model-to-tools reasoning cycles per message.
+     *
+     * A round is one model response that proposes one or more tool calls,
+     * followed by their execution; parallel tool calls in one response are one
+     * round. When the limit is reached the run stops with a "send another
+     * message to continue" prompt, and the work done so far is kept. The agent
+     * is advised to wrap up at about 80% of the budget.
+     *
+     * 0 = not set at this layer; with no layer setting it the agent runs until
+     * the task completes or loop detection stops a repetitive pattern. When
+     * set, the valid range is 10–1000; values outside it are clamped to the
+     * nearest bound. The budget is per message: a follow-up message, or a run
+     * resuming after an approval, starts a fresh count. Sub-agent rounds are
+     * not counted, and the Cursor harness does not enforce this field.
      * </pre>
      *
      * <code>int32 max_tool_rounds = 3 [json_name = "maxToolRounds", (.buf.validate.field) = { ... }</code>
@@ -800,8 +983,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum model-to-tools reasoning cycles per run. The surface's
-     * platform execution profile caps this value; the lower bound wins.
+     * Maximum model-to-tools reasoning cycles per message.
+     *
+     * A round is one model response that proposes one or more tool calls,
+     * followed by their execution; parallel tool calls in one response are one
+     * round. When the limit is reached the run stops with a "send another
+     * message to continue" prompt, and the work done so far is kept. The agent
+     * is advised to wrap up at about 80% of the budget.
+     *
+     * 0 = not set at this layer; with no layer setting it the agent runs until
+     * the task completes or loop detection stops a repetitive pattern. When
+     * set, the valid range is 10–1000; values outside it are clamped to the
+     * nearest bound. The budget is per message: a follow-up message, or a run
+     * resuming after an approval, starts a fresh count. Sub-agent rounds are
+     * not counted, and the Cursor harness does not enforce this field.
      * </pre>
      *
      * <code>int32 max_tool_rounds = 3 [json_name = "maxToolRounds", (.buf.validate.field) = { ... }</code>
@@ -822,11 +1017,11 @@ private static final long serialVersionUID = 0L;
      * In workflow YAML the shorthand spellings "standard"/"fast" are
      * accepted alongside the canonical enum names.
      *
-     * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
-     * surface's platform default, which itself resolves to STANDARD —
-     * never the provider account default. FAST requires model_name
-     * (here or from the platform profile) to name a model with a
-     * registry fast pricing variant; validated fail-closed at create.
+     * UNSPECIFIED is not set at this layer; with no layer setting it the run
+     * uses STANDARD, never the provider account default. FAST is valid only
+     * for a model whose registry entry declares a fast pricing variant on the
+     * engine that runs it; validated fail-closed on the resolved settings at
+     * create.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
@@ -842,11 +1037,11 @@ private static final long serialVersionUID = 0L;
      * In workflow YAML the shorthand spellings "standard"/"fast" are
      * accepted alongside the canonical enum names.
      *
-     * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
-     * surface's platform default, which itself resolves to STANDARD —
-     * never the provider account default. FAST requires model_name
-     * (here or from the platform profile) to name a model with a
-     * registry fast pricing variant; validated fail-closed at create.
+     * UNSPECIFIED is not set at this layer; with no layer setting it the run
+     * uses STANDARD, never the provider account default. FAST is valid only
+     * for a model whose registry entry declares a fast pricing variant on the
+     * engine that runs it; validated fail-closed on the resolved settings at
+     * create.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
@@ -867,11 +1062,11 @@ private static final long serialVersionUID = 0L;
      * In workflow YAML the shorthand spellings "standard"/"fast" are
      * accepted alongside the canonical enum names.
      *
-     * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
-     * surface's platform default, which itself resolves to STANDARD —
-     * never the provider account default. FAST requires model_name
-     * (here or from the platform profile) to name a model with a
-     * registry fast pricing variant; validated fail-closed at create.
+     * UNSPECIFIED is not set at this layer; with no layer setting it the run
+     * uses STANDARD, never the provider account default. FAST is valid only
+     * for a model whose registry entry declares a fast pricing variant on the
+     * engine that runs it; validated fail-closed on the resolved settings at
+     * create.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
@@ -889,11 +1084,11 @@ private static final long serialVersionUID = 0L;
      * In workflow YAML the shorthand spellings "standard"/"fast" are
      * accepted alongside the canonical enum names.
      *
-     * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
-     * surface's platform default, which itself resolves to STANDARD —
-     * never the provider account default. FAST requires model_name
-     * (here or from the platform profile) to name a model with a
-     * registry fast pricing variant; validated fail-closed at create.
+     * UNSPECIFIED is not set at this layer; with no layer setting it the run
+     * uses STANDARD, never the provider account default. FAST is valid only
+     * for a model whose registry entry declares a fast pricing variant on the
+     * engine that runs it; validated fail-closed on the resolved settings at
+     * create.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
@@ -914,11 +1109,11 @@ private static final long serialVersionUID = 0L;
      * In workflow YAML the shorthand spellings "standard"/"fast" are
      * accepted alongside the canonical enum names.
      *
-     * Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the
-     * surface's platform default, which itself resolves to STANDARD —
-     * never the provider account default. FAST requires model_name
-     * (here or from the platform profile) to name a model with a
-     * registry fast pricing variant; validated fail-closed at create.
+     * UNSPECIFIED is not set at this layer; with no layer setting it the run
+     * uses STANDARD, never the provider account default. FAST is valid only
+     * for a model whose registry entry declares a fast pricing variant on the
+     * engine that runs it; validated fail-closed on the resolved settings at
+     * create.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ServiceTier service_tier = 4 [json_name = "serviceTier", (.buf.validate.field) = { ... }</code>
@@ -941,11 +1136,10 @@ private static final long serialVersionUID = 0L;
      * In workflow YAML the shorthand spellings "disabled"/"enabled" are
      * accepted alongside the canonical enum names.
      *
-     * Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
-     * surface's platform default, which itself resolves to DISABLED —
-     * never the provider account default. ENABLED requires model_name
-     * (here or from the platform profile) to name a model whose registry
-     * entry declares the thinking capability; validated fail-closed at
+     * UNSPECIFIED is not set at this layer; with no layer setting it the run
+     * uses DISABLED, never the provider account default. ENABLED is valid only
+     * for a model whose registry entry declares the thinking capability on the
+     * engine that runs it; validated fail-closed on the resolved settings at
      * create. Combines freely with service_tier.
      * </pre>
      *
@@ -964,11 +1158,10 @@ private static final long serialVersionUID = 0L;
      * In workflow YAML the shorthand spellings "disabled"/"enabled" are
      * accepted alongside the canonical enum names.
      *
-     * Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
-     * surface's platform default, which itself resolves to DISABLED —
-     * never the provider account default. ENABLED requires model_name
-     * (here or from the platform profile) to name a model whose registry
-     * entry declares the thinking capability; validated fail-closed at
+     * UNSPECIFIED is not set at this layer; with no layer setting it the run
+     * uses DISABLED, never the provider account default. ENABLED is valid only
+     * for a model whose registry entry declares the thinking capability on the
+     * engine that runs it; validated fail-closed on the resolved settings at
      * create. Combines freely with service_tier.
      * </pre>
      *
@@ -992,11 +1185,10 @@ private static final long serialVersionUID = 0L;
      * In workflow YAML the shorthand spellings "disabled"/"enabled" are
      * accepted alongside the canonical enum names.
      *
-     * Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
-     * surface's platform default, which itself resolves to DISABLED —
-     * never the provider account default. ENABLED requires model_name
-     * (here or from the platform profile) to name a model whose registry
-     * entry declares the thinking capability; validated fail-closed at
+     * UNSPECIFIED is not set at this layer; with no layer setting it the run
+     * uses DISABLED, never the provider account default. ENABLED is valid only
+     * for a model whose registry entry declares the thinking capability on the
+     * engine that runs it; validated fail-closed on the resolved settings at
      * create. Combines freely with service_tier.
      * </pre>
      *
@@ -1017,11 +1209,10 @@ private static final long serialVersionUID = 0L;
      * In workflow YAML the shorthand spellings "disabled"/"enabled" are
      * accepted alongside the canonical enum names.
      *
-     * Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
-     * surface's platform default, which itself resolves to DISABLED —
-     * never the provider account default. ENABLED requires model_name
-     * (here or from the platform profile) to name a model whose registry
-     * entry declares the thinking capability; validated fail-closed at
+     * UNSPECIFIED is not set at this layer; with no layer setting it the run
+     * uses DISABLED, never the provider account default. ENABLED is valid only
+     * for a model whose registry entry declares the thinking capability on the
+     * engine that runs it; validated fail-closed on the resolved settings at
      * create. Combines freely with service_tier.
      * </pre>
      *
@@ -1045,11 +1236,10 @@ private static final long serialVersionUID = 0L;
      * In workflow YAML the shorthand spellings "disabled"/"enabled" are
      * accepted alongside the canonical enum names.
      *
-     * Mirrors ExecutionConfig.thinking_mode: UNSPECIFIED inherits the
-     * surface's platform default, which itself resolves to DISABLED —
-     * never the provider account default. ENABLED requires model_name
-     * (here or from the platform profile) to name a model whose registry
-     * entry declares the thinking capability; validated fail-closed at
+     * UNSPECIFIED is not set at this layer; with no layer setting it the run
+     * uses DISABLED, never the provider account default. ENABLED is valid only
+     * for a model whose registry entry declares the thinking capability on the
+     * engine that runs it; validated fail-closed on the resolved settings at
      * create. Combines freely with service_tier.
      * </pre>
      *
@@ -1059,6 +1249,71 @@ private static final long serialVersionUID = 0L;
     public Builder clearThinkingMode() {
       bitField0_ = (bitField0_ & ~0x00000010);
       thinkingMode_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int maxToolResultChars_ ;
+    /**
+     * <pre>
+     * Maximum number of characters for a single tool result before truncation.
+     * When a tool result exceeds this limit, it is truncated and a marker is
+     * appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+     *
+     * 0 = not set at this layer; with no layer setting it the platform default
+     * applies (30,000 chars, about 7,500 tokens). Applies to all tool results
+     * (shell, read, write, MCP tools), except built-in tools that already
+     * manage their output size.
+     * </pre>
+     *
+     * <code>int32 max_tool_result_chars = 6 [json_name = "maxToolResultChars", (.buf.validate.field) = { ... }</code>
+     * @return The maxToolResultChars.
+     */
+    @java.lang.Override
+    public int getMaxToolResultChars() {
+      return maxToolResultChars_;
+    }
+    /**
+     * <pre>
+     * Maximum number of characters for a single tool result before truncation.
+     * When a tool result exceeds this limit, it is truncated and a marker is
+     * appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+     *
+     * 0 = not set at this layer; with no layer setting it the platform default
+     * applies (30,000 chars, about 7,500 tokens). Applies to all tool results
+     * (shell, read, write, MCP tools), except built-in tools that already
+     * manage their output size.
+     * </pre>
+     *
+     * <code>int32 max_tool_result_chars = 6 [json_name = "maxToolResultChars", (.buf.validate.field) = { ... }</code>
+     * @param value The maxToolResultChars to set.
+     * @return This builder for chaining.
+     */
+    public Builder setMaxToolResultChars(int value) {
+
+      maxToolResultChars_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Maximum number of characters for a single tool result before truncation.
+     * When a tool result exceeds this limit, it is truncated and a marker is
+     * appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+     *
+     * 0 = not set at this layer; with no layer setting it the platform default
+     * applies (30,000 chars, about 7,500 tokens). Applies to all tool results
+     * (shell, read, write, MCP tools), except built-in tools that already
+     * manage their output size.
+     * </pre>
+     *
+     * <code>int32 max_tool_result_chars = 6 [json_name = "maxToolResultChars", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearMaxToolResultChars() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      maxToolResultChars_ = 0;
       onChanged();
       return this;
     }

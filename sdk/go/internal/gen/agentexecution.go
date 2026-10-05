@@ -177,23 +177,26 @@ type AgentExecutionInput struct {
 	// set from a loaded resource. Required for updates to platform-scoped
 	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
 	// on create: the server assigns every new resource's id.
-	Id                    string
-	Name                  string
-	Slug                  string
-	Org                   string
-	Labels                map[string]string
-	Visibility            apiresource.ApiResourceVisibility
-	SessionId             string
-	SessionSpec           *SessionSpecInput
-	Message               string
-	ExecutionConfig       *ExecutionConfigInput
-	RuntimeEnv            map[string]EnvVarInput
-	AutoApproveAll        bool
-	Attachments           []*AttachmentInput
-	WorkspaceFileRefs     []string
-	SupersedesExecutionId string
-	ConversationCatchup   *ConversationCatchupInput
-	Parent                *WorkflowParentInput
+	Id                     string
+	Name                   string
+	Slug                   string
+	Org                    string
+	Labels                 map[string]string
+	Visibility             apiresource.ApiResourceVisibility
+	SessionId              string
+	SessionSpec            *SessionSpecInput
+	Message                string
+	RunConfig              *RunConfigInput
+	InteractionMode        agentexecutionv1.InteractionMode
+	BuildFromPlan          bool
+	StructuredOutputSchema map[string]any
+	RuntimeEnv             map[string]EnvVarInput
+	AutoApproveAll         bool
+	Attachments            []*AttachmentInput
+	WorkspaceFileRefs      []string
+	SupersedesExecutionId  string
+	ConversationCatchup    *ConversationCatchupInput
+	Parent                 *WorkflowParentInput
 }
 
 // SessionSpecInput is the SDK input type for SessionSpec.
@@ -235,28 +238,6 @@ type GitRepoSourceInput struct {
 // LocalPathSourceInput is the SDK input type for LocalPathSource.
 type LocalPathSourceInput struct {
 	Path string
-}
-
-// ExecutionConfigInput is the SDK input type for ExecutionConfig.
-type ExecutionConfigInput struct {
-	ModelName              string
-	ContextManagement      *ContextManagementConfigInput
-	MaxToolRounds          int32
-	MaxToolResultChars     int32
-	MaxCostUsd             float64
-	InteractionMode        agentexecutionv1.InteractionMode
-	StructuredOutputSchema map[string]any
-	BuildFromPlan          bool
-	ApprovalMode           agentexecutionv1.ApprovalMode
-	ServiceTier            agentexecutionv1.ServiceTier
-	ThinkingMode           agentexecutionv1.ThinkingMode
-}
-
-// ContextManagementConfigInput is the SDK input type for ContextManagementConfig.
-type ContextManagementConfigInput struct {
-	DisableSummarization   bool
-	CustomTriggerThreshold int32
-	CustomTargetTokens     int32
 }
 
 // AttachmentInput is the SDK input type for Attachment.
@@ -335,12 +316,21 @@ func (i *AgentExecutionInput) toProto() (*agentexecutionv1.AgentExecution, error
 		resource.Spec.Target = &agentexecutionv1.AgentExecutionSpec_SessionId{SessionId: i.SessionId}
 	}
 	resource.Spec.Message = i.Message
-	if i.ExecutionConfig != nil {
-		v, err := i.ExecutionConfig.toProto()
+	if i.RunConfig != nil {
+		v, err := i.RunConfig.toProto()
 		if err != nil {
-			return nil, fieldErr("ExecutionConfig", err)
+			return nil, fieldErr("RunConfig", err)
 		}
-		resource.Spec.ExecutionConfig = v
+		resource.Spec.RunConfig = v
+	}
+	resource.Spec.InteractionMode = i.InteractionMode
+	resource.Spec.BuildFromPlan = i.BuildFromPlan
+	if i.StructuredOutputSchema != nil {
+		v, err := structFromMap(i.StructuredOutputSchema)
+		if err != nil {
+			return nil, fieldErr("StructuredOutputSchema", err)
+		}
+		resource.Spec.StructuredOutputSchema = v
 	}
 	if len(i.RuntimeEnv) > 0 {
 		resource.Spec.RuntimeEnv = make(map[string]*executioncontextv1.ExecutionValue, len(i.RuntimeEnv))
@@ -410,42 +400,6 @@ func (i *WorkspaceSourceInput) toProto() (*sessionv1.WorkspaceSource, error) {
 	return p, nil
 }
 
-func (i *ExecutionConfigInput) toProto() (*agentexecutionv1.ExecutionConfig, error) {
-	p := &agentexecutionv1.ExecutionConfig{}
-	p.ModelName = i.ModelName
-	if i.ContextManagement != nil {
-		v, err := i.ContextManagement.toProto()
-		if err != nil {
-			return nil, fieldErr("ContextManagement", err)
-		}
-		p.ContextManagement = v
-	}
-	p.MaxToolRounds = i.MaxToolRounds
-	p.MaxToolResultChars = i.MaxToolResultChars
-	p.MaxCostUsd = i.MaxCostUsd
-	p.InteractionMode = i.InteractionMode
-	if i.StructuredOutputSchema != nil {
-		v, err := structFromMap(i.StructuredOutputSchema)
-		if err != nil {
-			return nil, fieldErr("StructuredOutputSchema", err)
-		}
-		p.StructuredOutputSchema = v
-	}
-	p.BuildFromPlan = i.BuildFromPlan
-	p.ApprovalMode = i.ApprovalMode
-	p.ServiceTier = i.ServiceTier
-	p.ThinkingMode = i.ThinkingMode
-	return p, nil
-}
-
-func (i *ContextManagementConfigInput) toProto() (*agentexecutionv1.ContextManagementConfig, error) {
-	return &agentexecutionv1.ContextManagementConfig{
-		DisableSummarization:   i.DisableSummarization,
-		CustomTriggerThreshold: i.CustomTriggerThreshold,
-		CustomTargetTokens:     i.CustomTargetTokens,
-	}, nil
-}
-
 func (i *AttachmentInput) toProto() (*agentexecutionv1.Attachment, error) {
 	return &agentexecutionv1.Attachment{
 		Filename:    i.Filename,
@@ -494,7 +448,12 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 	}
 	if s := p.GetSpec(); s != nil {
 		input.Message = s.GetMessage()
-		input.ExecutionConfig = executionConfigInputFromProto(s.GetExecutionConfig())
+		input.RunConfig = runConfigInputFromProto(s.GetRunConfig())
+		input.InteractionMode = s.GetInteractionMode()
+		input.BuildFromPlan = s.GetBuildFromPlan()
+		if sv := s.GetStructuredOutputSchema(); sv != nil {
+			input.StructuredOutputSchema = sv.AsMap()
+		}
 		if len(s.GetRuntimeEnv()) > 0 {
 			input.RuntimeEnv = make(map[string]EnvVarInput, len(s.GetRuntimeEnv()))
 			for k, v := range s.GetRuntimeEnv() {
@@ -581,38 +540,6 @@ func localPathSourceInputFromProto(p *sessionv1.LocalPathSource) *LocalPathSourc
 	}
 	input := &LocalPathSourceInput{}
 	input.Path = p.GetPath()
-	return input
-}
-
-func executionConfigInputFromProto(p *agentexecutionv1.ExecutionConfig) *ExecutionConfigInput {
-	if p == nil {
-		return nil
-	}
-	input := &ExecutionConfigInput{}
-	input.ModelName = p.GetModelName()
-	input.ContextManagement = contextManagementConfigInputFromProto(p.GetContextManagement())
-	input.MaxToolRounds = p.GetMaxToolRounds()
-	input.MaxToolResultChars = p.GetMaxToolResultChars()
-	input.MaxCostUsd = p.GetMaxCostUsd()
-	input.InteractionMode = p.GetInteractionMode()
-	if sv := p.GetStructuredOutputSchema(); sv != nil {
-		input.StructuredOutputSchema = sv.AsMap()
-	}
-	input.BuildFromPlan = p.GetBuildFromPlan()
-	input.ApprovalMode = p.GetApprovalMode()
-	input.ServiceTier = p.GetServiceTier()
-	input.ThinkingMode = p.GetThinkingMode()
-	return input
-}
-
-func contextManagementConfigInputFromProto(p *agentexecutionv1.ContextManagementConfig) *ContextManagementConfigInput {
-	if p == nil {
-		return nil
-	}
-	input := &ContextManagementConfigInput{}
-	input.DisableSummarization = p.GetDisableSummarization()
-	input.CustomTriggerThreshold = p.GetCustomTriggerThreshold()
-	input.CustomTargetTokens = p.GetCustomTargetTokens()
 	return input
 }
 

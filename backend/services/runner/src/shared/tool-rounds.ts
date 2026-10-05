@@ -1,8 +1,9 @@
 /**
- * ExecutionConfig.max_tool_rounds: the round budget, its backstop, and the
- * signal that the budget ended a turn.
+ * RunConfig.max_tool_rounds: the round budget, its backstop, and the
+ * signal that the budget ended a turn. The budget read is the one the turn
+ * runs with (`status.run_config`), never the request's own.
  *
- * Implements the proto contract (agentexecution/v1/spec.proto):
+ * Implements the proto contract (agentexecution/v1/invocation.proto):
  *   - 0 / unset = unlimited: no round limit and no recursionLimit, preserving
  *     the run-until-done + loop-detection posture.
  *   - When set, valid range is 10–1000 rounds; out-of-range values are

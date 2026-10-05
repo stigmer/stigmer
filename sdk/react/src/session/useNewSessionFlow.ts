@@ -18,6 +18,12 @@ import { useRunnerAdapter } from "../runner-adapter.js";
 import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
+import {
+  agentHarnessOf,
+  agentRunDefaultsFor,
+  type AgentRunDefaults,
+} from "../agent/run-defaults.js";
+import { useRunAgentSpec } from "../agent/useRunAgentSpec.js";
 
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";
 
@@ -104,13 +110,18 @@ export interface UseNewSessionFlowOptions {
    * `useAccountExecutionDefaults()`. A SEED in the layered precedence —
    * explicit device-local choices always outrank it:
    *
-   * - harness: stored choice > `accountDefaults.harness` >
-   *   {@link defaultHarness} > platform default. May arrive after mount
-   *   (whoAmI resolves async); a late value still seeds unless the user
-   *   has already picked a harness this mount.
-   * - model: stored per-harness choice > the account's model for the
-   *   active harness (validated against the registry; a stale model
-   *   silently falls through) > the harness default.
+   * - harness: the person's pick on this surface > the selected agent's
+   *   engine (`AgentSpec.harness`) > stored choice >
+   *   `accountDefaults.harness` > {@link defaultHarness} > platform
+   *   default. May arrive after mount (whoAmI resolves async); a late
+   *   value still seeds unless the user has already picked a harness
+   *   this mount.
+   * - model: where the selected agent names a model for the active
+   *   engine, nothing unless the person picks one on this surface (the
+   *   agent's default applies server-side); elsewhere the stored
+   *   per-harness choice > the account's model for the active harness
+   *   (validated against the registry; a stale model silently falls
+   *   through) > the harness default.
    * - autoApprove: explicit in-session flip > the account's
    *   `default_auto_approve` > the host's `approvalDefaults` (derived,
    *   so a late-arriving value applies without a touched-ref effect).
@@ -175,20 +186,42 @@ export interface UseNewSessionFlowOptions {
 
 /** Return value of {@link useNewSessionFlow}. */
 export interface UseNewSessionFlowReturn {
-  /** Currently selected harness (persisted to localStorage). */
+  /**
+   * The engine the conversation will run: the person's pick on this
+   * surface, else the selected agent's engine when it names one, else the
+   * remembered and seeded choices (see `accountDefaults`). A pick is
+   * remembered in localStorage.
+   */
   readonly harness: HarnessOption;
   /** Switch the harness. Resets the model if invalid for the new harness. */
   readonly setHarness: (harness: HarnessOption) => void;
 
   /**
-   * The model an untouched send will run: the explicit device pick when
-   * one exists (persisted per-harness to localStorage), else the account
-   * default for the active harness. `undefined` resolves to the harness
-   * default downstream.
+   * The model an untouched send asks for. Where the selected agent names a
+   * model for the active engine, only a pick made on this surface (the
+   * agent's default applies otherwise, and this is `undefined`). Elsewhere
+   * the explicit device pick when one exists (persisted per-harness to
+   * localStorage), else the account default for the active harness;
+   * `undefined` resolves to the harness default downstream.
    */
   readonly modelId: string | undefined;
+
+  /**
+   * The selected agent's run defaults that apply on the active engine:
+   * pass it to the composer's `agentRunDefaults`. `undefined` with no
+   * agent, an agent that names no model for this engine, a guest, and
+   * while the agent loads.
+   */
+  readonly agentRunDefaults: AgentRunDefaults | undefined;
   /** Update the selected model. Automatically persists to localStorage. */
   readonly setModelId: (id: string) => void;
+  /**
+   * Forget the model the person picked on this surface, so the selected
+   * agent's default model applies again: pass it to the composer's
+   * `onModelPickCleared`. Picks are also forgotten when the agent
+   * changes, and a pick the engine does not list when the engine changes.
+   */
+  readonly clearModelPick: () => void;
 
   /** Currently selected agent reference, or `null` for the built-in assistant. */
   readonly agentRef: ResourceRef | null;
@@ -345,7 +378,7 @@ export function useNewSessionFlow(
       ((accountDefaults?.autoApprove ?? false) ||
         (approvalDefaults?.autoApproveAll ?? false)));
 
-  const [harness, setHarnessRaw] = useState<HarnessOption>(() => {
+  const [storedHarness, setHarnessRaw] = useState<HarnessOption>(() => {
     // Guests get the fixed platform policy (see GUEST_HARNESS) and never
     // touch localStorage: a browser previously used in the Console must not
     // leak its stored harness into a share/embed session.
@@ -361,8 +394,10 @@ export function useNewSessionFlow(
   });
   // Set once the user picks a harness this mount — a late-arriving account
   // default must never override an explicit choice (the composer's
-  // userOverrodeModel idiom).
+  // userOverrodeModel idiom), and the selected agent's engine only opens
+  // the picker: the person's pick on this surface wins over it.
   const harnessTouchedRef = useRef(false);
+  const [harnessPicked, setHarnessPicked] = useState(false);
 
   // Account defaults resolve async (whoAmI): when the harness seed arrives
   // after mount, apply it once — unless the user has picked or a stored
@@ -375,13 +410,40 @@ export function useNewSessionFlow(
     setHarnessRaw(seed);
   }, [isGuest, accountDefaults?.harness]);
 
+  const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
+
+  // The selected agent at its current version (what a new conversation
+  // pins). Its engine opens the engine picker where the agent names one: a
+  // remembered or seeded engine applies only where it names none. Guests
+  // read nothing: the share policy fixes their engine.
+  const { spec: agentSpec, isLoading: isAgentLoading } = useRunAgentSpec(isGuest ? null : agentRef);
+  const agentHarness = agentHarnessOf(agentSpec);
+  const harness: HarnessOption =
+    !isGuest && !harnessPicked && agentHarness !== undefined
+      ? agentHarness
+      : storedHarness;
+  const agentRunDefaults = agentRunDefaultsFor(
+    isGuest ? undefined : agentSpec,
+    harness,
+  );
+
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
   const { create: createExecution } = useCreateAgentExecution();
   const workspace = useWorkspaceEntries();
   const sessionVariables = useSessionVariables();
 
-  const [modelId, setModelId] = useState<string | undefined>(undefined);
-  const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
+  const [modelId, setModelIdRaw] = useState<string | undefined>(undefined);
+  // The model the person picked on this surface (the composer's picker),
+  // as opposed to one restored from storage: only a pick overrides the
+  // agent's default model.
+  const [pickedModelId, setPickedModelId] = useState<string | undefined>(undefined);
+  const setModelId = useCallback((id: string) => {
+    setPickedModelId(id);
+    setModelIdRaw(id);
+  }, []);
+  const clearModelPick = useCallback(() => {
+    setPickedModelId(undefined);
+  }, []);
   const [resolution, setResolution] = useState<AgentResolution | null>(null);
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
@@ -389,6 +451,32 @@ export function useNewSessionFlow(
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const validModelId = modelId && getModel(modelId) ? modelId : undefined;
+
+  // The person's model pick belongs to the agent and the engine it was
+  // made under. A new agent drops it: the agent's own default is what a
+  // person choosing that agent expects, and a pick sent on would override
+  // it unseen. An engine change for any other reason than the person's
+  // engine pick (an agent naming its engine, perhaps after the pick, as
+  // its spec loads) drops a model the new engine does not list, as the
+  // engine pick does: a model name sent with an engine that does not run
+  // it silently runs another model, or none. The remembered model is
+  // realigned the same way, so the persist effect never files one
+  // engine's model under the other's key. Adjusted while rendering, so no
+  // commit ever pairs the new engine with the old model.
+  const agentKey = agentRef ? `${agentRef.org}/${agentRef.slug}` : "";
+  const [pickScope, setPickScope] = useState({ agentKey, harness });
+  if (pickScope.agentKey !== agentKey || pickScope.harness !== harness) {
+    setPickScope({ agentKey, harness });
+    if (
+      pickedModelId !== undefined
+      && (pickScope.agentKey !== agentKey || getModel(pickedModelId) === undefined)
+    ) {
+      setPickedModelId(undefined);
+    }
+    if (pickScope.harness !== harness && validModelId === undefined && modelId !== undefined) {
+      setModelIdRaw(undefined);
+    }
+  }
 
   // The account's model for the active harness, registry-validated the same
   // way as the stored choice (a stale/removed preference silently falls
@@ -404,13 +492,21 @@ export function useNewSessionFlow(
 
   // Layered precedence: explicit device pick > account default. The result
   // feeds the composer's model pill AND the submit path, so the pill always
-  // shows what an untouched send will run (#663).
-  const effectiveModelId = validModelId ?? accountModelId;
+  // shows what an untouched send will run (#663). Where the agent names a
+  // model for this engine, the pill shows the agent's default and an
+  // untouched send asks for nothing: only a pick made here is sent.
+  const effectiveModelId = agentRunDefaults
+    ? (pickedModelId && getModel(pickedModelId) ? pickedModelId : undefined)
+    : (validModelId ?? accountModelId);
 
   const setHarness = useCallback(
     (h: HarnessOption) => {
       harnessTouchedRef.current = true;
+      setHarnessPicked(true);
       setHarnessRaw(h);
+      // A model belongs to one engine: a pick made for the previous engine
+      // is not a pick on this one.
+      setPickedModelId(undefined);
       // Guests have no harness picker; if a caller invokes this anyway, the
       // guest surface must never write into the Console's preference keys.
       if (isGuest) return;
@@ -419,7 +515,7 @@ export function useNewSessionFlow(
       localStorage.setItem(STORAGE_KEY_HARNESS, h);
       const storedModel = localStorage.getItem(modelStorageKey(h));
       const plain = storedModel ? (parseModelKey(storedModel)?.modelId ?? storedModel) : undefined;
-      setModelId(plain);
+      setModelIdRaw(plain);
     },
     [isGuest],
   );
@@ -435,7 +531,7 @@ export function useNewSessionFlow(
     if (stored) {
       const plain = parseModelKey(stored)?.modelId ?? stored;
       if (getModel(plain)) {
-        setModelId(plain);
+        setModelIdRaw(plain);
       }
     }
   }, [getModel, harness, isGuest, isModelsLoading]);
@@ -495,22 +591,18 @@ export function useNewSessionFlow(
           org,
           message,
           // The owner pin wins over the composer and the restored
-          // preference (#664); the pinned tier is stamped only as
-          // "fast" — standard stays off the wire, preserving the #357
-          // UNSPECIFIED-vs-explicit telemetry distinction. The effective
-          // model carries the account-default seed explicitly (the
-          // preference is a seed; the execution spec is the record).
+          // preference (#664), its tier and thinking as the surface set
+          // them. The effective model carries the account-default seed
+          // explicitly (the preference is a seed; the execution spec is
+          // the record); where the agent's default applies it is absent.
+          // The composer's context carries only the tier and thinking the
+          // person chose.
           modelName: pinnedModelName ?? selectedModel ?? effectiveModelId,
           runtimeEnv,
           attachments: context?.attachments,
           interactionMode: context?.interactionMode,
-          serviceTier: pinnedModelName
-            ? (pinnedServiceTier === "fast" ? "fast" : undefined)
-            : context?.serviceTier,
-          // The tier's #772 twin, same pin-wins + only-explicit-enabled rule.
-          thinkingMode: pinnedModelName
-            ? (pinnedThinkingMode === "enabled" ? "enabled" : undefined)
-            : context?.thinkingMode,
+          serviceTier: pinnedModelName ? pinnedServiceTier : context?.serviceTier,
+          thinkingMode: pinnedModelName ? pinnedThinkingMode : context?.thinkingMode,
           workspaceFileRefs: context?.workspaceFileRefs,
           // Only an armed state travels; false stays off the wire (the
           // serviceTier/thinkingMode only-explicit discipline).
@@ -524,6 +616,14 @@ export function useNewSessionFlow(
         let sessionAgentRef: ResourceRef | undefined;
 
         if (agentRef && resolution) {
+          // The agent's engine and run defaults decide what this
+          // conversation starts on: a send made before they are read would
+          // start it on the remembered engine instead.
+          if (!isGuest && isAgentLoading) {
+            throw new Error(
+              "This agent is still loading. Please try again in a moment.",
+            );
+          }
           sessionAgentRef = agentRef;
         } else if (isGuest) {
           // Fail closed: a guest session is only ever created against the
@@ -584,6 +684,7 @@ export function useNewSessionFlow(
       sessionContext,
       agentRef,
       resolution,
+      isAgentLoading,
       createExecution,
       sessionVariables,
       onSessionCreated,
@@ -596,6 +697,8 @@ export function useNewSessionFlow(
     setHarness,
     modelId: effectiveModelId,
     setModelId,
+    clearModelPick,
+    agentRunDefaults,
     agentRef,
     setAgentRef,
     resolution,

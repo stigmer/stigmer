@@ -664,22 +664,24 @@ func (x *RecordLlmCallUsageInput) GetProviderKeySource() v1.ProviderKeySource {
 
 // The execution-side facts LLM metering denormalizes onto every usage
 // record, carried from the proxy that authorized the call to the billing
-// handler that records it. Deliberately narrower than the execution's
-// ExecutionConfig: only what metering reconciles or prices against.
+// handler that records it. Deliberately narrower than the settings the
+// execution resolved: only what metering reconciles or prices against.
 type MeteredExecution struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The session the execution belongs to. The provider reconciler matches
 	// Cursor conversations to sessions through the usage record's session.
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// The execution's configured model (spec.execution_config.model_name) —
-	// the authoritative statement of what was asked for, and the pricing
-	// fallback when the wire's requested_model came up empty.
+	// The model the execution resolved (status.run_config.model_name, whichever
+	// layer chose it: the message, the agent's defaults or the lane's profile)
+	// — the authoritative statement of what was asked for, and the pricing
+	// fallback when the wire's requested_model came up empty. Empty when no
+	// layer named a model and the engine chose.
 	PinnedModel string `protobuf:"bytes,2,opt,name=pinned_model,json=pinnedModel,proto3" json:"pinned_model,omitempty"`
-	// The service tier the execution requested (spec.execution_config.
+	// The service tier the execution resolved (status.run_config.
 	// service_tier); UNSPECIFIED resolves to standard. Reconciled against
 	// served_service_tier by the service_tier.mismatch counter.
 	RequestedServiceTier v1.ServiceTier `protobuf:"varint,3,opt,name=requested_service_tier,json=requestedServiceTier,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ServiceTier" json:"requested_service_tier,omitempty"`
-	// The thinking mode the execution requested (spec.execution_config.
+	// The thinking mode the execution resolved (status.run_config.
 	// thinking_mode). Reconciled against the served variant by the
 	// thinking.mismatch counter.
 	RequestedThinkingMode v1.ThinkingMode `protobuf:"varint,4,opt,name=requested_thinking_mode,json=requestedThinkingMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ThinkingMode" json:"requested_thinking_mode,omitempty"`

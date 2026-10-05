@@ -72,11 +72,11 @@ public enum ApprovalPolicySource
   APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN(7),
   /**
    * <pre>
-   * The unattended approval mode (ExecutionConfig.approval_mode =
+   * The unattended approval mode (AgentExecutionStatus.approval_mode =
    * APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
-   * the surface that created the execution (a messaging channel, a guest
-   * share) has no approver, so the platform skipped the tool and told the
-   * model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it
+   * the lane the execution came through (a schedule's fire, a messaging
+   * channel, a guest share) has no approver, so the platform skipped the
+   * tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it
    * records HOW the gate was resolved, overriding the gating-layer source on
    * the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO
    * approval_action / approved_by (those record human decisions only), and
@@ -158,11 +158,11 @@ public enum ApprovalPolicySource
   public static final int APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN_VALUE = 7;
   /**
    * <pre>
-   * The unattended approval mode (ExecutionConfig.approval_mode =
+   * The unattended approval mode (AgentExecutionStatus.approval_mode =
    * APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
-   * the surface that created the execution (a messaging channel, a guest
-   * share) has no approver, so the platform skipped the tool and told the
-   * model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it
+   * the lane the execution came through (a schedule's fire, a messaging
+   * channel, a guest share) has no approver, so the platform skipped the
+   * tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it
    * records HOW the gate was resolved, overriding the gating-layer source on
    * the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO
    * approval_action / approved_by (those record human decisions only), and

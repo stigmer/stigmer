@@ -2,8 +2,11 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agent.v1;
 
+import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
 import "ai/stigmer/agentic/environment/v1/spec.proto";
+import "ai/stigmer/agentic/mcpserver/v1/usage.proto";
 import "ai/stigmer/agentic/plugin/v1/hooks.proto";
+import "ai/stigmer/agentic/session/v1/enum.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
@@ -26,7 +29,7 @@ message AgentSpec {
 
   // MCP servers this agent can use.
   // Each entry must reference a unique McpServer resource by slug.
-  repeated McpServerUsage mcp_server_usages = 4 [(buf.validate.field).repeated.items.cel = {
+  repeated ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 4 [(buf.validate.field).repeated.items.cel = {
     id: "mcp_server_usages.kind"
     message: "mcp_server_usages must reference resources with kind=mcp_server"
     expression: "this.mcp_server_ref.kind == 44"
@@ -114,6 +117,33 @@ message AgentSpec {
   // deciding hook) and more than one inline block, and checks an inline
   // block's events, matchers and conditions with the plugin reader's rules.
   repeated HookSource hooks = 12;
+
+  // The author's run defaults: the model, speed tier, thinking and run
+  // bounds a turn on this agent uses unless the message or the surface it
+  // came through sets its own (RunConfig has the rule). Versioned with the
+  // agent, so a conversation pinned to a version keeps that version's
+  // defaults.
+  //
+  // A choice here (model_name, service_tier, thinking_mode) applies only on
+  // the engine named in harness; on a conversation running the other engine
+  // only the bounds apply. A bound here is a cap: a message or a surface can
+  // lower it, never raise it. A model must be named together with harness,
+  // and must be one that engine lists; service_tier FAST and thinking_mode
+  // ENABLED need a model that engine prices or marks capable. Checked when
+  // the agent is saved.
+  ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13;
+
+  // The engine this agent's run defaults were chosen for, and the engine a
+  // new conversation on this agent starts on when the person or the surface
+  // starting it names neither an engine nor a model (a turn that names a
+  // model but no engine starts on native, the engine its name was checked
+  // against). Unspecified: the platform's default engine (native).
+  //
+  // Model names belong to an engine (each lists its own), so run_config's
+  // model, tier and thinking count only on this engine. A conversation keeps
+  // the engine it started on; a later version naming another engine changes
+  // only new conversations.
+  ai.stigmer.agentic.session.v1.Harness harness = 14;
 }
 
 // HookSource is one source of an agent's hooks: a plugin, or a hooks block
@@ -171,8 +201,8 @@ message SubAgent {
   ];
 
   // Model override for this sub-agent.
-  // When set, uses this model instead of the parent's model.
-  // When empty, inherits the parent agent's model.
+  // When set, uses this model instead of the model the turn runs.
+  // When empty, inherits the model the turn runs.
   string model_override = 6;
 
   // Tools this sub-agent may use, from what the parent may use; empty means
@@ -196,24 +226,4 @@ message SubAgent {
   // disallowed_tools, mcp__<server-slug> entries included.
   reserved 4;
   reserved "mcp_access";
-}
-
-// McpServerUsage declares that this agent uses a McpServer resource.
-//
-// Every tool of a used server is available to the agent unless its tool
-// lists say otherwise (AgentSpec.tools, AgentSpec.disallowed_tools), where the
-// server is named by its slug, as in mcp__<server-slug>.
-message McpServerUsage {
-  // Reference to the McpServer resource.
-  ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [
-    (ai.stigmer.commons.apiresource.reference_kind) = mcp_server,
-    (buf.validate.field).required = true
-  ];
-
-  // Field 2 held enabled_tools, a per-server tool allow-list, and field 3
-  // tool_approval_overrides, per-tool approval settings. Both were removed
-  // with the approval-policy model: the agent's tool lists narrow its tools,
-  // and a tool asks before it runs when its server marks it destructive.
-  reserved 2, 3;
-  reserved "enabled_tools", "tool_approval_overrides";
 }

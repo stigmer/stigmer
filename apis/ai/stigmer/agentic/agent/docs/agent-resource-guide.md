@@ -28,6 +28,8 @@ spec:
   sub_agents: []
   hooks: []
   env_spec: {}
+  harness: HARNESS_NATIVE
+  run_config: {}
 status: {}  # System-managed, never set by users
 ```
 
@@ -101,6 +103,8 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 | `spec.disallowed_tools` | No | Tools this agent may never use, in the same names. Applied before `spec.tools`. |
 | `spec.hooks` | No | Hooks that run around this agent's tool calls and its sub-agents' calls: a plugin whose hooks apply, or a hooks block written in the agent. See [Hooks](#hooks). |
 | `spec.env_spec` | No | Required environment variables (schema only). See below. |
+| `spec.harness` | No | The engine (`HARNESS_NATIVE` or `HARNESS_CURSOR`) the run defaults were chosen for, and the engine a new conversation on this agent starts on when nobody names an engine or a model (a turn naming a model but no engine starts on native). Unspecified: native. See [Run Defaults](#run-defaults). |
+| `spec.run_config` | No | The author's run defaults: model, speed tier, thinking and run limits. Versioned with the agent. See [Run Defaults](#run-defaults). |
 
 ## Hooks
 
@@ -174,6 +178,28 @@ The `data` field is a map of variable name to `EnvironmentValue`:
 | `description` | Documentation for the variable. Shown in the UI when a person supplies the value. |
 
 The shared `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and reused across Agents, McpServers, and WorkflowInstances.
+
+## Run Defaults
+
+`spec.run_config` is a `RunConfig` (`ai/stigmer/agentic/agentexecution/v1/invocation.proto`), the same settings message a message, a schedule, a channel, a share and a workflow `agent_call` step carry. A turn uses the agent's defaults wherever the message or the surface it came through sets nothing; the field table and the full precedence rule are in [RunConfig Fields](../../agentexecution/docs/agent-execution-resource-guide.md#runconfig-fields).
+
+```yaml
+spec:
+  harness: HARNESS_NATIVE
+  run_config:
+    model_name: claude-sonnet-4.5
+    thinking_mode: THINKING_MODE_ENABLED
+    max_cost_usd: 2
+```
+
+- **Choices are defaults; limits are caps.** A message or a surface that names a model replaces the agent's model (and the tier and thinking that came with it). The agent's `max_cost_usd`, `max_tool_rounds` and `max_tool_result_chars` are caps a message or a surface can lower, never raise.
+- **Engine-bound.** `model_name`, `service_tier` and `thinking_mode` apply only on the engine `spec.harness` names. On a conversation running the other engine, only the limits apply.
+- **Versioned.** The defaults are part of the agent's content hash, so a conversation pinned to a version keeps that version's model. A conversation keeps the engine it started on; a later version naming another engine changes only new conversations.
+- **Checked at save** (create and update are refused with `INVALID_ARGUMENT`):
+  - `model_name` requires `spec.harness`, since each engine lists its own models.
+  - `model_name` must be a model the named engine lists in the Model Registry; an unknown name is refused with a did-you-mean.
+  - `SERVICE_TIER_FAST` needs a model with a fast pricing tier on that engine; `THINKING_MODE_ENABLED` needs a model the registry marks thinking-capable on that engine. Either one requires `model_name` in the same `run_config`.
+  - A `harness` with no model is valid: new conversations start on that engine and the engine picks the model.
 
 ## Status Fields
 

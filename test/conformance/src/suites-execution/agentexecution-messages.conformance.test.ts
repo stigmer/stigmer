@@ -106,7 +106,7 @@ async function runAgent(opts: {
       agentRef: agentRefOf(agent),
       message: opts.message,
       autoApproveAll: true,
-      ...(opts.modelName !== undefined ? { executionConfig: { modelName: opts.modelName } } : {}),
+      ...(opts.modelName !== undefined ? { runConfig: { modelName: opts.modelName } } : {}),
     }),
   );
   const executionId = execution.metadata!.id;
@@ -198,7 +198,7 @@ describe("AgentExecution messages — MCP tool calls", () => {
 });
 
 describe("AgentExecution messages — model resolution", () => {
-  it("a registry id in execution_config.model_name reaches the provider as the registry's apiModelId", async () => {
+  it("a registry id in run_config.model_name reaches the provider as the registry's apiModelId", async () => {
     if (target.modelRegistryDocument === undefined) {
       throw new Error(`target ${target.name} exposes no model registry document; execution targets must`);
     }

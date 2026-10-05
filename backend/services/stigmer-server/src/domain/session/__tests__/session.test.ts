@@ -22,8 +22,10 @@
  *     refuses an empty agent_id, at the filter step as well as at proto
  *     validation;
  *   - harness immutability locks only once harness_state_id is non-empty,
- *     with UNSPECIFIED==NATIVE equivalence in both directions and the
- *     exact FAILED_PRECONDITION copy;
+ *     with a stored UNSPECIFIED read as NATIVE and the exact
+ *     FAILED_PRECONDITION copy; an update that names no harness keeps the
+ *     stored one, used or not (a caller re-applying a session it created
+ *     never resets the engine);
  *   - execution-target immutability resolves UNSPECIFIED through the
  *     deployment default on BOTH sides (oss#397) — a no-op round-trip
  *     passes on a local-default config, a real change is refused with the
@@ -567,6 +569,17 @@ describe("session update — harness immutability", () => {
       }),
     );
     expect(updated.spec?.subject).toBe("still native");
+  });
+
+  it("an update naming no harness keeps a stored Cursor engine, before and after the first execution", async () => {
+    const session = await createSession({ harness: Harness.CURSOR });
+
+    const unused = await command.update(updateInput(session, { subject: "re-applied" }));
+    expect(unused.spec?.harness).toBe(Harness.CURSOR);
+
+    await markSessionUsed(session.metadata!.id, "thread-cursor");
+    const used = await command.update(updateInput(session, { subject: "re-applied again" }));
+    expect(used.spec?.harness).toBe(Harness.CURSOR);
   });
 
   it("treats UNSPECIFIED as NATIVE: existing UNSPECIFIED + input NATIVE passes; CURSOR is refused", async () => {

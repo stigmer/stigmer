@@ -1,3 +1,11 @@
+/**
+ * The schedule detail view: read state, the banners and their remedies,
+ * the run history, and the inline editors' saves. A save re-applies the
+ * full schedule and changes only what its editor owns: the budget editor
+ * the cost cap, the engine editor the engine, model, tier and thinking,
+ * and a stored tier or thinking (an explicit standard or disabled among
+ * them) survives any save that leaves it alone.
+ */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -13,6 +21,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ScheduleDetailView } from "../ScheduleDetailView";
@@ -48,6 +57,9 @@ function makeSchedule(overrides?: {
     modelName?: string;
     maxCostUsd?: number;
     maxToolRounds?: number;
+    maxToolResultChars?: number;
+    serviceTier?: ServiceTier;
+    thinkingMode?: ThinkingMode;
   };
 }): Schedule {
   return create(ScheduleSchema, {
@@ -574,11 +586,11 @@ describe("ScheduleDetailView", () => {
     expect(doc.message.spec?.timeZone).toBe("Asia/Kolkata");
   });
 
-  it("saves an edited budget, preserving the model and the API-only tool rounds", async () => {
+  it("saves an edited budget, preserving the model and the API-only tool bounds", async () => {
     const client = makeClient(
       makeSchedule({
         harness: Harness.CURSOR,
-        runConfig: { modelName: "composer-2", maxToolRounds: 15 },
+        runConfig: { modelName: "composer-2", maxToolRounds: 15, maxToolResultChars: 12000 },
       }),
     );
     renderView(client, { editable: true });
@@ -601,7 +613,104 @@ describe("ScheduleDetailView", () => {
     // run config stores survives the save.
     expect(target?.runConfig?.modelName).toBe("composer-2");
     expect(target?.runConfig?.maxToolRounds).toBe(15);
+    expect(target?.runConfig?.maxToolResultChars).toBe(12000);
     expect(target?.harness).toBe(Harness.CURSOR);
+  });
+
+  it("a budget-only edit keeps a stored explicit standard tier and disabled thinking", async () => {
+    const client = makeClient(
+      makeSchedule({
+        harness: Harness.CURSOR,
+        runConfig: {
+          modelName: "composer-2",
+          serviceTier: ServiceTier.STANDARD,
+          thinkingMode: ThinkingMode.DISABLED,
+        },
+      }),
+    );
+    renderView(client, { editable: true });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByRole("button", { name: "Edit budget" }));
+    fireEvent.change(screen.getByLabelText("Budget per run (USD)"), {
+      target: { value: "4" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
+    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    const target =
+      doc.message.spec?.target?.case === "agent"
+        ? doc.message.spec.target.value
+        : undefined;
+    expect(target?.runConfig?.maxCostUsd).toBe(4);
+    expect(target?.runConfig?.serviceTier).toBe(ServiceTier.STANDARD);
+    expect(target?.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
+  });
+
+  it("an engine save that leaves the model alone keeps the stored tier and thinking", async () => {
+    const client = makeClient(
+      makeSchedule({
+        harness: Harness.CURSOR,
+        runConfig: {
+          modelName: "composer-2",
+          serviceTier: ServiceTier.STANDARD,
+          thinkingMode: ThinkingMode.DISABLED,
+        },
+      }),
+    );
+    renderView(client, { editable: true });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Edit engine and model" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
+    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    const target =
+      doc.message.spec?.target?.case === "agent"
+        ? doc.message.spec.target.value
+        : undefined;
+    expect(target?.harness).toBe(Harness.CURSOR);
+    expect(target?.runConfig?.modelName).toBe("composer-2");
+    expect(target?.runConfig?.serviceTier).toBe(ServiceTier.STANDARD);
+    expect(target?.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
+  });
+
+  it("resetting engine & model drops the stored tier and thinking with the model", async () => {
+    const client = makeClient(
+      makeSchedule({
+        harness: Harness.CURSOR,
+        runConfig: {
+          modelName: "composer-2",
+          maxCostUsd: 1,
+          serviceTier: ServiceTier.FAST,
+          thinkingMode: ThinkingMode.ENABLED,
+        },
+      }),
+    );
+    renderView(client, { editable: true });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Edit engine and model" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Reset to platform default" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
+    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    const target =
+      doc.message.spec?.target?.case === "agent"
+        ? doc.message.spec.target.value
+        : undefined;
+    expect(target?.runConfig?.serviceTier).toBe(ServiceTier.UNSPECIFIED);
+    expect(target?.runConfig?.thinkingMode).toBe(ThinkingMode.UNSPECIFIED);
+    expect(target?.runConfig?.maxCostUsd).toBe(1);
   });
 
   it("resetting engine & model unpins both, preserving the budget", async () => {

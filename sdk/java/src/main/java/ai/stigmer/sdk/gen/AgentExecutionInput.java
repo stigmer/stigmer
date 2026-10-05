@@ -2,19 +2,17 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.agent.v1.McpServerUsage;
 import ai.stigmer.agentic.agentexecution.v1.AgentExecution;
 import ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec;
-import ai.stigmer.agentic.agentexecution.v1.ApprovalMode;
 import ai.stigmer.agentic.agentexecution.v1.Attachment;
-import ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig;
 import ai.stigmer.agentic.agentexecution.v1.ConversationCatchup;
-import ai.stigmer.agentic.agentexecution.v1.ExecutionConfig;
 import ai.stigmer.agentic.agentexecution.v1.InteractionMode;
+import ai.stigmer.agentic.agentexecution.v1.RunConfig;
 import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
 import ai.stigmer.agentic.agentexecution.v1.ThinkingMode;
 import ai.stigmer.agentic.agentexecution.v1.WorkflowParent;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
+import ai.stigmer.agentic.mcpserver.v1.McpServerUsage;
 import ai.stigmer.agentic.session.v1.CursorMode;
 import ai.stigmer.agentic.session.v1.ExecutionTarget;
 import ai.stigmer.agentic.session.v1.GitRepoSource;
@@ -41,7 +39,10 @@ public final class AgentExecutionInput {
     private final String sessionId;
     private final SessionSpecInput sessionSpec;
     private final String message;
-    private final ExecutionConfigInput executionConfig;
+    private final RunConfigInput runConfig;
+    private final InteractionMode interactionMode;
+    private final boolean buildFromPlan;
+    private final java.util.Map<String, Object> structuredOutputSchema;
     private final java.util.Map<String, EnvVarInput> runtimeEnv;
     private final boolean autoApproveAll;
     private final java.util.List<AttachmentInput> attachments;
@@ -60,7 +61,10 @@ public final class AgentExecutionInput {
         this.sessionId = builder.sessionId;
         this.sessionSpec = builder.sessionSpec;
         this.message = builder.message;
-        this.executionConfig = builder.executionConfig;
+        this.runConfig = builder.runConfig;
+        this.interactionMode = builder.interactionMode;
+        this.buildFromPlan = builder.buildFromPlan;
+        this.structuredOutputSchema = builder.structuredOutputSchema;
         this.runtimeEnv = builder.runtimeEnv;
         this.autoApproveAll = builder.autoApproveAll;
         this.attachments = builder.attachments;
@@ -81,8 +85,15 @@ public final class AgentExecutionInput {
         if (this.message != null) {
             spec.setMessage(this.message);
         }
-        if (this.executionConfig != null) {
-            spec.setExecutionConfig(this.executionConfig.toProto());
+        if (this.runConfig != null) {
+            spec.setRunConfig(this.runConfig.toProto());
+        }
+        if (this.interactionMode != null) {
+            spec.setInteractionMode(this.interactionMode);
+        }
+        spec.setBuildFromPlan(this.buildFromPlan);
+        if (this.structuredOutputSchema != null) {
+            spec.setStructuredOutputSchema(ProtoConvert.mapToStruct(this.structuredOutputSchema, "structuredOutputSchema"));
         }
         if (this.runtimeEnv != null && !this.runtimeEnv.isEmpty()) {
             for (java.util.Map.Entry<String, EnvVarInput> entry : this.runtimeEnv.entrySet()) {
@@ -147,7 +158,10 @@ public final class AgentExecutionInput {
         private String sessionId;
         private SessionSpecInput sessionSpec;
         private String message;
-        private ExecutionConfigInput executionConfig;
+        private RunConfigInput runConfig;
+        private InteractionMode interactionMode;
+        private boolean buildFromPlan;
+        private java.util.Map<String, Object> structuredOutputSchema;
         private java.util.Map<String, EnvVarInput> runtimeEnv;
         private boolean autoApproveAll;
         private java.util.List<AttachmentInput> attachments;
@@ -172,7 +186,10 @@ public final class AgentExecutionInput {
         public Builder sessionId(String sessionId) { this.sessionId = sessionId; return this; }
         public Builder sessionSpec(SessionSpecInput sessionSpec) { this.sessionSpec = sessionSpec; return this; }
         public Builder message(String message) { this.message = message; return this; }
-        public Builder executionConfig(ExecutionConfigInput executionConfig) { this.executionConfig = executionConfig; return this; }
+        public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
+        public Builder interactionMode(InteractionMode interactionMode) { this.interactionMode = interactionMode; return this; }
+        public Builder buildFromPlan(boolean buildFromPlan) { this.buildFromPlan = buildFromPlan; return this; }
+        public Builder structuredOutputSchema(java.util.Map<String, Object> structuredOutputSchema) { this.structuredOutputSchema = structuredOutputSchema; return this; }
         public Builder runtimeEnv(java.util.Map<String, EnvVarInput> runtimeEnv) { this.runtimeEnv = runtimeEnv; return this; }
         public Builder autoApproveAll(boolean autoApproveAll) { this.autoApproveAll = autoApproveAll; return this; }
         public Builder attachments(java.util.List<AttachmentInput> attachments) { this.attachments = attachments; return this; }
@@ -479,61 +496,38 @@ public final class AgentExecutionInput {
         }
     }
 
-    /** SDK input type for ExecutionConfig. */
-    public static final class ExecutionConfigInput {
+    /** SDK input type for RunConfig. */
+    public static final class RunConfigInput {
         private final String modelName;
-        private final ContextManagementConfigInput contextManagement;
-        private final int maxToolRounds;
-        private final int maxToolResultChars;
         private final double maxCostUsd;
-        private final InteractionMode interactionMode;
-        private final java.util.Map<String, Object> structuredOutputSchema;
-        private final boolean buildFromPlan;
-        private final ApprovalMode approvalMode;
+        private final int maxToolRounds;
         private final ServiceTier serviceTier;
         private final ThinkingMode thinkingMode;
+        private final int maxToolResultChars;
 
-        private ExecutionConfigInput(Builder builder) {
+        private RunConfigInput(Builder builder) {
             this.modelName = builder.modelName;
-            this.contextManagement = builder.contextManagement;
-            this.maxToolRounds = builder.maxToolRounds;
-            this.maxToolResultChars = builder.maxToolResultChars;
             this.maxCostUsd = builder.maxCostUsd;
-            this.interactionMode = builder.interactionMode;
-            this.structuredOutputSchema = builder.structuredOutputSchema;
-            this.buildFromPlan = builder.buildFromPlan;
-            this.approvalMode = builder.approvalMode;
+            this.maxToolRounds = builder.maxToolRounds;
             this.serviceTier = builder.serviceTier;
             this.thinkingMode = builder.thinkingMode;
+            this.maxToolResultChars = builder.maxToolResultChars;
         }
 
-        ExecutionConfig toProto() {
-            ExecutionConfig.Builder builder = ExecutionConfig.newBuilder();
+        RunConfig toProto() {
+            RunConfig.Builder builder = RunConfig.newBuilder();
             if (this.modelName != null) {
                 builder.setModelName(this.modelName);
             }
-            if (this.contextManagement != null) {
-                builder.setContextManagement(this.contextManagement.toProto());
-            }
-            builder.setMaxToolRounds(this.maxToolRounds);
-            builder.setMaxToolResultChars(this.maxToolResultChars);
             builder.setMaxCostUsd(this.maxCostUsd);
-            if (this.interactionMode != null) {
-                builder.setInteractionMode(this.interactionMode);
-            }
-            if (this.structuredOutputSchema != null) {
-                builder.setStructuredOutputSchema(ProtoConvert.mapToStruct(this.structuredOutputSchema, "structuredOutputSchema"));
-            }
-            builder.setBuildFromPlan(this.buildFromPlan);
-            if (this.approvalMode != null) {
-                builder.setApprovalMode(this.approvalMode);
-            }
+            builder.setMaxToolRounds(this.maxToolRounds);
             if (this.serviceTier != null) {
                 builder.setServiceTier(this.serviceTier);
             }
             if (this.thinkingMode != null) {
                 builder.setThinkingMode(this.thinkingMode);
             }
+            builder.setMaxToolResultChars(this.maxToolResultChars);
             return builder.build();
         }
 
@@ -541,69 +535,22 @@ public final class AgentExecutionInput {
 
         public static final class Builder {
             private String modelName;
-            private ContextManagementConfigInput contextManagement;
-            private int maxToolRounds;
-            private int maxToolResultChars;
             private double maxCostUsd;
-            private InteractionMode interactionMode;
-            private java.util.Map<String, Object> structuredOutputSchema;
-            private boolean buildFromPlan;
-            private ApprovalMode approvalMode;
+            private int maxToolRounds;
             private ServiceTier serviceTier;
             private ThinkingMode thinkingMode;
+            private int maxToolResultChars;
 
             private Builder() {}
 
             public Builder modelName(String modelName) { this.modelName = modelName; return this; }
-            public Builder contextManagement(ContextManagementConfigInput contextManagement) { this.contextManagement = contextManagement; return this; }
-            public Builder maxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; return this; }
-            public Builder maxToolResultChars(int maxToolResultChars) { this.maxToolResultChars = maxToolResultChars; return this; }
             public Builder maxCostUsd(double maxCostUsd) { this.maxCostUsd = maxCostUsd; return this; }
-            public Builder interactionMode(InteractionMode interactionMode) { this.interactionMode = interactionMode; return this; }
-            public Builder structuredOutputSchema(java.util.Map<String, Object> structuredOutputSchema) { this.structuredOutputSchema = structuredOutputSchema; return this; }
-            public Builder buildFromPlan(boolean buildFromPlan) { this.buildFromPlan = buildFromPlan; return this; }
-            public Builder approvalMode(ApprovalMode approvalMode) { this.approvalMode = approvalMode; return this; }
+            public Builder maxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; return this; }
             public Builder serviceTier(ServiceTier serviceTier) { this.serviceTier = serviceTier; return this; }
             public Builder thinkingMode(ThinkingMode thinkingMode) { this.thinkingMode = thinkingMode; return this; }
+            public Builder maxToolResultChars(int maxToolResultChars) { this.maxToolResultChars = maxToolResultChars; return this; }
 
-            public ExecutionConfigInput build() { return new ExecutionConfigInput(this); }
-        }
-    }
-
-    /** SDK input type for ContextManagementConfig. */
-    public static final class ContextManagementConfigInput {
-        private final boolean disableSummarization;
-        private final int customTriggerThreshold;
-        private final int customTargetTokens;
-
-        private ContextManagementConfigInput(Builder builder) {
-            this.disableSummarization = builder.disableSummarization;
-            this.customTriggerThreshold = builder.customTriggerThreshold;
-            this.customTargetTokens = builder.customTargetTokens;
-        }
-
-        ContextManagementConfig toProto() {
-            ContextManagementConfig.Builder builder = ContextManagementConfig.newBuilder();
-            builder.setDisableSummarization(this.disableSummarization);
-            builder.setCustomTriggerThreshold(this.customTriggerThreshold);
-            builder.setCustomTargetTokens(this.customTargetTokens);
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private boolean disableSummarization;
-            private int customTriggerThreshold;
-            private int customTargetTokens;
-
-            private Builder() {}
-
-            public Builder disableSummarization(boolean disableSummarization) { this.disableSummarization = disableSummarization; return this; }
-            public Builder customTriggerThreshold(int customTriggerThreshold) { this.customTriggerThreshold = customTriggerThreshold; return this; }
-            public Builder customTargetTokens(int customTargetTokens) { this.customTargetTokens = customTargetTokens; return this; }
-
-            public ContextManagementConfigInput build() { return new ContextManagementConfigInput(this); }
+            public RunConfigInput build() { return new RunConfigInput(this); }
         }
     }
 

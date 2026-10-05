@@ -2,8 +2,9 @@
  * Shared configuration types for the middleware stack.
  *
  * Each middleware module reads its own slice of MiddlewareStackConfig.
- * The factory in index.ts assembles the config from ExecutionConfig
- * proto fields and passes it to buildMiddlewareStack().
+ * The native harness's turn setup assembles the config from the turn's
+ * resolved settings (`status.run_config`) and passes it to
+ * buildMiddlewareStack().
  */
 
 import type { ToolMessage, SystemMessage, AIMessage } from "@langchain/core/messages";

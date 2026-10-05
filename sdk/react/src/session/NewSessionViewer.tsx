@@ -466,7 +466,9 @@ export function NewSessionViewer({
           showModelSelector={modelSelectorVisible}
           enableAttachments={!isGuest}
           defaultModelId={flow.modelId}
+          agentRunDefaults={flow.agentRunDefaults}
           onModelChange={flow.setModelId}
+          onModelPickCleared={flow.clearModelPick}
           placeholder={placeholder}
           initialRows={initialRows}
           autoFocus={autoFocus}

@@ -368,6 +368,11 @@ export class ExecutionRecord {
     next.agentVersionHash = held.agentVersionHash;
     next.declaredPreferences = held.declaredPreferences;
     next.recalledMemories = held.recalledMemories;
+    // The settings the turn runs with and the lane's approval mode are
+    // stamped once at create; the server's merge never takes them from a
+    // runner write, so every later invocation reads the same resolution.
+    next.runConfig = held.runConfig;
+    next.approvalMode = held.approvalMode;
     return next;
   }
 

@@ -57,7 +57,7 @@ export async function buildHookEvaluator(
 /** Claude Code's `permission_mode` for this turn. */
 export function permissionModeOf(input: TurnInput): HookPermissionMode {
   return hookPermissionMode(
-    input.execution.spec?.executionConfig?.interactionMode === InteractionMode.PLAN,
+    input.execution.spec?.interactionMode === InteractionMode.PLAN,
     input.mcp.leases.global,
   );
 }

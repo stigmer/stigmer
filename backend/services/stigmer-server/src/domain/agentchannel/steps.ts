@@ -38,6 +38,7 @@ import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import { unknownModelPinRefusal } from "../workflow/registry/pin-validation.js";
+import { savedChoiceWithoutModelRefusal } from "../workflow/registry/run-config-checks.js";
 import type { ModelCatalogProvider } from "../workflow/registry/model-catalog-provider.js";
 import type { ChannelRuntime } from "./channel-runtime.js";
 import {
@@ -67,12 +68,18 @@ function validateChannelModelPin(
   registry: ModelCatalogProvider,
   spec: AgentChannelSpec | undefined,
 ): void {
-  const reason = unknownModelPinRefusal(
-    registry,
-    "spec.run_config.model_name",
-    "",
-    spec?.runConfig?.modelName ?? "",
-  );
+  const reason =
+    unknownModelPinRefusal(
+      registry,
+      "spec.run_config.model_name",
+      "",
+      spec?.runConfig?.modelName ?? "",
+    ) ||
+    // Saved settings name the model their tier or thinking is for.
+    savedChoiceWithoutModelRefusal(
+      { prefix: "", fieldPath: "spec.run_config" },
+      spec?.runConfig,
+    );
   if (reason !== "") {
     throw invalidArgumentError(reason);
   }

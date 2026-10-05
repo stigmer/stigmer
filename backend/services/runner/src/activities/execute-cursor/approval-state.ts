@@ -258,9 +258,9 @@ export interface ApprovalStateFile {
    */
   gitWorkspace: boolean;
   /**
-   * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED):
-   * the creating surface — a messaging channel, a guest share — has
-   * no approver. What is gated is UNCHANGED; only the resolution differs: a
+   * Unattended approval mode (`status.approval_mode` = UNATTENDED):
+   * the lane the turn came through — a schedule, a messaging channel, a
+   * guest share — has no approver. What is gated is UNCHANGED; only the resolution differs: a
    * deny that would be recorded kind "approval" (pausing) is recorded kind
    * "unattended" (non-pausing) with an adapt-and-explain agent message, so
    * the first-denial stop never fires, no WAITING_APPROVAL gate is

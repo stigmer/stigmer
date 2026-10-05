@@ -86,7 +86,7 @@ function approvedPlanMountPath(planFileName: string): string {
 /**
  * The build turn's user message — a short human-readable label, NOT the
  * implement instruction. The agent-facing instruction is runner-injected
- * (keyed off `executionConfig.buildFromPlan`). The thread hides the turn
+ * (keyed off `spec.buildFromPlan`). The thread hides the turn
  * entirely from the same flag (the plan card above it is the visible cause);
  * this label exists for surfaces without that treatment (the CLI, execution
  * history, older clients), which show it as-is.
@@ -1083,7 +1083,9 @@ const ConversationColumn = memo(function ConversationColumn({
             org={org}
             harness={flow.harness}
             defaultModelId={modelId}
+            agentRunDefaults={flow.agentRunDefaults}
             onModelChange={setModelId}
+            onModelPickCleared={flow.clearModelPick}
             interactionMode={interactionMode}
             onInteractionModeChange={setInteractionMode}
             showInteractionModePicker={!isGuest}
@@ -1372,7 +1374,9 @@ function SessionPanelRegion({
       sessionVariables: flow.sessionVariables,
       harness: flow.harness,
       executionTarget: flow.executionTarget,
-      modelId: flow.model[0],
+      // What the next message runs when the person picks nothing: their
+      // last pick, else the agent's default model for this engine.
+      modelId: flow.model[0] ?? flow.agentRunDefaults?.modelName,
       // Arming auto-approve is an operator decision — withheld from
       // observers with the same gate as approval submission (guests never
       // render the panel). The switch stays interactive mid-run: flipping
@@ -1399,6 +1403,7 @@ function SessionPanelRegion({
     [
       flow.agentRef, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.executionTarget, flow.model,
+      flow.agentRunDefaults,
       flow.autoApproveAll, flow.setAutoApproveAll, isObserver, exportSessionId,
       isCurated, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
       accessSlot,

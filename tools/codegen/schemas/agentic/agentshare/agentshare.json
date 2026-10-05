@@ -95,7 +95,7 @@
         "kind": "message",
         "messageType": "RunConfig"
       },
-      "description": "Per-turn model choice and run bounds for guest conversations on this\n share, overriding the platform's guest execution profile.\n\n Unset fields inherit the platform default. model_name replaces the\n platform model outright, while max_cost_usd and max_tool_rounds can\n only lower the platform caps — a share owner can reduce what one\n guest turn may spend, never raise it past the platform profile.\n Valid on public-audience shares only.",
+      "description": "Per-turn model choice and run bounds for guest conversations on this\n share.\n\n These settings are the turn's own layer: unset fields fall to the\n agent's defaults, then to the platform's guest execution profile\n (RunConfig has the rule). A choice set here wins over the agent's;\n max_cost_usd and max_tool_rounds can only lower the agent's and the\n platform's caps — a share owner can reduce what one guest turn may\n spend, never raise it. Valid on public-audience shares only.",
       "required": false
     }
   ]

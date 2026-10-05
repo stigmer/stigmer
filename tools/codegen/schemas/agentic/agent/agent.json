@@ -137,6 +137,32 @@
       },
       "description": "Hooks that run around this agent's tool calls, and its sub-agents' calls.\n\n Each entry is a plugin whose hooks apply, or a hooks block written in the\n agent itself. A hook can refuse a call, ask a person first, or let it run\n without the approval it would otherwise need. Both engines run hooks in\n Claude Code's format and in Cursor's. On the Cursor engine, web fetch and\n web search reach no hook, so an agent whose hooks would match them runs\n there without those tools.",
       "required": false
+    },
+    {
+      "name": "RunConfig",
+      "jsonName": "runConfig",
+      "protoField": "run_config",
+      "type": {
+        "kind": "message",
+        "messageType": "RunConfig"
+      },
+      "description": "The author's run defaults: the model, speed tier, thinking and run\n bounds a turn on this agent uses unless the message or the surface it\n came through sets its own (RunConfig has the rule). Versioned with the\n agent, so a conversation pinned to a version keeps that version's\n defaults.\n\n A choice here (model_name, service_tier, thinking_mode) applies only on\n the engine named in harness; on a conversation running the other engine\n only the bounds apply. A bound here is a cap: a message or a surface can\n lower it, never raise it. A model must be named together with harness,\n and must be one that engine lists; service_tier FAST and thinking_mode\n ENABLED need a model that engine prices or marks capable. Checked when\n the agent is saved.",
+      "required": false
+    },
+    {
+      "name": "Harness",
+      "jsonName": "harness",
+      "protoField": "harness",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.Harness",
+        "enumValues": [
+          "HARNESS_NATIVE",
+          "HARNESS_CURSOR"
+        ]
+      },
+      "description": "The engine this agent's run defaults were chosen for, and the engine a\n new conversation on this agent starts on when the person or the surface\n starting it names neither an engine nor a model (a turn that names a\n model but no engine starts on native, the engine its name was checked\n against). Unspecified: the platform's default engine (native).\n\n Model names belong to an engine (each lists its own), so run_config's\n model, tier and thinking count only on this engine. A conversation keeps\n the engine it started on; a later version naming another engine changes\n only new conversations.",
+      "required": false
     }
   ]
 }

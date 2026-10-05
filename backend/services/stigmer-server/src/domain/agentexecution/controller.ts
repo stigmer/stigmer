@@ -24,6 +24,7 @@ import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import type {
   AgentExecutionId,
   AgentExecutionList,
@@ -40,6 +41,7 @@ import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import type { RunLanes } from "../../extensions/run-lanes.js";
 import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type {
@@ -138,6 +140,7 @@ import { submitApproval } from "./submit-approval.js";
 import { submitFileDecision } from "./submit-file-decision.js";
 import { subscribeExecution } from "./subscribe.js";
 import { updateStatus } from "./update-status.js";
+import { newResolveRunConfigStep } from "./resolve-run-config.js";
 import { newValidateServiceTierStep } from "./validate-service-tier.js";
 import { newValidateThinkingModeStep } from "./validate-thinking-mode.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
@@ -187,6 +190,18 @@ export interface AgentExecutionControllerDeps {
    * onto a visitor's run; undefined = nobody is a visitor (open source).
    */
   readonly visitorClassifier: VisitorClassifier | undefined;
+  /**
+   * The composed run lanes (extensions/run-lanes.ts) — ResolveRunConfig
+   * places an edition's visitors' turns on them; undefined = only the core
+   * lanes (open source).
+   */
+  readonly runLanes: RunLanes | undefined;
+  /**
+   * The schedule lane's operator profile: the fire-time bounds every
+   * scheduled turn is capped by (ScheduleTemporalConfig's execution
+   * profile). Undefined = no schedule ceiling.
+   */
+  readonly scheduleRunProfile: RunConfig | undefined;
   /**
    * The shared broadcast fabric for subscribe streams. ONE instance spans
    * both routers (serving + in-process) — see stream-broker.ts; the
@@ -325,23 +340,25 @@ export function registerAgentExecutionServices(
 }
 
 /**
- * Create — create.go buildCreatePipeline: validation (proto → visibility →
- * tier #357) → the run gate's first question (AuthorizeRunTarget: may the
+ * Create — create.go buildCreatePipeline: validation (proto → visibility)
+ * → the run gate's first question (AuthorizeRunTarget: may the
  * caller add a turn to the session it names; a new conversation asks
  * nothing here, its session create asks can_create_session and the
  * agent's can_execute) → the session's organization (#1580,
  * session-binding.ts: a turn in a session belongs to that session's
  * organization, filled in when the request names none; the chain's one
- * read of the stored session) → the thinking-mode validation (#772), which
- * judges the model on the harness the execution will run on from that
- * read: both run behind the run gate, so nothing about a session is read
- * or disclosed before the caller may add a turn to it (#1280) → the
- * standard build → the workflow link's vouch beside the lineage labels'
+ * read of the stored session, behind the run gate, so nothing about a
+ * session is read or disclosed before the caller may add a turn to it,
+ * #1280) → the standard build → the workflow link's vouch beside the lineage labels'
  * (vouch-workflow-parent.ts) → the reserved-label guard → the reference
  * rule → ResolveRunAgent, which stamps the agent and version the turn runs
  * (the session's pin, or the new session's agent_ref) → the run gate's
  * second question (AuthorizeRunAgent: may the caller still run that
- * agent) → the engine gate (fail fast BEFORE the first side effect, so a
+ * agent) → ResolveRunConfig (the settings the turn runs with, from the
+ * turn, the agent version it runs and the lane's profile, and the lane's
+ * approval mode; resolve-run-config.ts) → the tier (#357) and thinking-mode
+ * (#772) validations of those resolved settings, on the engine the
+ * conversation runs on → the engine gate (fail fast BEFORE the first side effect, so a
  * down engine orphans nothing) → the pre-side-effect gate slot (empty in
  * OSS) → the side-effecting steps (session bootstrap, which re-takes the
  * stamp from the session it creates; preference/memory snapshots; initial
@@ -373,12 +390,10 @@ async function createExecution(
     .addStep(newRefuseBoundElsewhereStep())
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
-    .addStep(newValidateServiceTierStep(deps.modelRegistry))
     .addStep(
       newAuthorizeRunTargetStep(deps.authorizer, agentExecutionRunTarget),
     )
     .addStep(newValidateSessionOrganizationStep(deps.store))
-    .addStep(newValidateThinkingModeStep(deps.modelRegistry))
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
     // Vouches the runner-stamped workflow lineage labels (or refuses a
@@ -404,6 +419,15 @@ async function createExecution(
       ),
     )
     .addStep(
+      newResolveRunConfigStep({
+        store: deps.store,
+        runLanes: deps.runLanes,
+        scheduleProfile: deps.scheduleRunProfile,
+      }),
+    )
+    .addStep(newValidateServiceTierStep(deps.modelRegistry))
+    .addStep(newValidateThinkingModeStep(deps.modelRegistry))
+    .addStep(
       newRunTargetReachableStep(deps.credentialBinding, agentExecutionRunAgent),
     )
     .addStep(newEnsureEngineAvailableStep(deps.engineState));
@@ -421,6 +445,8 @@ async function createExecution(
       newCreateSessionIfNeededStep({
         logger: deps.logger,
         sessionCreator: deps.sessionCreator,
+        store: deps.store,
+        modelRegistry: deps.modelRegistry,
       }),
     )
     .addStep(

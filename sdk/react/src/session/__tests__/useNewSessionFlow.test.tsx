@@ -1,5 +1,16 @@
+/**
+ * The new-conversation flow: the engine and model a first message runs,
+ * what is remembered on the device, the agent's run defaults, and the
+ * one-call bootstrap create. Pins, among the rest: the person's engine
+ * pick wins over the agent's engine; a model pick is forgotten when the
+ * agent changes, when the person chooses the agent's default back, and
+ * when the engine changes under it to one that does not list it, so a
+ * model is never sent with an engine that does not run it.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ReactNode } from "react";
 import { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, parseRegistryJson } from "../../models/registry";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
@@ -10,9 +21,12 @@ import type { ApprovalDefaults } from "../../approval-defaults-context";
 import { RunnerAdapterContext } from "../../runner-adapter";
 import type { RunnerAdapter } from "../../runner-adapter";
 const mockGetByReference = vi.fn();
-vi.mock("../../hooks", () => ({
-  useStigmer: () => ({ agent: { getByReference: mockGetByReference } }),
-}));
+// One client for every render, as the provider gives: a fresh object per
+// call would change the agent read's inputs on each render.
+vi.mock("../../hooks", () => {
+  const stigmer = { agent: { getByReference: (...args: unknown[]) => mockGetByReference(...args) } };
+  return { useStigmer: () => stigmer };
+});
 
 const mockCreateExecution = vi.fn();
 vi.mock("../../execution/useCreateAgentExecution", () => ({
@@ -592,11 +606,13 @@ describe("useNewSessionFlow", () => {
     it.each([
       ["saved", { mode: "saved" } as const],
       ["direct", { mode: "direct" } as const],
-    ])("starts the conversation on the agent itself for a %s resolution, reading no agent", async (_mode, resolution) => {
+    ])("starts the conversation on the agent itself for a %s resolution", async (_mode, resolution) => {
+      mockGetByReference.mockResolvedValue({ metadata: { id: "agt_9", org: "acme", slug: "reviewer" }, spec: {} });
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
-      act(() => {
+      // The send waits for the agent's read (its engine decides the start).
+      await act(async () => {
         result.current.setAgentRef({ org: "acme", slug: "reviewer" });
         result.current.setResolution(resolution);
       });
@@ -604,11 +620,169 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      expect(mockGetByReference).not.toHaveBeenCalled();
       const execInput = mockCreateExecution.mock.calls[0][0];
       // No version: the server pins the agent's current version.
       expect(execInput.sessionSpec.agentRef).toEqual({ org: "acme", slug: "reviewer" });
       expect(execInput.sessionId).toBeUndefined();
+    });
+  });
+
+  describe("the selected agent's engine and run defaults", () => {
+    const AGENT_ON_CURSOR = {
+      metadata: { id: "agt_1", org: "acme", slug: "reviewer" },
+      spec: {
+        harness: Harness.CURSOR,
+        runConfig: { modelName: "default", thinkingMode: ThinkingMode.UNSPECIFIED },
+      },
+    };
+
+    async function renderWithAgent(agent: unknown) {
+      mockGetByReference.mockResolvedValue(agent);
+      const hook = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
+      await act(async () => {
+        hook.result.current.setAgentRef({ org: "acme", slug: "reviewer" });
+        hook.result.current.setResolution({ mode: "direct" });
+      });
+      await waitFor(() => expect(hook.result.current.harness).toBe(
+        (agent as typeof AGENT_ON_CURSOR | null)?.spec.harness === Harness.CURSOR ? "cursor" : "native",
+      ));
+      return hook;
+    }
+
+    it("opens the engine picker on the agent's engine over a remembered one", async () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      expect(result.current.harness).toBe("cursor");
+      expect(result.current.agentRunDefaults).toEqual({ modelName: "default" });
+    });
+
+    it("keeps the remembered engine where the agent names none", async () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
+      mockGetByReference.mockResolvedValue({
+        metadata: { id: "agt_2", org: "acme", slug: "plain" },
+        spec: {},
+      });
+      await act(async () => {
+        result.current.setAgentRef({ org: "acme", slug: "plain" });
+      });
+      await waitFor(() => expect(mockGetByReference).toHaveBeenCalled());
+      expect(result.current.harness).toBe("cursor");
+      expect(result.current.agentRunDefaults).toBeUndefined();
+    });
+
+    it("the person's engine pick wins over the agent's", async () => {
+      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      act(() => result.current.setHarness("native"));
+      expect(result.current.harness).toBe("native");
+      expect(result.current.agentRunDefaults).toBeUndefined();
+    });
+
+    it("sends no remembered model where the agent's default applies", async () => {
+      localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, DEFAULT_CURSOR_MODEL_ID);
+      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      expect(result.current.modelId).toBeUndefined();
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+      expect(mockCreateExecution.mock.calls[0][0].modelName).toBeUndefined();
+    });
+
+    it("sends a model the person picks over the agent's default", async () => {
+      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      act(() => result.current.setModelId(DEFAULT_CURSOR_MODEL_ID));
+      expect(result.current.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
+    });
+
+    it("forgets the picked model when the person chooses the agent's default back", async () => {
+      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      act(() => result.current.setModelId(DEFAULT_CURSOR_MODEL_ID));
+      act(() => result.current.clearModelPick());
+      expect(result.current.modelId).toBeUndefined();
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+      expect(mockCreateExecution.mock.calls[0][0].modelName).toBeUndefined();
+    });
+
+    it("forgets the picked model when the person picks another agent", async () => {
+      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      act(() => result.current.setModelId(DEFAULT_CURSOR_MODEL_ID));
+      expect(result.current.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
+
+      mockGetByReference.mockResolvedValue({
+        metadata: { id: "agt_3", org: "acme", slug: "writer" },
+        spec: { harness: Harness.CURSOR, runConfig: { modelName: "default" } },
+      });
+      await act(async () => {
+        result.current.setAgentRef({ org: "acme", slug: "writer" });
+      });
+      await waitFor(() => expect(mockGetByReference).toHaveBeenLastCalledWith(
+        expect.objectContaining({ slug: "writer" }),
+      ));
+      // The new agent's own default applies: the pick made for the
+      // previous agent is not sent on.
+      expect(result.current.modelId).toBeUndefined();
+    });
+
+    it("holds a send until the agent is read, so it starts on the agent's engine", async () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      let resolveAgent: (agent: unknown) => void = () => {};
+      mockGetByReference.mockReturnValue(new Promise((resolve) => { resolveAgent = resolve; }));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
+      await act(async () => {
+        result.current.setAgentRef({ org: "acme", slug: "reviewer" });
+        result.current.setResolution({ mode: "direct" });
+      });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+      expect(mockCreateExecution).not.toHaveBeenCalled();
+      expect(result.current.submitError).toMatch(/still loading/);
+
+      await act(async () => {
+        resolveAgent(AGENT_ON_CURSOR);
+      });
+      await waitFor(() => expect(result.current.harness).toBe("cursor"));
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.harness).toBe("cursor");
+    });
+
+    it("drops a model picked for the other engine when the agent's engine loads after the pick", async () => {
+      let resolveAgent: (agent: unknown) => void = () => {};
+      mockGetByReference.mockReturnValue(new Promise((resolve) => { resolveAgent = resolve; }));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
+      await act(async () => {
+        result.current.setAgentRef({ org: "acme", slug: "reviewer" });
+        result.current.setResolution({ mode: "direct" });
+      });
+      // Picked on the native engine while the agent still loads...
+      act(() => result.current.setModelId("claude-sonnet-4.6"));
+      expect(result.current.harness).toBe("native");
+
+      // ...then the agent names the cursor engine.
+      await act(async () => {
+        resolveAgent({
+          metadata: { id: "agt_4", org: "acme", slug: "reviewer" },
+          spec: { harness: Harness.CURSOR },
+        });
+      });
+      await waitFor(() => expect(result.current.harness).toBe("cursor"));
+
+      expect(result.current.modelId).toBeUndefined();
+      // Never filed under the cursor engine's remembered model either.
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_CURSOR)).toBeNull();
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.modelName).toBeUndefined();
+      expect(execInput.sessionSpec.harness).toBe("cursor");
     });
   });
 

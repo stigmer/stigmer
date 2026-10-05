@@ -269,9 +269,9 @@ export interface TurnAttachments {
   readonly visionNotViewable: readonly NotViewableEntry[];
 }
 
-/** What the execution asked for (phase 6, the harness-agnostic half): the raw model name and the effective tier and thinking mode. */
+/** The model the turn runs with (phase 6, the harness-agnostic half): the resolved model name and the effective tier and thinking mode. */
 export interface TurnModelPreferences {
-  /** `spec.executionConfig.modelName`, or `"default"`; the harness validates it against its own catalog. */
+  /** `status.runConfig.modelName` (the control plane's resolution), or `"default"`; the harness validates it against its own catalog. */
   readonly requested: string;
   /** Never UNSPECIFIED: `resolveEffectiveServiceTier` is where the platform default is applied. */
   readonly serviceTier: EffectiveServiceTier;
@@ -352,7 +352,7 @@ export interface TurnInput extends NormalizedActivityInput {
   /** Approved whole-file writes the runtime applied itself this turn (exact-apply); the harness issues no grant for them. */
   readonly appliedToolCallIds: ReadonlySet<string>;
   readonly model: TurnModelPreferences;
-  /** `spec.executionConfig.structuredOutputSchema`, when the execution asks for structured output. */
+  /** `spec.structuredOutputSchema`, when this message asks for structured output. */
   readonly structuredOutputSchema: Record<string, unknown> | undefined;
   readonly standing: TurnStandingContext;
   /** Resolved once by the runtime before any phase; absent when no substrate works. */

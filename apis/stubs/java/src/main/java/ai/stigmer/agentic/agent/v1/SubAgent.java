@@ -272,8 +272,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Model override for this sub-agent.
-   * When set, uses this model instead of the parent's model.
-   * When empty, inherits the parent agent's model.
+   * When set, uses this model instead of the model the turn runs.
+   * When empty, inherits the model the turn runs.
    * </pre>
    *
    * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -295,8 +295,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Model override for this sub-agent.
-   * When set, uses this model instead of the parent's model.
-   * When empty, inherits the parent agent's model.
+   * When set, uses this model instead of the model the turn runs.
+   * When empty, inherits the model the turn runs.
    * </pre>
    *
    * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -1557,8 +1557,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model override for this sub-agent.
-     * When set, uses this model instead of the parent's model.
-     * When empty, inherits the parent agent's model.
+     * When set, uses this model instead of the model the turn runs.
+     * When empty, inherits the model the turn runs.
      * </pre>
      *
      * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -1579,8 +1579,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model override for this sub-agent.
-     * When set, uses this model instead of the parent's model.
-     * When empty, inherits the parent agent's model.
+     * When set, uses this model instead of the model the turn runs.
+     * When empty, inherits the model the turn runs.
      * </pre>
      *
      * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -1602,8 +1602,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model override for this sub-agent.
-     * When set, uses this model instead of the parent's model.
-     * When empty, inherits the parent agent's model.
+     * When set, uses this model instead of the model the turn runs.
+     * When empty, inherits the model the turn runs.
      * </pre>
      *
      * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -1621,8 +1621,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model override for this sub-agent.
-     * When set, uses this model instead of the parent's model.
-     * When empty, inherits the parent agent's model.
+     * When set, uses this model instead of the model the turn runs.
+     * When empty, inherits the model the turn runs.
      * </pre>
      *
      * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -1637,8 +1637,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Model override for this sub-agent.
-     * When set, uses this model instead of the parent's model.
-     * When empty, inherits the parent agent's model.
+     * When set, uses this model instead of the model the turn runs.
+     * When empty, inherits the model the turn runs.
      * </pre>
      *
      * <code>string model_override = 6 [json_name = "modelOverride"];</code>

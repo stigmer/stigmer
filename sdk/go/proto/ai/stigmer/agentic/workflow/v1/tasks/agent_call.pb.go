@@ -55,8 +55,8 @@ type AgentCallTaskConfig struct {
 	// Example: {"GITHUB_TOKEN": "${ .secrets.GH_TOKEN }"}
 	// Optional.
 	Env map[string]string `protobuf:"bytes,3,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Per-call model choice and run bounds. Unset fields inherit the
-	// platform defaults.
+	// Per-call model choice and run bounds. Unset fields fall to the agent's
+	// defaults (RunConfig has the rule).
 	RunConfig *v1.RunConfig `protobuf:"bytes,4,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	// Structured output contract for this agent call.
 	//
@@ -77,8 +77,9 @@ type AgentCallTaskConfig struct {
 	// the AgentExecution. The harness is a session-level concern — it determines
 	// tool availability, state management, model access, and billing tier.
 	//
-	// When unspecified, defaults to HARNESS_NATIVE (the workflow
-	// surface's platform default).
+	// When unspecified: native when run_config names a model (the engine the
+	// model was checked against at save), else the agent's own engine
+	// (AgentSpec.harness), else native.
 	//
 	// YAML Example:
 	//   - code_review:

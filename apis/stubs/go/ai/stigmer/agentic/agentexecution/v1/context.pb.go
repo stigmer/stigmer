@@ -262,23 +262,18 @@ type ContextInfo struct {
 	// Token threshold that triggers summarization.
 	//
 	// When current_token_count exceeds this value, summarization is triggered
-	// to reduce context size. This is either the model default from Model
-	// Registry or a custom override from ContextManagementConfig.
+	// to reduce context size, taken from the model's Model Registry entry.
 	//
 	// Typically set to ~90% of context_window_limit.
 	SummarizationTriggerThreshold int32 `protobuf:"varint,3,opt,name=summarization_trigger_threshold,json=summarizationTriggerThreshold,proto3" json:"summarization_trigger_threshold,omitempty"`
 	// Target token count after summarization.
 	//
-	// Summarization aims to reduce context to approximately this size.
-	// This is either the model default from Model Registry or a custom
-	// override from ContextManagementConfig.
+	// Summarization aims to reduce context to approximately this size,
+	// taken from the model's Model Registry entry.
 	//
 	// Typically set to ~80% of context_window_limit.
 	SummarizationTargetTokens int32 `protobuf:"varint,4,opt,name=summarization_target_tokens,json=summarizationTargetTokens,proto3" json:"summarization_target_tokens,omitempty"`
 	// Whether summarization is enabled for this execution.
-	//
-	// false if ContextManagementConfig.disable_summarization was true.
-	// true otherwise (default).
 	//
 	// When false, no summarization events will occur regardless of
 	// token count. The execution may fail if context exceeds limits.

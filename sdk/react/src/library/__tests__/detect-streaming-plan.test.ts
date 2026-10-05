@@ -7,7 +7,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   AgentExecutionSpecSchema,
-  ExecutionConfigSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
@@ -33,9 +32,7 @@ function makeExecution(opts: {
 
   const spec = create(AgentExecutionSpecSchema);
   if (opts.interactionMode !== undefined) {
-    const config = create(ExecutionConfigSchema);
-    config.interactionMode = opts.interactionMode;
-    spec.executionConfig = config;
+    spec.interactionMode = opts.interactionMode;
   }
   exec.spec = spec;
 

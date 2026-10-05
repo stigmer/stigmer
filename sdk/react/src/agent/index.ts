@@ -43,6 +43,12 @@ export type {
 export { useAgent } from "./useAgent.js";
 export type { UseAgentReturn } from "./useAgent.js";
 
+export { agentHarnessOf, agentRunDefaultsFor } from "./run-defaults.js";
+export type { AgentRunDefaults } from "./run-defaults.js";
+
+export { useRunAgentSpec } from "./useRunAgentSpec.js";
+export type { UseRunAgentSpecReturn } from "./useRunAgentSpec.js";
+
 export { AgentDetailView } from "./AgentDetailView.js";
 export type { AgentDetailViewProps } from "./AgentDetailView.js";
 

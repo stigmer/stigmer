@@ -19,6 +19,7 @@
  * so count-sensitive assertions use dedicated orgs and every agent name is
  * unique (slugs derive from names).
  */
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -376,6 +377,28 @@ describe("launch-gate config", () => {
       }),
     );
     expect(err.code).toBe(Code.InvalidArgument);
+  });
+
+  it("a saved thinking mode with no model of its own is INVALID_ARGUMENT, on create and on update", async () => {
+    const agent = await createTestAgent(uniqueName("Thinking Alone Agent"), ORG);
+    const err = await grpcError(() =>
+      shares.create({
+        ...shareFor(agent, true),
+        spec: { ...shareFor(agent, true).spec, runConfig: { thinkingMode: ThinkingMode.ENABLED } },
+      }),
+    );
+    expect(err.code).toBe(Code.InvalidArgument);
+    expect(err.rawMessage).toContain("spec.run_config.model_name");
+
+    const created = await shares.create(shareFor(agent, true));
+    const update = await grpcError(() =>
+      shares.update({
+        ...shareFor(agent, true),
+        metadata: { ...shareFor(agent, true).metadata, id: created.metadata!.id, slug: created.metadata!.slug },
+        spec: { ...shareFor(agent, true).spec, runConfig: { serviceTier: ServiceTier.FAST } },
+      }),
+    );
+    expect(update.code).toBe(Code.InvalidArgument);
   });
 
   it("environment_refs on an org-audience share is INVALID_ARGUMENT; public persists", async () => {

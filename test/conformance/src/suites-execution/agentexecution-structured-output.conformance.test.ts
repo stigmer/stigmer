@@ -1,5 +1,5 @@
 // Conformance suite for AgentExecution structured output: with a
-// structured_output_schema on execution_config, what the agent's final text
+// spec.structured_output_schema, what the agent's final text
 // becomes on status.structured_output.
 // Domain: agentic / agentexecution — the typed result a workflow's agent_call
 // or an SDK consumer reads instead of prose.
@@ -27,7 +27,7 @@
 // - an extraction miss never fails a run: when the extractor itself answers
 //   in prose (no tool call), the field stays absent and the run COMPLETED;
 // - without a schema the field is never populated and tier 2 is never asked;
-// - the schema itself round-trips on spec.execution_config as submitted.
+// - the schema itself round-trips on spec.structured_output_schema as submitted.
 //
 // Deliberately NOT asserted: whether the fallback validates the value against
 // the schema (extra fields, a missing required field, a wrong type). The
@@ -69,7 +69,7 @@ afterAll(async () => {
 });
 
 // The schemas the arms submit — plain JSON Schema objects, carried as a
-// google.protobuf.Struct on execution_config.structured_output_schema.
+// google.protobuf.Struct on spec.structured_output_schema.
 const SUMMARY_SCORE_SCHEMA: JsonObject = {
   type: "object",
   properties: {
@@ -136,7 +136,7 @@ async function runWithSchema(
       agentRef: agentRefOf(agent),
       message: "Analyze the word hello.",
       autoApproveAll: true,
-      ...(schema !== undefined ? { executionConfig: { structuredOutputSchema: schema, maxToolRounds: 10 } } : {}),
+      ...(schema !== undefined ? { structuredOutputSchema: schema, runConfig: { maxToolRounds: 10 } } : {}),
     }),
   );
   const executionId = execution.metadata!.id;
@@ -259,9 +259,9 @@ describe("AgentExecution structured output — the schema round-trips on the spe
   ];
 
   for (const [name, schema, answer] of schemas) {
-    it(`[rpc:AgentExecutionCommandController.create] execution_config.structured_output_schema is persisted with type and properties intact (${name})`, async () => {
+    it(`[rpc:AgentExecutionCommandController.create] spec.structured_output_schema is persisted with type and properties intact (${name})`, async () => {
       const final = await runWithSchema(answer, schema);
-      const persisted = final.spec?.executionConfig?.structuredOutputSchema;
+      const persisted = final.spec?.structuredOutputSchema;
       expect(persisted, `schema ${name} must survive creation`).toBeDefined();
       expect(persisted!.type).toBe("object");
       expect(persisted!.properties).toEqual(schema.properties);

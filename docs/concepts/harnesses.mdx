@@ -23,7 +23,9 @@ and it stays fixed for the life of that conversation.
 ## Native harness
 
 The native Harness is Stigmer's default. When you create a Session without
-specifying a Harness, it uses native.
+specifying a Harness, it uses the Agent's own `harness` (part of its
+[run settings](/docs/concepts/agents#run-settings)), and native when the Agent
+names none.
 
 **What you get:**
 
@@ -132,8 +134,8 @@ separate runner processes, or separate queues, for each Harness.
 
 ## Creating a Session with a Harness
 
-You set the Harness when creating a Session. If you omit it, native is the
-default.
+You set the Harness when creating a Session. If you omit it, the Session starts
+on the Agent's `harness`, and on native when the Agent names none.
 
 <Tabs items={["TypeScript", "Go"]}>
   <Tab value="TypeScript">

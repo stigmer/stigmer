@@ -149,23 +149,21 @@ message AgentChannelSpec {
   bool proactive_messaging_enabled = 7;
 
   // Per-turn model choice and run bounds for conversations on this
-  // channel, overriding the platform's channel execution profile.
+  // channel.
   //
-  // Unset fields inherit the platform default. model_name replaces the
-  // platform model outright, while max_cost_usd and max_tool_rounds can
-  // only lower the platform caps — a channel owner can reduce what one
-  // turn may spend, never raise it past the platform profile.
+  // These settings are the turn's own layer: unset fields fall to the
+  // agent's defaults, then to the platform's channel execution profile
+  // (RunConfig has the rule). A choice set here wins over the agent's;
+  // max_cost_usd and max_tool_rounds can only lower the agent's and the
+  // platform's caps — a channel owner can reduce what one turn may spend,
+  // never raise it. What a sender's own request carries is never read.
   //
   // @internal
-  // The shared owner-settable run shape (stigmer/stigmer#360), embedded directly —
-  // never a ChannelRunConfig mirror, mirroring being the drift mechanism
-  // the shared message exists to end. Merged at the single broker write
-  // site (ChannelSessionBroker — the promise recorded on
-  // ChannelExecutionProfileProperties), per field: bounds clamp
-  // min(owner, platform), model replaces outright, service_tier stamps
-  // when set (validated fail-closed at execution create), approval_mode
-  // stays platform-owned. Runtime enforcement is cloud-only — OSS has
-  // no channel serving runtime and stores/echoes the field.
+  // The shared run shape (stigmer/stigmer#360), embedded directly — never a
+  // ChannelRunConfig mirror, mirroring being the drift mechanism the shared
+  // message exists to end. Runtime enforcement is cloud-only (the edition's
+  // run-lane driver hands these settings to the server's one resolution);
+  // OSS has no channel serving runtime and stores/echoes the field.
   ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8;
 }
 

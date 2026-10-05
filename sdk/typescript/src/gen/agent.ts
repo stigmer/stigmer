@@ -9,10 +9,14 @@ import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentSpecSchema, McpServerUsageSchema, SubAgentSchema, HookSourceSchema, type McpServerUsage, type SubAgent, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, SubAgentSchema, HookSourceSchema, type SubAgent, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { TagAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVersionsResponseSchema, GetAgentVersionInputSchema, AgentVersionEntrySchema, type TagAgentVersionInput, type ListAgentVersionsInput, type ListAgentVersionsResponse, type GetAgentVersionInput, type AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { McpServerUsageSchema, type McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import { HookFormat, HookHandlerSchema, HookGroupSchema, HookConfigSchema, type HookHandler, type HookGroup, type HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -135,6 +139,8 @@ export interface AgentInput {
   tools?: string[];
   disallowedTools?: string[];
   hooks?: HookSourceInput[];
+  runConfig?: RunConfigInput;
+  harness?: Harness;
 }
 
 /** SDK input type for McpServerUsage. */
@@ -186,6 +192,16 @@ export interface HookHandlerInput {
   timeoutSeconds?: number;
   condition?: string;
   failClosed?: boolean;
+}
+
+/** SDK input type for RunConfig. */
+export interface RunConfigInput {
+  modelName?: string;
+  maxCostUsd?: number;
+  maxToolRounds?: number;
+  serviceTier?: ServiceTier;
+  thinkingMode?: ThinkingMode;
+  maxToolResultChars?: number;
 }
 
 function buildMcpServerUsageProto(input: McpServerUsageInput) {
@@ -249,6 +265,17 @@ function buildHookSourceProto(input: HookSourceInput) {
   return msg;
 }
 
+function buildRunConfigProto(input: RunConfigInput) {
+  return Object.assign(create(RunConfigSchema), stripUndefined({
+    modelName: input.modelName,
+    maxCostUsd: input.maxCostUsd,
+    maxToolRounds: input.maxToolRounds,
+    serviceTier: input.serviceTier,
+    thinkingMode: input.thinkingMode,
+    maxToolResultChars: input.maxToolResultChars,
+  }));
+}
+
 export function buildAgentProto(input: AgentInput): Agent {
   const mcpServerUsages = input.mcpServerUsages?.map(buildMcpServerUsageProto);
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
@@ -258,6 +285,7 @@ export function buildAgentProto(input: AgentInput): Agent {
     env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
   }
   const hooks = input.hooks?.map(buildHookSourceProto);
+  const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -281,6 +309,8 @@ export function buildAgentProto(input: AgentInput): Agent {
       tools: input.tools,
       disallowedTools: input.disallowedTools,
       hooks,
+      runConfig,
+      harness: input.harness,
     })),
   }) as Agent;
 }
@@ -343,6 +373,17 @@ function toHookSourceInput(msg: HookSource): HookSourceInput {
   };
 }
 
+function toRunConfigInput(msg: RunConfig): RunConfigInput {
+  return {
+    modelName: msg.modelName || undefined,
+    maxCostUsd: msg.maxCostUsd || undefined,
+    maxToolRounds: msg.maxToolRounds || undefined,
+    serviceTier: msg.serviceTier || undefined,
+    thinkingMode: msg.thinkingMode || undefined,
+    maxToolResultChars: msg.maxToolResultChars || undefined,
+  };
+}
+
 /**
  * Maps a fetched {@link Agent} to a complete {@link AgentInput} for `update()`.
  *
@@ -380,5 +421,7 @@ export function toAgentUpdateInput(resource: Agent): AgentInput {
     tools: spec.tools?.length ? [...spec.tools] : undefined,
     disallowedTools: spec.disallowedTools?.length ? [...spec.disallowedTools] : undefined,
     hooks: spec.hooks?.length ? spec.hooks.map(toHookSourceInput) : undefined,
+    runConfig: spec.runConfig ? toRunConfigInput(spec.runConfig) : undefined,
+    harness: spec.harness || undefined,
   };
 }
