@@ -29,14 +29,3 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # One pull request replaces the sign-in fields of IdentityProviderSpec (9,
-  # 10, 11) and PlatformClientSpec (6, 7, 8) with create_accounts_on_sign_in
-  # and sign_in_role; the old numbers and names are reserved. Nothing has
-  # launched on the old fields, and every edition starts from an empty
-  # database. This block exists for that one pull request; the pull request
-  # that removes it lands straight after the merge
-  # (https://github.com/stigmer/stigmer/issues/1888).
-  ignore_only:
-    FIELD_NO_DELETE:
-      - ai/stigmer/iam/identityprovider/v1/spec.proto
-      - ai/stigmer/iam/platformclient/v1/spec.proto
