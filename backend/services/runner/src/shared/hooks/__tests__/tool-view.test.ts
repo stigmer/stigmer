@@ -73,7 +73,9 @@ describe("the native views", () => {
     expect(views.viewOf("web_fetch", CALLS["web_fetch"]!)?.toolName).toBe("WebFetch");
   });
 
-  it("maps a hook's rewritten real path back to the engine's", () => {
+  it("maps a hook's rewritten path, real or relative, back to the engine's", () => {
+    expect(views.nativeArgsOf("read_file", { file_path: "docs/x.md" })).toEqual({ file_path: "/docs/x.md" });
+    expect(views.nativeArgsOf("read_file", { file_path: "./docs/../x.md" })).toEqual({ file_path: "/x.md" });
     expect(views.nativeArgsOf("write_file", { file_path: "/work/repo/docs/x.md", content: "y" })).toEqual({
       file_path: "/docs/x.md",
       content: "y",

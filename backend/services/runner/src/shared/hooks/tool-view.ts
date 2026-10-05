@@ -139,7 +139,9 @@ export class NativeToolViews {
         if (typeof value !== "string" || !value.startsWith("/")) return value;
         return value === "/" ? ctx.workspaceRoot : join(ctx.workspaceRoot, value);
       },
-      virtual: (value) => (typeof value === "string" && value.startsWith("/") ? (ctx.toVirtualPath(value) ?? value) : value),
+      // A hook's rewrite may name a path any way it likes (absolute, real,
+      // relative to the workspace); the engine takes only the virtual form.
+      virtual: (value) => (typeof value === "string" && value !== "" ? (ctx.toVirtualPath(value) ?? value) : value),
     };
   }
 

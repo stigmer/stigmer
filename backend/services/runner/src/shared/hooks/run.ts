@@ -10,8 +10,9 @@
  *
  * The command gets its own process group, and the whole group is killed when
  * its timeout passes or the turn is stopped, so a hook that forks cannot
- * outlive its call. A timed-out or failed command answers no decision; what
- * it printed is kept for the log.
+ * keep its call waiting. A child it leaves running after it exits by itself
+ * is left alone: a hook may start a helper on purpose. A timed-out or failed command answers no decision; what it
+ * printed is kept for the log.
  *
  * While the command lives, `onPulse` is called every `pulseMs` (at most
  * {@link ACTIVITY_PULSE_MS}): a PreToolUse hook runs before its tool
